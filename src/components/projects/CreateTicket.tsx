@@ -53,7 +53,7 @@ import {
 import TiptapEditor from "@/components/common/TiptapEditor";
 import { useCreateTicket } from "@/hooks/useTickets";
 import { useUserProjects, useMembers, useTicketConfig } from "@/hooks/useGlobalData";
-import { PRIORITY_OPTIONS, TYPE_OPTIONS } from "@/utils/ticketUtils";
+import { PRIORITY_OPTIONS, TYPE_OPTIONS, getPriorityColor } from "@/utils/ticketUtils";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -80,7 +80,9 @@ interface TicketFormData {
 
 export default function CreateTicket() {
   const [form] = Form.useForm();
-  const [api, contextHolder] = notification.useNotification();
+  const [api, contextHolder] = notification.useNotification({
+    placement: 'top',
+  });
   const [loading, setLoading] = useState(false);
   const [ticketId] = useState(`TKT-${Date.now().toString().slice(-6)}`);
 
@@ -199,7 +201,7 @@ export default function CreateTicket() {
         api.error({
           message: "Error",
           description: "Failed to load project-specific data.",
-          placement: "bottomRight",
+          
           duration: 4,
         });
         setProjectMembers([]);
@@ -244,7 +246,7 @@ export default function CreateTicket() {
         description: `Ticket ${
           createdTicket?.ticketNumber || ticketId
         } created successfully!`,
-        placement: "bottomRight",
+        
         duration: 4,
       });
 
@@ -256,7 +258,7 @@ export default function CreateTicket() {
       api.error({
         message: "Error",
         description: error?.message || "Failed to create ticket",
-        placement: "bottomRight",
+        
         duration: 4,
       });
     } finally {
@@ -268,7 +270,7 @@ export default function CreateTicket() {
     form.resetFields();
     api.info({
       message: "Form cleared",
-      placement: "bottomRight",
+      
       duration: 2,
     });
   };
@@ -547,7 +549,7 @@ export default function CreateTicket() {
                         {priorities.map((priority) => (
                           <Option key={priority.value} value={priority.value}>
                             <Space>
-                              <Badge color={priority.color} />
+                              <Badge color={getPriorityColor(priority.value)} />
                               {priority.label}
                             </Space>
                           </Option>
@@ -893,7 +895,7 @@ export default function CreateTicket() {
                 renderItem={(priority) => (
                   <List.Item style={{ padding: "10px 0", borderBottom: "none" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                      <Badge color={priority.color} style={{ marginTop: 4 }} />
+                      <Badge color={getPriorityColor(priority.value)} style={{ marginTop: 4 }} />
                       <div>
                         <Text strong style={{ display: "block", fontSize: 13 }}>{priority.label}</Text>
                         <Text type="secondary" style={{ fontSize: 11 }}>

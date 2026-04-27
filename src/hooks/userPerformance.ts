@@ -764,7 +764,8 @@ import TicketService from "@/services/ticketService";
 import DailyUpdateService from "@/services/dailyUpdateService";
 import { TimeTrackingService } from "@/services/timeTracking.service";
 import { ProjectService } from "@/services/projectService";
-import { EscalationServiceV2 } from "@/services/escalationServiceV2";
+import { EscalationServiceV2 as EscalationService } from "@/services/escalationServiceV2";
+type Escalation = any;
 import dayjs from "dayjs";
 
 interface PerformanceFilters {
@@ -865,12 +866,14 @@ export const usePerformance = (filters: PerformanceFilters) => {
         return { data: [] };
       }),
 
-      EscalationServiceV2.getAllEscalations()
-        .then(data => ({ success: true, data }))
-        .catch((err: any) => {
-          console.error("Error fetching escalations:", err);
-          return { success: false, data: [] };
-        })
+      (EscalationService as any).getAllEscalations({
+        userId: userId,
+        startDate,
+        endDate,
+      }).catch((err: any) => {
+        console.error("Error fetching escalations:", err);
+        return { success: false, data: [] };
+      })
     ]);
 
 
@@ -1112,11 +1115,11 @@ export const usePerformance = (filters: PerformanceFilters) => {
       escalations: {
         summary: {
           total: totalEscalations,
-          open: (escalationsRes?.data || []).filter(e => e.status === 'OPEN').length,
-          resolved: (escalationsRes?.data || []).filter(e => e.status === 'RESOLVED' || e.status === 'CLOSED').length,
+          open: (escalationsRes?.data || []).filter((e: any) => e.status === 'OPEN').length,
+          resolved: (escalationsRes?.data || []).filter((e: any) => e.status === 'RESOLVED' || e.status === 'CLOSED').length,
           penalty: round(escalationPenalty),
         },
-        details: (escalationsRes?.data || []).map(e => ({
+        details: (escalationsRes?.data || []).map((e: any) => ({
           id: e.id,
           subject: e.subject,
           status: e.status,

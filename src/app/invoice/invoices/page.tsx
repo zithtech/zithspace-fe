@@ -63,25 +63,25 @@ import {
   RefreshCw
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import moment from "moment";
+
 import isBetween from "dayjs/plugin/isBetween";
 
-import { 
-  useInvoices, 
-  useDeleteInvoice, 
+import {
+  useInvoices,
+  useDeleteInvoice,
   useBulkDeleteInvoice,
-  useDownloadInvoice, 
-  useUpdateInvoiceStatus, 
+  useDownloadInvoice,
+  useUpdateInvoiceStatus,
   useSendInvoiceEmail,
   useInvoicePaymentHistory
 } from "@/hooks/useInvoices";
 
 // In your component file (InvoiceInvoicesPage)
-import type { 
-  PaymentTransaction, 
+import type {
+  PaymentTransaction,
   PaymentHistoryData,
   PaymentStatus,
-  PaymentMethod 
+  PaymentMethod
 } from "@/services/invoiceService";
 import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
 
@@ -167,24 +167,25 @@ export default function InvoiceInvoicesPage() {
 
   /* ================= ATTRACTIVE METRIC CARDS ================= */
   const StatCard = ({ label, value, icon: Icon, color }: any) => (
-    <Card 
-      styles={{ body: { padding: "12px 16px" } }} 
-      style={{ 
-        borderRadius: 16, 
-        border: "1px solid #f1f5f9", 
+    <Card
+      styles={{ body: { padding: "12px 16px" } }}
+      style={{
+        borderRadius: 16,
+        border: "1px solid var(--customers-card-border)",
         boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-        height: "100%"
+        height: "100%",
+        backgroundColor: "var(--customers-card-bg)"
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+          <Text style={{ color: "var(--customers-stat-label)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "var(--customers-stat-value)", marginTop: 4 }}>{value}</div>
         </div>
-        <div style={{ 
-          color, 
-          background: `${color}12`, 
-          padding: 12, 
+        <div style={{
+          color,
+          background: `${color}12`,
+          padding: 12,
           borderRadius: 12,
           display: "flex",
           alignItems: "center",
@@ -277,51 +278,51 @@ export default function InvoiceInvoicesPage() {
 
   dayjs.extend(isBetween);
 
-    // Add this useEffect after your hook calls
-useEffect(() => {
-  if (paymentHistory && transactionDrawerOpen) {
-    console.log('Payment History Data:', {
-      hasData: !!paymentHistory,
-      hasPayments: !!paymentHistory.payments,
-      paymentsCount: paymentHistory.payments?.length || 0,
-      summary: paymentHistory.summary,
-      firstPayment: paymentHistory.payments?.[0],
-      fullData: paymentHistory
-    });
-  }
-}, [paymentHistory, transactionDrawerOpen]);
-
-
-// Inside the component...
-const [emailDrawerOpen, setEmailDrawerOpen] = useState(false);
-const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = useState<any>(null);
-
-const { mutate: sendEmail, isPending: isSendingEmail } = useSendInvoiceEmail();
-
-// Function to handle the Quick Send (Background)
-const handleQuickSend = (record: any) => {
-  const snapshot = record.customerSnapshot as any;
-  const targetEmail = snapshot?.email || record.customer?.email;
-
-  if (!targetEmail) {
-    messageApi.error("No email found for this customer.");
-    return;
-  }
-
-  const hide = message.loading(`Sending invoice ${record.invoiceNumber}...`, 0);
-
-  sendEmail({
-    id: record.id,
-    data: {
-      to: targetEmail,
-      subject: `Invoice ${record.invoiceNumber} from Your Company`,
-      message: `Dear ${snapshot?.name || 'Customer'},\n\nPlease find your invoice ${record.invoiceNumber} attached.`
+  // Add this useEffect after your hook calls
+  useEffect(() => {
+    if (paymentHistory && transactionDrawerOpen) {
+      console.log('Payment History Data:', {
+        hasData: !!paymentHistory,
+        hasPayments: !!paymentHistory.payments,
+        paymentsCount: paymentHistory.payments?.length || 0,
+        summary: paymentHistory.summary,
+        firstPayment: paymentHistory.payments?.[0],
+        fullData: paymentHistory
+      });
     }
-  }, {
-    onSettled: () => hide(),
-    onSuccess: () => messageApi.success("Email sent successfully!")
-  });
-};
+  }, [paymentHistory, transactionDrawerOpen]);
+
+
+  // Inside the component...
+  const [emailDrawerOpen, setEmailDrawerOpen] = useState(false);
+  const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = useState<any>(null);
+
+  const { mutate: sendEmail, isPending: isSendingEmail } = useSendInvoiceEmail();
+
+  // Function to handle the Quick Send (Background)
+  const handleQuickSend = (record: any) => {
+    const snapshot = record.customerSnapshot as any;
+    const targetEmail = snapshot?.email || record.customer?.email;
+
+    if (!targetEmail) {
+      messageApi.error("No email found for this customer.");
+      return;
+    }
+
+    const hide = message.loading(`Sending invoice ${record.invoiceNumber}...`, 0);
+
+    sendEmail({
+      id: record.id,
+      data: {
+        to: targetEmail,
+        subject: `Invoice ${record.invoiceNumber} from Your Company`,
+        message: `Dear ${snapshot?.name || 'Customer'},\n\nPlease find your invoice ${record.invoiceNumber} attached.`
+      }
+    }, {
+      onSettled: () => hide(),
+      onSuccess: () => messageApi.success("Email sent successfully!")
+    });
+  };
 
 
 
@@ -339,7 +340,7 @@ const handleQuickSend = (record: any) => {
 
   const handleDeleteInvoice = async () => {
     if (!invoiceToDelete) return;
-    
+
     try {
       setDeletingId(invoiceToDelete.id);
       await deleteMutation.mutateAsync(invoiceToDelete.id, {
@@ -374,224 +375,224 @@ const handleQuickSend = (record: any) => {
     setBulkDeleteModalVisible(false);
   };
 
- 
-
-
-// const startBulkDelete = async () => {
-//   if (selectedInvoices.length === 0) return;
-  
-//   setBulkDeleteModalVisible(false);
-  
-//   setBulkDeleteProgress({
-//     visible: true,
-//     total: selectedInvoices.length,
-//     completed: 0,
-//     failed: 0,
-//     currentInvoice: null,
-//     isDeleting: true
-//   });
-
-//   const deletedInvoices: string[] = [];
-//   const failedInvoices: Array<{ invoiceNumber: string; error: string }> = [];
-  
-//   for (let i = 0; i < selectedInvoices.length; i++) {
-//     const inv = selectedInvoices[i];
-    
-//     setBulkDeleteProgress(prev => ({
-//       ...prev,
-//       currentInvoice: inv.invoiceNumber
-//     }));
-    
-//     try {
-//       console.log(`Deleting invoice ${i + 1}/${selectedInvoices.length}:`, {
-//         id: inv.id,
-//         invoiceNumber: inv.invoiceNumber,
-//         url: `/api/invoices/${inv.id}`
-//       });
-      
-//       // Test if the endpoint exists first
-//       const testResponse = await fetch(`/api/invoices/${inv.id}`, {
-//         method: 'HEAD',
-//       });
-      
-//       console.log('HEAD response status:', testResponse.status);
-      
-//       if (testResponse.status === 404) {
-//         throw new Error(`Invoice not found (404). ID: ${inv.id}, Number: ${inv.invoiceNumber}`);
-//       }
-      
-//       // Now try the DELETE
-//       const response = await fetch(`/api/invoices/${inv.id}`, {
-//         method: 'DELETE',
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//       });
-      
-//       console.log('DELETE response status:', response.status);
-      
-//       if (!response.ok) {
-//         let errorMessage = `HTTP error! status: ${response.status}`;
-//         try {
-//           const errorData = await response.json();
-//           errorMessage = errorData.message || errorMessage;
-//         } catch {
-//           // Ignore JSON parse errors
-//         }
-//         throw new Error(errorMessage);
-//       }
-      
-//       deletedInvoices.push(inv.invoiceNumber);
-      
-//       setBulkDeleteProgress(prev => ({
-//         ...prev,
-//         completed: prev.completed + 1
-//       }));
-      
-//       await new Promise(resolve => setTimeout(resolve, 300));
-      
-//     } catch (error: any) {
-//       console.error(`Failed to delete invoice ${inv.invoiceNumber}:`, {
-//         error: error.message,
-//         invoiceId: inv.id,
-//         invoiceNumber: inv.invoiceNumber,
-//         stack: error.stack
-//       });
-      
-//       failedInvoices.push({
-//         invoiceNumber: inv.invoiceNumber,
-//         error: error.message || 'Unknown error'
-//       });
-      
-//       setBulkDeleteProgress(prev => ({
-//         ...prev,
-//         failed: prev.failed + 1,
-//         completed: prev.completed + 1
-//       }));
-//     }
-//   }
 
 
 
-  
-//   // Wait a moment before closing progress modal
-//   setTimeout(() => {
-//     setBulkDeleteProgress({
-//       visible: false,
-//       total: 0,
-//       completed: 0,
-//       failed: 0,
-//       currentInvoice: null,
-//       isDeleting: false
-//     });
-    
-//     // Show results
-//     if (deletedInvoices.length > 0) {
-//       messageApi.success(`Deleted ${deletedInvoices.length} invoice(s) successfully`);
-//     }
-    
-//     if (failedInvoices.length > 0) {
-//       messageApi.warning(`Failed to delete ${failedInvoices.length} invoice(s)`);
-      
-//       // Show detailed error modal
-//       Modal.warning({
-//         title: 'Failed to Delete Some Invoices',
-//         content: (
-//           <div>
-//             <Alert
-//               message={`${failedInvoices.length} invoice(s) could not be deleted`}
-//               description="The following invoices failed to delete:"
-//               type="warning"
-//               showIcon
-//               className="mb-4"
-//             />
-//             <div className="max-h-60 overflow-y-auto border rounded p-2">
-//               <ul className="list-disc pl-4">
-//                 {failedInvoices.map((failed, idx) => (
-//                   <li key={idx} className="mb-1 text-sm">
-//                     <Text strong>{failed.invoiceNumber}</Text>
-//                     <Text type="secondary" className="ml-2">
-//                       - {failed.error}
-//                     </Text>
-//                   </li>
-//                 ))}
-//               </ul>
-//             </div>
-//           </div>
-//         ),
-//         width: 500,
-//         okText: 'OK'
-//       });
-//     }
-    
-//     // Clear selection and refresh data
-//     setSelectedRowKeys([]);
-//     setSelectedInvoices([]);
-//     refetch();
-    
-//   }, 1500);
-  
-//   // ... rest of your code
-// };
+  // const startBulkDelete = async () => {
+  //   if (selectedInvoices.length === 0) return;
+
+  //   setBulkDeleteModalVisible(false);
+
+  //   setBulkDeleteProgress({
+  //     visible: true,
+  //     total: selectedInvoices.length,
+  //     completed: 0,
+  //     failed: 0,
+  //     currentInvoice: null,
+  //     isDeleting: true
+  //   });
+
+  //   const deletedInvoices: string[] = [];
+  //   const failedInvoices: Array<{ invoiceNumber: string; error: string }> = [];
+
+  //   for (let i = 0; i < selectedInvoices.length; i++) {
+  //     const inv = selectedInvoices[i];
+
+  //     setBulkDeleteProgress(prev => ({
+  //       ...prev,
+  //       currentInvoice: inv.invoiceNumber
+  //     }));
+
+  //     try {
+  //       console.log(`Deleting invoice ${i + 1}/${selectedInvoices.length}:`, {
+  //         id: inv.id,
+  //         invoiceNumber: inv.invoiceNumber,
+  //         url: `/api/invoices/${inv.id}`
+  //       });
+
+  //       // Test if the endpoint exists first
+  //       const testResponse = await fetch(`/api/invoices/${inv.id}`, {
+  //         method: 'HEAD',
+  //       });
+
+  //       console.log('HEAD response status:', testResponse.status);
+
+  //       if (testResponse.status === 404) {
+  //         throw new Error(`Invoice not found (404). ID: ${inv.id}, Number: ${inv.invoiceNumber}`);
+  //       }
+
+  //       // Now try the DELETE
+  //       const response = await fetch(`/api/invoices/${inv.id}`, {
+  //         method: 'DELETE',
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //         },
+  //       });
+
+  //       console.log('DELETE response status:', response.status);
+
+  //       if (!response.ok) {
+  //         let errorMessage = `HTTP error! status: ${response.status}`;
+  //         try {
+  //           const errorData = await response.json();
+  //           errorMessage = errorData.message || errorMessage;
+  //         } catch {
+  //           // Ignore JSON parse errors
+  //         }
+  //         throw new Error(errorMessage);
+  //       }
+
+  //       deletedInvoices.push(inv.invoiceNumber);
+
+  //       setBulkDeleteProgress(prev => ({
+  //         ...prev,
+  //         completed: prev.completed + 1
+  //       }));
+
+  //       await new Promise(resolve => setTimeout(resolve, 300));
+
+  //     } catch (error: any) {
+  //       console.error(`Failed to delete invoice ${inv.invoiceNumber}:`, {
+  //         error: error.message,
+  //         invoiceId: inv.id,
+  //         invoiceNumber: inv.invoiceNumber,
+  //         stack: error.stack
+  //       });
+
+  //       failedInvoices.push({
+  //         invoiceNumber: inv.invoiceNumber,
+  //         error: error.message || 'Unknown error'
+  //       });
+
+  //       setBulkDeleteProgress(prev => ({
+  //         ...prev,
+  //         failed: prev.failed + 1,
+  //         completed: prev.completed + 1
+  //       }));
+  //     }
+  //   }
 
 
-const startBulkDelete = async () => {
-  if (selectedInvoices.length === 0) return;
-  
-  setBulkDeleteModalVisible(false);
-  
-  const ids = selectedInvoices.map(inv => inv.id);
-  const invoiceNumbers = selectedInvoices.map(inv => inv.invoiceNumber);
 
-  setBulkDeleteProgress({
-    visible: true,
-    total: selectedInvoices.length,
-    completed: 0,
-    failed: 0,
-    currentInvoice: 'Processing bulk request...',
-    isDeleting: true
-  });
 
-  try {
-    const result = await bulkDeleteMutation.mutateAsync(ids);
-    
-    setBulkDeleteProgress(prev => ({
-      ...prev,
-      completed: selectedInvoices.length,
-      currentInvoice: 'Finished'
-    }));
+  //   // Wait a moment before closing progress modal
+  //   setTimeout(() => {
+  //     setBulkDeleteProgress({
+  //       visible: false,
+  //       total: 0,
+  //       completed: 0,
+  //       failed: 0,
+  //       currentInvoice: null,
+  //       isDeleting: false
+  //     });
 
-    // Clear selection
-    setSelectedRowKeys([]);
-    setSelectedInvoices([]);
+  //     // Show results
+  //     if (deletedInvoices.length > 0) {
+  //       messageApi.success(`Deleted ${deletedInvoices.length} invoice(s) successfully`);
+  //     }
 
-  } catch (error: any) {
-    console.error(`Bulk trash failed:`, error);
-    
-    setBulkDeleteProgress(prev => ({
-      ...prev,
-      failed: selectedInvoices.length,
-      isDeleting: false
-    }));
+  //     if (failedInvoices.length > 0) {
+  //       messageApi.warning(`Failed to delete ${failedInvoices.length} invoice(s)`);
 
-    // In case of error, the hook already shows a message, but we might want to handle it here too
-  }
-  
-  setTimeout(() => {
+  //       // Show detailed error modal
+  //       Modal.warning({
+  //         title: 'Failed to Delete Some Invoices',
+  //         content: (
+  //           <div>
+  //             <Alert
+  //               message={`${failedInvoices.length} invoice(s) could not be deleted`}
+  //               description="The following invoices failed to delete:"
+  //               type="warning"
+  //               showIcon
+  //               className="mb-4"
+  //             />
+  //             <div className="max-h-60 overflow-y-auto border rounded p-2">
+  //               <ul className="list-disc pl-4">
+  //                 {failedInvoices.map((failed, idx) => (
+  //                   <li key={idx} className="mb-1 text-sm">
+  //                     <Text strong>{failed.invoiceNumber}</Text>
+  //                     <Text type="secondary" className="ml-2">
+  //                       - {failed.error}
+  //                     </Text>
+  //                   </li>
+  //                 ))}
+  //               </ul>
+  //             </div>
+  //           </div>
+  //         ),
+  //         width: 500,
+  //         okText: 'OK'
+  //       });
+  //     }
+
+  //     // Clear selection and refresh data
+  //     setSelectedRowKeys([]);
+  //     setSelectedInvoices([]);
+  //     refetch();
+
+  //   }, 1500);
+
+  //   // ... rest of your code
+  // };
+
+
+  const startBulkDelete = async () => {
+    if (selectedInvoices.length === 0) return;
+
+    setBulkDeleteModalVisible(false);
+
+    const ids = selectedInvoices.map(inv => inv.id);
+    const invoiceNumbers = selectedInvoices.map(inv => inv.invoiceNumber);
+
     setBulkDeleteProgress({
-      visible: false,
-      total: 0,
+      visible: true,
+      total: selectedInvoices.length,
       completed: 0,
       failed: 0,
-      currentInvoice: null,
-      isDeleting: false
+      currentInvoice: 'Processing bulk request...',
+      isDeleting: true
     });
-    
-    // Clear selection
-    setSelectedRowKeys([]);
-    setSelectedInvoices([]);
-  }, 1000);
-};
+
+    try {
+      const result = await bulkDeleteMutation.mutateAsync(ids);
+
+      setBulkDeleteProgress(prev => ({
+        ...prev,
+        completed: selectedInvoices.length,
+        currentInvoice: 'Finished'
+      }));
+
+      // Clear selection
+      setSelectedRowKeys([]);
+      setSelectedInvoices([]);
+
+    } catch (error: any) {
+      console.error(`Bulk trash failed:`, error);
+
+      setBulkDeleteProgress(prev => ({
+        ...prev,
+        failed: selectedInvoices.length,
+        isDeleting: false
+      }));
+
+      // In case of error, the hook already shows a message, but we might want to handle it here too
+    }
+
+    setTimeout(() => {
+      setBulkDeleteProgress({
+        visible: false,
+        total: 0,
+        completed: 0,
+        failed: 0,
+        currentInvoice: null,
+        isDeleting: false
+      });
+
+      // Clear selection
+      setSelectedRowKeys([]);
+      setSelectedInvoices([]);
+    }, 1000);
+  };
 
   const cancelBulkDelete = () => {
     setBulkDeleteProgress({
@@ -632,20 +633,20 @@ const startBulkDelete = async () => {
       },
     },
     {
-    key: "send_quick",
-    icon: <Mail size={16} />,
-    label: "Quick Send Email",
-    onClick: () => handleQuickSend(record),
-  },
-  {
-    key: "compose_email",
-    icon: <Edit2 size={16} />,
-    label: "Compose & Send",
-    onClick: () => {
-      setSelectedInvoiceForEmail(record);
-      setEmailDrawerOpen(true);
+      key: "send_quick",
+      icon: <Mail size={16} />,
+      label: "Quick Send Email",
+      onClick: () => handleQuickSend(record),
     },
-  },
+    {
+      key: "compose_email",
+      icon: <Edit2 size={16} />,
+      label: "Compose & Send",
+      onClick: () => {
+        setSelectedInvoiceForEmail(record);
+        setEmailDrawerOpen(true);
+      },
+    },
     {
       key: "transactions",
       icon: <DollarSign size={16} />,
@@ -748,7 +749,7 @@ const startBulkDelete = async () => {
         statusForm.setFieldsValue({
           paidAmount: statusChangeInvoice.balanceDue,
           description: statusChangeInvoice.description || "",
-          paidAt: moment(),
+          paidAt: dayjs(),
           paymentMethod: "BANK_TRANSFER"
         });
         setStatusModalVisible(true);
@@ -786,7 +787,7 @@ const startBulkDelete = async () => {
       key: "invoice_number",
       width: 140,
       render: (text) => (
-        <Text strong style={{ color: '#2563eb', fontWeight: 700 }}>
+        <Text strong style={{ color: 'var(--customers-header-icon-color)', fontWeight: 700 }}>
           {text}
         </Text>
       ),
@@ -800,14 +801,14 @@ const startBulkDelete = async () => {
         const companyName = snapshot?.companyName || record.customer?.companyName || "Unknown";
         return (
           <div className="flex items-center gap-3 truncate">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 text-xs font-bold shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: 'var(--customers-avatar-bg)', color: 'var(--customers-avatar-text)' }}>
               {companyName.charAt(0)}
             </div>
             <div className="truncate">
-              <div className="font-bold text-gray-900 truncate">
+              <div className="font-bold truncate" style={{ color: 'var(--text-primary)' }}>
                 {companyName}
               </div>
-              <div className="text-[10px] text-gray-500 truncate">
+              <div className="text-[10px] truncate" style={{ color: 'var(--text-slate-500)' }}>
                 {snapshot?.email || record.customer?.email || ""}
               </div>
             </div>
@@ -820,8 +821,8 @@ const startBulkDelete = async () => {
       dataIndex: "invoiceDate",
       width: 120,
       render: (date: string) => (
-        <div className="text-gray-600">
-          {date ? moment(date).format('MMM DD, YYYY') : '-'}
+        <div style={{ color: 'var(--text-secondary)' }}>
+          {date ? dayjs(date).format('MMM DD, YYYY') : '-'}
         </div>
       ),
     },
@@ -830,10 +831,10 @@ const startBulkDelete = async () => {
       dataIndex: "dueDate",
       width: 120,
       render: (date: string) => {
-        const isOverdue = date && moment(date).isBefore(moment(), 'day');
+        const isOverdue = date && dayjs(date).isBefore(dayjs(), 'day');
         return (
-          <div className={isOverdue ? "text-red-500 font-medium" : "text-gray-600"}>
-            {date ? moment(date).format('MMM DD, YYYY') : '-'}
+          <div className={isOverdue ? "text-red-500 font-medium" : ""} style={{ color: isOverdue ? '#ef4444' : 'var(--text-secondary)' }}>
+            {date ? dayjs(date).format('MMM DD, YYYY') : '-'}
           </div>
         );
       },
@@ -843,7 +844,7 @@ const startBulkDelete = async () => {
       dataIndex: "grandTotal",
       width: 120,
       render: (v, record) => (
-        <div className="font-bold text-slate-900">
+        <div className="font-bold" style={{ color: 'var(--text-primary)' }}>
           ${Number(v || record.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
       ),
@@ -900,11 +901,12 @@ const startBulkDelete = async () => {
       dataIndex: "balanceDue",
       width: 120,
       render: (v, record) => {
-        const isFullyPaid = Number(v) === 0;
+        // Use the balanceDue field directly since it's updated by the status update hook
+        const balance = Number(v || 0);
+
         return (
-          <div className={isFullyPaid ? "text-green-600 font-medium" : "text-gray-900 font-semibold"}>
-            ${Number(v).toFixed(2)}
-            {isFullyPaid && <CheckCircle size={14} className="ml-1 text-green-500 inline" />}
+          <div className={balance === 0 ? "text-green-600 font-medium" : "font-semibold"} style={{ color: balance === 0 ? '#10b981' : 'var(--text-primary)' }}>
+            ${balance.toFixed(2)}
           </div>
         );
       },
@@ -916,11 +918,11 @@ const startBulkDelete = async () => {
       render: (_, record) => {
         const menuItems = getMenuItems(record);
         if (!menuItems || menuItems.length === 0) return null;
-        
+
         const menu = (
           <Menu items={menuItems} />
         );
-        
+
         return (
           <Dropdown
             overlay={menu}
@@ -935,7 +937,7 @@ const startBulkDelete = async () => {
           >
             <Button
               type="text"
-              icon={<MoreVertical size={18} className="text-gray-500 hover:text-gray-700" />}
+              icon={<MoreVertical size={18} style={{ color: 'var(--text-slate-400)' }} />}
               className="hover:bg-gray-100"
             />
           </Dropdown>
@@ -1086,53 +1088,53 @@ const startBulkDelete = async () => {
     <MainLayout>
       {contextHolder}
       <div style={{
-          margin: "0 -24px",
-          padding: "24px 32px",
-          background: "#ffffff",
-          minHeight: "calc(100vh - 64px)"
+        margin: "0 -24px",
+        padding: "6px 32px 24px 32px",
+        background: "var(--customers-page-bg)",
+        minHeight: "calc(100vh - 64px)"
       }}>
         {/* ================= HEADER ================= */}
-        <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
+        <div style={{ marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24 }}>
           <div style={{ flex: 1 }}>
-            <Space size={14} align="center">
-              <div style={{ background: "#f1f5f9", padding: 12, borderRadius: 14, color: "#334155", display: "flex" }}>
-                <FileText size={28} />
+            <Space size={8} align="center">
+              <div style={{ background: "var(--customers-header-icon-bg)", padding: "6px 8px", borderRadius: 8, color: "var(--customers-header-icon-color)", display: "flex" }}>
+                <FileText size={18} />
               </div>
               <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Invoices</Title>
-                <Text style={{ color: "#64748b", fontSize: 15 }}>Manage, track payments, and monitor invoice statuses across customers.</Text>
+                <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)", fontSize: "15px" }}>Invoices</Title>
+                <Text style={{ color: "var(--text-secondary)", fontSize: "11px" }}>Manage, track payments, and monitor invoice statuses.</Text>
               </div>
             </Space>
           </div>
-          <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ display: "flex", gap: 10 }}>
             <Input
               placeholder="Search invoices..."
               allowClear
-              size="large"
-              prefix={<Search size={18} className="text-slate-400 mr-2" />}
+              size="middle"
+              prefix={<Search size={16} className="mr-2" style={{ color: 'var(--text-slate-400)' }} />}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              style={{ 
-                width: 320, 
-                borderRadius: 12,
-                height: 44,
-                backgroundColor: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                fontSize: "14px"
+              style={{
+                width: 280,
+                borderRadius: 8,
+                height: 38,
+                backgroundColor: "var(--bg-slate-50)",
+                border: "1px solid var(--customers-card-border)",
+                fontSize: "13px"
               }}
               className="search-input-modern"
             />
             <Popover content={filterContent} trigger="click" placement="bottomRight">
-              <Button size="large" icon={<Filter size={18} />} style={{ borderRadius: 12, height: 44 }}>
+              <Button size="middle" icon={<Filter size={16} />} style={{ borderRadius: 8, height: 38, display: 'flex', alignItems: 'center' }}>
                 Filter
               </Button>
             </Popover>
             {canCreateInvoice && (
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<Plus size={18} />} 
-                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600, background: "#2563eb", border: "none" }}
+              <Button
+                type="primary"
+                size="middle"
+                icon={<Plus size={16} />}
+                style={{ borderRadius: 8, height: 38, backgroundColor: 'var(--customers-header-icon-color)', border: 'none', fontWeight: 600 }}
                 onClick={() => router.push("/invoice/newinvoice")}
               >
                 New Invoice
@@ -1141,14 +1143,16 @@ const startBulkDelete = async () => {
           </div>
         </div>
 
+        <Divider style={{ margin: "4px -32px 12px -32px", width: "calc(100% + 64px)", borderColor: 'var(--border-color)' }} />
+
         {/* ================= METRIC STATS ================= */}
         <Row gutter={[24, 24]} style={{ marginBottom: 16 }}>
           <Col xs={24} sm={12} md={6}>
-            <StatCard 
-              label="Total Revenue" 
-              value={`$${invoices.reduce((sum, inv) => sum + Number(inv.grandTotal || (inv as any).total || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-              icon={TrendingUp} 
-              color="#3b82f6" 
+            <StatCard
+              label="Total Revenue"
+              value={`$${invoices.reduce((sum, inv) => sum + Number(inv.grandTotal || (inv as any).total || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              icon={TrendingUp}
+              color="#3b82f6"
             />
           </Col>
           <Col xs={24} sm={12} md={6}>
@@ -1162,72 +1166,70 @@ const startBulkDelete = async () => {
           </Col>
         </Row>
 
-          <Divider style={{marginTop:"0"}} />
-
-          {/* Bulk Action Bar */}
-          {selectedRowKeys.length > 0 && (
-            <div className="mb-3">
-              <Alert
-                message={
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">
-                      {selectedRowKeys.length} invoice(s) selected
-                    </span>
-                    <Space size="middle">
-                      <Button
+        {/* Bulk Action Bar */}
+        {selectedRowKeys.length > 0 && (
+          <div className="mb-3">
+            <Alert
+              message={
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">
+                    {selectedRowKeys.length} invoice(s) selected
+                  </span>
+                  <Space size="middle">
+                    {/* <Button
                         icon={<Mail size={16} />}
                         onClick={() => messageApi.info('Send email feature coming soon')}
                       >
                         Send Email
-                      </Button>
+                      </Button> */}
+                    <Button
+                      icon={<Download size={16} />}
+                      loading={isDownloading}
+                      onClick={handleBulkDownload}
+                    >
+                      Download Selected
+                    </Button>
+                    {canDeleteInvoice && (
                       <Button
-                        icon={<Download size={16} />}
-                        loading={isDownloading}
-                        onClick={handleBulkDownload}
+                        danger
+                        icon={<Trash2 size={16} />}
+                        onClick={openBulkDeleteModal}
+                        loading={bulkDeleteProgress.isDeleting}
                       >
-                        Download Selected
+                        Move to Trash
                       </Button>
-                      {canDeleteInvoice && (
-                        <Button
-                          danger
-                          icon={<Trash2 size={16} />}
-                          onClick={openBulkDeleteModal}
-                          loading={bulkDeleteProgress.isDeleting}
-                        >
-                          Move to Trash
-                        </Button>
-                      )}
-                    </Space>
-                  </div>
-                }
-                type="info"
-                className="mb-0"
-                closable
-                onClose={() => {
-                  setSelectedRowKeys([]);
-                  setSelectedInvoices([]);
-                }}
-              />
-            </div>
-          )}
+                    )}
+                  </Space>
+                </div>
+              }
+              type="info"
+              className="mb-0"
+              closable
+              onClose={() => {
+                setSelectedRowKeys([]);
+                setSelectedInvoices([]);
+              }}
+            />
+          </div>
+        )}
 
         {isLoading ? (
-          <div className="flex justify-center items-center h-64 bg-slate-50 rounded-2xl border border-slate-100">
+          <div className="flex justify-center items-center h-64 rounded-2xl border" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--customers-card-border)' }}>
             <Spin indicator={<TrendingUp size={32} className="animate-pulse text-blue-500" />} />
           </div>
         ) : isError ? (
-          <div className="text-center py-20 bg-red-50 rounded-2xl border border-red-100">
+          <div className="text-center py-20 rounded-2xl border" style={{ backgroundColor: 'var(--customers-delete-header-bg)', borderColor: 'var(--customers-delete-icon-bg)' }}>
             <AlertCircle className="size-12 text-red-500 mb-4 mx-auto" />
             <Title level={4} style={{ color: "#991b1b" }}>Failed to load invoices</Title>
             <Text style={{ color: "#ef4444" }}>Please try again later</Text>
           </div>
         ) : filteredInvoices.length === 0 ? (
-          <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-100">
-            <div className="size-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-6">
-              <FileText size={32} className="text-slate-300" />
+          <div className="text-center py-20 rounded-2xl border" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--customers-card-border)' }}>
+            <div className="size-16 rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-6" style={{ backgroundColor: 'var(--customers-card-bg)' }}>
+              <FileText size={32} style={{ color: 'var(--text-slate-300)' }} />
             </div>
-            <Title level={4} style={{ color: "#64748b" }}>No invoices found</Title>
-            <Text style={{ color: "#94a3b8" }} className="mb-6 block">
+            <Title level={4} style={{ color: "var(--text-secondary)" }}>No invoices found</Title>
+            <Text style={{ color: "var(--text-slate-400)" }} className="mb-6 block">
               {searchText ? 'Try a different search term' : 'Create your first invoice to get started'}
             </Text>
             {!searchText && canCreateInvoice && (
@@ -1247,9 +1249,10 @@ const startBulkDelete = async () => {
             bordered={false}
             style={{
               borderRadius: 16,
-              border: "1px solid #f1f5f9",
+              border: "1px solid var(--customers-card-border)",
               boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-              overflow: "hidden"
+              overflow: "hidden",
+              backgroundColor: "var(--customers-card-bg)"
             }}
             styles={{ body: { padding: 0 } }}
           >
@@ -1275,7 +1278,8 @@ const startBulkDelete = async () => {
         )}
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .invoice-table-row:hover {
           background-color: #f8fafc !important;
         }
@@ -1300,6 +1304,45 @@ const startBulkDelete = async () => {
         .ant-input-affix-wrapper {
           border-radius: 12px !important;
         }
+        
+        /* Dark theme specific styles - only apply when data-theme is dark */
+        [data-theme='dark'] .invoice-table-row:hover {
+          background-color: var(--customers-table-row-hover) !important;
+        }
+        [data-theme='dark'] .ant-table-thead > tr > th {
+          background-color: var(--customers-table-header-bg) !important;
+          color: var(--customers-table-header-text) !important;
+          border-bottom: 2px solid var(--border-color) !important;
+        }
+        [data-theme='dark'] .ant-table-tbody > tr > td {
+          border-bottom: 1px solid var(--border-color) !important;
+        }
+        [data-theme='dark'] .ant-table {
+          background-color: var(--customers-card-bg) !important;
+        }
+        [data-theme='dark'] .ant-table-tbody > tr > td {
+          background-color: var(--customers-card-bg) !important;
+        }
+        [data-theme='dark'] .ant-table-pagination {
+          background-color: var(--customers-card-bg) !important;
+        }
+        [data-theme='dark'] .ant-table-pagination .ant-pagination-item {
+          background-color: var(--customers-card-bg) !important;
+          border-color: var(--border-color) !important;
+        }
+        [data-theme='dark'] .ant-table-pagination .ant-pagination-item a {
+          color: var(--text-primary) !important;
+        }
+        [data-theme='dark'] .ant-table-pagination .ant-pagination-item-active {
+          background-color: var(--customers-header-icon-color) !important;
+          border-color: var(--customers-header-icon-color) !important;
+        }
+        [data-theme='dark'] .ant-table-pagination .ant-pagination-item-active a {
+          color: #ffffff !important;
+        }
+        [data-theme='dark'] .ant-table-pagination .ant-pagination-options {
+          color: var(--text-primary) !important;
+        }
       `}} />
 
       {/* Bulk Trash Confirmation Modal */}
@@ -1318,7 +1361,7 @@ const startBulkDelete = async () => {
             <AlertCircle size={20} className="text-yellow-500 mr-2" />
             <Text strong>Are you sure you want to move {selectedInvoices.length} selected invoice(s) to trash?</Text>
           </div>
-          
+
           <div className="mb-4 max-h-60 overflow-y-auto border rounded p-2">
             <ul className="list-disc pl-4">
               {selectedInvoices.slice(0, 10).map((inv, index) => (
@@ -1337,7 +1380,7 @@ const startBulkDelete = async () => {
               )}
             </ul>
           </div>
-          
+
           <Alert
             message="Note: Invoices will be moved to Trash"
             description="You can restore these invoices later from the Trash folder if needed."
@@ -1363,7 +1406,7 @@ const startBulkDelete = async () => {
               {bulkDeleteProgress.completed}/{bulkDeleteProgress.total}
             </Text>
           </div>
-          
+
           <div className="mb-4">
             <Progress
               percent={Math.round((bulkDeleteProgress.completed / bulkDeleteProgress.total) * 100)}
@@ -1374,7 +1417,7 @@ const startBulkDelete = async () => {
               <span>Failed: {bulkDeleteProgress.failed}</span>
             </div>
           </div>
-          
+
           {bulkDeleteProgress.currentInvoice && (
             <div className="text-center mb-4">
               <Loader2 className="text-blue-500 mr-2 animate-spin" size={16} />
@@ -1383,7 +1426,7 @@ const startBulkDelete = async () => {
               </Text>
             </div>
           )}
-          
+
           {!bulkDeleteProgress.isDeleting && (
             <div className="text-center">
               <Text type="success" strong>
@@ -1396,7 +1439,7 @@ const startBulkDelete = async () => {
               </div>
             </div>
           )}
-          
+
           {bulkDeleteProgress.isDeleting && (
             <div className="text-center">
               <Text type="secondary" className="text-sm">
@@ -1458,111 +1501,149 @@ const startBulkDelete = async () => {
 
       {/* Payment Status Modal */}
       <Modal
-        title={
-          <div className="flex items-center">
-            <DollarSign size={20} className="text-green-500 mr-2" />
-            Update Payment for Invoice {statusInvoice?.invoiceNumber}
-          </div>
-        }
+        title={null}
         open={statusModalVisible}
         onCancel={() => {
           setStatusModalVisible(false);
           statusForm.resetFields();
         }}
-        onOk={handlePaymentUpdate}
-        confirmLoading={updateStatusMutation.isPending}
-        okText="Update Payment"
-        cancelText="Cancel"
+        footer={null}
         width={500}
+        styles={{
+          mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.4)' },
+          content: { padding: 0, borderRadius: 24, overflow: 'hidden', backgroundColor: 'var(--customers-card-bg)' }
+        }}
       >
-        <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-          <div className="flex justify-between">
-            <div>
-              <div className="text-sm text-gray-600">Total Amount</div>
-              <div className="text-2xl font-bold">
-                ${Number(statusInvoice?.grandTotal || statusInvoice?.total || 0).toFixed(2)}
-              </div>
+        <div className="p-6 border-b" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-slate-50)' }}>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl border" style={{ backgroundColor: 'var(--accounts-emerald-bg)', color: 'var(--accounts-emerald-text)', borderColor: 'var(--accounts-emerald-bg)' }}>
+              <CreditCard size={20} />
             </div>
             <div>
-              <div className="text-sm text-gray-600">Balance Due</div>
-              <div className="text-2xl font-bold text-blue-600">
-                ${Number(statusInvoice?.balanceDue || 0).toFixed(2)}
-              </div>
+              <Title level={4} style={{ margin: 0, fontSize: 16 }}>Record Payment</Title>
+              <Text type="secondary" style={{ fontSize: 12 }}>Invoice #{statusInvoice?.invoiceNumber}</Text>
             </div>
           </div>
         </div>
 
-        <Form form={statusForm} layout="vertical">
-          <Form.Item
-            label="Paid Amount"
-            name="paidAmount"
-            rules={[
-              { required: true, message: "Please enter paid amount" },
-              {
-                validator: (_, value) => {
-                  const balanceDue = Number(statusInvoice?.balanceDue || 0);
-                  const paidAmount = Number(value || 0);
+        <div className="p-6">
+          {/* Metrics Summary */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="p-3 rounded-2xl border shadow-sm" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)' }}>
+              <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Total</Text>
+              <Text strong className="text-sm">
+                ${Number(statusInvoice?.grandTotal || statusInvoice?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </Text>
+            </div>
+            <div className="p-3 rounded-2xl border shadow-sm" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
+              <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Paid</Text>
+              <Text strong className="text-sm" style={{ color: 'var(--accounts-emerald-text)' }}>
+                ${Number(statusInvoice?.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </Text>
+            </div>
+            <div className="p-3 rounded-2xl border shadow-sm" style={{ backgroundColor: 'var(--bg-blue-50)', borderColor: 'var(--border-color)' }}>
+              <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Due</Text>
+              <Text strong className="text-sm" style={{ color: 'var(--text-sky-500)' }}>
+                ${Number(statusInvoice?.balanceDue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </Text>
+            </div>
+          </div>
 
-                  if (paidAmount > balanceDue) {
-                    return Promise.reject(new Error(`Amount cannot exceed balance due ($${balanceDue.toFixed(2)})`));
+          <Form form={statusForm} layout="vertical" onFinish={handlePaymentUpdate} requiredMark={false}>
+            <Form.Item
+              label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Payment Amount (USD)</span>}
+              name="paidAmount"
+              rules={[
+                { required: true, message: "Please enter amount" },
+                {
+                  validator: (_, value) => {
+                    const balanceDue = Number(statusInvoice?.balanceDue || 0);
+                    const paidAmount = Number(value || 0);
+                    if (paidAmount > balanceDue) {
+                      return Promise.reject(new Error(`Amount exceeds balance ($${balanceDue.toFixed(2)})`));
+                    }
+                    if (paidAmount <= 0) {
+                      return Promise.reject(new Error('Amount must be positive'));
+                    }
+                    return Promise.resolve();
                   }
-                  if (paidAmount <= 0) {
-                    return Promise.reject(new Error('Amount must be greater than 0'));
-                  }
-                  return Promise.resolve();
                 }
-              }
-            ]}
-          >
-            <Input
-              type="number"
-              min={0.01}
-              max={statusInvoice?.balanceDue}
-              placeholder="0.00"
-              prefix="$"
-              size="large"
-              step="0.01"
-            />
-          </Form.Item>
+              ]}
+            >
+              <Input
+                type="number"
+                min={0}
+                max={statusInvoice?.balanceDue}
+                placeholder="0.00"
+                prefix={<span className="text-slate-400">$</span>}
+                className="h-12 rounded-xl text-lg font-bold"
+                step="0.01"
+                style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+              />
+            </Form.Item>
 
-          <Form.Item
-            label="Payment Method"
-            name="paymentMethod"
-            initialValue="BANK_TRANSFER"
-            rules={[{ required: true, message: "Please select payment method" }]}
-          >
-            <Select size="large">
-              <Select.Option value="BANK_TRANSFER">Bank Transfer</Select.Option>
-              <Select.Option value="CREDIT_CARD">Credit Card</Select.Option>
-              <Select.Option value="CASH">Cash</Select.Option>
-              <Select.Option value="CHECK">Check</Select.Option>
-              <Select.Option value="OTHER">Other</Select.Option>
-            </Select>
-          </Form.Item>
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item
+                label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Method</span>}
+                name="paymentMethod"
+                initialValue="BANK_TRANSFER"
+              >
+                <Select className="h-11 rounded-xl" popupClassName="rounded-xl">
+                  <Select.Option value="BANK_TRANSFER">Bank Transfer</Select.Option>
+                  <Select.Option value="CREDIT_CARD">Credit Card</Select.Option>
+                  <Select.Option value="CASH">Cash</Select.Option>
+                  <Select.Option value="CHECK">Check</Select.Option>
+                  <Select.Option value="OTHER">Other</Select.Option>
+                </Select>
+              </Form.Item>
 
-          <Form.Item label="Description / Note" name="description">
-            <Input.TextArea
-              rows={3}
-              placeholder="Enter note for payment (optional)"
-              maxLength={500}
-              showCount
-            />
-          </Form.Item>
+              <Form.Item
+                label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Date</span>}
+                name="paidAt"
+                initialValue={dayjs()}
+              >
+                <DatePicker
+                  showTime
+                  format="YYYY-MM-DD HH:mm"
+                  className="h-11 w-full rounded-xl"
+                  popupClassName="rounded-xl"
+                />
+              </Form.Item>
+            </div>
 
-          <Form.Item
-            label="Payment Date"
-            name="paidAt"
-            rules={[{ required: true, message: "Please select payment date" }]}
-          >
-            <DatePicker
-              showTime
-              format="YYYY-MM-DD HH:mm"
-              style={{ width: '100%' }}
-              size="large"
-              defaultValue={dayjs()}
-            />
-          </Form.Item>
-        </Form>
+            <Form.Item
+              label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Note</span>}
+              name="description"
+            >
+              <Input.TextArea
+                rows={2}
+                placeholder="Reference number or memo..."
+                className="rounded-xl p-3"
+                maxLength={200}
+                style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+              />
+            </Form.Item>
+
+            <div className="flex gap-3 mt-8">
+              <Button
+                onClick={() => setStatusModalVisible(false)}
+                className="h-11 flex-1 rounded-xl font-semibold"
+                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={updateStatusMutation.isPending}
+                className="h-11 flex-1 rounded-xl font-semibold border-none"
+                style={{ backgroundColor: 'var(--customers-header-icon-color)' }}
+              >
+                Update Payment
+              </Button>
+            </div>
+          </Form>
+        </div>
       </Modal>
 
       {/* Approval Modal */}
@@ -1598,423 +1679,493 @@ const startBulkDelete = async () => {
 
       {/* Status Change Modal */}
       <Modal
-        title={`Change Status for Invoice ${statusChangeInvoice?.invoiceNumber}`}
+        title={null}
         open={statusChangeModalVisible}
         onCancel={() => {
           setStatusChangeModalVisible(false);
           setSelectedNewStatus(null);
         }}
-        onOk={handleGeneralStatusUpdate}
-        confirmLoading={updateStatusMutation.isPending}
-        okText="Update Status"
-        cancelText="Cancel"
-        width={400}
+        footer={null}
+        width={450}
+        styles={{
+          mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.4)' },
+          content: { padding: 0, borderRadius: 24, overflow: 'hidden', backgroundColor: 'var(--customers-card-bg)' }
+        }}
       >
-        <div className="mb-4">
-          <div className="text-sm text-gray-500 mb-1">Current Status</div>
-          <Tag
-            color={getStatusColor(fromBackendStatus(statusChangeInvoice?.status))}
-            icon={getStatusIcon(fromBackendStatus(statusChangeInvoice?.status))}
-            className="text-sm font-medium"
-          >
-            {fromBackendStatus(statusChangeInvoice?.status)}
-          </Tag>
+        <div className="p-6 border-b" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-slate-50)' }}>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl border" style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-sky-500)', borderColor: 'var(--bg-blue-50)' }}>
+              <RefreshCw size={20} />
+            </div>
+            <div>
+              <Title level={4} style={{ margin: 0, fontSize: 16 }}>Update Status</Title>
+              <Text type="secondary" style={{ fontSize: 12 }}>Invoice #{statusChangeInvoice?.invoiceNumber}</Text>
+            </div>
+          </div>
         </div>
 
-        <div className="mb-4">
-          <div className="text-sm text-gray-500 mb-2">Select New Status</div>
-          <Select
-            style={{ width: '100%' }}
-            placeholder="Select new status"
-            size="large"
-            value={selectedNewStatus}
-            onChange={(value) => setSelectedNewStatus(value)}
-            options={getAvailableTransitions(fromBackendStatus(statusChangeInvoice?.status)).map(status => ({
-              label: (
-                <div className="flex items-center">
-                  {getStatusIcon(status)}
-                  <span className="ml-2">{status}</span>
+        <div className="p-6">
+          {/* Status Flow Indicator */}
+          <div className="rounded-2xl p-4 mb-6 border flex items-center justify-between" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
+            <div className="text-center flex-1 min-w-0">
+              <Text type="secondary" className="text-[10px] font-bold uppercase tracking-wider block mb-2">Current Status</Text>
+              <div className="flex justify-center">
+                <Tag
+                  color={getStatusColor(fromBackendStatus(statusChangeInvoice?.status))}
+                  icon={getStatusIcon(fromBackendStatus(statusChangeInvoice?.status))}
+                  className="px-3 py-1 rounded-full border-none font-bold text-[10px] m-0 shadow-sm flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  {fromBackendStatus(statusChangeInvoice?.status)}
+                </Tag>
+              </div>
+            </div>
+
+            <div className="px-4" style={{ color: 'var(--text-slate-400)' }}>
+              <ChevronRight size={20} />
+            </div>
+
+            <div className="text-center flex-1 min-w-0">
+              <Text type="secondary" className="text-[10px] font-bold uppercase tracking-wider block mb-2">Target Status</Text>
+              <div className="flex justify-center">
+                {selectedNewStatus ? (
+                  <Tag
+                    color={getStatusColor(selectedNewStatus)}
+                    icon={getStatusIcon(selectedNewStatus)}
+                    className="px-3 py-1 rounded-full border-none font-bold text-[10px] m-0 shadow-sm animate-pulse flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    {selectedNewStatus}
+                  </Tag>
+                ) : (
+                  <div className="h-6 w-20 rounded-full mx-auto animate-pulse" style={{ backgroundColor: 'var(--border-color)' }}></div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <Text className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-2">Select Next Step</Text>
+              <Select
+                style={{ width: '100%' }}
+                placeholder="Where should this invoice go next?"
+                size="large"
+                value={selectedNewStatus}
+                onChange={(value) => setSelectedNewStatus(value)}
+                popupClassName="rounded-xl"
+                className="rounded-xl border-slate-200"
+                options={getAvailableTransitions(fromBackendStatus(statusChangeInvoice?.status)).map(status => ({
+                  label: (
+                    <div className="flex items-center gap-2 py-1">
+                      <div className="p-1 rounded-md" style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-sky-500)' }}>
+                        {getStatusIcon(status)}
+                      </div>
+                      <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{status}</span>
+                    </div>
+                  ),
+                  value: status
+                }))}
+              />
+            </div>
+
+            {(selectedNewStatus === 'PAID' || selectedNewStatus === 'PARTIALLY_PAID') && (
+              <div className="p-4 rounded-2xl border flex gap-3" style={{ backgroundColor: 'rgba(250, 173, 20, 0.1)', borderColor: '#faad14' }}>
+                <AlertCircle size={18} className="shrink-0 mt-0.5" style={{ color: '#d48806' }} />
+                <div className="text-xs leading-relaxed" style={{ color: '#d48806' }}>
+                  <Text strong className="block mb-1" style={{ color: '#ad6800' }}>Payment Required</Text>
+                  Moving to <Text strong style={{ color: '#ad6800' }}>{selectedNewStatus}</Text> will open the payment record form to log the transaction.
                 </div>
-              ),
-              value: status
-            }))}
-          />
-        </div>
+              </div>
+            )}
+          </div>
 
-        {(selectedNewStatus === 'PAID' || selectedNewStatus === 'PARTIALLY_PAID') && (
-          <Alert
-            message="Payment information will be required"
-            description="You'll need to enter payment details for this status change."
-            type="info"
-            showIcon
-            className="mb-2"
-          />
-        )}
+          <div className="flex gap-3 mt-8">
+            <Button
+              onClick={() => {
+                setStatusChangeModalVisible(false);
+                setSelectedNewStatus(null);
+              }}
+              className="h-11 flex-1 rounded-xl font-semibold"
+              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleGeneralStatusUpdate}
+              loading={updateStatusMutation.isPending}
+              disabled={!selectedNewStatus}
+              className="h-11 flex-1 rounded-xl font-semibold border-none"
+              style={{ backgroundColor: 'var(--customers-header-icon-color)' }}
+            >
+              Update Status
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       {/* Transaction History Drawer */}
 
 
-<Drawer
-  title={
-    <div className="flex items-center gap-2">
-      <div className="flex items-center justify-center size-8 rounded-lg bg-blue-500">
-        <DollarSign size={16} className="text-white" />
-      </div>
-      <div>
-        <div className="font-semibold text-base text-gray-900">Payment Transaction History</div>
-        <div className="text-xs text-gray-500 flex items-center gap-1.5">
-          <span>Invoice #{paymentHistory?.summary?.invoiceNumber || transactionInvoice?.invoiceNumber}</span>
-          <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-          <Badge 
-            status="processing" 
-            text={paymentHistory?.payments?.length ? `${paymentHistory.payments.length} transactions` : 'No transactions'} 
-            className="text-xs"
-          />
-        </div>
-      </div>
-    </div>
-  }
-  open={transactionDrawerOpen}
-  onClose={() => {
-    setTransactionDrawerOpen(false);
-    setTransactionInvoice(null);
-  }}
-  width={900}
-  destroyOnClose
->
-  {isPaymentLoading ? (
-    <div className="flex flex-col justify-center items-center h-56">
-      <Spin size="default" />
-      <span className="mt-3 text-gray-500 text-xs">Loading payment history...</span>
-    </div>
-  ) : !paymentHistory ? (
-    <div className="flex flex-col items-center justify-center py-12 px-4">
-      <div className="text-5xl mb-3 text-gray-300">💳</div>
-      <div className="text-base font-medium text-gray-700 mb-1">No payment history found</div>
-      <p className="text-xs text-gray-500">This invoice has no recorded payments yet.</p>
-    </div>
-  ) : (
-    <div className="space-y-4">
-      {/* Invoice Summary - Single Line Metrics with Colors */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="flex items-center justify-between">
-          {/* Left side - Invoice info */}
-          <div className="flex items-center gap-4">
-            <div>
-              <span className="text-xs text-gray-500">Invoice</span>
-              <div className="font-semibold text-gray-900">
-                {paymentHistory?.summary?.invoiceNumber || transactionInvoice?.invoiceNumber}
-              </div>
-            </div>
-            <div className="w-px h-8 bg-gray-200"></div>
-            <div>
-              <span className="text-xs text-gray-500">Customer</span>
-              <div className="font-medium text-gray-900">
-                {paymentHistory?.summary?.customerName || 
-                 (transactionInvoice?.customerSnapshot as any)?.companyName || 
-                 transactionInvoice?.customer?.companyName || 
-                 'Unknown'}
-              </div>
-            </div>
-          </div>
-          
-          {/* Right side - Metrics in one line with colors */}
-          <div className="flex items-center gap-6">
-            <div className="text-right">
-              <span className="text-xs text-gray-500 flex items-center gap-1">
-                <FileText size={12} className="text-blue-500" />
-                Total
-              </span>
-              <div className="font-semibold text-gray-900">
-                ${Number(paymentHistory?.summary?.totalAmount || transactionInvoice?.grandTotal || transactionInvoice?.total || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-              </div>
-            </div>
-            
-            <div className="text-right">
-              <span className="text-xs text-gray-500 flex items-center gap-1">
-                <CheckCircle size={12} className="text-green-600" />
-                Paid
-              </span>
-              <div className="font-semibold text-green-700">
-                ${Number(paymentHistory?.summary?.totalPaid || transactionInvoice?.paidAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-              </div>
-            </div>
-            
-            <div className="text-right">
-              <span className="text-xs text-gray-500 flex items-center gap-1">
-                <RotateCcw size={12} className="text-orange-600" />
-                Refund
-              </span>
-              <div className="font-semibold text-orange-700">
-                ${Number(paymentHistory?.summary?.totalRefunded || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-              </div>
-            </div>
-            
-            <div className="text-right">
-              <span className="text-xs text-gray-500 flex items-center gap-1">
-                <DollarSign size={12} className="text-blue-600" />
-                Balance
-              </span>
-              <div className="font-semibold text-blue-700">
-                ${Number(paymentHistory?.summary?.balanceDue || transactionInvoice?.balanceDue || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Payment Progress Bar - Colored */}
-        {Number(paymentHistory?.summary?.totalAmount || 0) > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-500">Progress</span>
-              <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div 
-                  className="h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-green-500"
-                  style={{ width: `${Math.min(100, Math.round((Number(paymentHistory?.summary?.totalPaid || 0) / Number(paymentHistory?.summary?.totalAmount || 1)) * 100))}%` }}
-                ></div>
-              </div>
-              <span className="text-xs font-medium text-blue-600">
-                {Math.round((Number(paymentHistory?.summary?.totalPaid || 0) / Number(paymentHistory?.summary?.totalAmount || 1)) * 100)}%
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Status Counts - Colored Icons, 2-Digit Format */}
-      <div className="grid grid-cols-5 gap-2">
-        <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
-          <div className="text-xs text-gray-500">Total</div>
-          <div className="font-semibold text-gray-800">
-            {String(paymentHistory?.summary?.paymentCount || paymentHistory.payments.length).padStart(2, '0')}
-          </div>
-        </div>
-        
-        <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <CheckCircle size={12} className="text-green-600" />
-            Completed
-          </div>
-          <div className="font-semibold text-gray-800">
-            {String(paymentHistory?.summary?.completedPayments || 
-             paymentHistory.payments.filter((p: any) => p.status === 'COMPLETED').length).padStart(2, '0')}
-          </div>
-        </div>
-        
-        <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <RotateCcw size={12} className="text-orange-600" />
-            Refunded
-          </div>
-          <div className="font-semibold text-gray-800">
-            {String(paymentHistory?.summary?.refundedPayments || 
-             paymentHistory.payments.filter((p: any) => p.status === 'REFUNDED').length).padStart(2, '0')}
-          </div>
-        </div>
-        
-        <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <XCircle size={12} className="text-red-600" />
-            Failed
-          </div>
-          <div className="font-semibold text-gray-800">
-            {String(paymentHistory?.summary?.failedPayments || 
-             paymentHistory.payments.filter((p: any) => p.status === 'FAILED').length).padStart(2, '0')}
-          </div>
-        </div>
-        
-        <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <Clock size={12} className="text-blue-600" />
-            Pending
-          </div>
-          <div className="font-semibold text-gray-800">
-            {String(paymentHistory?.summary?.pendingPayments || 
-             paymentHistory.payments.filter((p: any) => p.status === 'PENDING').length).padStart(2, '0')}
-          </div>
-        </div>
-      </div>
-
-      {/* Payment Table - Compact */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+      <Drawer
+        title={
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-blue-50 flex items-center justify-center">
-              <FileText size={12} className="text-blue-600" />
+            <div className="flex items-center justify-center size-8 rounded-lg" style={{ backgroundColor: 'var(--customers-header-icon-color)' }}>
+              <DollarSign size={16} className="text-white" />
             </div>
-            <span className="font-medium text-gray-800 text-sm">Payment Transactions</span>
-            <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">
-              {paymentHistory.payments.length}
-            </span>
+            <div>
+              <div className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>Payment Transaction History</div>
+              <div className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-slate-500)' }}>
+                <span>Invoice #{paymentHistory?.summary?.invoiceNumber || transactionInvoice?.invoiceNumber}</span>
+                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                <Badge
+                  status="processing"
+                  text={paymentHistory?.payments?.length ? `${paymentHistory.payments.length} transactions` : 'No transactions'}
+                  className="text-xs"
+                />
+              </div>
+            </div>
           </div>
-          <Button 
-            size="small" 
-            icon={<RotateCcw size={16} />}
-            onClick={() => refetchPaymentHistory()}
-            loading={isPaymentLoading}
-            className="text-xs border-gray-300"
-          />
-        </div>
-
-        {!paymentHistory.payments || paymentHistory.payments.length === 0 ? (
-          <div className="py-12 text-center">
-            <p className="text-gray-500 text-sm">No payment transactions found</p>
+        }
+        open={transactionDrawerOpen}
+        onClose={() => {
+          setTransactionDrawerOpen(false);
+          setTransactionInvoice(null);
+        }}
+        width={900}
+        destroyOnClose
+      >
+        {isPaymentLoading ? (
+          <div className="flex flex-col justify-center items-center h-56">
+            <Spin size="default" />
+            <span className="mt-3 text-xs" style={{ color: 'var(--text-slate-500)' }}>Loading payment history...</span>
+          </div>
+        ) : !paymentHistory ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            <div className="text-5xl mb-3" style={{ color: 'var(--text-slate-300)' }}>💳</div>
+            <div className="text-base font-medium mb-1" style={{ color: 'var(--text-slate-700)' }}>No payment history found</div>
+            <p className="text-xs" style={{ color: 'var(--text-slate-500)' }}>This invoice has no recorded payments yet.</p>
           </div>
         ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="px-4 py-2.5 text-left text-gray-600 font-medium">Date & Time</th>
-                    <th className="px-4 py-2.5 text-right text-gray-600 font-medium">Amount</th>
-                    <th className="px-4 py-2.5 text-center text-gray-600 font-medium">Status</th>
-                    <th className="px-4 py-2.5 text-right text-gray-600 font-medium">Paid</th>
-                    <th className="px-4 py-2.5 text-right text-gray-600 font-medium">Balance</th>
-                    <th className="px-4 py-2.5 text-left text-gray-600 font-medium">Description</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {paymentHistory.payments.map((payment: any, index: number) => (
-                    <tr key={payment.id || index} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="font-medium text-gray-800">
-                          {payment.date || moment(payment.paymentDate).format('MMM DD, YYYY')}
-                        </div>
-                        <div className="text-gray-400">
-                          {payment.time || moment(payment.paymentDate).format('HH:mm')}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <span className={`font-medium ${payment.status === 'REFUNDED' ? 'text-orange-600' : 'text-gray-800'}`}>
-                          {payment.status === 'REFUNDED' ? '−' : ''}${Number(payment.amount || 0).toLocaleString()}
-                        </span>
-                        <div className="text-gray-400 text-[10px]">
-                          {payment.paymentMethod?.replace('_', ' ') || 'Bank Transfer'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex justify-center">
-                          <span className={`
+          <div className="space-y-4">
+            {/* Invoice Summary - Single Line Metrics with Colors */}
+            <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+              <div className="flex items-center justify-between">
+                {/* Left side - Invoice info */}
+                <div className="flex items-center gap-4">
+                  <div>
+                    <span className="text-xs" style={{ color: 'var(--text-slate-500)' }}>Invoice</span>
+                    <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      {paymentHistory?.summary?.invoiceNumber || transactionInvoice?.invoiceNumber}
+                    </div>
+                  </div>
+                  <div className="w-px h-8" style={{ backgroundColor: 'var(--border-color)' }}></div>
+                  <div>
+                    <span className="text-xs" style={{ color: 'var(--text-slate-500)' }}>Customer</span>
+                    <div className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {paymentHistory?.summary?.customerName ||
+                        (transactionInvoice?.customerSnapshot as any)?.companyName ||
+                        transactionInvoice?.customer?.companyName ||
+                        'Unknown'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right side - Metrics in one line with colors */}
+                <div className="flex items-center gap-6">
+                  <div className="text-right">
+                    <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-slate-500)' }}>
+                      <FileText size={12} style={{ color: 'var(--customers-header-icon-color)' }} />
+                      Total
+                    </span>
+                    <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      ${Number(paymentHistory?.summary?.totalAmount || transactionInvoice?.grandTotal || transactionInvoice?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-slate-500)' }}>
+                      <CheckCircle size={12} className="text-green-600" />
+                      Paid
+                    </span>
+                    <div className="font-semibold text-green-700">
+                      ${Number(paymentHistory?.summary?.totalPaid || transactionInvoice?.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-slate-500)' }}>
+                      <RotateCcw size={12} className="text-orange-600" />
+                      Refund
+                    </span>
+                    <div className="font-semibold text-orange-700">
+                      ${Number(paymentHistory?.summary?.totalRefunded || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-slate-500)' }}>
+                      <DollarSign size={12} className="text-blue-600" />
+                      Balance
+                    </span>
+                    <div className="font-semibold text-blue-700">
+                      ${Number(paymentHistory?.summary?.balanceDue || transactionInvoice?.balanceDue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Progress Bar - Colored */}
+              {Number(paymentHistory?.summary?.totalAmount || 0) > 0 && (
+                <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-color)' }}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs" style={{ color: 'var(--text-slate-500)' }}>Progress</span>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-slate-100)' }}>
+                      <div
+                        className="h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-green-500"
+                        style={{ width: `${Math.min(100, Math.round((Number(paymentHistory?.summary?.totalPaid || 0) / Number(paymentHistory?.summary?.totalAmount || 1)) * 100))}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-xs font-medium" style={{ color: 'var(--customers-header-icon-color)' }}>
+                      {Math.round((Number(paymentHistory?.summary?.totalPaid || 0) / Number(paymentHistory?.summary?.totalAmount || 1)) * 100)}%
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Status Counts - Colored Icons, 2-Digit Format */}
+            <div className="grid grid-cols-5 gap-2">
+              <div className="px-3 py-2 rounded-md border" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+                <div className="text-xs" style={{ color: 'var(--text-slate-500)' }}>Total</div>
+                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {String(paymentHistory?.summary?.paymentCount || paymentHistory.payments.length).padStart(2, '0')}
+                </div>
+              </div>
+
+              <div className="px-3 py-2 rounded-md border" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+                <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-slate-500)' }}>
+                  <CheckCircle size={12} className="text-green-600" />
+                  Completed
+                </div>
+                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {String(paymentHistory?.summary?.completedPayments ||
+                    paymentHistory.payments.filter((p: any) => p.status === 'COMPLETED').length).padStart(2, '0')}
+                </div>
+              </div>
+
+              <div className="px-3 py-2 rounded-md border" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+                <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-slate-500)' }}>
+                  <RotateCcw size={12} className="text-orange-600" />
+                  Refunded
+                </div>
+                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {String(paymentHistory?.summary?.refundedPayments ||
+                    paymentHistory.payments.filter((p: any) => p.status === 'REFUNDED').length).padStart(2, '0')}
+                </div>
+              </div>
+
+              <div className="px-3 py-2 rounded-md border" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+                <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-slate-500)' }}>
+                  <XCircle size={12} className="text-red-600" />
+                  Failed
+                </div>
+                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {String(paymentHistory?.summary?.failedPayments ||
+                    paymentHistory.payments.filter((p: any) => p.status === 'FAILED').length).padStart(2, '0')}
+                </div>
+              </div>
+
+              <div className="px-3 py-2 rounded-md border" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+                <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-slate-500)' }}>
+                  <Clock size={12} className="text-blue-600" />
+                  Pending
+                </div>
+                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {String(paymentHistory?.summary?.pendingPayments ||
+                    paymentHistory.payments.filter((p: any) => p.status === 'PENDING').length).padStart(2, '0')}
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Table - Compact */}
+            <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+              <div className="px-4 py-3 border-b flex justify-between items-center" style={{ borderColor: 'var(--border-color)' }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: 'var(--bg-slate-50)' }}>
+                    <FileText size={12} style={{ color: 'var(--customers-header-icon-color)' }} />
+                  </div>
+                  <span className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Payment Transactions</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--bg-slate-100)', color: 'var(--text-slate-400)' }}>
+                    {paymentHistory.payments.length}
+                  </span>
+                </div>
+                <Button
+                  size="small"
+                  icon={<RotateCcw size={16} />}
+                  onClick={() => refetchPaymentHistory()}
+                  loading={isPaymentLoading}
+                  className="text-xs border-gray-300"
+                />
+              </div>
+
+              {!paymentHistory.payments || paymentHistory.payments.length === 0 ? (
+                <div className="py-12 text-center">
+                  <p className="text-sm" style={{ color: 'var(--text-slate-500)' }}>No payment transactions found</p>
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
+                          <th className="px-4 py-2.5 text-left font-medium" style={{ color: 'var(--text-slate-600)' }}>Date & Time</th>
+                          <th className="px-4 py-2.5 text-right font-medium" style={{ color: 'var(--text-slate-600)' }}>Amount</th>
+                          <th className="px-4 py-2.5 text-center font-medium" style={{ color: 'var(--text-slate-600)' }}>Status</th>
+                          <th className="px-4 py-2.5 text-right font-medium" style={{ color: 'var(--text-slate-600)' }}>Paid</th>
+                          <th className="px-4 py-2.5 text-right font-medium" style={{ color: 'var(--text-slate-600)' }}>Balance</th>
+                          <th className="px-4 py-2.5 text-left font-medium" style={{ color: 'var(--text-slate-600)' }}>Description</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
+                        {paymentHistory.payments.map((payment: any, index: number) => (
+                          <tr key={payment.id || index} className="hover:bg-gray-50" style={{ backgroundColor: 'transparent' }}>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                                {payment.date || dayjs(payment.paymentDate).format('MMM DD, YYYY')}
+                              </div>
+                              <div style={{ color: 'var(--text-slate-400)' }}>
+                                {payment.time || dayjs(payment.paymentDate).format('HH:mm')}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-right">
+                              <span className={`font-medium`} style={{ color: payment.status === 'REFUNDED' ? '#f97316' : 'var(--text-primary)' }}>
+                                {payment.status === 'REFUNDED' ? '−' : ''}${Number(payment.amount || 0).toLocaleString()}
+                              </span>
+                              <div className="text-[10px]" style={{ color: 'var(--text-slate-400)' }}>
+                                {payment.paymentMethod?.replace('_', ' ') || 'Bank Transfer'}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="flex justify-center">
+                                <span className={`
                             px-2 py-0.5 rounded-full text-[10px] font-medium border
                             ${payment.status === 'COMPLETED' ? 'bg-green-50 text-green-700 border-green-200' : ''}
                             ${payment.status === 'REFUNDED' ? 'bg-orange-50 text-orange-700 border-orange-200' : ''}
                             ${payment.status === 'FAILED' ? 'bg-red-50 text-red-700 border-red-200' : ''}
                             ${payment.status === 'PENDING' ? 'bg-blue-50 text-blue-700 border-blue-200' : ''}
                           `}>
-                            {payment.status?.charAt(0) + payment.status?.slice(1).toLowerCase()}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right font-medium text-green-700">
-                        ${Number(payment.totalPaid || 0).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right font-medium text-blue-700">
-                        ${Number(payment.balanceDue || 0).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-gray-600">
-                          {payment.description || <span className="text-gray-400">—</span>}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            {/* Simple Pagination */}
-            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-              <span className="text-xs text-gray-500">
-                Showing 1-{Math.min(5, paymentHistory.payments.length)} of {paymentHistory.payments.length}
-              </span>
-              <div className="flex gap-1">
-                <Button size="small" className="text-xs border-gray-300 px-2">Previous</Button>
-                <Button size="small" className="text-xs bg-gray-700 text-white border-gray-700 px-2">1</Button>
-                <Button size="small" className="text-xs border-gray-300 px-2">2</Button>
-                <Button size="small" className="text-xs border-gray-300 px-2">3</Button>
-                <Button size="small" className="text-xs border-gray-300 px-2">Next</Button>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+                                  {payment.status?.charAt(0) + payment.status?.slice(1).toLowerCase()}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-right font-medium" style={{ color: '#16a34a' }}>
+                              ${Number(payment.amount || 0).toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-right font-medium" style={{ color: '#1d4ed8' }}>
+                              ${Number(payment.balanceAfter || 0).toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div style={{ color: 'var(--text-slate-600)' }}>
+                                {payment.description || <span style={{ color: 'var(--text-slate-400)' }}>—</span>}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-      {/* Payment Timeline - Restored */}
-      {paymentHistory.payments && paymentHistory.payments.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-              <Clock size={12} className="text-blue-600" />
+                  {/* Simple Pagination */}
+                  <div className="px-4 py-3 border-t flex justify-between items-center" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-slate-50)' }}>
+                    <span className="text-xs" style={{ color: 'var(--text-slate-500)' }}>
+                      Showing 1-{Math.min(5, paymentHistory.payments.length)} of {paymentHistory.payments.length}
+                    </span>
+                    <div className="flex gap-1">
+                      <Button size="small" className="text-xs border-gray-300 px-2">Previous</Button>
+                      <Button size="small" className="text-xs bg-gray-700 text-white border-gray-700 px-2">1</Button>
+                      <Button size="small" className="text-xs border-gray-300 px-2">2</Button>
+                      <Button size="small" className="text-xs border-gray-300 px-2">3</Button>
+                      <Button size="small" className="text-xs border-gray-300 px-2">Next</Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-            <span className="font-medium text-gray-800 text-sm">Payment Timeline</span>
-            <span className="text-xs text-gray-500 ml-auto">Recent transactions</span>
-          </div>
-          
-          <div className="space-y-2">
-            {paymentHistory.payments.slice(0, 3).map((payment: any, idx: number) => (
-              <div key={idx} className="flex gap-2 relative">
-                {idx < Math.min(paymentHistory.payments.length, 3) - 1 && (
-                  <div className="absolute left-2 top-5 bottom-0 w-0.5 bg-gray-200"></div>
-                )}
-                <div className={`
+
+            {/* Payment Timeline - Restored */}
+            {paymentHistory.payments && paymentHistory.payments.length > 0 && (
+              <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--bg-slate-50)' }}>
+                    <Clock size={12} style={{ color: 'var(--customers-header-icon-color)' }} />
+                  </div>
+                  <span className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Payment Timeline</span>
+                  <span className="text-xs ml-auto" style={{ color: 'var(--text-slate-500)' }}>Recent transactions</span>
+                </div>
+
+                <div className="space-y-2">
+                  {paymentHistory.payments.slice(0, 3).map((payment: any, idx: number) => (
+                    <div key={idx} className="flex gap-2 relative">
+                      {idx < Math.min(paymentHistory.payments.length, 3) - 1 && (
+                        <div className="absolute left-2 top-5 bottom-0 w-0.5" style={{ backgroundColor: 'var(--border-color)' }}></div>
+                      )}
+                      <div className={`
                   w-4 h-4 rounded-full mt-0.5 flex items-center justify-center flex-shrink-0
                   ${payment.status === 'COMPLETED' ? 'bg-green-500' : ''}
                   ${payment.status === 'REFUNDED' ? 'bg-orange-500' : ''}
                   ${payment.status === 'FAILED' ? 'bg-red-500' : ''}
                   ${payment.status === 'PENDING' ? 'bg-blue-500' : ''}
-                  ${!['COMPLETED','REFUNDED','FAILED','PENDING'].includes(payment.status) ? 'bg-gray-400' : ''}
+                  ${!['COMPLETED', 'REFUNDED', 'FAILED', 'PENDING'].includes(payment.status) ? 'bg-gray-400' : ''}
                 `}>
-                  {payment.status === 'COMPLETED' && <CheckCircle size={10} className="text-white" />}
-                  {payment.status === 'REFUNDED' && <RotateCcw size={10} className="text-white" />}
-                  {payment.status === 'FAILED' && <XCircle size={10} className="text-white" />}
-                  {payment.status === 'PENDING' && <Clock size={10} className="text-white" />}
-                </div>
-                <div className="flex-1 pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="font-semibold text-gray-900 text-sm">
-                        ${Number(payment.amount || 0).toLocaleString()} 
-                      </span>
-                      <span className="text-xs text-gray-600 ml-2">
-                        {payment.description || 'Payment processed'}
-                      </span>
+                        {payment.status === 'COMPLETED' && <CheckCircle size={10} className="text-white" />}
+                        {payment.status === 'REFUNDED' && <RotateCcw size={10} className="text-white" />}
+                        {payment.status === 'FAILED' && <XCircle size={10} className="text-white" />}
+                        {payment.status === 'PENDING' && <Clock size={10} className="text-white" />}
+                      </div>
+                      <div className="flex-1 pb-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                              ${Number(payment.amount || 0).toLocaleString()}
+                            </span>
+                            <span className="text-xs ml-2" style={{ color: 'var(--text-slate-600)' }}>
+                              {payment.description || 'Payment processed'}
+                            </span>
+                          </div>
+                          <span className="text-xs whitespace-nowrap ml-2" style={{ color: 'var(--text-slate-400)' }}>
+                            {payment.date || dayjs(payment.paymentDate).format('MMM DD · HH:mm')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--bg-slate-100)', color: 'var(--text-slate-700)' }}>
+                            {payment.paymentMethod?.replace('_', ' ') || 'Bank Transfer'}
+                          </span>
+                          {payment.processedBy && (
+                            <span className="text-[10px]" style={{ color: 'var(--text-slate-500)' }}>
+                              by {payment.processedBy}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-xs text-gray-400 whitespace-nowrap ml-2">
-                      {payment.date || moment(payment.paymentDate).format('MMM DD · HH:mm')}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full">
-                      {payment.paymentMethod?.replace('_', ' ') || 'Bank Transfer'}
-                    </span>
-                    {payment.processedBy && (
-                      <span className="text-[10px] text-gray-500">
-                        by {payment.processedBy}
-                      </span>
-                    )}
-                  </div>
+                  ))}
                 </div>
-              </div>
-            ))}
-          </div>
-          
-          {paymentHistory.payments.length > 3 && (
-            <div className="text-center mt-3 pt-2 border-t border-gray-100">
-              <button className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 mx-auto">
-                View all {paymentHistory.payments.length} transactions
-                <ChevronRight size={10} />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )}
-</Drawer>
 
-{/* ... existing Modals for Delete and Status ... */}
+                {paymentHistory.payments.length > 3 && (
+                  <div className="text-center mt-3 pt-2 border-t" style={{ borderColor: 'var(--border-color)' }}>
+                    <button className="text-xs font-medium flex items-center gap-1 mx-auto" style={{ color: 'var(--customers-header-icon-color)' }}>
+                      View all {paymentHistory.payments.length} transactions
+                      <ChevronRight size={10} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Drawer>
+
+      {/* ... existing Modals for Delete and Status ... */}
 
       {/* EMAIL DRAWER */}
       {selectedInvoiceForEmail && (
@@ -2027,7 +2178,7 @@ const startBulkDelete = async () => {
           invoice={selectedInvoiceForEmail}
         />
       )}
-    
+
 
 
 

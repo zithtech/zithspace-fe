@@ -15,6 +15,7 @@ export interface Customer {
   taxId?: string | null;
   gstin?: string | null;
   pan?: string | null;
+  isActive: boolean;
 
   tenantId: string;
   createdBy: string;
@@ -26,30 +27,32 @@ export interface Customer {
 
 export interface CreateCustomerData {
   companyName: string;
-  email?: string;
-  phone?: string;
+  email?: string | null;
+  phone?: string | null;
 
-  address?: string;
-  city?: string;
-  country?: string;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
 
-  taxId?: string;
-  gstin?: string;
-  pan?: string;
+  taxId?: string | null;
+  gstin?: string | null;
+  pan?: string | null;
+  isActive?: boolean;
 }
 
 export interface UpdateCustomerData {
-  companyName: string;
-  email?: string;
-  phone?: string;
+  companyName?: string;
+  email?: string | null;
+  phone?: string | null;
 
-  address?: string;
-  city?: string;
-  country?: string;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
 
-  taxId?: string;
-  gstin?: string;
-  pan?: string;
+  taxId?: string | null;
+  gstin?: string | null;
+  pan?: string | null;
+  isActive?: boolean;
 }
 
 export interface CustomersFilters {

@@ -6,7 +6,7 @@ import { EditOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import TiptapViewer from "@/components/common/TiptapViewer";
 import { TicketDetails } from "@/types/ticket";
-import { getStatusColor, getPriorityColor, getTypeColor, getPlatformColor, getTaskLevelColor } from "@/utils/ticketUtils";
+import { getStatusColor, getStatusLabel, getPriorityColor, getTypeColor, getPlatformColor, getTaskLevelColor } from "@/utils/ticketUtils";
 
 const { Title, Text } = Typography;
 
@@ -109,7 +109,7 @@ export default function TicketInformation({ ticket, onEdit }: TicketInformationP
       <Descriptions title="Ticket Information" bordered column={2}>
         <Descriptions.Item label="Status">
           <Tag color={getStatusColor(ticket.status)}>
-            {ticket.status.replace("_", " ").toUpperCase()}
+            {getStatusLabel(ticket.status).toUpperCase()}
           </Tag>
         </Descriptions.Item>
         <Descriptions.Item label="Priority">

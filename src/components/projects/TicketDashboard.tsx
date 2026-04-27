@@ -1,15 +1,15 @@
 'use client';
 
 import React from 'react';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Statistic, 
-  Typography, 
-  Table, 
-  Progress, 
-  Tag, 
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Typography,
+  Table,
+  Progress,
+  Tag,
   Space,
   Avatar,
   Spin,
@@ -46,7 +46,7 @@ export default function TicketDashboard() {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0' }}>
         <Spin size="large" tip="Calculating metrics">
-            <div style={{ height: 200 }} />
+          <div style={{ height: 200 }} />
         </Spin>
       </div>
     );
@@ -54,11 +54,11 @@ export default function TicketDashboard() {
 
   if (error) {
     return (
-      <Alert 
-        message="Dashboard Error" 
-        description="We couldn't load your ticket metrics. Please try again." 
-        type="error" 
-        showIcon 
+      <Alert
+        message="Dashboard Error"
+        description="We couldn't load your ticket metrics. Please try again."
+        type="error"
+        showIcon
         style={{ margin: 24 }}
       />
     );
@@ -100,8 +100,8 @@ export default function TicketDashboard() {
         <Space size={4} wrap>
           {record.statuses.map((s: any) => (
             <Tooltip key={s.status} title={s.status.replace('_', ' ').toUpperCase()}>
-              <Tag 
-                color={getStatusColor(s.status)} 
+              <Tag
+                color={getStatusColor(s.status)}
                 style={{ margin: 0, fontSize: 10, padding: '0 4px' }}
               >
                 {s.count}
@@ -132,7 +132,7 @@ export default function TicketDashboard() {
       <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Space align="center" size={12}>
-            <div style={{ 
+            <div style={{
               background: 'linear-gradient(135deg, #1677ff 0%, #003eb3 100%)',
               padding: '8px',
               borderRadius: '10px',
@@ -181,10 +181,10 @@ export default function TicketDashboard() {
               prefix={<PlayCircleOutlined style={{ color: '#1890ff', marginRight: 8 }} />}
               valueStyle={{ color: '#1890ff', fontWeight: 700, fontSize: 28 }}
             />
-            <Progress 
-              percent={Math.round((generalStats.in_progress / generalStats.total) * 100)} 
-              showInfo={false} 
-              size="small" 
+            <Progress
+              percent={Math.round((generalStats.in_progress / generalStats.total) * 100)}
+              showInfo={false}
+              size="small"
               strokeColor="#1890ff"
               style={{ marginTop: 12 }}
             />
@@ -198,10 +198,10 @@ export default function TicketDashboard() {
               prefix={<CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />}
               valueStyle={{ color: '#52c41a', fontWeight: 700, fontSize: 28 }}
             />
-            <Progress 
-              percent={Math.round((generalStats.completed / generalStats.total) * 100)} 
-              showInfo={false} 
-              size="small" 
+            <Progress
+              percent={Math.round((generalStats.completed / generalStats.total) * 100)}
+              showInfo={false}
+              size="small"
               strokeColor="#52c41a"
               style={{ marginTop: 12 }}
             />
@@ -216,7 +216,7 @@ export default function TicketDashboard() {
               prefix={<ThunderboltOutlined style={{ color: '#faad14', marginRight: 8 }} />}
               valueStyle={{ color: '#262626', fontWeight: 700, fontSize: 28 }}
             />
-             <div style={{ marginTop: 8, fontSize: 12, color: '#8c8c8c' }}>
+            <div style={{ marginTop: 8, fontSize: 12, color: '#8c8c8c' }}>
               Overall completion rate
             </div>
           </Card>
@@ -234,11 +234,11 @@ export default function TicketDashboard() {
               </Title>
               <Button type="link" size="small">View All</Button>
             </div>
-            
+
             <Row gutter={[16, 16]}>
               {projectStats.map((project) => (
                 <Col xs={24} md={12} key={project.id}>
-                  <Card 
+                  <Card
                     hoverable
                     style={{ borderRadius: 12, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' }}
                     bodyStyle={{ padding: 20 }}
@@ -247,7 +247,7 @@ export default function TicketDashboard() {
                       <Text strong style={{ fontSize: 16, color: '#1677ff' }}>{project.id}</Text>
                       <Tag color="blue" style={{ margin: 0, borderRadius: 12 }}>{project.total} Tickets</Tag>
                     </div>
-                    
+
                     <Row gutter={8}>
                       {project.statuses.map((s, idx) => (
                         <Col span={6} key={idx}>
@@ -258,9 +258,9 @@ export default function TicketDashboard() {
                         </Col>
                       ))}
                     </Row>
-                    
+
                     <Divider style={{ margin: '16px 0' }} />
-                    
+
                     {/* Visual Progress */}
                     {(() => {
                       const completed = project.statuses.find(s => s.status === 'completed')?.count || 0;
@@ -310,10 +310,10 @@ export default function TicketDashboard() {
           </Title>
           <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }} bodyStyle={{ padding: '0 20px' }}>
             {recentActivity.slice(0, 8).map((ticket, index) => (
-              <div 
-                key={ticket.id} 
-                style={{ 
-                  padding: '16px 0', 
+              <div
+                key={ticket.id}
+                style={{
+                  padding: '16px 0',
                   borderBottom: index === 7 ? 'none' : '1px solid var(--border-color)',
                   display: 'flex',
                   gap: 12
@@ -345,10 +345,10 @@ export default function TicketDashboard() {
           </Card>
 
           {/* Efficiency Insight */}
-          <Card 
-            style={{ 
-              marginTop: 24, 
-              borderRadius: 16, 
+          <Card
+            style={{
+              marginTop: 24,
+              borderRadius: 16,
               background: 'linear-gradient(135deg, #1677ff 0%, #003eb3 100%)',
               border: 'none'
             }}

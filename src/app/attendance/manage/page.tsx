@@ -53,6 +53,7 @@ interface ExtendedAttendance extends Attendance {
     id: string;
     name: string;
     position: string;
+    avatarUrl?: string;
   };
   effectiveWorkMinutes?: number;
 }
@@ -251,8 +252,12 @@ export default function ManageAttendancePage() {
         const member: any = record.member;
         return (
           <Space>
-            <Avatar size={40} style={{ backgroundColor: '#1677ff', borderRadius: '10px' }}>
-              {member?.name?.charAt(0).toUpperCase()}
+            <Avatar 
+              size={40} 
+              src={record.member?.avatarUrl}
+              style={{ backgroundColor: '#1677ff', borderRadius: '10px' }}
+            >
+              {record.member?.name?.charAt(0)}
             </Avatar>
             <div>
               <Text strong style={{ fontSize: '15px' }}>{member?.name}</Text>
@@ -524,19 +529,23 @@ export default function ManageAttendancePage() {
                   String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
                 }
               >
-                {members.map(m => (
+                {members.map(member => (
                   <Option
-                    key={m.id}
-                    value={m.id}
-                    label={m.name || ""}
+                    key={member.id}
+                    value={member.id}
+                    label={member.name || ""}
                   >
                     <Space>
-                      <Avatar size="small" style={{ backgroundColor: '#1677ff' }}>
-                        {(m.name || "").charAt(0).toUpperCase()}
+                      <Avatar 
+                        size="small" 
+                        src={member.avatarUrl}
+                        style={{ backgroundColor: '#1677ff' }}
+                      >
+                        {member.name.charAt(0)}
                       </Avatar>
-                      <Text>{m.name}</Text>
+                      <Text>{member.name}</Text>
                       <Text type="secondary" style={{ fontSize: '12px' }}>
-                        • {m.position?.title || 'Team Member'}
+                        • {member.position?.title || 'Team Member'}
                       </Text>
                     </Space>
                   </Option>

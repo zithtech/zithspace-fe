@@ -1,6 +1,13 @@
 import React from "react";
-import { Select, Space, Button, Typography, Switch } from "antd";
-import { FilterOutlined, ClearOutlined, InboxOutlined } from "@ant-design/icons";
+import { Select, Space, Button, Typography, Switch, Avatar, Badge, Tag } from "antd";
+import {
+  FilterOutlined,
+  RotateLeftOutlined,
+  CheckCircleOutlined,
+  FireFilled,
+  UserOutlined,
+  InboxOutlined
+} from "@ant-design/icons";
 import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "@/utils/ticketUtils";
 
 const { Text } = Typography;
@@ -27,94 +34,188 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
   onReset,
   showArchivedToggle = false,
 }) => {
+  const activeCount =
+    (filters.status?.length || 0) +
+    (filters.priority?.length || 0) +
+    (filters.assignee?.length || 0) +
+    (filters.showArchived ? 1 : 0);
+
+  const SectionLabel = ({ icon: Icon, children, count }: any) => (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+      padding: '0 4px'
+    }}>
+      <Space size={6}>
+        <Icon style={{ fontSize: 11, color: 'var(--text-slate-400)' }} />
+        <Text style={{
+          fontSize: 10,
+          fontWeight: 700,
+          color: 'var(--text-slate-500)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em'
+        }}>
+          {children}
+        </Text>
+      </Space>
+      {count > 0 && (
+        <Badge
+          count={count}
+          style={{
+            backgroundColor: 'var(--bg-blue-50)',
+            color: 'var(--premium-blue)',
+            fontSize: 9,
+            minWidth: 16,
+            height: 16,
+            lineHeight: '16px',
+            boxShadow: 'none',
+            fontWeight: 700
+          }}
+        />
+      )}
+    </div>
+  );
+
   return (
-    <div style={{ width: 300 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Text strong><FilterOutlined /> Filters</Text>
-        {onReset && (
-          <Button type="link" size="small" icon={<ClearOutlined />} onClick={onReset}>
-            Reset
+    <div style={{
+      width: 300,
+      padding: '12px',
+      background: 'var(--bg-secondary)',
+      backdropFilter: 'blur(10px)',
+      borderRadius: '12px',
+      boxShadow: 'var(--premium-shadow-lg)',
+      border: '1px solid var(--border-color)'
+    }}>
+      {/* Mini Title & Reset */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+        padding: '0 4px'
+      }}>
+        <Space size={8}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: activeCount > 0 ? 'var(--premium-blue)' : '#cbd5e1' }} />
+          <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>View Filters</Text>
+        </Space>
+        {activeCount > 0 && onReset && (
+          <Button
+            type="text"
+            size="small"
+            onClick={onReset}
+            icon={<RotateLeftOutlined style={{ fontSize: 11 }} />}
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: 'var(--premium-blue)',
+              height: 22,
+              padding: '0 8px',
+              borderRadius: 6,
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            className="hover:bg-blue-50 transition-all"
+          >
+            RESET
           </Button>
         )}
       </div>
 
-      <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-        {/* Show Archived Toggle */}
-        {showArchivedToggle && (
-          <div
-            style={{
-              padding: 12,
-              background: "var(--bg-pure-white)",
-              borderRadius: 8,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              border: "1px solid var(--border-color)"
-            }}
-          >
-            <Space size={8}>
-              <InboxOutlined />
-              <Text>Show Archived</Text>
-            </Space>
-            <Switch
-              checked={filters.showArchived || false}
-              onChange={(checked) => onFilterChange("showArchived", checked)}
-            />
-          </div>
-        )}
-        {/* Status Filter */}
+      <Space direction="vertical" size={14} style={{ width: "100%" }}>
+        {/* Status Section */}
         <div>
-          <Text type="secondary" style={{ fontSize: 12 }}>STATUS</Text>
+          <SectionLabel icon={CheckCircleOutlined} count={filters.status?.length}>Status</SectionLabel>
           <Select
             mode="multiple"
-            placeholder="Filter by status"
-            style={{ width: "100%", marginTop: 4 }}
+            placeholder="No status filter"
+            style={{ width: "100%" }}
             value={filters.status}
-            onChange={(value) => onFilterChange("status", value)}
+            onChange={(val) => onFilterChange("status", val)}
             options={STATUS_OPTIONS}
             allowClear
+            className="saas-select-minimal"
+            maxTagCount={1}
+            maxTagPlaceholder={(omitted) => (
+              <span style={{ fontSize: 11, color: 'var(--text-slate-400)', fontWeight: 600 }}>+{omitted.length} more</span>
+            )}
+            styles={{ popup: { root: { borderRadius: '10px', padding: '6px' } } }}
           />
         </div>
 
-        {/* Priority Filter */}
+        {/* Priority Section */}
         <div>
-          <Text type="secondary" style={{ fontSize: 12 }}>PRIORITY</Text>
+          <SectionLabel icon={FireFilled} count={filters.priority?.length}>Priority</SectionLabel>
           <Select
             mode="multiple"
-            placeholder="Filter by priority"
-            style={{ width: "100%", marginTop: 4 }}
+            placeholder="Any priority"
+            style={{ width: "100%" }}
             value={filters.priority}
-            onChange={(value) => onFilterChange("priority", value)}
+            onChange={(val) => onFilterChange("priority", val)}
             options={PRIORITY_OPTIONS}
             allowClear
+            className="saas-select-minimal"
+            maxTagCount={2}
+            styles={{ popup: { root: { borderRadius: '10px', padding: '6px' } } }}
           />
         </div>
 
-        {/* Assignee Filter */}
+        {/* Assignee Section */}
         <div>
-          <Text type="secondary" style={{ fontSize: 12 }}>ASSIGNEE</Text>
+          <SectionLabel icon={UserOutlined} count={filters.assignee?.length}>Assignee</SectionLabel>
           <Select
             mode="multiple"
-            placeholder="Filter by assignee"
-            style={{ width: "100%", marginTop: 4 }}
+            placeholder="All members"
+            style={{ width: "100%" }}
             value={filters.assignee}
-            onChange={(value) => onFilterChange("assignee", value)}
+            onChange={(val) => onFilterChange("assignee", val)}
             showSearch
             allowClear
+            className="saas-select-minimal"
+            maxTagCount={1}
+            styles={{ popup: { root: { borderRadius: '10px', padding: '6px' } } }}
             filterOption={(input, option) => {
               const member = members.find((m) => m.value === option?.value);
               return member
                 ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                (member.position || "")
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
+                (member.position || "").toLowerCase().includes(input.toLowerCase())
                 : false;
             }}
-            options={members.map((member) => ({
-              label: `${member.label}${member.position ? ` - ${member.position}` : ''}`,
-              value: member.value,
+            options={members.map((m) => ({
+              label: (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Avatar size={18} style={{ fontSize: 9, background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', fontWeight: 800 }}>{m.label.charAt(0)}</Avatar>
+                  <Text style={{ fontSize: 12, fontWeight: 500 }}>{m.label}</Text>
+                </div>
+              ),
+              value: m.value,
             }))}
           />
+        </div>
+
+        {/* Visibility Controls */}
+        <div style={{ marginTop: 4 }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '8px 10px',
+            background: filters.showArchived ? 'var(--bg-blue-50)' : 'var(--bg-slate-50)',
+            borderRadius: 8,
+            border: `1px solid ${filters.showArchived ? 'var(--border-blue-200)' : 'var(--border-slate-200)'}`,
+            transition: 'all 0.2s'
+          }}>
+            <Space size={8}>
+              <InboxOutlined style={{ fontSize: 13, color: filters.showArchived ? 'var(--premium-blue)' : '#94a3b8' }} />
+              <Text style={{ fontSize: 12, fontWeight: 600, color: filters.showArchived ? 'var(--text-blue-700)' : '#64748b' }}>Show Archived</Text>
+            </Space>
+            <Switch
+              size="small"
+              checked={filters.showArchived}
+              onChange={(checked) => onFilterChange("showArchived", checked)}
+            />
+          </div>
         </div>
       </Space>
     </div>

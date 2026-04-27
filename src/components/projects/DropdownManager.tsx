@@ -33,8 +33,16 @@ import {
   UpOutlined,
   DownOutlined,
   DatabaseOutlined,
-  InfoCircleOutlined
-} from '@ant-design/icons';
+  InfoCircleOutlined,
+  ThunderboltOutlined,
+  DeploymentUnitOutlined,
+  CodeOutlined,
+  BlockOutlined,
+  AppstoreOutlined,
+  ControlOutlined,
+  MoreOutlined,
+  HolderOutlined
+} from "@ant-design/icons";
 import { SettingsService, DropdownOption, CreateDropdownOptionData, UpdateDropdownOptionData } from '@/services/settingsService';
 
 const { Title, Text, Paragraph } = Typography;
@@ -56,12 +64,12 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   const [dropdownOptions, setDropdownOptions] = useState<Record<string, DropdownOption[]>>({});
 
   const dropdownTypes = [
-    { key: 'platform', label: 'Platforms', description: 'Core team platforms and delivery departments' },
-    { key: 'stack', label: 'Stacks', description: 'Available technology stacks for project tagging' },
-    { key: 'priority', label: 'Priorities', description: 'Urgency levels and visual indicators' },
-    { key: 'taskLevel', label: 'Complexity', description: 'Difficulty and story point weighting' },
-    { key: 'taskType', label: 'Work Types', description: 'Classifications for development activities' },
-    { key: 'status', label: 'Lifecycles', description: 'Global status mapping for ticket workflows' }
+    { key: 'platform', label: 'Platforms', icon: <DeploymentUnitOutlined />, description: 'Core team platforms and delivery departments', color: '#1677ff' },
+    { key: 'stack', label: 'Stacks', icon: <CodeOutlined />, description: 'Available technology stacks for project tagging', color: '#52c41a' },
+    { key: 'priority', label: 'Priorities', icon: <ThunderboltOutlined />, description: 'Urgency levels and visual indicators', color: '#faad14' },
+    { key: 'taskLevel', label: 'Complexity', icon: <BlockOutlined />, description: 'Difficulty and story point weighting', color: '#13c2c2' },
+    { key: 'taskType', label: 'Work Types', icon: <AppstoreOutlined />, description: 'Classifications for development activities', color: '#722ed1' },
+    { key: 'status', label: 'Lifecycles', icon: <ControlOutlined />, description: 'Global status mapping for ticket workflows', color: '#eb2f96' }
   ];
 
   // Load dropdown options
@@ -470,6 +478,64 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
     }
   };
 
+  const handleStandardizeLifecycles = async () => {
+    try {
+      setLoading(true);
+      message.loading({ content: 'Synchronizing system lifecycles...', key: 'status-sync' });
+      
+      const currentStatusList = dropdownOptions.status || [];
+      const newStatusOrder = [
+        { label: "Not Started", value: "not_started", color: "#8c8c8c" },
+        { label: "In Progress", value: "in_progress", color: "#1677ff" },
+        { label: "Dev Complete", value: "dev_complete", color: "#13c2c2" },
+        { label: "Dev Testing", value: "dev_testing", color: "#faad14" },
+        { label: "In Review", value: "in_review", color: "#722ed1" },
+        { label: "Live", value: "live", color: "#2f54eb" },
+        { label: "Live Testing", value: "live_testing", color: "#1d39c4" },
+        { label: "Completed", value: "completed", color: "#52c41a" },
+        { label: "Pause", value: "pause", color: "#fa8c16" },
+      ];
+
+      // Update existing or create missing
+      for (let i = 0; i < newStatusOrder.length; i++) {
+        const target = newStatusOrder[i];
+        const existing = currentStatusList.find(s => s.value === target.value);
+        
+        const data = {
+          label: target.label,
+          value: target.value,
+          color: target.color,
+          order: i + 1,
+          isActive: true,
+          type: 'status' as const
+        };
+
+        if (existing) {
+          await SettingsService.updateDropdownOption(existing.id, data);
+        } else {
+          await SettingsService.createDropdownOption(data);
+        }
+      }
+
+      // Deactivate statuses not in the new list
+      const newValues = newStatusOrder.map(s => s.value);
+      for (const status of currentStatusList) {
+        if (!newValues.includes(status.value) && status.isActive) {
+          await SettingsService.updateDropdownOption(status.id, { isActive: false });
+        }
+      }
+
+      await loadDropdownOptions();
+      if (onDataChange) onDataChange();
+      message.success({ content: '9-step workflow standardized successfully', key: 'status-sync' });
+    } catch (error) {
+      console.error('Error standardizing lifecycles:', error);
+      message.error({ content: 'Failed to synchronize lifecycles', key: 'status-sync' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getNextOrder = (type: string): number => {
     const options = dropdownOptions[type] || [];
     return options.length > 0 ? Math.max(...options.map(opt => opt.order)) + 1 : 1;
@@ -477,21 +543,24 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
 
   const columns = [
     {
-      title: 'Seq',
+      title: 'Sequence',
       dataIndex: 'order',
       key: 'order',
       width: 100,
       render: (order: number, record: DropdownOption) => (
-        <Space size={12}>
-          <Text strong style={{ minWidth: 20 }}>{order}</Text>
-          <Space direction="vertical" size={0}>
+        <Space size={8} className="order-control">
+          <div className="drag-handle">
+            <HolderOutlined style={{ color: '#bfbfbf', cursor: 'grab' }} />
+          </div>
+          <Text strong style={{ minWidth: 20, color: 'var(--text-secondary)' }}>{order}</Text>
+          <div className="order-buttons">
             <Button
               type="text"
               size="small"
               icon={<UpOutlined style={{ fontSize: 10 }} />}
               onClick={() => handleMoveOrder(record, 'up')}
               disabled={loading}
-              style={{ height: 16 }}
+              className="order-btn"
             />
             <Button
               type="text"
@@ -499,101 +568,87 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
               icon={<DownOutlined style={{ fontSize: 10 }} />}
               onClick={() => handleMoveOrder(record, 'down')}
               disabled={loading}
-              style={{ height: 16 }}
+              className="order-btn"
             />
-          </Space>
+          </div>
         </Space>
       )
     },
     {
-      title: 'Visual Indicator & Label',
+      title: 'Identity & Display Label',
       dataIndex: 'label',
       key: 'label',
       render: (label: string, record: DropdownOption) => (
-        <Space size="middle">
-          {record.color ? (
-            <div
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: 8,
-                backgroundColor: record.color,
-                boxShadow: `0 2px 8px ${record.color}40`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: 10,
-                fontWeight: 700
-              }}
-            >
-              {label.charAt(0).toUpperCase()}
-            </div>
-          ) : (
-            <div style={{ width: 24, height: 24, background: 'var(--bg-secondary)', borderRadius: 8 }} />
-          )}
-          <Text strong style={{ fontSize: 14 }}>{label}</Text>
-        </Space>
+        <div>
+          <Text strong style={{ fontSize: 13, display: 'block', color: 'var(--text-slate-900)' }}>{label}</Text>
+          <Text style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>{record.value}</Text>
+        </div>
       )
     },
     {
-      title: 'Key Value',
-      dataIndex: 'value',
-      key: 'value',
-      render: (value: string) => <Tag style={{ borderRadius: 6, fontWeight: 500 }}>{value}</Tag>
-    },
-    {
-      title: 'Usage Context',
+      title: 'Context & Rules',
       dataIndex: 'description',
       key: 'description',
       ellipsis: true,
       render: (description: string) => (
-        <Text type="secondary" style={{ fontSize: 13 }}>{description || 'No description provided'}</Text>
+        <div style={{ maxWidth: 300 }}>
+          <Text type="secondary" style={{ fontSize: 13 }}>
+            {description || 'No specialized context defined.'}
+          </Text>
+        </div>
       )
     },
     {
-      title: 'State',
+      title: 'Visibility',
       dataIndex: 'isActive',
       key: 'isActive',
       width: 100,
+      align: 'center' as const,
       render: (isActive: boolean, record: DropdownOption) => (
-        <Tooltip title={isActive ? 'Deactivate' : 'Activate'}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
           <Switch 
             size="small" 
             checked={isActive} 
             onChange={() => handleToggleStatus(record)} 
             loading={loading}
+            className="premium-switch"
           />
-        </Tooltip>
+          <Badge 
+            status={isActive ? 'success' : 'default'} 
+            text={<span style={{ fontSize: 10, color: isActive ? '#52c41a' : '#bfbfbf', fontWeight: 600 }}>{isActive ? 'ACTIVE' : 'HIDDEN'}</span>} 
+          />
+        </div>
       )
     },
     {
-      title: 'Actions',
+      title: 'Management',
       key: 'actions',
       width: 120,
       align: 'right' as const,
       render: (_: any, record: DropdownOption) => (
         <Space>
-          <Tooltip title="Edit">
+          <Tooltip title="Modify Configuration">
             <Button
               type="text"
               icon={<EditOutlined />}
               onClick={() => handleEdit(record)}
-              style={{ color: '#1677ff' }}
+              className="action-btn-edit"
             />
           </Tooltip>
           <Popconfirm
             title="Delete mapping?"
-            description="This might affect existing tickets using this value."
+            description="Warning: This may break ticket integrity."
             onConfirm={() => handleDelete(record)}
-            okText="Delete"
+            okText="Confirm Delete"
             cancelText="Cancel"
-            okButtonProps={{ danger: true }}
+            okButtonProps={{ danger: true, style: { borderRadius: 8 } }}
+            cancelButtonProps={{ style: { borderRadius: 8 } }}
           >
             <Button
               type="text"
               icon={<DeleteOutlined />}
               danger
+              className="action-btn-delete"
             />
           </Popconfirm>
         </Space>
@@ -603,126 +658,140 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Card 
-        bordered={false} 
-        style={{ 
-          borderRadius: 20, 
-          border: '1px solid var(--border-color)',
-          backgroundColor: 'var(--bg-pure-white)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          flex: 1
-        }}
-        bodyStyle={{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column' }}
-      >
-        <div style={{ padding: '16px 32px', background: 'var(--bg-pure-white)', borderBottom: '1px solid var(--border-color)' }}>
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Space align="center">
-                <div style={{ 
-                  width: 32, 
-                  height: 32, 
-                  background: 'var(--bg-pure-white)', 
-                  borderRadius: 10, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-                }}>
-                  <DatabaseOutlined style={{ color: '#1677ff', fontSize: 16 }} />
-                </div>
-                <div>
-                  <Title level={5} style={{ margin: 0 }}>Lookup Metadata</Title>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Define global taxonomies for ticket tracking.</Text>
-                </div>
-              </Space>
-            </Col>
-            <Col>
-              <Button
-                type="primary"
-                size="small"
-                icon={<PlusOutlined />}
-                onClick={handleCreate}
-                style={{ borderRadius: 8, fontWeight: 600 }}
-              >
-                Add Option
-              </Button>
-            </Col>
-          </Row>
-        </div>
 
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
           tabPosition="left"
           className="manager-tabs"
-          style={{ flex: 1, height: 'calc(100% - 65px)' }}
+          style={{ flex: 1, height: '100%' }}
           items={dropdownTypes.map(type => ({
             key: type.key,
             label: (
-              <div style={{ padding: '4px 0', width: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, fontSize: 13 }}>{type.label}</span>
-                  <Badge 
-                    count={dropdownOptions[type.key]?.length || 0} 
-                    style={{ backgroundColor: activeTab === type.key ? '#1677ff' : '#d9d9d9', fontSize: 10 }} 
-                  />
-                </div>
+              <div className="tab-label-container">
+                <Space size={12}>
+                  <div className={`tab-icon-box ${activeTab === type.key ? 'active' : ''}`} style={{ color: type.color }}>
+                    {type.icon}
+                  </div>
+                  <div>
+                    <div className="tab-title">{type.label}</div>
+                    <div className="tab-subtitle-count">
+                      <Badge 
+                        count={dropdownOptions[type.key]?.length || 0} 
+                        size="small"
+                        style={{ 
+                          backgroundColor: activeTab === type.key ? type.color : 'rgba(0,0,0,0.06)', 
+                          color: activeTab === type.key ? '#fff' : 'var(--text-secondary)',
+                          fontSize: 10,
+                          boxShadow: 'none',
+                          border: 'none'
+                        }} 
+                      />
+                      <span style={{ marginLeft: 6 }}>Definitions</span>
+                    </div>
+                  </div>
+                </Space>
               </div>
             ),
             children: (
-              <div style={{ 
-                padding: '24px 32px', 
-                height: '100%', 
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
-                <div style={{ marginBottom: 20 }}>
-                  <Title level={4} style={{ marginBottom: 4 }}>{type.label} Configuration</Title>
-                  <Text type="secondary" style={{ fontSize: 13 }}>{type.description}</Text>
-                  <Divider style={{ margin: '12px 0' }} />
+              <div className="tab-content-area no-scrollbar">
+                <div className="category-header">
+                  <Row justify="space-between" align="middle">
+                    <Col>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 4, height: 24, background: type.color, borderRadius: 2, flexShrink: 0 }} />
+                        <Space split={<Divider type="vertical" style={{ height: 18, borderLeft: '1.5px solid #cbd5e1', margin: '0 4px' }} />} size={16}>
+                          <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
+                            {type.label}
+                          </Title>
+                          <Text style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                            {type.description}
+                          </Text>
+                        </Space>
+                      </div>
+                    </Col>
+                    <Col>
+                      <Space size={12}>
+                        {type.key === 'status' && (
+                          <Button
+                            size="small"
+                            icon={<ThunderboltOutlined />}
+                            onClick={handleStandardizeLifecycles}
+                            loading={loading}
+                            style={{ borderRadius: 6, fontWeight: 700, border: '1px solid #faad14', color: '#faad14', height: 32 }}
+                          >
+                            Synchronize
+                          </Button>
+                        )}
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={<PlusOutlined />}
+                          onClick={handleCreate}
+                          style={{ borderRadius: 6, fontWeight: 700, height: 32, padding: '0 16px' }}
+                        >
+                          New Definition
+                        </Button>
+                      </Space>
+                    </Col>
+                  </Row>
+                  <Divider style={{ margin: '16px 0 0' }} />
                 </div>
                 
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, marginTop: 16 }}>
                   <Table
                     columns={columns}
                     dataSource={dropdownOptions[type.key] || []}
                     rowKey="id"
                     loading={dataLoading}
                     pagination={false}
-                    size="small"
-                    className="premium-table"
-                    scroll={{ y: 'calc(100vh - 400px)' }}
+                    size="middle"
+                    className="premium-table workstation-grid"
                   />
                 </div>
               </div>
             )
           }))}
         />
-      </Card>
 
       <Modal
         title={
-          <Space>
-            <div style={{ width: 32, height: 32, background: 'rgba(22, 119, 255, 0.1)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {editingOption ? <EditOutlined style={{ color: '#1677ff' }} /> : <PlusOutlined style={{ color: '#1677ff' }} />}
-            </div>
-            <Text strong style={{ fontSize: 18 }}>{editingOption ? 'Edit Mapping' : 'New Mapping Definition'}</Text>
-          </Space>
+          <div style={{ padding: '8px 4px' }}>
+            <Space size={12}>
+              <div style={{ 
+                width: 40, 
+                height: 40, 
+                background: 'rgba(59, 130, 246, 0.1)', 
+                borderRadius: 12, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                border: '1px solid rgba(59, 130, 246, 0.1)'
+              }}>
+                {editingOption ? <EditOutlined style={{ color: '#3B82F6', fontSize: 20 }} /> : <PlusOutlined style={{ color: '#3B82F6', fontSize: 20 }} />}
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
+                  {editingOption ? 'Edit Mapping Definition' : 'New Mapping Definition'}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 400 }}>
+                  Configure synchronization parameters for ticket taxonomies.
+                </div>
+              </div>
+            </Space>
+          </div>
         }
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         onOk={() => form.submit()}
         confirmLoading={loading}
-        width={640}
+        width={680}
         centered
-        okText="Save Configuration"
+        okText={editingOption ? "Update Definition" : "Deploy Definition"}
         cancelText="Discard"
-        okButtonProps={{ style: { borderRadius: 8, height: 40, fontWeight: 600 } }}
-        cancelButtonProps={{ style: { borderRadius: 8, height: 40 } }}
+        okButtonProps={{ style: { borderRadius: 10, height: 44, fontWeight: 700, padding: '0 24px' } }}
+        cancelButtonProps={{ style: { borderRadius: 10, height: 44, padding: '0 24px' } }}
+        styles={{ body: { padding: '24px 8px' } }}
       >
         <div style={{ padding: '16px 0' }}>
           <Form
@@ -789,7 +858,7 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
                   name="color"
                   label={<Text strong>Visual Identity (Color)</Text>}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px', border: '1px solid #d9d9d9', borderRadius: 8 }}>
+                  <div className="dm-color-picker-row">
                     <ColorPicker showText />
                     <Text type="secondary" style={{ fontSize: 12 }}>Pick representative color</Text>
                   </div>
@@ -801,7 +870,7 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
                   label={<Text strong>Availability Status</Text>}
                   valuePropName="checked"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-secondary)', borderRadius: 8 }}>
+                  <div className="dm-availability-toggle">
                     <Space size="small">
                       <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
                       <Text style={{ fontSize: 13 }}>Enable for all projects</Text>
@@ -827,36 +896,269 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
       </Modal>
 
       <style jsx global>{`
+        /* ── Left sidebar nav ─────────────────────────────────────── */
         .manager-tabs .ant-tabs-nav {
           width: 240px;
           background: var(--bg-pure-white);
           margin-bottom: 0 !important;
-          border-right: 1px solid var(--border-color);
+          border-right: 1px solid var(--border-slate-100);
+          padding: 16px 0;
         }
+        [data-theme='dark'] .manager-tabs .ant-tabs-nav {
+          background: #0d1117 !important;
+          border-right-color: #1f2937 !important;
+        }
+
         .manager-tabs .ant-tabs-tab {
-          margin: 0 !important;
-          padding: 16px 24px !important;
-          border-left: 3px solid transparent;
-          transition: all 0.3s;
+          margin: 2px 8px !important;
+          padding: 8px 12px !important;
+          border-radius: 8px !important;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          border: 1px solid transparent !important;
+        }
+        .manager-tabs .ant-tabs-tab:hover {
+          background: rgba(0, 0, 0, 0.02) !important;
+        }
+        [data-theme='dark'] .manager-tabs .ant-tabs-tab:hover {
+          background: rgba(255, 255, 255, 0.04) !important;
         }
         .manager-tabs .ant-tabs-tab-active {
-          background: var(--bg-pure-white) !important;
-          border-left-color: #1677ff !important;
+          background: #f8faff !important;
+          border-color: #dbeafe !important;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.05) !important;
+        }
+        [data-theme='dark'] .manager-tabs .ant-tabs-tab-active {
+          background: rgba(59, 130, 246, 0.1) !important;
+          border-color: rgba(59, 130, 246, 0.2) !important;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
         }
         .manager-tabs .ant-tabs-ink-bar {
           display: none;
         }
-        .premium-table .ant-table-thead > tr > th {
+
+        /* ── Tab labels ───────────────────────────────────────────── */
+        .tab-label-container {
+          width: 100%;
+          text-align: left;
+        }
+        .tab-icon-box {
+          width: 32px;
+          height: 32px;
+          background: rgba(255, 255, 255, 0.8);
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+          transition: all 0.3s;
+          border: 1px solid transparent;
+        }
+        [data-theme='dark'] .tab-icon-box {
+          background: rgba(255, 255, 255, 0.05) !important;
+        }
+        .tab-icon-box.active {
           background: var(--bg-pure-white);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        [data-theme='dark'] .tab-icon-box.active {
+          background: #161b22 !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+        }
+        .tab-title {
           font-weight: 700;
+          font-size: 14px;
+          color: var(--text-primary);
+          line-height: 1.2;
+        }
+        .tab-subtitle-count {
+          font-size: 11px;
+          color: var(--text-secondary);
+          margin-top: 2px;
+          display: flex;
+          align-items: center;
+        }
+
+        /* ── Content area ─────────────────────────────────────────── */
+        .tab-content-area {
+          padding: 20px 32px;
+          height: 100%;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          background: var(--bg-pure-white);
+        }
+        [data-theme='dark'] .tab-content-area {
+          background: #0b0f1a !important;
+        }
+
+        /* ── Category header ──────────────────────────────────────── */
+        .category-header {
+          position: relative;
+        }
+        .category-tag {
+          font-size: 10px;
+          font-weight: 900;
+          color: var(--text-slate-400);
+          letter-spacing: 1.5px;
+          padding-left: 10px;
+          text-transform: uppercase;
+        }
+
+        /* ── Stats pill ───────────────────────────────────────────── */
+        .stats-pill {
+          background: var(--bg-slate-50);
+          padding: 12px 24px;
+          border-radius: 12px;
+          border: 1px solid var(--border-color);
+        }
+        .stat-item {
+          text-align: center;
+        }
+        .stat-value {
+          font-size: 18px;
+          font-weight: 800;
+          color: var(--text-primary);
+          line-height: 1;
+        }
+        .stat-label {
+          font-size: 10px;
           color: var(--text-secondary);
           text-transform: uppercase;
-          font-size: 11px;
-          letter-spacing: 0.5px;
-          border-bottom: 1px solid var(--border-color);
+          font-weight: 700;
+          margin-top: 4px;
         }
-        .premium-table .ant-table-row:hover {
-          filter: brightness(0.98);
+
+        /* ── Workstation grid (table) ─────────────────────────────── */
+        .workstation-grid .ant-table-thead > tr > th {
+          background: var(--bg-pure-white) !important;
+          font-weight: 800;
+          color: var(--text-slate-600) !important;
+          text-transform: uppercase;
+          font-size: 10px;
+          letter-spacing: 1.2px;
+          padding: 12px 12px;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+        }
+        [data-theme='dark'] .workstation-grid .ant-table-thead > tr > th {
+          background: #0b0f1a !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .workstation-grid .ant-table {
+          background: var(--bg-pure-white) !important;
+        }
+        [data-theme='dark'] .workstation-grid .ant-table {
+          background: #0b0f1a !important;
+        }
+        .workstation-grid .ant-table-row {
+          transition: all 0.2s ease;
+        }
+        .workstation-grid .ant-table-row:hover > td {
+          background: var(--bg-slate-50) !important;
+        }
+        [data-theme='dark'] .workstation-grid .ant-table-row:hover > td {
+          background: #1f2937 !important;
+        }
+        .workstation-grid .ant-table-cell {
+          padding: 10px 12px !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          background: var(--bg-pure-white) !important;
+        }
+        [data-theme='dark'] .workstation-grid .ant-table-cell {
+          border-bottom-color: #1f2937 !important;
+          background: #0b0f1a !important;
+        }
+
+        /* ── Header divider in category header ────────────────────── */
+        [data-theme='dark'] .category-header .ant-divider {
+          border-color: #1f2937 !important;
+        }
+        [data-theme='dark'] .category-header .ant-divider-vertical {
+          border-color: #374151 !important;
+        }
+
+        /* ── Order controls ───────────────────────────────────────── */
+        .order-control {
+          opacity: 0.6;
+          transition: opacity 0.2s;
+        }
+        .ant-table-row:hover .order-control {
+          opacity: 1;
+        }
+        .order-btn {
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 4px;
+        }
+        .order-btn:hover {
+          background: rgba(0, 0, 0, 0.05) !important;
+        }
+        [data-theme='dark'] .order-btn:hover {
+          background: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        /* ── Action buttons ───────────────────────────────────────── */
+        .action-btn-edit:hover {
+          background: #e6f4ff !important;
+          color: #1677ff !important;
+        }
+        [data-theme='dark'] .action-btn-edit:hover {
+          background: rgba(59, 130, 246, 0.15) !important;
+          color: #60a5fa !important;
+        }
+        .action-btn-delete:hover {
+          background: #fff1f0 !important;
+          color: #ff4d4f !important;
+        }
+        [data-theme='dark'] .action-btn-delete:hover {
+          background: rgba(239, 68, 68, 0.15) !important;
+          color: #f87171 !important;
+        }
+
+        /* ── Premium switch ───────────────────────────────────────── */
+        .premium-switch.ant-switch-checked {
+          background: #10B981;
+        }
+
+        /* ── Modal form helpers ───────────────────────────────────── */
+        .dm-color-picker-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 8px;
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          background: var(--bg-secondary);
+        }
+        [data-theme='dark'] .dm-color-picker-row {
+          border-color: #374151 !important;
+          background: #161b22 !important;
+        }
+
+        .dm-availability-toggle {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px;
+          background: var(--bg-secondary);
+          border-radius: 8px;
+          border: 1px solid var(--border-color);
+        }
+        [data-theme='dark'] .dm-availability-toggle {
+          background: #161b22 !important;
+          border-color: #374151 !important;
+        }
+
+        /* ── Left sidebar badge counts ────────────────────────────── */
+        [data-theme='dark'] .manager-tabs .ant-tabs-tab .ant-badge-count {
+          box-shadow: none !important;
+        }
+
+        /* ── Drag handle color ────────────────────────────────────── */
+        [data-theme='dark'] .drag-handle .anticon {
+          color: #4b5563 !important;
         }
       `}</style>
     </div>

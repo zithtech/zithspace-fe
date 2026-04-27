@@ -50,7 +50,18 @@ import { useTicket, useUpdateTicket, ticketKeys } from "@/hooks/useTickets";
 import { useMembers, useTicketConfig, useUserProjects } from "@/hooks/useGlobalData";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import { useAuth } from "@/context/AuthContext";
-import { PRIORITY_OPTIONS, TYPE_OPTIONS, STATUS_OPTIONS, getStatusColor, getPriorityColor, getTypeColor, getPlatformColor, getTaskLevelColor, getStackColor } from "@/utils/ticketUtils";
+import { 
+  PRIORITY_OPTIONS, 
+  TYPE_OPTIONS, 
+  STATUS_OPTIONS, 
+  getStatusColor, 
+  getStatusLabel,
+  getPriorityColor, 
+  getTypeColor, 
+  getPlatformColor, 
+  getTaskLevelColor, 
+  getStackColor 
+} from "@/utils/ticketUtils";
 import { EditableField } from "./editable/EditableField";
 import { EditableSelect } from "./editable/EditableSelect";
 import { DrawerField } from "./DrawerField";
@@ -205,53 +216,61 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
   // Helper Options
   const priorities =
-    ticketConfig?.priorities?.map((p: any) => ({
-      label: p.label,
-      value: p.value,
-      color: getPriorityColor(p.value),
-    })) ||
-    PRIORITY_OPTIONS.map((p) => ({
+    (ticketConfig?.priorities?.length ? ticketConfig.priorities : PRIORITY_OPTIONS).map((p: any) => ({
       label: p.label,
       value: p.value,
       color: getPriorityColor(p.value),
     }));
 
   const types =
-    ticketConfig?.taskTypes?.map((t: any) => ({
-      label: t.label,
-      value: t.value,
-      color: getTypeColor(t.value),
-    })) ||
-    TYPE_OPTIONS.map((t) => ({
+    (ticketConfig?.taskTypes?.length ? ticketConfig.taskTypes : TYPE_OPTIONS).map((t: any) => ({
       label: t.label,
       value: t.value,
       color: getTypeColor(t.value),
     }));
 
   const platforms =
-    ticketConfig?.platforms?.map((p: any) => ({
+    (ticketConfig?.platforms?.length ? ticketConfig.platforms : []).map((p: any) => ({
       label: p.label,
       value: p.value,
       color: getPlatformColor(p.value),
-    })) || [];
+    }));
   const stacks =
-    ticketConfig?.stacks?.map((s: any) => ({
+    (ticketConfig?.stacks?.length ? ticketConfig.stacks : []).map((s: any) => ({
       label: s.label,
       value: s.value,
       color: getStackColor(s.value),
-    })) || [];
+    }));
   const taskLevels =
-    ticketConfig?.taskLevels?.map((l: any) => ({
+    (ticketConfig?.taskLevels?.length ? ticketConfig.taskLevels : []).map((l: any) => ({
       label: l.label,
       value: l.value,
       color: getTaskLevelColor(l.value),
-    })) || [];
+    }));
 
-  const statuses = (ticketConfig?.statuses || STATUS_OPTIONS).map(s => ({
-    label: s.label,
-    value: s.value,
-    color: getStatusColor(s.value)
-  }));
+  const statuses = (() => {
+    const baseOptions = ticketConfig?.statuses?.length ? ticketConfig.statuses : STATUS_OPTIONS;
+    const options = baseOptions.map(s => ({
+      label: s.label,
+      value: s.value,
+      color: getStatusColor(s.value)
+    }));
+
+    // Ensure current status is present in options to prevent 'Select...' placeholder
+    if (ticket?.status) {
+      const normalizedCurrent = ticket.status.toLowerCase().replace(/ /g, '_');
+      const exists = options.some(opt => opt.value?.toLowerCase().replace(/ /g, '_') === normalizedCurrent);
+      
+      if (!exists) {
+        options.push({
+          label: getStatusLabel(ticket.status), // fallback label helper handles spaces/underscores
+          value: ticket.status,
+          color: getStatusColor(ticket.status)
+        });
+      }
+    }
+    return options;
+  })();
 
   const projectMembers = members.map((m) => ({
     label: m.label,
@@ -374,7 +393,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   textTransform: 'capitalize'
                 }}
               >
-                Status: {ticket.status.replace('_', ' ')}
+                Status: {getStatusLabel(ticket.status, ticketConfig?.statuses || STATUS_OPTIONS)}
               </Tag>
             )}
           </Space>
@@ -774,171 +793,180 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
               borderLeft: "1px solid var(--border-color)",
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {/* Status & Transitions */}
-              <div className="sidebar-collapse-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{
-                  padding: '12px 16px', // Compacted from 20px
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12, // Compacted from 16
-                }}>
-                {/* Current Status Block */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <Text strong style={{ fontSize: 11, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</Text>
-                  <div style={(() => {
-                    const s = ticket.status;
-                    let color = "#8c8c8c";
-                    if (s === "in_progress") color = "#1890ff";
-                    else if (s === "completed" || s === "live") color = "#52c41a";
-                    else if (s === "in_testing") color = "#fa8c16";
-                    else if (s === "in_review") color = "#722ed1";
-                    else if (s === "dev_complete") color = "#13c2c2";
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                {/* Compact Status Hub */}
+                <div style={(() => {
+                  const color = getStatusColor(ticket.status);
+                  let hexColor = "#8c8c8c";
+                  if (color === "processing") hexColor = "#3b82f6";
+                  else if (color === "success") hexColor = "#10b981";
+                  else if (color === "warning") hexColor = "#f59e0b";
+                  else if (color === "purple") hexColor = "#8b5cf6";
+                  else if (color === "cyan") hexColor = "#06b6d4";
+                  else if (color === "geekblue") hexColor = "#4f46e5";
+                  else if (color === "orange") hexColor = "#f59e0b";
 
-                    return {
-                      backgroundColor: 'var(--bg-pure-white)',
-                      borderRadius: 14,
-                      padding: '10px 14px', // Compacted from 14px 16px
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      color: color,
-                      cursor: 'pointer',
-                      border: `1px solid var(--border-color)`,
-                      boxShadow: `0 4px 12px ${color}0a`,
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                    };
-                  })()} className="status-badge-premium">
-                    <div style={{ flex: 1 }}>
-                      <EditableSelect
-                        value={ticket.status?.toLowerCase()}
-                        options={statuses}
-                        onSave={(val) => handleUpdate("status", val)}
-                        mode="text"
-                        plain
-                        textStyle={{ fontWeight: 700, fontSize: 14 }}
-                      />
-                    </div>
-                    {(() => {
-                      const s = ticket.status;
-                      const iconStyle = { fontSize: 20, color: 'inherit' };
-                      if (s === "not_started") return <PlayCircleOutlined style={iconStyle} />;
-                      if (s === "in_progress") return <SyncOutlined spin style={iconStyle} />;
-                      if (s === "completed" || s === "live") return <CheckCircleOutlined style={iconStyle} />;
-                      if (s === "in_testing") return <BugOutlined style={iconStyle} />;
-                      if (s === "in_review") return <SyncOutlined style={iconStyle} />;
-                      if (s === "dev_complete") return <RocketOutlined style={iconStyle} />;
-                      if (s === "pause") return <PauseCircleOutlined style={iconStyle} />;
-                      return <PlayCircleOutlined style={iconStyle} />;
-                    })()}
+                  return {
+                    backgroundColor: 'var(--bg-pure-white)',
+                    borderRadius: 8,
+                    border: `1px solid ${hexColor}25`,
+                    padding: '6px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    boxShadow: `0 1px 4px ${hexColor}05`
+                  };
+                })()} className="status-badge-premium">
+                  <div style={{ flex: 1 }}>
+                    <EditableSelect
+                      value={ticket.status}
+                      options={statuses}
+                      onSave={(val) => handleUpdate("status", val)}
+                      mode="text"
+                      plain
+                      textStyle={{ fontWeight: 700, fontSize: 12, color: 'var(--text-primary)' }}
+                    />
                   </div>
+                  {(() => {
+                    const s = ticket.status;
+                    const iconStyle = { fontSize: 14, color: 'inherit' };
+                    const iconMap: Record<string, React.ReactNode> = {
+                      'not_started': <PlayCircleOutlined style={iconStyle} />,
+                      'in_progress': <SyncOutlined spin style={iconStyle} />,
+                      'dev_complete': <RocketOutlined style={iconStyle} />,
+                      'dev_testing': <BugOutlined style={iconStyle} />,
+                      'in_review': <SyncOutlined style={iconStyle} />,
+                      'live': <CheckCircleOutlined style={iconStyle} />,
+                      'live_testing': <CheckCircleOutlined style={iconStyle} />,
+                      'completed': <CheckSquareOutlined style={iconStyle} />,
+                      'pause': <PauseCircleOutlined style={iconStyle} />
+                    };
+                    return iconMap[s] || <PlayCircleOutlined style={iconStyle} />;
+                  })()}
                 </div>
 
-                {/* Suggested Next Step Block */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, color: '#bfbfbf', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Next Action
-                  </Text>
-
-                  <div style={{ width: '100%' }}>
-                    {ticket.status.toLowerCase() === 'not_started' && (
+                {/* suggested action hub */}
+                <div style={{ width: '100%' }}>
+                  {ticket.status?.toLowerCase() === 'not_started' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<PlayCircleOutlined />}
+                      onClick={() => handleUpdate('status', 'in_progress')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#1890ff', borderColor: '#1890ff' }}
+                    >
+                      Start Sprint
+                    </Button>
+                  )}
+                  {ticket.status?.toLowerCase() === 'in_progress' && (
+                    <Space direction="vertical" style={{ width: '100%' }} size={4}>
                       <Button
-                        size="large"
+                        size="small"
                         type="primary"
-                        icon={<PlayCircleOutlined />}
-                        onClick={() => handleUpdate('status', 'in_progress')}
-                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#1890ff', borderColor: '#1890ff', boxShadow: '0 4px 12px rgba(24, 144, 255, 0.2)' }}
+                        icon={<RocketOutlined />}
+                        onClick={() => handleUpdate('status', 'dev_complete')}
+                        style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#13c2c2', borderColor: '#13c2c2' }}
                       >
-                        Start Sprint
+                        Finish Development
                       </Button>
-                    )}
-                    {ticket.status.toLowerCase() === 'in_progress' && (
-                      <Space direction="vertical" style={{ width: '100%' }} size={10}>
-                        <Button
-                          size="large"
-                          type="primary"
-                          icon={<RocketOutlined />}
-                          onClick={() => handleUpdate('status', 'dev_complete')}
-                          style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#13c2c2', borderColor: '#13c2c2', boxShadow: '0 4px 12px rgba(19, 194, 194, 0.2)' }}
-                        >
-                          Finish Development
-                        </Button>
-                        <Button
-                          size="large"
-                          type="default"
-                          icon={<PauseCircleOutlined />}
-                          onClick={() => handleUpdate('status', 'pause')}
-                          style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, border: '1px solid #fa8c16', color: '#fa8c16' }}
-                        >
-                          Pause
-                        </Button>
-                      </Space>
-                    )}
-                    {ticket.status.toLowerCase() === 'pause' && (
                       <Button
-                        size="large"
-                        type="primary"
-                        icon={<PlayCircleOutlined />}
-                        onClick={() => handleUpdate('status', 'in_progress')}
-                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#1890ff', borderColor: '#1890ff', boxShadow: '0 4px 12px rgba(24, 144, 255, 0.2)' }}
+                        size="small"
+                        type="default"
+                        icon={<PauseCircleOutlined />}
+                        onClick={() => handleUpdate('status', 'pause')}
+                        style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 28, fontWeight: 600, border: '1px solid #fa8c16', color: '#fa8c16' }}
                       >
-                        Resume Sprint
+                        Pause
                       </Button>
-                    )}
-                    {ticket.status === 'dev_complete' && (
-                      <Button
-                        size="large"
-                        type="primary"
-                        icon={<BugOutlined />}
-                        onClick={() => handleUpdate('status', 'in_testing')}
-                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#fa8c16', borderColor: '#fa8c16', boxShadow: '0 4px 12px rgba(250, 140, 22, 0.2)' }}
-                      >
-                        Send to QA
-                      </Button>
-                    )}
-                    {ticket.status === 'in_testing' && (
-                      <Button
-                        size="large"
-                        type="primary"
-                        icon={<SyncOutlined />}
-                        onClick={() => handleUpdate('status', 'in_review')}
-                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#722ed1', borderColor: '#722ed1', boxShadow: '0 4px 12px rgba(114, 46, 209, 0.2)' }}
-                      >
-                        Request Review
-                      </Button>
-                    )}
-                    {ticket.status === 'in_review' && (
-                      <Button
-                        size="large"
-                        type="primary"
-                        icon={<CheckOutlined />}
-                        onClick={() => handleUpdate('status', 'completed')}
-                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#52c41a', borderColor: '#52c41a', boxShadow: '0 4px 12px rgba(82, 196, 26, 0.2)' }}
-                      >
-                        Complete Ticket
-                      </Button>
-                    )}
-                    {(ticket.status === 'completed' || ticket.status === 'live') && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        padding: '12px',
-                        background: '#f6ffed',
-                        borderRadius: 10,
-                        border: '1px solid #b7eb8f'
-                      }}>
-                        <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 16 }} />
-                        <Text style={{ fontSize: 13, color: '#389e0d', fontWeight: 600 }}>All steps completed</Text>
-                      </div>
-                    )}
-                  </div>
+                    </Space>
+                  )}
+                  {ticket.status?.toLowerCase() === 'pause' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<PlayCircleOutlined />}
+                      onClick={() => handleUpdate('status', 'in_progress')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#1890ff', borderColor: '#1890ff' }}
+                    >
+                      Resume Sprint
+                    </Button>
+                  )}
+                  {ticket.status === 'dev_complete' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<BugOutlined />}
+                      onClick={() => handleUpdate('status', 'dev_testing')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#fa8c16', borderColor: '#fa8c16' }}
+                    >
+                      Move to Dev Testing
+                    </Button>
+                  )}
+                  {ticket.status === 'dev_testing' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<SyncOutlined />}
+                      onClick={() => handleUpdate('status', 'in_review')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#722ed1', borderColor: '#722ed1' }}
+                    >
+                      Request Review
+                    </Button>
+                  )}
+                  {ticket.status === 'in_review' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<CheckOutlined />}
+                      onClick={() => handleUpdate('status', 'live')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#2f54eb', borderColor: '#2f54eb' }}
+                    >
+                      Deploy to Live
+                    </Button>
+                  )}
+                  {ticket.status === 'live' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<SyncOutlined />}
+                      onClick={() => handleUpdate('status', 'live_testing')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#4f46e5', borderColor: '#4f46e5' }}
+                    >
+                      Move to Live Testing
+                    </Button>
+                  )}
+                  {ticket.status === 'live_testing' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<CheckCircleOutlined />}
+                      onClick={() => handleUpdate('status', 'completed')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#10b981', borderColor: '#10b981' }}
+                    >
+                      Complete Ticket
+                    </Button>
+                  )}
+                  {ticket.status === 'completed' && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 10px',
+                      background: 'rgba(82, 196, 26, 0.05)',
+                      borderRadius: 6,
+                      border: '1px solid rgba(82, 196, 26, 0.2)'
+                    }}>
+                      <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 12 }} />
+                      <Text style={{ fontSize: 11, color: '#389e0d', fontWeight: 600 }}>All steps completed</Text>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Collapsible Sections */}
-            <div className="sidebar-collapse-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="sidebar-collapse-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {/* Core Details Card */}
                 <Collapse
                   defaultActiveKey={["details"]}
@@ -1271,8 +1299,6 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   />
               </div>
 
-
-            </div>
           </Col>
         </Row>
       )}

@@ -108,12 +108,14 @@ export interface Ticket {
     id: string;
     name: string;
     email: string;
+    avatarUrl?: string | null;
   };
   reportTo:
   | {
     id: string;
     name: string;
     email: string;
+    avatarUrl?: string | null;
   }
   | string;
   createdBy: {

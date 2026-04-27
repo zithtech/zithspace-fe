@@ -683,7 +683,16 @@ export default function PerformanceManagePage() {
               >
                 {members.map((member) => (
                   <Option key={member.value} value={member.value} label={member.label}>
-                    {member.label}
+                    <Space>
+                      <Avatar
+                        size="small"
+                        src={member.avatarUrl}
+                        style={{ backgroundColor: "#2563eb", fontSize: 10 }}
+                      >
+                        {member.label?.charAt(0)}
+                      </Avatar>
+                      {member.label}
+                    </Space>
                   </Option>
                 ))}
               </Select>
@@ -930,13 +939,15 @@ export default function PerformanceManagePage() {
                       <div style={{ position: "relative", display: "inline-block", marginBottom: 10 }}>
                         <Avatar
                           size={72}
-                          icon={<UserOutlined />}
+                          src={selectedUserDetails.avatarUrl}
                           style={{
                             backgroundColor: "var(--bg-secondary)",
                             color: "#3b82f6",
                             border: "1px solid var(--border-color)",
                           }}
-                        />
+                        >
+                          {selectedUserDetails.label?.charAt(0)}
+                        </Avatar>
                         <div style={{
                           position: "absolute",
                           bottom: 5,
@@ -1785,7 +1796,7 @@ export default function PerformanceManagePage() {
                       <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>Linked Development Tickets</Text>
                     </Space>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {fullEscalation.tickets.map((t, idx) => (
+                      {fullEscalation.tickets.map((t: any, idx: any) => (
                         <Tag key={idx} color="blue" style={{ borderRadius: 4, margin: 0, padding: '4px 8px', border: '1px solid #bae6fd' }}>
                           <Space size={4}>
                             <Text strong style={{ fontSize: 11, color: '#0369a1' }}>{t.ticket?.ticketNumber}</Text>
@@ -1802,7 +1813,7 @@ export default function PerformanceManagePage() {
                     <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>Target Team Members</Text>
                   </Space>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {fullEscalation.targetMembers?.map((m, idx) => (
+                    {fullEscalation.targetMembers?.map((m: any, idx: any) => (
                       <div key={idx} style={{
                         padding: '4px 10px 4px 4px',
                         background: 'var(--bg-pure-white)',
@@ -1813,7 +1824,11 @@ export default function PerformanceManagePage() {
                         gap: 8,
                         boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
                       }}>
-                        <Avatar size={24} style={{ backgroundColor: "#2563eb", fontSize: 10 }}>
+                        <Avatar
+                          size={24}
+                          src={m.user?.avatarUrl}
+                          style={{ backgroundColor: "#2563eb", fontSize: 10 }}
+                        >
                           {m.user?.name?.charAt(0)}
                         </Avatar>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1828,7 +1843,11 @@ export default function PerformanceManagePage() {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border-color)' }}>
                   <Space size={10}>
-                    <Avatar size="small" style={{ backgroundColor: 'var(--text-secondary)' }}>
+                    <Avatar
+                      size="small"
+                      src={fullEscalation?.createdBy?.avatarUrl}
+                      style={{ backgroundColor: '#64748b' }}
+                    >
                       {fullEscalation?.createdBy?.name?.charAt(0)}
                     </Avatar>
                     <div>
@@ -1870,10 +1889,10 @@ export default function PerformanceManagePage() {
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* Header Summary */}
-            <div style={{ 
-              background: "var(--bg-secondary)", 
-              padding: "12px 20px", 
-              borderRadius: "16px", 
+            <div style={{
+              background: "var(--bg-secondary)",
+              padding: "12px 20px",
+              borderRadius: "16px",
               border: "1px solid var(--border-color)",
               boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
             }}>
@@ -1968,9 +1987,9 @@ export default function PerformanceManagePage() {
 
             <Divider style={{ margin: "8px 0" }} />
 
-            <div style={{ background: isDark ? "rgba(239, 68, 68, 0.1)" : "#fef2f2", padding: "16px", borderRadius: "12px", border: `1px solid ${isDark ? "rgba(239, 68, 68, 0.3)" : "#fee2e2"}` }}>
-              <Text strong style={{ fontSize: 13, color: isDark ? "#f87171" : "#991b1b", display: "block", marginBottom: 8 }}>Score Calculation Note</Text>
-              <Text style={{ fontSize: 11, color: isDark ? "#f87171" : "#b91c1c", display: "block" }}>
+            <div style={{ background: "#fef2f2", padding: "16px", borderRadius: "12px", border: "1px solid #fee2e2" }}>
+              <Text strong style={{ fontSize: 13, color: "#991b1b", display: "block", marginBottom: 8 }}>Score Calculation Note</Text>
+              <Text style={{ fontSize: 11, color: "#b91c1c", display: "block" }}>
                 The <b>Ticket Score</b> is the weighted sum of above metrics.
                 Penalties for missed EODs and Escalations are subtracted
                 separately from this score to reach the final 0-100 Performance Score.

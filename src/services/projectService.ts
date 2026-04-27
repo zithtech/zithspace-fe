@@ -14,6 +14,7 @@ export interface Project {
     name: string;
     workEmail: string; // Changed from email
     position: string;
+    avatarUrl: string;
   };
   members: Array<{
     // Changed from teamMembers
@@ -22,6 +23,7 @@ export interface Project {
       name: string;
       workEmail: string; // Changed from email
       position: string;
+      // avatarUrl: string;
     };
   }>;
   repositories: Array<{
@@ -362,6 +364,18 @@ export class ProjectService {
       throw new Error("Failed to fetch project members");
     }
   }
-
+  /**
+   * Get project overview data (aggregated stats, sprints, team, activities)
+   */
+  static async getProjectOverview(projectId: string): Promise<any> {
+    try {
+      return await api.get(`/api/projects/${projectId}/overview`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to fetch project overview");
+    }
+  }
 
 }

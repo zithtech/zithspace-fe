@@ -23,7 +23,7 @@ import { KanbanCard } from './KanbanCard';
 interface TicketKanbanProps {
   tickets: Ticket[];
   projects: Array<{ value: string; label: string; code: string }>;
-  members: Array<{ value: string; label: string; position: string }>;
+  members: Array<{ value: string; label: string; position: string; avatarUrl?: string | null }>;
   onTicketUpdate: (ticketId: string, updates: Partial<Ticket> & { assigneeId?: string }) => void;
   activeSprint?: any;
   kanbanScope?: 'active' | 'backlog';
@@ -65,12 +65,12 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
 
   // Group tickets by status
   const columns = useMemo(() => {
-    const grouped: Record<string, Ticket[]> = {
-      not_started: [],
-      in_progress: [],
-      in_testing: [],
-      completed: [],
-    };
+    const grouped: Record<string, Ticket[]> = {};
+    
+    // Initialize groups from STATUS_OPTIONS
+    STATUS_OPTIONS.forEach(option => {
+      grouped[option.value] = [];
+    });
 
     tickets.forEach((ticket) => {
       if (grouped[ticket.status]) {
@@ -161,6 +161,7 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
                         boxShadow: isSelected ? '0 0 0 2px #1890ff' : 'none',
                         transition: 'all 0.2s ease'
                       }}
+                      src={member.avatarUrl}
                       onClick={() => {
                         if (!onFilterChange) return;
                         const current = filters?.assignee || [];
@@ -170,7 +171,7 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
                         onFilterChange('assignee', next);
                       }}
                     >
-                      {member.label.charAt(0)}
+                      {!member.avatarUrl && member.label.charAt(0)}
                     </Avatar>
                   </Tooltip>
                 );

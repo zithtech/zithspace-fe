@@ -72,7 +72,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   }
 
   const renderEditor = (instance: BlockNoteEditor, editable: boolean, onInternalChange?: () => void) => (
-    <div className="h-full overflow-auto p-4 bg-white rounded-lg shadow-sm border border-gray-100" style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)' }}>
+    <div className="h-full overflow-auto p-4 rounded-lg shadow-sm border" style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)' }}>
       <BlockNoteView
         editor={instance}
         editable={editable}

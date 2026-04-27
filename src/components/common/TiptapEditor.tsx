@@ -207,7 +207,7 @@ export default function TiptapEditor({
         border: "1px solid var(--border-color)",
         borderRadius: "6px",
         overflow: "hidden",
-        background: "var(--bg-pure-white)"
+        background: "var(--bg-primary)"
       }}
     >
       {editable && (
@@ -219,7 +219,7 @@ export default function TiptapEditor({
             gap: "4px",
             padding: "8px",
             borderBottom: "1px solid var(--border-color)",
-            backgroundColor: "var(--bg-slate-50)",
+            backgroundColor: "var(--bg-secondary)",
           }}
         >
           {/* Text Formatting */}
@@ -328,7 +328,7 @@ export default function TiptapEditor({
             style={{
               width: "1px",
               height: "24px",
-              backgroundColor: "#d9d9d9",
+              backgroundColor: "var(--border-color)",
               margin: "0 4px",
             }}
           />
@@ -357,7 +357,7 @@ export default function TiptapEditor({
             style={{
               width: "1px",
               height: "24px",
-              backgroundColor: "#d9d9d9",
+              backgroundColor: "var(--border-color)",
               margin: "0 4px",
             }}
           />
@@ -401,7 +401,7 @@ export default function TiptapEditor({
             style={{
               width: "1px",
               height: "24px",
-              backgroundColor: "#d9d9d9",
+              backgroundColor: "var(--border-color)",
               margin: "0 4px",
             }}
           />
@@ -430,7 +430,7 @@ export default function TiptapEditor({
             style={{
               width: "1px",
               height: "24px",
-              backgroundColor: "#d9d9d9",
+              backgroundColor: "var(--border-color)",
               margin: "0 4px",
             }}
           />
@@ -450,7 +450,7 @@ export default function TiptapEditor({
             style={{
               width: "1px",
               height: "24px",
-              backgroundColor: "#d9d9d9",
+              backgroundColor: "var(--border-color)",
               margin: "0 4px",
             }}
           />
@@ -477,7 +477,7 @@ export default function TiptapEditor({
         </div>
       )}
 
-      <div className="prose prose-lg max-w-none focus:outline-none">
+      <div className="prose prose-lg max-w-none focus:outline-none" style={{ color: 'var(--text-primary)' }}>
         <EditorContent editor={editor} />
       </div>
 
@@ -524,30 +524,30 @@ export default function TiptapEditor({
         }
 
         .tiptap-editor-content a {
-          color: #3b82f6;
+          color: var(--premium-blue);
           text-decoration: underline;
           cursor: pointer;
         }
 
         .tiptap-editor-content a:hover {
-          color: #60a5fa;
+          opacity: 0.8;
         }
 
         .tiptap-editor-content code {
           background-color: var(--bg-slate-100);
-          color: var(--text-primary);
           padding: 2px 6px;
           border-radius: 3px;
           font-family: "Courier New", monospace;
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content pre {
           background-color: var(--bg-slate-100);
-          color: var(--text-primary);
           padding: 12px;
           border-radius: 6px;
           overflow-x: auto;
           margin: 8px 0;
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content pre code {
@@ -556,8 +556,7 @@ export default function TiptapEditor({
         }
 
         .tiptap-editor-content mark {
-          background-color: #fff566;
-          color: #000;
+          background-color: rgba(255, 230, 0, 0.4);
           padding: 2px 0;
         }
 
@@ -573,7 +572,7 @@ export default function TiptapEditor({
           border-left: 3px solid var(--border-color);
           padding-left: 12px;
           margin: 8px 0;
-          color: var(--text-secondary);
+          color: var(--text-slate-500);
         }
 
         .tiptap-editor-content:empty:before {
@@ -584,12 +583,8 @@ export default function TiptapEditor({
         }
 
         .is-active {
-          background-color: rgba(59, 130, 246, 0.1) !important;
+          background-color: var(--bg-blue-50) !important;
           color: var(--premium-blue) !important;
-        }
-
-        [data-theme='dark'] .tiptap-toolbar button:hover {
-          background-color: rgba(255, 255, 255, 0.1) !important;
         }
       `}</style>
     </div>
@@ -606,7 +601,7 @@ const buttonStyle: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   fontSize: "14px",
-  color: "var(--text-secondary)",
+  color: "var(--text-slate-500)",
   transition: "all 0.2s",
   minWidth: "32px",
   height: "32px",

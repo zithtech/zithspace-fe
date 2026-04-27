@@ -20,7 +20,9 @@ import {
   Badge,
   Popconfirm,
   Spin,
+  Divider,
 } from 'antd';
+import dayjs from 'dayjs';
 import {
   FolderOpenOutlined,
   SearchOutlined,
@@ -29,6 +31,7 @@ import {
   FolderOutlined,
   ProjectOutlined,
   InfoCircleOutlined,
+  InboxOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useUserProjects } from '@/hooks/useGlobalData';
@@ -151,37 +154,51 @@ export default function ArchivedTicketsPage() {
 
   const columns: ColumnsType<Ticket> = [
     {
-      title: 'Ticket #',
+      title: 'ID',
       dataIndex: 'ticketNumber',
       key: 'ticketNumber',
       width: 140,
       fixed: 'left',
       render: (text) => (
-        <Text strong style={{ background: '#f5f5f5', padding: '4px 10px', borderRadius: 6, fontSize: 13, color: '#1677ff', fontFamily: 'monospace' }}>
-          {text}
-        </Text>
+        <div style={{ position: 'relative', whiteSpace: 'nowrap' }}>
+          <Text strong style={{ 
+            color: "var(--premium-blue)", 
+            fontFamily: "JetBrains Mono, monospace",
+            fontSize: 12,
+            letterSpacing: '-0.02em',
+            background: 'var(--bg-slate-100)',
+            padding: '2px 6px',
+            borderRadius: 4,
+            border: '1px solid var(--border-slate-200)'
+          }}>
+            {text}
+          </Text>
+        </div>
       ),
     },
     {
       title: 'Title',
       dataIndex: 'title',
       key: 'title',
-      ellipsis: true,
-      width: 350,
-      render: (text) => <Text strong style={{ fontSize: 14 }}>{text}</Text>
+      render: (text) => (
+        <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>{text}</Text>
+      )
     },
     {
       title: 'Project',
       key: 'project',
-      width: 180,
+      width: 220,
       render: (_: any, record: Ticket) => {
         const project = typeof record.project === 'object' ? record.project : null;
-        if (!project) return null;
         return (
-          <Space>
-            <Tag color="cyan" style={{ borderRadius: 4, fontWeight: 600 }}>{project.code}</Tag>
-            <Text type="secondary" style={{ fontSize: 13 }}>{project.name}</Text>
-          </Space>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Tag className="ar-project-code-tag">
+              {project?.code || 'GLB'}
+            </Tag>
+            <Text ellipsis style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-slate-700)' }}>
+              {project?.name || 'Global Repository'}
+            </Text>
+          </div>
         );
       },
     },
@@ -191,7 +208,7 @@ export default function ArchivedTicketsPage() {
       key: 'status',
       width: 130,
       render: (status) => (
-        <Tag color={status === 'completed' ? 'success' : 'default'} style={{ borderRadius: 6, textTransform: 'uppercase', fontSize: 10, fontWeight: 600 }}>
+        <Tag className={`ar-status-tag ${status === 'completed' ? 'green' : 'slate'}`}>
           {status?.replace('_', ' ')}
         </Tag>
       ),
@@ -201,30 +218,33 @@ export default function ArchivedTicketsPage() {
       dataIndex: 'priority',
       key: 'priority',
       width: 120,
-      render: (priority) => {
-        const colors: Record<string, string> = {
-          'HIGH': '#ff4d4f',
-          'MEDIUM': '#faad14',
-          'LOW': '#52c41a'
-        };
-        return (
-          <Space size={6}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: colors[priority] || '#d9d9d9' }} />
-            <Text style={{ fontSize: 12, fontWeight: 500 }}>{priority}</Text>
-          </Space>
-        );
-      },
+      render: (priority) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ 
+            width: 6, 
+            height: 6, 
+            borderRadius: '50%', 
+            background: priority === 'HIGH' ? '#ef4444' : priority === 'MEDIUM' ? '#f59e0b' : '#10b981' 
+          }} />
+          <Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)' }}>{priority}</Text>
+        </div>
+      ),
     },
     {
       title: 'Assignee',
       key: 'assignee',
-      width: 200,
+      width: 180,
       render: (_: any, record: Ticket) => {
         const name = record.assignee?.name;
-        if (!name) return <Text type="secondary" italic style={{ fontSize: 13 }}>Unassigned</Text>;
         return (
           <Space>
-            <Avatar size="small" style={{ backgroundColor: '#1677ff', fontSize: 10 }}>{name.charAt(0)}</Avatar>
+            <Avatar 
+              size="small" 
+              src={record.assignee?.avatarUrl}
+              style={{ backgroundColor: '#1677ff', fontSize: 10 }}
+            >
+              {name.charAt(0)}
+            </Avatar>
             <Text style={{ fontSize: 13 }}>{name}</Text>
           </Space>
         );
@@ -236,8 +256,8 @@ export default function ArchivedTicketsPage() {
       key: 'archivedAt',
       width: 150,
       render: (date) => (
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        <Text style={{ fontSize: 11, color: 'var(--text-slate-400)', fontWeight: 600 }}>
+          {dayjs(date).format('MMM D, YYYY').toUpperCase()}
         </Text>
       )
     }
@@ -274,42 +294,33 @@ export default function ArchivedTicketsPage() {
         background: "var(--bg-pure-white)", 
         minHeight: "calc(100vh - 64px)" 
       }}>
-        {/* Header Section */}
-        <div style={{
-          padding: "24px 0",
-          marginBottom: 32,
-          borderBottom: "1px solid var(--border-color)",
-          background: "var(--bg-pure-white)",
-          position: "sticky",
+        {/* Workstation Header */}
+        <div className="saas-header-container" style={{
+          position: 'sticky',
           top: 0,
-          zIndex: 10
+          zIndex: 100,
+          backdropFilter: 'blur(12px)',
+          margin: "0 -24px 24px -24px",
+          padding: '10.5px 48px'
         }}>
           <Row justify="space-between" align="middle" gutter={[16, 16]}>
-            <Col xs={24} md={12}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  background: "#f0f5ff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center"
-                }}>
-                  <FolderOpenOutlined style={{ fontSize: 24, color: "#1677ff" }} />
+            <Col>
+              <Space size={16}>
+                <div className="ar-header-icon-box">
+                  <FolderOpenOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
                 </div>
-                <Space direction="vertical" size={2}>
-                  <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: "-0.02em" }}>
-                    Archived Tickets
+                <Space split={<Divider type="vertical" className="ar-header-divider" />} size={16}>
+                  <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
+                    Archived Repository
                   </Title>
-                  <Text type="secondary" style={{ fontSize: 13 }}>
-                    Completed issues stored for long-term tracking and reporting
+                  <Text style={{ fontSize: 12, color: 'var(--text-slate-600)', fontWeight: 600 }}>
+                    Access completed historical tickets for audit and reporting
                   </Text>
                 </Space>
-              </div>
+              </Space>
             </Col>
-            <Col xs={24} md={12} style={{ textAlign: "right" }}>
-              <Space size="middle">
+            <Col>
+              <Space size={12}>
                 {selectedRowKeys.length > 0 && (
                   <Popconfirm
                     title="Move to Trash"
@@ -317,118 +328,101 @@ export default function ArchivedTicketsPage() {
                     onConfirm={handleDelete}
                     okText="Move to Trash"
                     cancelText="Cancel"
-                    okButtonProps={{ danger: true }}
-                    styles={{ body: { padding: '12px' } }}
+                    okButtonProps={{ danger: true, style: { fontWeight: 700 } }}
                   >
                     <Button
                       danger
                       type="primary"
                       icon={<DeleteOutlined />}
                       loading={isDeleting}
-                      style={{ height: 40, borderRadius: 8, fontWeight: 600 }}
+                      className="saas-button-item"
+                      style={{ height: 36, fontWeight: 700, borderRadius: 6 }}
                     >
                       Delete Selection ({selectedRowKeys.length})
                     </Button>
                   </Popconfirm>
                 )}
                 <Button
-                  icon={<ReloadOutlined />}
+                  icon={<ReloadOutlined spin={isRefreshing} />}
                   onClick={handleReload}
                   loading={isRefreshing || isFetching || statsLoading}
-                  style={{ height: 40, borderRadius: 8 }}
+                  className="saas-button-item"
+                  style={{ height: 36, width: 36, borderRadius: 6 }}
                 />
               </Space>
             </Col>
           </Row>
         </div>
 
-        {/* Stats Row */}
-        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-
-
-          {statsLoading ? (
-            <div style={{ flex: 1 }}>
-              <Card style={{ borderRadius: 12, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)', height: 82, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Spin size="small" />
-              </Card>
-            </div>
-          ) : (
-            projectStats.map((p: any) => (
-              <div key={p.id} style={{ flex: '0 0 160px' }}>
-                <Card
-                  styles={{ body: { padding: '16px 20px' } }}
-                  style={{
-                    borderRadius: 12,
-                    height: '100%',
-                    border: selectedProject === p.id ? '2px solid #1677ff' : '1px solid var(--border-color)',
-                    background: 'var(--bg-pure-white)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s',
-                    boxShadow: selectedProject === p.id ? '0 4px 12px rgba(22, 119, 255, 0.15)' : 'none'
-                  }}
-                  onClick={() => setSelectedProject(p.id)}
-                >
-                  <Space direction="vertical" size={0} style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#8c8c8c' }}>{p.code}</Text>
-                      {selectedProject === p.id && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1677ff' }} />}
-                    </div>
-                    <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{p.count}</Title>
-                    <Text ellipsis style={{ fontSize: 11, color: '#bfbfbf', display: 'block', marginTop: -2 }}>
-                      {p.name} - <small>{p.code}</small>
-                    </Text>
-                  </Space>
-                </Card>
+        {/* Unified High-Density Archive Control Bar */}
+        <div className="ar-control-bar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 1 }}>
+            {/* 1. Total Ticket Count */}
+            <div className="ar-metrics-group">
+              <div className="ar-metric-icon blue">
+                <InboxOutlined style={{ color: '#3b82f6', fontSize: 16 }} />
               </div>
-            ))
-          )}
-        </div>
+              <div>
+                <Text style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-slate-900)', display: 'block', lineHeight: 1 }}>{totalArchived}</Text>
+                <Text style={{ fontSize: 9, color: 'var(--text-slate-400)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>TOTAL TICKETS</Text>
+              </div>
+            </div>
 
-        {/* Filters Row */}
-        <Card styles={{ body: { padding: 20 } }} style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", marginBottom: 24 }}>
-          <Row gutter={[16, 16]} align="bottom">
-            <Col xs={24} md={12} lg={12}>
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                <Text strong style={{ fontSize: 13 }}>Search Tickets</Text>
+            {/* 2. Project Filter Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Text style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-slate-600)', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.02em' }}>Filter Source:</Text>
+              <Select
+                placeholder="Select Archive Source"
+                variant="borderless"
+                className="ar-filter-select"
+                allowClear
+                value={selectedProject}
+                onChange={setSelectedProject}
+                loading={statsLoading}
+                suffixIcon={<ProjectOutlined style={{ fontSize: 11, color: '#94a3b8' }} />}
+              >
+                <Option value={undefined}>
+                  <Text style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>ALL SYSTEM ARCHIVES</Text>
+                </Option>
+                {projects?.map((project: any) => {
+                  const pStats = projectStats.find((s: any) => s.id === project.value);
+                  return (
+                    <Option key={project.value} value={project.value} label={project.label}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 12 }}>
+                        <Text style={{ fontSize: 11, fontWeight: 600 }}>{project.label}</Text>
+                        <Tag className="ar-count-tag">
+                          {pStats?.count || 0}
+                        </Tag>
+                      </div>
+                    </Option>
+                  );
+                })}
+              </Select>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+             {/* 3. Search Field - Right Side End */}
+             <div className="ar-search-box">
+                <SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 14 }} />
                 <Input
-                  placeholder="Filter by Project Code, Ticket ID, or Title..."
-                  prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                  placeholder="Find archived node..."
+                  variant="borderless"
+                  style={{ fontSize: 13, fontWeight: 600, padding: 0 }}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  style={{ borderRadius: 8 }}
                   allowClear
-                  size="large"
                 />
-              </Space>
-            </Col>
-            <Col xs={24} md={8} lg={7}>
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                <Text strong style={{ fontSize: 13 }}>Project</Text>
-                <Select
-                  placeholder="All Projects"
-                  style={{ width: '100%' }}
-                  value={selectedProject}
-                  onChange={setSelectedProject}
-                  allowClear
-                  size="large"
-                  suffixIcon={<ProjectOutlined />}
-                  optionLabelProp="label"
-                >
-                  {projects?.map((project: any) => (
-                    <Option key={project.value} value={project.value} label={`${project.label} - ${project.code}`}>
-                      <Text style={{ fontSize: 13 }}>{project.label} - <Text type="secondary" style={{ fontSize: 12 }}>{project.code}</Text></Text>
-                    </Option>
-                  ))}
-                </Select>
-              </Space>
-            </Col>
-            <Col flex="auto" style={{ textAlign: 'right', paddingBottom: 10 }}>
-              <Text type="secondary" style={{ fontSize: 13 }}>
-                Showing <b>{tickets.length}</b> of <b>{totalArchived}</b> archived tickets
-              </Text>
-            </Col>
-          </Row>
-        </Card>
+              </div>
+
+              {(selectedProject || searchText) && (
+                <div className="ar-active-filter-badge">
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#3b82f6' }} />
+                  <Text style={{ fontSize: 11, fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase' }}>Active</Text>
+                </div>
+              )}
+          </div>
+        </div>
 
         {/* Tickets Table */}
         <Card
@@ -482,6 +476,158 @@ export default function ArchivedTicketsPage() {
         </Card>
 
         <style jsx global>{`
+          /* ── Header ─────────────────────────────────────────── */
+          .ar-header-icon-box {
+            width: 36px; height: 36px;
+            background: var(--bg-blue-50);
+            border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid var(--border-blue-200);
+          }
+          [data-theme='dark'] .ar-header-icon-box {
+            background: rgba(59,130,246,0.15) !important;
+            border-color: rgba(59,130,246,0.25) !important;
+          }
+          .ar-header-divider {
+            height: 18px;
+            border-left: 1.5px solid var(--border-slate-200);
+            margin: 0;
+          }
+
+          /* ── Control bar ─────────────────────────────────────── */
+          .ar-control-bar {
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-slate-200);
+            margin: 0 8px 24px 8px;
+            border-radius: 8px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 28px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+          }
+          [data-theme='dark'] .ar-control-bar {
+            background: #161b22 !important;
+            border-color: #1f2937 !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+          }
+
+          /* ── Metrics group ───────────────────────────────────── */
+          .ar-metrics-group {
+            display: flex; align-items: center; gap: 12px;
+            padding-right: 28px;
+            border-right: 1px solid var(--border-slate-100);
+          }
+          [data-theme='dark'] .ar-metrics-group {
+            border-right-color: #1f2937 !important;
+          }
+          .ar-metric-icon {
+            width: 34px; height: 34px; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+          }
+          .ar-metric-icon.blue {
+            background: var(--bg-blue-50);
+            border: 1px solid var(--border-blue-200);
+          }
+          [data-theme='dark'] .ar-metric-icon.blue {
+            background: rgba(59,130,246,0.15) !important;
+            border-color: rgba(59,130,246,0.25) !important;
+          }
+
+          /* ── Filter select ───────────────────────────────────── */
+          .ar-filter-select {
+            width: 280px; font-size: 13px; font-weight: 700;
+            background: var(--bg-slate-50) !important;
+            border-radius: 4px;
+            border: 1px solid var(--border-slate-100);
+            height: 38px; display: flex; align-items: center;
+          }
+          [data-theme='dark'] .ar-filter-select {
+            background: #1f2937 !important;
+            border-color: #374151 !important;
+          }
+          [data-theme='dark'] .ar-filter-select .ant-select-selector {
+            background: transparent !important;
+            border: none !important;
+          }
+          .ar-count-tag {
+            margin: 0; font-size: 9px; font-weight: 800;
+            background: var(--bg-slate-100); border: none; color: var(--text-slate-600);
+          }
+          [data-theme='dark'] .ar-count-tag {
+            background: #374151 !important;
+            color: #94a3b8 !important;
+          }
+
+          /* ── Project code tag ───────────────────────────────── */
+          .ar-project-code-tag {
+            margin: 0; font-size: 10px; font-weight: 800;
+            background: var(--bg-slate-100);
+            border: 1px solid var(--border-slate-200);
+            color: var(--text-slate-600);
+            border-radius: 4px;
+          }
+          [data-theme='dark'] .ar-project-code-tag {
+            background: #1f2937 !important;
+            border-color: #374151 !important;
+            color: #94a3b8 !important;
+          }
+
+          /* ── Search box ──────────────────────────────────────── */
+          .ar-search-box {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--bg-slate-50);
+            padding: 6px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border-slate-100);
+            width: 320px;
+          }
+          [data-theme='dark'] .ar-search-box {
+            background: #1f2937 !important;
+            border-color: #374151 !important;
+          }
+
+          /* ── Active filter badge ──────────────────────────────── */
+          .ar-active-filter-badge {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--bg-blue-50);
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-blue-200);
+            animation: pulse 2s infinite;
+          }
+          [data-theme='dark'] .ar-active-filter-badge {
+            background: rgba(59,130,246,0.15) !important;
+            border-color: rgba(59,130,246,0.2) !important;
+          }
+
+          /* ── Status tags ───────────────────────────────────────── */
+          .ar-status-tag {
+            font-size: 9px; font-weight: 800;
+            margin: 0; border-radius: 4px;
+            padding: 2px 8px; text-transform: uppercase;
+          }
+          .ar-status-tag.green {
+            background: var(--bg-green-50); color: #10b981;
+            border: 1px solid var(--border-green-200);
+          }
+          .ar-status-tag.slate {
+            background: var(--bg-slate-100); color: var(--text-slate-600);
+            border: 1px solid var(--border-slate-200);
+          }
+          [data-theme='dark'] .ar-status-tag.green {
+            background: rgba(16,185,129,0.15) !important;
+            color: #34d399 !important;
+            border-color: rgba(16,185,129,0.2) !important;
+          }
+          [data-theme='dark'] .ar-status-tag.slate {
+            background: #1f2937 !important;
+            color: #94a3b8 !important;
+            border-color: #374151 !important;
+          }
+
+          /* ── Premium table ─────────────────────────────────────── */
           .premium-table .ant-table-thead > tr > th {
             background: var(--bg-pure-white);
             font-weight: 600;
@@ -489,15 +635,53 @@ export default function ArchivedTicketsPage() {
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            padding: 16px;
-            border-bottom: 1px solid var(--border-color);
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--border-slate-100);
+          }
+          [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
+            background: #161b22 !important;
+            border-bottom-color: #1f2937 !important;
           }
           .premium-table .ant-table-tbody > tr > td {
-            padding: 16px;
-            border-bottom: 1px solid var(--border-color);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-slate-100);
+            transition: all 0.2s ease;
           }
-          .ant-table-row:hover .ant-typography-strong {
-            color: #1677ff;
+          [data-theme='dark'] .premium-table .ant-table-tbody > tr > td {
+            background: #161b22 !important;
+            border-bottom-color: #1f2937 !important;
+          }
+          .premium-table .ant-table-tbody > tr:hover > td {
+            background: var(--bg-slate-50) !important;
+          }
+          [data-theme='dark'] .premium-table .ant-table-tbody > tr:hover > td {
+            background: #1f2937 !important;
+          }
+          .premium-table .ant-table-tbody > tr {
+            cursor: default;
+          }
+          [data-theme='dark'] .premium-table .ant-table {
+            background: #161b22 !important;
+          }
+          [data-theme='dark'] .premium-table .ant-table-tbody > tr > td:first-child .ant-typography {
+            background: #1f2937 !important;
+            border-color: #374151 !important;
+          }
+
+          /* ── Misc ────────────────────────────────────────────── */
+          .saas-header-container .ant-typography {
+            margin-bottom: 0 !important;
+          }
+          .saas-button-item {
+            border-radius: 4px !important;
+            transition: all 0.2s ease;
+            border: 1px solid var(--border-color);
+          }
+          .saas-button-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            background: var(--bg-pure-white) !important;
+            border-color: var(--border-slate-300);
           }
         `}</style>
       </div>

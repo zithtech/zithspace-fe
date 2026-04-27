@@ -53,6 +53,7 @@ interface User {
   reportsTo?: string | null;
   isActive: boolean;
   tenantId: string;
+  avatarUrl?: string | null;
   tenantName?: string;
   tenantLogo?: string | null;
   department?: string;
@@ -135,6 +136,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         reportsTo: response.user.reportsTo,
         isActive: response.user.isActive,
         tenantId: response.user.tenantId,
+        avatarUrl: response.user.avatarUrl,
         tenantName: response.user.tenantName,
         tenantLogo: (response.user as any).tenantLogo,
         department: (response.user as any).department,
@@ -244,6 +246,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         reportsTo: userProfile.reportsTo?.id || null,
         isActive: userProfile.isActive,
         tenantId: userProfile.tenantId,
+        avatarUrl: userProfile.avatarUrl,
         tenantName: userProfile.tenant?.name,
         tenantLogo: userProfile.tenant?.logoUrl,
         department: userProfile.department,

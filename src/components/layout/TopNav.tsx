@@ -364,7 +364,9 @@ export default function TopNav({
       className="glass-panel"
       style={{
         padding: isMobile ? "0 16px" : "0 24px 0 0",
-        borderBottom: "1px solid var(--border-color)",
+        background: "rgba(255, 255, 255, 0.8)",
+        backdropFilter: "blur(12px) saturate(180%)",
+        borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -374,7 +376,7 @@ export default function TopNav({
         right: 0,
         left: 0,
         zIndex: 1000,
-        boxShadow: "var(--shadow-sm)"
+        boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.03)"
       }}
     >
       {/* Left Side: Logo & Module Selector */}
@@ -675,20 +677,40 @@ export default function TopNav({
             placement="bottomRight"
             trigger={["click"]}
           >
-            <Space className="user-dropdown" style={{ cursor: "pointer", padding: "4px 4px", borderRadius: 6 }}>
-              <Avatar size={isSmallMobile ? "small" : "default"} style={{ backgroundColor: getRoleBadgeColor(user.role) }}>
-                {user.name?.charAt(0).toUpperCase()}
-              </Avatar>
-              {!isSmallMobile && (
-                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                  <Text strong style={{ fontSize: 13 }}>{user.name}</Text>
-                  {user.role && user.role.toLowerCase() !== user.name.toLowerCase() && (
-                    <Text type="secondary" style={{ fontSize: 11, textTransform: 'capitalize' }}>
-                      {user.role.replace('_', ' ')}
-                    </Text>
+            <Space 
+              className="user-dropdown-premium" 
+              style={{ 
+                cursor: "pointer", 
+                padding: "2px 8px 2px 4px", 
+                borderRadius: 12,
+                border: "1px solid transparent",
+                transition: "all 0.3s ease",
+                background: "rgba(0,0,0,0.02)"
+              }}
+            >
+                <Avatar
+                  size={isSmallMobile ? 32 : 36}
+                  style={{ 
+                    background: user.avatarUrl ? 'transparent' : `linear-gradient(135deg, ${getRoleBadgeColor(user.role)} 0%, #000 160%)`,
+                    border: '2px solid #fff',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    fontSize: 14,
+                    fontWeight: 700
+                  }}
+                  src={user.avatarUrl}
+                >
+                  {!user.avatarUrl && user.name?.charAt(0).toUpperCase()}
+                </Avatar>
+                  {!isSmallMobile && (
+                    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1, marginLeft: 6 }}>
+                      <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{user.name}</Text>
+                      {user.role && (
+                        <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7 }}>
+                          {user.role.replace('_', ' ')}
+                        </Text>
+                      )}
+                    </div>
                   )}
-                </div>
-              )}
             </Space>
           </Dropdown>
         )}
@@ -714,11 +736,15 @@ export default function TopNav({
                     background: rgba(22, 119, 255, 0.06) !important;
                     border-radius: 12px;
                 }
-                .user-dropdown {
-                    transition: all 0.2s;
+                .user-dropdown-premium:hover {
+                    background-color: #fff !important;
+                    border-color: rgba(0,0,0,0.06) !important;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                    transform: translateY(-1px);
                 }
-                .user-dropdown:hover {
-                    background-color: rgba(0,0,0,0.05);
+                [data-theme='dark'] .user-dropdown-premium:hover {
+                    background-color: rgba(255,255,255,0.05) !important;
+                    border-color: rgba(255,255,255,0.1) !important;
                 }
                 .ant-header {
                     transition: all 0.3s ease;

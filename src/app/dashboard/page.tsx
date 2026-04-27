@@ -775,7 +775,7 @@ function DashboardContent() {
                   <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
                     {[1, 2, 3, 4].map((i) => (
                       <Col xs={24} sm={12} lg={6} key={i}>
-                        <Card size="small" bordered style={{ boxShadow: "none" }}>
+                        <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
                           <Skeleton active paragraph={{ rows: 1 }} />
                         </Card>
                       </Col>
@@ -783,12 +783,12 @@ function DashboardContent() {
                   </Row>
                   <Row gutter={[12, 12]}>
                     <Col xs={24} lg={16}>
-                      <Card size="small" bordered style={{ boxShadow: "none" }}>
+                      <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
                         <Skeleton active />
                       </Card>
                     </Col>
                     <Col xs={24} lg={8}>
-                      <Card size="small" bordered style={{ boxShadow: "none" }}>
+                      <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
                         <Skeleton active />
                       </Card>
                     </Col>
@@ -909,7 +909,7 @@ function DashboardContent() {
                       <Col xs={24} sm={12} lg={6} key={index}>
                         <Card
                           size="small"
-                          bordered
+                          variant="outlined"
                           style={{
                             height: "100%",
                             borderRadius: "16px",
@@ -980,7 +980,7 @@ function DashboardContent() {
                           </Space>
                         }
                         size="small"
-                        bordered
+                        variant="outlined"
                         extra={
                           <Button
                             type="link"
@@ -1031,7 +1031,7 @@ function DashboardContent() {
                             </Space>
                           }
                           size="small"
-                          bordered
+                          variant="outlined"
                           extra={
                             connectedProvider && (
                               <Space size={2}>

@@ -187,7 +187,7 @@ function TreeNode({
                     ) : (
                         <Tooltip title={item.title} placement="right" mouseEnterDelay={0.5}>
                             <span className={`truncate min-w-0 ${item.type === 'section' ? 'text-xs font-semibold uppercase tracking-wider' : ''}`}
-                                  style={{ color: item.type === 'section' ? 'var(--text-slate-400)' : 'inherit' }}>
+                                style={{ color: item.type === 'section' ? 'var(--text-slate-400)' : 'inherit' }}>
                                 {item.title}
                             </span>
                         </Tooltip>
@@ -229,6 +229,46 @@ function TreeNode({
         </div>
     )
 }
+
+// Helper to sanitize blocks and prevent "style link not found" or other schema errors
+const sanitizeBlocks = (blocks: any[]): any[] => {
+    if (!Array.isArray(blocks)) return [];
+
+    return blocks.map(block => {
+        const sanitizedBlock = { ...block };
+
+        // Ensure content is an array
+        if (block.content && typeof block.content === 'string') {
+            sanitizedBlock.content = [{ type: "text", text: block.content, styles: {} }];
+        } else if (Array.isArray(block.content)) {
+            sanitizedBlock.content = block.content.map((item: any) => {
+                if (typeof item === 'string') {
+                    return { type: "text", text: item, styles: {} };
+                }
+
+                const sanitizedItem = { ...item };
+
+                // Fix the "style link not found in styleSchema" bug
+                // BlockNote 0.46+ expects links as a property, not a style
+                if (sanitizedItem.styles && sanitizedItem.styles.link) {
+                    sanitizedItem.link = sanitizedItem.styles.link;
+                    const newStyles = { ...sanitizedItem.styles };
+                    delete newStyles.link;
+                    sanitizedItem.styles = newStyles;
+                }
+
+                return sanitizedItem;
+            });
+        }
+
+        // Recursively sanitize children
+        if (block.children && Array.isArray(block.children)) {
+            sanitizedBlock.children = sanitizeBlocks(block.children);
+        }
+
+        return sanitizedBlock;
+    });
+};
 
 interface DocumentWorkspaceProps {
     documentId: string;
@@ -331,7 +371,13 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     useEffect(() => {
         if (!editor) return;
 
+        // Use a flag to prevent unnecessary re-renders when content is already loaded
+        // or when the user is editing (isDirty)
+        // We only want to force a reload if the document ID actually changed
+        // or if we are switching to/from a preview version
+
         let contentToLoad = [];
+        let isPreview = !!previewVersion;
 
         if (previewVersion) {
             contentToLoad = Array.isArray(previewVersion.content) ? previewVersion.content : [];
@@ -340,18 +386,41 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             contentToLoad = Array.isArray(documentContent.content) ? documentContent.content : [];
             editor.isEditable = true; // Editable otherwise
         } else {
+            // If we're loading or have no content, don't clear the editor if we're already editing
+            // this prevents the editor from flickering/clearing during background refetches
+            if (isDocumentLoading && selectedDoc !== 'api-ref') return;
+
             contentToLoad = [];
             editor.isEditable = true;
         }
 
-        if (contentToLoad.length > 0) {
-            editor.replaceBlocks(editor.document, contentToLoad);
-        } else {
-            editor.replaceBlocks(editor.document, [{ type: "paragraph", content: [] }]);
-        }
+        const sanitizedContent = sanitizeBlocks(contentToLoad);
 
-        setIsDirty(false); // Reset dirty state on new document load
-    }, [documentContent, editor, previewVersion]);
+        try {
+            if (sanitizedContent.length > 0) {
+                editor.replaceBlocks(editor.document, sanitizedContent);
+            } else if (!isDocumentLoading) {
+                // Only clear if not loading and we truly have no content
+                editor.replaceBlocks(editor.document, [{ type: "paragraph", content: [] }]);
+            }
+
+            // Only reset dirty state if we are loading a fresh document (not a preview)
+            if (!isPreview) {
+                setIsDirty(false);
+            }
+        } catch (error) {
+            console.error("Failed to load document blocks into editor:", error);
+            // Fallback to a safe empty state to prevent UI crash
+            try {
+                editor.replaceBlocks(editor.document, [{
+                    type: "paragraph",
+                    content: [{ type: "text", text: "Error loading content. Please try again.", styles: { textColor: "red" } }]
+                }]);
+            } catch (e) {
+                console.error("Emergency fallback failed:", e);
+            }
+        }
+    }, [documentContent, editor, previewVersion, isDocumentLoading, selectedDoc]);
 
     useEffect(() => {
         const handleFullScreenChange = () => {
@@ -524,7 +593,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             );
 
             if (editor && content && content.length > 0) {
-                const selectedBlocks = editor.getSelection()?.blocks || editor.getSelectedBlocks();
+                const selectedBlocks = editor.getSelection()?.blocks;
 
                 if (selectedBlocks && selectedBlocks.length > 0) {
                     editor.replaceBlocks(selectedBlocks, content);

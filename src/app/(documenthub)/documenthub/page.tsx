@@ -141,47 +141,28 @@ const DocumentHubPage = (props: Props) => {
 
       const data = await DocumentHubService.createDocumentHub(documentDetails);
 
-      // If AI mode was used, execute the structure and content creation
+      // If AI mode was used, execute the structure and content creation in one single pass
       if (hubTabKey === 'ai' && suggestedStructure.length > 0) {
         try {
           setIsProcessingContent(true);
-          setGenerationProgress(0);
-
-          // Step 1: Create the structure (Skeleton)
-          const createdNodes = await aiService.createHubStructure(data.id, suggestedStructure);
-          const filesToProcess = createdNodes; // We process all nodes (folders/files) as requested
-
-          setGenerationTotal(filesToProcess.length);
-
-          // Step 2: Progressively generate content for each node
-          for (let i = 0; i < filesToProcess.length; i++) {
-            const node = filesToProcess[i];
-            setCurrentProcessingTitle(node.title);
-            setGenerationProgress(i + 1);
-
-            // Retry logic (3 times) as requested
-            let retryCount = 0;
-            let success = false;
-            while (retryCount < 3 && !success) {
-              try {
-                await aiService.generateAndSaveContent(node.documentId);
-                success = true;
-              } catch (err) {
-                retryCount++;
-                console.error(`Retry ${retryCount} failed for ${node.title}:`, err);
-                if (retryCount < 3) await new Promise(r => setTimeout(r, 1000));
-              }
-            }
-          }
+          setCurrentProcessingTitle('Architecting content for all files...');
+          
+          // The backend now handles both structure AND content generation in this single call
+          await aiService.createHubStructure(data.id, suggestedStructure);
+          
+          messageApi.success("Hub architected and content generated successfully.");
         } catch (aiError) {
           console.error("AI structure or content creation failed:", aiError);
-          messageApi.warning("Hub created, but AI content generation was incomplete.");
+          messageApi.warning("Hub created, but AI content generation encountered an issue.");
         } finally {
           setIsProcessingContent(false);
         }
       }
 
       await queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
+      if (data?.id) {
+        await queryClient.invalidateQueries({ queryKey: ["documentHub", data.id] });
+      }
       setModalVisible(false);
       resetAIState();
       form.resetFields();
@@ -771,15 +752,15 @@ const DocumentHubPage = (props: Props) => {
                             <Spin indicator={<RobotOutlined spin style={{ fontSize: 24 }} />} />
                             <div style={{ textAlign: 'center' }}>
                               <Typography.Text strong style={{ display: 'block' }}>
-                                Generating content for: {currentProcessingTitle}
+                                {currentProcessingTitle}
                               </Typography.Text>
                               <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
-                                Step {generationProgress} of {generationTotal}
+                                Building technical repository and generating intelligent content...
                               </Typography.Text>
                             </div>
                             <div style={{ width: '100%', height: 8, background: '#e6f7ff', borderRadius: 4, overflow: 'hidden', border: '1px solid #91d5ff' }}>
                               <div style={{
-                                width: `${(generationProgress / generationTotal) * 100}%`,
+                                width: `100%`,
                                 height: '100%',
                                 background: 'linear-gradient(90deg, #1890ff 0%, #69c0ff 100%)',
                                 transition: 'width 0.5s ease'

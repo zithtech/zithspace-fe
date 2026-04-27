@@ -21,7 +21,7 @@ export const TextBlock: React.FC<TextBlockProps> = ({ data }) => {
           {data.heading}
         </Title>
       )}
-      <div style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+      <div style={{ fontSize: '1.05rem', color: 'var(--text-primary)', lineHeight: 1.6 }}>
         <TiptapViewer content={data.content || ''} />
       </div>
     </div>

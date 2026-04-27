@@ -4,11 +4,13 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { BlockRenderer } from '@/components/proposals/blocks';
 import { ProposalBlock } from '@/store/proposalStore';
 import { useSearchParams } from 'next/navigation';
+import { ProposalService } from '@/services/proposalService';
 
 function PreviewContent() {
   const [blocks, setBlocks] = useState<ProposalBlock[]>([]);
   const searchParams = useSearchParams();
   const theme = searchParams.get('theme') || 'light';
+  const proposalId = searchParams.get('proposalId');
 
   useEffect(() => {
     // Apply theme to document element inside iframe
@@ -16,34 +18,58 @@ function PreviewContent() {
   }, [theme]);
 
   useEffect(() => {
-    // Listen for messages from parent window
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'SYNC_BLOCKS') {
-        setBlocks(event.data.payload);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-
-    // Initial sync and scroll listener
-    const handleScrollMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'SCROLL_TO_BLOCK') {
-        const element = document.getElementById(`preview-block-${event.data.payload}`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // If proposalId is provided, fetch proposal data (view page scenario)
+    if (proposalId) {
+      const fetchProposalData = async () => {
+        try {
+          const proposal = await ProposalService.getProposalById(proposalId);
+          const rawBlocks = proposal.blocks_data || [];
+          
+          // Convert to ProposalBlock format
+          const proposalBlocks: ProposalBlock[] = rawBlocks.map((block: any, index: number) => ({
+            id: block.id || `block-${index}`,
+            type: block.type,
+            data: block.data || {},
+            order: index
+          }));
+          
+          setBlocks(proposalBlocks);
+        } catch (error) {
+          console.error('Failed to fetch proposal data:', error);
         }
-      }
-    };
-    window.addEventListener('message', handleScrollMessage);
+      };
+      
+      fetchProposalData();
+    } else {
+      // Listen for messages from parent window (builder scenario)
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'SYNC_BLOCKS') {
+          setBlocks(event.data.payload);
+        }
+      };
 
-    // Notify parent that iframe is ready to receive initial state
-    window.parent.postMessage({ type: 'PREVIEW_READY' }, '*');
+      window.addEventListener('message', handleMessage);
 
-    return () => {
-      window.removeEventListener('message', handleMessage);
-      window.removeEventListener('message', handleScrollMessage);
-    };
-  }, []);
+      // Initial sync and scroll listener
+      const handleScrollMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'SCROLL_TO_BLOCK') {
+          const element = document.getElementById(`preview-block-${event.data.payload}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      };
+      window.addEventListener('message', handleScrollMessage);
+
+      // Notify parent that iframe is ready to receive initial state
+      window.parent.postMessage({ type: 'PREVIEW_READY' }, '*');
+
+      return () => {
+        window.removeEventListener('message', handleMessage);
+        window.removeEventListener('message', handleScrollMessage);
+      };
+    }
+  }, [proposalId]);
 
   return (
     <div style={{ width: '100%', height: '100vh', overflowX: 'hidden', overflowY: 'auto', background: 'var(--bg-primary)' }}>

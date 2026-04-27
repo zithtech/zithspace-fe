@@ -288,31 +288,46 @@ export default function ProposalsListPage() {
 
       <div style={{
         margin: '0 -24px',
-        padding: '16px 24px',
+        padding: '12px 24px',
         minHeight: 'calc(100vh - 64px)',
         background: 'var(--bg-pure-white)'
       }}>
         {/* Compact Header Section */}
         <div style={{
-          marginBottom: 5,
+          marginBottom: 2,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <div>
-            <Breadcrumb
-              items={[{ title: 'Work' }, { title: 'Proposals' }]}
-              style={{ marginBottom: 6, fontSize: '11px' }}
-            />
-            <Title level={4} style={{
-              margin: 0,
-              fontWeight: 800,
-              letterSpacing: '-0.02em',
-              fontSize: '22px',
-              color: token.colorText
-            }}>
-              Proposals
-            </Title>
+          <div style={{ flex: 1 }}>
+            <Space size={12} align="center">
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: `${token.colorPrimary}12`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: token.colorPrimary
+              }}>
+                <SnippetsOutlined style={{ fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} className="premium-title" style={{
+                  margin: 0,
+                  fontWeight: 800,
+                  letterSpacing: '-0.01em',
+                  fontSize: '18px',
+                  color: token.colorText
+                }}>
+                  Proposals
+                </Title>
+                <Text type="secondary" className="premium-text-sec" style={{ fontSize: '11px', display: 'block', color: token.colorTextDescription }}>
+                  Manage and track your winning business proposals
+                </Text>
+              </div>
+            </Space>
           </div>
           <Button
             type="primary"

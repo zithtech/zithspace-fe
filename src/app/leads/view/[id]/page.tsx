@@ -16,6 +16,10 @@ import {
   Empty,
   Tooltip,
   message,
+  Modal,
+  Steps,
+  Form,
+  Input,
 } from "antd";
 import {
   ArrowLeft,
@@ -46,6 +50,8 @@ import {
   RotateCcw,
   ChevronDown,
   Rocket,
+  Info,
+  Layout as LayoutIcon,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useLeads } from "@/hooks/useLeads";
@@ -62,13 +68,16 @@ const { Title, Text } = Typography;
 export default function LeadProfilePage() {
   const router = useRouter();
   const params = useParams();
-  const { lead, loading, error, fetchLeadById, onboardLead, analyzeLead } = useLeads();
+  const { lead, loading, error, fetchLeadById, onboardLead, analyzeLead, updateLead } = useLeads();
   const { user } = useAuth();
   const [onboarding, setOnboarding] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [activeTab, setActiveTab] = useState("1");
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSkillsExpanded, setIsSkillsExpanded] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [initForm] = Form.useForm();
 
 
   useEffect(() => {
@@ -76,6 +85,29 @@ export default function LeadProfilePage() {
       fetchLeadById(params.id as string);
     }
   }, [params.id, fetchLeadById]);
+
+  const handleOnboard = async (values: any) => {
+    try {
+      setOnboarding(true);
+      // message.loading({ content: 'Initializing...', key: 'onboard' });
+      
+      // Trigger onboarding process with the edited values directly
+      // This creates the project/client with overrides but keeps the lead record as is
+      const res = await onboardLead(params.id as string, values);
+      if (res) {
+        message.success({ content: 'PROJECT INITIALIZED SUCCESSFULLY', key: 'onboard' });
+        setIsModalOpen(false);
+        setTimeout(() => {
+          router.push('/projects/manage');
+        }, 800);
+      }
+    } catch (err: any) {
+      console.error("Onboard Error:", err);
+      message.error({ content: err.message || "Failed to initialize project", key: 'onboard' });
+    } finally {
+      setOnboarding(false);
+    }
+  };
 
   if (loading && !lead) {
     return (
@@ -213,21 +245,18 @@ export default function LeadProfilePage() {
                     type="primary"
                     icon={<Rocket size={18} />}
                     loading={onboarding}
-                    onClick={async () => {
-                      try {
-                        setOnboarding(true);
-                        const res = await onboardLead(params.id as string);
-                        if (res.success) {
-                          message.success('LEAD ONBOARDED: CLIENT & PROJECT INITIALIZED');
-                          setTimeout(() => {
-                            router.push('/projects');
-                          }, 800);
-                        }
-                      } catch (err: any) {
-                        message.error(err.message);
-                      } finally {
-                        setOnboarding(false);
-                      }
+                    onClick={() => {
+                      initForm.setFieldsValue({
+                        client_name: lead.client_name,
+                        client_mail: lead.client_mail,
+                        client_phone: lead.client_phone,
+                        client_location: lead.client_location,
+                        summary: lead.summary,
+                        budget: lead.budget,
+                        experience_level: lead.experience_level,
+                      });
+                      setIsModalOpen(true);
+                      setCurrentStep(0);
                     }}
                     style={{
                       height: '40px',
@@ -531,8 +560,319 @@ export default function LeadProfilePage() {
             </Row>
           </div>
 
+          <Modal
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px 0' }}>
+                <div style={{ 
+                  width: '36px', 
+                  height: '36px', 
+                  borderRadius: '10px', 
+                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)'
+                }}>
+                  <Rocket size={18} color="#fff" />
+                </div>
+                <div>
+                  <Title level={4} style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>Initialize Project</Title>
+                  <Text style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>Convert lead to active client & project</Text>
+                </div>
+              </div>
+            }
+            open={isModalOpen}
+            onCancel={() => setIsModalOpen(false)}
+            footer={[
+              <Button 
+                key="cancel" 
+                onClick={() => setIsModalOpen(false)} 
+                style={{ 
+                  borderRadius: '10px', 
+                  height: '42px', 
+                  padding: '0 20px',
+                  fontWeight: 600,
+                  border: '1px solid #e2e8f0'
+                }}
+              >
+                Cancel
+              </Button>,
+              currentStep > 0 && (
+                <Button 
+                  key="back" 
+                  onClick={() => setCurrentStep(currentStep - 1)} 
+                  style={{ 
+                    borderRadius: '10px', 
+                    height: '42px', 
+                    padding: '0 20px',
+                    fontWeight: 600
+                  }}
+                >
+                  Back
+                </Button>
+              ),
+              currentStep < 1 ? (
+                <Button 
+                  key="next"
+                  type="primary" 
+                  onClick={async () => {
+                    try {
+                      await initForm.validateFields(['client_name', 'client_mail']);
+                      setCurrentStep(1);
+                    } catch (err) {}
+                  }}
+                  style={{ 
+                    borderRadius: '10px', 
+                    height: '42px', 
+                    padding: '0 24px',
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)'
+                  }}
+                >
+                  Next Step
+                </Button>
+              ) : (
+                <Button 
+                  key="create"
+                  type="primary" 
+                  loading={onboarding}
+                  onClick={() => initForm.submit()}
+                  style={{ 
+                    borderRadius: '10px', 
+                    height: '42px', 
+                    padding: '0 28px',
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
+                  }}
+                >
+                  Create Project
+                </Button>
+              )
+            ]}
+            width={580}
+            centered
+            className="premium-modal-v2"
+          >
+            <div style={{ padding: '4px 0' }}>
+              <Steps
+                current={currentStep}
+                items={[
+                  { 
+                    title: <span style={{ fontWeight: 700 }}>Client Profile</span>, 
+                    icon: <UserCheck size={20} />,
+                    description: <span style={{ fontSize: '11px' }}>Identify identity</span>
+                  },
+                  { 
+                    title: <span style={{ fontWeight: 700 }}>Project Scope</span>, 
+                    icon: <Briefcase size={20} />,
+                    description: <span style={{ fontSize: '11px' }}>Define requirements</span>
+                  },
+                ]}
+                style={{ marginBottom: 24 }}
+                className="premium-steps"
+              />
+              
+              <Form
+                form={initForm}
+                layout="vertical"
+                onFinish={handleOnboard}
+                onFinishFailed={(errorInfo) => {
+                  console.error('Validation Failed:', errorInfo);
+                  message.error("Please fill all required fields correctly");
+                }}
+                requiredMark={false}
+              >
+                {currentStep === 0 && (
+                  <div className="step-content animate-fade-in">
+                    <div style={{ marginBottom: 16, padding: '12px', background: 'var(--bg-blue-50)', borderRadius: '12px', border: '1px solid var(--border-blue-200)' }}>
+                      <Space align="start" size={12}>
+                        <div style={{ color: 'var(--premium-blue)', marginTop: '2px' }}><Info size={16} /></div>
+                        <div>
+                          <Text strong style={{ display: 'block', fontSize: '13px' }}>Client Verification</Text>
+                          <Text style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Confirm the client's contact information. This will be used for invoicing and communication.</Text>
+                        </div>
+                      </Space>
+                    </div>
+
+                    <Row gutter={12}>
+                      <Col span={24}>
+                        <Form.Item 
+                          name="client_name" 
+                          label={<span className="form-label-premium">Full Name / Company</span>} 
+                          rules={[{ required: true, message: 'Please enter client name' }]}
+                        >
+                          <Input prefix={<UserCheck size={14} color="var(--text-secondary)" />} placeholder="e.g. John Doe / Acme Corp" className="premium-input-v2" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={24}>
+                        <Form.Item 
+                          name="client_mail" 
+                          label={<span className="form-label-premium">Primary Email Address</span>} 
+                          rules={[{ required: true, type: 'email', message: 'Please enter valid email' }]}
+                        >
+                          <Input prefix={<Mail size={14} color="var(--text-secondary)" />} placeholder="client@example.com" className="premium-input-v2" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item 
+                          name="client_phone" 
+                          label={<span className="form-label-premium">Contact Number</span>}
+                        >
+                          <Input prefix={<Phone size={14} color="var(--text-secondary)" />} placeholder="+1 (555) 000-0000" className="premium-input-v2" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item 
+                          name="client_location" 
+                          label={<span className="form-label-premium">Client Location</span>}
+                        >
+                          <Input prefix={<Globe size={14} color="var(--text-secondary)" />} placeholder="e.g. New York, USA" className="premium-input-v2" />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+                )}
+                {currentStep === 1 && (
+                  <div className="step-content animate-fade-in">
+                    <div style={{ marginBottom: 16, padding: '12px', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
+                      <Space align="start" size={8}>
+                        <div style={{ color: '#10b981', marginTop: '2px' }}><Zap size={14} /></div>
+                        <div>
+                          <Text strong style={{ display: 'block', fontSize: '13px' }}>Project Definition</Text>
+                          <Text style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Define the scope and budget for this project. These details can be refined later in the project dashboard.</Text>
+                        </div>
+                      </Space>
+                    </div>
+
+                    <Form.Item 
+                      name="title" 
+                      label={<span className="form-label-premium">Project Title</span>} 
+                      rules={[{ required: true, message: 'Please enter project title' }]}
+                    >
+                      <Input prefix={<LayoutIcon size={14} color="var(--text-secondary)" />} placeholder="e.g. Full Stack Dashboard Development" className="premium-input-v2" />
+                    </Form.Item>
+                    
+                    <Form.Item 
+                      name="summary" 
+                      label={<span className="form-label-premium">Strategic Summary</span>}
+                    >
+                      <Input.TextArea rows={4} placeholder="Briefly describe the project goals and delivery expectations..." className="premium-input-v2" />
+                    </Form.Item>
+                    
+                    <Row gutter={20}>
+                      <Col span={12}>
+                        <Form.Item 
+                          name="budget" 
+                          label={<span className="form-label-premium">Estimated Budget</span>}
+                        >
+                          <Input prefix={<DollarSign size={16} color="var(--text-secondary)" />} placeholder="e.g. $5,000" className="premium-input-v2" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item 
+                          name="experience_level" 
+                          label={<span className="form-label-premium">Expertise Level</span>}
+                        >
+                          <Input prefix={<Star size={16} color="var(--text-secondary)" />} placeholder="e.g. Expert / Senior" className="premium-input-v2" />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+                )}
+              </Form>
+            </div>
+          </Modal>
+
           <style dangerouslySetInnerHTML={{
             __html: `
+            .premium-modal-v2 .ant-modal-content {
+              border-radius: 16px;
+              padding: 20px;
+              box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+              border: 1px solid var(--border-color);
+              background: var(--bg-pure-white);
+            }
+            .premium-modal-v2 .ant-modal-header {
+              margin-bottom: 16px;
+              border-bottom: none;
+            }
+            .form-label-premium {
+              font-size: 11px;
+              font-weight: 800;
+              color: var(--text-secondary);
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              margin-bottom: 6px;
+              display: block;
+            }
+            .premium-input-v2 {
+              border-radius: 12px !important;
+              padding: 10px 16px !important;
+              border: 1.5px solid var(--border-color) !important;
+              background: var(--bg-pure-white) !important;
+              transition: all 0.2s ease !important;
+            }
+            .premium-input-v2:hover {
+              border-color: var(--border-hover) !important;
+            }
+            .premium-input-v2:focus, .premium-input-v2-focused {
+              border-color: var(--premium-blue) !important;
+              box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+              background: var(--bg-pure-white) !important;
+            }
+            .premium-steps .ant-steps-item-icon {
+              width: 38px !important;
+              height: 38px !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              border-radius: 10px !important;
+              font-size: 16px !important;
+              position: relative !important;
+            }
+            .premium-steps .ant-steps-item-icon svg {
+              width: 18px !important;
+              height: 18px !important;
+              position: absolute !important;
+              top: 50% !important;
+              left: 50% !important;
+              transform: translate(-50%, -50%) !important;
+            }
+            .premium-steps .ant-steps-item-process .ant-steps-item-icon {
+              background: var(--premium-blue) !important;
+              border-color: var(--premium-blue) !important;
+            }
+            .premium-steps .ant-steps-item-process .ant-steps-item-icon svg {
+              color: #fff !important;
+              stroke: #fff !important;
+            }
+            .premium-steps .ant-steps-item-finish .ant-steps-item-icon {
+              border-color: #10b981 !important;
+              color: #10b981 !important;
+            }
+            .premium-steps .ant-steps-item-finish .ant-steps-item-icon svg {
+              color: #10b981 !important;
+              stroke: #10b981 !important;
+            }
+            .premium-steps .ant-steps-item-wait .ant-steps-item-icon svg {
+              color: var(--text-secondary) !important;
+              stroke: var(--text-secondary) !important;
+            }
+            .premium-steps .ant-steps-item-title {
+              font-weight: 700 !important;
+              line-height: 1.2 !important;
+            }
+            .animate-fade-in {
+              animation: modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            @keyframes modalFadeIn {
+              from { opacity: 0; transform: translateY(15px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
             .lead-intelligence-hub {
               background: var(--bg-pure-white); /* Match layout to remove top/bottom bars */
               min-height: 100%; 
@@ -690,10 +1030,14 @@ export default function LeadProfilePage() {
             /* Action Button Dark Mode */
             [data-theme='dark'] .hub-action-btn { background: #161B22 !important; border-color: #374151 !important; color: #CBD5E1 !important; }
             [data-theme='dark'] .hub-action-btn:hover { border-color: var(--premium-blue) !important; color: var(--premium-blue) !important; }
+            
+            /* Contact Info Dark Mode */
+            [data-theme='dark'] .contact-badge-v2 { background: rgba(59, 130, 246, 0.1) !important; color: var(--premium-blue) !important; border-color: rgba(59, 130, 246, 0.2) !important; }
+            [data-theme='dark'] .contact-text { color: #CBD5E1 !important; }
             `}} />
-        </div>
-      </MainLayout>
-    </ProtectedRoute>
-  );
+          </div>
+        </MainLayout>
+      </ProtectedRoute>
+    );
 }
 

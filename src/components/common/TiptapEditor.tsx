@@ -204,9 +204,10 @@ export default function TiptapEditor({
     <div
       className="tiptap-editor-wrapper"
       style={{
-        border: "1px solid #d9d9d9",
+        border: "1px solid var(--border-color)",
         borderRadius: "6px",
         overflow: "hidden",
+        background: "var(--bg-pure-white)"
       }}
     >
       {editable && (
@@ -217,8 +218,8 @@ export default function TiptapEditor({
             flexWrap: "wrap",
             gap: "4px",
             padding: "8px",
-            borderBottom: "1px solid #d9d9d9",
-            backgroundColor: "#fafafa",
+            borderBottom: "1px solid var(--border-color)",
+            backgroundColor: "var(--bg-slate-50)",
           }}
         >
           {/* Text Formatting */}
@@ -277,7 +278,7 @@ export default function TiptapEditor({
             style={{
               width: "1px",
               height: "24px",
-              backgroundColor: "#d9d9d9",
+              backgroundColor: "var(--border-color)",
               margin: "0 4px",
             }}
           />
@@ -484,6 +485,7 @@ export default function TiptapEditor({
         .tiptap-editor-content {
           padding: 12px;
           outline: none;
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content p {
@@ -494,18 +496,21 @@ export default function TiptapEditor({
           font-size: 2em;
           font-weight: bold;
           margin: 16px 0 8px 0;
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content h2 {
           font-size: 1.5em;
           font-weight: bold;
           margin: 14px 0 8px 0;
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content h3 {
           font-size: 1.25em;
           font-weight: bold;
           margin: 12px 0 8px 0;
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content ul,
@@ -519,24 +524,26 @@ export default function TiptapEditor({
         }
 
         .tiptap-editor-content a {
-          color: #1890ff;
+          color: #3b82f6;
           text-decoration: underline;
           cursor: pointer;
         }
 
         .tiptap-editor-content a:hover {
-          color: #40a9ff;
+          color: #60a5fa;
         }
 
         .tiptap-editor-content code {
-          background-color: #f5f5f5;
+          background-color: var(--bg-slate-100);
+          color: var(--text-primary);
           padding: 2px 6px;
           border-radius: 3px;
           font-family: "Courier New", monospace;
         }
 
         .tiptap-editor-content pre {
-          background-color: #f5f5f5;
+          background-color: var(--bg-slate-100);
+          color: var(--text-primary);
           padding: 12px;
           border-radius: 6px;
           overflow-x: auto;
@@ -550,6 +557,7 @@ export default function TiptapEditor({
 
         .tiptap-editor-content mark {
           background-color: #fff566;
+          color: #000;
           padding: 2px 0;
         }
 
@@ -562,22 +570,26 @@ export default function TiptapEditor({
         }
 
         .tiptap-editor-content blockquote {
-          border-left: 3px solid #d9d9d9;
+          border-left: 3px solid var(--border-color);
           padding-left: 12px;
           margin: 8px 0;
-          color: #595959;
+          color: var(--text-secondary);
         }
 
         .tiptap-editor-content:empty:before {
           content: attr(data-placeholder);
-          color: #bfbfbf;
+          color: var(--text-slate-400);
           pointer-events: none;
           position: absolute;
         }
 
         .is-active {
-          background-color: #e6f7ff !important;
-          color: #1890ff !important;
+          background-color: rgba(59, 130, 246, 0.1) !important;
+          color: var(--premium-blue) !important;
+        }
+
+        [data-theme='dark'] .tiptap-toolbar button:hover {
+          background-color: rgba(255, 255, 255, 0.1) !important;
         }
       `}</style>
     </div>
@@ -594,7 +606,7 @@ const buttonStyle: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   fontSize: "14px",
-  color: "#595959",
+  color: "var(--text-secondary)",
   transition: "all 0.2s",
   minWidth: "32px",
   height: "32px",

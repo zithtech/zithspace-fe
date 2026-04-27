@@ -23,6 +23,7 @@ export interface Lead {
   documents: { name: string; url: string }[];
   created_at: string;
   updated_at: string;
+  proposal_id?: string;
 
   // Job Metadata
   external_job_id?: string;
@@ -170,9 +171,9 @@ export class LeadService {
   /**
    * Onboard a lead to a project
    */
-  static async onboard(id: string): Promise<any> {
+  static async onboard(id: string, data?: any): Promise<any> {
     try {
-      return await api.post<any>(`/api/leads/${id}/onboard`);
+      return await api.post<any>(`/api/leads/${id}/onboard`, data);
     } catch (error) {
       console.error('Failed to onboard lead:', error);
       throw error;

@@ -65,9 +65,9 @@ export const CoverBlock: React.FC<CoverBlockProps> = ({ data }) => {
         <Title level={1} style={{ margin: '4px 0 8px 0', fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
           {data.title || 'Proposal Title'}
         </Title>
-        <Text style={{ fontSize: '1rem', color: 'var(--text-secondary)', maxWidth: '600px', display: 'block', lineHeight: 1.5 }}>
+        <div style={{ fontSize: '1rem', color: 'var(--text-primary)', maxWidth: '600px', display: 'block', lineHeight: 1.5 }}>
           <TiptapViewer content={data.projectSummary || ''} />
-        </Text>
+        </div>
       </div>
 
       {/* Client Informarion & Dates */}

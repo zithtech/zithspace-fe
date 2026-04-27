@@ -9,11 +9,11 @@ export const ProposalService = {
     return api.get(`/api/proposals/${id}`);
   },
 
-  createProposal: async (data: { title: string; client_name?: string; blocks: any[]; status?: string }) => {
+  createProposal: async (data: { title: string; client_name?: string; blocks: any[]; status?: string; lead_id?: string | null }) => {
     return api.post('/api/proposals', data);
   },
 
-  updateProposal: async (id: string, data: { title?: string; client_name?: string; blocks?: any[]; status?: string }) => {
+  updateProposal: async (id: string, data: { title?: string; client_name?: string; blocks?: any[]; status?: string; lead_id?: string | null }) => {
     return api.put(`/api/proposals/${id}`, data);
   },
 

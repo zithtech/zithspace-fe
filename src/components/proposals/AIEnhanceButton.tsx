@@ -96,7 +96,7 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
         return (
           <div 
             style={{ 
-              color: type === 'refined' ? '#166534' : '#334155', 
+              color: type === 'refined' ? 'var(--premium-blue)' : 'var(--text-primary)', 
               lineHeight: 1.6, 
               fontSize: '0.9rem' 
             }}
@@ -107,7 +107,7 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
 
       return (
         <div style={{ 
-          color: type === 'refined' ? '#166534' : '#334155', 
+          color: type === 'refined' ? 'var(--premium-blue)' : 'var(--text-primary)', 
           lineHeight: 1.7, 
           fontSize: '0.95rem', 
           whiteSpace: 'pre-wrap',
@@ -133,12 +133,12 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
             if (!isChanged) return null;
             
             return (
-              <div key={key} style={{ padding: '12px 16px', background: '#ffffff', borderRadius: '10px', border: '1px solid #eef2f6', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+              <div key={key} style={{ padding: '12px 16px', background: 'var(--bg-primary)', borderRadius: '10px', border: '1px solid var(--border-color)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{key.replace(/([A-Z])/g, ' $1')}</div>
-                  <Tag color="green" style={{ fontSize: '0.6rem', margin: 0, borderRadius: '10px', border: 'none', background: '#dcfce7', color: '#166534' }}>UPDATED</Tag>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{key.replace(/([A-Z])/g, ' $1')}</div>
+                  <Tag color="green" style={{ fontSize: '0.6rem', margin: 0, borderRadius: '10px', border: 'none', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>UPDATED</Tag>
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#166534', whiteSpace: 'pre-wrap', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.9rem', color: 'var(--premium-blue)', whiteSpace: 'pre-wrap', fontWeight: 500 }}>
                   {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
                 </div>
               </div>
@@ -146,9 +146,9 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
           }
 
           return (
-            <div key={key} style={{ padding: '12px 16px', background: '#ffffff', borderRadius: '10px', border: '1px solid #f1f5f9', boxShadow: '0 1px 2px rgba(0,0,0,0.01)' }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>{key.replace(/([A-Z])/g, ' $1')}</div>
-              <div style={{ fontSize: '0.9rem', color: '#1e293b', whiteSpace: 'pre-wrap', fontWeight: 400 }}>
+            <div key={key} style={{ padding: '12px 16px', background: 'var(--bg-primary)', borderRadius: '10px', border: '1px solid var(--border-color)', boxShadow: '0 1px 2px rgba(0,0,0,0.01)' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>{key.replace(/([A-Z])/g, ' $1')}</div>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap', fontWeight: 400 }}>
                 {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
               </div>
             </div>
@@ -170,7 +170,7 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
       <Button
         type="text"
         size="small"
-        icon={<Sparkles size={14} color="#6366f1" />}
+        icon={<Sparkles size={14} color="var(--premium-blue)" />}
         onClick={() => {
           setRefinedData(null);
           setInstruction('');
@@ -179,15 +179,15 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
         style={{
           fontSize: '0.7rem',
           fontWeight: 600,
-          color: '#6366f1',
+          color: 'var(--premium-blue)',
           height: '24px',
           padding: '0 8px',
           display: 'flex',
           alignItems: 'center',
           gap: '4px',
-          background: '#f5f3ff',
+          background: 'var(--bg-secondary)',
           borderRadius: '6px',
-          border: '1px solid #e0e7ff',
+          border: '1px solid var(--border-color)',
           transition: 'all 0.2s',
           ...style
         }}
@@ -199,12 +199,12 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
       <Modal
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 0' }}>
-            <div style={{ background: '#f5f3ff', padding: '8px', borderRadius: '10px' }}>
-              <Sparkles size={18} color="#6366f1" />
+            <div style={{ background: 'rgba(99, 102, 241, 0.1)', padding: '8px', borderRadius: '10px' }}>
+              <Sparkles size={18} color="var(--premium-blue)" />
             </div>
             <div>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>AI Smart Refinement</div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 400, color: '#64748b' }}>Precision editing powered by Gemini AI</div>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>AI Smart Refinement</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-secondary)' }}>Precision editing powered by Gemini AI</div>
             </div>
           </div>
         }
@@ -215,16 +215,16 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
         destroyOnHidden
         centered
         styles={{
-          mask: { backdropFilter: 'blur(4px)', background: 'rgba(0,0,0,0.1)' },
-          content: { borderRadius: '20px', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)' }
+          mask: { backdropFilter: 'blur(4px)', background: 'rgba(0,0,0,0.5)' },
+          content: { borderRadius: '20px', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)', background: 'var(--bg-pure-white)' }
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Top Instruction Bar */}
-          <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+          <div style={{ background: 'var(--bg-secondary)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <ExperimentOutlined style={{ color: '#6366f1' }} />
-              <Text strong style={{ fontSize: '0.8rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.025em' }}>What should AI change?</Text>
+              <ExperimentOutlined style={{ color: 'var(--premium-blue)' }} />
+              <Text strong style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.025em' }}>What should AI change?</Text>
             </div>
             <div style={{ display: 'flex', gap: '16px' }}>
               <Input.TextArea
@@ -235,7 +235,9 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
                 disabled={loading}
                 style={{
                   borderRadius: '12px',
-                  border: '1px solid #cbd5e1',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
                   padding: '12px',
                   boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
                 }}
@@ -245,7 +247,7 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
                 onClick={handleRefine}
                 loading={loading}
                 style={{
-                  background: '#6366f1',
+                  background: 'var(--premium-blue)',
                   height: 'auto',
                   padding: '0 24px',
                   borderRadius: '12px',
@@ -272,9 +274,9 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
                     cursor: 'pointer',
                     borderRadius: '20px',
                     padding: '4px 12px',
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    color: '#64748b',
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-secondary)',
                     fontSize: '0.75rem',
                     transition: 'all 0.2s'
                   }}
@@ -296,10 +298,10 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
                 <Text strong style={{ color: '#64748b', fontSize: '0.7rem', textTransform: 'uppercase' }}>Old Content</Text>
               </div>
               <div style={{
-                background: '#ffffff',
+                background: 'var(--bg-primary)',
                 borderRadius: '16px',
                 padding: '24px',
-                border: '1px solid #e2e8f0',
+                border: '1px solid var(--border-color)',
                 height: '400px',
                 overflow: 'auto',
                 boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
@@ -316,14 +318,14 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
             {/* AI Suggestion */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, paddingLeft: 4 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: refinedData ? '#10b981' : '#cbd5e1' }} />
-                <Text strong style={{ color: refinedData ? '#10b981' : '#94a3b8', fontSize: '0.7rem', textTransform: 'uppercase' }}>Updated Content</Text>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: refinedData ? 'var(--premium-blue)' : 'var(--text-secondary)' }} />
+                <Text strong style={{ color: refinedData ? 'var(--premium-blue)' : 'var(--text-secondary)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Updated Content</Text>
               </div>
               <div style={{
-                background: refinedData ? '#f0fdf4' : '#fcfcfc',
+                background: refinedData ? 'rgba(16, 185, 129, 0.05)' : 'var(--bg-primary)',
                 borderRadius: '16px',
                 padding: '24px',
-                border: refinedData ? '1px solid #bbf7d0' : '1px dashed #e2e8f0',
+                border: refinedData ? '1px solid rgba(16, 185, 129, 0.2)' : '1px dashed var(--border-color)',
                 height: '400px',
                 overflow: 'auto',
                 boxShadow: refinedData ? '0 10px 15px -3px rgba(16, 185, 129, 0.05)' : 'none'

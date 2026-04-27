@@ -210,7 +210,7 @@ export default function SkillsPage() {
     { 
       title: "Years", 
       dataIndex: "years_of_experience",
-      render: (val: number) => <Text style={{ fontWeight: 600 }}>{val} yrs</Text>
+      render: (val: number) => <Text style={{ fontWeight: 600 }}>{val ? `${val} yrs` : "-"}</Text>
     },
     {
       title: "Active",
@@ -370,44 +370,69 @@ export default function SkillsPage() {
       <MainLayout>
         {contextHolder}
 
-        <div style={{
+        <div className="skills-page-wrapper" style={{
           margin: "0 -24px",
-          padding: "24px 32px",
-          background: "var(--bg-secondary)",
+          padding: "12px 24px",
+          background: "var(--bg-pure-white)",
           minHeight: "calc(100vh - 64px)"
         }}>
           
           {/* Header Section */}
-          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div style={{ marginBottom: 0, paddingBottom: 3.5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ flex: 1 }}>
               <Space size={12} align="center">
                 <div style={{
-                  background: "var(--bg-blue-50)",
-                  padding: 10,
-                  borderRadius: 12,
-                  color: "var(--premium-blue)",
-                  display: "flex"
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: 'rgba(99, 102, 241, 0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: "#6366f1"
                 }}>
-                  <Zap size={24} />
+                  <Zap size={20} />
                 </div>
                 <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Skills & Experience</Title>
-                  <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Manage your professional portfolio and technical competencies.</Text>
+                  <Title level={4} className="premium-title" style={{ margin: 0, fontWeight: 800, color: "var(--text-primary)", fontSize: 18, letterSpacing: "-0.01em" }}>Skills & Experience</Title>
+                  <Text type="secondary" className="premium-text-sec" style={{ fontSize: '11px', display: 'block', color: "var(--text-secondary)" }}>
+                    Manage your professional portfolio and technical competencies.
+                  </Text>
                 </div>
               </Space>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               <Input
-                placeholder="Search..."
-                prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
-                style={{ width: 280, borderRadius: 10, height: 44, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)", color: "var(--text-slate-900)" }}
+                placeholder="Search skills..."
+                prefix={<Search size={14} style={{ color: "#94a3b8" }} />}
+                className="premium-input-search"
+                style={{
+                  width: 220,
+                  borderRadius: 8,
+                  height: 32,
+                  border: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  fontSize: 13,
+                  fontWeight: 500
+                }}
                 onChange={(e) => setSearchText(e.target.value)}
               />
               <Button
                 type="primary"
-                size="large"
-                icon={<Plus size={18} />}
-                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)" }}
+                size="small"
+                icon={<Plus size={14} />}
+                style={{
+                  borderRadius: 6,
+                  height: 32,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  background: "#6366f1",
+                  border: "none",
+                  boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
+                  padding: "0 12px",
+                  fontSize: 13
+                }}
                 onClick={showDrawer}
               >
                 {activeTab === "1" ? "Add Skill" : "Add Experience"}
@@ -415,8 +440,9 @@ export default function SkillsPage() {
             </div>
           </div>
 
+          <Divider className="hub-divider-premium" style={{ margin: '0 -24px 16px -24px', width: 'calc(100% + 48px)', borderTop: '1px solid #e2e8f0' }} />
+
           <Tabs
-            style={{ marginTop: 20 }}
             activeKey={activeTab}
             onChange={setActiveTab}
             items={tabItems}
@@ -629,6 +655,11 @@ export default function SkillsPage() {
             background: var(--premium-blue) !important;
             height: 3px !important;
             border-radius: 3px 3px 0 0;
+          }
+          
+          /* Dark theme divider fix */
+          [data-theme='dark'] .hub-divider-premium {
+            border-top-color: #1F2937 !important;
           }
         `}} />
       </div>

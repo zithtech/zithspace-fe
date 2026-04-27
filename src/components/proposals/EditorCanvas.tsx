@@ -20,7 +20,7 @@ const SortableBlock = ({ id, type, data, isSelected, onClick, onRemove, index }:
     opacity: isDragging ? 0.3 : 1,
     position: 'relative' as const,
     marginBottom: '2px', // Tighten the gap for a seamless document feel
-    background: '#ffffff',
+    background: 'var(--bg-pure-white)',
     zIndex: isSelected ? 2 : 1,
   };
 
@@ -62,7 +62,7 @@ const SortableBlock = ({ id, type, data, isSelected, onClick, onRemove, index }:
           {...attributes}
           {...listeners}
           style={{
-            background: '#ffffff',
+            background: 'var(--bg-pure-white)',
             color: 'var(--text-secondary)',
             padding: '4px 8px',
             borderRadius: '6px 6px 0 0',
@@ -140,7 +140,7 @@ export const EditorCanvas = () => {
   return (
     <div style={{
       padding: '0 0 80px 0',
-      background: '#ffffff', // Pure white backdrop
+      background: 'var(--bg-slate-50)', // Subtle background for the page
       minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',
@@ -154,13 +154,14 @@ export const EditorCanvas = () => {
           width: '100%',
           maxWidth: '1100px',
           minHeight: '1100px', // A4-ish minimum height
-          background: '#ffffff',
+          background: 'var(--bg-pure-white)',
           borderRadius: '4px',
           padding: '40px 60px', // Proper document margins
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
-          transition: 'all 0.3s ease'
+          transition: 'all 0.3s ease',
+          boxShadow: '0 0 0 1px var(--border-color), 0 4px 20px rgba(0,0,0,0.05)'
         }}
       >
         {blocks.length === 0 ? (
@@ -170,7 +171,7 @@ export const EditorCanvas = () => {
             flexDirection: 'column',
             justifyContent: 'flex-start',
             alignItems: 'center',
-            background: '#ffffff',
+            background: 'var(--bg-pure-white)',
             borderRadius: '12px',
             border: '2px dashed var(--border-color)',
             textAlign: 'center',
@@ -180,7 +181,7 @@ export const EditorCanvas = () => {
               width: '80px',
               height: '80px',
               borderRadius: '20px',
-              background: 'var(--bg-blue-50)',
+              background: 'rgba(59, 130, 246, 0.1)',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
@@ -216,7 +217,7 @@ export const EditorCanvas = () => {
                 border: '1px dashed var(--border-color)',
                 borderRadius: '8px',
                 color: 'var(--text-secondary)',
-                background: '#ffffff',
+                background: 'var(--bg-pure-white)',
                 cursor: 'pointer',
                 display: 'flex',
                 justifyContent: 'center',
@@ -225,7 +226,7 @@ export const EditorCanvas = () => {
                 transition: 'all 0.2s ease',
               }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.color = '#3b82f6'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#64748b'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
             >
               <PlusOutlined />
               <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Insert Custom Section</span>

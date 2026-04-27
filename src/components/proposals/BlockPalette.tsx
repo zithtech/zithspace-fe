@@ -32,7 +32,7 @@ const DraggableBlock = ({ type, label, icon }: { type: BlockType, label: string,
         padding: '12px 14px',
         border: '1px solid var(--border-color)',
         borderRadius: '8px',
-        background: '#ffffff',
+        background: 'var(--bg-pure-white)',
         cursor: 'grab',
         display: 'flex',
         alignItems: 'center',
@@ -62,7 +62,7 @@ export const BlockPalette = ({ layout = 'vertical' }: { layout?: 'horizontal' | 
 
   if (layout === 'horizontal') {
     return (
-      <div style={{ padding: '8px 16px', background: '#ffffff', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--border-color)', width: '100%', overflowX: 'auto', gap: '12px' }}>
+      <div style={{ padding: '8px 16px', background: 'var(--bg-pure-white)', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--border-color)', width: '100%', overflowX: 'auto', gap: '12px' }}>
         <div style={{ marginRight: '8px', flexShrink: 0 }}>
           <Text strong style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ADD BLOCKS</Text>
         </div>
@@ -76,7 +76,7 @@ export const BlockPalette = ({ layout = 'vertical' }: { layout?: 'horizontal' | 
   }
 
   return (
-    <div style={{ padding: '16px', background: '#ffffff', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ padding: '16px', background: 'var(--bg-pure-white)', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ marginBottom: '16px' }}>
         <Text strong style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '4px' }}>Add Blocks</Text>
         <Text style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Click or drag to the top.</Text>

@@ -572,24 +572,23 @@ export default function BidiqIntelligencePage() {
                           display: 'grid',
                           gridTemplateColumns: '110px 1fr 1fr 60px',
                           alignItems: 'center',
-                          background: '#f8fafc',
                           borderRadius: 10,
                           padding: '8px 10px',
-                          border: '1px solid #f1f5f9'
+                          border: '1px solid var(--border-slate-100)'
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <div style={{
-                              width: 28, height: 28, borderRadius: '50%', background: '#fff',
+                              width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-pure-white)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               color: item.color === 'red' ? '#ef4444' : item.color === 'orange' ? '#f59e0b' : '#eab308',
                               boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                             }}>{item.icon}</div>
-                            <Text style={{ fontSize: 11, fontWeight: 800, color: '#1e293b' }}>{item.name}</Text>
+                            <Text style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-slate-900)' }}>{item.name}</Text>
                           </div>
-                          <Text style={{ fontSize: 11, color: '#94a3b8', textDecoration: 'line-through', textAlign: 'right' }}>{item.client}</Text>
-                          <Text style={{ fontSize: 11, fontWeight: 900, color: '#1e293b', textAlign: 'right' }}>{item.reality}</Text>
+                          <Text style={{ fontSize: 11, color: 'var(--text-slate-400)', textDecoration: 'line-through', textAlign: 'right' }}>{item.client}</Text>
+                          <Text style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-slate-900)', textAlign: 'right' }}>{item.reality}</Text>
                           <Tag style={{
-                            margin: 0, border: 'none', background: '#fff7ed', color: '#f59e0b',
+                            margin: 0, border: 'none', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b',
                             fontSize: 8, fontWeight: 900, borderRadius: 4, width: 'fit-content', marginLeft: 'auto'
                           }}>{item.delta}</Tag>
                         </div>
@@ -597,11 +596,11 @@ export default function BidiqIntelligencePage() {
                     </div>
 
                     <div style={{
-                      marginTop: 10, padding: '10px', background: '#f5f3ff', borderRadius: 10,
-                      display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #ede9fe'
+                      marginTop: 10, padding: '10px', borderRadius: 10,
+                      display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--border-slate-100)'
                     }}>
-                      <div style={{ width: 26, height: 26, background: '#fff', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}><TrendingUp size={14} /></div>
-                      <Text style={{ fontSize: 10, color: '#444', lineHeight: 1.4 }}>
+                      <div style={{ width: 26, height: 26, background: 'var(--bg-pure-white)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}><TrendingUp size={14} /></div>
+                      <Text style={{ fontSize: 10, color: 'var(--text-slate-500)', lineHeight: 1.4 }}>
                         <b style={{ color: '#6366f1' }}>Advise:</b> Suggest <b>${(suggestedBudgetVal / 1000).toFixed(1)}k</b> for the complete project.
                       </Text>
                     </div>
@@ -612,10 +611,10 @@ export default function BidiqIntelligencePage() {
                 <Space direction="vertical" size={0} style={{ width: '100% ' }}>
                   <div className="glass-card effort-estimation-card" style={{ borderRadius: 16, padding: '10px 14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
-                      <Title level={5} style={{ margin: 0, fontSize: 13, fontWeight: 900, color: '#1e293b' }}>Effort Estimation</Title>
+                      <Title level={5} className="section-title" style={{ margin: 0, fontSize: 13, fontWeight: 900 }}>Effort Estimation</Title>
                       <Tag style={{ border: 'none', background: complexityColor, color: complexityText, fontWeight: 800, fontSize: 8, borderRadius: 10, padding: '0 6px', margin: 0 }}>{complexity}</Tag>
                     </div>
-                    <Text style={{ fontSize: 10, color: '#94a3b8', display: 'block', marginBottom: 8, lineHeight: 1 }}>Hours by skill level</Text>
+                    <Text className="section-subtitle" style={{ fontSize: 10, display: 'block', marginBottom: 8, lineHeight: 1 }}>Hours by skill level</Text>
 
                     <div className="estimation-stack">
                       {[
@@ -625,8 +624,8 @@ export default function BidiqIntelligencePage() {
                       ].map((item, idx) => (
                         <div key={idx} style={{ marginBottom: idx === 2 ? 0 : 8 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
-                            <Space size={4} style={{ rowGap: 0 }}><span style={{ color: '#64748b', display: 'flex' }}>{item.icon}</span><Text style={{ fontWeight: 700, color: '#1e293b', fontSize: 10 }}>{item.label}</Text></Space>
-                            <Text style={{ fontSize: 10 }}><span style={{ fontWeight: 700 }}>{item.val}</span> <span style={{ color: '#94a3b8' }}>hrs</span></Text>
+                            <Space size={4} style={{ rowGap: 0 }}><span style={{ color: '#64748b', display: 'flex' }}>{item.icon}</span><Text className="premium-form-label" style={{ fontWeight: 700, fontSize: 10 }}>{item.label}</Text></Space>
+                            <Text style={{ fontSize: 10 }}><span className="premium-title" style={{ fontWeight: 700 }}>{item.val}</span> <span className="premium-text-sec">hrs</span></Text>
                           </div>
                           <Progress percent={item.pct} showInfo={false} strokeColor={item.color} strokeWidth={6} style={{ height: 6, margin: 0, padding: 0, top: -2 }} />
                         </div>
@@ -638,38 +637,38 @@ export default function BidiqIntelligencePage() {
 
                   <div className="glass-card budget-reality-card" style={{ borderRadius: 16, padding: '10px 14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
-                      <Title level={5} style={{ margin: 0, fontSize: 13, fontWeight: 900, color: '#1e293b' }}>Budget Reality Check</Title>
+                      <Title level={5} className="section-title" style={{ margin: 0, fontSize: 13, fontWeight: 900 }}>Budget Reality Check</Title>
                       <Tag style={{ border: 'none', background: '#fef3c7', color: '#d97706', fontWeight: 800, fontSize: 8, borderRadius: 10, padding: '0 6px', margin: 0 }}>{budgetStatus}</Tag>
                     </div>
-                    <Text style={{ fontSize: 10, color: '#94a3b8', display: 'block', marginBottom: 8, lineHeight: 1 }}>Market-aligned pricing</Text>
+                    <Text className="section-subtitle" style={{ fontSize: 10, display: 'block', marginBottom: 8, lineHeight: 1 }}>Market-aligned pricing</Text>
 
                     <div className="reality-check-stack">
                       <div style={{ marginBottom: 6 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
-                          <Text style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>Client Budget</Text>
-                          <Text style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>${clientBudgetNum.toLocaleString()}</Text>
+                          <Text className="premium-form-label" style={{ fontSize: 10, fontWeight: 700 }}>Client Budget</Text>
+                          <Text className="premium-title" style={{ fontSize: 12, fontWeight: 700 }}>${clientBudgetNum.toLocaleString()}</Text>
                         </div>
                         <Progress percent={45} showInfo={false} strokeColor="#f59e0b" strokeWidth={8} style={{ height: 8, margin: 0, padding: 0, top: -2 }} />
                       </div>
 
                       <div style={{ marginBottom: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
-                          <Text style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>Suggested Budget</Text>
-                          <Text style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>${suggestedBudgetVal.toLocaleString()}</Text>
+                          <Text className="premium-form-label" style={{ fontSize: 10, fontWeight: 700 }}>Suggested Budget</Text>
+                          <Text className="premium-title" style={{ fontSize: 12, fontWeight: 700 }}>${suggestedBudgetVal.toLocaleString()}</Text>
                         </div>
                         <Progress percent={90} showInfo={false} strokeColor="#10b981" strokeWidth={8} style={{ height: 8, margin: 0, padding: 0, top: -2 }} />
                       </div>
 
                       <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
-                        <div style={{ flex: 1, textAlign: 'center', padding: '4px 0', borderRadius: 6, fontSize: 9, background: isUnderpriced ? '#fff1f1' : '#f1f5f9', color: isUnderpriced ? '#ef4444' : '#94a3b8', fontWeight: 900, border: isUnderpriced ? '1px solid #fee2e2' : 'none' }}>Underpriced</div>
-                        <div style={{ flex: 1, textAlign: 'center', padding: '4px 0', borderRadius: 6, fontSize: 9, background: isUnderpriced ? '#f1f5f9' : '#f59e0b', color: isUnderpriced ? '#94a3b8' : '#fff', fontWeight: 900, border: isUnderpriced ? 'none' : 'none' }}>Fair</div>
-                        <div style={{ flex: 1, textAlign: 'center', padding: '4px 0', borderRadius: 6, fontSize: 9, background: '#f1f5f9', color: '#94a3b8', fontWeight: 900 }}>High Value</div>
+                        <div style={{ flex: 1, textAlign: 'center', padding: '4px 0', borderRadius: 6, fontSize: 9, background: isUnderpriced ? '#fff1f1' : 'var(--bg-slate-50)', color: isUnderpriced ? '#ef4444' : 'var(--text-slate-400)', fontWeight: 900, border: isUnderpriced ? '1px solid #fee2e2' : '1px solid var(--border-slate-100)' }}>Underpriced</div>
+                        <div style={{ flex: 1, textAlign: 'center', padding: '4px 0', borderRadius: 6, fontSize: 9, background: isUnderpriced ? 'var(--bg-slate-50)' : '#f59e0b', color: isUnderpriced ? 'var(--text-slate-400)' : '#fff', fontWeight: 900, border: isUnderpriced ? '1px solid var(--border-slate-100)' : 'none' }}>Fair</div>
+                        <div style={{ flex: 1, textAlign: 'center', padding: '4px 0', borderRadius: 6, fontSize: 9, background: 'var(--bg-slate-50)', color: 'var(--text-slate-400)', fontWeight: 900, border: '1px solid var(--border-slate-100)' }}>High Value</div>
                       </div>
 
-                      <div style={{ background: '#f0fdf4', borderRadius: 8, padding: '8px 10px', border: '1px solid #d1fae5', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div className="premium-insight-banner" style={{ background: 'rgba(16, 185, 129, 0.05)', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <CheckCircle2 size={14} color="#10b981" />
-                        <Text style={{ fontSize: 10, color: '#1e293b', fontWeight: 700 }}>
-                          <b>Bidding Tip:</b> Start with <Text strong style={{ color: '#10b981' }}>${anchorPrice.toLocaleString()}</Text> for Phase .
+                        <Text style={{ fontSize: 10, fontWeight: 700 }} className="premium-text-sec">
+                          <b style={{ color: '#10b981' }}>Bidding Tip:</b> Start with <Text strong style={{ color: '#10b981' }}>${anchorPrice.toLocaleString()}</Text> for Phase 1.
                         </Text>
                       </div>
                     </div>
@@ -678,13 +677,14 @@ export default function BidiqIntelligencePage() {
                   <Divider style={{ margin: '16px 0', borderTop: '1.5px solid #e2e8f0' }} />
 
                   <div className="glass-card competition-card" style={{ borderRadius: 16, padding: '10px 14px' }}>
-                    <div className="section-title-row"><Title level={5} style={{ margin: 0, fontSize: 13, fontWeight: 900, color: '#1e293b' }}>Competition Insights</Title></div>
-                    <Row gutter={6} style={{ marginTop: 8 }}>
-                      <Col span={12}><div style={{ background: '#f8fafc', padding: 6, borderRadius: 8 }}><Text style={{ fontSize: 7, fontWeight: 800, color: '#94a3b8', display: 'block' }}>AVG. BID</Text><Text style={{ fontWeight: 700, fontSize: 11, display: 'block' }}>${avgBidVal.toLocaleString()}</Text></div></Col>
-                      <Col span={12}><div style={{ background: '#f8fafc', padding: 6, borderRadius: 8 }}><Text style={{ fontSize: 7, fontWeight: 800, color: '#94a3b8', display: 'block' }}>MATCH</Text><Text style={{ fontWeight: 700, fontSize: 11, color: '#10b981', display: 'block' }}>{lead.skill_analysis?.matchPercentage || 100}%</Text></div></Col>
-                    </Row>
-                    <div style={{ marginTop: 8, padding: '6px 10px', background: '#f5f3ff', borderRadius: 8 }}>
-                      <Text style={{ fontSize: 9, fontWeight: 800, color: '#4f46e5', display: 'flex', alignItems: 'center', gap: 4 }}><Zap size={11} /> Bid near <b>${avgBidVal.toLocaleString()}</b>.</Text>
+                    <div className="competition-insights-stack" style={{ marginTop: 8 }}>
+                      <Row gutter={6}>
+                        <Col span={12}><div style={{ padding: 6, borderRadius: 8, background: 'var(--bg-slate-50)', border: '1px solid var(--border-slate-100)' }}><Text style={{ fontSize: 7, fontWeight: 800, color: 'var(--text-slate-400)', display: 'block' }}>AVG. BID</Text><Text style={{ fontWeight: 700, fontSize: 11, display: 'block', color: 'var(--text-slate-900)' }}>${avgBidVal.toLocaleString()}</Text></div></Col>
+                        <Col span={12}><div style={{ padding: 6, borderRadius: 8, background: 'var(--bg-slate-50)', border: '1px solid var(--border-slate-100)' }}><Text style={{ fontSize: 7, fontWeight: 800, color: 'var(--text-slate-400)', display: 'block' }}>MATCH</Text><Text style={{ fontWeight: 700, fontSize: 11, color: '#10b981', display: 'block' }}>{lead.skill_analysis?.matchPercentage || 100}%</Text></div></Col>
+                      </Row>
+                    </div>
+                    <div style={{ marginTop: 8, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-slate-100)' }}>
+                      <Text style={{ fontSize: 9, fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: 4 }}><Zap size={11} /> Bid near <b>${avgBidVal.toLocaleString()}</b>.</Text>
                     </div>
                   </div>
                 </Space>
@@ -694,11 +694,11 @@ export default function BidiqIntelligencePage() {
 
           <style dangerouslySetInnerHTML={{
             __html: `
-            .bidiq-premium-canvas { background: #fff; min-height: 100vh; padding-bottom: 60px; font-family: 'Inter', sans-serif; }
-            .bidiq-navbar { background: #fff; height: 64px; padding: 0 32px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 1000; }
-            .nav-back-btn { font-weight: 600; color: #475569; display: flex; align-items: center; }
-            .navbar-logo { display: flex; align-items: center; gap: 8px; border-left: 1px solid #e2e8f0; padding-left: 24px; }
-            .logo-text { font-weight: 900; font-size: 20px; color: #1e293b; letter-spacing: -0.02em; }
+            .bidiq-premium-canvas { background: var(--bg-pure-white); min-height: 100vh; padding-bottom: 60px; font-family: 'Inter', sans-serif; }
+            .bidiq-navbar { background: var(--bg-pure-white); height: 64px; padding: 0; border-bottom: 1px solid var(--border-slate-100); position: sticky; top: 0; z-index: 1000; }
+            .nav-back-btn { font-weight: 600; color: var(--text-slate-500); display: flex; align-items: center; padding-left: 24px; }
+            .navbar-logo { display: flex; align-items: center; gap: 8px; border-left: 1px solid var(--border-slate-100); padding-left: 24px; padding-right: 24px; }
+            .logo-text { font-weight: 900; font-size: 20px; color: var(--text-slate-900); letter-spacing: -0.02em; }
             .nav-action-link { font-weight: 700; color: #3b82f6; }
             .proposal-gen-btn { height: 40px; border-radius: 10px; font-weight: 700; border: 1.5px solid #6366f1; color: #6366f1; }
             .apply-now-btn { height: 40px; border-radius: 10px; font-weight: 700; background: #6366f1; border: none; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
@@ -708,13 +708,13 @@ export default function BidiqIntelligencePage() {
             .hide-scrollbar::-webkit-scrollbar { display: none; }
             
               /* HEADER CARD STYLES - ULTRA COMPACT */
-            .header-intelligence-card { background: #fff; border-radius: 16px !important; padding: 8px 16px !important; border: 1px solid #e2e8f0 !important; box-shadow: 0 2px 12px -4px rgba(0,0,0,0.04) !important; margin-bottom: 12px !important; }
+            .header-intelligence-card { background: var(--bg-pure-white); border-radius: 16px !important; padding: 8px 0 !important; border: 1px solid var(--border-slate-100) !important; box-shadow: 0 2px 12px -4px rgba(0,0,0,0.04) !important; margin-bottom: 12px !important; }
             .h-platform { color: #6366f1; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 800; }
-            .h-sub-info { color: #94a3b8; font-size: 11px; }
-            .header-job-title { color: #1e293b !important; font-weight: 700 !important; margin: 0 !important; font-size: 16px !important; line-height: 1.2 !important; }
-            .h-budget-pill { display: inline-flex; align-items: center; gap: 4px; background: #f8fafc; padding: 2px 8px; border-radius: 6px; color: #1e293b; font-weight: 700; font-size: 11px; border: 1px solid #f1f5f9; }
-            .h-budget-type { color: #94a3b8; font-weight: 600; font-size: 9px; text-transform: uppercase; }
-            .h-skill-tag { border-radius: 4px; background: #fff; border: 1px solid #e2e8f0; color: #64748b; font-weight: 600; font-size: 9px; margin: 1px; padding: 0 4px; }
+            .h-sub-info { color: var(--text-slate-400); font-size: 11px; }
+            .header-job-title { color: var(--text-slate-900) !important; font-weight: 700 !important; margin: 0 !important; font-size: 16px !important; line-height: 1.2 !important; }
+            .h-budget-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--bg-slate-50); padding: 2px 8px; border-radius: 6px; color: var(--text-slate-900); font-weight: 700; font-size: 11px; border: 1px solid var(--border-slate-100); }
+            .h-budget-type { color: var(--text-slate-400); font-weight: 600; font-size: 9px; text-transform: uppercase; }
+            .h-skill-tag { border-radius: 4px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-100); color: var(--text-slate-500); font-weight: 600; font-size: 9px; margin: 1px; padding: 0 4px; }
 
             .header-metric-tiles { display: flex; gap: 8px; }
             .h-metric-tile { min-width: 90px; padding: 4px 10px; border-radius: 10px; display: flex; align-items: center; gap: 6px; }
@@ -722,17 +722,16 @@ export default function BidiqIntelligencePage() {
             .h-tile-label { font-size: 8px; font-weight: 800; color: #94a3b8; display: block; }
             .h-tile-val { font-size: 13px; color: #1e293b; display: block; font-weight: 800; }
 
-            .h-skill-pill { display: inline-flex; align-items: center; gap: 6px; background: #f8fafc; border: 1px solid #f1f5f9; padding: 4px 10px; border-radius: 8px; }
-            .h-pill-text { font-size: 10px; font-weight: 800; color: #475569; text-transform: uppercase; }
+            .h-skill-pill { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-slate-50); border: 1px solid var(--border-slate-100); padding: 4px 10px; border-radius: 8px; }
+            .h-pill-text { font-size: 10px; font-weight: 800; color: var(--text-slate-700); text-transform: uppercase; }
 
             .glass-card { background: transparent; border-radius: 0 !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
-            .section-title { margin: 0 !important; color: #1e293b !important; font-size: 15px !important; font-weight: 700 !important; }
-            .section-subtitle { font-size: 12px; color: #94a3b8; display: block; margin-top: 2px; }
+            .section-title { margin: 0 !important; color: var(--text-slate-900) !important; font-size: 15px !important; font-weight: 700 !important; }
+            .section-subtitle { font-size: 12px; color: var(--text-slate-400); display: block; margin-top: 2px; }
 
-            .vertical-divide-col { border-right: 1.5px solid #e2e8f0; }
-            @media (max-width: 991px) { .vertical-divide-col { border-right: none; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 24px; } }
+            .vertical-divide-col { border-right: 1.5px solid var(--border-slate-100); }
+            @media (max-width: 991px) { .vertical-divide-col { border-right: none; border-bottom: 1.5px solid var(--border-slate-100); padding-bottom: 24px; } }
 
-            /* PREMIUM DECISION CARD STYLE - KEEP GRADIENT AS REQUESTED */
             .decision-score-premium-card { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important; border-radius: 20px; padding: 20px; border: none; position: relative; overflow: hidden; color: #fff !important; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2); }
             .premium-card-header { margin-bottom: 16px; }
             .p-card-label { font-size: 10px; font-weight: 800; color: #fff !important; opacity: 0.9; letter-spacing: 0.1em; }
@@ -741,49 +740,54 @@ export default function BidiqIntelligencePage() {
             .p-gauge-total { font-size: 10px; opacity: 0.6; }
             .p-status-title { color: #fff !important; margin: 0 !important; font-weight: 700 !important; letter-spacing: -0.01em; }
 
-            .glass-metric-stack { display: flex; flex-direction: column; gap: 8px; }
-            .glass-prog-item { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 14px; backdrop-filter: blur(4px); }
-            .gp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; color: #fff !important; font-size: 12px; }
-            .gp-val { font-weight: 800; }
-            .glass-prog-item .ant-progress-inner { background: rgba(255,255,255,0.15) !important; }
-
             .summary-tabs .ant-tabs-nav::before { border-bottom: none; }
             .summary-tabs .ant-tabs-tab-btn { font-size: 12px; font-weight: 700; color: #94a3b8; }
             .summary-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: #6366f1 !important; }
             .summary-tabs .ant-tabs-ink-bar { background: #6366f1; }
             .point-item { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
 
-            .gap-high-tag { background: #fee2e2; color: #ef4444; border: none; font-weight: 800; border-radius: 20px; padding: 2px 10px; font-size: 10px; }
-            .gap-table-header { display: flex; justify-content: space-between; margin-top: 16px; padding: 0 12px; margin-bottom: 6px; }
-            .th-label { font-size: 10px; font-weight: 800; color: #cbd5e1; letter-spacing: 0.05em; }
-            .th-values { display: grid; gap: 8px; text-align: right; }
+            .gap-row-card { background: var(--bg-slate-50); border: 1px solid var(--border-slate-100); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
             
-            .gap-row-card { background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-            .grc-metric { display: flex; align-items: center; gap: 8px; }
-            .grc-icon-circle { border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-            .grc-icon-circle.orange { background: #fff7ed; color: #f59e0b; }
-            .grc-icon-circle.red { background: #fef2f2; color: #ef4444; }
-            .grc-name { font-size: 12px; color: #1e293b; font-weight: 700; }
-            
-            .grc-values { display: grid; gap: 8px; text-align: right; align-items: center; }
-            .grc-client { color: #94a3b8; font-size: 11px; }
-            .grc-reality { color: #1e293b; font-size: 11px; font-weight: 800; }
-            .grc-delta-tag { border: none; font-weight: 800; border-radius: 4px; font-size: 9px; padding: 1px 6px; }
-            .grc-delta-tag.orange { background: #fff7ed; color: #f59e0b; }
-            .grc-delta-tag.red { background: #fef2f2; color: #ef4444; }
-
-            .est-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px; font-weight: 800; color: #1e293b; }
-            .mini-insight { background: #f8fafc; border: 1px solid #f1f5f9; padding: 10px; border-radius: 12px; }
-            .mini-label { font-size: 8px; font-weight: 800; color: #94a3b8; display: block; letter-spacing: 0.05em; }
-            .mini-val { margin-top: 2px; color: #1e293b; font-weight: 900; }
-
             .risk-stack { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
             .risk-item { padding: 10px 14px; border-radius: 12px; border: 1px solid transparent; }
             .risk-item.red { background: #fee2e2; border-color: #fecaca; }
             .risk-item.yellow { background: #fef3c7; border-color: #fde68a; }
-            .risk-item.grey { background: #f1f5f9; border-color: #e2e8f0; }
-            .risk-header { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 12px; color: #1e293b; margin-bottom: 2px; }
-            .risk-desc { font-size: 11px; color: #64748b; }
+            .risk-item.grey { background: var(--bg-slate-50); border-color: var(--border-slate-100); }
+            .risk-header { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 12px; color: var(--text-slate-900); margin-bottom: 2px; }
+            .risk-desc { font-size: 11px; color: var(--text-slate-500); }
+
+            /* DARK THEME OVERRIDES */
+            [data-theme='dark'] .bidiq-premium-canvas { background: #0d1117 !important; }
+            [data-theme='dark'] .bidiq-navbar { background: #161b22 !important; border-bottom-color: #30363d !important; }
+            [data-theme='dark'] .navbar-logo { border-left-color: #30363d !important; }
+            [data-theme='dark'] .header-intelligence-card { background: #161b22 !important; border-color: #30363d !important; box-shadow: none !important; }
+            [data-theme='dark'] .h-platform { color: #818cf8 !important; }
+            [data-theme='dark'] .h-budget-pill { background: #0d1117 !important; border-color: #30363d !important; color: #f0f6fc !important; }
+            [data-theme='dark'] .h-skill-pill { background: #0d1117 !important; border-color: #30363d !important; }
+            [data-theme='dark'] .h-pill-text { color: #8b949e !important; }
+            [data-theme='dark'] .h-metric-tile.time { background: rgba(99, 102, 241, 0.1) !important; }
+            [data-theme='dark'] .h-metric-tile.budget { background: rgba(16, 185, 129, 0.1) !important; }
+            [data-theme='dark'] .h-metric-tile.score { background: rgba(245, 158, 11, 0.1) !important; }
+            [data-theme='dark'] .h-tile-val { color: #f0f6fc !important; }
+            [data-theme='dark'] .vertical-divide-col { border-right-color: #30363d !important; }
+            [data-theme='dark'] .reality-gap-card { background: #161b22 !important; border-color: #30363d !important; }
+            [data-theme='dark'] .gap-metric-stack > div { background: #0d1117 !important; border-color: #30363d !important; }
+            [data-theme='dark'] .grc-name { color: #f0f6fc !important; }
+            [data-theme='dark'] .effort-estimation-card { background: #161b22 !important; border-color: #30363d !important; }
+            [data-theme='dark'] .budget-reality-card { background: #161b22 !important; border-color: #30363d !important; }
+            [data-theme='dark'] .competition-card { background: #161b22 !important; border-color: #30363d !important; }
+            [data-theme='dark'] .competition-card .ant-col div { background: #0d1117 !important; }
+            [data-theme='dark'] .risk-item.grey { background: #0d1117 !important; border-color: #30363d !important; }
+            [data-theme='dark'] .risk-item.red { background: rgba(239, 68, 68, 0.1) !important; border-color: rgba(239, 68, 68, 0.2) !important; }
+            [data-theme='dark'] .risk-item.yellow { background: rgba(245, 158, 11, 0.1) !important; border-color: rgba(245, 158, 11, 0.2) !important; }
+            [data-theme='dark'] .risk-desc { color: #8b949e !important; }
+            [data-theme='dark'] .mini-insight { background: #0d1117 !important; border-color: #30363d !important; }
+            [data-theme='dark'] .mini-val { color: #f0f6fc !important; }
+            [data-theme='dark'] .ant-divider { border-top-color: #30363d !important; }
+            [data-theme='dark'] .gap-metric-stack div span:nth-child(2) { color: #f0f6fc !important; }
+            [data-theme='dark'] .reality-gap-card .title-stack span:first-child { color: #f0f6fc !important; }
+            [data-theme='dark'] .reality-gap-card div:last-child { background: rgba(99, 102, 241, 0.1) !important; border-color: rgba(99, 102, 241, 0.2) !important; }
+            [data-theme='dark'] .reality-gap-card div:last-child span { color: #c9d1d9 !important; }
           `
           }} />
         </div>

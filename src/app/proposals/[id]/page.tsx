@@ -18,7 +18,8 @@ import {
   Descriptions,
   Divider,
   theme,
-  Dropdown
+  Dropdown,
+  Drawer
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -50,6 +51,8 @@ export default function ProposalDetailPage() {
   const [proposal, setProposal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [activeSection, setActiveSection] = useState<string>('overview');
+  const [docDrawerOpen, setDocDrawerOpen] = useState(false);
 
   const [messageApi, contextHolder] = message.useMessage();
   const { token } = theme.useToken();
@@ -104,6 +107,42 @@ export default function ProposalDetailPage() {
   useEffect(() => {
     fetchProposalDetails();
   }, [params.id]);
+
+  // Scroll-based section highlighting using Intersection Observer
+  useEffect(() => {
+    const sections = document.querySelectorAll('[id^="scroll-section-"]');
+    if (sections.length === 0) return;
+
+    const observerOptions = {
+      root: null,
+      rootMargin: '-120px 0px -50% 0px', // More conservative margins
+      threshold: [0, 0.1, 0.5] // Multiple thresholds for better detection
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      // Find the most intersecting section
+      let mostIntersectingEntry = null;
+      let maxRatio = 0;
+
+      for (const entry of entries) {
+        if (entry.intersectionRatio > maxRatio) {
+          maxRatio = entry.intersectionRatio;
+          mostIntersectingEntry = entry;
+        }
+      }
+
+      if (mostIntersectingEntry && mostIntersectingEntry.intersectionRatio > 0.1) {
+        const sectionId = mostIntersectingEntry.target.id.replace('scroll-section-', '');
+        setActiveSection(sectionId);
+      }
+    }, observerOptions);
+
+    sections.forEach((section) => observer.observe(section));
+
+    return () => {
+      sections.forEach((section) => observer.unobserve(section));
+    };
+  }, [proposal]);
 
   if (loading) {
     return (
@@ -223,60 +262,112 @@ export default function ProposalDetailPage() {
         const pricingItems = (data.items || []).filter((item: any) => hasValue(item.name) || (Number(item.price) > 0));
         if (pricingItems.length === 0) return null;
 
-        if (isPreview) {
-          let total = 0;
-          pricingItems.forEach((item: any) => {
-            total += (Number(item.price) || 0) * (Number(item.quantity) || 0);
-          });
+        const subtotal = pricingItems.reduce((sum: number, item: any) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
+        const discountAmount = data.discount || 0;
+        const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+        const tax = discountedSubtotal * ((data.taxRate || 0) / 100);
+        const total = discountedSubtotal + tax;
+        const currency = data.currency === 'USD' ? '$' : (data.currency || '$');
 
-          return (
-            <div style={{ marginTop: 20 }}>
-              {pricingItems.map((item: any, i: number) => (
-                <div key={i} style={{ marginBottom: 24 }}>
-                  {hasValue(item.name) && (
-                    <Title level={5} style={{ margin: '0 0 8px 0', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '15px' }}>
-                      {item.name}
-                    </Title>
-                  )}
-                  <Text style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.6' }}>
-                    This item includes {item.quantity || 0} units at a rate of ${Number(item.price || 0).toLocaleString()} per unit, totaling <Text strong style={{ color: 'var(--text-primary)' }}>${(Number(item.price || 0) * Number(item.quantity || 0)).toLocaleString()}</Text>.
+        return (
+          <div style={{ marginTop: 20 }}>
+            <Table
+              dataSource={pricingItems}
+              pagination={false}
+              rowKey="id"
+              bordered={false}
+              size="middle"
+              className="preview-pricing-table"
+              columns={[
+                {
+                  title: 'Description',
+                  dataIndex: 'name',
+                  key: 'name',
+                  render: (text: string, record: any) => (
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px' }}>{text}</div>
+                      {record.description && <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{record.description}</div>}
+                    </div>
+                  )
+                },
+                {
+                  title: 'Qty',
+                  dataIndex: 'quantity',
+                  key: 'quantity',
+                  width: 60,
+                  align: 'center',
+                  render: (val) => <span style={{ color: 'var(--text-secondary)' }}>{val}</span>
+                },
+                {
+                  title: 'Price',
+                  dataIndex: 'price',
+                  key: 'price',
+                  width: 100,
+                  align: 'right',
+                  render: (val) => <span style={{ color: 'var(--text-secondary)' }}>{currency}{Number(val).toLocaleString()}</span>
+                },
+                {
+                  title: 'Total',
+                  key: 'total',
+                  width: 100,
+                  align: 'right',
+                  render: (_, record: any) => (
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {currency}{(Number(record.price || 0) * Number(record.quantity || 1)).toLocaleString()}
+                    </span>
+                  )
+                }
+              ]}
+            />
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+              <div style={{ width: '260px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+                  <Text style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Subtotal</Text>
+                  <Text style={{ color: 'var(--text-primary)', fontSize: '13px' }}>{currency}{subtotal.toLocaleString()}</Text>
+                </div>
+                {discountAmount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', color: '#10b981' }}>
+                    <Text style={{ color: 'inherit', fontSize: '13px' }}>Discount</Text>
+                    <Text style={{ color: 'inherit', fontSize: '13px' }}>-{currency}{discountAmount.toLocaleString()}</Text>
+                  </div>
+                )}
+                {(data.taxRate || 0) > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+                    <Text style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Tax ({data.taxRate}%)</Text>
+                    <Text style={{ color: 'var(--text-primary)', fontSize: '13px' }}>{currency}{tax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                  </div>
+                )}
+                <Divider style={{ margin: '12px 0', borderColor: 'var(--border-color)' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                  <Text strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>Total Investment</Text>
+                  <Text strong style={{ fontSize: '1.1rem', color: 'var(--premium-blue)' }}>
+                    {currency}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </Text>
                 </div>
-              ))}
-              <Divider style={{ margin: '24px 0', borderColor: 'var(--border-color)' }} />
-              <div style={{ textAlign: 'right' }}>
-                <Text type="secondary" style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700, letterSpacing: '1px' }}>GRAND TOTAL INVESTMENT</Text>
-                <Title level={2} style={{ margin: '4px 0 0 0', color: 'var(--premium-blue)', fontWeight: 800 }}>${total.toLocaleString()}</Title>
               </div>
             </div>
-          );
-        }
-        return (
-          <div style={{ background: 'var(--bg-secondary)', borderRadius: 12, border: '1px solid var(--border-color)', padding: '2px' }}>
-            <Table
-              pagination={false}
-              dataSource={pricingItems}
-              columns={[
-                { title: 'Item Description', dataIndex: 'name', key: 'name', render: (t) => <Text strong style={{ color: 'var(--text-primary)' }}>{t || '-'}</Text> },
-                { title: 'Quantity', dataIndex: 'quantity', key: 'quantity', align: 'center', render: (t) => <Text style={{ color: 'var(--text-secondary)' }}>{t}</Text> },
-                { title: 'Unit Price', dataIndex: 'price', key: 'price', align: 'right', render: (val) => <Text style={{ color: 'var(--text-secondary)' }}>${Number(val).toLocaleString()}</Text> },
-                { title: 'Total', key: 'total', align: 'right', render: (_, r: any) => <Text strong style={{ color: 'var(--text-primary)' }}>${(Number(r.price) * Number(r.quantity)).toLocaleString()}</Text> }
-              ]}
-              summary={(pageData: any) => {
-                let total = 0;
-                pageData.forEach((item: any) => {
-                  total += (Number(item.price) || 0) * (Number(item.quantity) || 0);
-                });
-                return (
-                  <Table.Summary fixed>
-                    <Table.Summary.Row>
-                      <Table.Summary.Cell index={0} colSpan={3} align="right"><Text strong style={{ color: 'var(--text-primary)' }}>Grand Total</Text></Table.Summary.Cell>
-                      <Table.Summary.Cell index={1} align="right"><Title level={4} style={{ margin: 0, color: 'var(--premium-blue)' }}>${total.toLocaleString()}</Title></Table.Summary.Cell>
-                    </Table.Summary.Row>
-                  </Table.Summary>
-                );
-              }}
-            />
+
+            <style jsx global>{`
+              .preview-pricing-table .ant-table {
+                background: transparent !important;
+              }
+              .preview-pricing-table .ant-table-thead > tr > th {
+                background: rgba(0, 0, 0, 0.02) !important;
+                border-bottom: 1px solid var(--border-color) !important;
+                font-size: 11px !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.05em !important;
+                padding: 12px 16px !important;
+              }
+              [data-theme='dark'] .preview-pricing-table .ant-table-thead > tr > th {
+                background: rgba(255, 255, 255, 0.03) !important;
+              }
+              .preview-pricing-table .ant-table-tbody > tr > td {
+                border-bottom: 1px solid var(--border-color) !important;
+                padding: 12px 16px !important;
+              }
+            `}</style>
           </div>
         );
       }
@@ -556,7 +647,7 @@ export default function ProposalDetailPage() {
   const tabItems = [
     {
       key: 'overview',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><SnippetsOutlined /> Overview</span>,
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: activeSection === 'overview' ? 'var(--premium-blue)' : 'inherit', fontWeight: activeSection === 'overview' ? 600 : 'inherit' }}><SnippetsOutlined /> Overview</span>,
       forceRender: true,
       children: (
         <div id="proposal-document-sheet" style={{ padding: '0', background: 'var(--bg-pure-white)' }}>
@@ -599,7 +690,7 @@ export default function ProposalDetailPage() {
 
     ...blocks.filter(b => !isBlockEmpty(b)).map((block: any, idx: number) => ({
       key: `block-${idx}`,
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{getTabIcon(block.type)} {getBlockTitle(block)}</span>,
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: activeSection === `block-${idx}` ? 'var(--premium-blue)' : 'inherit', fontWeight: activeSection === `block-${idx}` ? 600 : 'inherit' }}>{getTabIcon(block.type)} {getBlockTitle(block)}</span>,
       children: (
         <div style={{ padding: '24px 32px' }}>
           <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -616,7 +707,7 @@ export default function ProposalDetailPage() {
   return (
     <MainLayout>
       {contextHolder}
-      <div style={{ background: 'var(--bg-pure-white)', minHeight: 'calc(100vh - 64px)' }}>
+      <div style={{ background: 'var(--bg-pure-white)', minHeight: 'calc(100vh - 52px)' }}>
         <Tabs
           activeKey={activeTab}
           onChange={handleTabChange}
@@ -637,7 +728,7 @@ export default function ProposalDetailPage() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "flex-end",
-                padding: '24px 32px 16px 32px'
+                padding: '12px 32px 8px 32px'
               }}>
                 <div>
                   <Space size={12} align="center">
@@ -646,12 +737,12 @@ export default function ProposalDetailPage() {
                       onClick={() => router.push("/proposals")}
                       style={{ borderRadius: 10, height: 44, width: 44 }}
                     />
-                    <div style={{ background: "var(--bg-blue-50)", padding: 10, borderRadius: 12, color: "var(--premium-blue)", display: 'flex' }}>
-                      <SnippetsOutlined style={{ fontSize: 24 }} />
+                    <div style={{ background: "rgba(99, 102, 241, 0.08)", padding: 8, borderRadius: 10, color: "var(--premium-blue)", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <SnippetsOutlined style={{ fontSize: 20 }} />
                     </div>
                     <div>
-                      <Breadcrumb items={[{ title: <span style={{ color: 'var(--text-secondary)' }}>Work</span> }, { title: <span style={{ color: 'var(--text-secondary)', cursor: 'pointer' }}>Proposals</span>, onClick: () => router.push('/proposals') }, { title: <span style={{ color: 'var(--text-primary)' }}>{proposal.title}</span> }]} />
-                      <Title level={2} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>{proposal.title}</Title>
+                      <Title level={4} className="premium-title" style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)', fontSize: 18, letterSpacing: "-0.01em" }}>{proposal.title}</Title>
+                      <Text type="secondary" className="premium-text-sec" style={{ color: 'var(--text-secondary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Proposal Details</Text>
                     </div>
                   </Space>
                 </div>
@@ -680,6 +771,15 @@ export default function ProposalDetailPage() {
                   >
                     Edit Proposal
                   </Button>
+                  <Button
+                    type="default"
+                    size="large"
+                    icon={<EyeOutlined />}
+                    onClick={() => setDocDrawerOpen(true)}
+                    style={{ borderRadius: 10, fontWeight: 600 }}
+                  >
+                    View as Doc
+                  </Button>
                 </Space>
               </div>
 
@@ -691,6 +791,26 @@ export default function ProposalDetailPage() {
           )}
         />
       </div>
+
+      {/* Document Preview Drawer */}
+      <Drawer
+        title={<span style={{ color: 'var(--text-slate-900)' }}>Live Preview</span>}
+        placement="right"
+        width={850}
+        onClose={() => setDocDrawerOpen(false)}
+        open={docDrawerOpen}
+        styles={{
+          body: { padding: 0, background: 'var(--bg-pure-white)' },
+          header: { background: 'var(--bg-pure-white)', borderBottom: '1px solid var(--border-color)' },
+          mask: { backdropFilter: 'blur(4px)' }
+        }}
+      >
+        <iframe
+          src={`/proposals/preview?theme=${typeof window !== 'undefined' ? document.documentElement.getAttribute('data-theme') || 'light' : 'light'}&proposalId=${params.id}`}
+          style={{ width: '100%', height: '100%', border: 'none' }}
+          title="Proposal Preview"
+        />
+      </Drawer>
     </MainLayout>
   );
 }

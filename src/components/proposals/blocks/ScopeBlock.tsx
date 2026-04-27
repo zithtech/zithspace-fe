@@ -39,7 +39,7 @@ export const ScopeBlock: React.FC<ScopeBlockProps> = ({ data }) => {
             <div key={m.id}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
                 <span style={{ 
-                  background: 'var(--bg-blue-50)', 
+                  background: 'rgba(59, 130, 246, 0.1)', 
                   color: 'var(--premium-blue)', 
                   padding: '4px 16px', 
                   borderRadius: '20px', 
@@ -47,7 +47,7 @@ export const ScopeBlock: React.FC<ScopeBlockProps> = ({ data }) => {
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  border: '1px solid rgba(59, 130, 246, 0.1)'
+                  border: '1px solid rgba(59, 130, 246, 0.2)'
                 }}>
                   Phase {idx + 1}
                 </span>
@@ -90,11 +90,11 @@ export const ScopeBlock: React.FC<ScopeBlockProps> = ({ data }) => {
           {data.terms.map((term: any) => {
             const hexColor = term.color || (term.title?.toLowerCase().includes('exclusion') ? '#ef4444' : 'var(--text-secondary)');
             return (
-              <div key={term.id} style={{ padding: '4px 10px', background: 'var(--bg-primary)', borderRadius: '8px', borderLeft: `4px solid ${hexColor}` }}>
-                <Text strong style={{ color: hexColor, marginBottom: '4px', display: 'flex', alignItems: 'center' }}>
+              <div key={term.id} style={{ padding: '12px 16px', background: 'var(--bg-slate-50)', borderRadius: '8px', borderLeft: `4px solid ${hexColor}`, border: '1px solid var(--border-color)', borderLeftWidth: '4px' }}>
+                <Text strong style={{ color: hexColor, marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
                   <InfoCircleOutlined style={{ marginRight: '8px' }} /> {term.title}
                 </Text>
-                <div style={{ color: 'var(--text-secondary)', }}>
+                <div style={{ color: 'var(--text-primary)' }}>
                   <TiptapViewer content={term.description || ''} />
                 </div>
               </div>

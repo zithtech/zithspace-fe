@@ -30,13 +30,14 @@ export const BlockProperties = () => {
       {selectedBlock && (
         <div
           key={selectedBlock.id}
+          className="active-block-properties"
           style={{
             marginBottom: '32px',
             padding: '20px',
             border: '2px solid var(--premium-blue)',
             borderRadius: '16px',
-            background: 'var(--bg-blue-50)',
-            boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.1)'
+            background: 'rgba(59, 130, 246, 0.05)',
+            boxShadow: '0 4px 15px rgba(59, 130, 246, 0.1)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
@@ -60,7 +61,7 @@ export const BlockProperties = () => {
       <div style={{
         marginBottom: '24px',
         padding: '20px',
-        background: 'var(--bg-primary)',
+        background: 'var(--bg-pure-white)',
         borderRadius: '12px',
         border: '1px solid var(--border-color)',
       }}>
@@ -97,7 +98,7 @@ export const BlockProperties = () => {
               return false;
             }}
           >
-            <div style={{ width: '56px', height: '56px', borderRadius: '8px', border: '1.5px dashed var(--border-color)', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--bg-secondary)', cursor: 'pointer' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '8px', border: '1.5px dashed var(--border-color)', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--bg-slate-50)', cursor: 'pointer' }}>
               {coverBlock?.data?.logoUrl ? (
                 <img src={coverBlock.data.logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               ) : (

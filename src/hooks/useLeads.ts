@@ -94,11 +94,11 @@ export const useLeads = () => {
     createLead,
     updateLead,
     deleteLead,
-    onboardLead: useCallback(async (id: string) => {
+    onboardLead: useCallback(async (id: string, data?: any) => {
       setLoading(true);
       setError(null);
       try {
-        const res = await LeadService.onboard(id);
+        const res = await LeadService.onboard(id, data);
         return res;
       } catch (err: any) {
         const msg = err.response?.data?.error || "Failed to onboard lead";

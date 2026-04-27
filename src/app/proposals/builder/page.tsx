@@ -17,7 +17,7 @@ import { BlockProperties } from '@/components/proposals/BlockProperties';
 import { EditorCanvas } from '@/components/proposals/EditorCanvas';
 import { Typography, Row, Col, Layout, Button, message, Drawer, Space, Dropdown, Segmented, Progress } from 'antd';
 import type { MenuProps } from 'antd';
-import { SaveOutlined, EyeOutlined, DownloadOutlined, FilePdfOutlined, FileWordOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import { SaveOutlined, EyeOutlined, DownloadOutlined, FilePdfOutlined, FileWordOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SnippetsOutlined } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
 import { useTheme } from '@/context/ThemeContext';
@@ -48,6 +48,7 @@ function BuilderContent() {
   const [genProgress, setGenProgress] = useState(0);
   const [genStep, setGenStep] = useState('');
   const [showGenOverlay, setShowGenOverlay] = useState(false);
+  const [pendingLeadId, setPendingLeadId] = useState<string | null>(null);
 
   const isInitialized = useRef(false);
 
@@ -77,7 +78,7 @@ function BuilderContent() {
               // START AI GENERATION SIMULATION
               setShowGenOverlay(true);
               setIsGenerating(true);
-              
+
               const steps = [
                 { label: 'Analyzing Lead Intelligence...', duration: 800 },
                 { label: 'Synthesizing Cover Design...', duration: 1000 },
@@ -91,7 +92,7 @@ function BuilderContent() {
               for (let i = 0; i < steps.length; i++) {
                 setGenStep(steps[i].label);
                 const stepIncrement = 100 / steps.length;
-                
+
                 // Animate progress within step
                 const subSteps = 10;
                 for (let j = 0; j < subSteps; j++) {
@@ -102,9 +103,12 @@ function BuilderContent() {
               }
 
               setBlocks(parsed.blocks);
+              if (parsed.lead_id) {
+                setPendingLeadId(parsed.lead_id);
+              }
               setGenProgress(100);
               setGenStep('Proposal Ready!');
-              
+
               setTimeout(() => {
                 setIsGenerating(false);
                 setTimeout(() => setShowGenOverlay(false), 500); // Wait for fade out
@@ -356,7 +360,8 @@ function BuilderContent() {
         title: coverBlock.title || 'Untitled Proposal',
         client_name: coverBlock.clientName || 'Unnamed Client',
         blocks: blocks,
-        status: 'draft'
+        status: 'draft',
+        lead_id: pendingLeadId // Link to the lead if we have it
       };
 
       let response: any;
@@ -448,9 +453,9 @@ function BuilderContent() {
   ];
 
   return (
-    <div style={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: 'calc(100vh - 52px)', display: 'flex', flexDirection: 'column' }}>
       {messageHolder}
-      <Header style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '64px', lineHeight: 'normal' }}>
+      <Header style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '52px', lineHeight: 'normal' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Button
             type="text"
@@ -458,10 +463,24 @@ function BuilderContent() {
             onClick={() => setIsPaletteVisible(!isPaletteVisible)}
             style={{ fontSize: '18px', padding: '4px 8px', color: '#64748b' }}
           />
-          <div>
-            <Title level={4} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Proposal Builder</Title>
-            <Text type="secondary" style={{ color: 'var(--text-secondary)' }}>Draft and design your perfect proposal</Text>
-          </div>
+          <Space size={12} align="center">
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              background: 'rgba(59, 130, 246, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--premium-blue)'
+            }}>
+              <SnippetsOutlined style={{ fontSize: 18 }} />
+            </div>
+            <div>
+              <Title level={4} className="premium-title" style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)', fontSize: 18, letterSpacing: "-0.01em" }}>Proposal Builder</Title>
+              <Text type="secondary" className="premium-text-sec" style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Draft and design your perfect proposal</Text>
+            </div>
+          </Space>
         </div>
         <Space size="middle">
           {isPaletteVisible && (
@@ -502,18 +521,18 @@ function BuilderContent() {
             <BlockPalette layout="horizontal" />
           )}
 
-          <div style={{ display: 'flex', height: '100%', margin: 0, width: '100%', overflow: 'hidden' }}>
+          <div className="builder-main-container" style={{ display: 'flex', height: '100%', margin: 0, width: '100%', overflow: 'hidden' }}>
             {isPaletteVisible && palettePosition === 'left' && (
               <>
-                <div style={{ width: `${paletteWidth}px`, flexShrink: 0, height: '100%', background: '#ffffff' }}>
+                <div className="builder-side-pane" style={{ width: `${paletteWidth}px`, flexShrink: 0, height: '100%' }}>
                   <BlockPalette layout="vertical" />
                 </div>
                 <div
                   onMouseDown={startResizeLeft}
+                  className="builder-resizer"
                   style={{
                     width: '6px',
                     cursor: 'col-resize',
-                    background: '#ffffff',
                     borderLeft: '1px solid var(--border-color)',
                     borderRight: '1px solid var(--border-color)',
                     display: 'flex',
@@ -522,14 +541,15 @@ function BuilderContent() {
                     zIndex: 10,
                   }}
                 >
-                  <div style={{ height: '40px', width: '2px', background: '#94a3b8', borderRadius: '2px' }} />
+                  <div style={{ height: '40px', width: '2px', background: 'var(--text-slate-400)', borderRadius: '2px' }} />
                 </div>
               </>
             )}
 
             <div
               ref={editorScrollRef}
-              style={{ flex: 1, height: '100%', overflowY: 'auto', background: '#ffffff', minWidth: '300px' }}
+              className="builder-canvas-wrapper"
+              style={{ flex: 1, height: '100%', overflowY: 'auto', minWidth: '300px' }}
             >
               <EditorCanvas />
             </div>
@@ -537,10 +557,10 @@ function BuilderContent() {
             {isPropertiesVisible && (
               <div
                 onMouseDown={startResizeRight}
+                className="builder-resizer"
                 style={{
                   width: '6px',
                   cursor: 'col-resize',
-                  background: '#ffffff',
                   borderLeft: '1px solid var(--border-color)',
                   borderRight: '1px solid var(--border-color)',
                   display: 'flex',
@@ -549,12 +569,12 @@ function BuilderContent() {
                   zIndex: 10,
                 }}
               >
-                <div style={{ height: '40px', width: '2px', background: '#94a3b8', borderRadius: '2px' }} />
+                <div style={{ height: '40px', width: '2px', background: 'var(--text-slate-400)', borderRadius: '2px' }} />
               </div>
             )}
 
             {isPropertiesVisible && (
-              <div style={{ width: `${propertiesWidth}px`, flexShrink: 0, height: '100%', background: '#ffffff', overflowY: 'auto', borderLeft: '1px solid var(--border-color)' }}>
+              <div className="builder-side-pane properties-pane" style={{ width: `${propertiesWidth}px`, flexShrink: 0, height: '100%', overflowY: 'auto', borderLeft: '1px solid var(--border-color)' }}>
                 <BlockProperties />
               </div>
             )}
@@ -563,10 +583,10 @@ function BuilderContent() {
               <>
                 <div
                   onMouseDown={startResizePaletteRight}
+                  className="builder-resizer"
                   style={{
                     width: '6px',
                     cursor: 'col-resize',
-                    background: '#ffffff',
                     borderLeft: '1px solid var(--border-color)',
                     borderRight: '1px solid var(--border-color)',
                     display: 'flex',
@@ -575,9 +595,9 @@ function BuilderContent() {
                     zIndex: 10,
                   }}
                 >
-                  <div style={{ height: '40px', width: '2px', background: '#94a3b8', borderRadius: '2px' }} />
+                  <div style={{ height: '40px', width: '2px', background: 'var(--text-slate-400)', borderRadius: '2px' }} />
                 </div>
-                <div style={{ width: `${paletteWidth}px`, flexShrink: 0, height: '100%', background: '#ffffff' }}>
+                <div className="builder-side-pane" style={{ width: `${paletteWidth}px`, flexShrink: 0, height: '100%' }}>
                   <BlockPalette layout="vertical" />
                 </div>
               </>
@@ -595,14 +615,14 @@ function BuilderContent() {
       </Content>
 
       <Drawer
-        title={<span style={{ color: 'var(--text-primary)' }}>Live Preview</span>}
+        title={<span style={{ color: 'var(--text-slate-900)' }}>Live Preview</span>}
         placement="right"
         width={850}
         onClose={() => setPreviewOpen(false)}
         open={previewOpen}
         styles={{
-          body: { padding: 0, background: '#ffffff' },
-          header: { background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' },
+          body: { padding: 0, background: 'var(--bg-pure-white)' },
+          header: { background: 'var(--bg-pure-white)', borderBottom: '1px solid var(--border-color)' },
           mask: { backdropFilter: 'blur(4px)' }
         }}
       >
@@ -619,7 +639,7 @@ function BuilderContent() {
         <div style={{
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(255, 255, 255, 0.98)',
+          background: 'var(--bg-pure-white)',
           zIndex: 9999,
           display: 'flex',
           flexDirection: 'column',
@@ -632,38 +652,85 @@ function BuilderContent() {
         }}>
           <div style={{ width: '400px', textAlign: 'center' }}>
             <div style={{ marginBottom: '24px' }}>
-              <div style={{ 
-                width: '80px', height: '80px', borderRadius: '20px', background: 'var(--premium-blue)', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', 
+              <div style={{
+                width: '80px', height: '80px', borderRadius: '20px', background: 'var(--premium-blue)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
                 margin: '0 auto 24px auto', boxShadow: '0 8px 24px rgba(59, 130, 246, 0.3)',
                 animation: 'pulse 2s infinite'
               }}>
                 <Sparkles size={40} style={{ margin: 'auto' }} />
               </div>
-              <Title level={2} style={{ margin: 0, fontWeight: 800, color: '#1e293b' }}>Crafting Your Proposal</Title>
-              <Text type="secondary" style={{ fontSize: '16px' }}>AI is synthesizing your winning bid...</Text>
+              <Title level={2} className="premium-title" style={{ margin: 0, fontWeight: 800 }}>Crafting Your Proposal</Title>
+              <Text className="premium-text-sec" style={{ fontSize: '16px' }}>AI is synthesizing your winning bid...</Text>
             </div>
 
-            <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+            <div className="gen-progress-card" style={{ background: 'var(--bg-slate-50)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-slate-100)' }}>
               <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text strong style={{ color: 'var(--premium-blue)', fontSize: '13px' }}>{genStep}</Text>
-                <Text type="secondary" style={{ fontSize: '12px' }}>{genProgress}%</Text>
+                <Text className="premium-text-sec" style={{ fontSize: '12px' }}>{genProgress}%</Text>
               </div>
-              <Progress 
-                percent={genProgress} 
-                showInfo={false} 
+              <Progress
+                percent={genProgress}
+                showInfo={false}
                 strokeColor={{ '0%': '#3b82f6', '100%': '#60a5fa' }}
                 strokeWidth={10}
                 status="active"
               />
             </div>
-            
-            <style dangerouslySetInnerHTML={{ __html: `
+
+            <style dangerouslySetInnerHTML={{
+              __html: `
               @keyframes pulse {
                 0% { transform: scale(1); box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3); }
                 50% { transform: scale(1.05); box-shadow: 0 12px 32px rgba(59, 130, 246, 0.5); }
                 100% { transform: scale(1); box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3); }
               }
+
+              .builder-main-container { background: var(--bg-pure-white); }
+              .builder-side-pane { background: var(--bg-pure-white); }
+              .builder-resizer { background: var(--bg-pure-white); }
+              .builder-canvas-wrapper { background: var(--bg-slate-50); }
+
+              /* DARK THEME OVERRIDES */
+              [data-theme='dark'] .builder-main-container { background: #0d1117 !important; }
+              [data-theme='dark'] .builder-side-pane { background: #161b22 !important; }
+              [data-theme='dark'] .builder-resizer { background: #161b22 !important; border-color: #30363d !important; }
+              [data-theme='dark'] .builder-canvas-wrapper { background: #0d1117 !important; }
+              [data-theme='dark'] .ant-layout-header { background: #161b22 !important; border-bottom-color: #30363d !important; }
+              [data-theme='dark'] .ant-segmented { background: #0d1117 !important; color: #8b949e !important; }
+              [data-theme='dark'] .ant-segmented-item-selected { background: #30363d !important; color: #f0f6fc !important; }
+              [data-theme='dark'] .ant-drawer-content { background: #161b22 !important; }
+              [data-theme='dark'] .ant-drawer-header { background: #161b22 !important; border-bottom-color: #30363d !important; }
+              [data-theme='dark'] .ant-drawer-title { color: #f0f6fc !important; }
+
+              /* Input & Ant Design Overrides in Dark Mode */
+              [data-theme='dark'] .ant-input-filled, 
+              [data-theme='dark'] .ant-input-number-affix-wrapper,
+              [data-theme='dark'] .ant-picker,
+              [data-theme='dark'] .ant-select-selector { 
+                background: #0d1117 !important; 
+                border-color: #30363d !important; 
+                color: #f0f6fc !important; 
+              }
+              [data-theme='dark'] .ant-input-filled:focus, 
+              [data-theme='dark'] .ant-input-filled:hover { 
+                background: #0d1117 !important; 
+                border-color: var(--premium-blue) !important; 
+              }
+              [data-theme='dark'] .ant-divider { border-color: #30363d !important; }
+              
+              /* Tiptap Dark Mode Fixes */
+              [data-theme='dark'] .tiptap-editor-wrapper { border-color: #30363d !important; }
+              [data-theme='dark'] .tiptap-toolbar { background: #161b22 !important; border-bottom-color: #30363d !important; }
+              
+              /* Canvas Paper in Dark Mode */
+              [data-theme='dark'] #proposal-builder-canvas { 
+                background: #161b22 !important; 
+                box-shadow: 0 0 0 1px #30363d, 0 8px 24px rgba(0,0,0,0.3) !important; 
+              }
+              [data-theme='dark'] .premium-title { color: #f0f6fc !important; }
+              [data-theme='dark'] .premium-text-sec { color: #8b949e !important; }
+              [data-theme='dark'] .gen-progress-card { background: #161b22 !important; border-color: #30363d !important; }
             `}} />
           </div>
         </div>

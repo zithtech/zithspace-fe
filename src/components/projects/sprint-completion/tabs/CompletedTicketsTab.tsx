@@ -125,8 +125,8 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({
         }
         return (
           <Space size={8}>
-            <Avatar size="small" style={{ backgroundColor: '#1890ff' }}>
-              {assignee.name.charAt(0).toUpperCase()}
+            <Avatar size="small" src={assignee.avatarUrl} style={{ backgroundColor: '#1890ff' }}>
+              {assignee.name?.charAt(0).toUpperCase()}
             </Avatar>
             <Text>{assignee.name}</Text>
           </Space>

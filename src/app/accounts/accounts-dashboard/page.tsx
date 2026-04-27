@@ -430,6 +430,7 @@ export default function AccountsPage() {
           <Space>
             <Avatar
               size={24}
+              src={member?.avatarUrl}
               style={{
                 backgroundColor: getCategoryColor(record.category),
                 fontSize: 10,
@@ -1002,7 +1003,7 @@ export default function AccountsPage() {
                     {members.map((member) => (
                       <Option key={member.id} value={member.id} label={member?.name}>
                         <Space>
-                          <Avatar size={20} style={{ fontSize: 10 }}>
+                          <Avatar src={member?.avatarUrl} size={20} style={{ fontSize: 10 }}>
                             {member?.name.charAt(0)}
                           </Avatar>
                           {member?.name} - {member?.position?.title || 'N/A'}
@@ -1138,7 +1139,8 @@ export default function AccountsPage() {
         </Drawer>
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .hide-scrollbar .ant-card-body::-webkit-scrollbar {
           display: none;
         }

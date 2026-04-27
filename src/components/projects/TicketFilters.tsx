@@ -22,7 +22,7 @@ interface FilterState {
 interface TicketFiltersProps {
   filters: FilterState;
   onFilterChange: (key: keyof FilterState, value: any) => void;
-  members: Array<{ value: string; label: string; position?: string }>;
+  members: Array<{ value: string; label: string; position?: string; avatarUrl?: string | null }>;
   onReset?: () => void;
   showArchivedToggle?: boolean;
 }
@@ -185,7 +185,7 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
             options={members.map((m) => ({
               label: (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Avatar size={18} style={{ fontSize: 9, background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', fontWeight: 800 }}>{m.label.charAt(0)}</Avatar>
+                  <Avatar size={18} src={m.avatarUrl} style={{ fontSize: 9, background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', fontWeight: 800 }}>{m.label?.charAt(0)}</Avatar>
                   <Text style={{ fontSize: 12, fontWeight: 500 }}>{m.label}</Text>
                 </div>
               ),

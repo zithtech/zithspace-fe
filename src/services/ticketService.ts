@@ -49,6 +49,7 @@ export interface TicketConfiguration {
     label: string;
     email: string;
     position: string;
+    avatarUrl?: string | null;
   }>;
   projects: Array<{
     value: string;
@@ -81,6 +82,7 @@ export interface RelatedLink {
     id: string;
     name: string;
     email: string;
+    avatarUrl?: string | null;
   };
   addedAt: string;
 }
@@ -122,6 +124,7 @@ export interface Ticket {
     id: string;
     name: string;
     email: string;
+    avatarUrl?: string | null;
   };
   createdAt: string;
   updatedAt: string;
@@ -153,6 +156,7 @@ export interface Ticket {
       id: string;
       name: string;
       email: string;
+      avatarUrl?: string | null;
     };
     comment: string;
     timestamp: string;
@@ -165,6 +169,7 @@ export interface Ticket {
     timestamp: string;
     performedBy: {
       name: string;
+      avatarUrl?: string | null;
     };
   }>;
   attachments?: Array<{
@@ -174,6 +179,7 @@ export interface Ticket {
     fileType: string;
     uploadedBy: {
       name: string;
+      avatarUrl?: string | null;
     };
     uploadedAt: string;
   }>;
@@ -218,6 +224,7 @@ export interface DashboardStats {
     user: {
       name: string;
       email: string;
+      avatarUrl?: string | null;
     };
     statuses: Array<{
       status: string;
@@ -536,6 +543,7 @@ class TicketService {
         name: string;
         workEmail: string;
         position?: string;
+        avatarUrl?: string | null;
       };
     }>
   > {
@@ -564,6 +572,7 @@ class TicketService {
         name: string;
         workEmail: string;
         position?: string;
+        avatarUrl?: string | null;
       };
     }>
   > {
@@ -667,6 +676,7 @@ class TicketService {
       email: string;
       position: string;
       role: string;
+      avatarUrl?: string | null;
     }>
   > {
     try {

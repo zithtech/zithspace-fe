@@ -157,8 +157,7 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <Avatar
                                 size={22}
-                                icon={<UserOutlined />}
-                                src={activity.performedBy?.avatar}
+                                src={activity.performedBy?.avatarUrl}
                                 style={{
                                     backgroundColor: activity.performedBy?.name ? '#1890ff' : '#bfbfbf',
                                     fontSize: 11

@@ -30,8 +30,8 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
     isDragging,
   } = useSortable({ id: ticket.id });
 
-  const shadowStyle = isDragging 
-    ? { boxShadow: 'var(--premium-shadow-lg)' } 
+  const shadowStyle = isDragging
+    ? { boxShadow: 'var(--premium-shadow-lg)' }
     : { boxShadow: 'var(--premium-shadow)' };
 
   const style = {
@@ -335,24 +335,24 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
                   </div>
                 )}
 
-                 {/* Extra Actions Trigger */}
-                 {menuItems && menuItems.length > 0 && (
-                     <div onPointerDown={stopPropagation} onClick={(e) => e.stopPropagation()}>
-                        <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
-                            <Button 
-                              type="text" 
-                              size="small" 
-                              icon={<MoreOutlined style={{ color: 'var(--text-slate-400)', fontSize: 16 }} />} 
-                              style={{ width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
-                            />
-                        </Dropdown>
-                     </div>
-                 )}
+                {/* Extra Actions Trigger */}
+                {menuItems && menuItems.length > 0 && (
+                  <div onPointerDown={stopPropagation} onClick={(e) => e.stopPropagation()}>
+                    <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<MoreOutlined style={{ color: 'var(--text-slate-400)', fontSize: 16 }} />}
+                        style={{ width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      />
+                    </Dropdown>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-          
-          {/* Title Edit */}
-          {renderTitle()}
+
+            {/* Title Edit */}
+            {renderTitle()}
 
             <Divider style={{ margin: '8px 0', opacity: 0.6 }} />
 

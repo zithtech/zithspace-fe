@@ -15,6 +15,7 @@ import {
   Descriptions,
   message,
   Tooltip,
+  Avatar,
   Collapse,
 } from "antd";
 import {
@@ -50,17 +51,17 @@ import { useTicket, useUpdateTicket, ticketKeys } from "@/hooks/useTickets";
 import { useMembers, useTicketConfig, useUserProjects } from "@/hooks/useGlobalData";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import { useAuth } from "@/context/AuthContext";
-import { 
-  PRIORITY_OPTIONS, 
-  TYPE_OPTIONS, 
-  STATUS_OPTIONS, 
-  getStatusColor, 
+import {
+  PRIORITY_OPTIONS,
+  TYPE_OPTIONS,
+  STATUS_OPTIONS,
+  getStatusColor,
   getStatusLabel,
-  getPriorityColor, 
-  getTypeColor, 
-  getPlatformColor, 
-  getTaskLevelColor, 
-  getStackColor 
+  getPriorityColor,
+  getTypeColor,
+  getPlatformColor,
+  getTaskLevelColor,
+  getStackColor
 } from "@/utils/ticketUtils";
 import { EditableField } from "./editable/EditableField";
 import { EditableSelect } from "./editable/EditableSelect";
@@ -260,7 +261,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
     if (ticket?.status) {
       const normalizedCurrent = ticket.status.toLowerCase().replace(/ /g, '_');
       const exists = options.some(opt => opt.value?.toLowerCase().replace(/ /g, '_') === normalizedCurrent);
-      
+
       if (!exists) {
         options.push({
           label: getStatusLabel(ticket.status), // fallback label helper handles spaces/underscores
@@ -275,7 +276,8 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const projectMembers = members.map((m) => ({
     label: m.label,
     value: m.value,
-    avatar: m.label.charAt(0),
+    avatar: m.label?.charAt(0),
+    avatarUrl: (m as any).avatarUrl,
   }));
 
   // Handlers
@@ -401,17 +403,35 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           {/* Metadata Header Row */}
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', margin: '0 16px', whiteSpace: 'nowrap' }}>
             <Space split={<Divider type="vertical" style={{ margin: 0, height: 12, borderColor: '#d9d9d9' }} />} size={16} align="center">
-              <Space size={4}>
+              <Space size={8} style={{ alignItems: 'center' }}>
                 <Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Created by</Text>
-                <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>{ticket?.createdBy?.name || 'System'}</Text>
-                <Text type="secondary" style={{ fontSize: 11, margin: '0 4px 0 2px' }}>on</Text>
+                <Space size={6}>
+                  <Avatar
+                    size={18}
+                    src={ticket?.createdBy?.avatarUrl}
+                    style={{ backgroundColor: '#1890ff', fontSize: 10 }}
+                  >
+                    {ticket?.createdBy?.name?.charAt(0) || 'S'}
+                  </Avatar>
+                  <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{ticket?.createdBy?.name || 'System'}</Text>
+                </Space>
+                <Text type="secondary" style={{ fontSize: 11, margin: '0 4px' }}>•</Text>
                 <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{ticket?.createdAt ? dayjs(ticket.createdAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
               </Space>
 
-              <Space size={4}>
+              <Space size={8} style={{ alignItems: 'center' }}>
                 <Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Updated by</Text>
-                <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>{(ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System'}</Text>
-                <Text type="secondary" style={{ fontSize: 11, margin: '0 4px 0 2px' }}>on</Text>
+                <Space size={6}>
+                  <Avatar
+                    size={18}
+                    src={(ticket as any)?.updatedBy?.avatarUrl || ticket?.createdBy?.avatarUrl}
+                    style={{ backgroundColor: '#87d068', fontSize: 10 }}
+                  >
+                    {((ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System').charAt(0)}
+                  </Avatar>
+                  <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{(ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System'}</Text>
+                </Space>
+                <Text type="secondary" style={{ fontSize: 11, margin: '0 4px' }}>•</Text>
                 <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{ticket?.updatedAt ? dayjs(ticket.updatedAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
               </Space>
             </Space>
@@ -967,337 +987,341 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
             {/* Collapsible Sections */}
             <div className="sidebar-collapse-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {/* Core Details Card */}
-                <Collapse
-                  defaultActiveKey={["details"]}
-                  ghost
-                  expandIconPosition="end"
-                  style={{ backgroundColor: 'transparent' }}
-                  items={[
-                      {
-                        key: "details",
-                        label: (
-                          <div style={{ padding: '4px 0' }}>
-                            <Space size={10}>
-                              <div style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 8,
-                                backgroundColor: '#e6f7ff',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}>
-                                <InfoCircleOutlined style={{ color: '#1890ff', fontSize: 14 }} />
-                              </div>
-                              <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
-                                Core Details
-                              </Text>
-                            </Space>
+              {/* Core Details Card */}
+              <Collapse
+                defaultActiveKey={["details"]}
+                ghost
+                expandIconPosition="end"
+                style={{ backgroundColor: 'transparent' }}
+                items={[
+                  {
+                    key: "details",
+                    label: (
+                      <div style={{ padding: '4px 0' }}>
+                        <Space size={10}>
+                          <div style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 8,
+                            backgroundColor: '#e6f7ff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <InfoCircleOutlined style={{ color: '#1890ff', fontSize: 14 }} />
                           </div>
-                        ),
-                        children: (
-                          <div style={{ padding: 0 }}>
-                            <Row gutter={[0, 0]}>
-                              <Col span={24}>
-                                <DrawerField label="Assignee" variant="table">
-                                  <EditableSelect
-                                    value={
-                                      typeof ticket.assignee === "string"
-                                        ? ticket.assignee
-                                        : ticket.assignee?.id
-                                    }
-                                    options={projectMembers}
-                                    onSave={(val) =>
-                                      handleUpdate("assignee", val)
-                                    }
-                                    mode="user"
-                                    emptyText="Unassigned"
-                                  />
-                                </DrawerField>
-                              </Col>
+                          <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                            Core Details
+                          </Text>
+                        </Space>
+                      </div>
+                    ),
+                    children: (
+                      <div style={{ padding: 0 }}>
+                        <Row gutter={[0, 0]}>
+                          <Col span={24}>
+                            <DrawerField label="Assignee" variant="table">
+                              <EditableSelect
+                                value={
+                                  typeof ticket.assignee === "string"
+                                    ? ticket.assignee
+                                    : ticket.assignee?.id
+                                }
+                                options={projectMembers}
+                                onSave={(val) =>
+                                  handleUpdate("assignee", val)
+                                }
+                                mode="user"
+                                emptyText="Unassigned"
+                              />
+                            </DrawerField>
+                          </Col>
 
-                              <Col span={24}>
-                                <DrawerField label="Report To" variant="table">
-                                  <EditableSelect
-                                    value={
-                                      typeof ticket.reportTo === "string"
-                                        ? ticket.reportTo
-                                        : ticket.reportTo?.id
-                                    }
-                                    options={projectMembers}
-                                    onSave={(val) =>
-                                      handleUpdate("reportTo", val)
-                                    }
-                                    mode="user"
-                                    emptyText="No Reporter"
-                                  />
-                                </DrawerField>
+                          <Col span={24}>
+                            <DrawerField label="Report To" variant="table">
+                              <EditableSelect
+                                value={
+                                  typeof ticket.reportTo === "string"
+                                    ? ticket.reportTo
+                                    : ticket.reportTo?.id
+                                }
+                                options={projectMembers}
+                                onSave={(val) =>
+                                  handleUpdate("reportTo", val)
+                                }
+                                mode="user"
+                                emptyText="No Reporter"
+                              />
+                            </DrawerField>
 
-                                <DrawerField label="Platform" variant="table">
-                                  <EditableSelect
-                                    value={ticket.platform}
-                                    options={platforms}
-                                    onSave={(val) => handleUpdate("platform", val)}
-                                    mode="tag"
-                                    emptyText="Select Platform"
-                                  />
-                                </DrawerField>
-                              </Col>
+                            <DrawerField label="Platform" variant="table">
+                              <EditableSelect
+                                value={ticket.platform}
+                                options={platforms}
+                                onSave={(val) => handleUpdate("platform", val)}
+                                mode="tag"
+                                emptyText="Select Platform"
+                              />
+                            </DrawerField>
+                          </Col>
 
-                              {ticket.platform === "Development" && (
-                                <Col span={24}>
-                                  <DrawerField label="Stack" variant="table">
-                                    <EditableSelect
-                                      value={ticket.stack || ticket.metadata?.stack}
-                                      options={stacks}
-                                      onSave={(val) => handleUpdate("stack", val)}
-                                      mode="tag"
-                                      emptyText="Select Stack"
-                                    />
-                                  </DrawerField>
-                                </Col>
-                              )}
-
-                              <Col span={24}>
-                                <DrawerField label="Priority" variant="table">
-                                  <EditableSelect
-                                    value={ticket.priority}
-                                    options={priorities}
-                                    onSave={(val) => handleUpdate("priority", val)}
-                                    mode="tag"
-                                  />
-                                </DrawerField>
-                              </Col>
-                              <Col span={24}>
-                                <DrawerField label="Type" variant="table">
-                                  <EditableSelect
-                                    value={ticket.type}
-                                    options={types}
-                                    onSave={(val) => handleUpdate("type", val)}
-                                    mode="tag"
-                                  />
-                                </DrawerField>
-                              </Col>
-                              <Col span={24}>
-                                <DrawerField label="Task Level" variant="table">
-                                  <EditableSelect
-                                    value={ticket.taskLevel}
-                                    options={taskLevels}
-                                    onSave={(val) => handleUpdate("taskLevel", val)}
-                                    mode="tag"
-                                  />
-                                </DrawerField>
-                              </Col>
-                            </Row>
-                          </div>
-                        ),
-                      }
-                    ]}
-                  />
-                
-                {/* Planning & Estimates Card */}
-                <Collapse
-                  defaultActiveKey={["planning"]}
-                  ghost
-                  expandIconPosition="end"
-                  style={{ backgroundColor: 'transparent' }}
-                  items={[
-                      {
-                        key: "planning",
-                        label: (
-                          <div style={{ padding: '4px 0' }}>
-                            <Space size={10}>
-                              <div style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 8,
-                                backgroundColor: '#f6ffed',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}>
-                                <CalendarOutlined style={{ color: '#52c41a', fontSize: 14 }} />
-                              </div>
-                              <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
-                                Planning & Estimates
-                              </Text>
-                            </Space>
-                          </div>
-                        ),
-                        children: (
-                          <div style={{ padding: 0 }}>
-                            <Row gutter={[0, 0]}>
-                              <Col span={24}>
-                                <DrawerField label="Story Points" variant="table">
-                                  <EditableField
-                                    value={ticket.storyPoint}
-                                    onSave={(val) =>
-                                      handleUpdate("storyPoint", Number(val))
-                                    }
-                                    type="number"
-                                    emptyText="-"
-                                    textStyle={{
-                                      background: "#e6f7ff",
-                                      borderRadius: 12,
-                                      padding: "2px 8px",
-                                      color: "#096dd9",
-                                      fontWeight: 600,
-                                      width: "fit-content",
-                                      minWidth: 24,
-                                      textAlign: "center",
-                                    }}
-                                  />
-                                </DrawerField>
-                              </Col>
-                              <Col span={24}>
-                                <DrawerField label="Estimate (h)" variant="table">
-                                  <EditableField
-                                    value={ticket.estimateHours}
-                                    onSave={(val) =>
-                                      handleUpdate("estimateHours", Number(val))
-                                    }
-                                    type="number"
-                                    emptyText="-"
-                                  />
-                                </DrawerField>
-                              </Col>
-                              <Col span={24}>
-                                <DrawerField label="Start Date" variant="table">
-                                  <EditableDate
-                                    value={ticket.startDate}
-                                    onSave={(val) => handleUpdate("startDate", val)}
-                                    placeholder="Start"
-                                  />
-                                </DrawerField>
-                              </Col>
-                              <Col span={24}>
-                                <DrawerField label="Due Date" variant="table">
-                                  <EditableDate
-                                    value={ticket.endDate}
-                                    onSave={(val) => handleUpdate("endDate", val)}
-                                    placeholder="Due By"
-                                  />
-                                </DrawerField>
-                              </Col>
-                            </Row>
-                          </div>
-                        ),
-                      }
-                    ]}
-                  />
-                
-                {/* Time Tracking Card */}
-                <Collapse
-                  ghost
-                  expandIconPosition="end"
-                  style={{ backgroundColor: 'transparent' }}
-                  items={[
-                      {
-                        key: "time-tracking",
-                        label: (
-                          <div style={{ padding: '4px 0' }}>
-                            <Space size={10}>
-                              <div style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 8,
-                                backgroundColor: '#fff7e6',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}>
-                                <FieldTimeOutlined style={{ color: '#fa8c16', fontSize: 14 }} />
-                              </div>
-                              <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>Time Tracked</Text>
-                              {timeEntries.length > 0 && (
-                                <Badge
-                                  count={(() => {
-                                    const total = timeEntries.reduce((sum, e) => {
-                                      let duration = e.duration || 0;
-                                      if (e.status === 'RUNNING') {
-                                        const lastLog = e.logs?.find(l => l.action === 'STARTED' || l.action === 'RESUMED');
-                                        const startTime = lastLog ? new Date(lastLog.createdAt).getTime() : new Date(e.startTime).getTime();
-                                        duration += Math.floor((new Date().getTime() - startTime) / 1000);
-                                      }
-                                      return sum + duration;
-                                    }, 0);
-                                    const h = Math.floor(total / 3600);
-                                    const m = Math.floor((total % 3600) / 60);
-                                    return `${h}h ${m}m`;
-                                  })()}
-                                  style={{ backgroundColor: '#fff7e6', color: '#fa8c16', boxShadow: 'none', border: 'none', fontWeight: 600, fontSize: 10, padding: '0 8px', height: 20, lineHeight: '20px', borderRadius: 10 }}
+                          {ticket.platform === "Development" && (
+                            <Col span={24}>
+                              <DrawerField label="Stack" variant="table">
+                                <EditableSelect
+                                  value={ticket.stack || ticket.metadata?.stack}
+                                  options={stacks}
+                                  onSave={(val) => handleUpdate("stack", val)}
+                                  mode="tag"
+                                  emptyText="Select Stack"
                                 />
-                              )}
-                            </Space>
+                              </DrawerField>
+                            </Col>
+                          )}
+
+                          <Col span={24}>
+                            <DrawerField label="Priority" variant="table">
+                              <EditableSelect
+                                value={ticket.priority}
+                                options={priorities}
+                                onSave={(val) => handleUpdate("priority", val)}
+                                mode="tag"
+                              />
+                            </DrawerField>
+                          </Col>
+                          <Col span={24}>
+                            <DrawerField label="Type" variant="table">
+                              <EditableSelect
+                                value={ticket.type}
+                                options={types}
+                                onSave={(val) => handleUpdate("type", val)}
+                                mode="tag"
+                              />
+                            </DrawerField>
+                          </Col>
+                          <Col span={24}>
+                            <DrawerField label="Task Level" variant="table">
+                              <EditableSelect
+                                value={ticket.taskLevel}
+                                options={taskLevels}
+                                onSave={(val) => handleUpdate("taskLevel", val)}
+                                mode="tag"
+                              />
+                            </DrawerField>
+                          </Col>
+                        </Row>
+                      </div>
+                    ),
+                  }
+                ]}
+              />
+
+              {/* Planning & Estimates Card */}
+              <Collapse
+                defaultActiveKey={["planning"]}
+                ghost
+                expandIconPosition="end"
+                style={{ backgroundColor: 'transparent' }}
+                items={[
+                  {
+                    key: "planning",
+                    label: (
+                      <div style={{ padding: '4px 0' }}>
+                        <Space size={10}>
+                          <div style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 8,
+                            backgroundColor: '#f6ffed',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <CalendarOutlined style={{ color: '#52c41a', fontSize: 14 }} />
                           </div>
-                        ),
-                        children: (
-                          <div style={{ padding: 0 }}>
-                            {timeEntriesLoading ? (
-                              <Text type="secondary" style={{ fontSize: 12, padding: 12 }}>Loading...</Text>
-                            ) : timeEntries.length === 0 ? (
-                              <Text type="secondary" style={{ fontSize: 12, padding: 12 }}>No time tracked yet for this ticket.</Text>
-                            ) : (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                                {timeEntries.map(entry => {
-                                  return (
-                                    <div key={entry.id} style={{ padding: '10px 12px', background: 'var(--bg-pure-white)', borderBottom: '1px solid var(--border-color)' }}>
-                                      {/* User row */}
-                                      {entry.user && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                                          <div style={{
-                                            width: 20, height: 20, borderRadius: '50%',
-                                            background: '#1890ff', color: 'white',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontSize: 10, fontWeight: 700
-                                          }}>
-                                            {entry.user.name.charAt(0).toUpperCase()}
-                                          </div>
-                                          <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                                            {entry.user.name}
-                                          </Text>
-                                        </div>
-                                      )}
-                                      {/* Date / time / duration row */}
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
-                                            {dayjs(entry.startTime).format('MMM D, YYYY')}
-                                          </div>
-                                          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                                            {dayjs(entry.startTime).format('h:mm A')}
-                                            {entry.endTime ? ` – ${dayjs(entry.endTime).format('h:mm A')}` : ''}
-                                          </div>
-                                        </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                          <Text strong style={{ fontSize: 13, color: '#1890ff', fontFamily: 'monospace' }}>
-                                            {(() => {
-                                              let duration = entry.duration || 0;
-                                              if (entry.status === 'RUNNING') {
-                                                const lastLog = entry.logs?.find(l => l.action === 'STARTED' || l.action === 'RESUMED');
-                                                const startTime = lastLog ? new Date(lastLog.createdAt).getTime() : new Date(entry.startTime).getTime();
-                                                duration += Math.floor((new Date().getTime() - startTime) / 1000);
-                                              }
-                                              const h = Math.floor(duration / 3600);
-                                              const m = Math.floor((duration % 3600) / 60);
-                                              const s = duration % 60;
-                                              return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-                                            })()}
-                                          </Text>
-                                        </div>
+                          <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                            Planning & Estimates
+                          </Text>
+                        </Space>
+                      </div>
+                    ),
+                    children: (
+                      <div style={{ padding: 0 }}>
+                        <Row gutter={[0, 0]}>
+                          <Col span={24}>
+                            <DrawerField label="Story Points" variant="table">
+                              <EditableField
+                                value={ticket.storyPoint}
+                                onSave={(val) =>
+                                  handleUpdate("storyPoint", Number(val))
+                                }
+                                type="number"
+                                emptyText="-"
+                                textStyle={{
+                                  background: "#e6f7ff",
+                                  borderRadius: 12,
+                                  padding: "2px 8px",
+                                  color: "#096dd9",
+                                  fontWeight: 600,
+                                  width: "fit-content",
+                                  minWidth: 24,
+                                  textAlign: "center",
+                                }}
+                              />
+                            </DrawerField>
+                          </Col>
+                          <Col span={24}>
+                            <DrawerField label="Estimate (h)" variant="table">
+                              <EditableField
+                                value={ticket.estimateHours}
+                                onSave={(val) =>
+                                  handleUpdate("estimateHours", Number(val))
+                                }
+                                type="number"
+                                emptyText="-"
+                              />
+                            </DrawerField>
+                          </Col>
+                          <Col span={24}>
+                            <DrawerField label="Start Date" variant="table">
+                              <EditableDate
+                                value={ticket.startDate}
+                                onSave={(val) => handleUpdate("startDate", val)}
+                                placeholder="Start"
+                              />
+                            </DrawerField>
+                          </Col>
+                          <Col span={24}>
+                            <DrawerField label="Due Date" variant="table">
+                              <EditableDate
+                                value={ticket.endDate}
+                                onSave={(val) => handleUpdate("endDate", val)}
+                                placeholder="Due By"
+                              />
+                            </DrawerField>
+                          </Col>
+                        </Row>
+                      </div>
+                    ),
+                  }
+                ]}
+              />
+
+              {/* Time Tracking Card */}
+              <Collapse
+                ghost
+                expandIconPosition="end"
+                style={{ backgroundColor: 'transparent' }}
+                items={[
+                  {
+                    key: "time-tracking",
+                    label: (
+                      <div style={{ padding: '4px 0' }}>
+                        <Space size={10}>
+                          <div style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 8,
+                            backgroundColor: '#fff7e6',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <FieldTimeOutlined style={{ color: '#fa8c16', fontSize: 14 }} />
+                          </div>
+                          <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>Time Tracked</Text>
+                          {timeEntries.length > 0 && (
+                            <Badge
+                              count={(() => {
+                                const total = timeEntries.reduce((sum, e) => {
+                                  let duration = e.duration || 0;
+                                  if (e.status === 'RUNNING') {
+                                    const lastLog = e.logs?.find(l => l.action === 'STARTED' || l.action === 'RESUMED');
+                                    const startTime = lastLog ? new Date(lastLog.createdAt).getTime() : new Date(e.startTime).getTime();
+                                    duration += Math.floor((new Date().getTime() - startTime) / 1000);
+                                  }
+                                  return sum + duration;
+                                }, 0);
+                                const h = Math.floor(total / 3600);
+                                const m = Math.floor((total % 3600) / 60);
+                                return `${h}h ${m}m`;
+                              })()}
+                              style={{ backgroundColor: '#fff7e6', color: '#fa8c16', boxShadow: 'none', border: 'none', fontWeight: 600, fontSize: 10, padding: '0 8px', height: 20, lineHeight: '20px', borderRadius: 10 }}
+                            />
+                          )}
+                        </Space>
+                      </div>
+                    ),
+                    children: (
+                      <div style={{ padding: 0 }}>
+                        {timeEntriesLoading ? (
+                          <Text type="secondary" style={{ fontSize: 12, padding: 12 }}>Loading...</Text>
+                        ) : timeEntries.length === 0 ? (
+                          <Text type="secondary" style={{ fontSize: 12, padding: 12 }}>No time tracked yet for this ticket.</Text>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                            {timeEntries.map(entry => {
+                              return (
+                                <div key={entry.id} style={{ padding: '10px 12px', background: 'var(--bg-pure-white)', borderBottom: '1px solid var(--border-color)' }}>
+                                  {/* User row */}
+                                  {entry.user && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                      <Avatar
+                                        size={20}
+                                        src={entry.user.avatarUrl}
+                                        style={{
+                                          backgroundColor: '#1890ff',
+                                          color: 'white',
+                                          fontSize: 10,
+                                          fontWeight: 700
+                                        }}
+                                      >
+                                        {entry.user.name.charAt(0).toUpperCase()}
+                                      </Avatar>
+                                      <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                                        {entry.user.name}
+                                      </Text>
+                                    </div>
+                                  )}
+                                  {/* Date / time / duration row */}
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                                        {dayjs(entry.startTime).format('MMM D, YYYY')}
+                                      </div>
+                                      <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                                        {dayjs(entry.startTime).format('h:mm A')}
+                                        {entry.endTime ? ` – ${dayjs(entry.endTime).format('h:mm A')}` : ''}
                                       </div>
                                     </div>
-                                  );
-                                })}
-                              </div>
-                            )}
+                                    <div style={{ textAlign: 'right' }}>
+                                      <Text strong style={{ fontSize: 13, color: '#1890ff', fontFamily: 'monospace' }}>
+                                        {(() => {
+                                          let duration = entry.duration || 0;
+                                          if (entry.status === 'RUNNING') {
+                                            const lastLog = entry.logs?.find(l => l.action === 'STARTED' || l.action === 'RESUMED');
+                                            const startTime = lastLog ? new Date(lastLog.createdAt).getTime() : new Date(entry.startTime).getTime();
+                                            duration += Math.floor((new Date().getTime() - startTime) / 1000);
+                                          }
+                                          const h = Math.floor(duration / 3600);
+                                          const m = Math.floor((duration % 3600) / 60);
+                                          const s = duration % 60;
+                                          return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                                        })()}
+                                      </Text>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        ),
-                      }
-                    ]}
-                  />
-              </div>
+                        )}
+                      </div>
+                    ),
+                  }
+                ]}
+              />
+            </div>
 
           </Col>
         </Row>

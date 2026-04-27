@@ -19,9 +19,9 @@ export const ProjectInfoCard: React.FC<ProjectInfoCardProps> = ({
 }) => {
   return (
     <Card 
-      className="rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)] h-full" 
+      className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] h-full" 
       bordered={false} 
-      bodyStyle={{ padding: '20px' }}
+      styles={{ body: { padding: '20px' } }}
     >
       <div className="space-y-4">
         {/* Top Header Section */}

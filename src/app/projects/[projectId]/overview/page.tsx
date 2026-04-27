@@ -68,9 +68,9 @@ const ProjectOverviewPage = () => {
 
   return (
     <MainLayout>
-      <div className="p-4 bg-[var(--bg-primary)] min-h-screen">
+      <div className="p-4 bg-[var(--bg-pure-white)] min-h-screen">
         {/* Header - Sticky */}
-        <div className="sticky top-0 z-[100] mb-4 bg-[var(--bg-primary)] pt-1">
+        <div className="sticky top-0 z-[100] mb-4 bg-[var(--bg-pure-white)] pt-1">
           <OverviewHeader
             name={project.name}
             code={project.code}

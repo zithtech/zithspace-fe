@@ -12,6 +12,7 @@ interface HistoryEntry {
         id: string;
         name: string;
         workEmail: string;
+        avatarUrl?: string;
     };
     content: any;
 }
@@ -45,7 +46,13 @@ const DocumentHistory: React.FC<DocumentHistoryProps> = ({ history, isLoading, o
                             onClick={() => onSelectVersion(entry)}
                         >
                             <div className="flex items-center gap-2 mb-0.5">
-                                <Avatar size={20} icon={<UserOutlined />} className="bg-blue-500" style={{ backgroundColor: 'var(--premium-blue)' }} />
+                                <Avatar 
+                                    size={20} 
+                                    src={entry.createdBy?.avatarUrl}
+                                    icon={<UserOutlined />} 
+                                    className="bg-blue-500" 
+                                    style={{ backgroundColor: 'var(--premium-blue)' }} 
+                                />
                                 <Text strong className="text-xs" style={{ color: 'var(--text-slate-900)' }}>{entry.createdBy.name}</Text>
                             </div>
                             <div className="text-[10px] text-slate-500 mb-1 ml-7" style={{ color: 'var(--text-slate-600)' }}>

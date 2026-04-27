@@ -13,6 +13,7 @@ interface TeamMember {
   todo: number;
   assigned: number;
   totalHours: number;
+  totalProjectDone?: number;
 }
 
 interface TeamProgressTableProps {
@@ -60,8 +61,10 @@ export const TeamProgressTable: React.FC<TeamProgressTableProps> = ({ members = 
                   </Space>
                 </Col>
                 <Col style={{ textAlign: 'right' }}>
-                  <Text strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{item.contribution || 0}%</Text>
-                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 500 }}>CONTRIBUTION</div>
+                  <Text strong style={{ fontSize: '14px', color: '#38e94d' }}>{item.contribution || 0}%</Text>
+                  <div style={{ fontSize: '9px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                    ({item.done}/{item.totalProjectDone || 0} completed)
+                  </div>
                 </Col>
               </Row>
               <Progress

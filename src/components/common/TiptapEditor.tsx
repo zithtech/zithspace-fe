@@ -517,18 +517,21 @@ export default function TiptapEditor({
           font-size: 2em;
           font-weight: bold;
           margin: 16px 0 8px 0;
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content h2 {
           font-size: 1.5em;
           font-weight: bold;
           margin: 14px 0 8px 0;
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content h3 {
           font-size: 1.25em;
           font-weight: bold;
           margin: 12px 0 8px 0;
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content ul,

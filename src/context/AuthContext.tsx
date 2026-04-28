@@ -15,6 +15,32 @@ import {
 } from "@/services/authService";
 import { ApiError } from "@/lib/axios";
 
+// Extension sync function
+const syncTokenWithExtension = (token: string) => {
+  // Replace with the ID found in chrome://extensions/
+  const EXTENSION_ID = "magcgpahmioofihhcfeaaomacdepnhcn"; 
+  console.log('=== FRONTEND TOKEN SYNC DEBUG ===');
+  console.log('Token to sync:', token.substring(0, 50) + '...');
+  console.log('Extension ID:', EXTENSION_ID);
+  console.log('Chrome available:', typeof window !== 'undefined' && !!(window as any).chrome);
+  console.log('Runtime available:', typeof window !== 'undefined' && !!(window as any).chrome?.runtime);
+  console.log('SendMessage available:', typeof window !== 'undefined' && !!(window as any).chrome?.runtime?.sendMessage);
+  
+  if (typeof window !== 'undefined' && (window as any).chrome && (window as any).chrome.runtime && (window as any).chrome.runtime.sendMessage) {
+    console.log('Attempting to send message to extension...');
+    (window as any).chrome.runtime.sendMessage(EXTENSION_ID, { token }, (response: any) => {
+      console.log('Extension response:', response);
+      if ((window as any).chrome.runtime.lastError) {
+        console.error("Extension sync failed:", (window as any).chrome.runtime.lastError);
+      } else {
+        console.log("Token synced to extension!");
+      }
+    });
+  } else {
+    console.error('Chrome extension API not available');
+  }
+};
+
 interface User {
   id: string;
   name: string;
@@ -121,6 +147,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       };
 
       setUser(userData);
+      
+      // Sync token with extension after successful login
+      syncTokenWithExtension(response.accessToken);
+      
       // Navigation is handled by the login page component via useEffect watching `user`
       return true;
     } catch (error) {

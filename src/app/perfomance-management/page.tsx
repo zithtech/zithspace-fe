@@ -57,7 +57,6 @@ import { useQuery } from "@tanstack/react-query";
 import { EscalationServiceV2 } from "@/services/escalationServiceV2";
 import {
   BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,

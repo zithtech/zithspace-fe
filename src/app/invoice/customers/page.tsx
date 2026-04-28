@@ -62,6 +62,7 @@ import {
   useDeleteCustomer,
 } from "@/hooks/use-customers";
 import { Form } from "antd";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 
@@ -445,84 +446,77 @@ export default function InvoiceproCustomerPage() {
       {contextHolder}
       <div style={{
         margin: "0 -24px",
-        padding: "7px 32px 24px 32px",
         background: "var(--customers-page-bg)",
         minHeight: "calc(100vh - 64px)"
       }}>
-        {/* ================= HEADER ================= */}
-        <div style={{ marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24 }}>
-          <div style={{ flex: 1 }}>
-            <Space size={8} align="center">
-              <div style={{ background: "var(--customers-header-icon-bg)", padding: "6px 8px", borderRadius: 8, color: "var(--customers-header-icon-color)", display: "flex" }}>
-                <Users size={18} />
-              </div>
-              <div>
-                <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)", fontSize: "15px" }}>Customers</Title>
-                <Text style={{ color: "var(--text-secondary)", fontSize: "11px" }}>Manage customer details, contacts, and profiles.</Text>
-              </div>
-            </Space>
-          </div>
-          <div style={{ display: "flex", gap: 10, alignItems: 'center' }}>
-            <Segmented
-              options={[
-                {
-                  value: "card",
-                  label: (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px' }}>
-                      <LayoutGrid size={14} />
-                    </div>
-                  )
-                },
-                {
-                  value: "table",
-                  label: (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px' }}>
-                      <List size={14} />
-                    </div>
-                  )
-                },
-              ]}
-              value={viewMode}
-              onChange={(value) => setViewMode(value as "card" | "table")}
-              style={{ padding: 2, borderRadius: 8 }}
-            />
-            <Input.Search
-              placeholder="Search customers..."
-              allowClear
-              size="middle"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ width: 240, borderRadius: 8 }}
-            />
-            {canCreateInvoice && (
-              <>
-                <Button
-                  size="middle"
-                  icon={<Import size={16} />}
-                  style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600, background: "white", color: "#2563eb", border: "1px solid #2563eb" }}
-                  onClick={() => setIsClientImportModalOpen(true)}
-                >
-                  Import from Client
-                </Button>
-                <Button
-                  type="primary"
-                  size="middle"
-                  icon={<Plus size={16} />}
-                  style={{ borderRadius: 8, height: 38, padding: "0 20px", fontWeight: 600, background: "#2563eb", border: "none" }}
-                  onClick={() => {
-                    setEditingCustomer(null);
-                    form.resetFields();
-                    setIsModalOpen(true);
-                  }}
-                >
-                  Add Customer
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
+        <TimeTrackingHeader
+          style={{ padding: '9.5px 32px' }}
+          icon={<Users size={20} color="#8b5cf6" />}
+          title="Customers"
+          description="Manage customer details, contacts, and profiles."
+          extra={
+            <div style={{ display: "flex", gap: 10, alignItems: 'center' }}>
+              <Segmented
+                options={[
+                  {
+                    value: "card",
+                    label: (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px' }}>
+                        <LayoutGrid size={14} />
+                      </div>
+                    )
+                  },
+                  {
+                    value: "table",
+                    label: (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px' }}>
+                        <List size={14} />
+                      </div>
+                    )
+                  },
+                ]}
+                value={viewMode}
+                onChange={(value) => setViewMode(value as "card" | "table")}
+                style={{ padding: 2, borderRadius: 8 }}
+              />
+              <Input.Search
+                placeholder="Search customers..."
+                allowClear
+                size="middle"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ width: 240, borderRadius: 8 }}
+              />
+              {canCreateInvoice && (
+                <>
+                  <Button
+                    size="middle"
+                    icon={<Import size={16} />}
+                    style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600, background: "white", color: "#2563eb", border: "1px solid #2563eb" }}
+                    onClick={() => setIsClientImportModalOpen(true)}
+                  >
+                    Import from Client
+                  </Button>
+                  <Button
+                    type="primary"
+                    size="middle"
+                    icon={<Plus size={16} />}
+                    style={{ borderRadius: 8, height: 38, padding: "0 20px", fontWeight: 600, background: "#2563eb", border: "none" }}
+                    onClick={() => {
+                      setEditingCustomer(null);
+                      form.resetFields();
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    Add Customer
+                  </Button>
+                </>
+              )}
+            </div>
+          }
+        />
 
-        <Divider style={{ margin: "4px -32px 12px -32px", width: "calc(100% + 64px)", borderColor: 'var(--border-color)' }} />
+        <div style={{ padding: "16px 32px 32px 32px" }}>
 
         {/* ================= METRIC STATS ================= */}
         <Row gutter={[20, 20]} style={{ marginBottom: 16 }}>
@@ -715,6 +709,7 @@ export default function InvoiceproCustomerPage() {
           }}
           onSave={handleSave}
         />
+        </div>
 
       </div>
 

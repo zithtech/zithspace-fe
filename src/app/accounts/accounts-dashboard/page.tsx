@@ -54,6 +54,7 @@ import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { usePermission } from '@/hooks/usePermission';
+import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -559,584 +560,578 @@ export default function AccountsPage() {
     <MainLayout>
       <div style={{
         margin: "0 -24px",
-        padding: "8px 32px 24px 32px",
         background: "var(--customers-page-bg)",
         minHeight: "calc(100vh - 64px)"
       }}>
-        {/* Header */}
-        <div style={{ marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24 }}>
-          <div style={{ flex: 1 }}>
-            <Space size={8} align="center">
-              <div style={{ background: "var(--bg-blue-50)", padding: "6px 8px", borderRadius: 8, color: "var(--text-sky-500)", display: "flex" }}>
-                <BankOutlined style={{ fontSize: 18 }} />
-              </div>
-              <div>
-                <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)", fontSize: "15px" }}>Accounts Management</Title>
-                <Text style={{ color: "var(--text-secondary)", fontSize: "11px" }}>Track company income, expenses, and transaction lifecycle.</Text>
-              </div>
-            </Space>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              size="middle"
-              icon={<PieChartOutlined size={16} />}
-              onClick={() => setBreakdownDrawerVisible(true)}
-              style={{ borderRadius: 8, height: 38, color: "var(--text-secondary)" }}
-            >
-              Breakdown
-            </Button>
-            {canManage && (
+        <TimeTrackingHeader
+          style={{ padding: '9.5px 32px' }}
+          icon={<BankOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+          title="Accounts Management"
+          description="Track company income, expenses, and transaction lifecycle."
+          extra={
+            <div className="flex items-center gap-3">
               <Button
-                type="primary"
                 size="middle"
-                icon={<PlusOutlined />}
-                style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600 }}
-                onClick={showAddModal}
+                icon={<PieChartOutlined size={16} />}
+                onClick={() => setBreakdownDrawerVisible(true)}
+                style={{ borderRadius: 8, height: 38, color: "var(--text-secondary)" }}
               >
-                Add Transaction
+                Breakdown
               </Button>
-            )}
-          </div>
-        </div>
-
-        <Divider style={{ margin: "4px -32px 12px -32px", width: "calc(100% + 64px)", borderColor: 'var(--border-color)' }} />
-
-        {/* Alerts */}
-        {error && (
-          <Alert
-            message={error}
-            type="error"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13 }}
-            onClose={() => setError('')}
-          />
-        )}
-        {success && (
-          <Alert
-            message={success}
-            type="success"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13 }}
-            onClose={() => setSuccess('')}
-          />
-        )}
-
-        {/* Summary Cards */}
-        <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
-          <Col xs={24} sm={12} lg={6}>
-            <StatCard
-              label="Total Credits"
-              value={formatCurrency(summary?.balance?.credits || 0)}
-              icon={ArrowUpOutlined}
-              color="#10b981"
-              subValue={`${summary?.balance?.creditCount || 0} transactions`}
-            />
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <StatCard
-              label="Total Debits"
-              value={formatCurrency(summary?.balance?.debits || 0)}
-              icon={ArrowDownOutlined}
-              color="#ef4444"
-              subValue={`${summary?.balance?.debitCount || 0} transactions`}
-            />
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <StatCard
-              label="Net Balance"
-              value={formatCurrency(summary?.balance?.net || 0)}
-              icon={WalletOutlined}
-              color="#3b82f6"
-              subValue={`${summary?.balance?.totalCount || 0} total activity`}
-            />
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <StatCard
-              label="This Month"
-              value={formatCurrency(summary?.monthlyTrend?.[summary.monthlyTrend.length - 1]?.net || 0)}
-              icon={CalendarOutlined}
-              color="#8b5cf6"
-              subValue="Current month performance"
-            />
-          </Col>
-        </Row>
-
-        {/* Enhanced Single-Line Filter Bar */}
-        <div style={{
-          marginBottom: 16,
-          padding: "8px 16px",
-          background: "var(--bg-slate-50)",
-          borderRadius: 12,
-          border: "1px solid var(--border-slate-200)",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "nowrap"
-        }}>
-          <div className="flex items-center gap-1.5 text-slate-400 mr-1">
-            <FilterOutlined style={{ fontSize: 14 }} />
-            <span className="text-[11px] font-semibold uppercase tracking-tight">Filters</span>
-          </div>
-
-          <div style={{ flex: 1, minWidth: 150 }}>
-            <Input
-              placeholder="Search..."
-              prefix={<SearchOutlined className="text-slate-400" />}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              variant="borderless"
-              className="bg-white rounded-lg border-slate-200 hover:border-blue-400 transition-colors h-[34px] px-3 w-full border text-xs"
-              allowClear
-            />
-          </div>
-
-          <div style={{ width: 120 }}>
-            <Select
-              placeholder="Type"
-              value={typeFilter}
-              onChange={setTypeFilter}
-              className="w-full h-[34px]"
-              allowClear
-              variant="borderless"
-              style={{ background: 'var(--bg-pure-white)', borderRadius: 8, border: '1px solid var(--border-slate-200)', fontSize: '12px' }}
-            >
-              <Option value="credit">Credit</Option>
-              <Option value="debit">Debit</Option>
-            </Select>
-          </div>
-
-          <div style={{ width: 140 }}>
-            <Select
-              placeholder="Category"
-              value={categoryFilter}
-              onChange={setCategoryFilter}
-              className="w-full h-[34px]"
-              allowClear
-              variant="borderless"
-              style={{ background: 'var(--bg-pure-white)', borderRadius: 8, border: '1px solid var(--border-slate-200)', fontSize: '12px' }}
-            >
-              {!categoriesLoading && expenseCategories.length > 0 ? (
-                expenseCategories.map((category) => (
-                  <Option key={category.id} value={category.name}>
-                    {category.name}
-                  </Option>
-                ))
-              ) : (
-                <Option disabled>No categories available</Option>
+              {canManage && (
+                <Button
+                  type="primary"
+                  size="middle"
+                  icon={<PlusOutlined />}
+                  style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600 }}
+                  onClick={showAddModal}
+                >
+                  Add Transaction
+                </Button>
               )}
-            </Select>
-          </div>
+            </div>
+          }
+        />
 
-          {canManage && (
-            <div style={{ width: 140 }}>
+        <div style={{ padding: "16px 32px 32px 32px" }}>
+
+          {/* Alerts */}
+          {error && (
+            <Alert
+              message={error}
+              type="error"
+              showIcon
+              closable
+              style={{ marginBottom: 16, fontSize: 13 }}
+              onClose={() => setError('')}
+            />
+          )}
+          {success && (
+            <Alert
+              message={success}
+              type="success"
+              showIcon
+              closable
+              style={{ marginBottom: 16, fontSize: 13 }}
+              onClose={() => setSuccess('')}
+            />
+          )}
+
+          {/* Summary Cards */}
+          <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                label="Total Credits"
+                value={formatCurrency(summary?.balance?.credits || 0)}
+                icon={ArrowUpOutlined}
+                color="#10b981"
+                subValue={`${summary?.balance?.creditCount || 0} transactions`}
+              />
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                label="Total Debits"
+                value={formatCurrency(summary?.balance?.debits || 0)}
+                icon={ArrowDownOutlined}
+                color="#ef4444"
+                subValue={`${summary?.balance?.debitCount || 0} transactions`}
+              />
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                label="Net Balance"
+                value={formatCurrency(summary?.balance?.net || 0)}
+                icon={WalletOutlined}
+                color="#3b82f6"
+                subValue={`${summary?.balance?.totalCount || 0} total activity`}
+              />
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                label="This Month"
+                value={formatCurrency(summary?.monthlyTrend?.[summary.monthlyTrend.length - 1]?.net || 0)}
+                icon={CalendarOutlined}
+                color="#8b5cf6"
+                subValue="Current month performance"
+              />
+            </Col>
+          </Row>
+
+          {/* Enhanced Single-Line Filter Bar */}
+          <div style={{
+            marginBottom: 16,
+            padding: "8px 16px",
+            background: "var(--bg-slate-50)",
+            borderRadius: 12,
+            border: "1px solid var(--border-slate-200)",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "nowrap"
+          }}>
+            <div className="flex items-center gap-1.5 text-slate-400 mr-1">
+              <FilterOutlined style={{ fontSize: 14 }} />
+              <span className="text-[11px] font-semibold uppercase tracking-tight">Filters</span>
+            </div>
+
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <Input
+                placeholder="Search..."
+                prefix={<SearchOutlined className="text-slate-400" />}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                variant="borderless"
+                className="bg-white rounded-lg border-slate-200 hover:border-blue-400 transition-colors h-[34px] px-3 w-full border text-xs"
+                allowClear
+              />
+            </div>
+
+            <div style={{ width: 120 }}>
               <Select
-                placeholder="Member"
-                value={memberFilter}
-                onChange={setMemberFilter}
+                placeholder="Type"
+                value={typeFilter}
+                onChange={setTypeFilter}
                 className="w-full h-[34px]"
                 allowClear
-                showSearch
-                optionFilterProp="children"
                 variant="borderless"
                 style={{ background: 'var(--bg-pure-white)', borderRadius: 8, border: '1px solid var(--border-slate-200)', fontSize: '12px' }}
               >
-                {members.map((member) => (
-                  <Option key={member.id} value={member.id}>
-                    {member.name}
-                  </Option>
-                ))}
+                <Option value="credit">Credit</Option>
+                <Option value="debit">Debit</Option>
               </Select>
             </div>
-          )}
 
-          <div style={{ width: 240 }}>
-            <RangePicker
-              value={dateRange}
-              onChange={handleDateRangeChange}
-              className="w-full h-[34px] rounded-lg text-xs"
-              style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}
-              variant="borderless"
-            />
-          </div>
-        </div>
+            <div style={{ width: 140 }}>
+              <Select
+                placeholder="Category"
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                className="w-full h-[34px]"
+                allowClear
+                variant="borderless"
+                style={{ background: 'var(--bg-pure-white)', borderRadius: 8, border: '1px solid var(--border-slate-200)', fontSize: '12px' }}
+              >
+                {!categoriesLoading && expenseCategories.length > 0 ? (
+                  expenseCategories.map((category) => (
+                    <Option key={category.id} value={category.name}>
+                      {category.name}
+                    </Option>
+                  ))
+                ) : (
+                  <Option disabled>No categories available</Option>
+                )}
+              </Select>
+            </div>
 
-        <Row gutter={[20, 20]}>
-          {/* Main Transactions Table */}
-          <Col xs={24} lg={18}>
-            {/* Transactions Table */}
-            <Card
-              size="small"
-              styles={{ body: { padding: 0 } }}
-              className="compact-table"
-              style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border-slate-200)' }}
-            >
-              <Table
-                columns={columns}
-                dataSource={transactions}
-                rowKey="id"
-                loading={loading}
-                pagination={{
-                  current: pagination.current,
-                  pageSize: pagination.pageSize,
-                  total: pagination.total,
-                  showSizeChanger: true,
-                  showQuickJumper: true,
-                  showTotal: (total, range) =>
-                    `${range[0]}-${range[1]} of ${total} transactions`,
-                  onChange: (page, pageSize) => {
-                    setPagination(prev => ({
-                      ...prev,
-                      current: page,
-                      pageSize: pageSize || 10,
-                    }));
-                  },
-                  size: 'small',
-                }}
-                size="small"
-                scroll={{ x: 800 }}
+            {canManage && (
+              <div style={{ width: 140 }}>
+                <Select
+                  placeholder="Member"
+                  value={memberFilter}
+                  onChange={setMemberFilter}
+                  className="w-full h-[34px]"
+                  allowClear
+                  showSearch
+                  optionFilterProp="children"
+                  variant="borderless"
+                  style={{ background: 'var(--bg-pure-white)', borderRadius: 8, border: '1px solid var(--border-slate-200)', fontSize: '12px' }}
+                >
+                  {members.map((member) => (
+                    <Option key={member.id} value={member.id}>
+                      {member.name}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+            )}
+
+            <div style={{ width: 240 }}>
+              <RangePicker
+                value={dateRange}
+                onChange={handleDateRangeChange}
+                className="w-full h-[34px] rounded-lg text-xs"
+                style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}
+                variant="borderless"
               />
-            </Card>
-          </Col>
+            </div>
+          </div>
 
-          {/* Sidebar - Recent Activity */}
-          <Col xs={24} lg={6}>
-
-            {/* Recent Transactions */}
-            <Card
-              title={
-                <Space size={8}>
-                  <FileTextOutlined style={{ fontSize: 15, color: 'var(--accounts-emerald-text)' }} />
-                  <span className="text-[13px] font-bold" style={{ color: 'var(--accounts-stat-value)' }}>Recent Activity</span>
-                </Space>
-              }
-              size="small"
-              style={{ borderRadius: 16, border: '1px solid var(--accounts-card-border)', backgroundColor: 'var(--accounts-card-bg)', height: '100%' }}
-              styles={{ body: { padding: 0, maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' } }}
-              className="hide-scrollbar"
-            >
-              {summary?.recentTransactions?.length > 0 ? (
-                <List
+          <Row gutter={[20, 20]}>
+            {/* Main Transactions Table */}
+            <Col xs={24} lg={18}>
+              {/* Transactions Table */}
+              <Card
+                size="small"
+                styles={{ body: { padding: 0 } }}
+                className="compact-table"
+                style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border-slate-200)' }}
+              >
+                <Table
+                  columns={columns}
+                  dataSource={transactions}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={{
+                    current: pagination.current,
+                    pageSize: pagination.pageSize,
+                    total: pagination.total,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total, range) =>
+                      `${range[0]}-${range[1]} of ${total} transactions`,
+                    onChange: (page, pageSize) => {
+                      setPagination(prev => ({
+                        ...prev,
+                        current: page,
+                        pageSize: pageSize || 10,
+                      }));
+                    },
+                    size: 'small',
+                  }}
                   size="small"
-                  dataSource={summary.recentTransactions}
-                  renderItem={(item: Transaction) => {
-                    const member = typeof item.member === 'object' ? item.member : null;
-                    return (
-                      <List.Item style={{ padding: '12px 16px', border: 'none' }}>
-                        <List.Item.Meta
-                          avatar={
-                            <Avatar
-                              size={24}
-                              style={{
-                                backgroundColor: item.type === 'credit' ? 'var(--accounts-emerald-bg)' : 'var(--accounts-rose-bg)',
-                                color: item.type === 'credit' ? 'var(--accounts-emerald-text)' : 'var(--accounts-rose-text)',
-                                fontSize: 11,
-                                fontWeight: 800
-                              }}
-                            >
-                              {item.type === 'credit' ? '+' : '-'}
-                            </Avatar>
-                          }
-                          title={
-                            <div className="flex flex-col gap-0.5 min-w-0">
-                              <Text className="text-[11px] font-semibold truncate" style={{ color: 'var(--accounts-stat-value)' }}>{item.description}</Text>
-                              {item.metadata?.invoiceId && (
-                                <span
-                                  className="text-[9px] px-1.5 py-0.5 rounded-md inline"
-                                  style={{
-                                    border: '1px solid var(--accounts-invoice-border)',
-                                    backgroundColor: 'var(--accounts-invoice-bg)',
-                                    color: 'var(--accounts-invoice-text)',
-                                    fontWeight: 500,
-                                    width: 'fit-content',
-                                    maxWidth: '60px'
-                                  }}
-                                >
-                                  Invoice
-                                </span>
-                              )}
-                              <div className="flex items-center gap-1.5 overflow-hidden">
-                                <span className="text-[10px] font-medium truncate max-w-[50px]" style={{ color: 'var(--accounts-stat-sub)' }}>{member?.name || 'Unknown'}</span>
-                                <div className="w-0.5 h-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--accounts-stat-sub)' }} />
-                                <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--accounts-stat-sub)' }}>{dayjs(item.date).format('MMM DD')}</span>
-                              </div>
-                            </div>
-                          }
-                          description={
-                            <div className="mt-1">
-                              <Text
-                                strong
-                                className="text-[11px] px-1.5 py-0.5 rounded-md"
+                  scroll={{ x: 800 }}
+                />
+              </Card>
+            </Col>
+
+            {/* Sidebar - Recent Activity */}
+            <Col xs={24} lg={6}>
+
+              {/* Recent Transactions */}
+              <Card
+                title={
+                  <Space size={8}>
+                    <FileTextOutlined style={{ fontSize: 15, color: 'var(--accounts-emerald-text)' }} />
+                    <span className="text-[13px] font-bold" style={{ color: 'var(--accounts-stat-value)' }}>Recent Activity</span>
+                  </Space>
+                }
+                size="small"
+                style={{ borderRadius: 16, border: '1px solid var(--accounts-card-border)', backgroundColor: 'var(--accounts-card-bg)', height: '100%' }}
+                styles={{ body: { padding: 0, maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' } }}
+                className="hide-scrollbar"
+              >
+                {summary?.recentTransactions?.length > 0 ? (
+                  <List
+                    size="small"
+                    dataSource={summary.recentTransactions}
+                    renderItem={(item: Transaction) => {
+                      const member = typeof item.member === 'object' ? item.member : null;
+                      return (
+                        <List.Item style={{ padding: '12px 16px', border: 'none' }}>
+                          <List.Item.Meta
+                            avatar={
+                              <Avatar
+                                size={24}
                                 style={{
                                   backgroundColor: item.type === 'credit' ? 'var(--accounts-emerald-bg)' : 'var(--accounts-rose-bg)',
-                                  color: item.type === 'credit' ? 'var(--accounts-emerald-text)' : 'var(--accounts-rose-text)'
+                                  color: item.type === 'credit' ? 'var(--accounts-emerald-text)' : 'var(--accounts-rose-text)',
+                                  fontSize: 11,
+                                  fontWeight: 800
                                 }}
                               >
-                                {formatCurrency(item.amount)}
-                              </Text>
-                            </div>
-                          }
-                        />
-                      </List.Item>
-                    );
-                  }}
-                />
-              ) : (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="No recent transactions"
-                  style={{ margin: '40px 0' }}
-                />
-              )}
-            </Card>
-          </Col>
-        </Row>
-
-        {/* Transaction Modal */}
-        <Modal
-          title={
-            modalType === 'add' ? 'Add New Transaction' :
-              modalType === 'edit' ? 'Edit Transaction' : 'Delete Transaction'
-          }
-          open={isModalVisible}
-          onCancel={() => {
-            setIsModalVisible(false);
-            form.resetFields();
-            setSelectedTransaction(null);
-          }}
-          footer={null}
-          width={modalType === 'delete' ? 400 : 600}
-        >
-          {modalType === 'delete' ? (
-            <div>
-              <Text>
-                Are you sure you want to delete this transaction?
-                This action cannot be undone.
-              </Text>
-              <div style={{ marginTop: 20, textAlign: 'right' }}>
-                <Space>
-                  <Button onClick={() => setIsModalVisible(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    type="primary"
-                    danger
-                    loading={formLoading}
-                    onClick={handleDelete}
-                  >
-                    Delete
-                  </Button>
-                </Space>
-              </div>
-            </div>
-          ) : (
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleSubmit}
-              size="middle"
-            >
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <Form.Item
-                  name="type"
-                  label="Transaction Type"
-                  rules={[{ required: true, message: 'Please select transaction type' }]}
-                >
-                  <Select
-                    showSearch
-                    placeholder="Select type"
-                    optionFilterProp="label"
-                    filterOption={(input, option) =>
-                      String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                    }
-                  >
-                    <Option value="credit" label="Credit (Money In)">
-                      <Space>
-                        <ArrowUpOutlined style={{ color: 'var(--accounts-emerald-text)' }} />
-                        Credit (Money In)
-                      </Space>
-                    </Option>
-                    <Option value="debit" label="Debit (Money Out)">
-                      <Space>
-                        <ArrowDownOutlined style={{ color: 'var(--accounts-rose-text)' }} />
-                        Debit (Money Out)
-                      </Space>
-                    </Option>
-                  </Select>
-                </Form.Item>
-
-                <Form.Item
-                  name="amount"
-                  label="Amount"
-                  rules={[
-                    { required: true, message: 'Please enter amount' },
-                    { type: 'number', min: 0.01, message: 'Amount must be greater than 0' },
-                  ]}
-                >
-                  <InputNumber
-                    placeholder="0.00"
-                    style={{ width: '100%' }}
-                    formatter={(value) => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    parser={(value) => value!.replace(/₹\s?|(,*)/g, '')}
-                    precision={2}
+                                {item.type === 'credit' ? '+' : '-'}
+                              </Avatar>
+                            }
+                            title={
+                              <div className="flex flex-col gap-0.5 min-w-0">
+                                <Text className="text-[11px] font-semibold truncate" style={{ color: 'var(--accounts-stat-value)' }}>{item.description}</Text>
+                                {item.metadata?.invoiceId && (
+                                  <span
+                                    className="text-[9px] px-1.5 py-0.5 rounded-md inline"
+                                    style={{
+                                      border: '1px solid var(--accounts-invoice-border)',
+                                      backgroundColor: 'var(--accounts-invoice-bg)',
+                                      color: 'var(--accounts-invoice-text)',
+                                      fontWeight: 500,
+                                      width: 'fit-content',
+                                      maxWidth: '60px'
+                                    }}
+                                  >
+                                    Invoice
+                                  </span>
+                                )}
+                                <div className="flex items-center gap-1.5 overflow-hidden">
+                                  <span className="text-[10px] font-medium truncate max-w-[50px]" style={{ color: 'var(--accounts-stat-sub)' }}>{member?.name || 'Unknown'}</span>
+                                  <div className="w-0.5 h-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--accounts-stat-sub)' }} />
+                                  <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--accounts-stat-sub)' }}>{dayjs(item.date).format('MMM DD')}</span>
+                                </div>
+                              </div>
+                            }
+                            description={
+                              <div className="mt-1">
+                                <Text
+                                  strong
+                                  className="text-[11px] px-1.5 py-0.5 rounded-md"
+                                  style={{
+                                    backgroundColor: item.type === 'credit' ? 'var(--accounts-emerald-bg)' : 'var(--accounts-rose-bg)',
+                                    color: item.type === 'credit' ? 'var(--accounts-emerald-text)' : 'var(--accounts-rose-text)'
+                                  }}
+                                >
+                                  {formatCurrency(item.amount)}
+                                </Text>
+                              </div>
+                            }
+                          />
+                        </List.Item>
+                      );
+                    }}
                   />
-                </Form.Item>
-              </div>
+                ) : (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="No recent transactions"
+                    style={{ margin: '40px 0' }}
+                  />
+                )}
+              </Card>
+            </Col>
+          </Row>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <Form.Item
-                  name="member"
-                  label="Member"
-                  rules={[{ required: true, message: 'Please select member' }]}
-                  tooltip={modalType === 'edit' ? 'Member cannot be changed when editing' : undefined}
-                >
-                  <Select
-                    placeholder="Select member"
-                    showSearch
-                    optionFilterProp="label"
-                    filterOption={(input, option) =>
-                      String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                    }
-                    disabled={modalType === 'edit'}
+          {/* Transaction Modal */}
+          <Modal
+            title={
+              modalType === 'add' ? 'Add New Transaction' :
+                modalType === 'edit' ? 'Edit Transaction' : 'Delete Transaction'
+            }
+            open={isModalVisible}
+            onCancel={() => {
+              setIsModalVisible(false);
+              form.resetFields();
+              setSelectedTransaction(null);
+            }}
+            footer={null}
+            width={modalType === 'delete' ? 400 : 600}
+          >
+            {modalType === 'delete' ? (
+              <div>
+                <Text>
+                  Are you sure you want to delete this transaction?
+                  This action cannot be undone.
+                </Text>
+                <div style={{ marginTop: 20, textAlign: 'right' }}>
+                  <Space>
+                    <Button onClick={() => setIsModalVisible(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      type="primary"
+                      danger
+                      loading={formLoading}
+                      onClick={handleDelete}
+                    >
+                      Delete
+                    </Button>
+                  </Space>
+                </div>
+              </div>
+            ) : (
+              <Form
+                form={form}
+                layout="vertical"
+                onFinish={handleSubmit}
+                size="middle"
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <Form.Item
+                    name="type"
+                    label="Transaction Type"
+                    rules={[{ required: true, message: 'Please select transaction type' }]}
                   >
-                    {members.map((member) => (
-                      <Option key={member.id} value={member.id} label={member?.name}>
+                    <Select
+                      showSearch
+                      placeholder="Select type"
+                      optionFilterProp="label"
+                      filterOption={(input, option) =>
+                        String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                      }
+                    >
+                      <Option value="credit" label="Credit (Money In)">
                         <Space>
-                          <Avatar src={member?.avatarUrl} size={20} style={{ fontSize: 10 }}>
-                            {member?.name.charAt(0)}
-                          </Avatar>
-                          {member?.name} - {member?.position?.title || 'N/A'}
+                          <ArrowUpOutlined style={{ color: 'var(--accounts-emerald-text)' }} />
+                          Credit (Money In)
                         </Space>
                       </Option>
-                    ))}
-                  </Select>
+                      <Option value="debit" label="Debit (Money Out)">
+                        <Space>
+                          <ArrowDownOutlined style={{ color: 'var(--accounts-rose-text)' }} />
+                          Debit (Money Out)
+                        </Space>
+                      </Option>
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item
+                    name="amount"
+                    label="Amount"
+                    rules={[
+                      { required: true, message: 'Please enter amount' },
+                      { type: 'number', min: 0.01, message: 'Amount must be greater than 0' },
+                    ]}
+                  >
+                    <InputNumber
+                      placeholder="0.00"
+                      style={{ width: '100%' }}
+                      formatter={(value) => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={(value) => value!.replace(/₹\s?|(,*)/g, '')}
+                      precision={2}
+                    />
+                  </Form.Item>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <Form.Item
+                    name="member"
+                    label="Member"
+                    rules={[{ required: true, message: 'Please select member' }]}
+                    tooltip={modalType === 'edit' ? 'Member cannot be changed when editing' : undefined}
+                  >
+                    <Select
+                      placeholder="Select member"
+                      showSearch
+                      optionFilterProp="label"
+                      filterOption={(input, option) =>
+                        String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                      }
+                      disabled={modalType === 'edit'}
+                    >
+                      {members.map((member) => (
+                        <Option key={member.id} value={member.id} label={member?.name}>
+                          <Space>
+                            <Avatar src={member?.avatarUrl} size={20} style={{ fontSize: 10 }}>
+                              {member?.name.charAt(0)}
+                            </Avatar>
+                            {member?.name} - {member?.position?.title || 'N/A'}
+                          </Space>
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item
+                    name="category"
+                    label="Category"
+                    rules={[{ required: true, message: 'Please select category' }]}
+                  >
+                    <Select
+                      showSearch
+                      placeholder="Select category"
+                      optionFilterProp="children"
+                      filterOption={(input, option) =>
+                        String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+                      }
+                    >
+                      {!categoriesLoading && expenseCategories.length > 0 ? (
+                        expenseCategories.map((category) => (
+                          <Option key={category.id} value={category.name}>
+                            {category.name}
+                          </Option>
+                        ))
+                      ) : (
+                        <Option disabled>No categories available</Option>
+                      )}
+                    </Select>
+                  </Form.Item>
+                </div>
+
+                <Form.Item
+                  name="date"
+                  label="Transaction Date"
+                  rules={[{ required: true, message: 'Please select date' }]}
+                >
+                  <DatePicker style={{ width: '100%' }} />
                 </Form.Item>
 
                 <Form.Item
-                  name="category"
-                  label="Category"
-                  rules={[{ required: true, message: 'Please select category' }]}
+                  name="description"
+                  label="Description"
+                  rules={[{ required: true, message: 'Please enter description' }]}
                 >
-                  <Select
-                    showSearch
-                    placeholder="Select category"
-                    optionFilterProp="children"
-                    filterOption={(input, option) =>
-                      String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
-                    }
-                  >
-                    {!categoriesLoading && expenseCategories.length > 0 ? (
-                      expenseCategories.map((category) => (
-                        <Option key={category.id} value={category.name}>
-                          {category.name}
-                        </Option>
-                      ))
-                    ) : (
-                      <Option disabled>No categories available</Option>
-                    )}
-                  </Select>
+                  <Input placeholder="Enter transaction description" />
                 </Form.Item>
-              </div>
 
-              <Form.Item
-                name="date"
-                label="Transaction Date"
-                rules={[{ required: true, message: 'Please select date' }]}
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-
-              <Form.Item
-                name="description"
-                label="Description"
-                rules={[{ required: true, message: 'Please enter description' }]}
-              >
-                <Input placeholder="Enter transaction description" />
-              </Form.Item>
-
-              <Form.Item
-                name="notes"
-                label="Notes (Optional)"
-              >
-                <TextArea
-                  placeholder="Additional notes..."
-                  rows={3}
-                  maxLength={500}
-                  showCount
-                />
-              </Form.Item>
-
-              <div style={{ textAlign: 'right', marginTop: 20 }}>
-                <Space>
-                  <Button onClick={() => setIsModalVisible(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={formLoading}
-                  >
-                    {modalType === 'add' ? 'Add Transaction' : 'Update Transaction'}
-                  </Button>
-                </Space>
-              </div>
-            </Form>
-          )}
-        </Modal>
-
-        {/* Category Breakdown Drawer */}
-        <Drawer
-          title={
-            <Space size={12}>
-              <div style={{ background: 'var(--bg-blue-50)', padding: 8, borderRadius: 10, color: 'var(--text-blue-700)', display: 'flex' }}>
-                <PieChartOutlined style={{ fontSize: 18 }} />
-              </div>
-              <div style={{ lineHeight: 1.1 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Category Breakdown</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 400 }}>Detailed analysis of transactions by category</div>
-              </div>
-            </Space>
-          }
-          placement="right"
-          width={450}
-          onClose={() => setBreakdownDrawerVisible(false)}
-          open={breakdownDrawerVisible}
-          styles={{
-            header: { borderBottom: '1px solid var(--border-slate-200)', padding: '20px 24px' },
-            body: { padding: '24px' }
-          }}
-        >
-          {summary?.categoryBreakdown?.length > 0 ? (
-            <div className="flex flex-col gap-6">
-              {summary.categoryBreakdown.map((item: any, index: number) => (
-                <div key={index} className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 hover:border-blue-100 hover:bg-blue-50/10 transition-all duration-300">
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ background: getCategoryColor(item.category) }} />
-                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">{item.category.replace('_', ' ')}</span>
-                    </div>
-                    <div className="text-sm font-bold text-slate-900">{formatCurrency(Math.abs(item.total))}</div>
-                  </div>
-                  <Progress
-                    percent={Math.min(100, (Math.abs(item.total) / Math.max(...summary.categoryBreakdown.map((c: any) => Math.abs(c.total)))) * 100)}
-                    strokeColor={getCategoryColor(item.category)}
-                    size="small"
-                    showInfo={false}
-                    strokeWidth={8}
-                    className="m-0"
+                <Form.Item
+                  name="notes"
+                  label="Notes (Optional)"
+                >
+                  <TextArea
+                    placeholder="Additional notes..."
+                    rows={3}
+                    maxLength={500}
+                    showCount
                   />
-                  <div className="mt-2 flex justify-between items-center text-[10px] text-slate-400 font-medium">
-                    <span>{item.count} Transactions</span>
-                    <span>{((Math.abs(item.total) / (summary.balance.credits + summary.balance.debits)) * 100).toFixed(1)}% of total</span>
-                  </div>
+                </Form.Item>
+
+                <div style={{ textAlign: 'right', marginTop: 20 }}>
+                  <Space>
+                    <Button onClick={() => setIsModalVisible(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={formLoading}
+                    >
+                      {modalType === 'add' ? 'Add Transaction' : 'Update Transaction'}
+                    </Button>
+                  </Space>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <Empty description="No breakdown data available" />
-          )}
-        </Drawer>
+              </Form>
+            )}
+          </Modal>
+
+          {/* Category Breakdown Drawer */}
+          <Drawer
+            title={
+              <Space size={12}>
+                <div style={{ background: 'var(--bg-blue-50)', padding: 8, borderRadius: 10, color: 'var(--text-blue-700)', display: 'flex' }}>
+                  <PieChartOutlined style={{ fontSize: 18 }} />
+                </div>
+                <div style={{ lineHeight: 1.1 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Category Breakdown</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 400 }}>Detailed analysis of transactions by category</div>
+                </div>
+              </Space>
+            }
+            placement="right"
+            width={450}
+            onClose={() => setBreakdownDrawerVisible(false)}
+            open={breakdownDrawerVisible}
+            styles={{
+              header: { borderBottom: '1px solid var(--border-slate-200)', padding: '20px 24px' },
+              body: { padding: '24px' }
+            }}
+          >
+            {summary?.categoryBreakdown?.length > 0 ? (
+              <div className="flex flex-col gap-6">
+                {summary.categoryBreakdown.map((item: any, index: number) => (
+                  <div key={index} className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 hover:border-blue-100 hover:bg-blue-50/10 transition-all duration-300">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ background: getCategoryColor(item.category) }} />
+                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">{item.category.replace('_', ' ')}</span>
+                      </div>
+                      <div className="text-sm font-bold text-slate-900">{formatCurrency(Math.abs(item.total))}</div>
+                    </div>
+                    <Progress
+                      percent={Math.min(100, (Math.abs(item.total) / Math.max(...summary.categoryBreakdown.map((c: any) => Math.abs(c.total)))) * 100)}
+                      strokeColor={getCategoryColor(item.category)}
+                      size="small"
+                      showInfo={false}
+                      strokeWidth={8}
+                      className="m-0"
+                    />
+                    <div className="mt-2 flex justify-between items-center text-[10px] text-slate-400 font-medium">
+                      <span>{item.count} Transactions</span>
+                      <span>{((Math.abs(item.total) / (summary.balance.credits + summary.balance.debits)) * 100).toFixed(1)}% of total</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Empty description="No breakdown data available" />
+            )}
+          </Drawer>
+        </div>
       </div>
 
       <style dangerouslySetInnerHTML={{

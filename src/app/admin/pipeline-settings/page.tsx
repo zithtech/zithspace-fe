@@ -53,6 +53,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import MainLayout from '@/components/layout/MainLayout';
 import pipelineStageService, { PipelineStage, CreatePipelineStagePayload } from '@/services/pipelineStageService';
+import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 
 const { Title, Text } = Typography;
 
@@ -415,28 +416,31 @@ export default function PipelineSettingsPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '16px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
-        <div style={{ marginBottom: '16px' }}>
-          <Space align="center" size={10}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 8, background: 'var(--bg-red-50)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              <FireOutlined style={{ color: 'var(--text-leave)', fontSize: 18 }} />
-            </div>
-            <Title level={3} style={{ margin: 0, color: 'var(--text-slate-900)' }}>Pipeline Settings</Title>
-          </Space>
-          <Text style={{ display: 'block', marginTop: 4, color: 'var(--text-slate-500)' }}>Configure your sales funnel, stages, and automation rules</Text>
-        </div>
-
-        <Tabs 
-          activeKey={activeTab} 
-          onChange={setActiveTab} 
-          items={tabItems}
-          size="large"
-          type="line"
-          tabBarStyle={{ marginBottom: '16px' }}
+      <div style={{ 
+        margin: "0 -24px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden"
+      }}>
+        <TimeTrackingHeader
+          style={{ padding: '10.5px 32px' }}
+          icon={<FireOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+          title="Pipeline Settings"
+          description="Configure your sales funnel, stages, and automation rules"
         />
+
+        <div style={{ padding: "0 32px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={setActiveTab} 
+            items={tabItems}
+            size="large"
+            type="line"
+            tabBarStyle={{ marginBottom: '16px' }}
+          />
+        </div>
       </div>
 
       <Modal

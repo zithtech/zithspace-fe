@@ -235,7 +235,7 @@ export default function ArchivedTicketsPage() {
       key: 'assignee',
       width: 180,
       render: (_: any, record: Ticket) => {
-        const name = record.assignee?.name;
+        const name = record.assignee?.name || 'Unassigned';
         return (
           <Space>
             <Avatar 
@@ -243,7 +243,7 @@ export default function ArchivedTicketsPage() {
               src={record.assignee?.avatarUrl}
               style={{ backgroundColor: '#1677ff', fontSize: 10 }}
             >
-              {name.charAt(0)}
+              {name.charAt(0).toUpperCase()}
             </Avatar>
             <Text style={{ fontSize: 13 }}>{name}</Text>
           </Space>
@@ -376,12 +376,12 @@ export default function ArchivedTicketsPage() {
                 variant="borderless"
                 className="ar-filter-select"
                 allowClear
-                value={selectedProject}
-                onChange={setSelectedProject}
+                value={selectedProject || "all"}
+                onChange={(val) => setSelectedProject(val === "all" ? undefined : val)}
                 loading={statsLoading}
                 suffixIcon={<ProjectOutlined style={{ fontSize: 11, color: '#94a3b8' }} />}
               >
-                <Option value={undefined}>
+                <Option value="all">
                   <Text style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>ALL SYSTEM ARCHIVES</Text>
                 </Option>
                 {projects?.map((project: any) => {

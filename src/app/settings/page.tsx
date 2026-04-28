@@ -46,6 +46,7 @@ import LogoCropper from '@/components/common/LogoCropper';
 import { SettingsService, Shift, CreateShiftData, UpdateShiftData } from '@/services/settingsService';
 import { TenantService, TenantProfile } from '@/services/tenantService';
 import { CompanyLocationService } from '@/services/companyLocationService';
+import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile, UploadProps } from 'antd';
@@ -585,12 +586,12 @@ export default function SettingsPage() {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ 
-          margin: "0 -24px", 
-          padding: "24px 32px", 
-          background: "var(--bg-pure-white)", 
+        <div style={{
+          margin: "0 -24px",
+          padding: "24px 32px",
+          background: "var(--bg-pure-white)",
           minHeight: "calc(100vh - 64px)",
-          textAlign: 'center' 
+          textAlign: 'center'
         }}>
           <div style={{ padding: 100, textAlign: 'center' }}>
             <Spin size="large" tip="Loading">
@@ -734,7 +735,7 @@ export default function SettingsPage() {
                 </Form>
               </Col>
 
-                  <Col xs={24} lg={14} xl={15} style={{ borderLeft: `1px solid ${token.colorBorderSecondary}`, paddingLeft: 40 }}>
+              <Col xs={24} lg={14} xl={15} style={{ borderLeft: `1px solid ${token.colorBorderSecondary}`, paddingLeft: 40 }}>
                 <div style={{ marginBottom: 24 }}>
                   <Title level={4} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)" }}>Logo Assets</Title>
                   <Text type="secondary" style={{ fontSize: 13, color: "var(--text-secondary)" }}>Previously generated logo versions. Set any version as your primary logo.</Text>
@@ -1089,7 +1090,6 @@ export default function SettingsPage() {
       {contextHolder}
       <div style={{
         margin: "0 -24px",
-        padding: "0 32px",
         height: "calc(100vh - 64px)",
         background: "var(--bg-pure-white)",
         display: "flex",
@@ -1097,46 +1097,38 @@ export default function SettingsPage() {
         overflow: "hidden"
       }}>
         {/* Premium Header */}
-        <div style={styles.headerSection}>
-          <Space align="center" size="middle">
-            <div style={styles.iconContainer}>
-              <SettingOutlined style={{ fontSize: 24 }} />
-            </div>
-            <div>
-              <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                System Settings
-              </Title>
-              <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>
-                Configure your workspace, manage shifts, and customize branding.
-              </Text>
-            </div>
-          </Space>
-        </div>
-
-        {/* Settings Tabs */}
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          size="large"
-          type="line"
-          tabBarStyle={{
-            ...styles.tabStyle,
-            background: 'var(--bg-secondary)',
-            borderBottom: "1px solid var(--border-color)",
-            padding: "0 4px"
-          }}
-          style={{
-            margin: 0,
-            width: "100%",
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden"
-          }}
-          className="settings-tabs"
-          items={tabItems}
+        <TimeTrackingHeader
+          style={{ padding: '10.5px 32px' }}
+          icon={<SettingOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+          title="System Settings"
+          description="Configure your workspace, manage shifts, and customize branding."
         />
 
+        <div style={{ padding: "0 32px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* Settings Tabs */}
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            size="large"
+            type="line"
+            tabBarStyle={{
+              ...styles.tabStyle,
+              background: 'var(--bg-secondary)',
+              borderBottom: "1px solid var(--border-color)",
+              padding: "0 4px"
+            }}
+            style={{
+              margin: 0,
+              width: "100%",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden"
+            }}
+            className="settings-tabs"
+            items={tabItems}
+          />
+        </div>
 
         {/* Add Location Drawer */}
         <Drawer

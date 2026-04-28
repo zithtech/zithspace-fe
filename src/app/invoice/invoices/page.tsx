@@ -84,6 +84,7 @@ import type {
   PaymentMethod
 } from "@/services/invoiceService";
 import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -1089,61 +1090,54 @@ export default function InvoiceInvoicesPage() {
       {contextHolder}
       <div style={{
         margin: "0 -24px",
-        padding: "6px 32px 24px 32px",
         background: "var(--customers-page-bg)",
         minHeight: "calc(100vh - 64px)"
       }}>
-        {/* ================= HEADER ================= */}
-        <div style={{ marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24 }}>
-          <div style={{ flex: 1 }}>
-            <Space size={8} align="center">
-              <div style={{ background: "var(--customers-header-icon-bg)", padding: "6px 8px", borderRadius: 8, color: "var(--customers-header-icon-color)", display: "flex" }}>
-                <FileText size={18} />
-              </div>
-              <div>
-                <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)", fontSize: "15px" }}>Invoices</Title>
-                <Text style={{ color: "var(--text-secondary)", fontSize: "11px" }}>Manage, track payments, and monitor invoice statuses.</Text>
-              </div>
-            </Space>
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <Input
-              placeholder="Search invoices..."
-              allowClear
-              size="middle"
-              prefix={<Search size={16} className="mr-2" style={{ color: 'var(--text-slate-400)' }} />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{
-                width: 280,
-                borderRadius: 8,
-                height: 38,
-                backgroundColor: "var(--bg-slate-50)",
-                border: "1px solid var(--customers-card-border)",
-                fontSize: "13px"
-              }}
-              className="search-input-modern"
-            />
-            <Popover content={filterContent} trigger="click" placement="bottomRight">
-              <Button size="middle" icon={<Filter size={16} />} style={{ borderRadius: 8, height: 38, display: 'flex', alignItems: 'center' }}>
-                Filter
-              </Button>
-            </Popover>
-            {canCreateInvoice && (
-              <Button
-                type="primary"
+        <TimeTrackingHeader
+          style={{ padding: '9.5px 32px' }}
+          icon={<FileText size={20} color="#8b5cf6" />}
+          title="Invoices"
+          description="Manage, track payments, and monitor invoice statuses."
+          extra={
+            <div style={{ display: "flex", gap: 10 }}>
+              <Input
+                placeholder="Search invoices..."
+                allowClear
                 size="middle"
-                icon={<Plus size={16} />}
-                style={{ borderRadius: 8, height: 38, backgroundColor: 'var(--customers-header-icon-color)', border: 'none', fontWeight: 600 }}
-                onClick={() => router.push("/invoice/newinvoice")}
-              >
-                New Invoice
-              </Button>
-            )}
-          </div>
-        </div>
+                prefix={<Search size={16} className="mr-2" style={{ color: 'var(--text-slate-400)' }} />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{
+                  width: 280,
+                  borderRadius: 8,
+                  height: 38,
+                  backgroundColor: "var(--bg-slate-50)",
+                  border: "1px solid var(--customers-card-border)",
+                  fontSize: "13px"
+                }}
+                className="search-input-modern"
+              />
+              <Popover content={filterContent} trigger="click" placement="bottomRight">
+                <Button size="middle" icon={<Filter size={16} />} style={{ borderRadius: 8, height: 38, display: 'flex', alignItems: 'center' }}>
+                  Filter
+                </Button>
+              </Popover>
+              {canCreateInvoice && (
+                <Button
+                  type="primary"
+                  size="middle"
+                  icon={<Plus size={16} />}
+                  style={{ borderRadius: 8, height: 38, backgroundColor: 'var(--customers-header-icon-color)', border: 'none', fontWeight: 600 }}
+                  onClick={() => router.push("/invoice/newinvoice")}
+                >
+                  New Invoice
+                </Button>
+              )}
+            </div>
+          }
+        />
 
-        <Divider style={{ margin: "4px -32px 12px -32px", width: "calc(100% + 64px)", borderColor: 'var(--border-color)' }} />
+        <div style={{ padding: "16px 32px 32px 32px" }}>
 
         {/* ================= METRIC STATS ================= */}
         <Row gutter={[24, 24]} style={{ marginBottom: 16 }}>
@@ -1274,8 +1268,9 @@ export default function InvoiceInvoicesPage() {
               scroll={{ x: 1000 }}
               rowClassName={() => "invoice-table-row"}
             />
-          </Card>
+        </Card>
         )}
+        </div>
       </div>
 
       <style dangerouslySetInnerHTML={{

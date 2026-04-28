@@ -32,6 +32,7 @@ import { Squad, SquadService } from '@/services/squadService';
 import SquadCard from '@/components/squad/SquadCard';
 import SquadDrawer from '@/components/squad/SquadDrawer';
 import SquadViewDrawer from '@/components/squad/SquadViewDrawer';
+import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -215,54 +216,37 @@ export default function SquadManagement() {
     <MainLayout>
       <div style={{ 
         margin: "0 -24px", 
-        padding: "24px 32px", 
         background: "var(--bg-pure-white)", 
         minHeight: "calc(100vh - 64px)" 
       }}>
         {/* Top Header Section */}
-        <div style={{ marginBottom: '16px' }}>
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Space size={16} align="start">
-                <div style={{
-                  backgroundColor: 'var(--bg-pure-white)',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-slate-200)',
-                  boxShadow: 'var(--card-shadow)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <TeamOutlined style={{ fontSize: '28px', color: 'var(--premium-blue)' }} />
-                </div>
-                <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 600, color: 'var(--text-slate-900)' }}>Squad Management</Title>
-                  <Text type="secondary" style={{ fontSize: '14px', color: 'var(--text-slate-400)' }}>
-                    Configure and manage project teams, leadership roles, and member allocations.
-                  </Text>
-                </div>
-              </Space>
-            </Col>
-            <Col>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                size="large"
-                onClick={handleCreate}
-                style={{
-                  borderRadius: '10px',
-                  height: '44px',
-                  padding: '0 24px',
-                  fontWeight: 500,
-                  boxShadow: '0 4px 10px rgba(24, 144, 255, 0.2)'
-                }}
-              >
-                Create Squad
-              </Button>
-            </Col>
-          </Row>
-        </div>
+        <TimeTrackingHeader
+          icon={<TeamOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+          title="Squad Management"
+          description="Configure and manage project teams, leadership roles, and member allocations."
+          extra={
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreate}
+              style={{
+                borderRadius: '10px',
+                height: '38px',
+                padding: '0 24px',
+                fontWeight: 600,
+                background: '#1677ff',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}
+            >
+              Create Squad
+            </Button>
+          }
+        />
+
+        <div style={{ padding: "0 32px 32px 32px" }}>
 
         {/* Filter Section - Premium Card Style */}
         <Card
@@ -415,6 +399,7 @@ export default function SquadManagement() {
           onClose={() => setViewDrawerVisible(false)}
           squad={currentSquad}
         />
+        </div>
       </div>
     </MainLayout>
   );

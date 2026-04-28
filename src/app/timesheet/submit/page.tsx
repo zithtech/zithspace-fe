@@ -34,21 +34,9 @@ export default function SubmitTimesheetPage() {
 
   return (
     <MainLayout>
-      <div
-        style={{
-          flex: 1,
-          height: "calc(100vh - 64px)",
-          overflowY: "auto",
-          overflowX: "hidden",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-        }}
-        className="hide-scrollbar"
-      >
-        <SubmittimesheetTab
-          onSubmitted={() => router.push("/timesheet")}
-        />
-      </div>
+      <SubmittimesheetTab
+        onSubmitted={() => router.push("/timesheet")}
+      />
     </MainLayout>
   );
 }

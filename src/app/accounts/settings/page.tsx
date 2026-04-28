@@ -41,6 +41,7 @@ import {
   Check,
   AlertCircle
 } from "lucide-react";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
@@ -246,53 +247,46 @@ export default function AccountsSettingsPage() {
     <MainLayout>
       <div style={{
         margin: "0 -24px",
-        padding: "8px 32px 24px 32px",
         background: "var(--customers-page-bg)",
         minHeight: "calc(100vh - 64px)"
       }}>
-        {/* Header */}
-        <div style={{ marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24 }}>
-          <div style={{ flex: 1 }}>
-            <Space size={8} align="center">
-              <div style={{ background: "var(--bg-blue-50)", padding: "6px 8px", borderRadius: 8, color: "var(--text-sky-500)", display: "flex" }}>
-                <FolderOpen style={{ fontSize: 18 }} />
-              </div>
-              <div>
-                <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)", fontSize: "15px" }}>Accounts Settings</Title>
-                <Typography.Text style={{ color: "var(--text-secondary)", fontSize: "11px" }}>Manage your expense categories and account settings.</Typography.Text>
-              </div>
-            </Space>
-          </div>
-          <div className="flex items-center gap-3">
-            <Input
-              placeholder="Search categories..."
-              prefix={<Search size={14} />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{
-                width: 240,
-                borderRadius: 8,
-                border: '1px solid var(--border-slate-200)',
-                background: 'var(--bg-pure-white)',
-                fontSize: '12px'
-              }}
-              size="middle"
-            />
-            {canCreateAccounts && (
-              <Button
-                type="primary"
+        <TimeTrackingHeader
+          style={{ padding: '9.5px 32px' }}
+          icon={<FolderOpen size={20} color="#8b5cf6" />}
+          title="Accounts Settings"
+          description="Manage your expense categories and account settings."
+          extra={
+            <div className="flex items-center gap-3">
+              <Input
+                placeholder="Search categories..."
+                prefix={<Search size={14} />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{
+                  width: 240,
+                  borderRadius: 8,
+                  border: '1px solid var(--border-slate-200)',
+                  background: 'var(--bg-pure-white)',
+                  fontSize: '12px'
+                }}
                 size="middle"
-                icon={<Plus size={16} />}
-                style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600 }}
-                onClick={handleCreate}
-              >
-                Add Category
-              </Button>
-            )}
-          </div>
-        </div>
+              />
+              {canCreateAccounts && (
+                <Button
+                  type="primary"
+                  size="middle"
+                  icon={<Plus size={16} />}
+                  style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600 }}
+                  onClick={handleCreate}
+                >
+                  Add Category
+                </Button>
+              )}
+            </div>
+          }
+        />
 
-        <Divider style={{ margin: "4px -32px 12px -32px", width: "calc(100% + 64px)", borderColor: 'var(--border-color)' }} />
+        <div style={{ padding: "16px 32px 32px 32px" }}>
 
         {loading ? (
           <div className="flex justify-center items-center h-64 rounded-2xl" style={{ backgroundColor: 'var(--settings-loading-bg)', border: '1px solid var(--settings-loading-border)' }}>
@@ -492,6 +486,7 @@ export default function AccountsSettingsPage() {
             </div>
           </Form>
         </Drawer>
+        </div>
       </div>
     </MainLayout>
   );

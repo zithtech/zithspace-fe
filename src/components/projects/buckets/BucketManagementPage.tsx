@@ -42,6 +42,7 @@ import { MoveToSprintAction } from "./MoveToSprintAction";
 import type { Bucket } from "@/services/bucketService";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useRouter } from "next/navigation";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -264,67 +265,48 @@ export default function BucketManagementPage() {
 
   return (
     <div style={{
+      margin: "0 -24px",
       background: "var(--bg-pure-white)",
-      height: "100vh",
+      height: "calc(100vh - 64px)",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden"
     }}>
       {contextHolder}
 
-      {/* Workstation Header */}
-      <div className="saas-header-container" style={{
-        backdropFilter: 'blur(12px)',
-        padding: '10.5px 12px',
-        flexShrink: 0,
-        zIndex: 100
-      }}>
-        <Row justify="space-between" align="middle" gutter={[16, 16]}>
-          <Col>
-            <Space size={16}>
-              <div className="bh-header-icon-box">
-                <FolderOpenOutlined style={{ fontSize: 18, color: '#8b5cf6' }} />
-              </div>
-              <Space split={<Divider type="vertical" className="bh-header-divider" />} size={16}>
-                <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
-                  Buckets Hub
-                </Title>
-                <Text style={{ fontSize: 12, color: 'var(--text-slate-600)', fontWeight: 600 }}>
-                  Strategic task organization and cross-project categorization
-                </Text>
-              </Space>
-            </Space>
-          </Col>
-          <Col>
-            <Space size={12}>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => refetch()}
-                loading={isLoading}
-                className="saas-button-item"
-                style={{ height: 36, fontWeight: 600 }}
-              />
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleCreate}
-                className="saas-button-item"
-                style={{
-                  height: 36,
-                  fontWeight: 700,
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                  border: 'none',
-                  padding: '0 20px'
-                }}
-              >
-                Create New Bucket
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-      </div>
+      <TimeTrackingHeader
+        style={{ padding: '9.5px 32px' }}
+        icon={<FolderOpenOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+        title="Buckets Hub"
+        description="Strategic task organization and cross-project categorization"
+        extra={
+          <div style={{ display: "flex", gap: 12, alignItems: 'center' }}>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => refetch()}
+              loading={isLoading}
+              style={{ height: 38, borderRadius: 8 }}
+            />
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreate}
+              style={{
+                height: 38,
+                borderRadius: 8,
+                padding: "0 16px",
+                fontWeight: 600,
+                background: "var(--customers-header-icon-color, #8b5cf6)",
+                border: "none"
+              }}
+            >
+              Create New Bucket
+            </Button>
+          </div>
+        }
+      />
 
-      <div style={{ padding: "16px 12px 32px", flex: 1, overflowY: "auto" }}>
+      <div style={{ padding: "16px 32px 32px 32px", flex: 1, overflowY: "auto" }}>
 
 
         {/* Unified High-Density Buckets Control Bar */}

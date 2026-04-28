@@ -1,49 +1,49 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { 
-  Typography, 
-  Space, 
-  Button, 
-  Input, 
-  Select, 
-  Card, 
-  message, 
-  Spin, 
-  Slider, 
-  Empty, 
+import {
+  Typography,
+  Space,
+  Button,
+  Input,
+  Select,
+  Card,
+  message,
+  Spin,
+  Slider,
+  Empty,
   Badge,
   Tooltip
 } from "antd";
-import { 
-  PlusOutlined, 
-  SearchOutlined, 
-  FilterOutlined, 
-  UserOutlined, 
+import {
+  PlusOutlined,
+  SearchOutlined,
+  FilterOutlined,
+  UserOutlined,
   DollarOutlined,
   ReloadOutlined,
   AppstoreOutlined,
   UnorderedListOutlined,
   FireOutlined
 } from "@ant-design/icons";
-import { 
-  DndContext, 
-  DragOverlay, 
-  closestCorners, 
-  KeyboardSensor, 
-  PointerSensor, 
-  useSensor, 
+import {
+  DndContext,
+  DragOverlay,
+  closestCorners,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
   useSensors,
   DragStartEvent,
   DragOverEvent,
   DragEndEvent,
   defaultDropAnimationSideEffects
 } from "@dnd-kit/core";
-import { 
-  arrayMove, 
-  SortableContext, 
-  sortableKeyboardCoordinates, 
-  verticalListSortingStrategy 
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
@@ -53,6 +53,7 @@ import { EmployeeService } from "@/services/employeeServices";
 import KanbanColumn from "@/components/deals/KanbanColumn";
 import DealCard from "@/components/deals/DealCard";
 import DealDetailsDrawer from "@/components/deals/DealDetailsDrawer";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -110,13 +111,13 @@ const BoardView: React.FC = () => {
   // Filtered and Grouped Deals
   const filteredDeals = useMemo(() => {
     return deals.filter(deal => {
-      const matchesSearch = deal.title.toLowerCase().includes(searchText.toLowerCase()) || 
-                           deal.companyName?.toLowerCase().includes(searchText.toLowerCase()) ||
-                           deal.clientName.toLowerCase().includes(searchText.toLowerCase());
+      const matchesSearch = deal.title.toLowerCase().includes(searchText.toLowerCase()) ||
+        deal.companyName?.toLowerCase().includes(searchText.toLowerCase()) ||
+        deal.clientName.toLowerCase().includes(searchText.toLowerCase());
       const matchesUser = !selectedUser || deal.assignedToId === selectedUser;
       const matchesValue = (deal.estimatedValue || 0) >= valueRange[0] && (deal.estimatedValue || 0) <= valueRange[1];
       const matchesTags = selectedTags.length === 0 || selectedTags.every(tag => deal.tags?.includes(tag));
-      
+
       return matchesSearch && matchesUser && matchesValue && matchesTags;
     });
   }, [deals, searchText, selectedUser, valueRange, selectedTags]);
@@ -158,7 +159,7 @@ const BoardView: React.FC = () => {
     if (isOverAColumn) {
       const overColumnId = overId as string;
       const activeDeal = deals.find(d => d.id === activeId);
-      
+
       if (activeDeal && activeDeal.stageId !== overColumnId) {
         setDeals(prev => {
           return prev.map(d => d.id === activeId ? { ...d, stageId: overColumnId } : d);
@@ -170,7 +171,7 @@ const BoardView: React.FC = () => {
     if (isOverADeal) {
       const overDeal = deals.find(d => d.id === overId);
       const activeDeal = deals.find(d => d.id === activeId);
-      
+
       if (activeDeal && overDeal && activeDeal.stageId !== overDeal.stageId) {
         setDeals(prev => {
           return prev.map(d => d.id === activeId ? { ...d, stageId: overDeal.stageId } : d);
@@ -187,7 +188,7 @@ const BoardView: React.FC = () => {
 
     const dealId = active.id as string;
     const overId = over.id as string;
-    
+
     // Find the current state of the deal
     const finalDealState = deals.find(d => d.id === dealId);
     if (!finalDealState) return;
@@ -214,11 +215,11 @@ const BoardView: React.FC = () => {
     return (
       <MainLayout>
         <div style={{ padding: "40px", textAlign: "center" }}>
-        <div style={{ padding: 100, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading active pipeline">
-            <div style={{ padding: 20 }} />
-          </Spin>
-        </div>
+          <div style={{ padding: 100, textAlign: 'center' }}>
+            <Spin size="large" tip="Loading active pipeline">
+              <div style={{ padding: 20 }} />
+            </Spin>
+          </div>
         </div>
       </MainLayout>
     );
@@ -226,149 +227,145 @@ const BoardView: React.FC = () => {
 
   return (
     <MainLayout>
-      <div style={{ height: "calc(100vh - 64px)", display: "flex", flexDirection: "column", padding: "16px", background: 'var(--bg-pure-white)' }}>
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-          <div>
-            <Space align="center" size={10}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 8, background: 'var(--bg-red-50)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <FireOutlined style={{ color: 'var(--text-leave)', fontSize: 18 }} />
-              </div>
-              <Title level={3} style={{ margin: 0, color: 'var(--text-slate-900)' }}>Sales Pipeline</Title>
-            </Space>
-            <Text style={{ display: 'block', marginTop: 4, color: 'var(--text-slate-500)' }}>Manage your deals and track progress across stages</Text>
-          </div>
-          <Space>
-            <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
-            <Button icon={<UnorderedListOutlined />} onClick={() => router.push("/admin/deals")}>List View</Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => router.push("/admin/deals/create")}>
-              Create Deal
-            </Button>
-          </Space>
-        </div>
-
-        {/* Filters */}
-        <div style={{ 
-          padding: "12px 16px", 
-          background: "var(--bg-slate-50)", 
-          border: "1px solid var(--border-slate-100)", 
-          borderRadius: "8px", 
-          marginBottom: "20px" 
-        }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center" }}>
-            <Input  
-              placeholder="Search deals, companies..." 
-              prefix={<SearchOutlined />} 
-              style={{ width: 250 }} 
-              value={searchText}
-              onChange={e => setSearchText(e.target.value)}
-              allowClear
-            />
-            
-            <Select 
-              placeholder="Assigned To" 
-              style={{ width: 180 }} 
-              allowClear
-              prefix={<UserOutlined />}
-              onChange={setSelectedUser}
-              value={selectedUser}
-            >
-              {employees.map(emp => (
-                <Option key={emp.value} value={emp.value}>{emp.label}</Option>
-              ))}
-            </Select>
-
-            <Select
-              mode="multiple"
-              placeholder="Filter by Tags"
-              style={{ width: 200 }}
-              allowClear
-              onChange={setSelectedTags}
-              value={selectedTags}
-            >
-              {allTags.map(tag => (
-                <Option key={tag} value={tag}>{tag}</Option>
-              ))}
-            </Select>
-
-            <div style={{ width: 200, display: "flex", alignItems: "center", gap: "8px" }}>
-              <Tooltip title="Value Range">
-                <DollarOutlined style={{ color: "#8c8c8c" }} />
-              </Tooltip>
-              <Slider 
-                range 
-                min={0} 
-                max={500000} 
-                step={5000}
-                style={{ flex: 1 }}
-                value={valueRange}
-                onChange={val => setValueRange(val as [number, number])}
-              />
-            </div>
-            
-            <Badge count={filteredDeals.length} style={{ backgroundColor: "#1677ff" }}>
-              <Button icon={<FilterOutlined />} type="text">Results</Button>
-            </Badge>
-          </div>
-        </div>
-
-        {/* Kanban Board */}
-        <div style={{ flex: 1, overflowX: "auto", display: "flex", paddingBottom: "16px" }}>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCorners}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-          >
-            {stages.map(stage => (
-              <KanbanColumn
-                key={stage.id}
-                stage={stage}
-                deals={dealsByStage[stage.id] || []}
-                onDealClick={(deal) => {
-                  router.push(`/admin/deals/${deal.id}`);
-                }}
-              />
-            ))}
-
-            <DragOverlay dropAnimation={{
-              sideEffects: defaultDropAnimationSideEffects({
-                styles: {
-                  active: {
-                    opacity: '0.5',
-                  },
-                },
-              }),
-            }}>
-              {activeDeal ? (
-                <DealCard deal={activeDeal} onClick={() => {}} />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-          
-          {stages.length === 0 && (
-            <div style={{ width: "100%", textAlign: "center", padding: "100px" }}>
-              <Empty description="No pipeline stages found. Please create stages in settings." />
-              <Button type="primary" onClick={() => router.push("/admin/pipeline-settings")}>
-                Go to Pipeline Settings
+      <div style={{ height: "calc(100vh - 64px)", display: "flex", flexDirection: "column", margin: "0 -24px", background: 'var(--bg-pure-white)' }}>
+        <TimeTrackingHeader
+          style={{ padding: '9.5px 32px' }}
+          icon={<FireOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+          title="Sales Pipeline"
+          description="Manage your deals and track progress across stages"
+          extra={
+            <Space>
+              <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
+              <Button icon={<UnorderedListOutlined />} onClick={() => router.push("/admin/deals")}>List View</Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => router.push("/admin/deals/create")}>
+                Create Deal
               </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Detail Drawer */}
-        <DealDetailsDrawer 
-          deal={selectedDeal} 
-          visible={drawerVisible} 
-          onClose={() => {
-            setDrawerVisible(false);
-            setSelectedDeal(null);
-          }} 
+            </Space>
+          }
         />
+
+        <div style={{ padding: "16px 32px 32px 32px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+          {/* Filters */}
+          <div style={{
+            padding: "12px 16px",
+            background: "var(--bg-slate-50)",
+            border: "1px solid var(--border-slate-100)",
+            borderRadius: "8px",
+            marginBottom: "20px"
+          }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center" }}>
+              <Input
+                placeholder="Search deals, companies..."
+                prefix={<SearchOutlined />}
+                style={{ width: 250 }}
+                value={searchText}
+                onChange={e => setSearchText(e.target.value)}
+                allowClear
+              />
+
+              <Select
+                placeholder="Assigned To"
+                style={{ width: 180 }}
+                allowClear
+                prefix={<UserOutlined />}
+                onChange={setSelectedUser}
+                value={selectedUser}
+              >
+                {employees.map(emp => (
+                  <Option key={emp.value} value={emp.value}>{emp.label}</Option>
+                ))}
+              </Select>
+
+              <Select
+                mode="multiple"
+                placeholder="Filter by Tags"
+                style={{ width: 200 }}
+                allowClear
+                onChange={setSelectedTags}
+                value={selectedTags}
+              >
+                {allTags.map(tag => (
+                  <Option key={tag} value={tag}>{tag}</Option>
+                ))}
+              </Select>
+
+              <div style={{ width: 200, display: "flex", alignItems: "center", gap: "8px" }}>
+                <Tooltip title="Value Range">
+                  <DollarOutlined style={{ color: "#8c8c8c" }} />
+                </Tooltip>
+                <Slider
+                  range
+                  min={0}
+                  max={500000}
+                  step={5000}
+                  style={{ flex: 1 }}
+                  value={valueRange}
+                  onChange={val => setValueRange(val as [number, number])}
+                />
+              </div>
+
+              <Badge count={filteredDeals.length} style={{ backgroundColor: "#1677ff" }}>
+                <Button icon={<FilterOutlined />} type="text">Results</Button>
+              </Badge>
+            </div>
+          </div>
+
+          {/* Kanban Board */}
+          <div style={{ flex: 1, overflowX: "auto", display: "flex", paddingBottom: "16px" }}>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+            >
+              {stages.map(stage => (
+                <KanbanColumn
+                  key={stage.id}
+                  stage={stage}
+                  deals={dealsByStage[stage.id] || []}
+                  onDealClick={(deal) => {
+                    router.push(`/admin/deals/${deal.id}`);
+                  }}
+                />
+              ))}
+
+              <DragOverlay dropAnimation={{
+                sideEffects: defaultDropAnimationSideEffects({
+                  styles: {
+                    active: {
+                      opacity: '0.5',
+                    },
+                  },
+                }),
+              }}>
+                {activeDeal ? (
+                  <DealCard deal={activeDeal} onClick={() => { }} />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+
+            {stages.length === 0 && (
+              <div style={{ width: "100%", textAlign: "center", padding: "100px" }}>
+                <Empty description="No pipeline stages found. Please create stages in settings." />
+                <Button type="primary" onClick={() => router.push("/admin/pipeline-settings")}>
+                  Go to Pipeline Settings
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Detail Drawer */}
+          <DealDetailsDrawer
+            deal={selectedDeal}
+            visible={drawerVisible}
+            onClose={() => {
+              setDrawerVisible(false);
+              setSelectedDeal(null);
+            }}
+          />
+        </div>
       </div>
     </MainLayout>
   );

@@ -49,6 +49,7 @@ import { useRouter } from "next/navigation";
 import { useInvoiceTemplates, useDeleteInvoiceTemplate } from "@/hooks/useInvoiceTemplates";
 import InvoiceTemplateDrawer from "./InvoiceTemplateDrawer";
 import { InvoiceTemplate } from "@/services/invoiceTemplateService";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 
@@ -257,70 +258,63 @@ export default function InvoiceTemplatePage() {
       {contextHolder}
       <div style={{
         margin: "0 -24px",
-        padding: "7px 32px 20px 32px",
         background: "var(--customers-page-bg)",
         minHeight: "calc(100vh - 64px)"
       }}>
-        {/* ================= HEADER ================= */}
-        <div style={{ marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24 }}>
-          <div style={{ flex: 1 }}>
-            <Space size={8} align="center">
-              <div style={{ background: "var(--customers-header-icon-bg)", padding: "6px 8px", borderRadius: 8, color: "var(--customers-header-icon-color)", display: "flex" }}>
-                <Layers size={18} />
-              </div>
-              <div>
-                <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)", fontSize: "15px" }}>Invoice Templates</Title>
-                <Text style={{ color: "var(--text-secondary)", fontSize: "11px" }}>Design and manage structures for professional invoices.</Text>
-              </div>
-            </Space>
-          </div>
-          <div style={{ display: "flex", gap: 10, alignItems: 'center' }}>
-            <Segmented
-              disabled={isLoading}
-              options={[
-                {
-                  value: "card",
-                  label: (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px' }}>
-                      <LayoutGrid size={14} />
-                    </div>
-                  )
-                },
-                {
-                  value: "table",
-                  label: (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px' }}>
-                      <List size={14} />
-                    </div>
-                  )
-                },
-              ]}
-              value={viewMode}
-              onChange={(value) => setViewMode(value as "card" | "table")}
-              style={{ padding: 4, borderRadius: 10 }}
-            />
-            <Input
-              placeholder="Search templates..."
-              prefix={<Search size={16} className="text-slate-400 mr-2" />}
-              allowClear
-              size="middle"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{ width: 260, borderRadius: 8, height: 38, backgroundColor: "var(--bg-slate-50)" }}
-            />
-            <Button
-              type="primary"
-              size="middle"
-              icon={<Plus size={16} />}
-              onClick={handleCreate}
-              style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600, background: "var(--customers-header-icon-color)", border: "none" }}
-            >
-              Add Template
-            </Button>
-          </div>
-        </div>
+        <TimeTrackingHeader
+          style={{ padding: '9.5px 32px' }}
+          icon={<Layers size={20} color="#8b5cf6" />}
+          title="Invoice Templates"
+          description="Design and manage structures for professional invoices."
+          extra={
+            <div style={{ display: "flex", gap: 10, alignItems: 'center' }}>
+              <Segmented
+                disabled={isLoading}
+                options={[
+                  {
+                    value: "card",
+                    label: (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px' }}>
+                        <LayoutGrid size={14} />
+                      </div>
+                    )
+                  },
+                  {
+                    value: "table",
+                    label: (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px' }}>
+                        <List size={14} />
+                      </div>
+                    )
+                  },
+                ]}
+                value={viewMode}
+                onChange={(value) => setViewMode(value as "card" | "table")}
+                style={{ padding: 4, borderRadius: 10 }}
+              />
+              <Input
+                placeholder="Search templates..."
+                prefix={<Search size={16} className="text-slate-400 mr-2" />}
+                allowClear
+                size="middle"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: 260, borderRadius: 8, height: 38, backgroundColor: "var(--bg-slate-50)" }}
+              />
+              <Button
+                type="primary"
+                size="middle"
+                icon={<Plus size={16} />}
+                onClick={handleCreate}
+                style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600, background: "var(--customers-header-icon-color)", border: "none" }}
+              >
+                Add Template
+              </Button>
+            </div>
+          }
+        />
 
-        <Divider style={{ margin: "4px -32px 12px -32px", width: "calc(100% + 64px)", borderColor: 'var(--border-color)' }} />
+        <div style={{ padding: "16px 32px 32px 32px" }}>
 
         {/* ================= STATS ================= */}
         <Row gutter={[24, 24]} style={{ marginBottom: 16 }}>
@@ -517,6 +511,7 @@ export default function InvoiceTemplatePage() {
             />
           </Card>
         )}
+        </div>
       </div>
 
       <style dangerouslySetInnerHTML={{

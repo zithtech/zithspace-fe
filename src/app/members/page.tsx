@@ -43,6 +43,7 @@ import { Avatar, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { usePermission } from "@/hooks/usePermission";
 import { usePositions } from "@/hooks/usePositions";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -330,7 +331,7 @@ export default function MembersPage() {
       width: 180,
       render: (text: string, record: Member) => (
         <Space>
-          <Avatar 
+          <Avatar
             size={32}
             src={record.avatarUrl}
             style={{
@@ -493,30 +494,18 @@ export default function MembersPage() {
 
   return (
     <MainLayout>
-      <div style={{ 
-        margin: "0 -24px", 
-        padding: "24px 32px", 
-        background: "var(--bg-pure-white)", 
-        minHeight: "calc(100vh - 64px)" 
+      <div style={{
+        margin: "0 -24px",
+        background: "var(--bg-pure-white)",
+        minHeight: "calc(100vh - 64px)"
       }}>
-        {/* Header */}
-        <div style={{ marginBottom: 24 }}>
-          <Space
-            align="center"
-            style={{ width: "100%", justifyContent: "space-between" }}
-          >
-            <Space align="start" size={16}>
-              <TeamOutlined style={{ fontSize: 28, color: "var(--premium-blue)", marginTop: 4 }} />
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.5px', color: 'var(--text-slate-900)' }}>
-                  Members Management
-                </Title>
-                <Text style={{ fontSize: 13, marginTop: 2, color: 'var(--text-slate-500)' }}>
-                  Directory and access control for all organization members
-                </Text>
-              </div>
-            </Space>
-            {(canCreateUser || canManageUsers) && (
+        <TimeTrackingHeader
+          style={{ padding: '8.5px 32px' }}
+          icon={<TeamOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+          title="Members Management"
+          description="Directory and access control for all organization members"
+          extra={
+            (canCreateUser || canManageUsers) ? (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -526,168 +515,171 @@ export default function MembersPage() {
               >
                 Add Member
               </Button>
-            )}
-          </Space>
-        </div>
+            ) : null
+          }
+        />
 
-        {/* Stats Cards */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
-              <Space direction="vertical" size={4}>
-                <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Total Members</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-slate-900)' }}>{memberStats.total}</Title>
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
-              <Space direction="vertical" size={4}>
-                <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Super Admins</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-leave)' }}>{memberStats.superAdmin}</Title>
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
-              <Space direction="vertical" size={4}>
-                <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Team Admins</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--warning-yellow, #faad14)' }}>{memberStats.admin}</Title>
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
-              <Space direction="vertical" size={4}>
-                <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Regular Users</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-holiday)' }}>{memberStats.user}</Title>
-              </Space>
-            </Card>
-          </Col>
-        </Row>
+        <div style={{ padding: "24px 32px 32px 32px" }}>
 
-        {/* Alerts */}
-        {error && (
-          <Alert
-            message={error}
-            type="error"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
-            onClose={() => setError("")}
-          />
-        )}
-        {success && (
-          <Alert
-            message={success}
-            type="success"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
-            onClose={() => setSuccess("")}
-          />
-        )}
+          {/* Stats Cards */}
+          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+            <Col xs={24} sm={12} lg={6}>
+              <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
+                <Space direction="vertical" size={4}>
+                  <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Total Members</Text>
+                  <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-slate-900)' }}>{memberStats.total}</Title>
+                </Space>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
+                <Space direction="vertical" size={4}>
+                  <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Super Admins</Text>
+                  <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-leave)' }}>{memberStats.superAdmin}</Title>
+                </Space>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
+                <Space direction="vertical" size={4}>
+                  <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Team Admins</Text>
+                  <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--warning-yellow, #faad14)' }}>{memberStats.admin}</Title>
+                </Space>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
+                <Space direction="vertical" size={4}>
+                  <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Regular Users</Text>
+                  <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-holiday)' }}>{memberStats.user}</Title>
+                </Space>
+              </Card>
+            </Col>
+          </Row>
 
-        {/* Filters and Table Container */}
-        <Card
-          bordered={false}
-          style={{
-            marginBottom: 16,
-            borderRadius: 12,
-            border: '1px solid var(--border-slate-100)',
-            boxShadow: 'none',
-            background: 'var(--bg-pure-white)'
-          }}
-          styles={{ body: { padding: 0 } }}
-        >
-          {/* Filters Bar */}
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-slate-100)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, flex: 1 }}>
-                <Input
-                  placeholder="Search members..."
-                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ width: 280, borderRadius: 8, height: 40, background: 'var(--bg-secondary)', color: 'var(--text-slate-900)' }}
-                  allowClear
-                />
+          {/* Alerts */}
+          {error && (
+            <Alert
+              message={error}
+              type="error"
+              showIcon
+              closable
+              style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
+              onClose={() => setError("")}
+            />
+          )}
+          {success && (
+            <Alert
+              message={success}
+              type="success"
+              showIcon
+              closable
+              style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
+              onClose={() => setSuccess("")}
+            />
+          )}
 
-                <Select
-                  placeholder="Filter by role"
-                  value={roleFilter}
-                  onChange={setRoleFilter}
-                  style={{ width: 180, height: 40 }}
-                  allowClear
-                >
-                  <Option value="super_admin">Super Admin</Option>
-                  <Option value="admin">Admin</Option>
-                  <Option value="user">User</Option>
-                </Select>
+          {/* Filters and Table Container */}
+          <Card
+            bordered={false}
+            style={{
+              marginBottom: 16,
+              borderRadius: 12,
+              border: '1px solid var(--border-slate-100)',
+              boxShadow: 'none',
+              background: 'var(--bg-pure-white)'
+            }}
+            styles={{ body: { padding: 0 } }}
+          >
+            {/* Filters Bar */}
+            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-slate-100)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, flex: 1 }}>
+                  <Input
+                    placeholder="Search members..."
+                    prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ width: 280, borderRadius: 8, height: 40, background: 'var(--bg-secondary)', color: 'var(--text-slate-900)' }}
+                    allowClear
+                  />
 
-                <Select
-                  placeholder="Filter by position"
-                  value={positionFilter}
-                  onChange={setPositionFilter}
-                  style={{ width: 220, height: 40 }}
-                  allowClear
-                  loading={positionsLoading}
-                >
-                  {positions.map((position) => (
-                    <Option key={position.id} value={position.title}>
-                      {position.title}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
+                  <Select
+                    placeholder="Filter by role"
+                    value={roleFilter}
+                    onChange={setRoleFilter}
+                    style={{ width: 180, height: 40 }}
+                    allowClear
+                  >
+                    <Option value="super_admin">Super Admin</Option>
+                    <Option value="admin">Admin</Option>
+                    <Option value="user">User</Option>
+                  </Select>
 
-              <div style={{ display: 'flex', gap: 12 }}>
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={handleClearFilters}
-                  style={{
-                    height: 40,
-                    borderRadius: 8,
-                    fontWeight: 500,
-                    color: 'var(--text-slate-600)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-slate-200)'
-                  }}
-                >
-                  Clear
-                </Button>
+                  <Select
+                    placeholder="Filter by position"
+                    value={positionFilter}
+                    onChange={setPositionFilter}
+                    style={{ width: 220, height: 40 }}
+                    allowClear
+                    loading={positionsLoading}
+                  >
+                    {positions.map((position) => (
+                      <Option key={position.id} value={position.title}>
+                        {position.title}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={handleClearFilters}
+                    style={{
+                      height: 40,
+                      borderRadius: 8,
+                      fontWeight: 500,
+                      color: 'var(--text-slate-600)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-slate-200)'
+                    }}
+                  >
+                    Clear
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Members Table */}
-          <Table
-            columns={columns}
-            dataSource={members}
-            rowKey="id"
-            loading={loading}
-            pagination={{
-              current: pagination.current,
-              pageSize: pagination.pageSize,
-              total: pagination.total,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total} members`,
-              onChange: (page, pageSize) => {
-                setPagination((prev) => ({
-                  ...prev,
-                  current: page,
-                  pageSize: pageSize || 10,
-                }));
-              },
-              style: { padding: '16px 24px' }
-            }}
-            scroll={{ x: 1000 }}
-          />
-        </Card>
+            {/* Members Table */}
+            <Table
+              columns={columns}
+              dataSource={members}
+              rowKey="id"
+              loading={loading}
+              pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: pagination.total,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} of ${total} members`,
+                onChange: (page, pageSize) => {
+                  setPagination((prev) => ({
+                    ...prev,
+                    current: page,
+                    pageSize: pageSize || 10,
+                  }));
+                },
+                style: { padding: '16px 24px' }
+              }}
+              scroll={{ x: 1000 }}
+            />
+          </Card>
+        </div>
 
         {/* Modal */}
         <Modal

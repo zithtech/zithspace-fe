@@ -662,7 +662,7 @@ const DocumentHubPage = (props: Props) => {
           </div>
 
           {/* Filters Section - Sticky inside the card */}
-          <div className="sticky top-0 bg-white z-20" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(8px)', zIndex: 100 }}>
+          <div className="sticky top-0 z-20" style={{ background: 'var(--bg-pure-white)', zIndex: 100 }}>
             <div className="px-4 py-3 flex flex-wrap items-center gap-4 justify-between">
               <div className="flex flex-wrap items-center gap-4 flex-1">
                 <div className="relative w-full max-w-sm min-w-[200px]">
@@ -970,12 +970,25 @@ const DocumentHubPage = (props: Props) => {
           letter-spacing: 0.05em;
           border-bottom: 2px solid #f1f5f9 !important;
         }
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
+          background: #161b22 !important;
+          color: #94a3b8 !important;
+          border-bottom-color: #1f2937 !important;
+        }
         .premium-table .ant-table-tbody > tr > td {
           border-bottom: 1px solid #f1f5f9;
           padding: 8px 16px !important;
+          background: var(--bg-pure-white) !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td {
+          border-bottom-color: #1f2937 !important;
+          background: #161b22 !important;
         }
         .premium-table .ant-table-row:hover > td {
           background: #fdfdfd !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-row:hover > td {
+          background: #1f2937 !important;
         }
         .visibility-select .ant-select-selection-item {
           display: flex;

@@ -2374,6 +2374,7 @@ import dayjs, { Dayjs } from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import isBetween from "dayjs/plugin/isBetween";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -3579,106 +3580,83 @@ export default function SubmittimesheetTab({
     <>
       <div style={{
         margin: "0 -24px",
-        padding: "0 32px",
         background: "var(--bg-pure-white)",
-        height: "calc(100vh - 72px)",
+        height: "calc(100vh - 64px)",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden"
       }}>
-        {/* Header Section */}
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          gap: 24,
-          background: "var(--bg-pure-white)",
-          zIndex: 100,
-          padding: "20px 0 12px 0",
-          borderBottom: "1px solid var(--border-slate-100)",
-          marginBottom: 16,
-          flexShrink: 0
-        }}>
-          <div style={{ flex: 1 }}>
-            <Space size={14} align="center">
-              <div style={{ background: "var(--bg-sky-50)", padding: 12, borderRadius: 14, color: "var(--text-sky-500)", display: "flex" }}>
-                <ClipboardList size={28} />
-              </div>
-              <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>{isEditMode ? "Edit Timesheet" : "Submit Timesheet"}</Title>
-                <Text style={{ color: "var(--text-slate-600)", fontSize: 15 }}>
-                  {isEditMode
-                    ? "Review and save your updated timesheet for this period."
-                    : "Please fill in your working hours for the current week."}
-                </Text>
-              </div>
-            </Space>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {/* Week Selector Context */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--bg-table-header)", padding: "4px", borderRadius: 12, border: "1px solid var(--border-slate-200)" }}>
-              <Button
-                type="text"
-                icon={<ChevronLeft size={18} />}
-                onClick={() => setCurrentDate(currentDate.subtract(1, "week"))}
-                style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 36, width: 36, borderRadius: 8 }}
-              />
-              <div style={{ padding: "0 16px", fontWeight: 600, color: "var(--text-slate-900)", fontSize: 14, minWidth: 180, textAlign: "center" }}>
-                {currentDate.startOf("week").format("MMM DD")} – {currentDate.endOf("week").format("MMM DD, YYYY")}
-              </div>
-              <Button
-                type="text"
-                icon={<ChevronRight size={18} />}
-                onClick={() => setCurrentDate(currentDate.add(1, "week"))}
-                style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 36, width: 36, borderRadius: 8 }}
-              />
-            </div>
-
-            <Tooltip title={`${totalHours}h / 40h logged`}>
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "6px 16px",
-                background: "var(--bg-table-header)",
-                borderRadius: 12,
-                border: "1px solid var(--border-slate-200)",
-                height: 44
-              }}>
-                <Clock size={16} color="var(--text-slate-600)" />
-                <div style={{ width: 80 }}>
-                  <Progress
-                    percent={(totalHours / 40) * 100}
-                    showInfo={false}
-                    strokeColor={totalHours >= 40 ? "#10b981" : "#0ea5e9"}
-                    trailColor="var(--border-slate-200)"
-                    strokeWidth={6}
-                  />
+        <TimeTrackingHeader
+          style={{ padding: '9.5px 32px' }}
+          icon={<ClipboardList size={20} color="#0ea5e9" />}
+          title={isEditMode ? "Edit Timesheet" : "Submit Timesheet"}
+          description={isEditMode ? "Review and save your updated timesheet for this period." : "Please fill in your working hours for the current week."}
+          extra={
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--bg-table-header)", padding: "4px", borderRadius: 12, border: "1px solid var(--border-slate-200)", height: 38 }}>
+                <Button
+                  type="text"
+                  icon={<ChevronLeft size={16} />}
+                  onClick={() => setCurrentDate(currentDate.subtract(1, "week"))}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 30, width: 30, borderRadius: 8 }}
+                />
+                <div style={{ padding: "0 12px", fontWeight: 600, color: "var(--text-slate-900)", fontSize: 13, minWidth: 160, textAlign: "center" }}>
+                  {currentDate.startOf("week").format("MMM DD")} – {currentDate.endOf("week").format("MMM DD, YYYY")}
                 </div>
-                <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)" }}>{totalHours}h</Text>
+                <Button
+                  type="text"
+                  icon={<ChevronRight size={16} />}
+                  onClick={() => setCurrentDate(currentDate.add(1, "week"))}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 30, width: 30, borderRadius: 8 }}
+                />
               </div>
-            </Tooltip>
 
-            <Button
-              icon={<Save size={18} />}
-              loading={saveDraftLoading}
-              onClick={handleSaveDraft}
-              disabled={isViewMode || status === "Submitted"}
-              style={{ height: 44, borderRadius: 10, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}
-            >
-              Save Draft
-            </Button>
+              <Tooltip title={`${totalHours}h / 40h logged`}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "6px 12px",
+                  background: "var(--bg-table-header)",
+                  borderRadius: 12,
+                  border: "1px solid var(--border-slate-200)",
+                  height: 38
+                }}>
+                  <Clock size={16} color="var(--text-slate-600)" />
+                  <div style={{ width: 60 }}>
+                    <Progress
+                      percent={(totalHours / 40) * 100}
+                      showInfo={false}
+                      strokeColor={totalHours >= 40 ? "#10b981" : "#0ea5e9"}
+                      trailColor="var(--border-slate-200)"
+                      strokeWidth={6}
+                    />
+                  </div>
+                  <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)", whiteSpace: "nowrap" }}>{totalHours}h</Text>
+                </div>
+              </Tooltip>
 
-            <Button
-              type="primary"
-              icon={<Send size={18} />}
-              onClick={() => setIsSubmitOpen(true)}
-              style={{ height: 44, borderRadius: 10, fontWeight: 600, background: '#1677ff', display: "flex", alignItems: "center", gap: 8 }}
-            >
-              Submit
-            </Button>
-          </div>
-        </div>
+              <Button
+                icon={<Save size={16} />}
+                loading={saveDraftLoading}
+                onClick={handleSaveDraft}
+                disabled={isViewMode || status === "Submitted"}
+                style={{ height: 38, borderRadius: 10, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}
+              >
+                Save Draft
+              </Button>
+
+              <Button
+                type="primary"
+                icon={<Send size={16} />}
+                onClick={() => setIsSubmitOpen(true)}
+                style={{ height: 38, borderRadius: 10, fontWeight: 600, background: '#1677ff', display: "flex", alignItems: "center", gap: 8 }}
+              >
+                Submit
+              </Button>
+            </div>
+          }
+        />
 
         <style dangerouslySetInnerHTML={{
           __html: `
@@ -3709,7 +3687,7 @@ export default function SubmittimesheetTab({
       `}} />
 
         {/* Main Content Card Wrapper */}
-        <div className="timesheet-scroll-area" style={{ flex: 1, overflowY: "auto", padding: "0 0 24px 0", scrollbarWidth: "none", msOverflowStyle: "none" }}>
+        <div className="timesheet-scroll-area" style={{ flex: 1, overflowY: "auto", padding: "16px 32px 32px 32px", scrollbarWidth: "none", msOverflowStyle: "none" }}>
           <Card
             bordered={false}
             style={{

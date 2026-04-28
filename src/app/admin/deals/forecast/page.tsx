@@ -16,6 +16,7 @@ import {
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { dealService, ForecastData } from '@/services/dealService';
+import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -104,21 +105,17 @@ const ForecastDashboard: React.FC = () => {
 
   return (
     <MainLayout>
-      <div style={{ padding: '16px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
-        <Row justify="space-between" align="middle" style={{ marginBottom: '16px' }}>
-          <Col>
-            <Space align="center" size={10}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 8, background: 'var(--bg-red-50)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <FireOutlined style={{ color: 'var(--text-leave)', fontSize: 18 }} />
-              </div>
-              <Title level={3} style={{ margin: 0, color: 'var(--text-slate-900)' }}>Sales Forecast Dashboard</Title>
-            </Space>
-            <Text style={{ display: 'block', marginTop: 4, color: 'var(--text-slate-500)' }}>Gain insights into your pipeline and predicted revenue</Text>
-          </Col>
-          <Col>
+      <div style={{ 
+        margin: "0 -24px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
+        <TimeTrackingHeader
+          style={{ padding: '10.5px 32px' }}
+          icon={<FireOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+          title="Sales Forecast Dashboard"
+          description="Gain insights into your pipeline and predicted revenue"
+          extra={
             <Space>
               <RangePicker 
                 onChange={(dates: any) => {
@@ -145,8 +142,10 @@ const ForecastDashboard: React.FC = () => {
                 ))}
               </Select>
             </Space>
-          </Col>
-        </Row>
+          }
+        />
+
+        <div style={{ padding: "16px 32px 32px 32px" }}>
 
         <Spin spinning={loading}>
           {data ? (
@@ -271,6 +270,7 @@ const ForecastDashboard: React.FC = () => {
             <Empty description="No forecast data available for the selected filters" />
           )}
         </Spin>
+        </div>
       </div>
 
       <style jsx global>{`

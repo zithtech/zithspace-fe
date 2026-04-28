@@ -49,15 +49,9 @@ import {
 import { useRouter } from "next/navigation";
 import isBetween from "dayjs/plugin/isBetween";
 
-import {
-  useDeletedInvoices,
-  useRestoreInvoice,
-  useBulkRestoreInvoices,
-  usePermanentDeleteInvoice,
-  useBulkPermanentDeleteInvoices,
-  invoiceKeys
-} from "@/hooks/useInvoices";
+import { useDeletedInvoices, useRestoreInvoice, useBulkRestoreInvoices, usePermanentDeleteInvoice, useBulkPermanentDeleteInvoices, invoiceKeys } from "@/hooks/useInvoices";
 import { useQueryClient } from "@tanstack/react-query";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -543,59 +537,52 @@ export default function InvoiceTrashPage() {
       {modalContextHolder}
       <div style={{
         margin: "0 -24px",
-        padding: "8px 32px 24px 32px",
         background: "var(--customers-page-bg)",
         minHeight: "calc(100vh - 64px)"
       }}>
-        {/* ================= HEADER ================= */}
-        <div style={{ marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24 }}>
-          <div style={{ flex: 1 }}>
-            <Space size={8} align="center">
-              <div style={{ background: "var(--customers-delete-header-bg)", padding: "6px 8px", borderRadius: 8, color: "var(--customers-delete-icon-color)", display: "flex" }}>
-                <Trash2 size={18} />
-              </div>
-              <div>
-                <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)", fontSize: "15px" }}>Invoice Trash</Title>
-                <Text style={{ color: "var(--text-secondary)", fontSize: "11px" }}>Review and restore deleted invoices or remove them permanently.</Text>
-              </div>
-            </Space>
-          </div>
-          <div style={{ display: "flex", gap: 10, alignItems: 'center' }}>
-            <Input.Search
-              placeholder="Search deleted..."
-              allowClear
-              size="middle"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{ width: 260, borderRadius: 8, backgroundColor: 'var(--bg-slate-50)' }}
-            />
-            <Popover content={filterContent} trigger="click" placement="bottomRight">
-              <Button size="middle" icon={<Filter size={16} />} style={{ borderRadius: 8, height: 38, backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
-                Filter
+        <TimeTrackingHeader
+          style={{ padding: '9.5px 32px' }}
+          icon={<Trash2 size={20} color="#8b5cf6" />}
+          title="Invoice Trash"
+          description="Review and restore deleted invoices or remove them permanently."
+          extra={
+            <div style={{ display: "flex", gap: 10, alignItems: 'center' }}>
+              <Input.Search
+                placeholder="Search deleted..."
+                allowClear
+                size="middle"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: 260, borderRadius: 8, backgroundColor: 'var(--bg-slate-50)' }}
+              />
+              <Popover content={filterContent} trigger="click" placement="bottomRight">
+                <Button size="middle" icon={<Filter size={16} />} style={{ borderRadius: 8, height: 38, backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+                  Filter
+                </Button>
+              </Popover>
+              <Button
+                size="middle"
+                icon={<RefreshCw size={16} className={isFetching ? "animate-spin" : ""} />}
+                onClick={async () => {
+                  await queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
+                  refetch();
+                }}
+                style={{ borderRadius: 8, height: 38, backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}
+              />
+              <Button
+                type="primary"
+                size="middle"
+                icon={<ArrowLeft size={16} />}
+                onClick={() => router.push("/invoice/invoices")}
+                style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600, backgroundColor: 'var(--customers-header-icon-color)', border: 'none' }}
+              >
+                Back to Invoices
               </Button>
-            </Popover>
-            <Button
-              size="middle"
-              icon={<RefreshCw size={16} className={isFetching ? "animate-spin" : ""} />}
-              onClick={async () => {
-                await queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
-                refetch();
-              }}
-              style={{ borderRadius: 8, height: 38, backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}
-            />
-            <Button
-              type="primary"
-              size="middle"
-              icon={<ArrowLeft size={16} />}
-              onClick={() => router.push("/invoice/invoices")}
-              style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600, backgroundColor: 'var(--customers-header-icon-color)', border: 'none' }}
-            >
-              Back to Invoices
-            </Button>
-          </div>
-        </div>
+            </div>
+          }
+        />
 
-        <Divider style={{ margin: "4px -32px 12px -32px", width: "calc(100% + 64px)", borderColor: 'var(--border-color)' }} />
+        <div style={{ padding: "16px 32px 32px 32px" }}>
 
         {/* ================= METRIC STATS ================= */}
         <Row gutter={[24, 24]} style={{ marginBottom: 16 }}>
@@ -711,6 +698,7 @@ export default function InvoiceTrashPage() {
             />
           </Card>
         )}
+        </div>
       </div>
 
       <style dangerouslySetInnerHTML={{

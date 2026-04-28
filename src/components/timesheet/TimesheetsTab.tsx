@@ -48,6 +48,7 @@ import {
 } from "@/hooks/useTimesheet";
 import { useAuth } from "@/context/AuthContext";
 import utc from "dayjs/plugin/utc";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 dayjs.extend(utc);
 
@@ -407,78 +408,60 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
   return (
     <div style={{
       margin: "0 -24px",
-      padding: "0 32px 24px 32px",
       background: "var(--bg-pure-white)",
-      height: "calc(100vh - 72px)",
+      height: "calc(100vh - 64px)",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden"
     }}>
-      {/* Header Section */}
-      <div style={{
-        marginBottom: 16,
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-end",
-        gap: 24,
-        position: "sticky",
-        top: 0,
-        background: "var(--bg-pure-white)",
-        zIndex: 10,
-        padding: "24px 0 12px 0"
-      }}>
-        <div style={{ flex: 1 }}>
-          <Space size={14} align="center">
-            <div style={{ background: "var(--bg-sky-50)", padding: 12, borderRadius: 14, color: "var(--text-sky-500)", display: "flex" }}>
-              <FileText size={28} />
-            </div>
-            <div>
-              <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Timesheets</Title>
-              <Text style={{ color: "var(--text-slate-600)", fontSize: 15 }}>Manage and track your weekly timesheet submissions.</Text>
-            </div>
-          </Space>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Input
-            placeholder="Search timesheets..."
-            prefix={<Search size={16} color="var(--text-slate-400)" />}
-            style={{ width: 280, borderRadius: 12, height: 44, border: "1px solid var(--border-slate-200)" }}
-            value={searchText}
-            onChange={e => setSearchText(e.target.value)}
-            allowClear
-          />
-          <Dropdown
-            menu={{
-              items: [
-                { key: "all", label: "All Statuses" },
-                { key: "APPROVED", label: "Approved" },
-                { key: "REJECTED", label: "Rejected" },
-                { key: "SUBMITTED", label: "Submitted" },
-                { key: "DRAFT", label: "Draft" },
-              ],
-              onClick: ({ key }) => setStatusFilter(key === "all" ? null : key),
-            }}
-          >
-            <Button
-              style={{ borderRadius: 12, height: 44, display: "flex", alignItems: "center", gap: 8 }}
-              icon={<Filter size={16} />}
+      <TimeTrackingHeader
+        style={{ padding: '9.5px 32px' }}
+        icon={<FileText size={20} color="#0ea5e9" />}
+        title="Timesheets"
+        description="Manage and track your weekly timesheet submissions."
+        extra={
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Input
+              placeholder="Search timesheets..."
+              prefix={<Search size={16} color="var(--text-slate-400)" />}
+              style={{ width: 280, borderRadius: 12, height: 38, border: "1px solid var(--border-slate-200)" }}
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+              allowClear
+            />
+            <Dropdown
+              menu={{
+                items: [
+                  { key: "all", label: "All Statuses" },
+                  { key: "APPROVED", label: "Approved" },
+                  { key: "REJECTED", label: "Rejected" },
+                  { key: "SUBMITTED", label: "Submitted" },
+                  { key: "DRAFT", label: "Draft" },
+                ],
+                onClick: ({ key }) => setStatusFilter(key === "all" ? null : key),
+              }}
             >
-              {statusFilter ? statusFilter.charAt(0) + statusFilter.slice(1).toLowerCase() : "Filter"}
+              <Button
+                style={{ borderRadius: 12, height: 38, display: "flex", alignItems: "center", gap: 8 }}
+                icon={<Filter size={16} />}
+              >
+                {statusFilter ? statusFilter.charAt(0) + statusFilter.slice(1).toLowerCase() : "Filter"}
+              </Button>
+            </Dropdown>
+            <Button
+              type="primary"
+              size="middle"
+              icon={<PlusOutlined />}
+              style={{ borderRadius: 10, height: 38, fontWeight: 500 }}
+              onClick={() => goToSubmitTimesheet()}
+            >
+              Create Timesheet
             </Button>
-          </Dropdown>
-          <Button
-            type="primary"
-            size="large"
-            icon={<PlusOutlined />}
-            style={{ borderRadius: 10, height: 44, fontWeight: 500 }}
-            onClick={() => goToSubmitTimesheet()}
-          >
-            Create Timesheet
-          </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
-      <div style={{ flex: 1, overflowY: "auto", paddingRight: 4, scrollbarWidth: "none" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 32px 32px 32px", scrollbarWidth: "none" }}>
         {/* Mini Stats Row */}
         <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
           {stats.map(stat => (

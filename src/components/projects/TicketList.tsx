@@ -1104,6 +1104,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       {contextHolder}
       {notifyContextHolder}
 
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .project-switch-trigger:hover {
+          background-color: var(--bg-slate-50);
+        }
+      `}} />
+
       {/* Premium Header Row - Sticky Glassmorphism */}
       <div className="saas-header-container" style={{
         position: 'sticky',
@@ -1163,7 +1170,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           }}
           trigger={['click']}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '4px 8px', borderRadius: 8 }} className="hover:bg-slate-50 transition-colors">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '4px 8px', borderRadius: 8 }} className="project-switch-trigger transition-colors">
             <div style={{
               padding: '0 8px',
               height: 32,

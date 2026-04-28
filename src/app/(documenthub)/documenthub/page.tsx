@@ -481,9 +481,14 @@ const DocumentHubPage = (props: Props) => {
       key: "createdBy",
       render: (text, record) => (
         <Space>
-          <Avatar size={24} style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: '10px' }}>
+          <Avatar 
+            size={24} 
+            src={record.createdBy?.avatarUrl}
+            style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: '10px' }}
+          >
             {text?.charAt(0).toUpperCase()}
           </Avatar>
+
           <span className="text-slate-600" style={{ color: 'var(--text-slate-700)' }}>{text}</span>
         </Space>
       )

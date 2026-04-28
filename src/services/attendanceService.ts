@@ -6,6 +6,7 @@ export interface Attendance {
     id: string;
     name: string;
     position: string;
+    avatarUrl?: string | null;
   };
   date: string;
   clockIn?: string;

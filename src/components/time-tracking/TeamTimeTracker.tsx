@@ -119,38 +119,38 @@ const TimeEntryEditModal: React.FC<TimeEntryEditModalProps> = ({ open, onClose, 
             </div>
             <div style={{ flex: 1 }}>
               <Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 6 }}>New End Time</Text>
-                <TimePicker
-                  value={endTime}
-                  onChange={(time) => {
-                    if (!time) {
-                      setEndTime(null);
-                      return;
+              <TimePicker
+                value={endTime}
+                onChange={(time) => {
+                  if (!time) {
+                    setEndTime(null);
+                    return;
+                  }
+                  if (entry && entry.start) {
+                    // Change the date safely using ISO string format
+                    const isoDate = dayjs(entry.start).format('YYYY-MM-DD');
+                    const isoTime = time.format('HH:mm:ss');
+
+                    // Combine into a standard local ISO format
+                    let correctedTime = dayjs(`${isoDate}T${isoTime}`);
+
+                    // If the selected time is earlier than the start time, 
+                    // assume the session continued past midnight into the next day.
+                    if (correctedTime.isBefore(dayjs(entry.start))) {
+                      correctedTime = correctedTime.add(1, 'day');
                     }
-                    if (entry && entry.start) {
-                      // Change the date safely using ISO string format
-                      const isoDate = dayjs(entry.start).format('YYYY-MM-DD');
-                      const isoTime = time.format('HH:mm:ss');
 
-                      // Combine into a standard local ISO format
-                      let correctedTime = dayjs(`${isoDate}T${isoTime}`);
-
-                      // If the selected time is earlier than the start time, 
-                      // assume the session continued past midnight into the next day.
-                      if (correctedTime.isBefore(dayjs(entry.start))) {
-                        correctedTime = correctedTime.add(1, 'day');
-                      }
-
-                      setEndTime(correctedTime);
-                    } else {
-                      setEndTime(time);
-                    }
-                  }}
-                  format="HH:mm:ss"
-                  style={{ width: '100%', height: 40, borderRadius: 8 }}
-                  allowClear={false}
-                  placeholder="Select end time"
-                  needConfirm={false}
-                />
+                    setEndTime(correctedTime);
+                  } else {
+                    setEndTime(time);
+                  }
+                }}
+                format="HH:mm:ss"
+                style={{ width: '100%', height: 40, borderRadius: 8 }}
+                allowClear={false}
+                placeholder="Select end time"
+                needConfirm={false}
+              />
             </div>
           </div>
 
@@ -408,8 +408,8 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       key: "user",
       render: (_: any, record: any) => (
         <Space>
-          <Avatar icon={<UserOutlined />} style={{ backgroundColor: 'var(--bg-holiday)', color: 'var(--text-holiday)' }}>
-            {record.user.name[0]}
+          <Avatar src={record.user?.avatarUrl} style={{ backgroundColor: 'var(--bg-holiday)', color: 'var(--text-holiday)' }}>
+            {record.user.name?.[0]}
           </Avatar>
           <div>
             <div style={{ fontWeight: 600, color: 'var(--text-slate-900)' }}>{record.user.name}</div>

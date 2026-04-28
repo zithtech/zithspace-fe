@@ -79,7 +79,7 @@ export const CombinedSummaryCard: React.FC<CombinedSummaryCardProps> = ({
     <Card 
       className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] h-full" 
       bordered={false} 
-      bodyStyle={{ padding: '24px' }}
+      styles={{ body: { padding: '24px' } }}
     >
       <Row gutter={48} align="top">
         <Col span={11}>

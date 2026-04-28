@@ -72,8 +72,8 @@ export default function UpdateDetailsModal({ update, open, onClose }: UpdateDeta
       bodyStyle={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', padding: 0 }}
     >
       {/* Header */}
-      <div style={{ 
-        padding: '20px 24px', 
+      <div style={{
+        padding: '20px 24px',
         borderBottom: '1px solid #f0f0f0',
         position: 'sticky',
         top: 0,
@@ -83,11 +83,12 @@ export default function UpdateDetailsModal({ update, open, onClose }: UpdateDeta
         <Row justify="space-between" align="middle">
           <Col>
             <Space size={12}>
-              <Avatar 
-                size={48} 
+              <Avatar
+                src={update.user?.avatarUrl}
+                size={48}
                 style={{ backgroundColor: '#1890ff', fontSize: 20 }}
               >
-                {update.user?.name.charAt(0).toUpperCase()}
+                {update.user?.name?.charAt(0).toUpperCase()}
               </Avatar>
               <div>
                 <Text strong style={{ fontSize: 16, display: 'block', lineHeight: 1.3 }}>
@@ -124,9 +125,9 @@ export default function UpdateDetailsModal({ update, open, onClose }: UpdateDeta
         {/* General Notes - TOP LEVEL */}
         {update.generalNotes && (
           <>
-            <div style={{ 
-              padding: 16, 
-              backgroundColor: '#e6f7ff', 
+            <div style={{
+              padding: 16,
+              backgroundColor: '#e6f7ff',
               borderRadius: 6,
               borderLeft: '3px solid #1890ff',
               marginBottom: 20
@@ -147,8 +148,8 @@ export default function UpdateDetailsModal({ update, open, onClose }: UpdateDeta
         )}
 
         {/* Project Updates */}
-        <Collapse 
-          defaultActiveKey={projectUpdates.map((_, i) => i.toString())} 
+        <Collapse
+          defaultActiveKey={projectUpdates.map((_, i) => i.toString())}
           style={{ backgroundColor: 'transparent', border: 'none' }}
         >
           {projectUpdates.map((projectUpdate, index) => (
@@ -170,8 +171,8 @@ export default function UpdateDetailsModal({ update, open, onClose }: UpdateDeta
                 </Row>
               }
               key={index.toString()}
-              style={{ 
-                marginBottom: 12, 
+              style={{
+                marginBottom: 12,
                 backgroundColor: '#fafafa',
                 border: '1px solid #e8e8e8',
                 borderRadius: 8,
@@ -179,9 +180,9 @@ export default function UpdateDetailsModal({ update, open, onClose }: UpdateDeta
             >
               <div style={{ padding: '12px 0' }}>
                 {/* Time Tracking */}
-                <div style={{ 
-                  marginBottom: 16, 
-                  padding: 12, 
+                <div style={{
+                  marginBottom: 16,
+                  padding: 12,
                   backgroundColor: '#fff',
                   borderRadius: 6,
                   border: '1px solid #e8e8e8'
@@ -216,7 +217,7 @@ export default function UpdateDetailsModal({ update, open, onClose }: UpdateDeta
                   <Space direction="vertical" style={{ width: '100%' }} size={8}>
                     {projectUpdate.tasks.map((task: Task, taskIndex: number) => {
                       const statusConfig = getStatusConfig(task.status);
-                      
+
                       return (
                         <div
                           key={taskIndex}
@@ -266,9 +267,9 @@ export default function UpdateDetailsModal({ update, open, onClose }: UpdateDeta
                 {(projectUpdate.blockers || projectUpdate.notes) && (
                   <div>
                     {projectUpdate.blockers && (
-                      <div style={{ 
-                        marginBottom: 12, 
-                        padding: 12, 
+                      <div style={{
+                        marginBottom: 12,
+                        padding: 12,
                         backgroundColor: '#fff2e8',
                         borderRadius: 6,
                         borderLeft: '3px solid #fa8c16'
@@ -288,8 +289,8 @@ export default function UpdateDetailsModal({ update, open, onClose }: UpdateDeta
                     )}
 
                     {projectUpdate.notes && (
-                      <div style={{ 
-                        padding: 12, 
+                      <div style={{
+                        padding: 12,
                         backgroundColor: '#f6ffed',
                         borderRadius: 6,
                         borderLeft: '3px solid #52c41a'

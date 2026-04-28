@@ -76,12 +76,16 @@ export default function CommentsSection({
 
               return (
                 <div key={comment.id} className="comment-bubble-wrapper" style={{ display: 'flex', gap: 10 }}>
-                  <Avatar size={28} style={{ 
-                    backgroundColor: (comment as any).user?.name ? "#1890ff" : "#bfbfbf", 
-                    fontSize: 12,
-                    marginTop: 4,
-                    flexShrink: 0
-                  }}>
+                  <Avatar 
+                    size={28} 
+                    src={(comment as any).user?.avatarUrl}
+                    style={{ 
+                      backgroundColor: (comment as any).user?.name ? "#1890ff" : "#bfbfbf", 
+                      fontSize: 12,
+                      marginTop: 4,
+                      flexShrink: 0
+                    }}
+                  >
                     {userName.charAt(0).toUpperCase()}
                   </Avatar>
                   

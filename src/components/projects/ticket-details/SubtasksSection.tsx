@@ -142,7 +142,7 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
                 key: member.value,
                 label: (
                     <Space>
-                        <Avatar size="small" style={{ backgroundColor: '#1890ff' }}>{member?.label?.charAt(0).toUpperCase()}</Avatar>
+                        <Avatar size="small" src={member.avatarUrl} style={{ backgroundColor: '#1890ff' }}>{member?.label?.charAt(0).toUpperCase()}</Avatar>
                         <span>{member?.label}</span>
                     </Space>
                 ),
@@ -237,8 +237,8 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
                             <div className="assignee-trigger" style={{ cursor: 'pointer', padding: 2, borderRadius: '50%' }}>
                                 {subtask.assignee ? (
                                     <Tooltip title={`Assignee: ${subtask.assignee.name}`}>
-                                        <Avatar size={24} style={{ backgroundColor: '#1890ff', fontSize: 12 }}>
-                                            {subtask.assignee.name.charAt(0).toUpperCase()}
+                                        <Avatar size={24} src={subtask.assignee.avatarUrl} style={{ backgroundColor: '#1890ff', fontSize: 12 }}>
+                                            {subtask.assignee.name?.charAt(0).toUpperCase()}
                                         </Avatar>
                                     </Tooltip>
                                 ) : (

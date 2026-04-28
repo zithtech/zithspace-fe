@@ -274,6 +274,28 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     // Initialize editor
     const editor = useCreateBlockNote({
         initialContent: undefined, // We'll handle content updates via useEffect
+        uploadFile: async (file: File) => {
+            try {
+                // Convert to base64
+                const base64Image = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.onerror = (error) => reject(error);
+                });
+                
+                // Use the API client to upload
+                const { api } = await import('@/lib/axios');
+                const res = await api.post("/api/tickets/upload-image", {
+                    image: base64Image,
+                });
+                return res.url;
+            } catch (error) {
+                console.error("Failed to upload image:", error);
+                messageApi.error("Failed to upload image");
+                return ""; // Return empty string on failure as per BlockNote expectations
+            }
+        }
     });
 
     // Expand all nodes by default when data loads and select first document

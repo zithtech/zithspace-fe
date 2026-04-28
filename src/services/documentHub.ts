@@ -40,6 +40,7 @@ export interface DocumentHub {
     name: string;
     workEmail: string;
     position?: string;
+    avatarUrl?: string;
   };
   visibility: string;
   shareToken?: string;

@@ -1,6 +1,10 @@
 import React from "react";
-import { Row, Col, Typography, Space } from "antd";
-import { ClockCircleOutlined, CalendarOutlined } from "@ant-design/icons";
+import { Typography } from "antd";
+import {
+  ClockCircleOutlined,
+  CalendarOutlined,
+  RiseOutlined,
+} from "@ant-design/icons";
 
 const { Text } = Typography;
 
@@ -9,36 +13,94 @@ interface TimeStatsBarProps {
   daysWorked: number;
 }
 
+const Stat: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  hint?: string;
+  accent: string;
+}> = ({ icon, label, value, hint, accent }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+    <div
+      style={{
+        width: 38,
+        height: 38,
+        borderRadius: 10,
+        background: `${accent}12`,
+        color: accent,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 16,
+        flexShrink: 0,
+      }}
+    >
+      {icon}
+    </div>
+    <div style={{ minWidth: 0 }}>
+      <Text
+        style={{
+          display: "block",
+          fontSize: 10.5,
+          fontWeight: 600,
+          color: "var(--text-slate-400)",
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+        }}
+      >
+        {label}
+      </Text>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+        <Text style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
+          {value}
+        </Text>
+        {hint && (
+          <Text style={{ fontSize: 11, color: "var(--text-slate-500)", fontWeight: 500 }}>
+            {hint}
+          </Text>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
 export const TimeStatsBar: React.FC<TimeStatsBarProps> = ({ hoursLogged, daysWorked }) => {
+  const avgPerDay = daysWorked > 0 ? (hoursLogged / daysWorked).toFixed(1) : "0";
   return (
-    <div className="my-4 p-4 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)]">
-      <Row gutter={48} align="middle">
-        <Col>
-          <Space size="middle">
-            <div style={{ padding: '8px', borderRadius: '8px', background: 'var(--bg-slate-50)', display: 'flex', border: '1px solid var(--border-color)' }}>
-              <ClockCircleOutlined style={{ color: '#1890ff', fontSize: '16px' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Hours Logged</div>
-              <Text strong style={{ fontSize: '18px', color: 'var(--text-primary)' }}>{hoursLogged}h</Text>
-            </div>
-          </Space>
-        </Col>
-        <Col>
-          <Space size="middle">
-            <div style={{ padding: '8px', borderRadius: '8px', background: 'var(--bg-slate-50)', display: 'flex', border: '1px solid var(--border-color)' }}>
-              <CalendarOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Days Worked</div>
-              <Space align="baseline">
-                <Text strong style={{ fontSize: '18px', color: 'var(--text-primary)' }}>{daysWorked}d</Text>
-                <Text type="secondary" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>(6h/day)</Text>
-              </Space>
-            </div>
-          </Space>
-        </Col>
-      </Row>
+    <div
+      style={{
+        margin: "16px 0",
+        padding: "16px 20px",
+        background: "var(--bg-pure-white)",
+        borderRadius: 14,
+        border: "1px solid var(--border-color)",
+        display: "flex",
+        alignItems: "center",
+        gap: 24,
+        flexWrap: "wrap",
+      }}
+    >
+      <Stat
+        icon={<ClockCircleOutlined />}
+        label="Hours Logged"
+        value={`${hoursLogged}h`}
+        accent="#3b82f6"
+      />
+      <div style={{ width: 1, height: 36, background: "var(--border-color)" }} />
+      <Stat
+        icon={<CalendarOutlined />}
+        label="Days Worked"
+        value={`${daysWorked}d`}
+        hint="6h / day"
+        accent="#10b981"
+      />
+      <div style={{ width: 1, height: 36, background: "var(--border-color)" }} />
+      <Stat
+        icon={<RiseOutlined />}
+        label="Avg / Day"
+        value={`${avgPerDay}h`}
+        accent="#8b5cf6"
+      />
     </div>
   );
 };

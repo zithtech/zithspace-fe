@@ -8,7 +8,8 @@ interface Option {
     label: string;
     value: string;
     color?: string; // For Tags
-    avatar?: string; // For Users
+    avatar?: string; // For Users (initials)
+    avatarUrl?: string; // For Users (image)
     description?: string;
 }
 
@@ -18,7 +19,7 @@ interface EditableSelectProps {
     options: Option[];
     placeholder?: string;
     label?: string;
-    mode?: 'tag' | 'user' | 'text'; // Display mode
+    mode?: 'tag' | 'user' | 'text' | 'dot'; // Display mode
     emptyText?: string;
     plain?: boolean; // If true, removes default hover background and padding
     textStyle?: React.CSSProperties;
@@ -85,7 +86,11 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                     label: (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             {opt.color && <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color }} />}
-                            {opt.avatar && <Avatar size="small" style={{ width: 18, height: 18, fontSize: 10 }}>{opt.avatar}</Avatar>}
+                            {opt.avatarUrl ? (
+                                <Avatar size="small" src={opt.avatarUrl} style={{ width: 18, height: 18 }} />
+                            ) : opt.avatar ? (
+                                <Avatar size="small" style={{ width: 18, height: 18, fontSize: 10 }}>{opt.avatar}</Avatar>
+                            ) : null}
                             <span>{opt.label}</span>
                         </div>
                     )
@@ -108,11 +113,39 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
             );
         }
 
+        if (mode === 'dot') {
+            const dotColorMap: Record<string, string> = {
+                blue: '#3b82f6', cyan: '#06b6d4', geekblue: '#4f46e5',
+                purple: '#8b5cf6', magenta: '#ec4899',
+                green: '#10b981', lime: '#84cc16',
+                gold: '#f59e0b', orange: '#f97316', volcano: '#ef4444', red: '#dc2626',
+                default: '#94a3b8',
+            };
+            const c = selectedOption.color || 'default';
+            const dotColor = c.startsWith('#') ? c : (dotColorMap[c] || dotColorMap.default);
+            return (
+                <Space size={6} align="center">
+                    <span
+                        style={{
+                            width: 6, height: 6, borderRadius: '50%',
+                            background: dotColor, display: 'inline-block',
+                            boxShadow: `0 0 0 3px ${dotColor}1f`,
+                            flexShrink: 0,
+                        }}
+                    />
+                    <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-primary)' }}>
+                        {selectedOption.label}
+                    </Text>
+                </Space>
+            );
+        }
+
         if (mode === 'user') {
             return (
                 <Space size={4}>
                     <Avatar
                         size="small"
+                        src={selectedOption.avatarUrl}
                         style={{ width: 20, height: 20, fontSize: 12, lineHeight: '20px', backgroundColor: '#1677ff' }}
                     >
                         {selectedOption.label.charAt(0)}

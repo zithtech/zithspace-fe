@@ -490,6 +490,27 @@ export default function TiptapEditor({
 
         .tiptap-editor-content p {
           margin: 0 0 8px 0;
+          color: var(--text-primary);
+        }
+
+        /* Bold text inherits the theme's primary color in BOTH modes.
+           Without this, Tailwind's prose plugin sets a near-black --tw-prose-bold
+           that disappears against the dark-mode background. */
+        .tiptap-editor-content strong,
+        .tiptap-editor-content b {
+          color: var(--text-primary);
+          font-weight: 700;
+        }
+
+        .tiptap-editor-content em,
+        .tiptap-editor-content i,
+        .tiptap-editor-content u,
+        .tiptap-editor-content s {
+          color: var(--text-primary);
+        }
+
+        .tiptap-editor-content li {
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content h1 {

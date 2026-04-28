@@ -676,41 +676,41 @@ export default function TopNav({
             menu={{ items: userMenuItems }}
             placement="bottomRight"
             trigger={["click"]}
+            dropdownRender={(menu) => (
+              <div style={{ boxShadow: 'none', border: '1px solid var(--border-slate-200)', borderRadius: 8, background: 'var(--bg-pure-white)' }}>
+                {menu}
+              </div>
+            )}
           >
-            <Space 
-              className="user-dropdown-premium" 
-              style={{ 
-                cursor: "pointer", 
-                padding: "2px 8px 2px 4px", 
-                borderRadius: 12,
-                border: "1px solid transparent",
-                transition: "all 0.3s ease",
-                background: "rgba(0,0,0,0.02)"
+            <Space
+              style={{
+                cursor: "pointer",
+                padding: "2px 4px",
+                borderRadius: 8,
               }}
             >
-                <Avatar
-                  size={isSmallMobile ? 32 : 36}
-                  style={{ 
-                    background: user.avatarUrl ? 'transparent' : `linear-gradient(135deg, ${getRoleBadgeColor(user.role)} 0%, #000 160%)`,
-                    border: '2px solid #fff',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    fontSize: 14,
-                    fontWeight: 700
-                  }}
-                  src={user.avatarUrl}
-                >
-                  {!user.avatarUrl && user.name?.charAt(0).toUpperCase()}
-                </Avatar>
-                  {!isSmallMobile && (
-                    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1, marginLeft: 6 }}>
-                      <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{user.name}</Text>
-                      {user.role && (
-                        <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7 }}>
-                          {user.role.replace('_', ' ')}
-                        </Text>
-                      )}
-                    </div>
+              <Avatar
+                size={isSmallMobile ? 32 : 36}
+                style={{
+                  background: user.avatarUrl ? 'transparent' : 'var(--bg-slate-200)',
+                  color: 'var(--text-slate-700)',
+                  fontSize: 14,
+                  fontWeight: 700
+                }}
+                src={user.avatarUrl}
+              >
+                {!user.avatarUrl && user.name?.charAt(0).toUpperCase()}
+              </Avatar>
+              {!isSmallMobile && (
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1, marginLeft: 6 }}>
+                  <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{user.name}</Text>
+                  {user.role && (
+                    <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7 }}>
+                      {user.role.replace('_', ' ')}
+                    </Text>
                   )}
+                </div>
+              )}
             </Space>
           </Dropdown>
         )}

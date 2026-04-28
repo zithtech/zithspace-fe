@@ -1,6 +1,11 @@
 import React from "react";
-import { Card, Typography, List, Space } from "antd";
-import { BulbOutlined } from "@ant-design/icons";
+import { Typography, Empty } from "antd";
+import {
+  BulbOutlined,
+  WarningOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+} from "@ant-design/icons";
 
 const { Text } = Typography;
 
@@ -8,34 +13,106 @@ interface InsightsPanelProps {
   insights: string[];
 }
 
+const classify = (text: string) => {
+  const t = text.toLowerCase();
+  if (t.includes("behind") || t.includes("delay") || t.includes("risk") || t.includes("overdue")) {
+    return { color: "#ef4444", bg: "rgba(239, 68, 68, 0.08)", icon: <WarningOutlined /> };
+  }
+  if (t.includes("imbalance") || t.includes("warning") || t.includes("watch")) {
+    return { color: "#f59e0b", bg: "rgba(245, 158, 11, 0.08)", icon: <ExclamationCircleOutlined /> };
+  }
+  if (t.includes("ahead") || t.includes("on track") || t.includes("good") || t.includes("complete")) {
+    return { color: "#10b981", bg: "rgba(16, 185, 129, 0.08)", icon: <CheckCircleOutlined /> };
+  }
+  return { color: "#3b82f6", bg: "rgba(59, 130, 246, 0.08)", icon: <BulbOutlined /> };
+};
+
 export const InsightsPanel: React.FC<InsightsPanelProps> = ({ insights }) => {
   return (
-    <Card 
-      title="INSIGHTS" 
-      bordered={false} 
-      className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] flex flex-col" 
-      style={{ height: '292px' }}
-      styles={{
-        header: { borderBottom: 'none', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em', flexShrink: 0 },
-        body: { overflowY: 'auto', flex: 1, paddingTop: 0 }
+    <div
+      style={{
+        background: "var(--bg-pure-white)",
+        border: "1px solid var(--border-color)",
+        borderRadius: 14,
+        height: 292,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
       }}
     >
-      <List
-        dataSource={insights}
-        renderItem={(item) => (
-          <List.Item style={{ borderBottom: 'none', padding: '6px 0' }}>
-            <Space align="start" size="small">
-              <span style={{ 
-                color: item.toLowerCase().includes('behind') ? '#ff4d4f' : item.toLowerCase().includes('imbalance') ? '#faad14' : '#38e94d', 
-                fontSize: '18px',
-                lineHeight: '13px'
-              }}>•</span>
-              <Text style={{ fontSize: '13px', color: 'var(--text-slate-700)' }}>{item}</Text>
-            </Space>
-          </List.Item>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "12px 16px",
+          borderBottom: "1px solid var(--border-color)",
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: 7,
+            background: "rgba(245, 158, 11, 0.10)",
+            color: "#f59e0b",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 12,
+          }}
+        >
+          <BulbOutlined />
+        </div>
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: "var(--text-slate-900)",
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+          }}
+        >
+          Insights
+        </Text>
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+        {insights.length === 0 ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No insights yet</Text>}
+            />
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {insights.map((item, idx) => {
+              const c = classify(item);
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    background: c.bg,
+                    border: `1px solid ${c.color}20`,
+                  }}
+                >
+                  <span style={{ color: c.color, fontSize: 14, marginTop: 1 }}>{c.icon}</span>
+                  <Text style={{ fontSize: 12.5, color: "var(--text-slate-700)", lineHeight: 1.5 }}>
+                    {item}
+                  </Text>
+                </div>
+              );
+            })}
+          </div>
         )}
-      />
-      {insights.length === 0 && <Text type="secondary" style={{ fontSize: '12px' }}>No insights currently available.</Text>}
-    </Card>
+      </div>
+    </div>
   );
 };

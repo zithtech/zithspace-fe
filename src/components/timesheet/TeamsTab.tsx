@@ -188,7 +188,11 @@ export default function TeamsTab({
       title: "Employee",
       render: (_: any, r: any) => (
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Avatar size={36} style={{ backgroundColor: "var(--bg-sky-50)", color: "var(--text-sky-500)", fontWeight: 600 }}>
+          <Avatar 
+            size={36} 
+            src={r.user?.avatarUrl}
+            style={{ backgroundColor: "var(--bg-sky-50)", color: "var(--text-sky-500)", fontWeight: 600 }}
+          >
             {r.user?.name?.charAt(0).toUpperCase()}
           </Avatar>
           <div>
@@ -413,7 +417,11 @@ export default function TeamsTab({
           <div style={{ padding: "16px 0", borderBottom: "1px solid var(--border-slate-100)", marginBottom: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <Avatar size={40} style={{ backgroundColor: "var(--text-sky-500)", fontWeight: 700, fontSize: 16 }}>
+                <Avatar 
+                  size={40} 
+                  src={selectedTimesheet?.user?.avatarUrl}
+                  style={{ backgroundColor: "var(--text-sky-500)", fontWeight: 700, fontSize: 16 }}
+                >
                   {selectedTimesheet?.user?.name?.charAt(0).toUpperCase()}
                 </Avatar>
                 <div>
@@ -541,6 +549,7 @@ export default function TeamsTab({
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <Avatar
                 size={48}
+                src={selectedTimesheet?.user?.avatarUrl}
                 style={{ backgroundColor: "var(--text-sky-500)", fontWeight: 700 }}
               >
                 {selectedTimesheet.user?.name?.charAt(0).toUpperCase()}

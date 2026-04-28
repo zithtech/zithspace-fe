@@ -1,15 +1,32 @@
 import React from "react";
-import { Card, Typography, Row, Col, Avatar, Space, Tag } from "antd";
-import { UserOutlined, TeamOutlined, ProfileOutlined } from "@ant-design/icons";
+import { Card, Typography, Avatar } from "antd";
+import { TeamOutlined, ProfileOutlined, CrownOutlined } from "@ant-design/icons";
 
-const { Text, Title, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 
 interface ProjectInfoCardProps {
   projectHead: string;
-  avatarUrl?: string; // Added avatarUrl
+  avatarUrl?: string;
   teamCount: number;
   description: string | null;
 }
+
+const SectionLabel: React.FC<{ icon: React.ReactNode; children: React.ReactNode }> = ({ icon, children }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+    <span style={{ color: "var(--text-slate-400)", fontSize: 11, display: "inline-flex" }}>{icon}</span>
+    <Text
+      style={{
+        fontSize: 10.5,
+        fontWeight: 600,
+        color: "var(--text-slate-400)",
+        textTransform: "uppercase",
+        letterSpacing: "0.05em",
+      }}
+    >
+      {children}
+    </Text>
+  </div>
+);
 
 export const ProjectInfoCard: React.FC<ProjectInfoCardProps> = ({
   projectHead,
@@ -18,73 +35,74 @@ export const ProjectInfoCard: React.FC<ProjectInfoCardProps> = ({
   description,
 }) => {
   return (
-    <Card 
-      className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] h-full" 
-      bordered={false} 
-      styles={{ body: { padding: '20px' } }}
+    <Card
+      style={{
+        background: "var(--bg-pure-white)",
+        border: "1px solid var(--border-color)",
+        borderRadius: 14,
+        height: "100%",
+      }}
+      styles={{ body: { padding: 20 } }}
     >
-      <div className="space-y-4">
-        {/* Top Header Section */}
-        <Row gutter={16}>
-          <Col span={14}>
-            <div className="mb-1">
-              <Text strong style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                <UserOutlined className="mr-1" /> Team Head
-              </Text>
-            </div>
-            <Space align="center">
-              <Avatar 
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>
+        {/* Top row: lead + members */}
+        <div style={{ display: "flex", gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <SectionLabel icon={<CrownOutlined />}>Project Lead</SectionLabel>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <Avatar
+                size={36}
                 src={avatarUrl}
-                style={{ 
-                  backgroundColor: 'rgba(24, 144, 255, 0.1)', 
-                  color: '#1890ff', 
-                  border: '1px solid rgba(24, 144, 255, 0.2)' 
+                style={{
+                  backgroundColor: "var(--bg-secondary, #f1f5f9)",
+                  color: "var(--text-slate-700)",
+                  border: "1px solid var(--border-color)",
+                  fontWeight: 600,
+                  fontSize: 13,
                 }}
               >
-                {!avatarUrl && projectHead.substring(0, 1).toUpperCase()}
+                {projectHead?.substring(0, 1).toUpperCase()}
               </Avatar>
-              <Text strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{projectHead}</Text>
-            </Space>
-          </Col>
-          <Col span={10}>
-            <div className="mb-1">
-              <Text strong style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                <TeamOutlined className="mr-1" /> Members
+              <Text
+                strong
+                ellipsis
+                style={{ fontSize: 14, color: "var(--text-slate-900)", minWidth: 0 }}
+              >
+                {projectHead || "Unassigned"}
               </Text>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <Title level={4} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>{teamCount}</Title>
-              <Tag style={{ 
-                marginLeft: '8px', 
-                border: 'none', 
-                background: 'var(--bg-slate-50)', 
-                color: 'var(--text-secondary)',
-                fontSize: '10px', 
-                borderRadius: '4px' 
-              }}>ACTIVE</Tag>
-            </div>
-          </Col>
-        </Row>
-
-        <Divider style={{ margin: '12px 0' }} />
-
-        {/* Description Section */}
-        <div>
-          <div className="mb-2">
-            <Text strong style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              <ProfileOutlined className="mr-1" /> Project Description
-            </Text>
           </div>
-          <div style={{ 
-            background: 'var(--bg-slate-50)', 
-            padding: '12px', 
-            borderRadius: '8px', 
-            border: '1px solid var(--border-color)',
-            minHeight: '80px'
-          }}>
-            <Paragraph 
-              ellipsis={{ rows: 3, expandable: true, symbol: 'more' }} 
-              style={{ fontSize: '13px', margin: 0, color: 'var(--text-slate-700)' }}
+
+          <div style={{ width: 1, background: "var(--border-color)" }} />
+
+          <div style={{ minWidth: 110 }}>
+            <SectionLabel icon={<TeamOutlined />}>Members</SectionLabel>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <Text style={{ fontSize: 22, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                {teamCount}
+              </Text>
+              <Text style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
+                {teamCount === 1 ? "person" : "people"}
+              </Text>
+            </div>
+          </div>
+        </div>
+
+        {/* Description */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          <SectionLabel icon={<ProfileOutlined />}>Description</SectionLabel>
+          <div
+            style={{
+              background: "var(--bg-secondary, #f8fafc)",
+              padding: 12,
+              borderRadius: 8,
+              border: "1px solid var(--border-color)",
+              flex: 1,
+            }}
+          >
+            <Paragraph
+              ellipsis={{ rows: 4, expandable: true, symbol: "more" }}
+              style={{ fontSize: 12.5, margin: 0, color: "var(--text-slate-600)", lineHeight: 1.55 }}
             >
               {description || "No description provided for this project."}
             </Paragraph>
@@ -94,7 +112,3 @@ export const ProjectInfoCard: React.FC<ProjectInfoCardProps> = ({
     </Card>
   );
 };
-
-const Divider = ({ style }: { style?: React.CSSProperties }) => (
-  <div style={{ borderBottom: '1px solid var(--border-color)', ...style }} />
-);

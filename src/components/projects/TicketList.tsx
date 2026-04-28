@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
@@ -31,6 +31,7 @@ import {
   Badge,
   Progress,
   Spin,
+  Switch,
   Segmented,
   type TableProps,
 } from "antd";
@@ -44,6 +45,9 @@ import {
   AppstoreOutlined,
   BarsOutlined,
   FilterOutlined,
+  ExpandAltOutlined,
+  InboxOutlined,
+  UserOutlined,
   PlusOutlined,
   MinusOutlined,
   CaretRightOutlined,
@@ -57,7 +61,6 @@ import {
   FileTextOutlined,
   ThunderboltOutlined,
   CaretDownOutlined,
-  CalendarOutlined,
   ClockCircleOutlined,
   CloseOutlined,
 } from "@ant-design/icons";
@@ -98,7 +101,9 @@ interface FilterState {
   status: string[];
   priority: string[];
   assignee: string[];
+  type: string[];
   search: string;
+  showArchived?: boolean;
 }
 
 interface TicketListProps {
@@ -117,7 +122,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     status: [],
     priority: [],
     assignee: [],
+    type: [],
     search: "",
+    showArchived: false,
   });
 
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
@@ -126,6 +133,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [allTicketIds, setAllTicketIds] = useState<string[]>([]);
 
@@ -146,6 +154,20 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [backlogSearchValue, setBacklogSearchValue] = useState("");
   const [debouncedBacklogSearch, setDebouncedBacklogSearch] = useState("");
   const [recentTicket, setRecentTicket] = useState<Ticket | null>(null);
+  const recentTicketCardRef = useRef<HTMLDivElement | null>(null);
+
+  // Measure active-sprint card head so the table column headers stick flush below it
+  const activeSprintCardRef = useRef<HTMLDivElement | null>(null);
+  const [activeSprintHeadOffset, setActiveSprintHeadOffset] = useState<number>(128);
+  useEffect(() => {
+    const el = activeSprintCardRef.current?.querySelector('.ant-card-head') as HTMLElement | null;
+    if (!el) return;
+    const update = () => setActiveSprintHeadOffset(56 + el.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [activeSprintCardRef.current]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -232,7 +254,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     priority: filters.priority.length > 0 ? filters.priority.join(",") : undefined,
     assigneeId:
       filters.assignee.length > 0 ? filters.assignee.join(",") : undefined,
+    type: filters.type.length > 0 ? filters.type.join(",") : undefined,
     search: filters.search || undefined,
+    showArchived: filters.showArchived || undefined,
   };
 
   // Fetch Active Sprint to get ID for assignments (scoped to project)
@@ -329,9 +353,56 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   // Handle Add/Remove from Sprint
   // Handle Add/Remove from Sprint
+  const showSprintTinyToast = (
+    kind: 'added' | 'removed' | 'error',
+    label?: string
+  ) => {
+    const palette =
+      kind === 'added'
+        ? { dot: '#10b981', icon: '✓' }
+        : kind === 'removed'
+          ? { dot: '#ef4444', icon: '↺' }
+          : { dot: '#ef4444', icon: '!' };
+
+    notifyApi.open({
+      key: 'sprint-assignment-toast',
+      placement: 'top',
+      duration: 2,
+      className: 'tiny-toast',
+      message: (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              background: palette.dot,
+              color: '#fff',
+              fontSize: 11,
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            {palette.icon}
+          </span>
+          {kind === 'added' && (
+            <>
+              Added to <strong style={{ color: 'var(--text-slate-900)', fontWeight: 700 }}>{label}</strong>
+            </>
+          )}
+          {kind === 'removed' && <>Removed from sprint</>}
+          {kind === 'error' && <span style={{ color: '#ef4444' }}>Sprint update failed</span>}
+        </span>
+      ),
+    });
+  };
+
   const handleSprintAssignment = (ticketId: string, action: 'add' | 'remove') => {
     if (action === 'add' && !activeSprint) {
-      notifyApi.error({ message: "Action Failed", description: "No active sprint found for this project." });
+      showSprintTinyToast('error');
       return;
     }
 
@@ -344,21 +415,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       optimisticData: { releasePlan: releasePlanId } // Critical for optimistic move
     }, {
       onSuccess: () => {
-        notifyApi.success({
-          message: action === 'add' ? "Ticket Added to Sprint" : "Ticket Removed from Sprint",
-          description: action === 'add'
-            ? `${activeSprint?.name || 'Sprint'} updated.`
-            : "Ticket returned to backlog.",
-          placement: 'top', // Premium top-center placement
-          className: 'custom-notification',
-          style: {
-            borderLeft: `4px solid ${action === 'add' ? '#52c41a' : '#ff4d4f'}`,
-          }
-        });
+        if (action === 'add') {
+          showSprintTinyToast('added', activeSprint?.version || activeSprint?.name || 'Sprint');
+        } else {
+          showSprintTinyToast('removed');
+        }
       },
       onError: (err) => {
         console.error(err);
-        notifyApi.error({ message: "Update Failed", description: "Failed to update sprint assignment." });
+        showSprintTinyToast('error');
       }
     });
   };
@@ -449,6 +514,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     projectId, // From props, mandatory project context
     assigneeId: filters.assignee.length > 0 ? filters.assignee.join(',') : undefined,
     priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
+    type: filters.type.length > 0 ? filters.type.join(',') : undefined,
     search: filters.search || undefined,
     limitPerColumn: 20, // Fast initial load
     sprintId: kanbanScope === 'active' ? 'active' : 'null',
@@ -465,6 +531,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     projectId, // From props, mandatory project context
     assigneeId: filters.assignee.length > 0 ? filters.assignee.join(',') : undefined,
     priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
+    type: filters.type.length > 0 ? filters.type.join(',') : undefined,
     search: filters.search || undefined,
     limitPerColumn: 50, // Complete load
     sprintId: kanbanScope === 'active' ? 'active' : 'null',
@@ -504,6 +571,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
     if (key === 'search') return false;
+    if (key === 'showArchived') return value === true;
     return Array.isArray(value) && value.length > 0;
   }).length;
 
@@ -632,28 +700,25 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     }
   };
 
-  const fireConfetti = () => {
+  const fireConfettiAtCard = () => {
     try {
       // @ts-ignore
       import('canvas-confetti').then((confetti) => {
-        const duration = 3 * 1000;
-        const animationEnd = Date.now() + duration;
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+        const el = recentTicketCardRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const x = (rect.left + rect.width / 2) / window.innerWidth;
+        const y = (rect.top + rect.height / 2) / window.innerHeight;
 
-        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-        const interval: any = setInterval(function () {
-          const timeLeft = animationEnd - Date.now();
-
-          if (timeLeft <= 0) {
-            return clearInterval(interval);
-          }
-
-          const particleCount = 50 * (timeLeft / duration);
-          // since particles fall down, start a bit higher than random
-          confetti.default({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-          confetti.default({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-        }, 250);
+        confetti.default({
+          particleCount: 60,
+          spread: 70,
+          startVelocity: 28,
+          ticks: 80,
+          scalar: 0.8,
+          origin: { x, y },
+          zIndex: 1000,
+        });
       }).catch(err => {
         console.warn('Confetti module not found, skipping animation', err);
       });
@@ -663,8 +728,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   };
 
   const handleTicketCreated = (ticket: Ticket) => {
-    fireConfetti();
     setRecentTicket(ticket);
+    requestAnimationFrame(() => fireConfettiAtCard());
   };
 
   // Table columns generator
@@ -1201,26 +1266,35 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             allowClear
           />
 
-          <Popover
-            content={
-              <TicketFilters
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                members={members}
-                onReset={() => setFilters({ status: [], priority: [], assignee: [], search: filters.search })}
-              />
-            }
-            trigger="click"
-            placement="bottomLeft"
-          >
-            <Button
-              icon={<FilterOutlined />}
-              className={`saas-button-item ${activeFilterCount > 0 ? 'saas-tag-blue' : ''}`}
-              style={{ height: 36, fontWeight: 600 }}
+          <Space.Compact className="ticket-filter-group">
+            <Popover
+              content={
+                <TicketFilters
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  members={members}
+                  showArchivedToggle
+                  onReset={() => setFilters({ status: [], priority: [], assignee: [], type: [], search: filters.search, showArchived: false })}
+                />
+              }
+              trigger="click"
+              placement="bottomLeft"
             >
-              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
-            </Button>
-          </Popover>
+              <Button
+                icon={<FilterOutlined />}
+                className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
+                style={{ height: 36, fontWeight: 600 }}
+              >
+                Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+              </Button>
+            </Popover>
+            <Button
+              icon={<ExpandAltOutlined />}
+              style={{ height: 36 }}
+              aria-label="Expand filters"
+              onClick={() => setIsFilterRowOpen(prev => !prev)}
+            />
+          </Space.Compact>
 
           <Segmented
             value={viewMode}
@@ -1236,7 +1310,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         {/* Right Side Actions */}
         <Space size={12}>
           {recentTicket && (
-            <div 
+            <div
+              ref={recentTicketCardRef}
               className="ticket-highlight-glow"
               style={{
                 display: 'flex',
@@ -1336,6 +1411,137 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         </Space>
       </div>
 
+      {/* Inline Filter Row */}
+      {isFilterRowOpen && (
+        <div className="ticket-filter-row">
+          <div className="ticket-filter-row__header">
+            <span className="ticket-filter-row__badge">
+              <FilterOutlined />
+            </span>
+            <div className="ticket-filter-row__title">
+              <span className="ticket-filter-row__title-text">View Filters</span>
+              <span className="ticket-filter-row__title-sub">
+                {activeFilterCount > 0 ? `${activeFilterCount} active` : 'No filters applied'}
+              </span>
+            </div>
+          </div>
+
+          <div className="ticket-filter-row__fields">
+            <div className="ticket-filter-row__field">
+              <label className="ticket-filter-row__label">
+                <CheckCircleOutlined /> Status
+              </label>
+              <Select
+                mode="multiple"
+                placeholder="Any status"
+                value={filters.status}
+                onChange={(val) => handleFilterChange('status', val)}
+                options={STATUS_OPTIONS}
+                allowClear
+                maxTagCount={1}
+                className="ticket-filter-row__select"
+              />
+            </div>
+
+            <div className="ticket-filter-row__field">
+              <label className="ticket-filter-row__label">
+                <ThunderboltOutlined /> Priority
+              </label>
+              <Select
+                mode="multiple"
+                placeholder="Any priority"
+                value={filters.priority}
+                onChange={(val) => handleFilterChange('priority', val)}
+                options={PRIORITY_OPTIONS}
+                allowClear
+                maxTagCount={1}
+                className="ticket-filter-row__select"
+              />
+            </div>
+
+            <div className="ticket-filter-row__field">
+              <label className="ticket-filter-row__label">
+                <AppstoreOutlined /> Type
+              </label>
+              <Select
+                mode="multiple"
+                placeholder="Any type"
+                value={filters.type}
+                onChange={(val) => handleFilterChange('type', val)}
+                options={TYPE_OPTIONS}
+                allowClear
+                maxTagCount={1}
+                className="ticket-filter-row__select"
+              />
+            </div>
+
+            <div className="ticket-filter-row__field">
+              <label className="ticket-filter-row__label">
+                <UserOutlined /> Assignee
+              </label>
+              <Select
+                mode="multiple"
+                placeholder="All members"
+                value={filters.assignee}
+                onChange={(val) => handleFilterChange('assignee', val)}
+                options={members.map((m) => ({ label: m.label, value: m.value }))}
+                allowClear
+                showSearch
+                maxTagCount={1}
+                filterOption={(input, option) => {
+                  const member = members.find((m) => m.value === option?.value);
+                  return member
+                    ? member.label.toLowerCase().includes(input.toLowerCase()) ||
+                        (member.position || '').toLowerCase().includes(input.toLowerCase())
+                    : false;
+                }}
+                className="ticket-filter-row__select"
+              />
+            </div>
+          </div>
+
+          <div className="ticket-filter-row__actions">
+            <button
+              type="button"
+              onClick={() => handleFilterChange('showArchived', !filters.showArchived)}
+              className={`ticket-filter-row__chip ${filters.showArchived ? 'is-active' : ''}`}
+              aria-pressed={!!filters.showArchived}
+            >
+              <InboxOutlined />
+              <span>Archived</span>
+              <Switch
+                size="small"
+                checked={!!filters.showArchived}
+                onChange={(checked) => handleFilterChange('showArchived', checked)}
+              />
+            </button>
+
+            {activeFilterCount > 0 && (
+              <Button
+                type="text"
+                size="small"
+                icon={<ReloadOutlined />}
+                onClick={() => setFilters({ status: [], priority: [], assignee: [], type: [], search: filters.search, showArchived: false })}
+                className="ticket-filter-row__reset"
+              >
+                Reset
+              </Button>
+            )}
+
+            <Tooltip title="Close filters">
+              <Button
+                type="text"
+                shape="circle"
+                icon={<CloseOutlined />}
+                onClick={() => setIsFilterRowOpen(false)}
+                aria-label="Close filter row"
+                className="ticket-filter-row__close"
+              />
+            </Tooltip>
+          </div>
+        </div>
+      )}
+
       {/* Inline Creation */}
       <InlineCreateTicket
         visible={showCreateForm}
@@ -1354,9 +1560,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Active Sprint Section */}
           {activeSprint && (
-            <div id="active-section" style={{ scrollMarginTop: '100px' }}>
+            <div id="active-section" ref={activeSprintCardRef} style={{ scrollMarginTop: '100px' }}>
               <Card
-                className="saas-card"
+                className="saas-card saas-card-sticky"
                 title={
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Space size={12}>
@@ -1423,20 +1629,51 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Progress</div>
                         <div style={{ fontSize: 13, fontWeight: 800, color: '#10b981' }}>
-                          {overallSprintTickets.length > 0 ? Math.round((overallSprintTickets.filter(t => ['live', 'live_testing', 'completed'].includes(t.status?.toLowerCase() || '')).length / overallSprintTickets.length) * 100) : 0}%
+                          {overallSprintTickets.length > 0 ? Math.round((overallSprintTickets.filter(t => ['completed'].includes(t.status?.toLowerCase() || '')).length / overallSprintTickets.length) * 100) : 0}%
                         </div>
                       </div>
-                      <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-                          Sprint Timeline
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-start', color: '#475569' }}>
-                          <CalendarOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
-                          <Text style={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>
-                            {dayjs(activeSprint.startDate).format('MMM D')} — {dayjs(activeSprint.endDate).format('MMM D')}
-                          </Text>
-                        </div>
-                      </div>
+                      {(() => {
+                        const start = dayjs(activeSprint.startDate);
+                        const end = dayjs(activeSprint.endDate);
+                        const now = dayjs();
+                        const totalDays = Math.max(end.diff(start, 'day'), 1);
+                        const elapsedDays = Math.max(0, Math.min(totalDays, now.diff(start, 'day')));
+                        const pct = Math.round((elapsedDays / totalDays) * 100);
+                        const isOverdue = now.isAfter(end, 'day');
+                        const accent = isOverdue ? '#ef4444' : pct >= 75 ? '#f59e0b' : '#10b981';
+
+                        return (
+                          <div style={{ textAlign: 'left', minWidth: 180 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <div style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Sprint Timeline
+                              </div>
+                              <Text style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: '0.02em' }}>
+                                {isOverdue ? 'OVERDUE' : `${Math.max(0, totalDays - elapsedDays)}d LEFT`}
+                              </Text>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+                                {start.format('MMM D')}
+                              </Text>
+                              <div style={{ flex: 1, position: 'relative', height: 6, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', minWidth: 80 }}>
+                                <div style={{
+                                  position: 'absolute',
+                                  inset: 0,
+                                  width: `${Math.min(100, pct)}%`,
+                                  background: accent,
+                                  opacity: 0.9,
+                                  borderRadius: 999,
+                                  transition: 'width 0.4s ease',
+                                }} />
+                              </div>
+                              <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+                                {end.format('MMM D')}
+                              </Text>
+                            </div>
+                          </div>
+                        );
+                      })()}
                       <Button
                         type="default"
                         size="middle"
@@ -1468,6 +1705,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   rowKey="id"
                   pagination={false}
                   scroll={{ x: 'max-content' }}
+                  sticky={{ offsetHeader: activeSprintHeadOffset }}
                   className="saas-table"
                   size="middle"
                 />

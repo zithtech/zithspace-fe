@@ -1,5 +1,5 @@
-import React from 'react';
-import { Timeline, Typography, Tag, Empty, Spin, Avatar, Space } from 'antd';
+import React, { useMemo } from 'react';
+import { Typography, Tag, Empty, Spin, Avatar, Tooltip } from 'antd';
 import {
     ClockCircleOutlined,
     EditOutlined,
@@ -8,216 +8,418 @@ import {
     CheckCircleOutlined,
     UserOutlined,
     FileOutlined,
-    LinkOutlined
+    LinkOutlined,
+    HistoryOutlined,
+    ArrowRightOutlined
 } from '@ant-design/icons';
 import { useTicketActivityLog } from '@/hooks/useTicketDetails';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow, isToday, isYesterday, isThisWeek } from 'date-fns';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 interface ActivityTimelineProps {
     ticketId: string;
 }
 
+interface ActionStyle {
+    color: string;
+    bg: string;
+    icon: React.ReactNode;
+    label: string;
+}
+
+const getActionStyle = (action: string): ActionStyle => {
+    const iconStyle = { fontSize: 13 };
+    if (action.includes('Created')) {
+        return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)', icon: <PlusCircleOutlined style={iconStyle} />, label: 'Created' };
+    }
+    if (action.includes('Comment')) {
+        return { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)', icon: <MessageOutlined style={iconStyle} />, label: 'Commented' };
+    }
+    if (action.includes('Completed') || action.includes('Resolved')) {
+        return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)', icon: <CheckCircleOutlined style={iconStyle} />, label: 'Completed' };
+    }
+    if (action.includes('Attachment')) {
+        return { color: '#a855f7', bg: 'rgba(168, 85, 247, 0.12)', icon: <FileOutlined style={iconStyle} />, label: 'Attachment' };
+    }
+    if (action.includes('Link')) {
+        return { color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.12)', icon: <LinkOutlined style={iconStyle} />, label: 'Link' };
+    }
+    if (action.includes('Updated')) {
+        return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)', icon: <EditOutlined style={iconStyle} />, label: 'Updated' };
+    }
+    return { color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.12)', icon: <ClockCircleOutlined style={iconStyle} />, label: action };
+};
+
+const formatChangeValue = (val: string) => {
+    if (!val) return '—';
+    return val.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+const dateGroupLabel = (date: Date) => {
+    if (isToday(date)) return 'Today';
+    if (isYesterday(date)) return 'Yesterday';
+    if (isThisWeek(date)) return format(date, 'EEEE');
+    return format(date, 'MMM d, yyyy');
+};
+
 const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
     const { data: activities, isLoading, isError } = useTicketActivityLog(ticketId);
 
+    const grouped = useMemo(() => {
+        if (!activities) return [] as Array<{ label: string; items: any[] }>;
+        const map = new Map<string, any[]>();
+        activities.forEach((a: any) => {
+            const date = new Date(a.timestamp);
+            const key = dateGroupLabel(date);
+            if (!map.has(key)) map.set(key, []);
+            map.get(key)!.push(a);
+        });
+        return Array.from(map.entries()).map(([label, items]) => ({ label, items }));
+    }, [activities]);
+
     if (isLoading) {
         return (
-            <div className="flex justify-center p-8">
-            <div style={{ padding: 20, textAlign: 'center' }}>
+            <div style={{ padding: 40, textAlign: 'center' }}>
                 <Spin tip="Loading history">
                     <div style={{ height: 40 }} />
                 </Spin>
-            </div>
             </div>
         );
     }
 
     if (isError) {
         return (
-            <div className="text-center p-8 text-red-500">
+            <div style={{ textAlign: 'center', padding: 32, color: '#ef4444', fontSize: 13 }}>
                 Failed to load activity history.
             </div>
         );
     }
 
     if (!activities || activities.length === 0) {
-        return <Empty description="No activity recorded yet" />;
+        return (
+            <div style={{ padding: 32 }}>
+                <Empty
+                    image={
+                        <div style={{
+                            width: 56, height: 56, margin: '0 auto', borderRadius: 16,
+                            background: 'rgba(148, 163, 184, 0.1)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                            <HistoryOutlined style={{ fontSize: 24, color: '#94a3b8' }} />
+                        </div>
+                    }
+                    description={<Text type="secondary" style={{ fontSize: 13 }}>No activity recorded yet</Text>}
+                />
+            </div>
+        );
     }
-
-    const getIcon = (action: string) => {
-        const style = { fontSize: 14 };
-        if (action.includes('Created')) return <div className="p-1 rounded-full bg-green-50 flex items-center justify-center"><PlusCircleOutlined style={{ ...style, color: '#52c41a' }} /></div>;
-        if (action.includes('Comment')) return <div className="p-1 rounded-full bg-blue-50 flex items-center justify-center"><MessageOutlined style={{ ...style, color: '#1890ff' }} /></div>;
-        if (action.includes('Updated')) return <div className="p-1 rounded-full bg-orange-50 flex items-center justify-center"><EditOutlined style={{ ...style, color: '#faad14' }} /></div>;
-        if (action.includes('Completed') || action.includes('Resolved')) return <div className="p-1 rounded-full bg-green-50 flex items-center justify-center"><CheckCircleOutlined style={{ ...style, color: '#52c41a' }} /></div>;
-        if (action.includes('Attachment')) return <div className="p-1 rounded-full bg-purple-50 flex items-center justify-center"><FileOutlined style={{ ...style, color: '#722ed1' }} /></div>;
-        if (action.includes('Link')) return <div className="p-1 rounded-full bg-cyan-50 flex items-center justify-center"><LinkOutlined style={{ ...style, color: '#13c2c2' }} /></div>;
-        return <div className="p-1 rounded-full bg-gray-50 flex items-center justify-center"><ClockCircleOutlined style={{ ...style, color: '#bfbfbf' }} /></div>;
-    };
-
-    const getColor = (action: string) => {
-        if (action.includes('Created')) return '#52c41a';
-        if (action.includes('Comment')) return '#1890ff';
-        if (action.includes('Updated')) return '#faad14';
-        if (action.includes('Attachment')) return '#722ed1';
-        if (action.includes('Link')) return '#13c2c2';
-        return '#bfbfbf';
-    };
 
     const renderDetails = (activity: any) => {
         const { action, details } = activity;
 
         if (action === 'Ticket Created') {
             return (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
-                    <Tag bordered={false} color="blue" style={{ fontSize: 11, borderRadius: 4 }}>Status: {details.status}</Tag>
-                    <Tag bordered={false} color="orange" style={{ fontSize: 11, borderRadius: 4 }}>Priority: {details.priority}</Tag>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                    {details?.status && (
+                        <Tag bordered={false} color="blue" style={{ fontSize: 11, fontWeight: 600, borderRadius: 6, margin: 0 }}>
+                            {formatChangeValue(details.status)}
+                        </Tag>
+                    )}
+                    {details?.priority && (
+                        <Tag bordered={false} color="orange" style={{ fontSize: 11, fontWeight: 600, borderRadius: 6, margin: 0 }}>
+                            {formatChangeValue(details.priority)}
+                        </Tag>
+                    )}
                 </div>
-            )
+            );
         }
 
         if (action === 'Comment Added') {
             return (
-                <div style={{
-                    fontSize: 13,
-                    color: 'var(--text-secondary)',
-                    fontStyle: 'italic',
-                    padding: '8px 12px',
-                    backgroundColor: 'var(--bg-secondary)',
-                    borderRadius: '0 8px 8px 8px',
-                    borderLeft: '3px solid #1890ff',
-                    marginTop: 6,
-                    lineHeight: 1.5
-                }}>
-                    {details.contentPreview || 'Attachment only'}
+                <div className="activity-comment-card" style={{ marginTop: 8 }}>
+                    <div className="activity-comment-card__quote" />
+                    <Text style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                        {details?.contentPreview || 'Attachment only'}
+                    </Text>
                 </div>
-            )
+            );
         }
 
-        if (action === 'Ticket Updated' && details.changes && Array.isArray(details.changes)) {
+        if (action === 'Ticket Updated' && Array.isArray(details?.changes)) {
             return (
-                <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {details.changes.map((change: string, idx: number) => {
-                        // Try to highlight "from" and "to" patterns
-                        const parts = change.split(' from ');
-                        if (parts.length === 2) {
-                            const [field, rest] = parts;
-                            const restParts = rest.split(' to ');
-                            if (restParts.length === 2) {
+                        const fromMatch = change.split(' from ');
+                        if (fromMatch.length === 2) {
+                            const [field, rest] = fromMatch;
+                            const toMatch = rest.split(' to ');
+                            if (toMatch.length === 2) {
                                 return (
-                                    <div key={idx} style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <Text strong style={{ fontSize: 12, color: 'var(--text-primary)' }}>{field}:</Text>
-                                        <Text delete type="secondary" style={{ fontSize: 12 }}>{restParts[0]}</Text>
-                                        <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>→</Text>
-                                        <Text style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{restParts[1]}</Text>
+                                    <div key={idx} className="activity-change-row">
+                                        <Text className="activity-change-row__field">{field}</Text>
+                                        <Tag bordered={false} className="activity-change-row__tag activity-change-row__tag--from">
+                                            {formatChangeValue(toMatch[0])}
+                                        </Tag>
+                                        <ArrowRightOutlined style={{ fontSize: 10, color: '#94a3b8' }} />
+                                        <Tag bordered={false} className="activity-change-row__tag activity-change-row__tag--to">
+                                            {formatChangeValue(toMatch[1])}
+                                        </Tag>
                                     </div>
                                 );
                             }
                         }
-                        return <div key={idx} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>• {change}</div>;
+                        return (
+                            <div key={idx} className="activity-change-row">
+                                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>• {change}</span>
+                            </div>
+                        );
                     })}
                 </div>
-            )
+            );
         }
 
         if (details && Object.keys(details).length > 0) {
             return (
-                <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {Object.entries(details).map(([key, value]: [string, any], idx) => {
-                        if (key === 'changes' || key === 'status' && action === 'Ticket Created') return null;
+                        if (key === 'changes') return null;
+                        if (key === 'status' && action === 'Ticket Created') return null;
                         return (
                             <div key={idx} style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                                <span style={{ textTransform: 'capitalize' }}>{key}</span>: <span style={{ color: 'var(--text-primary)' }}>{String(value)}</span>
+                                <span style={{ textTransform: 'capitalize' }}>{key}</span>:{' '}
+                                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{String(value)}</span>
                             </div>
-                        )
+                        );
                     })}
                 </div>
-            )
+            );
         }
 
         return null;
     };
 
-    const items = activities.map((activity: any, index: number) => {
-        const isLatest = index === 0;
-        return {
-            key: activity.id,
-            color: getColor(activity.action),
-            dot: getIcon(activity.action),
-            children: (
-                <div style={{
-                    paddingBottom: index === activities.length - 1 ? 8 : 24,
-                    opacity: isLatest ? 1 : 0.85,
-                    borderBottom: '1px solid var(--border-color)',
-                    marginBottom: 16
-                }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <Avatar
-                                size={22}
-                                src={activity.performedBy?.avatarUrl}
-                                style={{
-                                    backgroundColor: activity.performedBy?.name ? '#1890ff' : '#bfbfbf',
-                                    fontSize: 11
-                                }}
-                            >
-                                {activity.performedBy?.name?.charAt(0) || 'S'}
-                            </Avatar>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
-                                        {activity.performedBy?.name || 'System'}
-                                    </Text>
-                                    <Text type="secondary" style={{ fontSize: 12 }}>
-                                        {activity.action}
-                                    </Text>
-                                </div>
-                            </div>
-                        </div>
-                        <Text type="secondary" style={{ fontSize: 11, color: '#bfbfbf' }}>
-                            {format(new Date(activity.timestamp), 'MMM d, h:mm a')}
-                        </Text>
+    return (
+        <div className="activity-timeline-v2">
+            {grouped.map((group, gIdx) => (
+                <div key={group.label} className="activity-timeline-v2__group">
+                    <div className="activity-timeline-v2__day-divider">
+                        <span className="activity-timeline-v2__day-label">{group.label}</span>
+                        <span className="activity-timeline-v2__day-line" />
                     </div>
-                    <div style={{ paddingLeft: 30 }}>
-                        {renderDetails(activity)}
+
+                    <div className="activity-timeline-v2__rail">
+                        {group.items.map((activity: any, idx: number) => {
+                            const style = getActionStyle(activity.action);
+                            const isLast = gIdx === grouped.length - 1 && idx === group.items.length - 1;
+                            const date = new Date(activity.timestamp);
+                            const userName = activity.performedBy?.name || 'System';
+
+                            return (
+                                <div key={activity.id} className={`activity-event ${isLast ? 'is-last' : ''}`}>
+                                    <div
+                                        className="activity-event__dot"
+                                        style={{ background: style.bg, color: style.color, boxShadow: `0 0 0 4px var(--bg-primary), 0 0 0 5px ${style.bg}` }}
+                                    >
+                                        {style.icon}
+                                    </div>
+
+                                    <div className="activity-event__card" style={{ borderLeft: `2px solid ${style.color}` }}>
+                                        <div className="activity-event__head">
+                                            <div className="activity-event__user">
+                                                <Avatar
+                                                    size={22}
+                                                    icon={<UserOutlined />}
+                                                    src={activity.performedBy?.avatar}
+                                                    style={{
+                                                        backgroundColor: activity.performedBy?.name ? '#3b82f6' : '#94a3b8',
+                                                        fontSize: 10,
+                                                        fontWeight: 700,
+                                                    }}
+                                                >
+                                                    {userName.charAt(0).toUpperCase()}
+                                                </Avatar>
+                                                <Text strong className="activity-event__name">{userName}</Text>
+                                                <span className="activity-event__action-pill" style={{ background: style.bg, color: style.color }}>
+                                                    {style.label}
+                                                </span>
+                                            </div>
+                                            <Tooltip title={format(date, 'MMM d, yyyy h:mm a')}>
+                                                <Text className="activity-event__time">
+                                                    {formatDistanceToNow(date, { addSuffix: true })}
+                                                </Text>
+                                            </Tooltip>
+                                        </div>
+                                        {renderDetails(activity)}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
-            )
-        };
-    });
+            ))}
 
-    return (
-        <div style={{ padding: '0 8px' }}>
-            <Timeline
-                items={items}
-                className="activity-timeline-premium"
-            />
             <style jsx global>{`
-                .activity-timeline-premium {
-                    padding-top: 12px;
+                .activity-timeline-v2 {
+                    padding: 8px 4px 16px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 18px;
                 }
-                .activity-timeline-premium .ant-timeline-item-tail {
-                    left: 14px !important;
-                    border-inline-start: 1.5px solid var(--border-color) !important;
+                .activity-timeline-v2__day-divider {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 0 4px;
+                    margin-bottom: 8px;
                 }
-                .activity-timeline-premium .ant-timeline-item-head {
-                    left: 14px !important;
-                    background: transparent !important;
-                    border: none !important;
-                    padding: 0 !important;
+                .activity-timeline-v2__day-label {
+                    font-size: 10px;
+                    font-weight: 800;
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
+                    color: var(--text-slate-500);
+                    background: var(--bg-secondary);
+                    border: 1px solid var(--border-color);
+                    padding: 3px 10px;
+                    border-radius: 999px;
+                }
+                .activity-timeline-v2__day-line {
+                    flex: 1;
+                    height: 1px;
+                    background: linear-gradient(90deg, var(--border-color), transparent);
+                }
+                .activity-timeline-v2__rail {
+                    position: relative;
+                    padding-left: 28px;
+                }
+                .activity-timeline-v2__rail::before {
+                    content: '';
+                    position: absolute;
+                    left: 13px;
+                    top: 4px;
+                    bottom: 4px;
+                    width: 2px;
+                    background: linear-gradient(180deg, var(--border-color), transparent);
+                    border-radius: 2px;
+                }
+                .activity-event {
+                    position: relative;
+                    margin-bottom: 14px;
+                }
+                .activity-event:last-child { margin-bottom: 0; }
+                .activity-event__dot {
+                    position: absolute;
+                    left: -22px;
+                    top: 8px;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    width: auto !important;
-                    height: auto !important;
-                    margin-top: -2px;
+                    transition: transform 0.18s ease;
                 }
-                .activity-timeline-premium .ant-timeline-item-content {
-                    margin-inline-start: 32px !important;
-                    padding-bottom: 0 !important;
-                    top: -4px !important;
+                .activity-event:hover .activity-event__dot {
+                    transform: scale(1.08);
+                }
+                .activity-event__card {
+                    background: var(--bg-secondary);
+                    border: 1px solid var(--border-color);
+                    border-left-width: 2px;
+                    border-radius: 10px;
+                    padding: 10px 12px;
+                    transition: all 0.18s ease;
+                }
+                .activity-event:hover .activity-event__card {
+                    transform: translateX(2px);
+                    box-shadow: 0 6px 16px -8px rgba(15, 23, 42, 0.18);
+                }
+                .activity-event__head {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                }
+                .activity-event__user {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    min-width: 0;
+                }
+                .activity-event__name {
+                    font-size: 12.5px;
+                    color: var(--text-primary);
+                    font-weight: 700;
+                }
+                .activity-event__action-pill {
+                    font-size: 10px;
+                    font-weight: 700;
+                    padding: 2px 8px;
+                    border-radius: 999px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.04em;
+                    line-height: 1.4;
+                }
+                .activity-event__time {
+                    font-size: 11px;
+                    color: var(--text-slate-400);
+                    white-space: nowrap;
+                    cursor: default;
+                }
+
+                .activity-change-row {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    flex-wrap: wrap;
+                    background: var(--bg-primary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    padding: 5px 10px;
+                }
+                .activity-change-row__field {
+                    font-size: 11px;
+                    font-weight: 700;
+                    color: var(--text-slate-500);
+                    text-transform: capitalize;
+                    margin-right: 2px;
+                }
+                .activity-change-row__tag.ant-tag {
+                    margin: 0 !important;
+                    font-size: 11px;
+                    font-weight: 600;
+                    border-radius: 6px;
+                    padding: 0 8px;
+                    line-height: 18px;
+                }
+                .activity-change-row__tag--from.ant-tag {
+                    background: rgba(148, 163, 184, 0.15);
+                    color: var(--text-slate-500);
+                    text-decoration: line-through;
+                    text-decoration-color: rgba(148, 163, 184, 0.7);
+                }
+                .activity-change-row__tag--to.ant-tag {
+                    background: rgba(16, 185, 129, 0.14);
+                    color: #059669;
+                }
+
+                .activity-comment-card {
+                    position: relative;
+                    background: var(--bg-primary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 0 10px 10px 10px;
+                    padding: 10px 12px 10px 14px;
+                }
+                .activity-comment-card__quote {
+                    position: absolute;
+                    left: -1px;
+                    top: -1px;
+                    bottom: -1px;
+                    width: 3px;
+                    background: #3b82f6;
+                    border-radius: 3px 0 0 3px;
                 }
             `}</style>
         </div>

@@ -119,7 +119,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: <ProjectOutlined />,
-    pathPrefixes: ["/projects", "/documenthub", "/timesheet", "/daily-updates", "/escalations"],
+    pathPrefixes: ["/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations"],
     defaultPath: "/projects/select",
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
@@ -301,6 +301,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.DOCUMENT_READ,
       },
       {
+        key: "/proposals",
+        label: "Proposals",
+        icon: <SnippetsOutlined />,
+        path: "/proposals",
+      },
+      {
         key: "squadManagement",
         label: "Squads",
         icon: <TiGroup />,
@@ -364,6 +370,25 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             icon: <SettingOutlined />,
             path: "/escalations/settings",
+          },
+        ],
+      },
+      {
+        key: "leads-group",
+        label: "Lead Management",
+        icon: <FolderOpenOutlined />,
+        children: [
+          {
+            key: "/leads",
+            label: "Leads",
+            icon: <UnorderedListOutlined />,
+            path: "/leads",
+          },
+          {
+            key: "/leads/settings",
+            label: "Settings",
+            icon: <SettingOutlined />,
+            path: "/leads/settings",
           },
         ],
       },

@@ -6,9 +6,10 @@ import {
   CheckCircleOutlined,
   FireFilled,
   UserOutlined,
-  InboxOutlined
+  InboxOutlined,
+  AppstoreOutlined
 } from "@ant-design/icons";
-import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "@/utils/ticketUtils";
+import { STATUS_OPTIONS, PRIORITY_OPTIONS, TYPE_OPTIONS } from "@/utils/ticketUtils";
 
 const { Text } = Typography;
 
@@ -16,6 +17,7 @@ interface FilterState {
   status: string[];
   priority: string[];
   assignee: string[];
+  type?: string[];
   showArchived?: boolean;
 }
 
@@ -38,6 +40,7 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
     (filters.status?.length || 0) +
     (filters.priority?.length || 0) +
     (filters.assignee?.length || 0) +
+    (filters.type?.length || 0) +
     (filters.showArchived ? 1 : 0);
 
   const SectionLabel = ({ icon: Icon, children, count }: any) => (
@@ -154,6 +157,23 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
             value={filters.priority}
             onChange={(val) => onFilterChange("priority", val)}
             options={PRIORITY_OPTIONS}
+            allowClear
+            className="saas-select-minimal"
+            maxTagCount={2}
+            styles={{ popup: { root: { borderRadius: '10px', padding: '6px' } } }}
+          />
+        </div>
+
+        {/* Type Section */}
+        <div>
+          <SectionLabel icon={AppstoreOutlined} count={filters.type?.length}>Type</SectionLabel>
+          <Select
+            mode="multiple"
+            placeholder="Any type"
+            style={{ width: "100%" }}
+            value={filters.type}
+            onChange={(val) => onFilterChange("type", val)}
+            options={TYPE_OPTIONS}
             allowClear
             className="saas-select-minimal"
             maxTagCount={2}

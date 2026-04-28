@@ -485,28 +485,53 @@ export default function TiptapEditor({
         .tiptap-editor-content {
           padding: 12px;
           outline: none;
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content p {
           margin: 0 0 8px 0;
+          color: var(--text-primary);
+        }
+
+        /* Bold text inherits the theme's primary color in BOTH modes.
+           Without this, Tailwind's prose plugin sets a near-black --tw-prose-bold
+           that disappears against the dark-mode background. */
+        .tiptap-editor-content strong,
+        .tiptap-editor-content b {
+          color: var(--text-primary);
+          font-weight: 700;
+        }
+
+        .tiptap-editor-content em,
+        .tiptap-editor-content i,
+        .tiptap-editor-content u,
+        .tiptap-editor-content s {
+          color: var(--text-primary);
+        }
+
+        .tiptap-editor-content li {
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content h1 {
           font-size: 2em;
           font-weight: bold;
           margin: 16px 0 8px 0;
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content h2 {
           font-size: 1.5em;
           font-weight: bold;
           margin: 14px 0 8px 0;
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content h3 {
           font-size: 1.25em;
           font-weight: bold;
           margin: 12px 0 8px 0;
+          color: var(--text-primary);
         }
 
         .tiptap-editor-content ul,

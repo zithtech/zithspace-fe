@@ -14,6 +14,7 @@ interface TeamMember {
   todo: number;
   assigned: number;
   totalHours: number;
+  totalProjectDone?: number;
 }
 
 interface TeamProgressTableProps {

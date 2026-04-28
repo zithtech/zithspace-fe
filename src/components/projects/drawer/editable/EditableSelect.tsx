@@ -8,7 +8,8 @@ interface Option {
     label: string;
     value: string;
     color?: string; // For Tags
-    avatar?: string; // For Users
+    avatar?: string; // For Users (initials)
+    avatarUrl?: string; // For Users (image)
     description?: string;
 }
 
@@ -85,7 +86,11 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                     label: (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             {opt.color && <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color }} />}
-                            {opt.avatar && <Avatar size="small" style={{ width: 18, height: 18, fontSize: 10 }}>{opt.avatar}</Avatar>}
+                            {opt.avatarUrl ? (
+                                <Avatar size="small" src={opt.avatarUrl} style={{ width: 18, height: 18 }} />
+                            ) : opt.avatar ? (
+                                <Avatar size="small" style={{ width: 18, height: 18, fontSize: 10 }}>{opt.avatar}</Avatar>
+                            ) : null}
                             <span>{opt.label}</span>
                         </div>
                     )
@@ -140,6 +145,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                 <Space size={4}>
                     <Avatar
                         size="small"
+                        src={selectedOption.avatarUrl}
                         style={{ width: 20, height: 20, fontSize: 12, lineHeight: '20px', backgroundColor: '#1677ff' }}
                     >
                         {selectedOption.label.charAt(0)}

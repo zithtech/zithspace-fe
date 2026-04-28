@@ -1048,9 +1048,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             <Avatar
               size="small"
               style={{ backgroundColor: "#1677ff" }}
-              src={typeof assignee === 'object' ? assignee?.avatarUrl : undefined}
+              src={assignee?.avatarUrl}
             >
-              {!(typeof assignee === 'object' && assignee?.avatarUrl) && name.charAt(0)}
+              {!assignee?.avatarUrl && name?.charAt(0)}
             </Avatar>
             <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-700)' }}>{name}</Text>
           </Space>

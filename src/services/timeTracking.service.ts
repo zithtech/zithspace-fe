@@ -16,7 +16,7 @@ export interface TimeTrackingEntry {
   ticket?: {
     estimateHours: undefined; id: string; title: string; ticketNumber?: string
   };
-  user?: { id: string; name: string; workEmail: string };
+  user?: { id: string; name: string; workEmail: string; avatarUrl?: string | null };
   createdAt: string;
   updatedAt: string;
 }

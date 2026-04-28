@@ -166,7 +166,7 @@ export default function ManageAttendancePage() {
   const handleUpdate = async (values: any, isEdit: boolean) => {
     try {
       setActionLoading(true);
-      
+
       const selectedDate = dayjs(values.date);
       const clockInTime = values.clockIn ? dayjs(values.clockIn) : null;
       const clockOutTime = values.clockOut ? dayjs(values.clockOut) : null;
@@ -252,8 +252,8 @@ export default function ManageAttendancePage() {
         const member: any = record.member;
         return (
           <Space>
-            <Avatar 
-              size={40} 
+            <Avatar
+              size={40}
               src={record.member?.avatarUrl}
               style={{ backgroundColor: '#1677ff', borderRadius: '10px' }}
             >
@@ -334,11 +334,11 @@ export default function ManageAttendancePage() {
 
   return (
     <MainLayout>
-      <div style={{ 
-        margin: "0 -24px", 
-        padding: "24px 32px", 
-        background: "var(--bg-pure-white)", 
-        minHeight: "calc(100vh - 64px)" 
+      <div style={{
+        margin: "0 -24px",
+        padding: "24px 32px",
+        background: "var(--bg-pure-white)",
+        minHeight: "calc(100vh - 64px)"
       }}>
         {/* Header */}
         <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -536,12 +536,12 @@ export default function ManageAttendancePage() {
                     label={member.name || ""}
                   >
                     <Space>
-                      <Avatar 
-                        size="small" 
-                        src={member.avatarUrl}
+                      <Avatar
+                        size="small"
+                        src={member?.avatarUrl}
                         style={{ backgroundColor: '#1677ff' }}
                       >
-                        {member.name.charAt(0)}
+                        {member.name?.charAt(0)}
                       </Avatar>
                       <Text>{member.name}</Text>
                       <Text type="secondary" style={{ fontSize: '12px' }}>

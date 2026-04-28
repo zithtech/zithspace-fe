@@ -15,6 +15,7 @@ import {
   Descriptions,
   message,
   Tooltip,
+  Avatar,
   Collapse,
   Input,
   notification,
@@ -60,17 +61,17 @@ import { useMembers, useTicketConfig, useUserProjects } from "@/hooks/useGlobalD
 import { useAvailableSprints } from "@/hooks/useAvailableSprints";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import { useAuth } from "@/context/AuthContext";
-import { 
-  PRIORITY_OPTIONS, 
-  TYPE_OPTIONS, 
-  STATUS_OPTIONS, 
-  getStatusColor, 
+import {
+  PRIORITY_OPTIONS,
+  TYPE_OPTIONS,
+  STATUS_OPTIONS,
+  getStatusColor,
   getStatusLabel,
-  getPriorityColor, 
-  getTypeColor, 
-  getPlatformColor, 
-  getTaskLevelColor, 
-  getStackColor 
+  getPriorityColor,
+  getTypeColor,
+  getPlatformColor,
+  getTaskLevelColor,
+  getStackColor
 } from "@/utils/ticketUtils";
 import { EditableField } from "./editable/EditableField";
 import { EditableSelect } from "./editable/EditableSelect";
@@ -406,7 +407,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
     if (ticket?.status) {
       const normalizedCurrent = ticket.status.toLowerCase().replace(/ /g, '_');
       const exists = options.some(opt => opt.value?.toLowerCase().replace(/ /g, '_') === normalizedCurrent);
-      
+
       if (!exists) {
         options.push({
           label: getStatusLabel(ticket.status), // fallback label helper handles spaces/underscores
@@ -421,7 +422,8 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const projectMembers = members.map((m) => ({
     label: m.label,
     value: m.value,
-    avatar: m.label.charAt(0),
+    avatar: m.label?.charAt(0),
+    avatarUrl: (m as any).avatarUrl,
   }));
 
   // Handlers
@@ -620,7 +622,42 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
             )}
           </Space>
 
-          <div style={{ flex: 1 }} />
+          {/* Metadata Header Row */}
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', margin: '0 16px', whiteSpace: 'nowrap' }}>
+            <Space split={<Divider type="vertical" style={{ margin: 0, height: 12, borderColor: '#d9d9d9' }} />} size={16} align="center">
+              <Space size={8} style={{ alignItems: 'center' }}>
+                <Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Created by</Text>
+                <Space size={6}>
+                  <Avatar
+                    size={18}
+                    src={ticket?.createdBy?.avatarUrl}
+                    style={{ backgroundColor: '#1890ff', fontSize: 10 }}
+                  >
+                    {ticket?.createdBy?.name?.charAt(0) || 'S'}
+                  </Avatar>
+                  <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{ticket?.createdBy?.name || 'System'}</Text>
+                </Space>
+                <Text type="secondary" style={{ fontSize: 11, margin: '0 4px' }}>•</Text>
+                <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{ticket?.createdAt ? dayjs(ticket.createdAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
+              </Space>
+
+              <Space size={8} style={{ alignItems: 'center' }}>
+                <Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Updated by</Text>
+                <Space size={6}>
+                  <Avatar
+                    size={18}
+                    src={(ticket as any)?.updatedBy?.avatarUrl || ticket?.createdBy?.avatarUrl}
+                    style={{ backgroundColor: '#87d068', fontSize: 10 }}
+                  >
+                    {((ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System').charAt(0)}
+                  </Avatar>
+                  <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{(ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System'}</Text>
+                </Space>
+                <Text type="secondary" style={{ fontSize: 11, margin: '0 4px' }}>•</Text>
+                <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{ticket?.updatedAt ? dayjs(ticket.updatedAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
+              </Space>
+            </Space>
+          </div>
 
           <Space size={8}>
             {isInBacklog && activeSprint && (
@@ -1487,72 +1524,72 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
             {/* Collapsible Sections */}
             <div className="sidebar-collapse-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {/* Core Details Card */}
-                <Collapse
-                  defaultActiveKey={["details"]}
-                  ghost
-                  expandIconPosition="end"
-                  style={{ backgroundColor: 'transparent' }}
-                  items={[
-                      {
-                        key: "details",
-                        label: (
-                          <div style={{ padding: '4px 0' }}>
-                            <Space size={10}>
-                              <div style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 8,
-                                backgroundColor: '#e6f7ff',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}>
-                                <InfoCircleOutlined style={{ color: '#1890ff', fontSize: 14 }} />
-                              </div>
-                              <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
-                                Core Details
-                              </Text>
-                            </Space>
+              {/* Core Details Card */}
+              <Collapse
+                defaultActiveKey={["details"]}
+                ghost
+                expandIconPosition="end"
+                style={{ backgroundColor: 'transparent' }}
+                items={[
+                  {
+                    key: "details",
+                    label: (
+                      <div style={{ padding: '4px 0' }}>
+                        <Space size={10}>
+                          <div style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 8,
+                            backgroundColor: '#e6f7ff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <InfoCircleOutlined style={{ color: '#1890ff', fontSize: 14 }} />
                           </div>
-                        ),
-                        children: (
-                          <div style={{ padding: 0 }}>
-                            <Row gutter={[0, 0]}>
-                              <Col span={24}>
-                                <DrawerField label="Assignee" variant="table">
-                                  <EditableSelect
-                                    value={
-                                      typeof ticket.assignee === "string"
-                                        ? ticket.assignee
-                                        : ticket.assignee?.id
-                                    }
-                                    options={projectMembers}
-                                    onSave={(val) =>
-                                      handleUpdate("assignee", val)
-                                    }
-                                    mode="user"
-                                    emptyText="Unassigned"
-                                  />
-                                </DrawerField>
-                              </Col>
+                          <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                            Core Details
+                          </Text>
+                        </Space>
+                      </div>
+                    ),
+                    children: (
+                      <div style={{ padding: 0 }}>
+                        <Row gutter={[0, 0]}>
+                          <Col span={24}>
+                            <DrawerField label="Assignee" variant="table">
+                              <EditableSelect
+                                value={
+                                  typeof ticket.assignee === "string"
+                                    ? ticket.assignee
+                                    : ticket.assignee?.id
+                                }
+                                options={projectMembers}
+                                onSave={(val) =>
+                                  handleUpdate("assignee", val)
+                                }
+                                mode="user"
+                                emptyText="Unassigned"
+                              />
+                            </DrawerField>
+                          </Col>
 
-                              <Col span={24}>
-                                <DrawerField label="Report To" variant="table">
-                                  <EditableSelect
-                                    value={
-                                      typeof ticket.reportTo === "string"
-                                        ? ticket.reportTo
-                                        : ticket.reportTo?.id
-                                    }
-                                    options={projectMembers}
-                                    onSave={(val) =>
-                                      handleUpdate("reportTo", val)
-                                    }
-                                    mode="user"
-                                    emptyText="No Reporter"
-                                  />
-                                </DrawerField>
+                          <Col span={24}>
+                            <DrawerField label="Report To" variant="table">
+                              <EditableSelect
+                                value={
+                                  typeof ticket.reportTo === "string"
+                                    ? ticket.reportTo
+                                    : ticket.reportTo?.id
+                                }
+                                options={projectMembers}
+                                onSave={(val) =>
+                                  handleUpdate("reportTo", val)
+                                }
+                                mode="user"
+                                emptyText="No Reporter"
+                              />
+                            </DrawerField>
 
                                 <DrawerField label="Platform" variant="table">
                                   <EditableSelect

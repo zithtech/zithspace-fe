@@ -147,6 +147,7 @@ export default function TicketInformation({ ticket, onEdit }: TicketInformationP
           <Space>
             <Avatar
               size="small"
+              src={(ticket?.assignee as any)?.avatarUrl}
               style={{ backgroundColor: "#1677ff" }}
             >
               {ticket?.assignee?.name?.charAt(0) || "U"}

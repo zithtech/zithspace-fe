@@ -24,6 +24,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import EmailHistoryDrawer from "@/components/invoice/EmailHistoryDrawer";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 import { Line } from "@ant-design/plots";
 import { Tooltip } from "antd";
@@ -567,45 +568,40 @@ const fullCellRender = (value: Dayjs) => {
       <Spin spinning={isLoading} tip="Loading dashboard">
         <div style={{
           margin: "0 -24px",
-          padding: "24px 32px",
           background: "var(--dashboard-page-bg)",
           minHeight: "calc(100vh - 64px)"
         }}>
-          {/* ================= HEADER ================= */}
-          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
-            <div style={{ flex: 1 }}>
-              <Space size={14} align="center">
-                <div style={{ background: "var(--dashboard-header-icon-bg)", padding: 12, borderRadius: 14, color: "var(--dashboard-header-icon-color)", display: "flex" }}>
-                  <LayoutDashboard size={28} />
-                </div>
-                <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--dashboard-stat-value)" }}>Dashboard</Title>
-                  <Text style={{ color: "var(--dashboard-stat-label)", fontSize: 15 }}>Overview of your invoicing and revenue performance.</Text>
-                </div>
-              </Space>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button
-                size="large"
-                icon={<History size={18} />}
-                onClick={() => setHistoryDrawerVisible(true)}
-                style={{ borderRadius: 12, height: 44, color: "var(--dashboard-stat-label)", background: "var(--dashboard-card-bg)", border: "1px solid var(--dashboard-card-border)" }}
-              >
-                Email History
-              </Button>
-              {canCreateInvoice && (
-                <Button 
-                  type="primary" 
-                  size="large" 
-                  icon={<Plus size={18} />} 
-                  style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600 }}
-                  onClick={() => router.push("/invoice/newinvoice")}
+          <TimeTrackingHeader
+            style={{ padding: '9.5px 32px' }}
+            icon={<LayoutDashboard size={20} color="#8b5cf6" />}
+            title="Dashboard"
+            description="Overview of your invoicing and revenue performance."
+            extra={
+              <div className="flex items-center gap-3">
+                <Button
+                  size="middle"
+                  icon={<History size={16} />}
+                  onClick={() => setHistoryDrawerVisible(true)}
+                  style={{ borderRadius: 8, height: 38, color: "var(--dashboard-stat-label)", background: "var(--dashboard-card-bg)", border: "1px solid var(--dashboard-card-border)" }}
                 >
-                  New Invoice
+                  Email History
                 </Button>
-              )}
-            </div>
-          </div>
+                {canCreateInvoice && (
+                  <Button 
+                    type="primary" 
+                    size="middle" 
+                    icon={<Plus size={16} />} 
+                    style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600 }}
+                    onClick={() => router.push("/invoice/newinvoice")}
+                  >
+                    New Invoice
+                  </Button>
+                )}
+              </div>
+            }
+          />
+
+          <div style={{ padding: "16px 32px 32px 32px" }}>
 
           {/* ================= METRIC CARDS ================= */}
           <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
@@ -792,6 +788,7 @@ const fullCellRender = (value: Dayjs) => {
             rowClassName={() => "dashboard-table-row"}
           />
         </Card>
+        </div>
       </div>
       </Spin>
       <style dangerouslySetInnerHTML={{ __html: `

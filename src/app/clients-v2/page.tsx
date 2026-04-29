@@ -33,6 +33,7 @@ import { useTenant } from "@/context/TenantContext";
 import { api, apiUtils } from "@/lib/axios";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 
@@ -293,72 +294,38 @@ export default function ClientsV2ListPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ 
-          margin: "0 -24px", 
-          padding: "24px 32px", 
-          background: "var(--bg-pure-white)", 
-          minHeight: "calc(100vh - 64px)" 
-        }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         
         {/* Header Section */}
-        <Row 
-          justify="space-between" 
-          align="bottom" 
-          gutter={[16, 24]} 
-          style={{ marginBottom: 32 }}
-        >
-          <Col xs={24} lg={14}>
-            <Space size={12} align="start">
-              <div style={{ 
-                background: "var(--bg-blue-50)", 
-                padding: 10, 
-                borderRadius: 12, 
-                color: "var(--text-blue-600)",
-                display: "flex"
-              }}>
-                <Building2 size={24} />
-              </div>
-              <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Client Management</Title>
-                <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Monitor, manage, and configure all client entity profiles and their associated projects.</Text>
-              </div>
-            </Space>
-          </Col>
-          <Col xs={24} lg={10}>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
-              {/* <Input 
+        <TimeTrackingHeader
+          icon={<Building2 size={20} color="#8b5cf6" />}
+          title="Client Management"
+          description="Monitor, manage, and configure all client entity profiles and their associated projects."
+          extra={
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <Input 
                 placeholder="Search clients..." 
-                prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
-                style={{ flex: "1 1 200px", maxWidth: "100%", borderRadius: 10, height: 44 }}
+                prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
+                style={{ width: 240, borderRadius: 10, height: 38, background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}
                 onChange={(e) => handleSearch(e.target.value)}
               />
               <Button 
                 type="primary" 
-                size="large" 
                 icon={<Plus size={18} />} 
-                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
+                style={{ borderRadius: 10, height: 38, padding: "0 20px", fontWeight: 600, display: "flex", alignItems: "center", border: 'none', background: '#1677ff' }}
                 onClick={() => router.push("/clients-v2/create")}
               >
                 Create Client
-              </Button> */}
-              <Input 
-              placeholder="Search clients..." 
-              prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
-              style={{ width: 280, borderRadius: 10, height: 44, background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}
-              onChange={(e) => handleSearch(e.target.value)}
-            />
-            <Button 
-              type="primary" 
-              size="large" 
-              icon={<Plus size={18} />} 
-              style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
-              onClick={() => router.push("/clients-v2/create")}
-            >
-              Create Client
-            </Button>
+              </Button>
             </div>
-          </Col>
-        </Row>
+          }
+        />
+
+        <div style={{ padding: "0 32px 32px 32px" }}>
 
         {/* Metrics Grid */}
         <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
@@ -456,6 +423,7 @@ export default function ClientsV2ListPage() {
             }
           }
         `}} />
+        </div>
       </div>
     </MainLayout>
     </ProtectedRoute>

@@ -286,19 +286,8 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       result = result.filter(e => e.projectId === filters.projectId);
     }
 
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      result = result.filter(e =>
-        (e.description?.toLowerCase() || "").includes(searchLower) ||
-        (e.ticket?.title?.toLowerCase() || "").includes(searchLower) ||
-        (e.ticket?.ticketNumber?.toLowerCase() || "").includes(searchLower) ||
-        (e.user?.name?.toLowerCase() || "").includes(searchLower) ||
-        (e.project?.name?.toLowerCase() || "").includes(searchLower)
-      );
-    }
-
     return result;
-  }, [entries, filters.userId, filters.projectId, filters.search]);
+  }, [entries, filters.userId, filters.projectId]);
 
   // Group entries by user and date
   const groupedData = useMemo(() => {
@@ -835,18 +824,8 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           </div>
         </div>
 
-        {/* Right Side: Search, Filters, Clear & Refresh */}
+        {/* Right Side: Filters, Clear & Refresh */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <Input
-            placeholder="Search..."
-            prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 14 }} />}
-            style={{ width: 220, height: 38, borderRadius: 10, fontSize: 13, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)' }}
-            size="middle"
-            allowClear
-            value={filters.search}
-            onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
-          />
-
           <Select
             allowClear
             showSearch

@@ -53,6 +53,7 @@ import {
 import GeneralSettings from "./GeneralSettings";
 import InvoiceSetting from "./InvoiceSetting";
 import { useActivateSettingsProfile } from "@/hooks/useInvoiceSettings";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 
 import {
@@ -303,7 +304,6 @@ export default function InvoiceSettingPage() {
     <MainLayout>
       <div style={{
         margin: "0 -24px",
-        padding: "12px 32px 24px 32px",
         background: "var(--customers-page-bg)",
         minHeight: "calc(100vh - 64px)",
         ...(mode === "create" ? {
@@ -313,48 +313,42 @@ export default function InvoiceSettingPage() {
           overflow: "hidden"
         } : {})
       }}>
-        {/* ================= HEADER ================= */}
-        <div style={{ marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24, flexShrink: 0 }}>
-          <div style={{ flex: 1 }}>
-            <Space size={8} align="center">
-              <div style={{ background: "var(--customers-header-icon-bg)", padding: "6px 8px", borderRadius: 8, color: "var(--customers-header-icon-color)", display: "flex" }}>
-                <SettingsIcon size={18} />
-              </div>
-              <div>
-                <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)", fontSize: "15px" }}>Settings Profiles</Title>
-                <Paragraph style={{ color: "var(--text-secondary)", fontSize: "11px", margin: 0 }}>Configure company branding, invoice numbering, and regional formats.</Paragraph>
-              </div>
-            </Space>
-          </div>
-          <div style={{ display: "flex", gap: 12, alignItems: 'center' }}>
-            {mode === "create" ? (
-              <Button
-                size="middle"
-                icon={<ArrowLeft size={16} />}
-                onClick={() => { resetDraft(); setMode("view"); }}
-                style={{ borderRadius: 8, height: 38 }}
-              >
-                Back to Settings
-              </Button>
-            ) : (
-              <Button
-                type="primary"
-                size="middle"
-                icon={<Plus size={16} />}
-                onClick={() => {
-                  resetDraft();
-                  setMode("create");
-                  setCurrentStep(0);
-                }}
-                style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600, background: "var(--customers-header-icon-color)", border: "none" }}
-              >
-                Create Profile
-              </Button>
-            )}
-          </div>
-        </div>
+        <TimeTrackingHeader
+          style={{ padding: '9.5px 32px' }}
+          icon={<SettingsIcon size={20} color="#8b5cf6" />}
+          title="Settings Profiles"
+          description="Configure company branding, invoice numbering, and regional formats."
+          extra={
+            <div style={{ display: "flex", gap: 12, alignItems: 'center' }}>
+              {mode === "create" ? (
+                <Button
+                  size="middle"
+                  icon={<ArrowLeft size={16} />}
+                  onClick={() => { resetDraft(); setMode("view"); }}
+                  style={{ borderRadius: 8, height: 38 }}
+                >
+                  Back to Settings
+                </Button>
+              ) : (
+                <Button
+                  type="primary"
+                  size="middle"
+                  icon={<Plus size={16} />}
+                  onClick={() => {
+                    resetDraft();
+                    setMode("create");
+                    setCurrentStep(0);
+                  }}
+                  style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600, background: "var(--customers-header-icon-color)", border: "none" }}
+                >
+                  Create Profile
+                </Button>
+              )}
+            </div>
+          }
+        />
 
-        <Divider style={{ margin: "4px -32px 12px -32px", width: "calc(100% + 64px)", borderColor: 'var(--border-color)' }} />
+        <div style={{ padding: "16px 32px 32px 32px", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
 
         {mode === "view" && (
           <>
@@ -1156,6 +1150,7 @@ export default function InvoiceSettingPage() {
             </div>
           </div>
         </Modal>
+        </div>
       </div>
     </MainLayout>
   );

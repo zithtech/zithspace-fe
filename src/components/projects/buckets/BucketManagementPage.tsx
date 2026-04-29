@@ -12,14 +12,15 @@ import {
   Tooltip,
   Empty,
   Spin,
-  notification,
   Popconfirm,
   Select,
   Badge,
   Table,
   Divider,
   Input,
+  App,
 } from "antd";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   PlusOutlined,
   EditOutlined,
@@ -35,22 +36,22 @@ import {
   ReloadOutlined,
   RollbackOutlined,
 } from "@ant-design/icons";
-import { useBuckets, useDeleteBucket, useMoveBucketToSprint, useMoveBucketToBacklog } from "@/hooks/useBuckets";
+import { useBuckets, useDeleteBucket, useMoveBucketToSprint, useMoveBucketToBacklog, bucketKeys } from "@/hooks/useBuckets";
 import { CreateBucketModal } from "./CreateBucketModal";
 import { BucketDetailDrawer } from "./BucketDetailDrawer";
 import { MoveToSprintAction } from "./MoveToSprintAction";
 import type { Bucket } from "@/services/bucketService";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useRouter } from "next/navigation";
+import BucketSkeleton from "./BucketSkeleton";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 export default function BucketManagementPage() {
-  const [api, contextHolder] = notification.useNotification({
-    placement: 'top',
-  });
+  const { message: msgApi } = App.useApp();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // State
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -59,18 +60,77 @@ export default function BucketManagementPage() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "shared" | "private">("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Queries
   const { data: projects } = useUserProjects();
   const {
     data: bucketsData,
     isLoading,
+    isFetching,
     refetch,
   } = useBuckets(selectedProject || undefined);
 
   const deleteBucket = useDeleteBucket();
-  const moveBucketToSprint = useMoveBucketToSprint();
-  const moveBucketToBacklog = useMoveBucketToBacklog();
+  const moveBucketToSprint = useMoveBucketToSprint({
+    onSuccess: (result) => {
+      msgApi.open({
+        key: "move-sprint-toast",
+        duration: 2,
+        content: (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <span style={{
+              width: 16,
+              height: 16,
+              borderRadius: "50%",
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              color: "#fff",
+              fontSize: 10,
+              fontWeight: 900,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)"
+            }}>✓</span>
+            <span style={{ fontSize: 12, fontWeight: 500 }}>
+              {result.movedCount} ticket(s) <strong style={{ color: "#10b981", fontWeight: 700 }}>moved to sprint</strong>
+            </span>
+          </span>
+        )
+      });
+    }
+  });
+
+  const moveBucketToBacklog = useMoveBucketToBacklog({
+    onSuccess: (result) => {
+      msgApi.open({
+        key: "move-backlog-toast",
+        duration: 2,
+        content: (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <span style={{
+              width: 16,
+              height: 16,
+              borderRadius: "50%",
+              background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+              color: "#fff",
+              fontSize: 10,
+              fontWeight: 900,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              boxShadow: "0 2px 8px rgba(245, 158, 11, 0.3)"
+            }}>↺</span>
+            <span style={{ fontSize: 12, fontWeight: 500 }}>
+              {result.movedCount} ticket(s) <strong style={{ color: "#f59e0b", fontWeight: 700 }}>returned to backlog</strong>
+            </span>
+          </span>
+        )
+      });
+    }
+  });
 
   const buckets = (bucketsData || []).filter(bucket => {
     const matchesSearch = bucket.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -198,83 +258,86 @@ export default function BucketManagementPage() {
       align: "right" as const,
       width: 120,
       render: (_: any, record: Bucket) => (
-        <Space size={4}>
-          <Tooltip title="Deep Dive">
-            <Button
-              type="text"
-              icon={<EyeOutlined style={{ fontSize: 14, color: "#3b82f6" }} />}
-              onClick={(e) => { e.stopPropagation(); handleView(record.id); }}
-              className="saas-action-btn"
-            />
-          </Tooltip>
-          <Tooltip title="Configure">
-            <Button
-              type="text"
-              icon={<EditOutlined style={{ fontSize: 14, color: "#64748b" }} />}
-              onClick={(e) => { e.stopPropagation(); handleEdit(record); }}
-              className="saas-action-btn"
-            />
-          </Tooltip>
-          <Popconfirm
-            title="Decommission Hub"
-            description="Proceed with hard delete?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true, style: { borderRadius: 2, fontSize: 11, fontWeight: 700 } }}
-            cancelButtonProps={{ style: { borderRadius: 2, fontSize: 11, fontWeight: 700 } }}
-          >
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined style={{ fontSize: 14 }} />}
-              loading={deleteBucket.isPending && deleteBucket.variables === record.id}
-              onClick={(e) => e.stopPropagation()}
-              className="saas-action-btn"
-            />
-          </Popconfirm>
+        <div onClick={(e) => e.stopPropagation()}>
+          <Space size={4}>
+            <Tooltip title="Deep Dive">
+              <Button
+                type="text"
+                icon={<EyeOutlined style={{ fontSize: 14, color: "#3b82f6" }} />}
+                onClick={(e) => { e.stopPropagation(); handleView(record.id); }}
+                className="saas-action-btn"
+              />
+            </Tooltip>
+            <Tooltip title="Configure">
+              <Button
+                type="text"
+                icon={<EditOutlined style={{ fontSize: 14, color: "#64748b" }} />}
+                onClick={(e) => { e.stopPropagation(); handleEdit(record); }}
+                className="saas-action-btn"
+              />
+            </Tooltip>
+            <Popconfirm
+              title="Decommission Hub"
+              description="Proceed with hard delete?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true, style: { borderRadius: 2, fontSize: 11, fontWeight: 700 } }}
+              cancelButtonProps={{ style: { borderRadius: 2, fontSize: 11, fontWeight: 700 } }}
+            >
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined style={{ fontSize: 14 }} />}
+                loading={deleteBucket.isPending && deleteBucket.variables === record.id}
+                onClick={(e) => e.stopPropagation()}
+                className="saas-action-btn"
+              />
+            </Popconfirm>
 
-          <MoveToSprintAction
-            bucket={record}
-            onMove={(sprintId) => moveBucketToSprint.mutate({ bucketId: record.id, sprintId })}
-            loading={moveBucketToSprint.isPending && moveBucketToSprint.variables?.bucketId === record.id}
-          />
-
-          <Popconfirm
-            title="Move to Backlog"
-            description="Move all tickets in this hub back to the backlog?"
-            onConfirm={(e) => { e?.stopPropagation(); moveBucketToBacklog.mutate(record.id); }}
-            okText="Move"
-            cancelText="Cancel"
-            okButtonProps={{ style: { borderRadius: 2, fontSize: 11, fontWeight: 700 } }}
-            cancelButtonProps={{ style: { borderRadius: 2, fontSize: 11, fontWeight: 700 } }}
-          >
-            <Button
-              type="text"
-              icon={<RollbackOutlined style={{ fontSize: 14, color: "#64748b" }} />}
-              onClick={(e) => e.stopPropagation()}
-              loading={moveBucketToBacklog.isPending && moveBucketToBacklog.variables === record.id}
-              className="saas-action-btn"
+            <MoveToSprintAction
+              bucket={record}
+              onMove={(sprintId) => moveBucketToSprint.mutate({ bucketId: record.id, sprintId })}
+              loading={moveBucketToSprint.isPending && moveBucketToSprint.variables?.bucketId === record.id}
             />
-          </Popconfirm>
-        </Space>
+
+            <Popconfirm
+              title="Move to Backlog"
+              description="Move all tickets in this hub back to the backlog?"
+              onConfirm={(e) => { e?.stopPropagation(); moveBucketToBacklog.mutate(record.id); }}
+              okText="Move"
+              cancelText="Cancel"
+              okButtonProps={{ style: { borderRadius: 2, fontSize: 11, fontWeight: 700 } }}
+              cancelButtonProps={{ style: { borderRadius: 2, fontSize: 11, fontWeight: 700 } }}
+            >
+              <Button
+                type="text"
+                icon={<RollbackOutlined style={{ fontSize: 14, color: "#64748b" }} />}
+                onClick={(e) => e.stopPropagation()}
+                loading={moveBucketToBacklog.isPending && moveBucketToBacklog.variables === record.id}
+                className="saas-action-btn"
+              />
+            </Popconfirm>
+          </Space>
+        </div>
       ),
     },
   ];
 
   return (
     <div style={{
-      background: "var(--bg-pure-white)",
+      background: "var(--bg-primary)",
       height: "100vh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden"
     }}>
-      {contextHolder}
 
       {/* Workstation Header */}
       <div className="saas-header-container" style={{
+        background: 'rgba(var(--header-bg-rgb, 255, 255, 255), 0.8)',
         backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid var(--border-slate-200)',
         padding: '10.5px 12px',
         flexShrink: 0,
         zIndex: 100
@@ -297,13 +360,13 @@ export default function BucketManagementPage() {
           </Col>
           <Col>
             <Space size={12}>
-              <Button
+              {/* <Button
                 icon={<ReloadOutlined />}
                 onClick={() => refetch()}
-                loading={isLoading}
+                loading={isFetching}
                 className="saas-button-item"
                 style={{ height: 36, fontWeight: 600 }}
-              />
+              /> */}
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -325,167 +388,178 @@ export default function BucketManagementPage() {
       </div>
 
       <div style={{ padding: "16px 12px 32px", flex: 1, overflowY: "auto" }}>
+        {(isLoading || isRefreshing) ? (
+          <BucketSkeleton />
+        ) : (
+          <>
+            {/* Unified High-Density Buckets Control Bar */}
+            <div className="bh-control-bar">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: 1 }}>
+                {/* 1. Technical Metrics Group */}
+                <div className="bh-metrics-group">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className="bh-metric-icon purple">
+                      <FolderOpenOutlined style={{ color: '#8b5cf6', fontSize: 14 }} />
+                    </div>
+                    <div>
+                      <Text style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-slate-900)', display: 'block', lineHeight: 1 }}>{buckets.length}</Text>
+                      <Text style={{ fontSize: 8, color: 'var(--text-slate-400)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Hubs</Text>
+                    </div>
+                  </div>
 
-
-        {/* Unified High-Density Buckets Control Bar */}
-        <div className="bh-control-bar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: 1 }}>
-            {/* 1. Technical Metrics Group */}
-            <div className="bh-metrics-group">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div className="bh-metric-icon purple">
-                  <FolderOpenOutlined style={{ color: '#8b5cf6', fontSize: 14 }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className="bh-metric-icon slate">
+                      <FileTextOutlined style={{ color: '#64748b', fontSize: 14 }} />
+                    </div>
+                    <div>
+                      <Text style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-slate-900)', display: 'block', lineHeight: 1 }}>
+                        {buckets.reduce((acc, b) => acc + ((b as any)._count?.tickets || 0), 0)}
+                      </Text>
+                      <Text style={{ fontSize: 8, color: 'var(--text-slate-400)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tickets</Text>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Text style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-slate-900)', display: 'block', lineHeight: 1 }}>{buckets.length}</Text>
-                  <Text style={{ fontSize: 8, color: 'var(--text-slate-400)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Hubs</Text>
-                </div>
-              </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div className="bh-metric-icon slate">
-                  <FileTextOutlined style={{ color: '#64748b', fontSize: 14 }} />
-                </div>
-                <div>
-                  <Text style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-slate-900)', display: 'block', lineHeight: 1 }}>
-                    {buckets.reduce((acc, b) => acc + ((b as any)._count?.tickets || 0), 0)}
-                  </Text>
-                  <Text style={{ fontSize: 8, color: 'var(--text-slate-400)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tickets</Text>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Advanced Selectors Group */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className="bh-filter-select-wrap">
-                <ProjectOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
-                <Select
-                  placeholder="All Projects"
-                  variant="borderless"
-                  style={{ width: 160, fontSize: 12, fontWeight: 700 }}
-                  allowClear
-                  value={selectedProject}
-                  onChange={setSelectedProject}
-                  dropdownMatchSelectWidth={false}
-                >
-                  {projects?.map((project: any) => (
-                    <Option key={project.value} value={project.value}>
-                      <Text style={{ fontSize: 11, fontWeight: 600 }}>{project.label}</Text>
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-
-              <div className="bh-filter-select-wrap">
-                <FilterOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
-                <Select
-                  variant="borderless"
-                  style={{ width: 140, fontSize: 12, fontWeight: 700 }}
-                  value={typeFilter}
-                  onChange={setTypeFilter}
-                >
-                  <Option value="all">All Visibility</Option>
-                  <Option value="shared">Public Only</Option>
-                  <Option value="private">Private Only</Option>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div className={`bh-search-box ${searchQuery ? 'active' : ''}`}>
-              <SearchOutlined style={{ color: searchQuery ? '#8b5cf6' : 'var(--text-slate-400)', fontSize: 13 }} />
-              <Input
-                placeholder="Search hub..."
-                variant="borderless"
-                style={{ fontSize: 12, fontWeight: 600, padding: 0 }}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                allowClear
-              />
-            </div>
-
-            <Button
-              size="small"
-              type="text"
-              icon={<ReloadOutlined style={{ fontSize: 12 }} />}
-              onClick={() => {
-                setSelectedProject(null);
-                setSearchQuery("");
-                setTypeFilter("all");
-              }}
-              style={{ color: '#94a3b8', fontWeight: 800, fontSize: 10, height: 32, borderRadius: 6 }}
-            >
-              RESET
-            </Button>
-          </div>
-        </div>
-
-        {/* Buckets Table */}
-        <Card
-          bodyStyle={{ padding: 0 }}
-          style={{
-            borderRadius: 0,
-            overflow: "hidden",
-            border: "1px solid #e2e8f0",
-            backgroundColor: "transparent",
-            boxShadow: "none"
-          }}
-        >
-          <Table
-            dataSource={buckets}
-            columns={columns}
-            loading={isLoading}
-            rowKey="id"
-            className="premium-table"
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              size: "small",
-              showTotal: (total) => <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{total} Operations Found</Text>,
-              style: { padding: "8px 16px", margin: 0 }
-            }}
-            onRow={(record) => ({
-              onClick: () => handleView(record.id),
-            })}
-            locale={{
-              emptyText: (
-                <div style={{ padding: "60px 0" }}>
-                  <Empty
-                    image={<FolderOpenOutlined style={{ fontSize: 48, color: "#cbd5e1" }} />}
-                    description={
-                      <div style={{ marginTop: 12 }}>
-                        <Text strong style={{ fontSize: 16, color: 'var(--text-slate-900)' }}>No buckets found</Text>
-                        <br />
-                        <Text type="secondary" style={{ fontSize: 13 }}>Start organizing your tasks by creating your first bucket.</Text>
-                      </div>
-                    }
-                  >
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={handleCreate}
-                      style={{ borderRadius: 6, marginTop: 8, height: 40, fontWeight: 700 }}
+                {/* 2. Advanced Selectors Group */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div className="bh-filter-select-wrap">
+                    <ProjectOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                    <Select
+                      placeholder="All Projects"
+                      variant="borderless"
+                      style={{ width: 160, fontSize: 12, fontWeight: 700 }}
+                      allowClear
+                      value={selectedProject}
+                      onChange={setSelectedProject}
+                      dropdownMatchSelectWidth={false}
                     >
-                      Create Bucket
-                    </Button>
-                  </Empty>
+                      {projects?.map((project: any) => (
+                        <Option key={project.value} value={project.value}>
+                          <Text style={{ fontSize: 11, fontWeight: 600 }}>{project.label}</Text>
+                        </Option>
+                      ))}
+                    </Select>
+                  </div>
+
+                  <div className="bh-filter-select-wrap">
+                    <FilterOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                    <Select
+                      variant="borderless"
+                      style={{ width: 140, fontSize: 12, fontWeight: 700 }}
+                      value={typeFilter}
+                      onChange={setTypeFilter}
+                    >
+                      <Option value="all">All Visibility</Option>
+                      <Option value="shared">Public Only</Option>
+                      <Option value="private">Private Only</Option>
+                    </Select>
+                  </div>
                 </div>
-              )
-            }}
-          />
-        </Card>
+              </div>
 
-        {/* Create/Edit Modal */}
-        <CreateBucketModal
-          open={createModalOpen}
-          bucket={editingBucket}
-          onClose={handleModalClose}
-          onSuccess={handleModalSuccess}
-        />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className={`bh-search-box ${searchQuery ? 'active' : ''}`}>
+                  <SearchOutlined style={{ color: searchQuery ? '#8b5cf6' : 'var(--text-slate-400)', fontSize: 13 }} />
+                  <Input
+                    placeholder="Search hub..."
+                    variant="borderless"
+                    style={{ fontSize: 12, fontWeight: 600, padding: 0 }}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    allowClear
+                  />
+                </div>
 
-        <style jsx global>{`
-        /* ── Header ─────────────────────────────────────────────── */
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<ReloadOutlined style={{ fontSize: 12 }} spin={isRefreshing} />}
+                  onClick={async () => {
+                    setIsRefreshing(true);
+                    setSelectedProject(null);
+                    setSearchQuery("");
+                    setTypeFilter("all");
+                    await queryClient.invalidateQueries({ queryKey: bucketKeys.all });
+                    refetch();
+                    msgApi.success("View refreshed");
+                    setIsRefreshing(false);
+                  }}
+                  loading={isRefreshing}
+                  style={{ color: '#94a3b8', fontWeight: 800, fontSize: 10, height: 32, borderRadius: 6 }}
+                >
+                  RESET
+                </Button>
+              </div>
+            </div>
+
+            {/* Buckets Table */}
+            <Card
+              styles={{ body: { padding: 0 } }}
+              style={{
+                borderRadius: 0,
+                overflow: "hidden",
+                border: "1px solid #e2e8f0",
+                backgroundColor: "transparent",
+                boxShadow: "none"
+              }}
+            >
+              <Table
+                dataSource={buckets}
+                columns={columns}
+                loading={isLoading}
+                rowKey="id"
+                className="premium-table"
+                pagination={{
+                  pageSize: 10,
+                  showSizeChanger: true,
+                  size: "small",
+                  showTotal: (total) => <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{total} Operations Found</Text>,
+                  style: { padding: "8px 16px", margin: 0 }
+                }}
+                onRow={(record) => ({
+                  onClick: () => handleView(record.id),
+                })}
+                locale={{
+                  emptyText: (
+                    <div style={{ padding: "60px 0" }}>
+                      <Empty
+                        image={<FolderOpenOutlined style={{ fontSize: 48, color: "#cbd5e1" }} />}
+                        description={
+                          <div style={{ marginTop: 12 }}>
+                            <Text strong style={{ fontSize: 16, color: 'var(--text-slate-900)' }}>No buckets found</Text>
+                            <br />
+                            <Text type="secondary" style={{ fontSize: 13 }}>Start organizing your tasks by creating your first bucket.</Text>
+                          </div>
+                        }
+                      >
+                        <Button
+                          type="primary"
+                          icon={<PlusOutlined />}
+                          onClick={handleCreate}
+                          style={{ borderRadius: 6, marginTop: 8, height: 40, fontWeight: 700 }}
+                        >
+                          Create Bucket
+                        </Button>
+                      </Empty>
+                    </div>
+                  )
+                }}
+              />
+            </Card>
+          </>
+        )}
+      </div>
+
+      {/* Create/Edit Modal */}
+      <CreateBucketModal
+        open={createModalOpen}
+        bucket={editingBucket}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+      />
+
+      <style jsx global>{`
+        /* Header */
         .bh-header-icon-box {
           width: 36px; height: 36px;
           background: var(--bg-purple-50);
@@ -503,7 +577,7 @@ export default function BucketManagementPage() {
           margin: 0;
         }
 
-        /* ── Control bar ────────────────────────────────────────── */
+        /* Control bar */
         .bh-control-bar {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
@@ -522,7 +596,7 @@ export default function BucketManagementPage() {
           box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
         }
 
-        /* ── Metrics ─────────────────────────────────────────────── */
+        /* Metrics */
         .bh-metrics-group {
           display: flex; align-items: center; gap: 16px;
           padding-right: 20px;
@@ -552,7 +626,7 @@ export default function BucketManagementPage() {
           border-color: rgba(100,116,139,0.25) !important;
         }
 
-        /* ── Filter dropdowns ───────────────────────────────────── */
+        /* Filter dropdowns */
         .bh-filter-select-wrap {
           display: flex; align-items: center; gap: 8px;
           background: var(--bg-slate-50);
@@ -571,7 +645,7 @@ export default function BucketManagementPage() {
           color: var(--text-slate-900) !important;
         }
 
-        /* ── Search box ─────────────────────────────────────────── */
+        /* Search box */
         .bh-search-box {
           display: flex; align-items: center; gap: 10px;
           background: var(--bg-slate-50);
@@ -594,7 +668,7 @@ export default function BucketManagementPage() {
           box-shadow: 0 0 0 3px rgba(139,92,246,0.15) !important;
         }
 
-        /* ── Project tag chip ───────────────────────────────────── */
+        /* Project tag chip */
         .bh-project-tag {
           display: flex; align-items: center; gap: 8px;
           background: var(--bg-slate-50);
@@ -608,7 +682,7 @@ export default function BucketManagementPage() {
           border-color: #374151 !important;
         }
 
-        /* ── Premium table ──────────────────────────────────────── */
+        /* Premium table */
         .bh-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50) !important;
           font-weight: 700;
@@ -646,7 +720,7 @@ export default function BucketManagementPage() {
           border-color: var(--border-color) !important;
         }
 
-        /* ── Action buttons ─────────────────────────────────────── */
+        /* Action buttons */
         .saas-action-btn {
           display: flex !important;
           align-items: center;
@@ -662,7 +736,6 @@ export default function BucketManagementPage() {
           background: #1f2937 !important;
         }
       `}</style>
-      </div>
     </div>
   );
 }

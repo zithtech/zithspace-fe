@@ -101,6 +101,7 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
         name: data.name,
         description: data.description || '',
         projectId: summary.sprint.project.id,
+        isShared: true, // Default to public (shared) as requested
       });
       setShowBucketModal(false);
       message.success(`Bucket "${newBucket.name}" created successfully! You can now select it from the dropdown.`);

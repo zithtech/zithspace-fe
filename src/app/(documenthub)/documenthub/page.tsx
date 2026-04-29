@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -415,8 +415,8 @@ const DocumentHubPage = (props: Props) => {
     return (
       <MainLayout>
         <div style={{
-          margin: "0 -24px",
-          padding: "24px 32px",
+          margin: 0,
+          padding: '24px 12px',
           background: "var(--bg-pure-white)",
           minHeight: "calc(100vh - 64px)",
           display: 'flex',
@@ -616,7 +616,7 @@ const DocumentHubPage = (props: Props) => {
           minHeight: '58px',
           borderBottom: '1px solid var(--border-color)',
           margin: '0 -24px 24px -24px',
-          padding: '0 24px'
+          padding: '0 12px'
         }}>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2 m-0" style={{ color: 'var(--text-slate-900)' }}>
@@ -1000,3 +1000,4 @@ const DocumentHubPage = (props: Props) => {
 };
 
 export default DocumentHubPage;
+

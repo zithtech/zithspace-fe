@@ -64,7 +64,7 @@ export function CreateBucketModal({
       });
     } else if (open) {
       form.resetFields();
-      form.setFieldsValue({ color: "#6366f1", isShared: false });
+      form.setFieldsValue({ color: "#6366f1", isShared: true });
     }
   }, [open, bucket, form]);
 
@@ -82,7 +82,7 @@ export function CreateBucketModal({
         description: values.description || "",
         projectId: values.projectId,
         color: colorValue,
-        isShared: values.isShared || false,
+        isShared: values.isShared ?? true,
       };
 
       if (isEditing && bucket) {
@@ -133,7 +133,7 @@ export function CreateBucketModal({
       okButtonProps={{
         style: {
           height: 40,
-          padding: '0 24px',
+          padding: '0 12px',
           fontWeight: 700,
           background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
           border: 'none',

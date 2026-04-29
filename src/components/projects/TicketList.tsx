@@ -16,7 +16,6 @@ import {
   Avatar,
   Table,
   Empty,
-  message,
   Modal,
   Popconfirm,
   Radio,
@@ -24,7 +23,6 @@ import {
   Tooltip,
   Divider,
   Collapse,
-  notification,
   Alert,
   Dropdown,
   MenuProps,
@@ -33,6 +31,7 @@ import {
   Spin,
   Switch,
   Segmented,
+  App,
   type TableProps,
 } from "antd";
 import {
@@ -54,6 +53,7 @@ import {
   ArrowLeftOutlined,
   MinusCircleOutlined,
   CheckCircleOutlined,
+  CheckOutlined,
   ShareAltOutlined,
   MoreOutlined,
   ProjectOutlined,
@@ -113,6 +113,7 @@ interface TicketListProps {
 }
 
 export default function TicketList({ projectId, projectName, projectCode }: TicketListProps) {
+  const { message: msgApi } = App.useApp();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [modal, contextHolder] = Modal.useModal();
@@ -347,9 +348,6 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   // Handle Add/Remove from Sprint
   // Handle Add/Remove from Sprint
-  const [notifyApi, notifyContextHolder] = notification.useNotification({
-    placement: 'top',
-  }); // Use notification hook
 
   // Handle Add/Remove from Sprint
   // Handle Add/Remove from Sprint
@@ -359,42 +357,66 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   ) => {
     const palette =
       kind === 'added'
-        ? { dot: '#10b981', icon: '✓' }
+        ? {
+          bg: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+          icon: <CheckOutlined style={{ fontSize: 10 }} />,
+          shadow: "0 2px 8px rgba(16, 185, 129, 0.3)"
+        }
         : kind === 'removed'
-          ? { dot: '#ef4444', icon: '↺' }
-          : { dot: '#ef4444', icon: '!' };
+          ? {
+            bg: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+            icon: <ReloadOutlined style={{ fontSize: 10 }} />,
+            shadow: "0 2px 8px rgba(245, 158, 11, 0.3)"
+          }
+          : {
+            bg: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+            icon: <ThunderboltOutlined style={{ fontSize: 10 }} />,
+            shadow: "0 2px 8px rgba(239, 68, 68, 0.3)"
+          };
 
-    notifyApi.open({
+    msgApi.open({
       key: 'sprint-assignment-toast',
-      placement: 'top',
       duration: 2,
-      className: 'tiny-toast',
-      message: (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      content: (
+        <span style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "0"
+        }}>
           <span
             style={{
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
-              background: palette.dot,
-              color: '#fff',
-              fontSize: 11,
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              width: 16,
+              height: 16,
+              borderRadius: "50%",
+              background: palette.bg,
+              color: "#fff",
+              fontSize: 10,
+              fontWeight: 900,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
               flexShrink: 0,
+              boxShadow: palette.shadow,
             }}
           >
             {palette.icon}
           </span>
-          {kind === 'added' && (
-            <>
-              Added to <strong style={{ color: 'var(--text-slate-900)', fontWeight: 700 }}>{label}</strong>
-            </>
-          )}
-          {kind === 'removed' && <>Removed from sprint</>}
-          {kind === 'error' && <span style={{ color: '#ef4444' }}>Sprint update failed</span>}
+          <span style={{ fontSize: 12, fontWeight: 500 }}>
+            {kind === 'added' && (
+              <>
+                Added to <strong style={{ color: "#10b981", fontWeight: 700 }}>{label}</strong>
+              </>
+            )}
+            {kind === 'removed' && (
+              <>
+                Removed from sprint
+              </>
+            )}
+            {kind === 'error' && (
+              <span style={{ color: "#ef4444" }}>Sprint update failed</span>
+            )}
+          </span>
         </span>
       ),
     });
@@ -437,13 +459,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const handleSprintCompletionSuccess = () => {
     setSprintCompletionModalOpen(false);
-    notifyApi.success({
-      message: 'Sprint Completed',
-      description: 'Sprint completed successfully',
-      placement: 'top',
-      style: {
-        borderLeft: '4px solid #52c41a',
-      }
+    msgApi.success({
+      key: 'sprint-complete',
+      content: (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#52c41a', fontWeight: 700 }}>✓</span>
+          Sprint completed successfully
+        </span>
+      ),
     });
     // Refresh both ticket lists and active sprint query
     refetchActive();
@@ -476,18 +499,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
       // Show appropriate success message
       if (sprintStatus === 'active') {
-        notifyApi.success({
-          message: 'Active Sprint Created',
-          description: `${newSprint.version} is now your active sprint! Start adding tickets.`,
-          placement: 'top',
-          style: { borderLeft: '4px solid #52c41a' }
+        msgApi.success({
+          key: 'sprint-created',
+          content: `${newSprint.version} is now your active sprint!`,
         });
       } else {
-        notifyApi.success({
-          message: 'Planning Sprint Created',
-          description: `${newSprint.version} created as a draft. You can start it after completing the current sprint.`,
-          placement: 'top',
-          style: { borderLeft: '4px solid #1890ff' }
+        msgApi.info({
+          key: 'sprint-created',
+          content: `${newSprint.version} created as a draft.`,
         });
       }
 
@@ -497,7 +516,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       refetchBacklog();
 
     } catch (error: any) {
-      message.error(error.message || 'Failed to create sprint');
+      msgApi.error(error.message || 'Failed to create sprint');
     } finally {
       setCreatingSprintLoading(false);
     }
@@ -614,11 +633,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       {
         onError: (error) => {
           console.error(`Failed to update ${field}:`, error);
-          message.error(`Failed to update ${field}`);
-          // Note: The optimistic update hook will handle rolling back the data in the cache
+          msgApi.error(`Failed to update ${field}`);
         },
         onSuccess: () => {
-          message.success(`${field} updated`);
+          msgApi.success(`${field} updated`);
         }
       }
     );
@@ -680,23 +698,29 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         console.error("No ticket ID provided for deletion");
         return;
       }
-      await deleteTicketMutation.mutateAsync(ticketId);
-      console.log("Delete mutation successful for ID:", ticketId);
-      message.success("Ticket moved to trash");
-    } catch (error: any) {
-      console.error("Delete mutation failed for ID:", ticketId, error);
+      await deleteTicketMutation.mutateAsync(ticketId, {
+        onSuccess: () => {
+          msgApi.success("Ticket moved to trash");
+        },
+        onError: (error: any) => {
+          console.error("Delete mutation failed for ID:", ticketId, error);
 
-      // Check if it's a permission error
-      const errorMessage = error?.message || "Failed to delete ticket";
-      if (
-        errorMessage.includes("permission") ||
-        errorMessage.includes("admin") ||
-        errorMessage.includes("403")
-      ) {
-        message.error("Only administrators can delete tickets");
-      } else {
-        message.error(errorMessage);
-      }
+          // Check if it's a permission error
+          const errorMessage = error?.message || "Failed to delete ticket";
+          if (
+            errorMessage.includes("permission") ||
+            errorMessage.includes("admin") ||
+            errorMessage.includes("403")
+          ) {
+            msgApi.error("Only administrators can delete tickets");
+          } else {
+            msgApi.error(errorMessage);
+          }
+        }
+      });
+    } catch (error: any) {
+      // Catch block for any potential synchronous errors or unhandled promise rejections
+      console.error("Unexpected deletion error:", error);
     }
   };
 
@@ -1167,7 +1191,6 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       margin: '0 -24px'
     }}>
       {contextHolder}
-      {notifyContextHolder}
 
       {/* Premium Header Row - Sticky Glassmorphism */}
       <div className="saas-header-container" style={{
@@ -1354,8 +1377,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               onClick={async () => {
                 setIsRefreshing(true);
                 await queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                refetchBacklog();
+                msgApi.success("View refreshed");
                 setIsRefreshing(false);
-                message.success("View refreshed");
               }}
               style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             />
@@ -1492,7 +1516,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   const member = members.find((m) => m.value === option?.value);
                   return member
                     ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                        (member.position || '').toLowerCase().includes(input.toLowerCase())
+                    (member.position || '').toLowerCase().includes(input.toLowerCase())
                     : false;
                 }}
                 className="ticket-filter-row__select"
@@ -1598,7 +1622,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                               minWidth: 90,
                               fontSize: 10,
                               fontWeight: 800,
-                               background: isDelayed ? 'rgba(239, 68, 68, 0.15)' : isToday ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                              background: isDelayed ? 'rgba(239, 68, 68, 0.15)' : isToday ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
                               color: isDelayed ? '#fb7185' : isToday ? '#fbbf24' : '#34d399',
                               borderRadius: 4,
                               border: `1px solid ${isDelayed ? 'rgba(239, 68, 68, 0.2)' : isToday ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`

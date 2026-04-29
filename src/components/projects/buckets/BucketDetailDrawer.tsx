@@ -380,6 +380,59 @@ export function BucketDetailDrawer({
           onSuccess={handleMemberManagerSuccess}
         />
       )}
+      <style jsx global>{`
+        [data-theme='dark'] .ant-drawer-content {
+          background-color: #0d1117 !important;
+        }
+        [data-theme='dark'] .ant-drawer-header {
+          background-color: #0d1117 !important;
+          border-bottom: 1px solid #30363d !important;
+        }
+        [data-theme='dark'] .ant-drawer-title {
+          color: #e6edf3 !important;
+        }
+        [data-theme='dark'] .ant-tabs-nav::before {
+          border-bottom-color: #30363d !important;
+        }
+        [data-theme='dark'] .ant-card {
+          background: #161b22 !important;
+          border-color: #30363d !important;
+        }
+        [data-theme='dark'] .ant-card-head {
+          border-bottom-color: #30363d !important;
+          color: #e6edf3 !important;
+        }
+        [data-theme='dark'] .ant-statistic-title {
+          color: #8b949e !important;
+        }
+        [data-theme='dark'] .ant-statistic-content {
+          color: #e6edf3 !important;
+        }
+        [data-theme='dark'] .ant-descriptions-bordered .ant-descriptions-item-label {
+          background-color: #161b22 !important;
+          border-color: #30363d !important;
+          color: #8b949e !important;
+        }
+        [data-theme='dark'] .ant-descriptions-bordered .ant-descriptions-item-content {
+          border-color: #30363d !important;
+          color: #e6edf3 !important;
+        }
+        [data-theme='dark'] .ant-table {
+          background: transparent !important;
+          color: #e6edf3 !important;
+        }
+        [data-theme='dark'] .ant-table-thead > tr > th {
+          background: #161b22 !important;
+          border-bottom-color: #30363d !important;
+          color: #8b949e !important;
+        }
+        [data-theme='dark'] .ant-table-tbody > tr > td {
+          border-bottom-color: #21262d !important;
+        }
+        [data-theme='dark'] .ant-table-tbody > tr.ant-table-row:hover > td {
+          background: #1c2128 !important;
+        }
+      `}</style>
     </>
   );
 }

@@ -257,7 +257,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
         <div style={{
           margin: "0 -24px",
           padding: "24px 32px",
-          background: "var(--bg-pure-white)",
+          background: "var(--bg-primary)",
           minHeight: "calc(100vh - 64px)",
           display: 'flex',
           justifyContent: 'center',
@@ -271,7 +271,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
 
   return (
     <MainLayout>
-      <div style={{ background: "var(--bg-pure-white)", minHeight: "100vh" }}>
+      <div style={{ background: "var(--bg-primary)", minHeight: "100vh" }}>
         {contextHolder}
 
         {/* 1. Global Workstation Header */}
@@ -279,9 +279,9 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          background: 'rgba(255, 255, 255, 0.8)',
+          background: 'rgba(var(--header-bg-rgb, 255, 255, 255), 0.8)',
           backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid #e2e8f0',
+          borderBottom: '1px solid var(--border-slate-200)',
           padding: '10.5px 48px',
           margin: '0 -24px 24px',
           marginBottom: 24
@@ -338,144 +338,68 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
 
         <div style={{ padding: "0 32px 32px" }}>
           {/* 2. Analytical Metrics Group */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 20,
-            marginBottom: 24
-          }}>
+          <div className="bh-metrics-grid">
             {/* Scoped Issues */}
-            <div style={{
-              background: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-              padding: '16px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16
-            }}>
-              <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: 8,
-                background: '#f8fafc',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid #f1f5f9'
-              }}>
-                <FileTextOutlined style={{ fontSize: 18, color: '#64748b' }} />
+            <div className="bh-metric-card">
+              <div className="bh-metric-icon-wrap default">
+                <FileTextOutlined style={{ fontSize: 18, color: 'var(--text-slate-600)' }} />
               </div>
               <div>
-                <Text style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>{tickets.length}</Text>
-                <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>TOTAL TICKETS</Text>
+                <Text className="bh-metric-value">{tickets.length}</Text>
+                <Text className="bh-metric-label">TOTAL TICKETS</Text>
               </div>
             </div>
-
+  
             {/* Total Velocity Points */}
-            <div style={{
-              background: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-              padding: '16px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16
-            }}>
-              <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: 8,
-                background: '#f0fdf4',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid #dcfce7'
-              }}>
+            <div className="bh-metric-card">
+              <div className="bh-metric-icon-wrap green">
                 <RocketOutlined style={{ fontSize: 18, color: '#10b981' }} />
               </div>
               <div>
-                <Text style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>
+                <Text className="bh-metric-value">
                   {tickets.reduce((acc, t) => acc + (t.storyPoint || 0), 0)}
                 </Text>
-                <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>RESOURCE LOAD</Text>
+                <Text className="bh-metric-label">RESOURCE LOAD</Text>
               </div>
             </div>
-
+  
             {/* Project Context */}
-            <div style={{
-              background: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-              padding: '16px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16,
-              gridColumn: 'span 2'
-            }}>
-              <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: 8,
-                background: '#eff6ff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid #dbeafe'
-              }}>
+            <div className="bh-metric-card project-context">
+              <div className="bh-metric-icon-wrap blue">
                 <ProjectOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
               </div>
               <div>
-                <Text style={{ fontSize: 16, fontWeight: 700, color: '#1e293b', display: 'block', lineHeight: 1.2 }}>
+                <Text className="bh-metric-value small">
                   {bucket?.project?.name || 'Cross-Project Scope'}
                 </Text>
                 <Space size={4} style={{ marginTop: 2 }}>
-                  <Tag color="blue" style={{ borderRadius: 4, height: 16, fontSize: 9, fontWeight: 800, border: 'none', lineHeight: '16px' }}>
+                  <Tag color="blue" className="bh-project-mini-tag">
                     {bucket?.project?.code || 'SYSTEM'}
                   </Tag>
-                  <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>PRIMARY PROJECT ORIGIN</Text>
+                  <Text className="bh-metric-label">PRIMARY PROJECT ORIGIN</Text>
                 </Space>
               </div>
             </div>
           </div>
 
           {/* 3. High-Density Unified Control Bar */}
-          <div style={{
-            background: '#fff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 8,
-            padding: '14px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 28,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-            marginBottom: 24
-          }}>
+          <div className="bh-unified-control-bar">
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: 1 }}>
               {/* Batch Actions Group */}
               {selectedRowKeys.length > 0 ? (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  background: '#f8fafc',
-                  padding: '4px 16px',
-                  borderRadius: 6,
-                  border: '1.5px solid #3b82f6'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderRight: '1.5px solid #e2e8f0', paddingRight: 16 }}>
+                <div className="bh-batch-action-belt">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderRight: '1.5px solid var(--border-slate-200)', paddingRight: 16 }}>
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#3b82f6' }} />
-                    <Text style={{ fontSize: 12, fontWeight: 800, color: '#1e293b' }}>{selectedRowKeys.length} SELECTED</Text>
+                    <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-slate-900)' }}>{selectedRowKeys.length} SELECTED</Text>
                   </div>
 
                   <Space size={12}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Text style={{ fontSize: 10, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Ship to:</Text>
+                      <Text style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-slate-500)', textTransform: 'uppercase' }}>Ship to:</Text>
                       <Select
                         placeholder="Select Phase"
                         variant="borderless"
-                        style={{ width: 140, fontSize: 12, fontWeight: 700, background: '#fff', borderRadius: 4, height: 32, border: '1px solid #e2e8f0' }}
+                        className="bh-phase-select"
                         value={selectedSprint}
                         onChange={setSelectedSprint}
                       >
@@ -521,7 +445,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                 /* Static Description when no selection */
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 4, height: 24, borderRadius: 2, background: bucket?.color || '#8b5cf6' }} />
-                  <Text type="secondary" style={{ fontSize: 13, fontWeight: 500, fontStyle: 'italic', color: '#64748b' }}>
+                  <Text type="secondary" style={{ fontSize: 13, fontWeight: 500, fontStyle: 'italic', color: 'var(--text-slate-600)' }}>
                     {bucket?.description || 'Strategic categorization node active. Deep scan for inventory specifics.'}
                   </Text>
                 </div>
@@ -529,19 +453,8 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
             </div>
 
             {/* Deep Scan Search Module */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              background: '#f8fafc',
-              padding: '2px 6px 2px 16px',
-              borderRadius: 8,
-              border: searchText ? '1px solid #3b82f6' : '1px solid #f1f5f9',
-              width: 320,
-              transition: 'all 0.2s ease',
-              boxShadow: searchText ? '0 0 0 3px rgba(59, 130, 246, 0.05)' : 'none'
-            }}>
-              <SearchOutlined style={{ color: searchText ? '#3b82f6' : '#94a3b8', fontSize: 13 }} />
+            <div className={`bh-deep-scan-search ${searchText ? 'active' : ''}`}>
+              <SearchOutlined style={{ color: searchText ? '#3b82f6' : 'var(--text-slate-400)', fontSize: 13 }} />
               <Input
                 placeholder="Deep scan inventory..."
                 variant="borderless"
@@ -551,30 +464,13 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                 allowClear
               />
               {searchText ? (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  background: '#eff6ff',
-                  padding: '4px 10px',
-                  borderRadius: 4,
-                  border: '1px solid #dbeafe',
-                  animation: 'pulse 2s infinite'
-                }}>
+                <div className="bh-scan-active-badge">
                   <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#3b82f6' }} />
                   <Text style={{ fontSize: 9, fontWeight: 900, color: '#1d4ed8', letterSpacing: '0.04em' }}>ACTIVE</Text>
                 </div>
               ) : (
-                <div style={{
-                  background: '#fff',
-                  border: '1px solid #e2e8f0',
-                  padding: '2px 6px',
-                  borderRadius: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Text style={{ fontSize: 9, fontWeight: 800, color: '#94a3b8' }}>⌘K</Text>
+                <div className="bh-kbd-shortcut">
+                  <Text style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-slate-400)' }}>⌘K</Text>
                 </div>
               )}
             </div>
@@ -634,22 +530,133 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
           50% { transform: scale(1.05); opacity: 0.8; }
           100% { transform: scale(1); opacity: 1; }
         }
+
+        .bh-metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 20px;
+          margin-bottom: 24px;
+        }
+
+        .bh-metric-card {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          padding: 16px 20px;
+          display: flex;
+          alignItems: center;
+          gap: 16px;
+          transition: all 0.2s ease;
+        }
+
+        .bh-metric-card.project-context {
+          grid-column: span 2;
+        }
+
+        .bh-metric-icon-wrap {
+          width: 44px; height: 44px;
+          border-radius: 8px;
+          display: flex; alignItems: center; justify-content: center;
+          border: 1px solid transparent;
+        }
+
+        .bh-metric-icon-wrap.default { background: var(--bg-slate-50); border-color: var(--border-slate-100); }
+        .bh-metric-icon-wrap.green { background: var(--bg-green-50); border-color: var(--border-green-200); }
+        .bh-metric-icon-wrap.blue { background: var(--bg-blue-50); border-color: var(--border-blue-200); }
+
+        .bh-metric-value { 
+          font-size: 20px; fontWeight: 800; color: var(--text-slate-900); display: block; line-height: 1.2; 
+        }
+        .bh-metric-value.small { font-size: 16px; fontWeight: 700; }
+        
+        .bh-metric-label { 
+          font-size: 10px; color: var(--text-slate-400); fontWeight: 800; text-transform: uppercase; letter-spacing: 0.04em; 
+        }
+
+        .bh-project-mini-tag {
+          border-radius: 4px; height: 16px; fontSize: 9px; fontWeight: 800; border: none; line-height: 16px;
+        }
+
+        .bh-unified-control-bar {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          padding: 14px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 28px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+          margin-bottom: 24px;
+        }
+
+        .bh-batch-action-belt {
+          display: flex;
+          alignItems: center;
+          gap: 12,
+          background: var(--bg-slate-50);
+          padding: 4px 16px;
+          border-radius: 6px;
+          border: 1.5px solid #3b82f6;
+        }
+
+        .bh-phase-select {
+          width: 140px; font-size: 12px; font-weight: 700; background: var(--bg-pure-white); border-radius: 4px; height: 32px; border: 1px solid var(--border-slate-200);
+        }
+
+        .bh-deep-scan-search {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          background: var(--bg-slate-50);
+          padding: 2px 6px 2px 16px;
+          border-radius: 8px;
+          border: 1px solid var(--border-slate-100);
+          width: 320px;
+          transition: all 0.2s ease;
+        }
+
+        .bh-deep-scan-search.active {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.05);
+        }
+
+        .bh-scan-active-badge {
+          display: flex; align-items: center; gap: 6px; background: var(--bg-blue-50); padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border-blue-200); animation: pulse 2s infinite;
+        }
+
+        .bh-kbd-shortcut {
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 2px 6px; border-radius: 4px; display: flex; align-items: center; justify-content: center;
+        }
+
+        [data-theme='dark'] .bh-unified-control-bar,
+        [data-theme='dark'] .bh-metric-card {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+        }
+
+        [data-theme='dark'] .bh-metric-icon-wrap.default { background: #21262d; border-color: #30363d; }
+        [data-theme='dark'] .bh-metric-icon-wrap.green { background: rgba(35, 134, 54, 0.15); border-color: rgba(35, 134, 54, 0.3); }
+        [data-theme='dark'] .bh-metric-icon-wrap.blue { background: rgba(31, 111, 235, 0.15); border-color: rgba(31, 111, 235, 0.3); }
+
+        [data-theme='dark'] .bh-header-divider { border-left-color: #30363d !important; }
+
         .premium-table .ant-table-thead > tr > th {
-          background: #f8fafc;
+          background: var(--bg-slate-50);
           font-weight: 800;
-          color: #64748b;
+          color: var(--text-slate-500);
           font-size: 10px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 14px 16px;
-          border-bottom: 1px solid #e2e8f0;
+          border-bottom: 1px solid var(--border-slate-200);
         }
         .premium-table .ant-table-tbody > tr > td {
           padding: 14px 16px;
-          border-bottom: 1px solid #f1f5f9;
+          border-bottom: 1px solid var(--border-slate-100);
         }
         .premium-table .ant-table-tbody > tr:hover > td {
-          background: #f8fafc !important;
+          background: var(--bg-slate-50) !important;
         }
       `}</style>
     </MainLayout>

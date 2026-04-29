@@ -554,12 +554,11 @@ body {
 .tiny-toast {
   margin-top: 8px !important;
   padding: 0 !important;
-  line-height: 1 !important;
   z-index: 1100 !important;
 }
 .tiny-toast .ant-notification-notice {
   width: auto !important;
-  min-width: 220px !important;
+  min-width: 120px !important;
   max-width: 460px !important;
   padding: 8px 18px !important;
   border-radius: 999px !important;
@@ -595,14 +594,21 @@ body {
   color: #f1f5f9 !important;
 }
 .tiny-toast .ant-notification-notice-description,
-.tiny-toast .ant-notification-notice-icon,
-.tiny-toast .ant-notification-notice-close,
-.tiny-toast .ant-notification-notice-with-icon .ant-notification-notice-message {
+.tiny-toast .ant-notification-notice-close {
   display: none !important;
+}
+.tiny-toast .ant-notification-notice-icon {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  margin-right: 8px !important;
+  top: auto !important;
 }
 .tiny-toast .ant-notification-notice-content {
   padding: 0 !important;
   margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 /* Small premium messages */
@@ -2328,4 +2334,21 @@ body {
 
 .saas-segmented-premium .ant-segmented-group {
   gap: 2px !important;
+}
+
+
+/* Fix for borderless input backgrounds in dark theme so search icon and input look unified */
+.ant-input-borderless,
+.ant-input-affix-wrapper-borderless,
+[data-theme='dark'] .ant-input-borderless,
+[data-theme='dark'] .ant-input-affix-wrapper-borderless {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+[data-theme='dark'] .ant-input-affix-wrapper-borderless > input.ant-input,
+[data-theme='dark'] .ant-input-borderless {
+  background-color: transparent !important;
+  background: transparent !important;
+  color: var(--text-primary) !important;
 }

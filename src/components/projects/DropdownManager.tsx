@@ -59,7 +59,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingOption, setEditingOption] = useState<DropdownOption | null>(null);
   const [activeTab, setActiveTab] = useState('platform');
-  
+
   // State for dropdown options grouped by type
   const [dropdownOptions, setDropdownOptions] = useState<Record<string, DropdownOption[]>>({});
 
@@ -81,13 +81,13 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
     try {
       setDataLoading(true);
       const options = await SettingsService.getDropdownOptions();
-      
+
       // Sort each category by order
       const sortedOptions: Record<string, DropdownOption[]> = {};
       Object.keys(options).forEach(type => {
         sortedOptions[type] = [...options[type]].sort((a, b) => (a.order || 0) - (b.order || 0));
       });
-      
+
       setDropdownOptions(sortedOptions);
     } catch (error) {
       console.error('Error loading dropdown options:', error);
@@ -148,7 +148,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   //     setLoading(true);
   //     const currentOptions = dropdownOptions[option.type] || [];
   //     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-      
+
   //     if (direction === 'up' && currentIndex > 0) {
   //       const newOrder = currentOptions[currentIndex - 1].order;
   //       await SettingsService.updateDropdownOption(option.id, { order: newOrder });
@@ -156,7 +156,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   //       const newOrder = currentOptions[currentIndex + 1].order;
   //       await SettingsService.updateDropdownOption(option.id, { order: newOrder });
   //     }
-      
+
   //     message.success('Sequence updated');
   //     await loadDropdownOptions();
   //     onDataChange?.();
@@ -172,264 +172,264 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
 
 
-// const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
-//   try {
-//     setLoading(true);
-//     const currentOptions = [...(dropdownOptions[option.type] || [])];
-//     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-    
-//     if (direction === 'up' && currentIndex > 0) {
-//       const prevOption = currentOptions[currentIndex - 1];
-      
-//       // ✅ Store the orders properly
-//       const currentOrder = option.order;
-//       const prevOrder = prevOption.order;
-      
-//       console.log('Swapping orders:', { currentOrder, prevOrder }); // Debug
-      
-//       // Swap orders - current gets prev's order, prev gets current's order
-//       await SettingsService.updateDropdownOption(option.id, { 
-//         order: prevOrder,  // Current item gets PREV item's order
-//         value: option.value,
-//         label: option.label,
-//         isActive: option.isActive,
-//         description: option.description,
-//         color: option.color
-//       });
-//      const result1 = await SettingsService.updateDropdownOption(option.id, { 
-//   order: prevOrder,
-//   value: option.value,
-//   label: option.label,
-//   isActive: option.isActive,
-//   description: option.description,
-//   color: option.color
-// });
-// console.log('RESULT 1 - New order:', result1.order); // 👈 ADD THIS
-      
-//       await SettingsService.updateDropdownOption(prevOption.id, { 
-//         order: currentOrder,  // PREV item gets CURRENT item's order
-//         value: prevOption.value,
-//         label: prevOption.label,
-//         isActive: prevOption.isActive,
-//         description: prevOption.description,
-//         color: prevOption.color
-//       });
-//       const result2 = await SettingsService.updateDropdownOption(prevOption.id, { 
-//   order: currentOrder,
-//   value: prevOption.value,
-//   label: prevOption.label,
-//   isActive: prevOption.isActive,
-//   description: prevOption.description,
-//   color: prevOption.color
-// });
-// console.log('RESULT 2 - New order:', result2.order); // 👈 ADD THIS
-      
-//     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
-//       const nextOption = currentOptions[currentIndex + 1];
-      
-//       // ✅ Store the orders properly
-//       const currentOrder = option.order;
-//       const nextOrder = nextOption.order;
-      
-//       console.log('Swapping orders:', { currentOrder, nextOrder }); // Debug
-      
-//       // Swap orders - current gets next's order, next gets current's order
-//       await SettingsService.updateDropdownOption(option.id, { 
-//         order: nextOrder,  // Current item gets NEXT item's order
-//         value: option.value,
-//         label: option.label,
-//         isActive: option.isActive,
-//         description: option.description,
-//         color: option.color
-//       });
-      
-//       await SettingsService.updateDropdownOption(nextOption.id, { 
-//         order: currentOrder,  // NEXT item gets CURRENT item's order
-//         value: nextOption.value,
-//         label: nextOption.label,
-//         isActive: nextOption.isActive,
-//         description: nextOption.description,
-//         color: nextOption.color
-//       });
-//     }
-    
-//     // ✅ Force refresh to see changes
-//     await loadDropdownOptions();
-//     message.success('Order updated successfully');
-    
-//   } catch (error) {
-//     console.error('Error:', error);
-//     message.error('Failed to update order');
-//   } finally {
-//     setLoading(false);
-//   }
-// };
+  // const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
+  //   try {
+  //     setLoading(true);
+  //     const currentOptions = [...(dropdownOptions[option.type] || [])];
+  //     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
+
+  //     if (direction === 'up' && currentIndex > 0) {
+  //       const prevOption = currentOptions[currentIndex - 1];
+
+  //       // ✅ Store the orders properly
+  //       const currentOrder = option.order;
+  //       const prevOrder = prevOption.order;
+
+  //       console.log('Swapping orders:', { currentOrder, prevOrder }); // Debug
+
+  //       // Swap orders - current gets prev's order, prev gets current's order
+  //       await SettingsService.updateDropdownOption(option.id, { 
+  //         order: prevOrder,  // Current item gets PREV item's order
+  //         value: option.value,
+  //         label: option.label,
+  //         isActive: option.isActive,
+  //         description: option.description,
+  //         color: option.color
+  //       });
+  //      const result1 = await SettingsService.updateDropdownOption(option.id, { 
+  //   order: prevOrder,
+  //   value: option.value,
+  //   label: option.label,
+  //   isActive: option.isActive,
+  //   description: option.description,
+  //   color: option.color
+  // });
+  // console.log('RESULT 1 - New order:', result1.order); // 👈 ADD THIS
+
+  //       await SettingsService.updateDropdownOption(prevOption.id, { 
+  //         order: currentOrder,  // PREV item gets CURRENT item's order
+  //         value: prevOption.value,
+  //         label: prevOption.label,
+  //         isActive: prevOption.isActive,
+  //         description: prevOption.description,
+  //         color: prevOption.color
+  //       });
+  //       const result2 = await SettingsService.updateDropdownOption(prevOption.id, { 
+  //   order: currentOrder,
+  //   value: prevOption.value,
+  //   label: prevOption.label,
+  //   isActive: prevOption.isActive,
+  //   description: prevOption.description,
+  //   color: prevOption.color
+  // });
+  // console.log('RESULT 2 - New order:', result2.order); // 👈 ADD THIS
+
+  //     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
+  //       const nextOption = currentOptions[currentIndex + 1];
+
+  //       // ✅ Store the orders properly
+  //       const currentOrder = option.order;
+  //       const nextOrder = nextOption.order;
+
+  //       console.log('Swapping orders:', { currentOrder, nextOrder }); // Debug
+
+  //       // Swap orders - current gets next's order, next gets current's order
+  //       await SettingsService.updateDropdownOption(option.id, { 
+  //         order: nextOrder,  // Current item gets NEXT item's order
+  //         value: option.value,
+  //         label: option.label,
+  //         isActive: option.isActive,
+  //         description: option.description,
+  //         color: option.color
+  //       });
+
+  //       await SettingsService.updateDropdownOption(nextOption.id, { 
+  //         order: currentOrder,  // NEXT item gets CURRENT item's order
+  //         value: nextOption.value,
+  //         label: nextOption.label,
+  //         isActive: nextOption.isActive,
+  //         description: nextOption.description,
+  //         color: nextOption.color
+  //       });
+  //     }
+
+  //     // ✅ Force refresh to see changes
+  //     await loadDropdownOptions();
+  //     message.success('Order updated successfully');
+
+  //   } catch (error) {
+  //     console.error('Error:', error);
+  //     message.error('Failed to update order');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
 
 
 
 
-// const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
-//   try {
-//     setLoading(true);
-//     const currentOptions = [...(dropdownOptions[option.type] || [])];
-//     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-    
-//     if (direction === 'up' && currentIndex > 0) {
-//       const prevOption = currentOptions[currentIndex - 1];
-      
-//       // Swap orders - Update BOTH items
-//       await SettingsService.updateDropdownOption(option.id, { 
-//         order: prevOption.order,
-//         value: option.value,
-//         label: option.label,
-//         isActive: option.isActive
-//       });
-      
-//       await SettingsService.updateDropdownOption(prevOption.id, { 
-//         order: option.order,
-//         value: prevOption.value,
-//         label: prevOption.label,
-//         isActive: prevOption.isActive
-//       });
-      
-//       // Update UI immediately
-//       const newOptions = [...currentOptions];
-//       newOptions[currentIndex - 1] = { ...newOptions[currentIndex - 1], order: option.order };
-//       newOptions[currentIndex] = { ...newOptions[currentIndex], order: prevOption.order };
-      
-//       setDropdownOptions({
-//         ...dropdownOptions,
-//         [option.type]: newOptions
-//       });
-      
-//       message.success('Order updated');
-      
-//     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
-//       const nextOption = currentOptions[currentIndex + 1];
-      
-//       await SettingsService.updateDropdownOption(option.id, { 
-//         order: nextOption.order,
-//         value: option.value,
-//         label: option.label,
-//         isActive: option.isActive
-//       });
-      
-//       await SettingsService.updateDropdownOption(nextOption.id, { 
-//         order: option.order,
-//         value: nextOption.value,
-//         label: nextOption.label,
-//         isActive: nextOption.isActive
-//       });
-      
-//       // Update UI immediately
-//       const newOptions = [...currentOptions];
-//       newOptions[currentIndex] = { ...newOptions[currentIndex], order: nextOption.order };
-//       newOptions[currentIndex + 1] = { ...newOptions[currentIndex + 1], order: option.order };
-      
-//       setDropdownOptions({
-//         ...dropdownOptions,
-//         [option.type]: newOptions
-//       });
-      
-//       message.success('Order updated');
-//     }
-    
-//     // Refresh from database in background
-//     setTimeout(async () => {
-//       await loadDropdownOptions();
-//     }, 500);
-    
-//   } catch (error) {
-//     console.error('Error:', error);
-//     message.error('Failed to update order');
-//   } finally {
-//     setLoading(false);
-//   }
-// };
+  // const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
+  //   try {
+  //     setLoading(true);
+  //     const currentOptions = [...(dropdownOptions[option.type] || [])];
+  //     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
+
+  //     if (direction === 'up' && currentIndex > 0) {
+  //       const prevOption = currentOptions[currentIndex - 1];
+
+  //       // Swap orders - Update BOTH items
+  //       await SettingsService.updateDropdownOption(option.id, { 
+  //         order: prevOption.order,
+  //         value: option.value,
+  //         label: option.label,
+  //         isActive: option.isActive
+  //       });
+
+  //       await SettingsService.updateDropdownOption(prevOption.id, { 
+  //         order: option.order,
+  //         value: prevOption.value,
+  //         label: prevOption.label,
+  //         isActive: prevOption.isActive
+  //       });
+
+  //       // Update UI immediately
+  //       const newOptions = [...currentOptions];
+  //       newOptions[currentIndex - 1] = { ...newOptions[currentIndex - 1], order: option.order };
+  //       newOptions[currentIndex] = { ...newOptions[currentIndex], order: prevOption.order };
+
+  //       setDropdownOptions({
+  //         ...dropdownOptions,
+  //         [option.type]: newOptions
+  //       });
+
+  //       message.success('Order updated');
+
+  //     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
+  //       const nextOption = currentOptions[currentIndex + 1];
+
+  //       await SettingsService.updateDropdownOption(option.id, { 
+  //         order: nextOption.order,
+  //         value: option.value,
+  //         label: option.label,
+  //         isActive: option.isActive
+  //       });
+
+  //       await SettingsService.updateDropdownOption(nextOption.id, { 
+  //         order: option.order,
+  //         value: nextOption.value,
+  //         label: nextOption.label,
+  //         isActive: nextOption.isActive
+  //       });
+
+  //       // Update UI immediately
+  //       const newOptions = [...currentOptions];
+  //       newOptions[currentIndex] = { ...newOptions[currentIndex], order: nextOption.order };
+  //       newOptions[currentIndex + 1] = { ...newOptions[currentIndex + 1], order: option.order };
+
+  //       setDropdownOptions({
+  //         ...dropdownOptions,
+  //         [option.type]: newOptions
+  //       });
+
+  //       message.success('Order updated');
+  //     }
+
+  //     // Refresh from database in background
+  //     setTimeout(async () => {
+  //       await loadDropdownOptions();
+  //     }, 500);
+
+  //   } catch (error) {
+  //     console.error('Error:', error);
+  //     message.error('Failed to update order');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
 
 
 
 
-const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
-  try {
-    setLoading(true);
-    const currentOptions = [...(dropdownOptions[option.type] || [])];
-    const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-    
-    if (direction === 'up' && currentIndex > 0) {
-      const prevOption = currentOptions[currentIndex - 1];
-      
-      // Swap the 'order' values
-      const currentOrder = option.order;
-      const prevOrder = prevOption.order;
+  const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
+    try {
+      setLoading(true);
+      const currentOptions = [...(dropdownOptions[option.type] || [])];
+      const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
 
-      // Update backend using the specialized reorder endpoint
-      await SettingsService.reorderDropdownOptions([
-        { id: option.id, order: prevOrder, value: option.value, label: option.label },
-        { id: prevOption.id, order: currentOrder, value: prevOption.value, label: prevOption.label }
-      ]);
-      
-      // Update local state - swap items in array AND update their order property
-      const newOptions = [...currentOptions];
-      const updatedCurrent = { ...option, order: prevOrder };
-      const updatedPrev = { ...prevOption, order: currentOrder };
-      
-      newOptions[currentIndex] = updatedPrev;
-      newOptions[currentIndex - 1] = updatedCurrent;
-      
-      // Ensure the final list is still sorted
-      const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
-      
-      setDropdownOptions(prev => ({
-        ...prev,
-        [option.type]: sorted
-      }));
-      
-      onDataChange?.();
-      message.success('Sequence updated');
-      
-    } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
-      const nextOption = currentOptions[currentIndex + 1];
-      
-      const currentOrder = option.order;
-      const nextOrder = nextOption.order;
+      if (direction === 'up' && currentIndex > 0) {
+        const prevOption = currentOptions[currentIndex - 1];
 
-      // Update backend
-      await SettingsService.reorderDropdownOptions([
-        { id: option.id, order: nextOrder, value: option.value, label: option.label },
-        { id: nextOption.id, order: currentOrder, value: nextOption.value, label: nextOption.label }
-      ]);
-      
-      // Update local state
-      const newOptions = [...currentOptions];
-      const updatedCurrent = { ...option, order: nextOrder };
-      const updatedNext = { ...nextOption, order: currentOrder };
-      
-      newOptions[currentIndex] = updatedNext;
-      newOptions[currentIndex + 1] = updatedCurrent;
-      
-      // Re-sort
-      const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
-      
-      setDropdownOptions(prev => ({
-        ...prev,
-        [option.type]: sorted
-      }));
-      
-      onDataChange?.();
-      message.success('Sequence updated');
+        // Swap the 'order' values
+        const currentOrder = option.order;
+        const prevOrder = prevOption.order;
+
+        // Update backend using the specialized reorder endpoint
+        await SettingsService.reorderDropdownOptions([
+          { id: option.id, order: prevOrder, value: option.value, label: option.label },
+          { id: prevOption.id, order: currentOrder, value: prevOption.value, label: prevOption.label }
+        ]);
+
+        // Update local state - swap items in array AND update their order property
+        const newOptions = [...currentOptions];
+        const updatedCurrent = { ...option, order: prevOrder };
+        const updatedPrev = { ...prevOption, order: currentOrder };
+
+        newOptions[currentIndex] = updatedPrev;
+        newOptions[currentIndex - 1] = updatedCurrent;
+
+        // Ensure the final list is still sorted
+        const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        setDropdownOptions(prev => ({
+          ...prev,
+          [option.type]: sorted
+        }));
+
+        onDataChange?.();
+        message.success('Sequence updated');
+
+      } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
+        const nextOption = currentOptions[currentIndex + 1];
+
+        const currentOrder = option.order;
+        const nextOrder = nextOption.order;
+
+        // Update backend
+        await SettingsService.reorderDropdownOptions([
+          { id: option.id, order: nextOrder, value: option.value, label: option.label },
+          { id: nextOption.id, order: currentOrder, value: nextOption.value, label: nextOption.label }
+        ]);
+
+        // Update local state
+        const newOptions = [...currentOptions];
+        const updatedCurrent = { ...option, order: nextOrder };
+        const updatedNext = { ...nextOption, order: currentOrder };
+
+        newOptions[currentIndex] = updatedNext;
+        newOptions[currentIndex + 1] = updatedCurrent;
+
+        // Re-sort
+        const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        setDropdownOptions(prev => ({
+          ...prev,
+          [option.type]: sorted
+        }));
+
+        onDataChange?.();
+        message.success('Sequence updated');
+      }
+    } catch (error) {
+      console.error('Error reordering:', error);
+      message.error('Failed to update sequence');
+      // Reload to original state if error
+      await loadDropdownOptions();
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Error reordering:', error);
-    message.error('Failed to update sequence');
-    // Reload to original state if error
-    await loadDropdownOptions();
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
 
@@ -448,7 +448,7 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
   const handleSubmit = async (values: any) => {
     try {
       setLoading(true);
-      
+
       const data: CreateDropdownOptionData | UpdateDropdownOptionData = {
         type: values.type,
         value: values.value,
@@ -482,7 +482,7 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
     try {
       setLoading(true);
       message.loading({ content: 'Synchronizing system lifecycles...', key: 'status-sync' });
-      
+
       const currentStatusList = dropdownOptions.status || [];
       const newStatusOrder = [
         { label: "Not Started", value: "not_started", color: "#8c8c8c" },
@@ -500,7 +500,7 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
       for (let i = 0; i < newStatusOrder.length; i++) {
         const target = newStatusOrder[i];
         const existing = currentStatusList.find(s => s.value === target.value);
-        
+
         const data = {
           label: target.label,
           value: target.value,
@@ -605,17 +605,13 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
       width: 100,
       align: 'center' as const,
       render: (isActive: boolean, record: DropdownOption) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <Switch 
-            size="small" 
-            checked={isActive} 
-            onChange={() => handleToggleStatus(record)} 
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <Switch
+            size="small"
+            checked={isActive}
+            onChange={() => handleToggleStatus(record)}
             loading={loading}
             className="premium-switch"
-          />
-          <Badge 
-            status={isActive ? 'success' : 'default'} 
-            text={<span style={{ fontSize: 10, color: isActive ? '#52c41a' : '#bfbfbf', fontWeight: 600 }}>{isActive ? 'ACTIVE' : 'HIDDEN'}</span>} 
           />
         </div>
       )
@@ -659,112 +655,113 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
 
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          tabPosition="left"
-          className="manager-tabs"
-          style={{ flex: 1, height: '100%' }}
-          items={dropdownTypes.map(type => ({
-            key: type.key,
-            label: (
-              <div className="tab-label-container">
-                <Space size={12}>
-                  <div className={`tab-icon-box ${activeTab === type.key ? 'active' : ''}`} style={{ color: type.color }}>
-                    {type.icon}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        tabPosition="left"
+        className="manager-tabs"
+        style={{ flex: 1, height: '100%' }}
+        items={dropdownTypes.map(type => ({
+          key: type.key,
+          label: (
+            <div className="tab-label-container">
+              <Space size={12}>
+                <div className={`tab-icon-box ${activeTab === type.key ? 'active' : ''}`} style={{ color: type.color }}>
+                  {type.icon}
+                </div>
+                <div>
+                  <div className="tab-title">{type.label}</div>
+                  <div className="tab-subtitle-count">
+                    <Badge
+                      count={dropdownOptions[type.key]?.length || 0}
+                      size="small"
+                      style={{
+                        backgroundColor: activeTab === type.key ? type.color : 'rgba(0,0,0,0.06)',
+                        color: activeTab === type.key ? '#fff' : 'var(--text-secondary)',
+                        fontSize: 10,
+                        boxShadow: 'none',
+                        border: 'none'
+                      }}
+                    />
+                    <span style={{ marginLeft: 6 }}>Definitions</span>
                   </div>
-                  <div>
-                    <div className="tab-title">{type.label}</div>
-                    <div className="tab-subtitle-count">
-                      <Badge 
-                        count={dropdownOptions[type.key]?.length || 0} 
-                        size="small"
-                        style={{ 
-                          backgroundColor: activeTab === type.key ? type.color : 'rgba(0,0,0,0.06)', 
-                          color: activeTab === type.key ? '#fff' : 'var(--text-secondary)',
-                          fontSize: 10,
-                          boxShadow: 'none',
-                          border: 'none'
-                        }} 
-                      />
-                      <span style={{ marginLeft: 6 }}>Definitions</span>
-                    </div>
-                  </div>
-                </Space>
-              </div>
-            ),
-            children: (
-              <div className="tab-content-area no-scrollbar">
-                <div className="category-header">
-                  <Row justify="space-between" align="middle">
-                    <Col>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 4, height: 24, background: type.color, borderRadius: 2, flexShrink: 0 }} />
-                        <Space split={<Divider type="vertical" style={{ height: 18, borderLeft: '1.5px solid #cbd5e1', margin: '0 4px' }} />} size={16}>
-                          <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
-                            {type.label}
-                          </Title>
-                          <Text style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
-                            {type.description}
-                          </Text>
-                        </Space>
-                      </div>
-                    </Col>
-                    <Col>
-                      <Space size={12}>
-                        {type.key === 'status' && (
-                          <Button
-                            size="small"
-                            icon={<ThunderboltOutlined />}
-                            onClick={handleStandardizeLifecycles}
-                            loading={loading}
-                            style={{ borderRadius: 6, fontWeight: 700, border: '1px solid #faad14', color: '#faad14', height: 32 }}
-                          >
-                            Synchronize
-                          </Button>
-                        )}
-                        <Button
-                          type="primary"
-                          size="small"
-                          icon={<PlusOutlined />}
-                          onClick={handleCreate}
-                          style={{ borderRadius: 6, fontWeight: 700, height: 32, padding: '0 16px' }}
-                        >
-                          New Definition
-                        </Button>
+                </div>
+              </Space>
+            </div>
+          ),
+          children: (
+            <div className="tab-content-area no-scrollbar">
+              <div className="category-header">
+                <Row justify="space-between" align="middle">
+                  <Col>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 4, height: 24, background: type.color, borderRadius: 2, flexShrink: 0 }} />
+                      <Space split={<Divider type="vertical" style={{ height: 18, borderLeft: '1.5px solid #cbd5e1', margin: '0 4px' }} />} size={16}>
+                        <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
+                          {type.label}
+                        </Title>
+                        <Text style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                          {type.description}
+                        </Text>
                       </Space>
-                    </Col>
-                  </Row>
-                  <Divider style={{ margin: '16px 0 0' }} />
-                </div>
-                
-                <div style={{ flex: 1, marginTop: 16 }}>
-                  <Table
-                    columns={columns}
-                    dataSource={dropdownOptions[type.key] || []}
-                    rowKey="id"
-                    loading={dataLoading}
-                    pagination={false}
-                    size="middle"
-                    className="premium-table workstation-grid"
-                  />
-                </div>
+                    </div>
+                  </Col>
+                  <Col>
+                    <Space size={12}>
+                      {type.key === 'status' && (
+                        <Button
+                          size="small"
+                          icon={<ThunderboltOutlined />}
+                          onClick={handleStandardizeLifecycles}
+                          loading={loading}
+                          style={{ borderRadius: 6, fontWeight: 700, border: '1px solid #faad14', color: '#faad14', height: 32 }}
+                        >
+                          Synchronize
+                        </Button>
+                      )}
+                      <Button
+                        type="primary"
+                        size="small"
+                        icon={<PlusOutlined />}
+                        onClick={handleCreate}
+                        style={{ borderRadius: 6, fontWeight: 700, height: 32, padding: '0 16px' }}
+                      >
+                        New Definition
+                      </Button>
+                    </Space>
+                  </Col>
+                </Row>
+                <Divider style={{ margin: '16px 0 0' }} />
               </div>
-            )
-          }))}
-        />
+
+              <div style={{ flex: 1, marginTop: 16 }}>
+                <Table
+                  columns={columns}
+                  dataSource={dropdownOptions[type.key] || []}
+                  rowKey="id"
+                  loading={dataLoading}
+                  pagination={false}
+                  size="middle"
+                  bordered
+                  className="premium-table workstation-grid"
+                />
+              </div>
+            </div>
+          )
+        }))}
+      />
 
       <Modal
         title={
           <div style={{ padding: '8px 4px' }}>
             <Space size={12}>
-              <div style={{ 
-                width: 40, 
-                height: 40, 
-                background: 'rgba(59, 130, 246, 0.1)', 
-                borderRadius: 12, 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                width: 40,
+                height: 40,
+                background: 'rgba(59, 130, 246, 0.1)',
+                borderRadius: 12,
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
                 border: '1px solid rgba(59, 130, 246, 0.1)'
               }}>
@@ -981,7 +978,7 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
         /* ── Content area ─────────────────────────────────────────── */
         .tab-content-area {
           padding: 20px 32px;
-          height: 100%;
+          height: calc(100vh - 180px);
           overflow-y: auto;
           display: flex;
           flex-direction: column;
@@ -993,7 +990,15 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
 
         /* ── Category header ──────────────────────────────────────── */
         .category-header {
-          position: relative;
+          position: sticky;
+          top: -20px;
+          z-index: 100;
+          background: var(--bg-pure-white);
+          padding: 20px 0 16px;
+          margin-top: -20px;
+        }
+        [data-theme='dark'] .category-header {
+          background: #0b0f1a !important;
         }
         .category-tag {
           font-size: 10px;

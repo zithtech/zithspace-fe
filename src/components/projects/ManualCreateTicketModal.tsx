@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Drawer, Form, Input, Select, DatePicker, Button, Row, Col, Typography, Space, Tag, InputNumber, notification, Divider, Avatar, Tooltip, Slider, ConfigProvider, Badge } from "antd";
+import { Drawer, Form, Input, Select, DatePicker, Button, Row, Col, Typography, Space, Tag, InputNumber, Divider, Avatar, Tooltip, Slider, ConfigProvider, Badge, App } from "antd";
 import {
   FileTextOutlined, UserOutlined, CalendarOutlined, ThunderboltOutlined,
   CheckCircleOutlined, InfoCircleOutlined, CloseOutlined, PlusOutlined,
@@ -33,9 +33,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
   onTicketCreated,
 }) => {
   const [form] = Form.useForm();
-  const [api, contextHolder] = notification.useNotification({
-    placement: 'top',
-  });
+  const { message: msgApi } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
 
@@ -79,12 +77,12 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
       };
 
       const savedTicket = await createTicketMutation.mutateAsync(ticketData);
-      api.success({ message: "Ticket initialized" });
+      msgApi.success("Ticket initialized successfully");
       if (onTicketCreated) onTicketCreated(savedTicket);
       form.resetFields();
       onClose();
     } catch (error: any) {
-      api.error({ message: error?.message || "Failed to create" });
+      msgApi.error(error?.message || "Failed to create");
     } finally {
       setLoading(false);
     }
@@ -102,7 +100,6 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
       footer={null}
       className="ticket-creation-slider"
     >
-      {contextHolder}
 
       {/* Premium Strong Header */}
       <div style={{
@@ -250,11 +247,11 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
 
                   {selectedPlatform?.toLowerCase() === 'development' && (
                     <Col span={24}>
-                       <Form.Item name="stack" label={<Text style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>Technical Stack</Text>} rules={[{ required: true }]} style={{ marginBottom: 12 }}>
-                          <Select size="middle" placeholder="Select technology stack" style={{ width: '100%', borderRadius: 0 }} dropdownStyle={{ borderRadius: 0 }}>
-                            {stacks.map(s => <Option key={s.value} value={s.value}>{s.label}</Option>)}
-                          </Select>
-                        </Form.Item>
+                      <Form.Item name="stack" label={<Text style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>Technical Stack</Text>} rules={[{ required: true }]} style={{ marginBottom: 12 }}>
+                        <Select size="middle" placeholder="Select technology stack" style={{ width: '100%', borderRadius: 0 }} dropdownStyle={{ borderRadius: 0 }}>
+                          {stacks.map(s => <Option key={s.value} value={s.value}>{s.label}</Option>)}
+                        </Select>
+                      </Form.Item>
                     </Col>
                   )}
 
@@ -280,10 +277,10 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
                             <Text style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-slate-500)' }}>Est. Hours</Text>
                           </div>
                           <Form.Item name="estimateHours" label={null} style={{ marginBottom: 0 }}>
-                            <InputNumber 
-                              min={1} 
-                              max={1000} 
-                              style={{ width: '100%', height: 32, borderRadius: 0 }} 
+                            <InputNumber
+                              min={1}
+                              max={1000}
+                              style={{ width: '100%', height: 32, borderRadius: 0 }}
                               placeholder="Hours"
                             />
                           </Form.Item>

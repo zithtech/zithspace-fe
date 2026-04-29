@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, UseMutationOptions } from "@tanstack/react-query";
 import BucketService, {
   Bucket,
   CreateBucketData,
@@ -363,44 +363,68 @@ export const useUnassignTicketsFromBucket = () => {
 /**
  * Move all tickets in bucket to specific sprint
  */
-export const useMoveBucketToSprint = () => {
+export const useMoveBucketToSprint = (options?: UseMutationOptions<any, any, { bucketId: string; sprintId: string }>) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ bucketId, sprintId }: { bucketId: string; sprintId: string }) =>
       BucketService.moveBucketToSprint(bucketId, sprintId),
-    onSuccess: (result, variables) => {
+    onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: bucketKeys.all });
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
-      message.success(result.movedCount > 0 
-        ? `${result.movedCount} ticket(s) moved to sprint`
-        : "No tickets found to move"
-      );
+      
+      if (options?.onSuccess) {
+        options.onSuccess(...args);
+      } else {
+        const result = args[0];
+        message.success(result.movedCount > 0 
+          ? `${result.movedCount} ticket(s) moved to sprint`
+          : "No tickets found to move"
+        );
+      }
     },
-    onError: (error: any) => {
-      message.error(error.message || "Failed to move bucket to sprint");
+    onError: (...args) => {
+      if (options?.onError) {
+        options.onError(...args);
+      } else {
+        const error = args[0] as any;
+        message.error(error.message || "Failed to move bucket to sprint");
+      }
     },
+    ...options
   });
 };
 
 /**
  * Move all tickets in bucket back to backlog
  */
-export const useMoveBucketToBacklog = () => {
+export const useMoveBucketToBacklog = (options?: UseMutationOptions<any, any, string>) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (bucketId: string) => BucketService.moveBucketToBacklog(bucketId),
-    onSuccess: (result) => {
+    onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: bucketKeys.all });
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
-      message.success(result.movedCount > 0 
-        ? `${result.movedCount} ticket(s) moved to backlog`
-        : "No tickets found to move"
-      );
+      
+      if (options?.onSuccess) {
+        options.onSuccess(...args);
+      } else {
+        const result = args[0];
+        message.success(result.movedCount > 0 
+          ? `${result.movedCount} ticket(s) moved to backlog`
+          : "No tickets found to move"
+        );
+      }
     },
-    onError: (error: any) => {
-      message.error(error.message || "Failed to move bucket to backlog");
+    onError: (...args) => {
+      if (options?.onError) {
+        options.onError(...args);
+      } else {
+        const error = args[0] as any;
+        message.error(error.message || "Failed to move bucket back to backlog");
+      }
     },
+    ...options
   });
 };

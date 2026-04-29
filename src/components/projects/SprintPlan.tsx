@@ -133,7 +133,7 @@ export default function SprintPlanComponent() {
       api.error({
         message: "Error",
         description: "Failed to load sprint plans",
-        
+
       });
     } finally {
       setLoading(false);
@@ -256,14 +256,14 @@ export default function SprintPlanComponent() {
         api.success({
           message: "Success",
           description: "Sprint Plan updated successfully",
-          
+
         });
       } else {
         await ReleasePlanService.createReleasePlan(formData);
         api.success({
           message: "Success",
           description: "Sprint Plan created successfully",
-          
+
         });
       }
 
@@ -274,7 +274,7 @@ export default function SprintPlanComponent() {
       api.error({
         message: "Error",
         description: error?.message || "Failed to save Sprint Plan",
-        
+
       });
     } finally {
       setSaving(false);
@@ -312,7 +312,7 @@ export default function SprintPlanComponent() {
       api.success({
         message: "Success",
         description: "Sprint Plan deleted successfully",
-        
+
       });
       loadData();
     } catch (error) {
@@ -326,14 +326,14 @@ export default function SprintPlanComponent() {
       api.success({
         message: "Success",
         description: "Sprint started successfully",
-        
+
       });
       loadData();
     } catch (error: any) {
       api.error({
         message: "Error",
         description: error.message || "Failed to start sprint",
-        
+
       });
     }
   };
@@ -350,7 +350,7 @@ export default function SprintPlanComponent() {
     api.success({
       message: "Success",
       description: "Sprint completed successfully",
-      
+
     });
   };
 
@@ -594,13 +594,13 @@ export default function SprintPlanComponent() {
           </Col>
           <Col>
             <Space size={12}>
-              <Button
+              {/* <Button
                 icon={<ReloadOutlined />}
                 onClick={() => loadData()}
                 loading={loading}
                 className="saas-button-item"
                 style={{ height: 36, fontWeight: 600 }}
-              />
+              /> */}
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -745,11 +745,7 @@ export default function SprintPlanComponent() {
                   <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#3b82f6' }} />
                   <Text style={{ fontSize: 9, fontWeight: 900, color: '#1d4ed8', letterSpacing: '0.04em' }}>ACTIVE</Text>
                 </div>
-              ) : (
-                <div className="sp-search-kbd">
-                  <Text style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-slate-400)' }}>⌘K</Text>
-                </div>
-              )}
+              ) : null}
             </div>
 
             {/* 4. Reset Command */}

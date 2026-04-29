@@ -42,6 +42,7 @@ import {
   useEmptyTrash,
 } from "@/hooks/useTrash";
 import { useUserProjects } from "@/hooks/useGlobalData";
+import TicketSkeleton from "@/components/projects/TicketSkeleton";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 
@@ -67,6 +68,7 @@ export default function TrashManagementPage() {
   const {
     data: trashData,
     isLoading,
+    isFetching,
     refetch,
   } = useTrashTickets({
     page,
@@ -74,6 +76,17 @@ export default function TrashManagementPage() {
     projectId: projectFilter,
     search: searchQuery,
   });
+
+  const [manualRefresh, setManualRefresh] = useState(false);
+
+  const handleManualRefresh = async () => {
+    setManualRefresh(true);
+    try {
+      await refetch();
+    } finally {
+      setManualRefresh(false);
+    }
+  };
 
   const { data: userProjectsData } = useUserProjects();
   const projects = userProjectsData || [];
@@ -145,7 +158,7 @@ export default function TrashManagementPage() {
 
   const handleEmptyTrash = async () => {
     try {
-      await emptyTrash.mutateAsync(false);
+      await emptyTrash.mutateAsync(true);
       setSelectedRowKeys([]);
       refetch();
     } catch (error) {
@@ -314,9 +327,9 @@ export default function TrashManagementPage() {
         top: 0,
         zIndex: 100,
         backdropFilter: 'blur(12px)',
-        padding: '10.5px 48px',
-        margin: '0 -24px 24px',
-        marginBottom: 24
+        padding: '10.5px 12px',
+        marginBottom: 24,
+
       }}>
         <Row justify="space-between" align="middle" gutter={[16, 16]}>
           <Col>
@@ -338,9 +351,9 @@ export default function TrashManagementPage() {
             <Space size={12}>
               <Popconfirm
                 title="Empty Trash"
-                description="This action will permanently purge ALL items. Continue?"
+                description="This action will permanently delete ALL items. Continue?"
                 onConfirm={handleEmptyTrash}
-                okText="Purge All"
+                okText="Delete All"
                 cancelText="Keep"
                 okButtonProps={{ danger: true, style: { fontWeight: 700 } }}
               >
@@ -361,7 +374,7 @@ export default function TrashManagementPage() {
         </Row>
       </div>
 
-      <div style={{ padding: "0 32px 32px" }}>
+      <div style={{ padding: '0 12px 32px' }}>
         {/* Unified High-Density Trash Control Bar */}
         <div className="tr-control-bar">
           {/* 1. Technical Metrics Group */}
@@ -420,19 +433,40 @@ export default function TrashManagementPage() {
               </Select>
             </div>
 
-            {/* Search */}
-            <div className={`tr-filter-field tr-filter-search ${searchQuery ? 'active' : ''}`}>
-              <SearchOutlined style={{ fontSize: 12, color: searchQuery ? '#3b82f6' : 'var(--text-slate-400)' }} />
-              <Input
-                placeholder="Search deleted tickets…"
-                variant="borderless"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                allowClear
-              />
-              {!searchQuery && (
-                <kbd className="tr-search-kbd">⌘K</kbd>
-              )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className={`tr-filter-field tr-filter-search ${searchQuery ? 'active' : ''}`}>
+                <SearchOutlined style={{ color: searchQuery ? '#ef4444' : 'var(--text-slate-400)', fontSize: 13 }} />
+                <Input
+                  placeholder="Search deleted tickets..."
+                  variant="borderless"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  allowClear
+                  style={{ padding: 0, fontSize: 12, fontWeight: 600 }}
+                />
+              </div>
+
+              <Tooltip title="Refresh Trash">
+                <Button
+                  size="small"
+                  type="text"
+                  className="saas-button-item"
+                  icon={<ReloadOutlined spin={isFetching} style={{ fontSize: 13 }} />}
+                  onClick={handleManualRefresh}
+                  style={{
+                    height: 32,
+                    width: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 6,
+                    background: 'var(--bg-pure-white)',
+                    border: '1px solid var(--border-slate-200)',
+                    color: 'var(--text-slate-600)',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}
+                />
+              </Tooltip>
             </div>
 
             {/* Reset */}
@@ -469,29 +503,33 @@ export default function TrashManagementPage() {
           </div>
         )}
 
-        <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 8, overflow: "hidden", border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
-          <Table
-            rowSelection={{ selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }}
-            columns={columns}
-            dataSource={trashData?.tickets || []}
-            rowKey="id"
-            loading={isLoading}
-            className="premium-table"
-            pagination={{
-              current: page,
-              pageSize: limit,
-              total: trashData?.pagination.total || 0,
-              onChange: (p) => setPage(p),
-              showTotal: (total) => <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>{total} TICKETS IN REPOSITORY</Text>,
-              style: { padding: "16px 24px" }
-            }}
-            scroll={{ x: 1000 }}
-          />
-        </Card>
+        {(isLoading || manualRefresh) ? (
+          <TicketSkeleton viewMode="list" />
+        ) : (
+          <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 8, overflow: "hidden", border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
+            <Table
+              rowSelection={{ selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }}
+              columns={columns}
+              dataSource={trashData?.tickets || []}
+              rowKey="id"
+              loading={isFetching}
+              className="premium-table"
+              pagination={{
+                current: page,
+                pageSize: limit,
+                total: trashData?.pagination.total || 0,
+                onChange: (p) => setPage(p),
+                showTotal: (total) => <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>{total} TICKETS IN REPOSITORY</Text>,
+                style: { padding: '16px 12px' }
+              }}
+              scroll={{ x: 1000 }}
+            />
+          </Card>
+        )}
       </div>
 
       <style jsx global>{`
-        /* ── Header ─────────────────────────────────────────────── */
+        /* -- Header ----------------------------------------------- */
         .tr-header-icon-box {
           width: 36px; height: 36px;
           background: var(--bg-red-50);
@@ -509,7 +547,7 @@ export default function TrashManagementPage() {
           margin: 0;
         }
 
-        /* ── Control bar ────────────────────────────────────────── */
+        /* -- Control bar ------------------------------------------ */
         .tr-control-bar {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
@@ -528,7 +566,7 @@ export default function TrashManagementPage() {
           box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
         }
 
-        /* ── Metrics ─────────────────────────────────────────────── */
+        /* -- Metrics ----------------------------------------------- */
         .tr-metrics-group {
           display: flex; align-items: center; gap: 24px;
         }
@@ -553,7 +591,7 @@ export default function TrashManagementPage() {
           border-color: rgba(239,68,68,0.25) !important;
         }
 
-        /* ── Filter cluster ─────────────────────────────────────── */
+        /* -- Filter cluster --------------------------------------- */
         .tr-filter-cluster {
           display: flex; align-items: center; gap: 8px;
           padding: 4px;
@@ -591,20 +629,20 @@ export default function TrashManagementPage() {
 
         /* Individual filter field */
         .tr-filter-field {
-          display: flex; align-items: center; gap: 8px;
-          height: 32px;
-          padding: 0 10px;
+          display: flex; align-items: center; gap: 10px;
+          height: 36px;
+          padding: 0 14px;
           background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-100);
-          border-radius: 6px;
-          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .tr-filter-field:hover {
-          border-color: var(--border-slate-200);
+          border-color: var(--border-slate-300);
         }
         .tr-filter-field.active {
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
+          border-color: #ef4444;
+          box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important;
         }
         [data-theme='dark'] .tr-filter-field {
           background: #161b22 !important;
@@ -618,7 +656,7 @@ export default function TrashManagementPage() {
           box-shadow: 0 0 0 3px rgba(59,130,246,0.12) !important;
         }
         .tr-filter-search {
-          width: 280px;
+          width: 320px;
         }
         .tr-filter-search .ant-input {
           font-size: 12px;
@@ -652,21 +690,6 @@ export default function TrashManagementPage() {
           color: #94a3b8 !important;
         }
 
-        /* Keyboard shortcut hint */
-        .tr-search-kbd {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 10px; font-weight: 700;
-          color: var(--text-slate-400);
-          background: var(--bg-slate-50);
-          border: 1px solid var(--border-slate-200);
-          padding: 1px 6px; border-radius: 4px;
-          line-height: 1.4;
-        }
-        [data-theme='dark'] .tr-search-kbd {
-          background: #0b0f1a !important;
-          border-color: #374151 !important;
-          color: #6b7280 !important;
-        }
 
         /* Reset button */
         .tr-filter-reset {
@@ -686,7 +709,7 @@ export default function TrashManagementPage() {
           background: rgba(239,68,68,0.1) !important;
         }
 
-        /* ── Bulk action belt ───────────────────────────────────── */
+        /* -- Bulk action belt ------------------------------------- */
         .tr-bulk-belt {
           margin-bottom: 16px;
           display: flex; justify-content: space-between; align-items: center;
@@ -700,7 +723,7 @@ export default function TrashManagementPage() {
           border-color: rgba(59,130,246,0.2) !important;
         }
 
-        /* ── Project chip ───────────────────────────────────────── */
+        /* -- Project chip ----------------------------------------- */
         .tr-project-chip {
           display: flex; align-items: center; gap: 6px;
           background: var(--bg-slate-50);
@@ -714,7 +737,7 @@ export default function TrashManagementPage() {
           border-color: #374151 !important;
         }
 
-        /* ── Status tags ────────────────────────────────────────── */
+        /* -- Status tags ------------------------------------------ */
         .tr-status-tag {
           font-size: 10px; font-weight: 800;
           margin: 0; border-radius: 4;
@@ -739,7 +762,7 @@ export default function TrashManagementPage() {
           border-color: #374151 !important;
         }
 
-        /* ── Purge badge ────────────────────────────────────────── */
+        /* -- Purge badge ------------------------------------------ */
         .tr-purge-badge {
           padding: 4px 10px; border-radius: 4px;
           display: inline-flex; align-items: center; gap: 6px;
@@ -761,14 +784,14 @@ export default function TrashManagementPage() {
           border-color: rgba(16,185,129,0.2) !important;
         }
 
-        /* ── Ticket number badge ─────────────────────────────────── */
+        /* -- Ticket number badge ----------------------------------- */
         /* handled via CSS var inline, but override background in dark */
         [data-theme='dark'] .premium-table .ant-table-tbody > tr > td:first-child .ant-typography {
           background: #1f2937 !important;
           border-color: #374151 !important;
         }
 
-        /* ── Premium table ───────────────────────────────────────── */
+        /* -- Premium table ----------------------------------------- */
         .premium-table .ant-table-thead > tr > th {
           background: var(--bg-pure-white);
           font-weight: 600;
@@ -805,7 +828,7 @@ export default function TrashManagementPage() {
           background: #161b22 !important;
         }
 
-        /* ── Misc ───────────────────────────────────────────────── */
+        /* -- Misc ------------------------------------------------- */
         .saas-header-container .ant-typography {
           margin-bottom: 0 !important;
         }
@@ -818,3 +841,4 @@ export default function TrashManagementPage() {
     </div>
   );
 }
+

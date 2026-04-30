@@ -284,14 +284,14 @@ function DashboardContent() {
               width: 86,
               height: 86,
               borderRadius: "50%",
-              background: "#fff",
+              background: "var(--bg-pure-white)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexDirection: "column",
             }}
           >
-            <div style={{ fontSize: 24, fontWeight: "bold", marginTop: -6 }}>
+            <div style={{ fontSize: 24, fontWeight: "bold", marginTop: -6, color: "var(--premium-blue)" }}>
               {project.progress}%
             </div>
             <div style={{ fontSize: 12, color: "#888" }}>Complete</div>
@@ -429,8 +429,9 @@ function DashboardContent() {
                   style={{
                     height: "100%",
                     borderRadius: "16px",
-                    border: "1px solid #f0f0f0",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                    border: "1px solid var(--border-color)",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                    background: "var(--bg-pure-white)"
                   }}
                   styles={{ body: { padding: 16 } }}
                 >
@@ -460,7 +461,7 @@ function DashboardContent() {
                         valueStyle={{
                           fontSize: 24,
                           fontWeight: 600,
-                          color: "#262626",
+                          color: "var(--text-primary)",
                           lineHeight: 1,
                         }}
                       />
@@ -512,8 +513,9 @@ function DashboardContent() {
                         display: "flex",
                         flexDirection: "column",
                         borderRadius: "16px",
-                        border: "1px solid #f0f0f0",
-                        boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                        border: "1px solid var(--border-color)",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                        background: "var(--bg-pure-white)"
                       }}
                     >
                       {/* Project Status inside Work & Attendance card */}
@@ -533,11 +535,13 @@ function DashboardContent() {
                             style={{
                               padding: "2px 4px",
                               borderRadius: 4,
-                              border: "1px solid #d9d9d9",
+                              border: "1px solid var(--border-color)",
                               outline: "none",
                               fontSize: 10,
                               maxWidth: 100,
                               cursor: "pointer",
+                              background: "var(--bg-pure-white)",
+                              color: "var(--text-primary)"
                             }}
                             value={selectedProjectId || ""}
                             onChange={(e) =>
@@ -585,8 +589,9 @@ function DashboardContent() {
                         display: "flex",
                         flexDirection: "column",
                         borderRadius: "16px",
-                        border: "1px solid #f0f0f0",
-                        boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                        border: "1px solid var(--border-color)",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                        background: "var(--bg-pure-white)"
                       }}
                     >
                       <div style={{ overflowY: "auto", height: "100%" }}>
@@ -598,7 +603,7 @@ function DashboardContent() {
                               <List.Item
                                 style={{
                                   padding: "12px 16px",
-                                  borderBottom: "1px solid #f0f0f0",
+                                  borderBottom: "1px solid var(--border-color)",
                                 }}
                               >
                                 <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
@@ -663,8 +668,9 @@ function DashboardContent() {
                         display: "flex",
                         flexDirection: "column",
                         borderRadius: "16px",
-                        border: "1px solid #f0f0f0",
-                        boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                        border: "1px solid var(--border-color)",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                        background: "var(--bg-pure-white)"
                       }}
                     >
                       <div style={{ overflowY: "auto", height: "300px" }}>
@@ -677,7 +683,7 @@ function DashboardContent() {
                                 style={{
                                   padding: "8px 12px",
                                   border: "none",
-                                  borderBottom: "1px solid #f0f0f0",
+                                  borderBottom: "1px solid var(--border-color)",
                                 }}
                               >
                                 <List.Item.Meta
@@ -764,8 +770,9 @@ function DashboardContent() {
                       display: "flex",
                       flexDirection: "column",
                       borderRadius: "16px",
-                      border: "1px solid #f0f0f0",
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                      border: "1px solid var(--border-color)",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                      background: "var(--bg-pure-white)"
                     }}
                   >
                     <Space
@@ -793,9 +800,10 @@ function DashboardContent() {
                                   key={leave.id}
                                   style={{
                                     padding: "8px",
-                                    background: "#f0f5ff",
+                                    background: "var(--premium-blue-hover)",
                                     borderRadius: 6,
                                     marginBottom: 8,
+                                    border: "1px solid var(--border-color)"
                                   }}
                                 >
                                   <Space>

@@ -136,8 +136,8 @@ export default function LeaveTypePage() {
             width: 36,
             height: 36,
             borderRadius: 10,
-            background: "#f0f9ff",
-            color: "#0369a1",
+            background: "var(--bg-blue-50)",
+            color: "var(--premium-blue)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -147,8 +147,8 @@ export default function LeaveTypePage() {
             {record.code}
           </div>
           <div>
-            <Text strong style={{ display: "block", color: "#1e293b", fontSize: 14 }}>{text}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>{record.description.length > 50 ? record.description.substring(0, 50) + "..." : record.description}</Text>
+            <Text strong style={{ display: "block", color: "var(--text-slate-900)", fontSize: 14 }}>{text}</Text>
+            <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>{record.description.length > 50 ? record.description.substring(0, 50) + "..." : record.description}</Text>
           </div>
         </Space>
       ),
@@ -174,14 +174,14 @@ export default function LeaveTypePage() {
         <Space size={16}>
           <Tooltip title={record.paid ? "Fully Paid" : "Unpaid"}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {record.paid ? <CheckCircle2 size={14} color="#22c55e" /> : <XCircle size={14} color="#ef4444" />}
-              <Text style={{ fontSize: 13, color: "#475569" }}>{record.paid ? "Paid" : "Unpaid"}</Text>
+              {record.paid ? <CheckCircle2 size={14} color="var(--text-holiday)" /> : <XCircle size={14} color="#ef4444" />}
+              <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{record.paid ? "Paid" : "Unpaid"}</Text>
             </div>
           </Tooltip>
           <Tooltip title={record.approval === "Required" ? "Approval Needed" : "Auto Approved"}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <ShieldCheck size={14} color={record.approval === "Required" ? "#f59e0b" : "#64748b"} />
-              <Text style={{ fontSize: 13, color: "#475569" }}>{record.approval}</Text>
+              <ShieldCheck size={14} color={record.approval === "Required" ? "#f59e0b" : "var(--text-slate-400)"} />
+              <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{record.approval}</Text>
             </div>
           </Tooltip>
         </Space>
@@ -209,7 +209,7 @@ export default function LeaveTypePage() {
           <Tooltip title="Edit Rules">
             <Button
               type="text"
-              icon={<Settings2 size={18} style={{ color: "#64748b" }} />}
+              icon={<Settings2 size={18} style={{ color: "var(--text-slate-400)" }} />}
               onClick={() => handleEdit(record)}
               className="action-btn"
             />
@@ -323,14 +323,15 @@ export default function LeaveTypePage() {
       bodyStyle={{ padding: "16px 20px" }}
       style={{
         borderRadius: 12,
-        border: "1px solid #f1f5f9",
+        border: "1px solid var(--border-slate-100)",
+        background: "var(--bg-pure-white)",
         boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+          <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
         </div>
         <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
           <Icon size={20} />
@@ -345,7 +346,7 @@ export default function LeaveTypePage() {
         <div style={{
           margin: "0 -24px",
           padding: "24px 32px",
-          background: "#ffffff",
+          background: "var(--bg-secondary)",
           minHeight: "calc(100vh - 64px)"
         }}>
           {contextHolder}
@@ -355,32 +356,32 @@ export default function LeaveTypePage() {
             <div style={{ flex: 1 }}>
               <Space size={12} align="center">
                 <div style={{
-                  background: "#eff6ff",
+                  background: "var(--bg-blue-50)",
                   padding: 10,
                   borderRadius: 12,
-                  color: "#2563eb",
+                  color: "var(--premium-blue)",
                   display: "flex"
                 }}>
                   <Briefcase size={24} />
                 </div>
                 <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Leave Types</Title>
-                  <Text style={{ color: "#64748b", fontSize: 15 }}>Define and manage leave types, accrual rules, and approval workflows.</Text>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Leave Types</Title>
+                  <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Define and manage leave types, accrual rules, and approval workflows.</Text>
                 </div>
               </Space>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               <Input
                 placeholder="Search policies..."
-                prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
-                style={{ width: 280, borderRadius: 10, height: 44 }}
+                prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
+                style={{ width: 280, borderRadius: 10, height: 44, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)", color: "var(--text-slate-900)" }}
                 onChange={(e) => setSearchText(e.target.value)}
               />
               <Button
                 type="primary"
                 size="large"
                 icon={<Plus size={18} />}
-                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
+                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)" }}
                 onClick={() => {
                   setEditingKey(null);
                   form.resetFields();
@@ -423,7 +424,7 @@ export default function LeaveTypePage() {
           {/* Table Card */}
           <Card
             bodyStyle={{ padding: 0 }}
-            style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}
+            style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-pure-white)", overflow: "hidden" }}
           >
             <Table
               columns={columns}
@@ -443,14 +444,14 @@ export default function LeaveTypePage() {
         <Drawer
           title={
             <Space size={12}>
-              <div style={{ background: "#eff6ff", padding: 8, borderRadius: 10, color: "#2563eb", display: "flex" }}>
+              <div style={{ background: "var(--bg-blue-50)", padding: 8, borderRadius: 10, color: "var(--premium-blue)", display: "flex" }}>
                 <Settings2 size={20} />
               </div>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
                   {editingKey ? "Edit Policy" : "Create New Policy"}
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 400, color: "#64748b" }}>
+                <div style={{ fontSize: 12, fontWeight: 400, color: "var(--text-slate-500)" }}>
                   Configure rules and accrual frequency
                 </div>
               </div>
@@ -459,6 +460,9 @@ export default function LeaveTypePage() {
           width={480}
           open={isDrawerVisible}
           onClose={() => setIsDrawerVisible(false)}
+          headerStyle={{ background: "var(--bg-pure-white)", borderBottom: "1px solid var(--border-slate-100)" }}
+          bodyStyle={{ background: "var(--bg-pure-white)" }}
+          footerStyle={{ background: "var(--bg-pure-white)", borderTop: "1px solid var(--border-slate-100)" }}
           footer={
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "8px 0" }}>
               <Button onClick={() => setIsDrawerVisible(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
@@ -476,7 +480,7 @@ export default function LeaveTypePage() {
         >
           <Form form={form} layout="vertical" onFinish={handleSaveLeaveType} requiredMark={false}>
             <div style={{ marginBottom: 24 }}>
-              <Title level={5} style={{ marginBottom: 16, color: "#334155" }}>Basic Information</Title>
+              <Title level={5} style={{ marginBottom: 16, color: "var(--text-slate-700)" }}>Basic Information</Title>
               <Row gutter={16}>
                 <Col span={16}>
                   <Form.Item
@@ -521,10 +525,9 @@ export default function LeaveTypePage() {
               </Form.Item>
             </div>
 
-            <Divider />
-
+            <Divider style={{ borderColor: "var(--border-slate-100)" }} />
             <div style={{ marginBottom: 24 }}>
-              <Title level={5} style={{ marginBottom: 16, color: "#334155" }}>Accrual & Units</Title>
+              <Title level={5} style={{ marginBottom: 16, color: "var(--text-slate-700)" }}>Accrual & Units</Title>
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="type" label="Measurement Unit" initialValue="Days">
@@ -548,16 +551,15 @@ export default function LeaveTypePage() {
               </Row>
             </div>
 
-            <Divider />
-
-            <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #f1f5f9" }}>
-              <Title level={5} style={{ marginBottom: 20, fontSize: 14, color: "#334155" }}>Policy Controls</Title>
+            <Divider style={{ borderColor: "var(--border-slate-100)" }} />
+            <div style={{ background: "var(--bg-slate-50)", padding: 20, borderRadius: 12, border: "1px solid var(--border-slate-100)" }}>
+              <Title level={5} style={{ marginBottom: 20, fontSize: 14, color: "var(--text-slate-700)" }}>Policy Controls</Title>
 
               <Form.Item name="paid" valuePropName="checked" initialValue={true}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <Text strong style={{ fontSize: 14, display: "block" }}>Paid Salary</Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>Employee salary is not deducted during this leave.</Text>
+                    <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Paid Salary</Text>
+                    <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Employee salary is not deducted during this leave.</Text>
                   </div>
                   <Switch />
                 </div>
@@ -568,8 +570,8 @@ export default function LeaveTypePage() {
               <Form.Item name="approval" valuePropName="checked" initialValue={true}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <Text strong style={{ fontSize: 14, display: "block" }}>Requires Approval</Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>Manager or Admin review is mandatory.</Text>
+                    <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Requires Approval</Text>
+                    <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Manager or Admin review is mandatory.</Text>
                   </div>
                   <Switch />
                 </div>
@@ -580,8 +582,8 @@ export default function LeaveTypePage() {
               <Form.Item name="status" valuePropName="checked" initialValue={true}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <Text strong style={{ fontSize: 14, display: "block" }}>Active Policy</Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>Allow employees to apply for this leave.</Text>
+                    <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Active Policy</Text>
+                    <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Allow employees to apply for this leave.</Text>
                   </div>
                   <Switch />
                 </div>
@@ -593,35 +595,38 @@ export default function LeaveTypePage() {
         <style dangerouslySetInnerHTML={{
           __html: `
           .action-btn:hover {
-            background: #f1f5f9 !important;
-            color: #2563eb !important;
+            background: var(--bg-slate-50) !important;
+            color: var(--premium-blue) !important;
           }
           .action-btn-danger:hover {
             background: #fff1f2 !important;
           }
           .ant-table-thead > tr > th {
-            background: #f8fafc !important;
-            color: #64748b !important;
+            background: var(--bg-slate-50) !important;
+            color: var(--text-slate-500) !important;
             font-weight: 600 !important;
             text-transform: uppercase !important;
             font-size: 11px !important;
             letter-spacing: 0.05em !important;
+            border-bottom: 1px solid var(--border-slate-100) !important;
           }
           .ant-table-row:hover > td {
-            background: #f8fafc !important;
+            background: var(--bg-slate-50) !important;
           }
           .ant-input:focus, .ant-input-focused {
-            border-color: #3b82f6 !important;
+            border-color: var(--premium-blue) !important;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
           }
           .config-drawer .ant-drawer-header {
-            border-bottom: 1px solid #f1f5f9 !important;
+            border-bottom: 1px solid var(--border-slate-100) !important;
             padding: 24px !important;
           }
           .config-drawer .ant-drawer-footer {
-            border-top: 1px solid #f1f5f9 !important;
+            border-top: 1px solid var(--border-slate-100) !important;
             padding: 16px 24px !important;
           }
+          .ant-pagination-item a { color: var(--text-slate-500) !important; }
+          .ant-pagination-item-active { background: var(--bg-pure-white) !important; border-color: var(--premium-blue) !important; }
         `}} />
       </MainLayout>
     </ProtectedRoute>

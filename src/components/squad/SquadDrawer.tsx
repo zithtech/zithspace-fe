@@ -184,10 +184,10 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
       key: 'name',
       render: (record: SquadMember) => (
         <Space>
-          <Avatar size="small" style={{ backgroundColor: '#1890ff' }}>{record.member.name.charAt(0).toUpperCase()}</Avatar>
+          <Avatar size="small" style={{ backgroundColor: 'var(--premium-blue)' }}>{record.member.name.charAt(0).toUpperCase()}</Avatar>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <Text strong style={{ fontSize: '13px' }}>{record.member.name}</Text>
-            <Text type="secondary" style={{ fontSize: '11px' }}>{record.member.workEmail}</Text>
+            <Text strong style={{ fontSize: '13px', color: 'var(--text-slate-900)' }}>{record.member.name}</Text>
+            <Text type="secondary" style={{ fontSize: '11px', color: 'var(--text-slate-400)' }}>{record.member.workEmail}</Text>
           </div>
         </Space>
       ),
@@ -228,7 +228,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
           <Button 
             size="small" 
             type="text" 
-            icon={<EditOutlined style={{ color: '#1890ff' }} />} 
+            icon={<EditOutlined style={{ color: 'var(--premium-blue)' }} />} 
             onClick={() => setEditingMemberId(record.id)} 
           />
           <Popconfirm
@@ -249,7 +249,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
       title={
         <Space size={12}>
           <div style={{
-            backgroundColor: '#e6f7ff',
+            backgroundColor: 'var(--bg-blue-50)',
             width: '40px',
             height: '40px',
             borderRadius: '10px',
@@ -257,11 +257,11 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <TeamOutlined style={{ fontSize: '20px', color: '#1890ff' }} />
+            <TeamOutlined style={{ fontSize: '20px', color: 'var(--premium-blue)' }} />
           </div>
           <div>
-            <div style={{ fontSize: '16px', fontWeight: 600 }}>{initialData ? 'Manage Squad' : 'Create Squad'}</div>
-            <div style={{ fontSize: '12px', color: '#8c8c8c', fontWeight: 400 }}>
+            <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-slate-900)' }}>{initialData ? 'Manage Squad' : 'Create Squad'}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-slate-400)', fontWeight: 400 }}>
               {initialData ? `Configuring ${initialData.squadName}` : 'Define a new project team and assign leadership.'}
             </div>
           </div>
@@ -306,12 +306,12 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
 
         {initialData ? (
           <div style={{ marginTop: '8px' }}>
-            <Card size="small" bordered={false} style={{ backgroundColor: '#f9fafb', borderRadius: '12px', marginBottom: '24px' }}>
+            <Card size="small" bordered={false} style={{ backgroundColor: 'var(--bg-slate-50)', borderRadius: '12px', marginBottom: '24px', border: '1px solid var(--border-slate-200)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 4px' }}>
                 <Space size={24}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <Text type="secondary" style={{ fontSize: '12px', fontWeight: 500 }}>TOTAL MEMBERS</Text>
-                    <Title level={4} style={{ margin: 0 }}>{localSquadMembers.length}</Title>
+                    <Text type="secondary" style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-slate-400)' }}>TOTAL MEMBERS</Text>
+                    <Title level={4} style={{ margin: 0, color: 'var(--text-slate-900)' }}>{localSquadMembers.length}</Title>
                   </div>
                   <Divider type="vertical" style={{ height: '32px' }} />
                   <div style={{ display: 'flex', gap: '16px' }}>
@@ -324,8 +324,8 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                       <Tag color="gold" style={{ borderRadius: '6px', margin: 0, fontWeight: 600 }}>{subHeadCount}</Tag>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <Text type="secondary" style={{ fontSize: '12px' }}>MEMBERS</Text>
-                      <Tag color="blue" style={{ borderRadius: '6px', margin: 0, fontWeight: 600 }}>{memberCount}</Tag>
+                      <Text type="secondary" style={{ fontSize: '12px', color: 'var(--text-slate-400)' }}>MEMBERS</Text>
+                      <Tag color="blue" bordered={false} style={{ borderRadius: '6px', margin: 0, fontWeight: 600, background: 'var(--bg-blue-50)', color: 'var(--premium-blue)' }}>{memberCount}</Tag>
                     </div>
                   </div>
                 </Space>
@@ -342,7 +342,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
             </Card>
 
             {showAddMember && (
-              <Card size="small" style={{ marginBottom: '24px', border: '1px solid #e6f7ff', backgroundColor: '#f0f9ff', borderRadius: '12px' }}>
+              <Card size="small" style={{ marginBottom: '24px', border: '1px solid var(--border-sky-100)', backgroundColor: 'var(--bg-sky-50)', borderRadius: '12px' }}>
                 <Form form={addMemberForm} layout="vertical" onFinish={handleAddMember}>
                   <Row gutter={12} align="bottom">
                     <Col span={12}>
@@ -351,8 +351,8 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                           {members.map(m => (
                             <Option key={m.value} value={m.value} label={m.label}>
                               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span>{m.label}</span>
-                                <small style={{ color: '#8c8c8c' }}>{m.position}</small>
+                                <span style={{ color: 'var(--text-slate-900)' }}>{m.label}</span>
+                                <small style={{ color: 'var(--text-slate-400)' }}>{m.position}</small>
                               </div>
                             </Option>
                           ))}
@@ -379,8 +379,8 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
             )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <Text strong style={{ fontSize: '16px' }}>Member Listing</Text>
-              <Text type="secondary" style={{ fontSize: '13px' }}>{localSquadMembers.length} Employees</Text>
+              <Text strong style={{ fontSize: '16px', color: 'var(--text-slate-900)' }}>Member Listing</Text>
+              <Text type="secondary" style={{ fontSize: '13px', color: 'var(--text-slate-400)' }}>{localSquadMembers.length} Employees</Text>
             </div>
             
             <Table 
@@ -389,8 +389,8 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
               rowKey="id" 
               pagination={false}
               size="small"
-              className="squad-member-table"
-              style={{ border: '1px solid #f0f0f0', borderRadius: '8px', overflow: 'hidden' }}
+              className="squad-member-table premium-table"
+              style={{ border: '1px solid var(--border-slate-200)', borderRadius: '8px', overflow: 'hidden' }}
             />
 
             <Divider style={{ margin: '24px 0' }} />

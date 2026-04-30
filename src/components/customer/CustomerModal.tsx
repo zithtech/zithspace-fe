@@ -2,7 +2,7 @@
 
 
 import { Customer } from "@/services/customersService";
-import { Modal, Form, Input, Row, Col } from "antd";
+import { Modal, Form, Input, Row, Col, Switch } from "antd";
 
 import { useEffect } from "react";
 
@@ -32,9 +32,11 @@ useEffect(() => {
       taxId: customer.taxId,
       gstin: customer.gstin,
       pan: customer.pan,
+      isActive: customer.isActive ?? true,
     });
   } else {
     form.resetFields();
+    form.setFieldsValue({ isActive: true });
   }
 }, [open, customer, form]);
 
@@ -64,7 +66,10 @@ useEffect(() => {
         <Form.Item
           name="companyName"
           label="Company Name"
-          rules={[{ required: true, message: "Company name is required" }]}
+          rules={[
+            { required: true, message: "Company name is required" },
+            { pattern: /^[A-Za-z0-9\s\-.'&]+$/, message: "Name can only contain letters, numbers, and standard characters" }
+          ]}
         >
           <Input />
         </Form.Item>
@@ -72,12 +77,19 @@ useEffect(() => {
         <Form.Item
           name="email"
           label="Email"
-          
+          rules={[{ type: 'email', message: 'Please enter a valid email address' }]}
         >
           <Input />
         </Form.Item>
 
-        <Form.Item name="phone" label="Phone">
+        <Form.Item 
+          name="phone" 
+          label="Phone"
+          normalize={(value) => (value || '').replace(/[^0-9]/g, '')}
+          rules={[
+            { pattern: /^[0-9]+$/, message: "Phone number can only contain numeric values" }
+          ]}
+        >
           <Input />
         </Form.Item>
 
@@ -104,16 +116,40 @@ useEffect(() => {
 
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="gstin" label="GSTIN">
-              <Input />
+            <Form.Item 
+              name="gstin" 
+              label="GSTIN"
+              rules={[{ len: 15, message: "GSTIN must be exactly 15 characters" }]}
+            >
+              <Input maxLength={15} style={{ textTransform: 'uppercase' }} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="pan" label="PAN">
-              <Input />
+            <Form.Item 
+              name="pan" 
+              label="PAN"
+              rules={[
+                { len: 10, message: "PAN must be exactly 10 characters" },
+                { pattern: /^[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}$/, message: "Invalid PAN format (e.g. ABCDE1234F)" }
+              ]}
+            >
+              <Input maxLength={10} style={{ textTransform: 'uppercase' }} />
             </Form.Item>
           </Col>
         </Row>
+
+        <Form.Item 
+          name="isActive" 
+          label="Status" 
+          valuePropName="checked"
+          className="mb-0"
+        >
+          <Switch 
+            checkedChildren="Active" 
+            unCheckedChildren="Inactive" 
+            className="bg-slate-200"
+          />
+        </Form.Item>
       </Form>
     </Modal>
   );

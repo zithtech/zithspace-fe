@@ -216,11 +216,11 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
 
   const processLogsToSessions = (logs: TimeTrackingEntry['logs'], startTime: string, endTime?: string | null) => {
     const sessions: any[] = [];
-  
+
     if (logs && logs.length > 0) {
       const sortedLogs = [...logs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       let current: any = null;
-  
+
       for (const log of sortedLogs) {
         if (log.action === 'STARTED' || log.action === 'RESUMED') {
           current = { id: log.id, start: log.createdAt, end: null, endAction: null };
@@ -231,7 +231,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
           current = null;
         }
       }
-  
+
       if (current) {
         if (endTime && !current.end) {
           current.end = endTime;
@@ -242,7 +242,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
         }
       }
     }
-  
+
     // Fallback handles legacy/manual entries.
     if (sessions.length === 0 && startTime && endTime) {
       return [{
@@ -253,16 +253,16 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
         isManual: true
       }];
     }
-  
+
     return sessions.reverse();
   };
 
   return (
     <Card style={{
       height: '100%',
-      background: "#fff",
+      background: "var(--bg-pure-white)",
       borderRadius: 16,
-      border: "1px solid #f1f5f9",
+      border: "1px solid var(--border-slate-100)",
       overflow: "hidden"
     }}
       styles={{ body: { padding: 0 } }}
@@ -280,12 +280,12 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
             const isLive = record.status === 'RUNNING';
 
             return (
-              <div style={{ padding: '20px 32px', backgroundColor: '#fff', borderTop: '1px solid #f1f5f9' }}>
+              <div style={{ padding: '20px 32px', backgroundColor: 'var(--bg-pure-white)', borderTop: '1px solid var(--border-slate-100)' }}>
                 <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <ClockCircleOutlined style={{ color: '#1677ff', fontSize: 14 }} />
-                  <Text strong style={{ fontSize: 12, color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Activity Timeline</Text>
+                  <Text strong style={{ fontSize: 12, color: 'var(--text-slate-600)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Activity Timeline</Text>
                 </div>
-        
+
                 <div style={{ position: 'relative', paddingLeft: 24 }}>
                   {/* Vertical Line */}
                   <div style={{
@@ -294,10 +294,10 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                     top: 6,
                     bottom: 6,
                     width: 1.5,
-                    background: 'linear-gradient(to bottom, #1677ff, #f1f5f9)',
+                    background: 'linear-gradient(to bottom, #1677ff, var(--border-slate-100))',
                     borderRadius: 1
                   }} />
-        
+
                   {sessions.map((session, idx) => {
                     const sessionIsLive = !session.end && isLive;
                     return (
@@ -311,16 +311,16 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                           height: 12,
                           borderRadius: '50%',
                           background: sessionIsLive ? '#10b981' : session.endAction === 'PAUSED' ? '#f59e0b' : '#1677ff',
-                          border: '3px solid #fff',
-                          boxShadow: '0 0 0 1px #e0e7ff',
+                          border: '3px solid var(--bg-pure-white)',
+                          boxShadow: '0 0 0 1px var(--border-slate-200)',
                           zIndex: 2
                         }} />
-        
-                        <div style={{ 
-                          padding: '12px 16px', 
-                          background: '#f8fafc', 
-                          borderRadius: 12, 
-                          border: '1px solid #e2e8f0',
+
+                        <div style={{
+                          padding: '12px 16px',
+                          background: 'var(--bg-secondary)',
+                          borderRadius: 12,
+                          border: '1px solid var(--border-slate-200)',
                           transition: 'all 0.2s ease'
                         }}>
                           <Row gutter={12} align="middle">
@@ -333,26 +333,40 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                                   {sessionIsLive ? 'LIVE' : session.endAction === 'PAUSED' ? 'PAUSED' : 'STOPPED'}
                                 </Tag>
                               </div>
-        
+
                               <div style={{ marginBottom: 0 }}>
                                 {record.ticket?.title ? (
-                                  <Link href={`/tickets/${record.ticketId}`}>
-                                    <Text strong style={{ fontSize: 13, color: '#1e293b', cursor: 'pointer' }}>{record.ticket.title}</Text>
-                                  </Link>
+                                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                    <Link href={`/tickets/${record.ticketId}`}>
+                                      <div style={{ display: 'flex', gap: 6, cursor: 'pointer' }}>
+                                        <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{record.ticket.title}</Text>
+                                      </div>
+                                    </Link>
+                                    {record.ticket.estimateHours !== undefined ? (
+                                      <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
+                                        EST: {(() => {
+                                          const mins = Math.round(Number(record.ticket.estimateHours) * 60);
+                                          const h = Math.floor(mins / 60);
+                                          const m = mins % 60;
+                                          return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
+                                        })()}
+                                      </Tag>
+                                    ) : null}
+                                  </div>
                                 ) : (
-                                  <Text strong style={{ fontSize: 13, color: '#1e293b' }}>{record.description || "No description provided"}</Text>
+                                  <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{record.description || "No description provided"}</Text>
                                 )}
                               </div>
                             </Col>
-        
+
                             <Col style={{ textAlign: 'right' }}>
-                              <div style={{ 
-                                padding: '4px 12px', 
-                                background: sessionIsLive ? '#f0fdf4' : '#fff', 
-                                borderRadius: 8, 
-                                color: sessionIsLive ? '#16a34a' : '#475569', 
-                                fontWeight: 700, 
-                                fontSize: 13, 
+                              <div style={{
+                                padding: '4px 12px',
+                                background: sessionIsLive ? '#f0fdf4' : '#fff',
+                                borderRadius: 8,
+                                color: sessionIsLive ? '#16a34a' : '#475569',
+                                fontWeight: 700,
+                                fontSize: 13,
                                 fontFamily: 'monospace',
                                 border: '1px solid ' + (sessionIsLive ? '#bcf0da' : '#e2e8f0')
                               }}>
@@ -372,7 +386,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                       </div>
                     );
                   })}
-        
+
                   {sessions.length === 0 && (
                     <div style={{ color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>No activity recorded for this period.</div>
                   )}
@@ -385,26 +399,27 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       />
       <style jsx global>{`
         .ant-table-thead > tr > th {
-          background: #f8fafc !important;
-          color: #64748b !important;
+          background: var(--bg-table-header) !important;
+          color: var(--text-slate-600) !important;
           font-weight: 600 !important;
           font-size: 11px !important;
           text-transform: uppercase !important;
           letter-spacing: 0.05em !important;
-          border-bottom: 1px solid #e2e8f0 !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
           padding: 12px 16px !important;
         }
         .ant-table-tbody > tr > td {
           padding: 14px 16px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          background-color: var(--bg-pure-white) !important;
           font-size: 14px !important;
-          color: #1e293b !important;
+          color: var(--text-slate-900) !important;
         }
         .ant-table-row:hover > td {
-          background-color: #f8fafc !important;
+          background-color: var(--bg-table-header) !important;
         }
         .running-row {
-          background-color: #f0f7ff !important;
+          background-color: var(--bg-running-row) !important;
         }
         .nested-history-table .ant-table-thead > tr > th {
           background: #f8fafc !important;

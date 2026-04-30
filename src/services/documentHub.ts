@@ -40,7 +40,10 @@ export interface DocumentHub {
     name: string;
     workEmail: string;
     position?: string;
+    avatarUrl?: string;
   };
+  visibility: string;
+  shareToken?: string;
   treeNodes?: DocumentTreeNode[];
 }
 
@@ -105,6 +108,21 @@ class DocumentHubService {
       console.error("Error creating document hub:", error);
       const errorMessage =
         error.response?.data?.error || "Failed to create document hub";
+      throw new Error(errorMessage);
+    }
+  }
+
+  static async updateDocumentHub(
+    id: string,
+    data: UpdateDocumentHubData
+  ): Promise<DocumentHub> {
+    try {
+      const response = await apiClient.patch(`/api/documenthub/${id}`, data);
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error updating document hub:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to update document hub";
       throw new Error(errorMessage);
     }
   }
@@ -187,6 +205,17 @@ class DocumentHubService {
     }
   }
 
+  static async deleteTreeNode(nodeId: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/documenthub/node/${nodeId}`);
+    } catch (error: any) {
+      console.error("Error deleting tree node:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to delete tree node";
+      throw new Error(errorMessage);
+    }
+  }
+
   static async restoreDocumentHub(id: string): Promise<void> {
     try {
       await apiClient.post(`/api/documenthub/${id}/restore`);
@@ -214,7 +243,7 @@ class DocumentHubService {
     }
   }
 
-  static async getTrash(type?: 'hub' | 'document'): Promise<{ hubs: DocumentHub[], documents: any[] }> {
+  static async getTrash(type?: 'hub' | 'document' | 'folder'): Promise<{ hubs: DocumentHub[], documents: any[], folders: any[] }> {
     try {
       const response = await apiClient.get('/api/documenthub/trash', {
         params: { type }
@@ -226,7 +255,17 @@ class DocumentHubService {
     }
   }
 
-  static async shareDocument(id: string, visibility: 'private' | 'internal' | 'public'): Promise<any> {
+  static async restoreTreeNode(id: string, data: { documentHubId: string, parentId?: string | null }): Promise<void> {
+    try {
+      await apiClient.post(`/api/documenthub/node/${id}/restore`, data);
+    } catch (error: any) {
+      console.error("Error restoring tree node:", error);
+      const errorMessage = error.response?.data?.error || "Failed to restore folder/section";
+      throw new Error(errorMessage);
+    }
+  }
+
+  static async shareDocument(id: string, visibility: 'private' | 'public'): Promise<any> {
     try {
       const response = await apiClient.put(`/api/documenthub/document/${id}/share`, { visibility });
       return response.data.data;
@@ -251,6 +290,45 @@ class DocumentHubService {
       return response.data.data;
     } catch (error: any) {
       console.error("Error getting public document:", error);
+      throw error;
+    }
+  }
+
+  static async shareDocumentHub(id: string, visibility: 'private' | 'public'): Promise<any> {
+    try {
+      const response = await apiClient.put(`/api/documenthub/${id}/share`, { visibility });
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error sharing document hub:", error);
+      throw error;
+    }
+  }
+
+  static async revokeHubShare(id: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/documenthub/${id}/share`);
+    } catch (error: any) {
+      console.error("Error revoking hub share:", error);
+      throw error;
+    }
+  }
+
+  static async getPublicDocumentHub(token: string): Promise<any> {
+    try {
+      const response = await apiClient.get(`/api/public/document/hub/${token}`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error getting public document hub:", error);
+      throw error;
+    }
+  }
+
+  static async getPublicHubDocumentContent(token: string, documentId: string): Promise<any> {
+    try {
+      const response = await apiClient.get(`/api/public/document/hub/${token}/document/${documentId}`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error getting public hub document content:", error);
       throw error;
     }
   }

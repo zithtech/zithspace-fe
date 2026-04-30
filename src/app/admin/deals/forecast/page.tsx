@@ -16,6 +16,7 @@ import {
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { dealService, ForecastData } from '@/services/dealService';
+import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -104,21 +105,17 @@ const ForecastDashboard: React.FC = () => {
 
   return (
     <MainLayout>
-      <div style={{ padding: '16px', background: '#fff', minHeight: '100vh' }}>
-        <Row justify="space-between" align="middle" style={{ marginBottom: '16px' }}>
-          <Col>
-            <Space align="center" size={10}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 8, background: '#fff0f6',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <FireOutlined style={{ color: '#eb2f96', fontSize: 18 }} />
-              </div>
-              <Title level={3} style={{ margin: 0 }}>Sales Forecast Dashboard</Title>
-            </Space>
-            <Text type="secondary" style={{ display: 'block', marginTop: 4 }}>Gain insights into your pipeline and predicted revenue</Text>
-          </Col>
-          <Col>
+      <div style={{ 
+        margin: "0 -24px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
+        <TimeTrackingHeader
+          style={{ padding: '10.5px 32px' }}
+          icon={<FireOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+          title="Sales Forecast Dashboard"
+          description="Gain insights into your pipeline and predicted revenue"
+          extra={
             <Space>
               <RangePicker 
                 onChange={(dates: any) => {
@@ -145,8 +142,10 @@ const ForecastDashboard: React.FC = () => {
                 ))}
               </Select>
             </Space>
-          </Col>
-        </Row>
+          }
+        />
+
+        <div style={{ padding: "16px 32px 32px 32px" }}>
 
         <Spin spinning={loading}>
           {data ? (
@@ -154,46 +153,50 @@ const ForecastDashboard: React.FC = () => {
               {/* Metric Cards */}
               <Row gutter={[12, 12]} style={{ marginBottom: '16px' }}>
                 <Col xs={24} sm={12} lg={6}>
-                  <Card bordered style={{ borderColor: '#f0f0f0' }} styles={{ body: { padding: '16px' } }} className="stat-card">
+                  <Card bordered style={{ borderColor: 'var(--border-slate-100)', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px' } }} className="stat-card">
                     <Statistic 
-                      title="Total Pipeline" 
+                      title={<Text style={{ color: 'var(--text-slate-500)' }}>Total Pipeline</Text>} 
                       value={data.metrics.totalPipelineValue} 
                       precision={0}
                       prefix={<DollarOutlined />}
                       formatter={(val: any) => formatCurrency(val)}
+                      valueStyle={{ color: 'var(--text-slate-900)' }}
                     />
                   </Card>
                 </Col>
                 <Col xs={24} sm={12} lg={6}>
-                  <Card bordered style={{ borderColor: '#f0f0f0' }} styles={{ body: { padding: '16px' } }} className="stat-card">
+                  <Card bordered style={{ borderColor: 'var(--border-slate-100)', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px' } }} className="stat-card">
                     <Statistic 
-                      title="Weighted Revenue" 
+                      title={<Text style={{ color: 'var(--text-slate-500)' }}>Weighted Revenue</Text>} 
                       value={data.metrics.weightedRevenue} 
                       precision={0}
-                      prefix={<RiseOutlined style={{ color: '#52c41a' }} />}
+                      prefix={<RiseOutlined style={{ color: 'var(--text-holiday)' }} />}
                       formatter={(val: any) => formatCurrency(val)}
+                      valueStyle={{ color: 'var(--text-holiday)' }}
                     />
                   </Card>
                 </Col>
                 <Col xs={24} sm={12} lg={6}>
-                  <Card bordered style={{ borderColor: '#f0f0f0' }} styles={{ body: { padding: '16px' } }} className="stat-card">
+                  <Card bordered style={{ borderColor: 'var(--border-slate-100)', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px' } }} className="stat-card">
                     <Statistic 
-                      title="Won Revenue" 
+                      title={<Text style={{ color: 'var(--text-slate-500)' }}>Won Revenue</Text>} 
                       value={data.metrics.wonRevenue} 
                       precision={0}
-                      prefix={<CheckCircleOutlined style={{ color: '#1890ff' }} />}
+                      prefix={<CheckCircleOutlined style={{ color: 'var(--premium-blue)' }} />}
                       formatter={(val: any) => formatCurrency(val)}
+                      valueStyle={{ color: 'var(--premium-blue)' }}
                     />
                   </Card>
                 </Col>
                 <Col xs={24} sm={12} lg={6}>
-                  <Card bordered style={{ borderColor: '#f0f0f0' }} styles={{ body: { padding: '16px' } }} className="stat-card">
+                  <Card bordered style={{ borderColor: 'var(--border-slate-100)', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px' } }} className="stat-card">
                     <Statistic 
-                      title="Lost Revenue" 
+                      title={<Text style={{ color: 'var(--text-slate-500)' }}>Lost Revenue</Text>} 
                       value={data.metrics.lostRevenue} 
                       precision={0}
-                      prefix={<CloseCircleOutlined style={{ color: '#f5222d' }} />}
+                      prefix={<CloseCircleOutlined style={{ color: 'var(--text-leave)' }} />}
                       formatter={(val: any) => formatCurrency(val)}
+                      valueStyle={{ color: 'var(--text-leave)' }}
                     />
                   </Card>
                 </Col>
@@ -249,12 +252,17 @@ const ForecastDashboard: React.FC = () => {
               </Row>
 
               {/* Deals Table */}
-              <Card title="Detailed Pipeline List" bordered style={{ borderColor: '#f0f0f0', borderRadius: '12px' }}>
+              <Card 
+                title={<Text strong style={{ color: 'var(--text-slate-900)' }}>Detailed Pipeline List</Text>} 
+                bordered 
+                style={{ borderColor: 'var(--border-slate-100)', borderRadius: '12px', background: 'var(--bg-pure-white)' }}
+              >
                 <Table 
                   columns={columns} 
                   dataSource={data.deals} 
                   rowKey="id"
                   pagination={{ pageSize: 10 }}
+                  className="custom-table"
                 />
               </Card>
             </>
@@ -262,6 +270,7 @@ const ForecastDashboard: React.FC = () => {
             <Empty description="No forecast data available for the selected filters" />
           )}
         </Spin>
+        </div>
       </div>
 
       <style jsx global>{`
@@ -269,13 +278,18 @@ const ForecastDashboard: React.FC = () => {
            border-radius: 12px;
            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
            transition: transform 0.2s;
+           background: var(--bg-pure-white);
+           border: 1px solid var(--border-slate-100);
         }
         .stat-card:hover {
            transform: translateY(-4px);
         }
         .ant-card-head {
-          border-bottom: 1px solid #f0f0f0 !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
           background: transparent !important;
+        }
+        .ant-card-head-title {
+          color: var(--text-slate-900) !important;
         }
       `}</style>
     </MainLayout>

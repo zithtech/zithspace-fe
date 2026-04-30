@@ -29,6 +29,7 @@ export interface RecentActivity {
   ticketNumber?: string;
   time: string;
   avatar: string;
+
 }
 
 export interface UpcomingTask {

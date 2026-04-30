@@ -31,6 +31,7 @@ import {
   EyeOutlined,
   EyeInvisibleOutlined,
 } from "@ant-design/icons";
+import { RefreshCw, FileText, ChevronRight, User, Text } from "lucide-react";
 import { currencyOptions } from "@/utils/currencyOptions";
 import {
   useInvoices,
@@ -279,12 +280,18 @@ export default function InvoiceNewinvoicePage() {
         columnLabels: invoiceDetail.metadata?.columnLabels || null,
       };
 
-      console.log('🚀 HYDRATING FORM WITH VALUES:', fv.invoiceNumber);
+      console.log('HYDRATING FORM WITH VALUES:', fv.invoiceNumber);
 
-      // Only set fields if the form isn't ready or if the underlying data changed significantly (like invoice number)
-      // This prevents overwriting the user's active typing during background refetches
-      if (!isFormReady || form.getFieldValue("invoiceNumber") === "") {
-        console.log('💧 First time hydration or empty form, setting values.');
+      // For edit mode, always ensure line items are properly set
+      // Check if line items are missing or empty in the form
+      const currentLineItems = form.getFieldValue("lineItems");
+      const needsLineItemsUpdate = !currentLineItems ||
+        currentLineItems.length === 0 ||
+        (currentLineItems.length === 1 && !currentLineItems[0].itemName);
+
+      // Update form if it's not ready, if invoice number is empty, or if line items need to be populated
+      if (!isFormReady || form.getFieldValue("invoiceNumber") === "" || needsLineItemsUpdate) {
+        console.log('Setting form values - Form ready:', !isFormReady, 'Empty invoice:', form.getFieldValue("invoiceNumber") === "", 'Needs line items:', needsLineItemsUpdate);
         form.setFieldsValue(fv);
 
         if (invoiceDetail.templateId) {
@@ -294,7 +301,12 @@ export default function InvoiceNewinvoicePage() {
         form.validateFields();
         setIsFormReady(true);
       } else {
-        console.log('💧 Form already ready, skipping overwrite to prevent data loss.');
+        console.log('Form already ready and line items exist, skipping overwrite to prevent data loss.');
+        // Still ensure line items are properly set if they exist
+        if (mappedItems.length > 0 && needsLineItemsUpdate) {
+          console.log('Updating line items only');
+          form.setFieldValue("lineItems", mappedItems);
+        }
       }
 
       setIsTaxInclusive(invoiceDetail.taxInclusive || false);
@@ -668,14 +680,19 @@ export default function InvoiceNewinvoicePage() {
 
   return (
     <MainLayout>
-      <div className="bg-gray-50 min-h-screen">
+      <div style={{
+        margin: "0 -24px",
+        padding: "0 32px 24px 32px",
+        background: "var(--customers-page-bg)",
+        minHeight: "calc(100vh - 64px)"
+      }}>
         {/* FIXED HEADER */}
-        <div className="sticky top-0 bg-white z-40 border-b shadow-sm">
-          <div className="px-4 py-3">
+        <div className="sticky top-0 bg-[var(--customers-page-bg)] z-40 border-b border-[var(--border-color)] shadow-sm" style={{ margin: "0 -32px", padding: "0 32px" }}>
+          <div className="px-4 py-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <SnippetsOutlined style={{ fontSize: 28, color: "#2563eb" }} />
-                <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
+                <SnippetsOutlined style={{ fontSize: 20, color: "#2563eb" }} />
+                <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)", fontSize: "16px" }}>
                   {editInvoiceId ? "Edit Invoice" : "New Invoice"}
                 </Title>
 
@@ -707,7 +724,7 @@ export default function InvoiceNewinvoicePage() {
               </div>
 
               <div className="flex gap-2 items-center">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Apply Template:</span>
+                <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">Apply Template:</span>
                 <Select
                   placeholder="Select..."
                   style={{ width: 180 }}
@@ -724,7 +741,7 @@ export default function InvoiceNewinvoicePage() {
                     <Select.Option key={t.id} value={t.id}>{t.name}</Select.Option>
                   ))}
                 </Select>
-                <div className="h-6 w-[1px] bg-gray-200 mx-1" />
+                <div className="h-6 w-[1px] bg-[var(--border-color)] mx-1" />
                 <Button
                   type="primary"
                   loading={actionLoading === "PENDING"}
@@ -816,7 +833,7 @@ export default function InvoiceNewinvoicePage() {
                   transition-all duration-500 ease-in-out flex-shrink-0
                   ${isLeftPanelCollapsed
                     ? 'w-0 opacity-0 overflow-hidden'
-                    : 'w-[27%] opacity-100 border-r border-gray-200'
+                    : 'w-[27%] opacity-100 border-r border-[var(--border-color)]'
                   }
                 `}
               >
@@ -829,16 +846,17 @@ export default function InvoiceNewinvoicePage() {
                     {/* SINGLE COMMON CARD - NO COLORS */}
                     <Card
                       className="border-none shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] mb-4 rounded-xl transition-all duration-300 hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)]"
+                      style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
                       bodyStyle={{ padding: 0, borderRadius: 12, overflow: 'hidden' }}
                     >
-                      {/* Card Header - Modern White Style */}
-                      <div className="px-5 py-4 border-b border-slate-100 bg-white">
+                      {/* Card Header - Modern Style */}
+                      <div className="px-5 py-4 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]">
                         <div className="flex items-center justify-between">
                           <div className="flex flex-col gap-0.5">
-                            <Title level={5} style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 700 }}>
+                            <Title level={5} style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 700 }}>
                               Invoice Information
                             </Title>
-                            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Configure your invoice setup</span>
+                            <span className="text-[10px] text-[var(--text-secondary)] font-medium uppercase tracking-wider">Configure your invoice setup</span>
                           </div>
 
                           {/* TOGGLE BUTTON INSIDE INVOICE INFORMATION CARD - Eye icon to hide */}
@@ -849,7 +867,7 @@ export default function InvoiceNewinvoicePage() {
                                 icon={<EyeInvisibleOutlined style={{ fontSize: 20 }} />}
                                 onClick={toggleLeftPanel}
                                 size="middle"
-                                className="hover:bg-gray-200"
+                                className="hover:bg-[var(--bg-slate-50)]"
                                 style={{ color: "#1677ff" }}
                               />
                             </Tooltip>
@@ -859,10 +877,10 @@ export default function InvoiceNewinvoicePage() {
 
                       {/* Card Body with 3 sections - NO COLORS */}
                       <div className="p-4 space-y-4">
-                        {/* INVOICE PROFILE SECTION - NO COLORS */}
-                        <div className="bg-white rounded-xl border border-slate-50 p-4 hover:bg-slate-50/30 transition-colors duration-200">
+                        {/* INVOICE PROFILE SECTION */}
+                        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] p-4 hover:bg-[var(--bg-slate-50)] transition-colors duration-200">
                           <div className="flex items-center gap-2 mb-3">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Invoice Profile</span>
+                            <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Invoice Profile</span>
                           </div>
                           <Form.Item
                             name="settingsProfileId"
@@ -884,9 +902,9 @@ export default function InvoiceNewinvoicePage() {
                           </Form.Item>
 
                           {selectedProfile && (
-                            <div className="flex items-start gap-3 rounded-xl bg-[#fcfdfe] p-4 border border-slate-100 shadow-sm hover:border-blue-200 hover:bg-white transition-all duration-300">
+                            <div className="flex items-start gap-3 rounded-xl bg-[var(--bg-slate-50)] p-4 border border-[var(--border-color)] shadow-sm hover:border-blue-200 hover:bg-[var(--bg-secondary)] transition-all duration-300">
                               {selectedProfile.general?.companyLogo && (
-                                <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-white border border-slate-100 flex items-center justify-center overflow-hidden shadow-sm">
+                                <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] flex items-center justify-center overflow-hidden shadow-sm">
                                   <img
                                     src={selectedProfile.general.companyLogo}
                                     alt="logo"
@@ -896,13 +914,13 @@ export default function InvoiceNewinvoicePage() {
                               )}
 
                               <div className="leading-snug flex-1 min-w-0">
-                                <div className="text-base font-semibold text-gray-900 truncate">
+                                <div className="text-base font-semibold text-[var(--text-primary)] truncate">
                                   {selectedProfile.general?.companyName ||
                                     selectedProfile.name}
                                 </div>
 
                                 {selectedProfile.general?.address && (
-                                  <div className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                  <div className="text-sm text-[var(--text-secondary)] mt-1 line-clamp-2">
                                     {formatAddress(selectedProfile.general.address)}
                                   </div>
                                 )}
@@ -911,10 +929,10 @@ export default function InvoiceNewinvoicePage() {
                           )}
                         </div>
 
-                        {/* CUSTOMER SECTION - NO COLORS */}
-                        <div className="bg-white rounded-xl border border-slate-50 p-4 hover:bg-slate-50/30 transition-colors duration-200">
+                        {/* CUSTOMER SECTION */}
+                        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] p-4 hover:bg-[var(--bg-slate-50)] transition-colors duration-200">
                           <div className="flex items-center gap-2 mb-3">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</span>
+                            <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Customer</span>
                           </div>
                           <Form.Item
                             name="customer_id"
@@ -950,7 +968,7 @@ export default function InvoiceNewinvoicePage() {
                                 }
                               }}
                             >
-                              {customers.map((c) => (
+                              {customers.filter(c => c.isActive).map((c) => (
                                 <Select.Option key={c.id} value={c.id}>
                                   {c.companyName}
                                 </Select.Option>
@@ -962,34 +980,34 @@ export default function InvoiceNewinvoicePage() {
                             <Tooltip title="Click to edit customer">
                               <div
                                 onClick={() => setEditingCustomer(selectedCustomer)}
-                                className="rounded-xl bg-[#fcfdfe] p-4 border border-slate-100 shadow-sm cursor-pointer hover:border-blue-200 hover:bg-white transition-all duration-300 group"
+                                className="rounded-xl bg-[var(--bg-slate-50)] p-4 border border-[var(--border-color)] shadow-sm cursor-pointer hover:border-blue-200 hover:bg-[var(--bg-secondary)] transition-all duration-300 group"
                               >
                                 <div className="flex items-center gap-3 mb-3 min-w-0">
-                                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 text-sm font-bold border border-blue-100 group-hover:scale-105 transition-transform duration-300">
+                                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-blue-50)] text-[var(--text-blue-700)] text-sm font-bold border border-[var(--border-blue-200)] group-hover:scale-105 transition-transform duration-300">
                                     {(selectedCustomer.companyName || "U").charAt(0)}
                                   </div>
                                   <div className="min-w-0 overflow-hidden">
-                                    <div className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                                    <div className="text-sm font-bold text-[var(--text-primary)] truncate group-hover:text-blue-600 transition-colors">
                                       {selectedCustomer.companyName}
                                     </div>
-                                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Verified Client</div>
+                                    <div className="text-[10px] text-[var(--text-secondary)] font-medium uppercase tracking-wider">Verified Client</div>
                                   </div>
                                 </div>
 
                                 {selectedCustomer.taxId && (
-                                  <div className="text-sm text-gray-600 mb-1">
-                                    <span className="font-medium">Tax ID:</span> {selectedCustomer.taxId}
+                                  <div className="text-sm text-[var(--text-secondary)] mb-1">
+                                    <span className="font-medium text-[var(--text-primary)]">Tax ID:</span> {selectedCustomer.taxId}
                                   </div>
                                 )}
 
                                 {selectedCustomer.address && (
-                                  <div className="text-sm text-gray-600 mb-1">
+                                  <div className="text-sm text-[var(--text-secondary)] mb-1">
                                     {selectedCustomer.address}
                                   </div>
                                 )}
 
                                 {selectedCustomer.city && (
-                                  <div className="text-sm text-gray-600">
+                                  <div className="text-sm text-[var(--text-secondary)]">
                                     {selectedCustomer.city}
                                     {selectedCustomer.country && `, ${selectedCustomer.country}`}
                                   </div>
@@ -999,10 +1017,10 @@ export default function InvoiceNewinvoicePage() {
                           )}
                         </div>
 
-                        {/* INVOICE DETAILS SECTION - NO COLORS */}
-                        <div className="bg-white rounded-xl border border-slate-50 p-4">
+                        {/* INVOICE DETAILS SECTION */}
+                        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] p-4">
                           <div className="flex items-center gap-2 mb-3">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Invoice Details</span>
+                            <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Invoice Details</span>
                           </div>
                           <Row gutter={[12, 12]}>
                             <Col span={12}>
@@ -1015,7 +1033,7 @@ export default function InvoiceNewinvoicePage() {
                                 <Input
                                   readOnly
                                   size="middle"
-                                  className="bg-[#f8fafc] text-sm font-bold border-slate-200 rounded-lg h-9 text-slate-600 shadow-sm shadow-black/[0.01]"
+                                  className="bg-[var(--bg-slate-50)] text-sm font-bold border-[var(--border-color)] rounded-lg h-9 text-[var(--text-secondary)] shadow-sm shadow-black/[0.01]"
                                 />
                               </Form.Item>
                             </Col>
@@ -1044,9 +1062,9 @@ export default function InvoiceNewinvoicePage() {
                                 rules={[{ required: true }]}
                                 style={{ marginBottom: 0 }}
                               >
-                                <DatePicker 
-                                  className="w-full rounded-lg h-9 border-slate-200 hover:border-blue-300 focus:border-blue-400 shadow-sm shadow-black/[0.01]" 
-                                  size="middle" 
+                                <DatePicker
+                                  className="w-full rounded-lg h-9 border-[var(--border-color)] hover:border-blue-300 focus:border-blue-400 shadow-sm shadow-black/[0.01]"
+                                  size="middle"
                                   onChange={() => {
                                     // Trigger re-validation of due_date when invoice_date changes
                                     if (form.getFieldValue("due_date")) {
@@ -1075,9 +1093,9 @@ export default function InvoiceNewinvoicePage() {
                                 ]}
                                 style={{ marginBottom: 0 }}
                               >
-                                <DatePicker 
-                                  className="w-full rounded-lg h-9 border-slate-200 hover:border-blue-300 focus:border-blue-400 shadow-sm shadow-black/[0.01]" 
-                                  size="middle" 
+                                <DatePicker
+                                  className="w-full rounded-lg h-9 border-[var(--border-color)] hover:border-blue-300 focus:border-blue-400 shadow-sm shadow-black/[0.01]"
+                                  size="middle"
                                   disabledDate={(current) => {
                                     const invoiceDate = form.getFieldValue("invoice_date");
                                     // Disable dates on or before invoice_date
@@ -1145,15 +1163,16 @@ export default function InvoiceNewinvoicePage() {
                     {/* NOTES & TERMS CARD - SIDE BY SIDE LAYOUT */}
                     <Card
                       className="border-none shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] mb-4 rounded-xl transition-all duration-300 hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)]"
+                      style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
                       bodyStyle={{ padding: 0, borderRadius: 12, overflow: 'hidden' }}
                     >
-                      {/* Card Header - Modern White Style */}
-                      <div className="px-5 py-4 border-b border-slate-100 bg-white">
+                      {/* Card Header - Modern Style */}
+                      <div className="px-5 py-4 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]">
                         <div className="flex flex-col gap-0.5">
-                          <Title level={5} style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 700 }}>
+                          <Title level={5} style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 700 }}>
                             Notes & Terms
                           </Title>
-                          <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Additional details for your customer</span>
+                          <span className="text-[10px] text-[var(--text-secondary)] font-medium uppercase tracking-wider">Additional details for your customer</span>
                         </div>
                       </div>
 
@@ -1161,12 +1180,12 @@ export default function InvoiceNewinvoicePage() {
                         <Row gutter={[24, 0]}>
                           <Col span={12}>
                             <div>
-                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Customer Notes</div>
+                              <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3">Customer Notes</div>
                               <Form.Item name="notes" style={{ marginBottom: 0 }}>
                                 <Input.TextArea
                                   rows={4}
                                   placeholder="Add any notes for the customer..."
-                                  className="text-sm resize-none rounded-xl border-slate-200 hover:border-blue-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 bg-white shadow-sm shadow-black/[0.01]"
+                                  className="text-sm resize-none rounded-xl border-[var(--border-color)] hover:border-blue-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm shadow-black/[0.01]"
                                   size="middle"
                                 />
                               </Form.Item>
@@ -1174,12 +1193,12 @@ export default function InvoiceNewinvoicePage() {
                           </Col>
                           <Col span={12}>
                             <div>
-                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Terms & Conditions</div>
+                              <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3">Terms & Conditions</div>
                               <Form.Item name="terms" style={{ marginBottom: 0 }}>
                                 <Input.TextArea
                                   rows={4}
                                   placeholder="Add terms and conditions..."
-                                  className="text-sm resize-none rounded-xl border-slate-200 hover:border-blue-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 bg-white shadow-sm shadow-black/[0.01]"
+                                  className="text-sm resize-none rounded-xl border-[var(--border-color)] hover:border-blue-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm shadow-black/[0.01]"
                                   size="middle"
                                 />
                               </Form.Item>
@@ -1216,48 +1235,95 @@ export default function InvoiceNewinvoicePage() {
             });
 
             setShowApplyModal(true);
+            setEditingCustomer(null);
           }}
         />
 
         {/* APPLY CHANGES MODAL */}
         <Modal
           open={showApplyModal}
-          title="Apply changes to customer?"
           onCancel={() => {
             setShowApplyModal(false);
             setPendingCustomer(null);
           }}
-          footer={[
-            <Button
-              key="invoice"
-              onClick={() => {
-                if (!pendingCustomer) return;
-                applyToInvoiceOnly(pendingCustomer);
-                setShowApplyModal(false);
-                setPendingCustomer(null);
-              }}
-              size="large"
-            >
-              Invoice only
-            </Button>,
-
-            <Button
-              key="both"
-              type="primary"
-              onClick={async () => {
-                if (!pendingCustomer) return;
-                await applyToCustomerAndInvoice(pendingCustomer);
-                setShowApplyModal(false);
-                setPendingCustomer(null);
-                setEditingCustomer(null);
-              }}
-              size="large"
-            >
-              Apply to customer
-            </Button>
-          ]}
+          footer={null}
+          width={480}
+          styles={{
+            mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.4)' },
+            content: { padding: 0, borderRadius: 24, overflow: 'hidden' }
+          }}
         >
-          <p>Apply these changes to customer record?</p>
+          <div className="p-6 border-b border-[var(--border-color)] bg-[var(--bg-slate-50)]">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-[var(--bg-blue-50)] text-[var(--text-blue-700)] rounded-xl border border-[var(--border-blue-200)]">
+                <RefreshCw size={20} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 16, color: 'var(--text-primary)' }}>Apply Information Changes</Title>
+                <Text type="secondary" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>You have modified the customer details. Where should these apply?</Text>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <div className="grid grid-cols-1 gap-4">
+              <div
+                onClick={() => {
+                  if (!pendingCustomer) return;
+                  applyToInvoiceOnly(pendingCustomer);
+                  setShowApplyModal(false);
+                  setPendingCustomer(null);
+                }}
+                className="group cursor-pointer p-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:border-blue-200 hover:bg-blue-50/30 transition-all duration-200"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-50 text-slate-400 rounded-lg group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                    <FileText size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-bold text-[var(--text-primary)]">Apply to This Invoice Only</div>
+                    <div className="text-[11px] text-[var(--text-secondary)]">Changes will be saved for this instance and won't affect the main client record.</div>
+                  </div>
+                  <ChevronRight size={16} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+
+              <div
+                onClick={async () => {
+                  if (!pendingCustomer) return;
+                  await applyToCustomerAndInvoice(pendingCustomer);
+                  setShowApplyModal(false);
+                  setPendingCustomer(null);
+                  setEditingCustomer(null);
+                }}
+                className="group cursor-pointer p-4 rounded-2xl border border-blue-100 bg-blue-50/20 hover:bg-blue-50/40 transition-all duration-200 shadow-sm shadow-blue-100/50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500 text-white rounded-lg">
+                    <User size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-bold text-blue-900 line-clamp-1">Apply to Customer Record (Global)</div>
+                    <div className="text-[11px] text-blue-600/80">Update the master database so these details appear on all future invoices for this client.</div>
+                  </div>
+                  <ChevronRight size={16} className="text-blue-400 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-end">
+              <Button
+                type="text"
+                onClick={() => {
+                  setShowApplyModal(false);
+                  setPendingCustomer(null);
+                }}
+                className="text-[var(--text-secondary)] font-medium hover:text-red-500"
+              >
+                Discard Changes
+              </Button>
+            </div>
+          </div>
         </Modal>
 
         {/* Add custom CSS for animations */}
@@ -1273,14 +1339,24 @@ export default function InvoiceNewinvoicePage() {
           }
           :global(.custom-select-premium .ant-select-selector) {
             border-radius: 8px !important;
-            border-color: #e2e8f0 !important;
+            border-color: var(--border-color) !important;
             height: 36px !important;
             padding: 0 12px !important;
             display: flex !important;
             align-items: center !important;
-            background-color: #ffffff !important;
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
             transition: all 0.2s !important;
+          }
+          :global([data-theme='dark'] .custom-select-premium .ant-select-selector) {
+            border-color: var(--border-color) !important;
+          }
+          :global(.custom-select-premium .ant-select-selection-item) {
+             color: var(--text-primary) !important;
+          }
+          :global(.custom-select-premium .ant-select-arrow) {
+             color: var(--text-secondary) !important;
           }
           :global(.custom-select-premium .ant-select-selector:hover) {
             border-color: #93c5fd !important;
@@ -1303,7 +1379,7 @@ export default function InvoiceNewinvoicePage() {
           onClose={() => setIsPreviewVisible(false)}
           open={isPreviewVisible}
           className="invoice-preview-drawer"
-          styles={{ body: { padding: 0, backgroundColor: '#f9fafb' } }}
+          styles={{ body: { padding: 0, backgroundColor: 'var(--bg-primary)' } }}
         >
           <InvoicePreview
             data={form.getFieldsValue(true)}

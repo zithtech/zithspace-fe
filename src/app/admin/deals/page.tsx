@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { Table, Button, Space, Tag, Typography, Card, message, Tooltip, Input, Select, Row, Col, Statistic, Avatar, Divider, Flex } from "antd";
-import { 
-  PlusOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
-  EyeOutlined, 
-  SearchOutlined, 
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  SearchOutlined,
   FilterOutlined,
   DollarOutlined,
   CheckCircleOutlined,
@@ -19,6 +19,7 @@ import {
 import { useRouter } from "next/navigation";
 import { dealService, Deal } from "@/services/dealService";
 import MainLayout from "@/components/layout/MainLayout";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
@@ -70,7 +71,7 @@ const DealsListPage: React.FC = () => {
     const wonDeals = deals.filter(d => d.status === 'Won');
     const wonValue = wonDeals.reduce((sum, d) => sum + (Number(d.estimatedValue) || 0), 0);
     const activeDeals = deals.filter(d => d.status === 'Active');
-    
+
     return {
       totalValue,
       totalCount: deals.length,
@@ -83,11 +84,11 @@ const DealsListPage: React.FC = () => {
   // Filtering logic
   const filteredDeals = useMemo(() => {
     return deals.filter(deal => {
-      const matchesSearch = searchText === "" || 
+      const matchesSearch = searchText === "" ||
         deal.title.toLowerCase().includes(searchText.toLowerCase()) ||
         deal.clientName?.toLowerCase().includes(searchText.toLowerCase()) ||
         deal.companyName?.toLowerCase().includes(searchText.toLowerCase());
-      
+
       const matchesStage = !selectedStage || deal.stageId === selectedStage;
       const matchesStatus = !selectedStatus || deal.status === selectedStatus;
 
@@ -102,8 +103,8 @@ const DealsListPage: React.FC = () => {
       key: "title",
       render: (text: string, record: Deal) => (
         <Space>
-          <Avatar 
-            shape="square" 
+          <Avatar
+            shape="square"
             style={{ backgroundColor: '#f0f2f5', color: '#1890ff' }}
             icon={<SolutionOutlined style={{ fontSize: '16px' }} />}
           />
@@ -119,7 +120,7 @@ const DealsListPage: React.FC = () => {
       dataIndex: "stage",
       key: "stage",
       render: (stage: any) => (
-        <Tag 
+        <Tag
           color={stage?.color || "blue"}
           style={{ borderRadius: '12px', padding: '0 12px', border: 'none' }}
         >
@@ -223,170 +224,173 @@ const DealsListPage: React.FC = () => {
 
   return (
     <MainLayout>
-      <div style={{ padding: "16px", background: '#fff', minHeight: '100vh' }}>
-        {/* Header Section */}
-        <Flex justify="space-between" align="center" style={{ marginBottom: '16px' }}>
-          <div>
-            <Space align="center" size={10}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 8, background: '#fff0f6',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <FireOutlined style={{ color: '#eb2f96', fontSize: 18 }} />
-              </div>
-              <Title level={3} style={{ margin: 0 }}>Deals & Leads</Title>
+      <div style={{
+        margin: "0 -24px",
+        background: "var(--bg-pure-white)",
+        minHeight: "calc(100vh - 64px)"
+      }}>
+        <TimeTrackingHeader
+          style={{ padding: '8.5px 32px' }}
+          icon={<FireOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+          title="Deals & Leads"
+          description="Manage your sales pipeline and track opportunities"
+          extra={
+            <Space>
+              <Button
+                size="large"
+                onClick={() => router.push("/admin/deals/forecast")}
+                icon={<ThunderboltOutlined />}
+              >
+                Sales Forecast
+              </Button>
+              <Button
+                type="primary"
+                size="large"
+                icon={<PlusOutlined />}
+                onClick={() => router.push("/admin/deals/create")}
+                style={{ background: 'linear-gradient(90deg, #1890ff 0%, #096dd9 100%)', border: 'none', borderRadius: '8px' }}
+              >
+                Create New Deal
+              </Button>
             </Space>
-            <Text type="secondary" style={{ display: 'block', marginTop: 4 }}>Manage your sales pipeline and track opportunities</Text>
-          </div>
-          <Space>
-            <Button 
-              size="large"
-              onClick={() => router.push("/admin/deals/forecast")}
-              icon={<ThunderboltOutlined />}
-            >
-              Sales Forecast
-            </Button>
-            <Button
-              type="primary"
-              size="large"
-              icon={<PlusOutlined />}
-              onClick={() => router.push("/admin/deals/create")}
-              style={{ background: 'linear-gradient(90deg, #1890ff 0%, #096dd9 100%)', border: 'none', borderRadius: '8px' }}
-            >
-              Create New Deal
-            </Button>
-          </Space>
-        </Flex>
+          }
+        />
 
-        {/* Stats Row */}
-        <Row gutter={[12, 12]} style={{ marginBottom: '16px' }}>
-          <Col span={6}>
-            <Card bordered style={{ borderColor: '#f0f0f0' }} styles={{ body: { padding: '16px' } }} className="stat-card">
-              <Statistic 
-                title={<Text type="secondary">Total Pipeline Value</Text>}
-                value={metrics.totalValue}
-                precision={2}
-                prefix={<DollarOutlined style={{ color: '#1890ff' }} />}
-                valueStyle={{ color: '#1890ff', fontWeight: 700 }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card bordered style={{ borderColor: '#f0f0f0' }} styles={{ body: { padding: '16px' } }} className="stat-card">
-              <Statistic 
-                title={<Text type="secondary">Won Revenue</Text>}
-                value={metrics.wonValue}
-                precision={2}
-                prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                valueStyle={{ color: '#52c41a', fontWeight: 700 }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card bordered style={{ borderColor: '#f0f0f0' }} styles={{ body: { padding: '16px' } }} className="stat-card">
-              <Statistic 
-                title={<Text type="secondary">Active Deals</Text>}
-                value={metrics.activeCount}
-                prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-                valueStyle={{ fontWeight: 700 }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card bordered style={{ borderColor: '#f0f0f0' }} styles={{ body: { padding: '16px' } }} className="stat-card">
-              <Statistic 
-                title={<Text type="secondary">Conversion Rate</Text>}
-                value={metrics.totalCount > 0 ? (metrics.wonCount / metrics.totalCount) * 100 : 0}
-                precision={1}
-                suffix="%"
-                valueStyle={{ color: '#722ed1', fontWeight: 700 }}
-              />
-            </Card>
-          </Col>
-        </Row>
+        <div style={{ padding: "16px 32px 32px 32px" }}>
 
-        {/* Filters & Table Card */}
-        <Card bordered style={{ borderColor: '#f0f0f0', borderRadius: '12px' }}>
-          <div style={{ marginBottom: '16px' }}>
-            <Row gutter={12} align="middle">
-              <Col span={8}>
-                <Input
-                  placeholder="Search deals, clients or companies..."
-                  prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-                  allowClear
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ borderRadius: '8px' }}
+          {/* Stats Row */}
+          <Row gutter={[12, 12]} style={{ marginBottom: '16px' }}>
+            <Col span={6}>
+              <Card bordered style={{ borderColor: 'var(--border-slate-100)', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px' } }} className="stat-card">
+                <Statistic
+                  title={<Text style={{ color: 'var(--text-slate-500)' }}>Total Pipeline Value</Text>}
+                  value={metrics.totalValue}
+                  precision={2}
+                  prefix={<DollarOutlined style={{ color: 'var(--premium-blue)' }} />}
+                  valueStyle={{ color: 'var(--premium-blue)', fontWeight: 700 }}
                 />
-              </Col>
-              <Col span={5}>
-                <Select
-                  placeholder="Filter by Stage"
-                  style={{ width: '100%' }}
-                  allowClear
-                  onChange={setSelectedStage}
-                  suffixIcon={<FilterOutlined />}
-                >
-                  {stages.map(stage => (
-                    <Option key={stage.id} value={stage.id}>
-                      <Badge color={stage.color} text={stage.name} />
-                    </Option>
-                  ))}
-                </Select>
-              </Col>
-              <Col span={5}>
-                <Select
-                  placeholder="Filter by Status"
-                  style={{ width: '100%' }}
-                  allowClear
-                  onChange={setSelectedStatus}
-                >
-                  <Option value="Active">Active</Option>
-                  <Option value="Won">Won</Option>
-                  <Option value="Lost">Lost</Option>
-                  <Option value="Draft">Draft</Option>
-                </Select>
-              </Col>
-              <Col span={6} style={{ textAlign: 'right' }}>
-                <Text type="secondary">{filteredDeals.length} opportunities found</Text>
-              </Col>
-            </Row>
-          </div>
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card bordered style={{ borderColor: 'var(--border-slate-100)', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px' } }} className="stat-card">
+                <Statistic
+                  title={<Text style={{ color: 'var(--text-slate-500)' }}>Won Revenue</Text>}
+                  value={metrics.wonValue}
+                  precision={2}
+                  prefix={<CheckCircleOutlined style={{ color: 'var(--text-holiday)' }} />}
+                  valueStyle={{ color: 'var(--text-holiday)', fontWeight: 700 }}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card bordered style={{ borderColor: 'var(--border-slate-100)', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px' } }} className="stat-card">
+                <Statistic
+                  title={<Text style={{ color: 'var(--text-slate-500)' }}>Active Deals</Text>}
+                  value={metrics.activeCount}
+                  prefix={<ClockCircleOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                  valueStyle={{ fontWeight: 700, color: 'var(--text-slate-900)' }}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card bordered style={{ borderColor: 'var(--border-slate-100)', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px' } }} className="stat-card">
+                <Statistic
+                  title={<Text style={{ color: 'var(--text-slate-500)' }}>Conversion Rate</Text>}
+                  value={metrics.totalCount > 0 ? (metrics.wonCount / metrics.totalCount) * 100 : 0}
+                  precision={1}
+                  suffix="%"
+                  valueStyle={{ color: 'var(--text-slate-700)', fontWeight: 700 }}
+                />
+              </Card>
+            </Col>
+          </Row>
 
-          <Table
-            columns={columns}
-            dataSource={filteredDeals}
-            rowKey="id"
-            loading={loading}
-            pagination={{ 
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} deals`
-            }}
-            className="custom-table"
-            onRow={(record) => ({
-              onClick: () => router.push(`/admin/deals/${record.id}`),
-              style: { cursor: 'pointer' }
-            })}
-          />
-        </Card>
+          {/* Filters & Table Card */}
+          <Card bordered style={{ borderColor: 'var(--border-slate-100)', borderRadius: '12px', background: 'var(--bg-pure-white)' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <Row gutter={12} align="middle">
+                <Col span={8}>
+                  <Input
+                    placeholder="Search deals, clients or companies..."
+                    prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                    allowClear
+                    onChange={(e) => setSearchText(e.target.value)}
+                    style={{ borderRadius: '8px' }}
+                  />
+                </Col>
+                <Col span={5}>
+                  <Select
+                    placeholder="Filter by Stage"
+                    style={{ width: '100%' }}
+                    allowClear
+                    onChange={setSelectedStage}
+                    suffixIcon={<FilterOutlined />}
+                  >
+                    {stages.map(stage => (
+                      <Option key={stage.id} value={stage.id}>
+                        <Badge color={stage.color} text={stage.name} />
+                      </Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col span={5}>
+                  <Select
+                    placeholder="Filter by Status"
+                    style={{ width: '100%' }}
+                    allowClear
+                    onChange={setSelectedStatus}
+                  >
+                    <Option value="Active">Active</Option>
+                    <Option value="Won">Won</Option>
+                    <Option value="Lost">Lost</Option>
+                    <Option value="Draft">Draft</Option>
+                  </Select>
+                </Col>
+                <Col span={6} style={{ textAlign: 'right' }}>
+                  <Text type="secondary">{filteredDeals.length} opportunities found</Text>
+                </Col>
+              </Row>
+            </div>
 
-        <style jsx global>{`
+            <Table
+              columns={columns}
+              dataSource={filteredDeals}
+              rowKey="id"
+              loading={loading}
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+                showTotal: (total) => `Total ${total} deals`
+              }}
+              className="custom-table"
+              onRow={(record) => ({
+                onClick: () => router.push(`/admin/deals/${record.id}`),
+                style: { cursor: 'pointer' }
+              })}
+            />
+          </Card>
+
+          <style jsx global>{`
           .stat-card {
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             transition: transform 0.2s;
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-slate-100);
           }
           .stat-card:hover {
             transform: translateY(-4px);
           }
           .custom-table .ant-table-thead > tr > th {
-            background: #fafafa;
-            border-bottom: 2px solid #f0f0f0;
+            background: var(--bg-table-header) !important;
+            border-bottom: 2px solid var(--border-slate-100) !important;
+            color: var(--text-slate-900) !important;
           }
           .custom-table .ant-table-row:hover > td {
-            background: #f0f7ff !important;
+            background: var(--bg-slate-50) !important;
           }
         `}</style>
+        </div>
       </div>
     </MainLayout>
   );

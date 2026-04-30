@@ -117,34 +117,6 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
       const startISO = startDayjs.toISOString();
       const endISO = endDayjs.toISOString();
 
-      // Check for overlaps with ALL entries for this user on this day
-      const allUserEntries = await TimeTrackingService.getEntries({
-        userId,
-        startDate: values.date.startOf('day').toISOString(),
-        endDate: values.date.endOf('day').toISOString(),
-      });
-
-      const overlapping = (allUserEntries || []).find(entry => {
-        const existingStart = dayjs(entry.startTime);
-        const existingEnd = entry.endTime ? dayjs(entry.endTime) : dayjs();
-        return existingStart.isBefore(endDayjs) && startDayjs.isBefore(existingEnd);
-      });
-
-      if (overlapping) {
-        const overlapStart = dayjs(overlapping.startTime).format('h:mm A');
-        const overlapEnd = overlapping.endTime ? dayjs(overlapping.endTime).format('h:mm A') : 'Running';
-        const projName = overlapping.project?.name || overlapping.project || 'No Project';
-        const taskName = overlapping.ticket?.title || overlapping.description || 'No Task';
-
-        notification.error({
-          message: "Time Overlap Detected",
-          icon: <InfoCircleOutlined style={{ color: '#ff4d4f' }} />,
-          description: `This range overlaps with an existing entry for "${projName}" - "${taskName}" (${overlapStart} - ${overlapEnd}).`
-        });
-        setLoading(false);
-        return;
-      }
-
       // Batch Create
       let successCount = 0;
       for (const tId of ticketIds) {
@@ -196,10 +168,10 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
     <Modal
       title={
         <Space size="middle">
-          <div style={{ background: "#e0f2fe", padding: 6, borderRadius: 8, display: "flex", color: "#0ea5e9" }}>
+          <div style={{ background: "var(--bg-blue-50)", padding: 6, borderRadius: 8, display: "flex", color: "#0ea5e9" }}>
             <ClockCircleOutlined style={{ fontSize: 18 }} />
           </div>
-          <span style={{ fontWeight: 700, color: "#1e293b", fontSize: 16 }}>Log Time Session</span>
+          <span style={{ fontWeight: 700, color: "var(--text-slate-900)", fontSize: 16 }}>Log Time Session</span>
         </Space>
       }
       open={open}
@@ -299,10 +271,10 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
         </Form.Item>
 
         <div style={{
-          background: '#f8faff',
+          background: 'var(--bg-secondary)',
           padding: '16px',
           borderRadius: '8px',
-          border: '1px solid #e6f4ff',
+          border: '1px solid var(--border-slate-200)',
           marginBottom: '24px'
         }}>
           <Row gutter={16} align="bottom">
@@ -313,7 +285,7 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
                 rules={[{ required: true, message: 'Required' }]}
                 style={{ marginBottom: 0 }}
               >
-                <TimePicker style={{ width: '100%' }} format="h:mm A" changeOnBlur use12Hours />
+                <TimePicker style={{ width: '100%' }} format="h:mm A" changeOnBlur use12Hours needConfirm={false} />
               </Form.Item>
             </Col>
 
@@ -324,7 +296,7 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
                 rules={[{ required: true, message: 'Required' }]}
                 style={{ marginBottom: 0 }}
               >
-                <TimePicker style={{ width: '100%' }} format="h:mm A" changeOnBlur use12Hours />
+                <TimePicker style={{ width: '100%' }} format="h:mm A" changeOnBlur use12Hours needConfirm={false} />
               </Form.Item>
             </Col>
 
@@ -350,7 +322,7 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
             <Button
               onClick={onClose}
               icon={<CloseCircleOutlined />}
-              style={{ borderRadius: 8, height: 40 }}
+              style={{ borderRadius: 8, height: 40, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}
             >
               Cancel
             </Button>

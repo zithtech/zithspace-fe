@@ -5,15 +5,15 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { 
-  Settings2, 
-  Calendar, 
-  Plus, 
-  Search, 
-  CheckCircle2, 
-  AlertCircle, 
-  Trash2, 
-  Globe, 
+import {
+  Settings2,
+  Calendar,
+  Plus,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  Trash2,
+  Globe,
   Clock,
   Check,
   X,
@@ -54,11 +54,11 @@ import {
 const { Text, Title } = Typography;
 
 const StatCard = ({ label, value, icon: Icon, color }: any) => (
-  <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
+  <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-pure-white)", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-        <div style={{ fontSize: 28, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
       </div>
       <div style={{ color, background: `${color}12`, padding: 12, borderRadius: 12 }}><Icon size={24} /></div>
     </div>
@@ -122,7 +122,7 @@ export default function GovernmentHolidaysPage() {
 
   useEffect(() => {
     if (searchText) {
-      const filtered = holidays.filter(h => 
+      const filtered = holidays.filter(h =>
         h.holidayName.toLowerCase().includes(searchText.toLowerCase()) ||
         (Country.getCountryByCode(h.country)?.name || "").toLowerCase().includes(searchText.toLowerCase())
       );
@@ -264,9 +264,9 @@ export default function GovernmentHolidaysPage() {
       key: "holidayName",
       render: (text: string, record: CompanyGovernmentHoliday) => (
         <Space size={8}>
-          <Text strong style={{ color: "#1e293b", fontSize: 14 }}>{text}</Text>
+          <Text strong style={{ color: "var(--text-slate-900)", fontSize: 14 }}>{text}</Text>
           {(record.baseLeave !== 1 || record.extraLeave !== 0) && (
-            <Tag style={{ borderRadius: 6, background: "#fef3c7", border: "1px solid #fcd34d", color: "#92400e", fontSize: 11 }}>Adjusted</Tag>
+            <Tag style={{ borderRadius: 6, background: "var(--bg-yellow-50)", border: "1px solid var(--border-yellow-200)", color: "var(--text-yellow-600)", fontSize: 11 }}>Adjusted</Tag>
           )}
         </Space>
       ),
@@ -277,8 +277,8 @@ export default function GovernmentHolidaysPage() {
       key: "country",
       render: (isoCode: string) => (
         <Space size={6}>
-          <Globe size={14} color="#64748b" />
-          <Text style={{ color: "#475569" }}>{Country.getCountryByCode(isoCode)?.name || isoCode}</Text>
+          <Globe size={14} color="var(--text-slate-400)" />
+          <Text style={{ color: "var(--text-slate-500)" }}>{Country.getCountryByCode(isoCode)?.name || isoCode}</Text>
         </Space>
       ),
     },
@@ -288,12 +288,12 @@ export default function GovernmentHolidaysPage() {
       width: 260,
       render: (_: any, record: CompanyGovernmentHoliday) => (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.fromDate).format("MMM DD")}</Text>
+          <div style={{ padding: "4px 8px", background: "var(--bg-slate-50)", borderRadius: 8, border: "1px solid var(--border-slate-100)" }}>
+            <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{dayjs(record.fromDate).format("MMM DD")}</Text>
           </div>
-          <ArrowRight size={14} color="#94a3b8" />
-          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.toDate).format("MMM DD, YYYY")}</Text>
+          <ArrowRight size={14} color="var(--text-slate-400)" />
+          <div style={{ padding: "4px 8px", background: "var(--bg-slate-50)", borderRadius: 8, border: "1px solid var(--border-slate-100)" }}>
+            <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{dayjs(record.toDate).format("MMM DD, YYYY")}</Text>
           </div>
         </div>
       )
@@ -304,7 +304,7 @@ export default function GovernmentHolidaysPage() {
       key: "totalLeave",
       align: "center" as const,
       render: (val: number) => (
-        <Tag style={{ borderRadius: 20, background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontWeight: 600, padding: "0 12px" }}>
+        <Tag style={{ borderRadius: 20, background: "var(--bg-blue-50)", border: "1px solid var(--border-slate-100)", color: "var(--premium-blue)", fontWeight: 600, padding: "0 12px" }}>
           {val} {val === 1 ? 'Day' : 'Days'}
         </Tag>
       ),
@@ -313,7 +313,7 @@ export default function GovernmentHolidaysPage() {
       title: "Type",
       dataIndex: "type",
       key: "type",
-      render: (text: string) => <Tag style={{ borderRadius: 6, background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569" }}>{text}</Tag>,
+      render: (text: string) => <Tag style={{ borderRadius: 6, background: "var(--bg-slate-50)", border: "1px solid var(--border-slate-100)", color: "var(--text-slate-500)" }}>{text}</Tag>,
     },
     {
       title: "Floater",
@@ -325,7 +325,7 @@ export default function GovernmentHolidaysPage() {
           checked={isFloater}
           checkedChildren={<Check size={12} />}
           unCheckedChildren={<X size={12} />}
-          style={{ backgroundColor: isFloater ? "#10b981" : "#cbd5e1" }}
+          style={{ backgroundColor: isFloater ? "var(--text-holiday)" : "var(--bg-slate-100)" }}
           onChange={(checked) => handleFloaterChange(checked, record)}
         />
       ),
@@ -387,12 +387,12 @@ export default function GovernmentHolidaysPage() {
       title: "Holiday Name",
       dataIndex: "holidayName",
       key: "holidayName",
-      render: (text: string) => <Text strong style={{ color: "#334155" }}>{text}</Text>,
+      render: (text: string) => <Text strong style={{ color: "var(--text-slate-900)" }}>{text}</Text>,
     },
     {
       title: "Date",
       dataIndex: "fromDate",
-      render: (date: any) => <Text style={{ color: "#64748b" }}>{dayjs(date).format("MMM DD, YYYY")}</Text>,
+      render: (date: any) => <Text style={{ color: "var(--text-slate-500)" }}>{dayjs(date).format("MMM DD, YYYY")}</Text>,
     },
     {
       title: "Type",
@@ -404,35 +404,35 @@ export default function GovernmentHolidaysPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
+        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "var(--bg-secondary)", minHeight: "calc(100vh - 64px)" }}>
           {contextHolder}
 
           {/* Header Section */}
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
             <div style={{ flex: 1 }}>
               <Space size={14} align="center">
-                <div style={{ background: "#f5f3ff", padding: 12, borderRadius: 14, color: "#7c3aed", display: "flex" }}>
+                <div style={{ background: "var(--bg-blue-50)", padding: 12, borderRadius: 14, color: "var(--premium-blue)", display: "flex" }}>
                   <Calendar size={28} />
                 </div>
                 <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Government Holidays</Title>
-                  <Text style={{ color: "#64748b", fontSize: 15 }}>Manage official government holidays for your organization.</Text>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Government Holidays</Title>
+                  <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Manage official government holidays for your organization.</Text>
                 </div>
               </Space>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Input 
-                placeholder="Search holidays..." 
-                prefix={<Search size={16} color="#94a3b8" />}
-                style={{ width: 280, borderRadius: 12, height: 44 }}
+              <Input
+                placeholder="Search holidays..."
+                prefix={<Search size={16} color="var(--text-slate-400)" />}
+                style={{ width: 280, borderRadius: 12, height: 44, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)", color: "var(--text-slate-900)" }}
                 onChange={e => setSearchText(e.target.value)}
                 allowClear
               />
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<Plus size={18} />} 
-                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600 }}
+              <Button
+                type="primary"
+                size="large"
+                icon={<Plus size={18} />}
+                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600, background: "var(--premium-blue)" }}
                 onClick={() => setHolidayModalVisible(true)}
               >
                 Apply Holidays
@@ -455,7 +455,7 @@ export default function GovernmentHolidaysPage() {
 
           <Card
             bordered={false}
-            style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
+            style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-pure-white)", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
             bodyStyle={{ padding: "0" }}
           >
             <Table
@@ -473,18 +473,21 @@ export default function GovernmentHolidaysPage() {
           <Drawer
             title={
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ background: "#f5f3ff", padding: 8, borderRadius: 10, color: "#7c3aed" }}>
+                <div style={{ background: "var(--bg-blue-50)", padding: 8, borderRadius: 10, color: "var(--premium-blue)" }}>
                   <Calendar size={20} />
                 </div>
                 <div>
-                  <Text strong style={{ fontSize: 18, color: "#1e293b", display: "block" }}>Apply Government Holidays</Text>
-                  <Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>Choose from official regional holiday lists</Text>
+                  <Text strong style={{ fontSize: 18, color: "var(--text-slate-900)", display: "block" }}>Apply Government Holidays</Text>
+                  <Text style={{ fontSize: 12, fontWeight: 400, color: "var(--text-slate-500)" }}>Choose from official regional holiday lists</Text>
                 </div>
               </div>
             }
             open={holidayModalVisible}
             onClose={() => setHolidayModalVisible(false)}
             width={720}
+            headerStyle={{ background: "var(--bg-pure-white)", borderBottom: "1px solid var(--border-slate-100)" }}
+            bodyStyle={{ background: "var(--bg-pure-white)" }}
+            footerStyle={{ background: "var(--bg-pure-white)", borderTop: "1px solid var(--border-slate-100)" }}
             footer={
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
                 <Button onClick={() => setHolidayModalVisible(false)}>Cancel</Button>
@@ -495,13 +498,16 @@ export default function GovernmentHolidaysPage() {
             }
           >
             <div style={{ marginBottom: 24 }}>
-              <Text strong style={{ display: "block", marginBottom: 8, color: "#475569" }}>Select Region</Text>
+              <Text strong style={{ display: "block", marginBottom: 8, color: "var(--text-slate-600)" }}>Select Region</Text>
               <Select
                 style={{ width: "100%" }}
                 size="large"
                 value={modalCountry}
                 onChange={setModalCountry}
                 showSearch
+                filterOption={(input, option) =>
+                  String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                }
                 options={Country.getAllCountries().map(c => ({ label: c.name, value: c.isoCode }))}
               />
             </div>
@@ -522,18 +528,21 @@ export default function GovernmentHolidaysPage() {
           <Drawer
             title={
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ background: "#f8fafc", padding: 8, borderRadius: 10, color: "#64748b" }}>
+                <div style={{ background: "var(--bg-slate-50)", padding: 8, borderRadius: 10, color: "var(--text-slate-500)" }}>
                   <Clock size={20} />
                 </div>
                 <div>
-                  <Text strong style={{ fontSize: 18, color: "#1e293b", display: "block" }}>Update Holiday Duration</Text>
-                  <Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>Adjust base leave and extra positioning</Text>
+                  <Text strong style={{ fontSize: 18, color: "var(--text-slate-900)", display: "block" }}>Update Holiday Duration</Text>
+                  <Text style={{ fontSize: 12, fontWeight: 400, color: "var(--text-slate-500)" }}>Adjust base leave and extra positioning</Text>
                 </div>
               </div>
             }
             open={editHolidayModalVisible}
             onClose={() => setEditHolidayModalVisible(false)}
             width={480}
+            headerStyle={{ background: "var(--bg-pure-white)", borderBottom: "1px solid var(--border-slate-100)" }}
+            bodyStyle={{ background: "var(--bg-pure-white)" }}
+            footerStyle={{ background: "var(--bg-pure-white)", borderTop: "1px solid var(--border-slate-100)" }}
             footer={
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
                 <Button onClick={() => setEditHolidayModalVisible(false)}>Cancel</Button>
@@ -543,24 +552,24 @@ export default function GovernmentHolidaysPage() {
           >
             {editingHoliday && (
               <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-                <div style={{ padding: 16, background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
-                  <Text strong style={{ fontSize: 16, color: "#1e293b", display: "block" }}>{editingHoliday.holidayName}</Text>
-                  <Text type="secondary">{dayjs(editingHoliday.fromDate).format("MMMM DD, YYYY")}</Text>
+                <div style={{ padding: 16, background: "var(--bg-slate-50)", borderRadius: 12, border: "1px solid var(--border-slate-100)" }}>
+                  <Text strong style={{ fontSize: 16, color: "var(--text-slate-900)", display: "block" }}>{editingHoliday.holidayName}</Text>
+                  <Text style={{ color: "var(--text-slate-500)" }}>{dayjs(editingHoliday.fromDate).format("MMMM DD, YYYY")}</Text>
                 </div>
 
                 <Row gutter={16}>
                   <Col span={12}>
-                    <Text strong style={{ display: "block", marginBottom: 8 }}>Base Leave Days</Text>
-                    <InputNumber value={editBaseDays} disabled style={{ width: "100%" }} size="large" />
+                    <Text strong style={{ display: "block", marginBottom: 8, color: "var(--text-slate-900)" }}>Base Leave Days</Text>
+                    <InputNumber value={editBaseDays} disabled style={{ width: "100%", background: "var(--bg-pure-white)", color: "var(--text-slate-900)" }} size="large" />
                   </Col>
                   <Col span={12}>
-                    <Text strong style={{ display: "block", marginBottom: 8 }}>Extra Leave</Text>
-                    <InputNumber value={editExtraDays} onChange={val => setEditExtraDays(val || 0)} style={{ width: "100%" }} size="large" />
+                    <Text strong style={{ display: "block", marginBottom: 8, color: "var(--text-slate-900)" }}>Extra Leave</Text>
+                    <InputNumber value={editExtraDays} onChange={val => setEditExtraDays(val || 0)} style={{ width: "100%", background: "var(--bg-pure-white)", color: "var(--text-slate-900)" }} size="large" />
                   </Col>
                 </Row>
 
                 <div>
-                  <Text strong style={{ display: "block", marginBottom: 8 }}>Extra Leave Position</Text>
+                  <Text strong style={{ display: "block", marginBottom: 8, color: "var(--text-slate-900)" }}>Extra Leave Position</Text>
                   <Select
                     value={editExtraPosition}
                     onChange={setEditExtraPosition}
@@ -573,21 +582,21 @@ export default function GovernmentHolidaysPage() {
                   />
                 </div>
 
-                <div style={{ marginTop: "auto", padding: 20, background: "#f0f9ff", borderRadius: 12, border: "1px solid #bae6fd" }}>
-                  <Text strong style={{ color: "#0369a1", display: "block", marginBottom: 8 }}>New Duration Summary</Text>
+                <div style={{ marginTop: "auto", padding: 20, background: "var(--bg-blue-50)", borderRadius: 12, border: "1px solid var(--border-slate-100)" }}>
+                  <Text strong style={{ color: "var(--premium-blue)", display: "block", marginBottom: 8 }}>New Duration Summary</Text>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
-                      <Text style={{ fontSize: 12, color: "#0ea5e9" }}>FROM</Text>
-                      <div style={{ fontWeight: 600, color: "#0c4a6e" }}>{dayjs(editingHoliday.fromDate).format("MMM DD")}</div>
+                      <Text style={{ fontSize: 12, color: "var(--premium-blue)", opacity: 0.8 }}>FROM</Text>
+                      <div style={{ fontWeight: 600, color: "var(--text-slate-900)" }}>{dayjs(editingHoliday.fromDate).format("MMM DD")}</div>
                     </div>
-                    <ArrowRight size={20} color="#0ea5e9" />
+                    <ArrowRight size={20} color="var(--premium-blue)" />
                     <div style={{ textAlign: "right" }}>
-                      <Text style={{ fontSize: 12, color: "#0ea5e9" }}>TO</Text>
-                      <div style={{ fontWeight: 600, color: "#0c4a6e" }}>{dayjs(editingHoliday.toDate).format("MMM DD, YYYY")}</div>
+                      <Text style={{ fontSize: 12, color: "var(--premium-blue)", opacity: 0.8 }}>TO</Text>
+                      <div style={{ fontWeight: 600, color: "var(--text-slate-900)" }}>{dayjs(editingHoliday.toDate).format("MMM DD, YYYY")}</div>
                     </div>
                   </div>
-                  <Divider style={{ margin: "12px 0", borderColor: "#bae6fd" }} />
-                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: "#0c4a6e" }}>
+                  <Divider style={{ margin: "12px 0", borderColor: "var(--border-slate-100)" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: "var(--text-slate-900)" }}>
                     <span>Total Duration:</span>
                     <span>{Number(editBaseDays) + Number(editExtraDays)} Days</span>
                   </div>
@@ -596,15 +605,19 @@ export default function GovernmentHolidaysPage() {
             )}
           </Drawer>
 
-          <style dangerouslySetInnerHTML={{ __html: `
-            .history-table-row:hover { background-color: #f8fafc !important; }
+          <style dangerouslySetInnerHTML={{
+            __html: `
+            .history-table-row:hover { background-color: var(--bg-slate-50) !important; }
             .ant-table-thead > tr > th {
-              background-color: #f1f5f9 !important;
-              color: #475569 !important;
+              background-color: var(--bg-slate-50) !important;
+              color: var(--text-slate-500) !important;
               font-weight: 600 !important;
               padding: 12px 16px !important;
+              border-bottom: 1px solid var(--border-slate-100) !important;
             }
-            .ant-table-tbody > tr > td { padding: 14px 16px !important; border-bottom: 1px solid #f1f5f9 !important; }
+            .ant-table-tbody > tr > td { padding: 14px 16px !important; border-bottom: 1px solid var(--border-slate-100) !important; color: var(--text-slate-900) !important; }
+            .ant-pagination-item a { color: var(--text-slate-500) !important; }
+            .ant-pagination-item-active { background: var(--bg-pure-white) !important; border-color: var(--premium-blue) !important; }
           `}} />
         </div>
       </MainLayout>

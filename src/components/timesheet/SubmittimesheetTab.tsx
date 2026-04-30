@@ -2374,6 +2374,7 @@ import dayjs, { Dayjs } from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import isBetween from "dayjs/plugin/isBetween";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -3444,8 +3445,8 @@ export default function SubmittimesheetTab({
           alignItems: "center",
           gap: 12,
           padding: "10px 16px",
-          background: isLeave ? "#fff1f2" : isHoliday ? "#f0fdf4" : "#ffffff",
-          borderBottom: "1px solid #f1f5f9",
+          background: isLeave ? "var(--bg-leave)" : isHoliday ? "var(--bg-holiday)" : "var(--bg-pure-white)",
+          borderBottom: "1px solid var(--border-slate-100)",
           transition: "all 0.2s ease",
           opacity: isWeekendDay && !isFieldEditable(row) ? 0.6 : 1,
         }}
@@ -3528,7 +3529,7 @@ export default function SubmittimesheetTab({
                 e.preventDefault();
               }
             }}
-            style={{ width: 60, textAlign: "center", borderRadius: 6, background: isFieldEditable(row) && !isLeave && !isHoliday ? "#f8fafc" : "transparent" }}
+            style={{ width: 60, textAlign: "center", borderRadius: 6, background: isFieldEditable(row) && !isLeave && !isHoliday ? "var(--bg-table-header)" : "transparent" }}
           />
         </div>
 
@@ -3579,106 +3580,83 @@ export default function SubmittimesheetTab({
     <>
       <div style={{
         margin: "0 -24px",
-        padding: "0 32px",
-        background: "#ffffff",
-        height: "calc(100vh - 72px)",
+        background: "var(--bg-pure-white)",
+        height: "calc(100vh - 64px)",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden"
       }}>
-        {/* Header Section */}
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          gap: 24,
-          background: "#ffffff",
-          zIndex: 100,
-          padding: "20px 0 12px 0",
-          borderBottom: "1px solid #f1f5f9",
-          marginBottom: 16,
-          flexShrink: 0
-        }}>
-          <div style={{ flex: 1 }}>
-            <Space size={14} align="center">
-              <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
-                <ClipboardList size={28} />
-              </div>
-              <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>{isEditMode ? "Edit Timesheet" : "Submit Timesheet"}</Title>
-                <Text style={{ color: "#64748b", fontSize: 15 }}>
-                  {isEditMode
-                    ? "Review and save your updated timesheet for this period."
-                    : "Please fill in your working hours for the current week."}
-                </Text>
-              </div>
-            </Space>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {/* Week Selector Context */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#f8fafc", padding: "4px", borderRadius: 12, border: "1px solid #e2e8f0" }}>
-              <Button
-                type="text"
-                icon={<ChevronLeft size={18} />}
-                onClick={() => setCurrentDate(currentDate.subtract(1, "week"))}
-                style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 36, width: 36, borderRadius: 8 }}
-              />
-              <div style={{ padding: "0 16px", fontWeight: 600, color: "#1e293b", fontSize: 14, minWidth: 180, textAlign: "center" }}>
-                {currentDate.startOf("week").format("MMM DD")} – {currentDate.endOf("week").format("MMM DD, YYYY")}
-              </div>
-              <Button
-                type="text"
-                icon={<ChevronRight size={18} />}
-                onClick={() => setCurrentDate(currentDate.add(1, "week"))}
-                style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 36, width: 36, borderRadius: 8 }}
-              />
-            </div>
-
-            <Tooltip title={`${totalHours}h / 40h logged`}>
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "6px 16px",
-                background: "#f8fafc",
-                borderRadius: 12,
-                border: "1px solid #e2e8f0",
-                height: 44
-              }}>
-                <Clock size={16} color="#64748b" />
-                <div style={{ width: 80 }}>
-                  <Progress
-                    percent={(totalHours / 40) * 100}
-                    showInfo={false}
-                    strokeColor={totalHours >= 40 ? "#10b981" : "#0ea5e9"}
-                    trailColor="#e2e8f0"
-                    strokeWidth={6}
-                  />
+        <TimeTrackingHeader
+          style={{ padding: '9.5px 32px' }}
+          icon={<ClipboardList size={20} color="#0ea5e9" />}
+          title={isEditMode ? "Edit Timesheet" : "Submit Timesheet"}
+          description={isEditMode ? "Review and save your updated timesheet for this period." : "Please fill in your working hours for the current week."}
+          extra={
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--bg-table-header)", padding: "4px", borderRadius: 12, border: "1px solid var(--border-slate-200)", height: 38 }}>
+                <Button
+                  type="text"
+                  icon={<ChevronLeft size={16} />}
+                  onClick={() => setCurrentDate(currentDate.subtract(1, "week"))}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 30, width: 30, borderRadius: 8 }}
+                />
+                <div style={{ padding: "0 12px", fontWeight: 600, color: "var(--text-slate-900)", fontSize: 13, minWidth: 160, textAlign: "center" }}>
+                  {currentDate.startOf("week").format("MMM DD")} – {currentDate.endOf("week").format("MMM DD, YYYY")}
                 </div>
-                <Text strong style={{ fontSize: 13, color: "#1e293b" }}>{totalHours}h</Text>
+                <Button
+                  type="text"
+                  icon={<ChevronRight size={16} />}
+                  onClick={() => setCurrentDate(currentDate.add(1, "week"))}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 30, width: 30, borderRadius: 8 }}
+                />
               </div>
-            </Tooltip>
 
-            <Button
-              icon={<Save size={18} />}
-              loading={saveDraftLoading}
-              onClick={handleSaveDraft}
-              disabled={isViewMode || status === "Submitted"}
-              style={{ height: 44, borderRadius: 10, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}
-            >
-              Save Draft
-            </Button>
+              <Tooltip title={`${totalHours}h / 40h logged`}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "6px 12px",
+                  background: "var(--bg-table-header)",
+                  borderRadius: 12,
+                  border: "1px solid var(--border-slate-200)",
+                  height: 38
+                }}>
+                  <Clock size={16} color="var(--text-slate-600)" />
+                  <div style={{ width: 60 }}>
+                    <Progress
+                      percent={(totalHours / 40) * 100}
+                      showInfo={false}
+                      strokeColor={totalHours >= 40 ? "#10b981" : "#0ea5e9"}
+                      trailColor="var(--border-slate-200)"
+                      strokeWidth={6}
+                    />
+                  </div>
+                  <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)", whiteSpace: "nowrap" }}>{totalHours}h</Text>
+                </div>
+              </Tooltip>
 
-            <Button
-              type="primary"
-              icon={<Send size={18} />}
-              onClick={() => setIsSubmitOpen(true)}
-              style={{ height: 44, borderRadius: 10, fontWeight: 600, background: '#1677ff', display: "flex", alignItems: "center", gap: 8 }}
-            >
-              Submit
-            </Button>
-          </div>
-        </div>
+              <Button
+                icon={<Save size={16} />}
+                loading={saveDraftLoading}
+                onClick={handleSaveDraft}
+                disabled={isViewMode || status === "Submitted"}
+                style={{ height: 38, borderRadius: 10, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}
+              >
+                Save Draft
+              </Button>
+
+              <Button
+                type="primary"
+                icon={<Send size={16} />}
+                onClick={() => setIsSubmitOpen(true)}
+                style={{ height: 38, borderRadius: 10, fontWeight: 600, background: '#1677ff', display: "flex", alignItems: "center", gap: 8 }}
+              >
+                Submit
+              </Button>
+            </div>
+          }
+        />
 
         <style dangerouslySetInnerHTML={{
           __html: `
@@ -3691,30 +3669,31 @@ export default function SubmittimesheetTab({
         }
         .day-card { 
           transition: all 0.2s ease; 
-          border: 1px solid #f1f5f9 !important;
+          border: 1px solid var(--border-slate-100) !important;
         }
         .day-card:hover { 
-          border-color: #0ea5e9 !important;
+          border-color: var(--text-sky-500) !important;
           box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.05) !important;
         }
         .entry-row-active {
-          background: #ffffff;
+          background: var(--bg-pure-white);
         }
         .entry-row-leave {
-          background: #fff1f2;
+          background: var(--bg-leave);
         }
         .entry-row-holiday {
-          background: #f0fdf4;
+          background: var(--bg-holiday);
         }
       `}} />
 
         {/* Main Content Card Wrapper */}
-        <div className="timesheet-scroll-area" style={{ flex: 1, overflowY: "auto", padding: "0 0 24px 0", scrollbarWidth: "none", msOverflowStyle: "none" }}>
+        <div className="timesheet-scroll-area" style={{ flex: 1, overflowY: "auto", padding: "16px 32px 32px 32px", scrollbarWidth: "none", msOverflowStyle: "none" }}>
           <Card
             bordered={false}
             style={{
               borderRadius: 16,
-              border: "1px solid #f1f5f9",
+              background: "var(--bg-pure-white)",
+              border: "1px solid var(--border-slate-100)",
               boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
               overflow: "hidden",
               marginBottom: 20
@@ -3732,8 +3711,8 @@ export default function SubmittimesheetTab({
               }}
             >
               {weekLeaveCount > 0 && (
-                <div style={{ padding: "12px 16px", background: "#fff1f2", borderRadius: 12, border: "1px solid #ffe4e6", display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ background: "#fff", padding: 6, borderRadius: 8, color: "#f43f5e", display: "flex" }}>
+                <div style={{ padding: "12px 16px", background: "var(--bg-leave)", borderRadius: 12, border: "1px solid var(--border-blue-200)", display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ background: "var(--bg-pure-white)", padding: 6, borderRadius: 8, color: "#f43f5e", display: "flex" }}>
                     <AlertCircle size={18} />
                   </div>
                   <Text style={{ color: "#9f1239", fontSize: 13 }}>
@@ -3743,8 +3722,8 @@ export default function SubmittimesheetTab({
               )}
 
               {weekHolidayCount > 0 && (
-                <div style={{ padding: "12px 16px", background: "#f0fdf4", borderRadius: 12, border: "1px solid #dcfce7", display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ background: "#fff", padding: 6, borderRadius: 8, color: "#10b981", display: "flex" }}>
+                <div style={{ padding: "12px 16px", background: "var(--bg-holiday)", borderRadius: 12, border: "1px solid var(--border-blue-200)", display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ background: "var(--bg-pure-white)", padding: 6, borderRadius: 8, color: "#10b981", display: "flex" }}>
                     <Calendar size={18} />
                   </div>
                   <Text style={{ color: "#166534", fontSize: 13 }}>
@@ -3781,8 +3760,8 @@ export default function SubmittimesheetTab({
                     className="day-card"
                     style={{
                       borderRadius: 12,
-                      border: isToday ? "1px solid #0ea5e9" : "1px solid #f1f5f9",
-                      background: isLeaveDay ? "#fff1f2" : isHoliday ? "#f0fdf4" : "#ffffff",
+                      border: isToday ? "1px solid var(--text-sky-500)" : "1px solid var(--border-slate-100)",
+                      background: isLeaveDay ? "var(--bg-leave)" : isHoliday ? "var(--bg-holiday)" : "var(--bg-pure-white)",
                       cursor: "pointer",
                     }}
                     bodyStyle={{ padding: 16 }}
@@ -3795,14 +3774,14 @@ export default function SubmittimesheetTab({
                         <div style={{
                           width: 44,
                           height: 44,
-                          background: isToday ? "#0ea5e9" : isLeaveDay ? "#f43f5e" : isHoliday ? "#10b981" : "#f8fafc",
+                          background: isToday ? "var(--text-sky-500)" : isLeaveDay ? "#f43f5e" : isHoliday ? "#10b981" : "var(--bg-table-header)",
                           borderRadius: 10,
                           display: "flex",
                           flexDirection: "column",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: isToday || isLeaveDay || isHoliday ? "white" : "#64748b",
-                          border: isToday || isLeaveDay || isHoliday ? "none" : "1px solid #e2e8f0"
+                          color: isToday || isLeaveDay || isHoliday ? "white" : "var(--text-slate-600)",
+                          border: isToday || isLeaveDay || isHoliday ? "none" : "1px solid var(--border-slate-200)"
                         }}>
                           <Text style={{ color: "inherit", fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{day.label.toUpperCase()}</Text>
                           <Text style={{ color: "inherit", fontSize: 16, fontWeight: 800, lineHeight: 1.2 }}>{day.dayNumber}</Text>
@@ -3810,12 +3789,12 @@ export default function SubmittimesheetTab({
 
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <Text strong style={{ fontSize: 16, color: "#1e293b" }}>{day.fullDateObj.format("MMMM DD, YYYY")}</Text>
+                            <Text strong style={{ fontSize: 16, color: "var(--text-slate-900)" }}>{day.fullDateObj.format("MMMM DD, YYYY")}</Text>
                             {isToday && <Tag color="blue" style={{ borderRadius: 4, fontWeight: 600 }}>Today</Tag>}
                             {isHoliday && !isLeaveDay && <Tag color="green" style={{ borderRadius: 4 }}>{holidayName}</Tag>}
                             {isLeaveDay && <Tag color="red" style={{ borderRadius: 4 }}>On Leave</Tag>}
                           </div>
-                          <Text style={{ color: "#64748b", fontSize: 13 }}>{dayRows.length} {dayRows.length === 1 ? "entry" : "entries"}</Text>
+                          <Text style={{ color: "var(--text-slate-600)", fontSize: 13 }}>{dayRows.length} {dayRows.length === 1 ? "entry" : "entries"}</Text>
                         </div>
                       </div>
 
@@ -3830,7 +3809,7 @@ export default function SubmittimesheetTab({
                               addEntry(day.label, day.fullDate);
                             }}
                             disabled={isViewMode}
-                            style={{ borderRadius: 6, background: "#0ea5e9" }}
+                            style={{ borderRadius: 6, background: "var(--text-sky-500)" }}
                           >
                             Add Item
                           </Button>
@@ -3843,7 +3822,7 @@ export default function SubmittimesheetTab({
                               e.stopPropagation();
                               handleWeekendToggle(day.label, e.target.checked, dayRows);
                             }}
-                            style={{ color: "#64748b" }}
+                            style={{ color: "var(--text-slate-600)" }}
                           >
                             Enable Weekend
                           </Checkbox>
@@ -3851,15 +3830,15 @@ export default function SubmittimesheetTab({
 
                         <div style={{
                           padding: "4px 12px",
-                          background: isToday ? "#0ea5e915" : "#f8fafc",
+                          background: isToday ? "rgba(14, 165, 233, 0.1)" : "var(--bg-table-header)",
                           borderRadius: 20,
-                          border: `1px solid ${isToday ? "#0ea5e930" : "#e2e8f0"}`,
+                          border: `1px solid ${isToday ? "rgba(14, 165, 233, 0.2)" : "var(--border-slate-200)"}`,
                           display: "flex",
                           alignItems: "center",
                           gap: 6
                         }}>
-                          <Clock size={14} color={isToday ? "#0ea5e9" : "#64748b"} />
-                          <Text strong style={{ color: isToday ? "#0ea5e9" : "#1e293b" }}>{dayTotal}h</Text>
+                          <Clock size={14} color={isToday ? "var(--text-sky-500)" : "var(--text-slate-600)"} />
+                          <Text strong style={{ color: isToday ? "var(--text-sky-500)" : "var(--text-slate-900)" }}>{dayTotal}h</Text>
                         </div>
 
                         {isExpanded ? <UpOutlined style={{ color: "#94a3b8" }} /> : <DownOutlined style={{ color: "#94a3b8" }} />}
@@ -3874,12 +3853,12 @@ export default function SubmittimesheetTab({
                             alignItems: "center",
                             gap: 12,
                             padding: "8px 16px",
-                            background: "#f8fafc",
+                            background: "var(--bg-table-header)",
                             borderRadius: "8px 8px 0 0",
-                            borderBottom: "1px solid #e2e8f0",
+                            borderBottom: "1px solid var(--border-slate-100)",
                             fontSize: 11,
                             fontWeight: 700,
-                            color: "#64748b",
+                            color: "var(--text-slate-600)",
                             textTransform: "uppercase",
                             letterSpacing: "0.05em"
                           }}>
@@ -3896,9 +3875,9 @@ export default function SubmittimesheetTab({
                           {dayRows.length > 0 ? (
                             dayRows.map((row) => renderEntryRow(row))
                           ) : (
-                            <div style={{ padding: 40, textAlign: "center", background: "#f8fafc", borderRadius: 8, border: "1px dashed #e2e8f0" }}>
-                              <div style={{ color: "#94a3b8", marginBottom: 8 }}><Clock size={32} strokeWidth={1.5} /></div>
-                              <Text style={{ color: "#64748b" }}>
+                            <div style={{ padding: 40, textAlign: "center", background: "var(--bg-table-header)", borderRadius: 8, border: "1px dashed var(--border-slate-100)" }}>
+                              <div style={{ color: "var(--text-slate-400)", marginBottom: 8 }}><Clock size={32} strokeWidth={1.5} /></div>
+                              <Text style={{ color: "var(--text-slate-600)" }}>
                                 {isLeaveDay ? "No entries allowed on leave days" : isHoliday ? "Holiday hours automatically logged" : "No entries. Click 'Add Item' to record time."}
                               </Text>
                             </div>
@@ -3915,24 +3894,24 @@ export default function SubmittimesheetTab({
             <div style={{
               marginTop: 16,
               padding: "10px 20px",
-              background: "#f8fafc",
+              background: "var(--bg-table-header)",
               borderRadius: 12,
-              border: "1px solid #e2e8f0",
+              border: "1px solid var(--border-slate-100)",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
               maxWidth: 1000,
               margin: "16px auto 0"
             }}>
-              <Text strong style={{ color: "#1e293b", fontSize: 14 }}>Weekly Summary</Text>
+              <Text strong style={{ color: "var(--text-slate-900)", fontSize: 14 }}>Weekly Summary</Text>
               <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  <Text style={{ fontSize: 11, color: "#64748b" }}>Billable Hours</Text>
+                  <Text style={{ fontSize: 11, color: "var(--text-slate-600)" }}>Billable Hours</Text>
                   <Text strong style={{ fontSize: 16, color: "#10b981" }}>{totalBillable}h</Text>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  <Text style={{ fontSize: 11, color: "#64748b" }}>Total Logged</Text>
-                  <Text strong style={{ fontSize: 16, color: "#0ea5e9" }}>{totalHours}h <Text style={{ fontSize: 12, color: "#94a3b8", fontWeight: 400 }}>/ 40h</Text></Text>
+                  <Text style={{ fontSize: 11, color: "var(--text-slate-600)" }}>Total Logged</Text>
+                  <Text strong style={{ fontSize: 16, color: "var(--text-sky-500)" }}>{totalHours}h <Text style={{ fontSize: 12, color: "var(--text-slate-400)", fontWeight: 400 }}>/ 40h</Text></Text>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   {weekLeaveCount > 0 && <Tag color="red" style={{ borderRadius: 6, padding: "2px 10px" }}>{weekLeaveCount} Day Leave</Tag>}
@@ -3967,13 +3946,13 @@ export default function SubmittimesheetTab({
               margin: 0,
             }}
           >
-            <SendOutlined style={{ color: "#0ea5e9", fontSize: 16 }} />
+            <SendOutlined style={{ color: "var(--text-sky-500)", fontSize: 16 }} />
             <div>
-              <Text strong style={{ fontSize: 14, color: "#1e293b" }}>
+              <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)" }}>
                 {isEditMode ? "Save Changes" : "Submit Timesheet"}
               </Text>
               <br />
-              <Text style={{ color: "#64748b", fontSize: 11 }}>
+              <Text style={{ color: "var(--text-slate-600)", fontSize: 11 }}>
                 {isEditMode
                   ? "Review and save your updated timesheet."
                   : "Review your timesheet summary before submission."}

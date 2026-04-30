@@ -255,7 +255,7 @@ export default function LeavesDashboardPage() {
       className="quick-action-card"
       onClick={() => router.push(path)}
       bodyStyle={{ padding: 20 }}
-      style={{ borderRadius: 16, border: "1px solid #f1f5f9" }}
+      style={{ borderRadius: 16, border: "1px solid var(--border-color)" }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ 
@@ -271,7 +271,7 @@ export default function LeavesDashboardPage() {
           <Icon size={24} />
         </div>
         <div style={{ flex: 1 }}>
-          <Typography.Text strong style={{ fontSize: 16, display: "block", color: "#1e293b" }}>{title}</Typography.Text>
+          <Typography.Text strong style={{ fontSize: 16, display: "block", color: "var(--text-primary)" }}>{title}</Typography.Text>
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>{desc}</Typography.Text>
         </div>
         <ChevronRight size={18} style={{ color: "#cbd5e1" }} />
@@ -280,14 +280,14 @@ export default function LeavesDashboardPage() {
   );
 
   const StatBox = ({ label, value, icon: Icon, color, subText }: any) => (
-    <Card bodyStyle={{ padding: 24 }} style={{ borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}>
+    <Card bodyStyle={{ padding: 24 }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", height: "100%" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-        <Typography.Text style={{ color: "#64748b", fontWeight: 500, fontSize: 14 }}>{label}</Typography.Text>
+        <Typography.Text style={{ color: "var(--text-secondary)", fontWeight: 500, fontSize: 14 }}>{label}</Typography.Text>
         <div style={{ color: color, background: `${color}15`, padding: 8, borderRadius: 10 }}>
           <Icon size={20} />
         </div>
       </div>
-      <div style={{ fontSize: 28, fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>{value}</div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>{value}</div>
       {subText && <Typography.Text style={{ fontSize: 12, color: "#94a3b8" }}>{subText}</Typography.Text>}
     </Card>
   );
@@ -298,16 +298,16 @@ export default function LeavesDashboardPage() {
         <div style={{
           margin: "0 -24px",
           padding: "24px 32px",
-          background: "#ffffff",
-          minHeight: "calc(100vh - 64px)"
+          background: "var(--bg-pure-white)",
+          minHeight: "100vh"
         }}>
           {/* Header & Welcome */}
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <Typography.Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
+              <Typography.Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)" }}>
                 Leave Dashboard
               </Typography.Title>
-              <Typography.Text style={{ color: "#64748b", fontSize: 15 }}>
+              <Typography.Text style={{ color: "var(--text-secondary)", fontSize: 15 }}>
                 Greetings, {user?.name || "Admin"}! Here&apos;s what&apos;s happening in your workspace today.
               </Typography.Text>
             </div>
@@ -412,7 +412,7 @@ export default function LeavesDashboardPage() {
                 {/* Who's Out Today List */}
                 <Card 
                   title={<span style={{ color: "#334155", fontWeight: 600 }}>Who&apos;s on Leave Today</span>}
-                  style={{ borderRadius: 16, border: "1px solid #f1f5f9" }}
+                  style={{ borderRadius: 16, border: "1px solid var(--border-color)" }}
                   extra={<Tag color="blue" style={{ borderRadius: 6 }}>{onLeaveToday.length} Out</Tag>}
                 >
                   <List
@@ -422,8 +422,8 @@ export default function LeavesDashboardPage() {
                       <List.Item style={{ padding: "12px 0" }}>
                         <List.Item.Meta
                           avatar={<Avatar size={40} style={{ backgroundColor: "#f0f9ff", color: "#0ea5e9" }}>{item.user?.name[0]}</Avatar>}
-                          title={<span style={{ fontWeight: 600, color: "#1e293b" }}>{item.user?.name}</span>}
-                          description={<span style={{ fontSize: 13, color: "#64748b" }}>{item.user?.position || "Staff Member"}</span>}
+                          title={<span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{item.user?.name}</span>}
+                          description={<span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{item.user?.position || "Staff Member"}</span>}
                         />
                         <Tag style={{ borderRadius: 8, background: "#f1f5f9", border: 0, fontWeight: 500, color: "#475569" }}>
                           {item.type}
@@ -444,14 +444,14 @@ export default function LeavesDashboardPage() {
                 {/* Holiday Calendar */}
                 <Card 
                   title={<span style={{ color: "#334155", fontWeight: 600 }}>Holiday Calendar</span>}
-                  style={{ borderRadius: 16, border: "1px solid #f1f5f9" }}
+                  style={{ borderRadius: 16, border: "1px solid var(--border-color)" }}
                   bodyStyle={{ padding: 12 }}
                 >
                   <Calendar
                     fullscreen={false}
                     headerRender={({ value, onChange }) => (
                       <div style={{ padding: "0 0 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Typography.Text strong style={{ fontSize: 16, color: "#1e293b" }}>
+                        <Typography.Text strong style={{ fontSize: 16, color: "var(--text-primary)" }}>
                           {value.format("MMMM YYYY")}
                         </Typography.Text>
                         <Space>
@@ -500,7 +500,7 @@ export default function LeavesDashboardPage() {
                 {/* Recent Adjustments */}
                 <Card 
                   title={<span style={{ color: "#334155", fontWeight: 600 }}>Recent Adjustments</span>}
-                  style={{ borderRadius: 16, border: "1px solid #f1f5f9" }}
+                  style={{ borderRadius: 16, border: "1px solid var(--border-color)" }}
                   extra={<Typography.Link onClick={() => router.push("/leave-adjustments")}>View All</Typography.Link>}
                 >
                   <List

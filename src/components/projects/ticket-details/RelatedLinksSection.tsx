@@ -170,7 +170,7 @@ export default function RelatedLinksSection({
         {/* Add Link Form (at top ONLY for new links, editing handled inline) */}
         {showAddLinkForm && selectedLinkType && !editingLinkId && (
           <div style={{ 
-            backgroundColor: '#fff', 
+            backgroundColor: 'var(--bg-secondary)', 
             border: '1px solid #1890ff', 
             borderRadius: 12, 
             padding: 16,
@@ -237,9 +237,9 @@ export default function RelatedLinksSection({
             <div style={{ 
               padding: '24px 0', 
               textAlign: 'center', 
-              backgroundColor: '#fafafa', 
+              backgroundColor: 'var(--bg-secondary)', 
               borderRadius: 8, 
-              border: '1px dashed #d9d9d9' 
+              border: '1px dashed var(--border-color)' 
             }}>
                <Text type="secondary" style={{ fontSize: 13 }}>No related links added</Text>
             </div>
@@ -254,8 +254,8 @@ export default function RelatedLinksSection({
                   alignItems: isEditingThis ? 'stretch' : 'center', 
                   gap: 12, 
                   padding: isEditingThis ? '16px' : '10px 12px',
-                  backgroundColor: '#fff',
-                  border: isEditingThis ? '1px solid #1890ff' : '1px solid #f0f0f0',
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: isEditingThis ? '1px solid #1890ff' : '1px solid var(--border-color)',
                   borderRadius: 12,
                   position: 'relative',
                   transition: 'all 0.2s',
@@ -318,7 +318,7 @@ export default function RelatedLinksSection({
                           target="_blank"
                           rel="noopener noreferrer"
                           className="link-title"
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, fontSize: 13, color: '#262626', lineHeight: 1.4 }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, fontSize: 13, color: '#1890ff', lineHeight: 1.4 }}
                         >
                           <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                             {link.description || link.title || "Untitled Link"}
@@ -365,7 +365,8 @@ export default function RelatedLinksSection({
       <style jsx global>{`
         .link-card:not(.editing):hover {
           border-color: #1890ff40 !important;
-          background-color: #fafafa !important;
+          background-color: var(--bg-secondary) !important;
+          filter: brightness(0.98);
           box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
           transform: translateY(-1px);
         }

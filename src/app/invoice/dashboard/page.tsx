@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, Row, Col, Typography, Table, Tag, Button, Spin, Skeleton, Space } from "antd";
 import { 
@@ -16,11 +16,15 @@ import {
   LayoutDashboard,
   ArrowUpCircle,
   ArrowDownCircle,
-  TrendingUp
+  TrendingUp,
+  History
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import EmailHistoryDrawer from "@/components/invoice/EmailHistoryDrawer";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 import { Line } from "@ant-design/plots";
 import { Tooltip } from "antd";
@@ -43,6 +47,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const { canReadInvoice, canCreateInvoice } = usePermission();
   const { isLoading: authLoading } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   // Route guard
   useEffect(() => {
@@ -52,8 +58,12 @@ export default function DashboardPage() {
   }, [authLoading, canReadInvoice, router]);
 
   const [currentMonth, setCurrentMonth] = useState(dayjs());
+  const [historyDrawerVisible, setHistoryDrawerVisible] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data, isLoading } = useInvoices({
   page: 1,
@@ -134,15 +144,16 @@ const overdueAmount = invoices
       styles={{ body: { padding: 20 } }} 
       style={{ 
         borderRadius: 16, 
-        border: "1px solid #f1f5f9", 
+        border: "1px solid var(--dashboard-card-border)", 
+        background: "var(--dashboard-card-bg)",
         boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
         height: "100%"
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+          <Text style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", marginTop: 4 }}>{value}</div>
         </div>
         <div style={{ 
           color, 
@@ -191,32 +202,71 @@ const yearlyRevenueData = months.map((month) => ({
   revenue: yearlyRevenueMap[month] || 0,
 }));
 
-const monthlyRevenueConfig = {
+const monthlyRevenueConfig = useMemo(() => ({
   data: yearlyRevenueData,
   xField: "month",
   yField: "revenue",
   smooth: true,
-  color: "#2f6df6",
+  theme: isDark ? "dark" : undefined,
+  color: "#3b82f6",
   lineStyle: { lineWidth: 3 },
   point: {
     size: 4,
     style: {
-      fill: "#fff",
-      stroke: "#2f6df6",
+      fill: isDark ? "#161B22" : "#fff",
+      stroke: "#3b82f6",
       lineWidth: 2,
     },
   },
   area: {
     style: {
-      fill: "l(270) 0:rgba(47,109,246,0.25) 1:rgba(47,109,246,0.05)",
+      fill: isDark 
+        ? "l(270) 0:rgba(59,130,246,0.2) 1:rgba(59,130,246,0.01)"
+        : "l(270) 0:rgba(59,130,246,0.15) 1:rgba(59,130,246,0.02)",
+    },
+  },
+  xAxis: {
+    label: {
+      style: {
+        fill: isDark ? "#FFFFFF" : "#64748b",
+        fontSize: 11,
+      },
+    },
+    grid: {
+      line: {
+        style: {
+          stroke: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+        },
+      },
     },
   },
   yAxis: {
     label: {
       formatter: (v: string) => `$${Number(v).toFixed(0)}`,
+      style: {
+        fill: isDark ? "#FFFFFF" : "#64748b",
+        fontSize: 11,
+      },
+    },
+    grid: {
+      line: {
+        style: {
+          stroke: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+        },
+      },
     },
   },
-};
+  tooltip: {
+    domStyles: {
+      'g2-tooltip': {
+        backgroundColor: isDark ? "#161B22" : "#fff",
+        boxShadow: isDark ? "0 4px 12px rgba(0,0,0,0.5)" : "0 4px 12px rgba(0,0,0,0.1)",
+        color: isDark ? "#F1F5F9" : "#1e293b",
+        border: `1px solid ${isDark ? "#1F2937" : "#f1f5f9"}`,
+      },
+    },
+  },
+}), [yearlyRevenueData, isDark]);
 
 
 
@@ -232,7 +282,7 @@ const columns: ColumnsType<any> = [
     width: 120,
     className: "font-mono px-4",
     render: (value) => (
-      <div className="font-medium text-gray-900 tracking-tight">
+      <div className="font-medium text-[var(--dashboard-stat-value)] tracking-tight">
         {value || "-"}
       </div>
     ),
@@ -250,7 +300,7 @@ const columns: ColumnsType<any> = [
     return (
       // Removed pr-4 to keep content closer to the next column border
       <div className="truncate max-w-[180px]"> 
-        <div className="font-semibold text-gray-900 truncate">
+        <div className="font-semibold text-[var(--dashboard-stat-value)] truncate">
           {companyName || "Unknown Customer"}
         </div>
       </div>
@@ -264,7 +314,7 @@ const columns: ColumnsType<any> = [
   align: "left", // Changed from center to left to keep it closer to the Customer text
   className: "px-2", 
   render: (date: string) => (
-    <div className="text-gray-700 font-medium whitespace-nowrap">
+    <div className="text-[var(--dashboard-stat-label)] font-medium whitespace-nowrap">
       {date
         ? new Date(date).toLocaleDateString("en-US", {
             year: "numeric",
@@ -287,7 +337,7 @@ const columns: ColumnsType<any> = [
       const isPastDue = dueDate < today;
       
       return (
-        <div className={`font-medium ${isPastDue ? 'text-red-600' : 'text-gray-700'}`}>
+        <div className={`font-medium ${isPastDue ? 'text-red-500' : 'text-[var(--dashboard-stat-label)]'}`}>
           {date
             ? new Date(date).toLocaleDateString("en-US", {
                 year: "numeric",
@@ -309,7 +359,7 @@ const columns: ColumnsType<any> = [
     align: "right" as const,
     className: "px-4",
     render: (v, record) => (
-      <div className="font-bold text-gray-900">
+      <div className="font-bold text-[var(--dashboard-stat-value)]">
         $ {Number(v || record.total || 0).toFixed(2)}
       </div>
     ),
@@ -322,15 +372,15 @@ const columns: ColumnsType<any> = [
     className: "px-4",
     render: (status: string) => {
       const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
-        submitted: { color: "text-green-700", bg: "bg-green-100", label: "Submitted" },
-        paid: { color: "text-blue-700", bg: "bg-blue-100", label: "Paid" },
-        draft: { color: "text-yellow-700", bg: "bg-yellow-100", label: "Draft" },
-        overdue: { color: "text-red-700", bg: "bg-red-100", label: "Overdue" },
-        pending: { color: "text-orange-700", bg: "bg-orange-100", label: "Pending" },
+        submitted: { color: "text-green-500", bg: "bg-green-500/10", label: "Submitted" },
+        paid: { color: "text-blue-500", bg: "bg-blue-500/10", label: "Paid" },
+        draft: { color: "text-yellow-500", bg: "bg-yellow-500/10", label: "Draft" },
+        overdue: { color: "text-red-500", bg: "bg-red-500/10", label: "Overdue" },
+        pending: { color: "text-orange-500", bg: "bg-orange-500/10", label: "Pending" },
       };
       
       const config = statusConfig[status?.toLowerCase()] || 
-                    { color: "text-gray-700", bg: "bg-gray-100", label: status || "Unknown" };
+                    { color: "text-[var(--dashboard-stat-label)]", bg: "bg-[var(--dashboard-table-header-bg)]", label: status || "Unknown" };
       
       return (
         <span className={`
@@ -355,7 +405,7 @@ const columns: ColumnsType<any> = [
       return (
         <div className={`
           font-semibold 
-          ${isZero ? 'text-green-600' : 'text-gray-900'}
+          ${isZero ? 'text-green-500' : 'text-[var(--dashboard-stat-value)]'}
         `}>
           $ {amount.toFixed(2)}
           {isZero && (
@@ -426,8 +476,8 @@ const fullCellRender = (value: Dayjs) => {
             position: "absolute",
             inset: 0,
             borderRadius: "50%",
-            background: "#e6f7ff",
-            border: "1px solid #91d5ff",
+            background: "var(--dashboard-calendar-today-bg)",
+            border: "1px solid var(--dashboard-calendar-today-border)",
             zIndex: 1,
           }}
         />
@@ -438,7 +488,7 @@ const fullCellRender = (value: Dayjs) => {
         style={{
           fontSize: 12,
           fontWeight: isToday ? 700 : 600,
-          color: isToday ? "#1890ff" : "#262626",
+          color: isToday ? "var(--dashboard-calendar-today-border)" : "var(--dashboard-calendar-date-text)",
           zIndex: 2,
           lineHeight: 1,
         }}
@@ -518,35 +568,40 @@ const fullCellRender = (value: Dayjs) => {
       <Spin spinning={isLoading} tip="Loading dashboard">
         <div style={{
           margin: "0 -24px",
-          padding: "24px 32px",
-          background: "#ffffff",
+          background: "var(--dashboard-page-bg)",
           minHeight: "calc(100vh - 64px)"
         }}>
-          {/* ================= HEADER ================= */}
-          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
-            <div style={{ flex: 1 }}>
-              <Space size={14} align="center">
-                <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
-                  <LayoutDashboard size={28} />
-                </div>
-                <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Dashboard</Title>
-                  <Text style={{ color: "#64748b", fontSize: 15 }}>Overview of your invoicing and revenue performance.</Text>
-                </div>
-              </Space>
-            </div>
-            {canCreateInvoice && (
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<Plus size={18} />} 
-                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600 }}
-                onClick={() => router.push("/invoice/newinvoice")}
-              >
-                New Invoice
-              </Button>
-            )}
-          </div>
+          <TimeTrackingHeader
+            style={{ padding: '9.5px 32px' }}
+            icon={<LayoutDashboard size={20} color="#8b5cf6" />}
+            title="Dashboard"
+            description="Overview of your invoicing and revenue performance."
+            extra={
+              <div className="flex items-center gap-3">
+                <Button
+                  size="middle"
+                  icon={<History size={16} />}
+                  onClick={() => setHistoryDrawerVisible(true)}
+                  style={{ borderRadius: 8, height: 38, color: "var(--dashboard-stat-label)", background: "var(--dashboard-card-bg)", border: "1px solid var(--dashboard-card-border)" }}
+                >
+                  Email History
+                </Button>
+                {canCreateInvoice && (
+                  <Button 
+                    type="primary" 
+                    size="middle" 
+                    icon={<Plus size={16} />} 
+                    style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600 }}
+                    onClick={() => router.push("/invoice/newinvoice")}
+                  >
+                    New Invoice
+                  </Button>
+                )}
+              </div>
+            }
+          />
+
+          <div style={{ padding: "16px 32px 32px 32px" }}>
 
           {/* ================= METRIC CARDS ================= */}
           <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
@@ -557,7 +612,7 @@ const fullCellRender = (value: Dayjs) => {
             </Col>
             <Col xs={24} sm={12} md={6}>
               {isLoading ? <Skeleton active paragraph={{ rows: 1 }} /> : (
-                <StatCard label="Total Revenue" value={`$${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={DollarSign} color="#10b981" />
+                <StatCard label="Monthly Revenue" value={`$${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={DollarSign} color="#10b981" />
               )}
             </Col>
             <Col xs={24} sm={12} md={6}>
@@ -577,11 +632,11 @@ const fullCellRender = (value: Dayjs) => {
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={24} md={14}>
             <Card
-              title={<span style={{ fontSize: 14 }}>Monthly Revenue</span>}
-              style={{ borderRadius: 12, height: "100%" }}
+              title="Monthly Revenue"
+              style={{ borderRadius: 12, height: "100%", minHeight: 400, display: "flex", flexDirection: "column" }}
               styles={{
-                header: { padding: "10px 16px" },
-                body: { padding: "8px 12px" },
+                header: { padding: "12px 16px" },
+                body: { padding: "12px 16px 20px 16px", flex: 1 },
               }}
             >
               {/* <div style={{ height: 250, overflow: "hidden" }}>
@@ -593,13 +648,13 @@ const fullCellRender = (value: Dayjs) => {
               </div> */}
 
 
-              <div style={{ height: 250 ,overflow: "hidden"}}>
+              <div style={{ height: 250 }}>
   {isLoading ? (
     <Skeleton active paragraph={{ rows: 6 }} />
-  ) : yearlyRevenueData.length ? (
-    <Line {...monthlyRevenueConfig} />
+  ) : (mounted && yearlyRevenueData.length > 0) ? (
+    <Line key={theme} {...monthlyRevenueConfig} />
   ) : (
-    <Text type="secondary">No data</Text>
+    <Text style={{ color: "var(--text-secondary)" }}>No data</Text>
   )}
 </div>
             </Card>
@@ -609,17 +664,17 @@ const fullCellRender = (value: Dayjs) => {
             <Card
               title={
                 <div
-                  style={{ display: "flex", justifyContent: "space-between" }}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
                 >
-                  <span style={{ fontSize: 14, fontWeight: 600 }}>
+                  <Text style={{ fontSize: 14, fontWeight: 600, color: "var(--dashboard-stat-value)" }}>
                     Invoice Calendar
-                  </span>
+                  </Text>
 
                   <div style={{ display: "flex", gap: 12 }}>
                     <span
                       style={{
                         fontSize: 12,
-                        background: "#1890ff15",
+                        background: "rgba(24, 144, 255, 0.1)",
                         color: "#1890ff",
                         padding: "2px 8px",
                         borderRadius: 999,
@@ -632,7 +687,7 @@ const fullCellRender = (value: Dayjs) => {
                     <span
                       style={{
                         fontSize: 12,
-                        background: "#52c41a15",
+                        background: "rgba(82, 196, 26, 0.1)",
                         color: "#52c41a",
                         padding: "2px 8px",
                         borderRadius: 999,
@@ -644,10 +699,10 @@ const fullCellRender = (value: Dayjs) => {
                   </div>
                 </div>
               }
-              style={{ borderRadius: 12, height: "100%" }}
+              style={{ borderRadius: 12, height: "100%", minHeight: 400 }}
               styles={{
                 header: { padding: "12px 16px" },
-                body: { padding: "12px" },
+                body: { padding: "12px 16px 24px 16px" },
               }}
             >
               {isLoading ? (
@@ -658,7 +713,6 @@ const fullCellRender = (value: Dayjs) => {
                 value={currentMonth}
                 onChange={(val) => setCurrentMonth(val)}
                 fullCellRender={fullCellRender}
-                style={{ height: 280 }}
                 headerRender={({ value, onChange }) => (
                   <div
                     style={{
@@ -668,7 +722,7 @@ const fullCellRender = (value: Dayjs) => {
                       marginBottom: 6,
                     }}
                   >
-                    <Text style={{ fontSize: 16, fontWeight: 700 }}>
+                    <Text style={{ fontSize: 16, fontWeight: 700, color: "var(--dashboard-stat-value)" }}>
                       {value.format("MMMM YYYY")}
                     </Text>
 
@@ -707,7 +761,8 @@ const fullCellRender = (value: Dayjs) => {
           bordered={false}
           style={{
             borderRadius: 16,
-            border: "1px solid #f1f5f9",
+            border: "1px solid var(--dashboard-card-border)",
+            background: "var(--dashboard-card-bg)",
             boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
             overflow: "hidden"
           }}
@@ -733,23 +788,44 @@ const fullCellRender = (value: Dayjs) => {
             rowClassName={() => "dashboard-table-row"}
           />
         </Card>
+        </div>
       </div>
       </Spin>
       <style dangerouslySetInnerHTML={{ __html: `
         .dashboard-table-row:hover {
-          background-color: #f8fafc !important;
+          background-color: var(--dashboard-table-row-hover) !important;
         }
         .ant-table-thead > tr > th {
-          background-color: #f1f5f9 !important;
-          color: #475569 !important;
+          background-color: var(--dashboard-table-header-bg) !important;
+          color: var(--dashboard-table-header-text) !important;
           font-weight: 600 !important;
           padding: 12px 16px !important;
+          border-bottom: 1px solid var(--dashboard-card-border) !important;
         }
         .ant-table-tbody > tr > td {
           padding: 12px 16px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--dashboard-card-border) !important;
+          color: var(--dashboard-stat-label) !important;
+        }
+        .ant-calendar {
+          background: var(--dashboard-card-bg) !important;
+          color: var(--dashboard-calendar-date-text) !important;
+        }
+        .ant-card-head {
+          background: var(--dashboard-card-bg) !important;
+          border-bottom: 1px solid var(--dashboard-card-border) !important;
+        }
+        .ant-card-head-title {
+          color: var(--text-primary) !important;
+          font-size: 14px !important;
+          font-weight: 600 !important;
         }
       `}} />
+
+      <EmailHistoryDrawer 
+        open={historyDrawerVisible} 
+        onClose={() => setHistoryDrawerVisible(false)} 
+      />
     </MainLayout>
   );
 }

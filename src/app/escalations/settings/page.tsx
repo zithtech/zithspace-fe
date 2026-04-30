@@ -1,22 +1,22 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Typography, 
-  Button, 
-  Table, 
-  Tag, 
-  Space, 
-  Card, 
-  Tabs, 
-  Modal, 
-  Form, 
-  Input, 
+import {
+  Typography,
+  Button,
+  Table,
+  Tag,
+  Space,
+  Card,
+  Tabs,
+  Modal,
+  Form,
+  Input,
   InputNumber,
   Select,
   Row,
   Col,
-  message, 
+  notification,
   Popconfirm,
   Tooltip,
   ColorPicker,
@@ -31,15 +31,18 @@ import {
   UpSquareOutlined,
   BgColorsOutlined,
   InfoCircleOutlined,
-  CheckSquareOutlined
+  CheckSquareOutlined,
+  CheckCircleFilled,
+  ExclamationCircleFilled,
+  CloseCircleFilled
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
-import { api } from '@/lib/axios';
+import { EscalationSettingsService } from '@/services/escalationSettings';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 
-const BLUE_PRIMARY = '#2563eb';
+const BLUE_PRIMARY = 'var(--premium-blue)';
 
 interface EscalationCategory {
   id: string;
@@ -63,19 +66,31 @@ export default function EscalationSettingsPage() {
   const [priorities, setPriorities] = useState<EscalationPriority[]>([]);
   const [statuses, setStatuses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [form] = Form.useForm();
+  const [notify, contextHolder] = notification.useNotification();
+
+  const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
+    notify[type]({
+      message: <span className="premium-notif-title">{title}</span>,
+      description: <span className="premium-notif-desc">{description}</span>,
+      icon: type === 'success' ? <CheckCircleFilled style={{ color: '#10B981' }} /> : <CloseCircleFilled style={{ color: '#EF4444' }} />,
+      className: 'premium-notification',
+      placement: 'topRight',
+      duration: 4,
+    });
+  };
 
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const data = await api.get<EscalationCategory[]>('/api/escalation-settings/categories');
+      const data = await EscalationSettingsService.getCategories();
       setCategories(data);
     } catch (error: any) {
-      message.error('Failed to fetch categories: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Fetch Failed', 'Failed to fetch categories: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -84,10 +99,10 @@ export default function EscalationSettingsPage() {
   const fetchPriorities = async () => {
     setLoading(true);
     try {
-      const data = await api.get<EscalationPriority[]>('/api/escalation-settings/priorities');
+      const data = await EscalationSettingsService.getPriorities();
       setPriorities(data);
     } catch (error: any) {
-      message.error('Failed to fetch priorities: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Fetch Failed', 'Failed to fetch priorities: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -96,10 +111,10 @@ export default function EscalationSettingsPage() {
   const fetchStatuses = async () => {
     setLoading(true);
     try {
-      const data = await api.get<any[]>('/api/escalation-settings/statuses');
+      const data = await EscalationSettingsService.getStatuses();
       setStatuses(data);
     } catch (error: any) {
-      message.error('Failed to fetch statuses: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Fetch Failed', 'Failed to fetch statuses: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -126,47 +141,64 @@ export default function EscalationSettingsPage() {
   };
 
   const handleSave = async (values: any) => {
-    let endpoint = 'categories';
-    if (activeTab === '2') endpoint = 'priorities';
-    if (activeTab === '3') endpoint = 'statuses';
-    
     const isCategory = activeTab === '1';
     const isPriority = activeTab === '2';
     const isStatus = activeTab === '3';
-    
+
     // Convert color to hex string if it's from AntD ColorPicker
     const colorValue = typeof values.color === 'string' ? values.color : values.color?.toHexString?.() || values.color;
 
+    const payload = { ...values, color: colorValue };
+
     try {
-      if (editingItem) {
-        await api.put(`/api/escalation-settings/${endpoint}/${editingItem.id}`, { ...values, color: colorValue });
-        message.success(`${isCategory ? 'Category' : isPriority ? 'Priority' : 'Status'} updated successfully`);
-      } else {
-        await api.post(`/api/escalation-settings/${endpoint}`, { ...values, color: colorValue });
-        message.success(`${isCategory ? 'Category' : isPriority ? 'Priority' : 'Status'} created successfully`);
+      if (isCategory) {
+        if (editingItem) await EscalationSettingsService.updateCategory(editingItem.id, payload);
+        else await EscalationSettingsService.createCategory(payload);
+        notifyPremium('success', 
+          `Category ${editingItem ? 'Updated' : 'Created'}`, 
+          `The escalation category has been successfully ${editingItem ? 'modified' : 'added'}.`
+        );
+      } else if (isPriority) {
+        if (editingItem) await EscalationSettingsService.updatePriority(editingItem.id, payload);
+        else await EscalationSettingsService.createPriority(payload);
+        notifyPremium('success', 
+          `Priority ${editingItem ? 'Updated' : 'Created'}`, 
+          `The escalation priority level has been successfully ${editingItem ? 'modified' : 'added'}.`
+        );
+      } else if (isStatus) {
+        if (editingItem) await EscalationSettingsService.updateStatus(editingItem.id, payload);
+        else await EscalationSettingsService.createStatus(payload);
+        notifyPremium('success', 
+          `Status ${editingItem ? 'Updated' : 'Created'}`, 
+          `The escalation status state has been successfully ${editingItem ? 'modified' : 'added'}.`
+        );
       }
+
       setIsModalOpen(false);
+
       if (isCategory) fetchCategories();
       else if (isPriority) fetchPriorities();
       else fetchStatuses();
     } catch (error: any) {
-      message.error('Failed to save: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Save Failed', 'Failed to save: ' + (error.message || 'Unknown error'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    let endpoint = 'categories';
-    if (activeTab === '2') endpoint = 'priorities';
-    if (activeTab === '3') endpoint = 'statuses';
-
     try {
-      await api.delete(`/api/escalation-settings/${endpoint}/${id}`);
-      message.success('Item deleted successfully');
-      if (activeTab === '1') fetchCategories();
-      else if (activeTab === '2') fetchPriorities();
-      else fetchStatuses();
+      if (activeTab === '1') {
+        await EscalationSettingsService.deactivateCategory(id);
+        fetchCategories();
+      } else if (activeTab === '2') {
+        await EscalationSettingsService.deactivatePriority(id);
+        fetchPriorities();
+      } else if (activeTab === '3') {
+        await EscalationSettingsService.deactivateStatus(id);
+        fetchStatuses();
+      }
+      notifyPremium('success', 'Deactivated Successfully', 'The item has been successfully retired from escalation settings.');
     } catch (error: any) {
-      message.error('Delete failed: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Deactivation Failed', 'Failed to deactivate: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -186,7 +218,7 @@ export default function EscalationSettingsPage() {
       title: 'Description',
       dataIndex: 'description',
       key: 'description',
-      render: (desc: string) => <Text type="secondary" style={{ fontSize: 13 }}>{desc || 'No description'}</Text>
+      render: (desc: string) => <Text type="secondary" style={{ fontSize: 13, color: 'var(--text-slate-400)' }}>{desc || 'No description'}</Text>
     },
     {
       title: 'Status',
@@ -207,8 +239,8 @@ export default function EscalationSettingsPage() {
           <Tooltip title="Edit">
             <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
           </Tooltip>
-          <Popconfirm title="Are you sure you want to delete this category?" onConfirm={() => handleDelete(record.id)}>
-            <Tooltip title="Delete">
+          <Popconfirm title="Are you sure you want to retire this category?" onConfirm={() => handleDelete(record.id)}>
+            <Tooltip title="Retire">
               <Button type="text" danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
@@ -253,8 +285,8 @@ export default function EscalationSettingsPage() {
           <Tooltip title="Edit">
             <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
           </Tooltip>
-          <Popconfirm title="Are you sure you want to delete this priority?" onConfirm={() => handleDelete(record.id)}>
-            <Tooltip title="Delete">
+          <Popconfirm title="Are you sure you want to retire this priority?" onConfirm={() => handleDelete(record.id)}>
+            <Tooltip title="Retire">
               <Button type="text" danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
@@ -310,8 +342,8 @@ export default function EscalationSettingsPage() {
           <Tooltip title="Edit">
             <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
           </Tooltip>
-          <Popconfirm title="Are you sure you want to delete this status?" onConfirm={() => handleDelete(record.id)}>
-            <Tooltip title="Delete">
+          <Popconfirm title="Are you sure you want to retire this status?" onConfirm={() => handleDelete(record.id)}>
+            <Tooltip title="Retire">
               <Button type="text" danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
@@ -322,30 +354,35 @@ export default function EscalationSettingsPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '16px 40px', background: '#ffffff', minHeight: '100vh' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "24px 32px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          
+
           {/* Header */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             marginBottom: 24,
             paddingBottom: 16,
-            borderBottom: '1px solid #f1f5f9'
+            borderBottom: '1px solid var(--border-slate-100)'
           }}>
             <Space direction="vertical" size={4}>
-              <Title level={2} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.02em', color: '#0f172a' }}>Escalation Settings</Title>
-              <Text type="secondary" style={{ fontSize: 14 }}>Manage master data for categories, priorities, and statuses.</Text>
+              <Title level={2} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-slate-900)' }}>Escalation Settings</Title>
+              <Text type="secondary" style={{ fontSize: 14, color: 'var(--text-slate-400)' }}>Manage master data for categories, priorities, and statuses.</Text>
             </Space>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              size="large" 
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              size="large"
               onClick={() => handleOpenModal()}
-              style={{ 
-                borderRadius: 10, 
-                background: BLUE_PRIMARY, 
+              style={{
+                borderRadius: 10,
+                background: BLUE_PRIMARY,
                 fontWeight: 600,
                 height: 44,
                 padding: '0 24px',
@@ -356,17 +393,18 @@ export default function EscalationSettingsPage() {
             </Button>
           </div>
 
-          <Card 
-            style={{ 
-              borderRadius: 20, 
-              border: '1px solid #e2e8f0', 
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
-              overflow: 'hidden' 
-            }} 
+          <Card
+            style={{
+              borderRadius: 20,
+              border: '1px solid var(--border-slate-200)',
+              background: 'var(--bg-pure-white)',
+              boxShadow: 'var(--card-shadow)',
+              overflow: 'hidden'
+            }}
             bodyStyle={{ padding: 0 }}
           >
-            <Tabs 
-              activeKey={activeTab} 
+            <Tabs
+              activeKey={activeTab}
               onChange={setActiveTab}
               style={{ padding: '0 24px' }}
               items={[
@@ -375,9 +413,9 @@ export default function EscalationSettingsPage() {
                   label: <Space><BlockOutlined /> Categories</Space>,
                   children: (
                     <div style={{ padding: '24px 0' }}>
-                      <Table 
-                        dataSource={categories} 
-                        columns={categoryColumns} 
+                      <Table
+                        dataSource={categories}
+                        columns={categoryColumns}
                         loading={loading}
                         rowKey="id"
                         pagination={false}
@@ -391,9 +429,9 @@ export default function EscalationSettingsPage() {
                   label: <Space><UpSquareOutlined /> Priorities</Space>,
                   children: (
                     <div style={{ padding: '24px 0' }}>
-                      <Table 
-                        dataSource={priorities} 
-                        columns={priorityColumns} 
+                      <Table
+                        dataSource={priorities}
+                        columns={priorityColumns}
                         loading={loading}
                         rowKey="id"
                         pagination={false}
@@ -407,9 +445,9 @@ export default function EscalationSettingsPage() {
                   label: <Space><CheckSquareOutlined /> Statuses</Space>,
                   children: (
                     <div style={{ padding: '24px 0' }}>
-                      <Table 
-                        dataSource={statuses} 
-                        columns={statusColumns} 
+                      <Table
+                        dataSource={statuses}
+                        columns={statusColumns}
                         loading={loading}
                         rowKey="id"
                         pagination={false}
@@ -424,39 +462,39 @@ export default function EscalationSettingsPage() {
 
           {/* Modal for CRUD */}
           <Modal
-            title={<Title level={4} style={{ margin: 0 }}>{editingItem ? 'Edit' : 'Create'} {activeTab === '1' ? 'Escalation Category' : activeTab === '2' ? 'Escalation Priority' : 'Escalation Status'}</Title>}
+            title={<Title level={4} style={{ margin: 0, color: 'var(--text-slate-900)' }}>{editingItem ? 'Edit' : 'Create'} {activeTab === '1' ? 'Escalation Category' : activeTab === '2' ? 'Escalation Priority' : 'Escalation Status'}</Title>}
             open={isModalOpen}
             onCancel={() => setIsModalOpen(false)}
             onOk={() => form.submit()}
             okText="Save Changes"
             centered
             width={520}
-            bodyStyle={{ padding: '24px 0' }}
+            bodyStyle={{ padding: '24px 0', background: 'var(--bg-pure-white)' }}
           >
             <Form form={form} layout="vertical" onFinish={handleSave} style={{ padding: '0 24px' }}>
-              <Form.Item name="name" label={<Text strong>Display Name</Text>} rules={[{ required: true }]}>
-                <Input placeholder="e.g. Deployment Failure" size="large" style={{ borderRadius: 8 }} />
+              <Form.Item name="name" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Display Name</Text>} rules={[{ required: true }]}>
+                <Input placeholder="e.g. Deployment Failure" size="large" style={{ borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)', color: 'var(--text-slate-900)' }} />
               </Form.Item>
 
               {activeTab === '1' ? (
-                <Form.Item name="description" label={<Text strong>Description</Text>}>
-                  <Input.TextArea rows={3} placeholder="Briefly describe when this category should be used" style={{ borderRadius: 8 }} />
+                <Form.Item name="description" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Description</Text>}>
+                  <Input.TextArea rows={3} placeholder="Briefly describe when this category should be used" style={{ borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)', color: 'var(--text-slate-900)' }} />
                 </Form.Item>
               ) : (
-                <Form.Item name="weight" label={<Text strong>Priority Weight (Order)</Text>}>
-                  <InputNumber min={0} max={100} style={{ width: '100%', borderRadius: 8 }} size="large" />
+                <Form.Item name="weight" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Priority Weight (Order)</Text>}>
+                  <InputNumber min={0} max={100} style={{ width: '100%', borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)' }} size="large" />
                 </Form.Item>
               )}
 
               <Row gutter={24}>
                 <Col span={12}>
-                  <Form.Item name="color" label={<Text strong>Visual Color</Text>}>
+                  <Form.Item name="color" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Visual Color</Text>}>
                     <ColorPicker showText />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="isActive" label={<Text strong>Status</Text>} initialValue={true}>
-                    <Select size="large" style={{ borderRadius: 8 }}>
+                  <Form.Item name="isActive" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Status</Text>} initialValue={true}>
+                    <Select size="large" style={{ borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)' }}>
                       <Option value={true}>Active</Option>
                       <Option value={false}>Inactive</Option>
                     </Select>
@@ -465,28 +503,28 @@ export default function EscalationSettingsPage() {
               </Row>
 
               {activeTab === '3' && (
-                <div style={{ background: '#f0f9ff', padding: '16px 20px', borderRadius: 12, marginBottom: 20, border: '1px solid #e0f2fe' }}>
+                <div style={{ background: 'var(--bg-sky-50)', padding: '16px 20px', borderRadius: 12, marginBottom: 20, border: '1px solid var(--border-sky-100)' }}>
                   <Row gutter={24}>
                     <Col span={12}>
-                      <Form.Item name="isDefault" valuePropName="checked" label={<Text strong>Default Status</Text>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="isDefault" valuePropName="checked" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Default Status</Text>} style={{ marginBottom: 0 }}>
                         <Switch />
                       </Form.Item>
-                      <Text type="secondary" style={{ fontSize: 11 }}>Set as default for new escalations.</Text>
+                      <Text type="secondary" style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>Set as default for new escalations.</Text>
                     </Col>
                     <Col span={12}>
-                      <Form.Item name="isFinal" valuePropName="checked" label={<Text strong>Final State</Text>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="isFinal" valuePropName="checked" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Final State</Text>} style={{ marginBottom: 0 }}>
                         <Switch />
                       </Form.Item>
-                      <Text type="secondary" style={{ fontSize: 11 }}>Mark as a terminal/closed state.</Text>
+                      <Text type="secondary" style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>Mark as a terminal/closed state.</Text>
                     </Col>
                   </Row>
                 </div>
               )}
 
-              <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, marginTop: 8 }}>
+              <div style={{ background: 'var(--bg-slate-50)', padding: 16, borderRadius: 12, marginTop: 8 }}>
                 <Space>
                   <InfoCircleOutlined style={{ color: BLUE_PRIMARY }} />
-                  <Text type="secondary" style={{ fontSize: 12 }}>
+                  <Text type="secondary" style={{ fontSize: 12, color: 'var(--text-slate-400)' }}>
                     Changes will reflect immediately across all new and existing manual escalations.
                   </Text>
                 </Space>
@@ -495,45 +533,54 @@ export default function EscalationSettingsPage() {
           </Modal>
 
         </div>
-        
+
         <style jsx global>{`
           .premium-table .ant-table-thead > tr > th {
-            background: #fafafa;
-            color: #475569;
+            background: var(--bg-slate-50);
+            color: var(--text-slate-600);
             font-weight: 700;
             text-transform: uppercase;
             font-size: 11px;
             letter-spacing: 0.05em;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border-slate-200);
             padding: 12px 16px;
           }
           .premium-table .ant-table-tbody > tr > td {
             padding: 16px;
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 1px solid var(--border-slate-100);
+            background: var(--bg-pure-white);
+            color: var(--text-slate-700);
           }
           .premium-table .ant-table-row:hover > td {
-            background: #f8fafc !important;
+            background: var(--bg-slate-50) !important;
           }
           .ant-tabs-nav {
             margin-bottom: 0 !important;
             padding: 8px 24px 0 !important;
-            background: #fafafa;
-            border-bottom: 1px solid #e2e8f0;
+            background: var(--bg-slate-50);
+            border-bottom: 1px solid var(--border-slate-200);
           }
           .ant-tabs-tab {
             padding: 12px 16px !important;
             margin: 0 8px 0 0 !important;
             font-weight: 500 !important;
-            color: #64748b !important;
+            color: var(--text-slate-400) !important;
           }
           .ant-tabs-tab-active .ant-tabs-tab-btn {
-            color: ${BLUE_PRIMARY} !important;
+            color: var(--premium-blue) !important;
             font-weight: 700 !important;
           }
           .ant-tabs-ink-bar {
             height: 3px !important;
-            background: ${BLUE_PRIMARY} !important;
+            background: var(--premium-blue) !important;
             border-radius: 3px 3px 0 0;
+          }
+          .ant-modal-content, .ant-modal-header {
+            background: var(--bg-pure-white) !important;
+          }
+          .ant-modal-title {
+            color: var(--text-slate-900) !important;
+            background: var(--bg-pure-white) !important;
           }
         `}</style>
       </div>

@@ -1,5 +1,5 @@
 import React from "react";
-export const NAV_MOBILE_BREAKPOINT = 700;
+export const NAV_MOBILE_BREAKPOINT = 720;
 import { Permissions } from "@/types/permissions";
 import {
   DashboardOutlined,
@@ -119,7 +119,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: <ProjectOutlined />,
-    pathPrefixes: ["/projects", "/documenthub", "/timesheet", "/daily-updates", "/escalations"],
+    pathPrefixes: ["/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations"],
     defaultPath: "/projects/select",
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
@@ -259,13 +259,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         children: [
           {
             key: "/time-tracking/my",
-            label: "My Time Tracking",
+            label: "My Tracking",
             icon: <UserOutlined />,
             path: "/time-tracking/my",
           },
           {
             key: "/time-tracking/team",
-            label: "Team View",
+            label: "Team Tracking",
             icon: <TeamOutlined />,
             path: "/time-tracking/team",
           },
@@ -299,6 +299,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: <FolderOpenOutlined />,
         path: "/documenthub",
         requiredPermission: Permissions.DOCUMENT_READ,
+      },
+      {
+        key: "/proposals",
+        label: "Proposals",
+        icon: <SnippetsOutlined />,
+        path: "/proposals",
       },
       {
         key: "squadManagement",
@@ -364,6 +370,25 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             icon: <SettingOutlined />,
             path: "/escalations/settings",
+          },
+        ],
+      },
+      {
+        key: "leads-group",
+        label: "Lead Management",
+        icon: <FolderOpenOutlined />,
+        children: [
+          {
+            key: "/leads",
+            label: "Leads",
+            icon: <UnorderedListOutlined />,
+            path: "/leads",
+          },
+          {
+            key: "/leads/settings",
+            label: "Settings",
+            icon: <SettingOutlined />,
+            path: "/leads/settings",
           },
         ],
       },
@@ -707,7 +732,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     label: "FINANCE",
     icon: <WalletOutlined />,
     pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/salary"],
-    defaultPath: "/accounts",
+    defaultPath: "/accounts/accounts-dashboard",
     requiredAnyPermission: [
       Permissions.TRANSACTION_READ,
       Permissions.INVOICE_READ,
@@ -717,8 +742,21 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       {
         key: "/accounts",
         label: "Accounts",
-        icon: <WalletOutlined />,
-        path: "/accounts",
+        icon:<WalletOutlined/>,
+        children: [
+          {
+            key: "/accounts",
+            label: "Dashboard",
+            icon: <BarChartOutlined />,
+            path: "/accounts/accounts-dashboard",
+          },
+          {
+            key: "/accounts/settings",
+            label: "Settings",
+            icon: <FileSyncOutlined />,
+            path: "/accounts/settings",
+          },
+        ]
       },
       {
         key: "invoice",

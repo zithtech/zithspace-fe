@@ -15,6 +15,32 @@ import {
 } from "@/services/authService";
 import { ApiError } from "@/lib/axios";
 
+// Extension sync function
+const syncTokenWithExtension = (token: string) => {
+  // Replace with the ID found in chrome://extensions/
+  const EXTENSION_ID = "magcgpahmioofihhcfeaaomacdepnhcn"; 
+  console.log('=== FRONTEND TOKEN SYNC DEBUG ===');
+  console.log('Token to sync:', token.substring(0, 50) + '...');
+  console.log('Extension ID:', EXTENSION_ID);
+  console.log('Chrome available:', typeof window !== 'undefined' && !!(window as any).chrome);
+  console.log('Runtime available:', typeof window !== 'undefined' && !!(window as any).chrome?.runtime);
+  console.log('SendMessage available:', typeof window !== 'undefined' && !!(window as any).chrome?.runtime?.sendMessage);
+  
+  if (typeof window !== 'undefined' && (window as any).chrome && (window as any).chrome.runtime && (window as any).chrome.runtime.sendMessage) {
+    console.log('Attempting to send message to extension...');
+    (window as any).chrome.runtime.sendMessage(EXTENSION_ID, { token }, (response: any) => {
+      console.log('Extension response:', response);
+      if ((window as any).chrome.runtime.lastError) {
+        console.error("Extension sync failed:", (window as any).chrome.runtime.lastError);
+      } else {
+        console.log("Token synced to extension!");
+      }
+    });
+  } else {
+    console.error('Chrome extension API not available');
+  }
+};
+
 interface User {
   id: string;
   name: string;
@@ -27,6 +53,7 @@ interface User {
   reportsTo?: string | null;
   isActive: boolean;
   tenantId: string;
+  avatarUrl?: string | null;
   tenantName?: string;
   tenantLogo?: string | null;
   department?: string;
@@ -109,6 +136,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         reportsTo: response.user.reportsTo,
         isActive: response.user.isActive,
         tenantId: response.user.tenantId,
+        avatarUrl: response.user.avatarUrl,
         tenantName: response.user.tenantName,
         tenantLogo: (response.user as any).tenantLogo,
         department: (response.user as any).department,
@@ -119,6 +147,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       };
 
       setUser(userData);
+      
+      // Sync token with extension after successful login
+      syncTokenWithExtension(response.accessToken);
+      
       // Navigation is handled by the login page component via useEffect watching `user`
       return true;
     } catch (error) {
@@ -214,6 +246,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         reportsTo: userProfile.reportsTo?.id || null,
         isActive: userProfile.isActive,
         tenantId: userProfile.tenantId,
+        avatarUrl: userProfile.avatarUrl,
         tenantName: userProfile.tenant?.name,
         tenantLogo: userProfile.tenant?.logoUrl,
         department: userProfile.department,

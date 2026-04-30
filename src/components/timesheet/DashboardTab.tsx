@@ -35,25 +35,27 @@ import {
 import { useTimesheets } from "@/hooks/useTimesheet";
 import dayjs from "dayjs";
 import { useState } from "react";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 
 const STATUS_COLORS = ["#10b981", "#f59e0b", "#ef4444"]; // Match Leave Management colors
 
 const StatBox = ({ label, value, icon: Icon, color, subText }: any) => (
-  <Card 
-    bodyStyle={{ padding: "16px 20px" }} 
-    style={{ 
-      borderRadius: 16, 
-      border: "1px solid #f1f5f9", 
+  <Card
+    bodyStyle={{ padding: "16px 20px" }}
+    style={{
+      borderRadius: 16,
+      background: "var(--bg-pure-white)",
+      border: "1px solid var(--border-color)",
       boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
       height: "100%"
     }}
   >
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-        <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        <Text style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", marginTop: 4 }}>{value}</div>
         {subText && (
           <div style={{ marginTop: 2 }}>
             <Text style={{ fontSize: 11, color: "#94a3b8" }}>{subText}</Text>
@@ -131,11 +133,11 @@ export default function DashboardTab() {
       return (
         <div
           style={{
-            background: "#ffffff",
+            background: "var(--bg-pure-white)",
             padding: "12px 14px",
             borderRadius: 8,
             boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            border: "1px solid #f0f0f0",
+            border: "1px solid var(--border-color)",
           }}
         >
           <div style={{ fontWeight: 600, marginBottom: 6 }}>{label}</div>
@@ -157,196 +159,175 @@ export default function DashboardTab() {
   return (
     <div style={{
       margin: "0 -24px",
-      padding: "0 32px 24px 32px",
-      background: "#ffffff",
-      height: "calc(100vh - 72px)",
+      background: "var(--bg-pure-white)",
+      height: "calc(100vh - 64px)",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden"
     }}>
-      {/* Header section match Leave Management */}
-      <div style={{ 
-        marginBottom: 8, 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center",
-        position: "sticky",
-        top: 0,
-        background: "#ffffff",
-        zIndex: 10,
-        padding: "16px 0 4px 0"
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
-            <LayoutDashboard size={28} />
-          </div>
-          <div>
-            <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
-              Timesheet Dashboard
-            </Title>
-            <Text style={{ color: "#64748b", fontSize: 15 }}>
-              Weekly activity and timesheet status overview
-            </Text>
-          </div>
-        </div>
-
-        <Space size={12}>
-          <Select
-            prefix={<CalendarOutlined />}
-            value={weekFilter}
-            style={{ width: 180, height: 44 }}
-            onChange={setWeekFilter}
-            options={[
-              { label: "All Weeks", value: "all" },
-              { label: "This Week", value: "thisWeek" },
-              { label: "Last Week", value: "lastWeek" },
-            ]}
-          />
-          <Tooltip title="Refresh">
-            <Button
-              size="large"
-              style={{ borderRadius: 10, height: 44, display: "flex", alignItems: "center", justifyContent: "center" }}
-              icon={<RefreshCw size={18} />}
-              onClick={() => window.location.reload()}
+      <TimeTrackingHeader
+        style={{ padding: '10.5px 32px' }}
+        icon={<LayoutDashboard size={20} color="#0ea5e9" />}
+        title="Timesheet Dashboard"
+        description="Weekly activity and timesheet status overview"
+        extra={
+          <Space size={12}>
+            <Select
+              prefix={<CalendarOutlined />}
+              value={weekFilter}
+              style={{ width: 180, height: 38 }}
+              onChange={setWeekFilter}
+              options={[
+                { label: "All Weeks", value: "all" },
+                { label: "This Week", value: "thisWeek" },
+                { label: "Last Week", value: "lastWeek" },
+              ]}
             />
-          </Tooltip>
-        </Space>
-      </div>
+            <Tooltip title="Refresh">
+              <Button
+                style={{ borderRadius: 8, height: 38, display: "flex", alignItems: "center", justifyContent: "center" }}
+                icon={<RefreshCw size={18} />}
+                onClick={() => window.location.reload()}
+              />
+            </Tooltip>
+          </Space>
+        }
+      />
 
-      <div style={{ flex: 1, overflowY: "auto", paddingRight: 4, scrollbarWidth: "none" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 32px 32px 32px", scrollbarWidth: "none" }}>
         <Row gutter={[16, 12]} style={{ marginBottom: 16 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <StatBox
-            label="Total Timesheets"
-            value={total}
-            icon={FileText}
-            color="#0ea5e9"
-            subText="All recorded records"
-          />
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <StatBox
-            label="Approved"
-            value={approved}
-            icon={CheckCircle2}
-            color="#10b981"
-            subText={`${approved} processed successfully`}
-          />
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <StatBox
-            label="Pending Approval"
-            value={pending}
-            icon={Clock}
-            color="#f59e0b"
-            subText="Awaiting manager review"
-          />
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <StatBox
-            label="Rejected"
-            value={rejected}
-            icon={AlertCircle}
-            color="#ef4444"
-            subText="Requires resubmission"
-          />
-        </Col>
-      </Row>
+          <Col xs={24} sm={12} lg={6}>
+            <StatBox
+              label="Total Timesheets"
+              value={total}
+              icon={FileText}
+              color="#0ea5e9"
+              subText="All recorded records"
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <StatBox
+              label="Approved"
+              value={approved}
+              icon={CheckCircle2}
+              color="#10b981"
+              subText={`${approved} processed successfully`}
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <StatBox
+              label="Pending Approval"
+              value={pending}
+              icon={Clock}
+              color="#f59e0b"
+              subText="Awaiting manager review"
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <StatBox
+              label="Rejected"
+              value={rejected}
+              icon={AlertCircle}
+              color="#ef4444"
+              subText="Requires resubmission"
+            />
+          </Col>
+        </Row>
 
-      <Row gutter={[16, 16]}>
-        {/* LEFT: Status Breakdown */}
-        <Col xs={24} lg={10}>
-          <Card
-            title={<span style={{ color: "#334155", fontWeight: 600 }}>Status Breakdown</span>}
-            style={{ borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}
-            headStyle={{ borderBottom: "1px solid #f1f5f9", padding: "0 20px", minHeight: 48 }}
-            bodyStyle={{ padding: "12px 20px" }}
-          >
-            <div style={{ height: 210 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    innerRadius={50}
-                    outerRadius={75}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {statusData.map((_, index) => (
-                      <Cell key={index} fill={STATUS_COLORS[index]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div style={{ background: "#fff", border: "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", fontSize: 13 }}>
-                            <strong style={{ color: "#1e293b" }}>{payload[0].name}</strong>: {payload[0].value}
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+        <Row gutter={[16, 16]}>
+          {/* LEFT: Status Breakdown */}
+          <Col xs={24} lg={10}>
+            <Card
+              title={<span style={{ color: "var(--text-primary)", fontWeight: 600 }}>Status Breakdown</span>}
+              style={{ borderRadius: 16, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", height: "100%" }}
+              headStyle={{ borderBottom: "1px solid var(--border-color)", padding: "0 20px", minHeight: 48 }}
+              bodyStyle={{ padding: "12px 20px" }}
+            >
+              <div style={{ height: 210 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      innerRadius={50}
+                      outerRadius={75}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {statusData.map((_, index) => (
+                        <Cell key={index} fill={STATUS_COLORS[index]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", padding: "8px 12px", borderRadius: 8, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", fontSize: 13 }}>
+                              <strong style={{ color: "var(--text-primary)" }}>{payload[0].name}</strong>: {payload[0].value}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
 
-            {/* Legend */}
-            <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 8 }}>
-              {statusData.map((item, i) => (
-                <div key={item.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 10, height: 10, background: STATUS_COLORS[i], borderRadius: "50%" }} />
-                  <Text style={{ color: "#475569", fontWeight: 500 }}>{item.name}</Text>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </Col>
+              {/* Legend */}
+              <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 8 }}>
+                {statusData.map((item, i) => (
+                  <div key={item.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 10, height: 10, background: STATUS_COLORS[i], borderRadius: "50%" }} />
+                    <Text style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{item.name}</Text>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </Col>
 
-        {/* RIGHT: Weekly Hours Trend */}
-        <Col xs={24} lg={14}>
-          <Card
-            title={<span style={{ color: "#334155", fontWeight: 600 }}>Weekly Hours Trend</span>}
-            style={{ borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}
-            headStyle={{ borderBottom: "1px solid #f1f5f9", padding: "0 20px", minHeight: 48 }}
-            bodyStyle={{ padding: "12px 20px" }}
-          >
-            <div style={{ height: 240 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyHoursData} barCategoryGap={6}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis
-                    dataKey="week"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#64748b", fontSize: 12 }}
-                    dy={10}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#64748b", fontSize: 12 }}
-                  />
-                  <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: "#f8fafc" }} />
-                  <Bar
-                    dataKey="hours"
-                    fill="#0ea5e9"
-                    barSize={30}
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        </Col>
-      </Row>
+          {/* RIGHT: Weekly Hours Trend */}
+          <Col xs={24} lg={14}>
+            <Card
+              title={<span style={{ color: "var(--text-primary)", fontWeight: 600 }}>Weekly Hours Trend</span>}
+              style={{ borderRadius: 16, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", height: "100%" }}
+              headStyle={{ borderBottom: "1px solid var(--border-color)", padding: "0 20px", minHeight: 48 }}
+              bodyStyle={{ padding: "12px 20px" }}
+            >
+              <div style={{ height: 240 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weeklyHoursData} barCategoryGap={6}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="week"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#64748b", fontSize: 12 }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#64748b", fontSize: 12 }}
+                    />
+                    <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: "#f8fafc" }} />
+                    <Bar
+                      dataKey="hours"
+                      fill="#0ea5e9"
+                      barSize={30}
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </Col>
+        </Row>
 
-      <style dangerouslySetInnerHTML={{
-        __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
         .ant-table-thead > tr > th {
-          background-color: #f1f5f9 !important;
-          color: #475569 !important;
+          background-color: var(--bg-secondary) !important;
+          color: var(--text-secondary) !important;
           font-weight: 600 !important;
         }
           box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;

@@ -128,6 +128,7 @@ export interface DailyStatusUpdate {
       code: string;
     };
     workEmail: string;
+    avatarUrl?: string;
   };
 }
 

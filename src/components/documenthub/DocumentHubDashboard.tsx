@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, Typography, Tag, Tooltip, Empty, Skeleton } from 'antd';
+import { Card, Typography, Tag, Tooltip, Empty, Skeleton, Space } from 'antd';
 import {
     FileTextOutlined,
     FolderOutlined,
@@ -20,12 +20,14 @@ interface DocumentHubDashboardProps {
     documentHubs: DocumentHub[];
     isLoading: boolean;
     onHubClick: (hubId: string) => void;
+    onShareHub: (e: React.MouseEvent, hub: DocumentHub) => void;
 }
 
 const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
     documentHubs,
     isLoading,
     onHubClick,
+    onShareHub,
 }) => {
     // Compute stats from the data
     const totalHubs = documentHubs.length;
@@ -38,7 +40,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
     // Recent hubs (last 5, sorted by updatedAt)
     const recentHubs = [...documentHubs]
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-        .slice(0, 6);
+        .slice(0, 4);
 
     // Unique contributors
     const uniqueCreators = new Set(documentHubs.map((h) => h.createdById)).size;
@@ -48,29 +50,29 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
             title: 'Document Hubs',
             value: totalHubs,
             icon: <FolderOutlined />,
-            color: '#1677ff',
-            bg: '#e6f4ff',
+            color: 'var(--text-sky-500)',
+            bg: 'var(--bg-blue-50)',
         },
         {
             title: 'Total Documents',
             value: totalDocuments,
             icon: <FileTextOutlined />,
-            color: '#52c41a',
-            bg: '#f6ffed',
+            color: 'var(--text-holiday)',
+            bg: 'var(--bg-green-50)',
         },
         {
             title: 'Project Linked',
             value: projectLinked,
             icon: <ProjectOutlined />,
             color: '#722ed1',
-            bg: '#f9f0ff',
+            bg: 'var(--bg-purple-50)',
         },
         {
             title: 'Contributors',
             value: uniqueCreators,
             icon: <UserOutlined />,
             color: '#fa8c16',
-            bg: '#fff7e6',
+            bg: 'var(--bg-orange-50)',
         },
     ];
 
@@ -112,8 +114,9 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                         size="small"
                         style={{
                             borderRadius: 12,
-                            border: '1px solid #f0f0f0',
+                            border: '1px solid var(--border-slate-200)',
                             cursor: 'default',
+                            background: 'var(--bg-pure-white)'
                         }}
                         styles={{ body: { padding: '16px 20px' } }}
                     >
@@ -122,7 +125,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                                 <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>
                                     {stat.title}
                                 </Text>
-                                <span style={{ fontSize: 28, fontWeight: 700, color: '#262626', lineHeight: 1 }}>
+                                <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1 }}>
                                     {stat.value}
                                 </span>
                             </div>
@@ -146,12 +149,45 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                 ))}
             </div>
 
-            {/* Recent Document Hubs */}
-            <div style={{ marginBottom: 6 }}>
-                <Text strong style={{ fontSize: 15 }}>
-                    <ClockCircleOutlined style={{ marginRight: 6 }} />
-                    Recently Updated
-                </Text>
+            {/* Recent Document Hubs Header */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 12,
+                marginTop: 8
+            }}>
+                <Space size={10}>
+                    <div style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 10,
+                        backgroundColor: 'var(--bg-blue-50)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#1677ff',
+                        boxShadow: '0 2px 4px rgba(22, 119, 255, 0.05)'
+                    }}>
+                        <ClockCircleOutlined style={{ fontSize: 16 }} />
+                    </div>
+                    <Text strong style={{ fontSize: 16, color: 'var(--text-slate-900)', letterSpacing: '-0.3px' }}>
+                        Recently Updated
+                    </Text>
+                </Space>
+
+                <div style={{
+                    flex: 1,
+                    height: '1px',
+                    background: 'linear-gradient(to right, var(--border-slate-100), transparent)',
+                    margin: '0 16px'
+                }} />
+
+                <Space size={16} style={{ color: 'var(--text-slate-400)', fontSize: 14 }}>
+                    <Tooltip title="Directory"><FolderOutlined /></Tooltip>
+                    <Tooltip title="Documents"><FileTextOutlined /></Tooltip>
+                    <Tooltip title="Timeline"><ClockCircleOutlined /></Tooltip>
+                </Space>
             </div>
 
             {recentHubs.length === 0 ? (
@@ -164,7 +200,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                 <div
                     style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gridTemplateColumns: 'repeat(4, 1fr)',
                         gap: 12,
                     }}
                 >
@@ -180,8 +216,9 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                                 onClick={() => onHubClick(hub.id)}
                                 style={{
                                     borderRadius: 12,
-                                    border: '1px solid #f0f0f0',
+                                    border: '1px solid var(--border-slate-200)',
                                     transition: 'all 0.2s',
+                                    background: 'var(--bg-pure-white)'
                                 }}
                                 styles={{ body: { padding: '14px 18px' } }}
                             >
@@ -196,7 +233,29 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                                             {hub.name}
                                         </Text>
                                     </div>
-                                    <ArrowRightOutlined style={{ color: '#bfbfbf', fontSize: 12, marginTop: 4 }} />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                        <Tooltip title="Share Hub">
+                                            <div
+                                                onClick={(e) => onShareHub(e, hub)}
+                                                style={{
+                                                    width: 28,
+                                                    height: 28,
+                                                    borderRadius: 8,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: 'var(--text-blue-500)',
+                                                    transition: 'all 0.2s',
+                                                    cursor: 'pointer'
+                                                }}
+                                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-blue-50)')}
+                                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                            >
+                                                <ShareAltOutlined style={{ fontSize: 14 }} />
+                                            </div>
+                                        </Tooltip>
+                                        <ArrowRightOutlined style={{ color: '#bfbfbf', fontSize: 12 }} />
+                                    </div>
                                 </div>
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>

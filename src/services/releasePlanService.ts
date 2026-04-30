@@ -121,7 +121,7 @@ class ReleasePlanService {
   static async getReleasePlans(params: {
     page?: number;
     limit?: number;
-    project?: string;
+    projectId?: string;
     status?: string;
     priority?: string;
     search?: string;

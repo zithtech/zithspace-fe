@@ -1,109 +1,58 @@
-import { apiClient } from "@/lib/axios";
+import { api } from '@/lib/axios';
 
 export interface Escalation {
   id: string;
   subject: string;
-  description: string;
-  status: string;
-  categoryId: string;
-  priorityId: string;
-  projectId?: string;
-  statusId?: string;
-  createdById?: string;
+  description?: string;
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+  priority?: { id: string; name: string };
+  category?: { id: string; name: string };
+  reportedBy?: { id: string; name: string; workEmail: string };
+  assignedTo?: { id: string; name: string; workEmail: string };
+  createdBy?: { id: string; name: string; workEmail?: string };
+  project?: { id: string; name: string; code?: string };
+  tickets?: { id: string; ticket?: { id: string; ticketNumber?: string; title: string; status?: string } }[];
+  targetMembers?: { id: string; user?: { id: string; name: string; workEmail?: string; avatar?: string } }[];
+  userId?: string;
   createdAt: string;
-  updatedAt: string;
-  category?: {
-    id: string;
-    name: string;
-    color?: string;
-  };
-  priority?: {
-    id: string;
-    name: string;
-    color?: string;
-  };
-  escalationStatus?: {
-    id: string;
-    name: string;
-    color?: string;
-  };
-  project?: {
-    id: string;
-    name: string;
-    code: string;
-  };
-  createdBy?: {
-    id: string;
-    name: string;
-    workEmail: string;
-  };
-  targetMembers?: Array<{
-    id: string;
-    userId: string;
-    user: {
-      id: string;
-      name: string;
-      workEmail: string;
-    };
-  }>;
-  tickets?: Array<{
-    id: string;
-    ticketId: string;
-    ticket: {
-      id: string;
-      ticketNumber: string;
-      title: string;
-      status: string;
-    };
-  }>;
-}
-
-export interface EscalationListResponse {
-  success: boolean;
-  data: Escalation[];
+  updatedAt?: string;
+  resolvedAt?: string;
 }
 
 export class EscalationService {
-  /**
-   * Get all escalations with filtering
-   */
-  static async getEscalations(params: {
-    status?: string;
-    categoryId?: string;
-    priorityId?: string;
-    projectId?: string;
+  static async getEscalations(filters?: {
     userId?: string;
     startDate?: string;
     endDate?: string;
-  } = {}): Promise<EscalationListResponse> {
+    status?: string;
+    limit?: number;
+  }): Promise<{ success: boolean; data: Escalation[] }> {
     try {
-      const queryParams = new URLSearchParams();
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== "") {
-          queryParams.append(key, value.toString());
-        }
-      });
+      const params: Record<string, string> = {};
+      if (filters?.userId) params.userId = filters.userId;
+      if (filters?.startDate) params.startDate = filters.startDate;
+      if (filters?.endDate) params.endDate = filters.endDate;
+      if (filters?.status) params.status = filters.status;
+      if (filters?.limit) params.limit = String(filters.limit);
 
-      const response = await apiClient.get(
-        `/api/escalations?${queryParams.toString()}`,
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching escalations:", error);
-      throw new Error("Failed to fetch escalations");
+      const response = await api.get('/escalations', { params });
+      const data = response.data;
+
+      if (Array.isArray(data)) return { success: true, data };
+      if (data?.data && Array.isArray(data.data)) return { success: true, data: data.data };
+      return { success: true, data: [] };
+    } catch {
+      return { success: false, data: [] };
     }
   }
 
-  /**
-   * Get escalation by ID
-   */
-  static async getEscalationById(id: string): Promise<Escalation> {
+  static async getEscalationById(id: string): Promise<Escalation | null> {
     try {
-      const response = await apiClient.get(`/api/escalations/${id}`);
-      return response.data.data;
-    } catch (error) {
-      console.error("Error fetching escalation:", error);
-      throw new Error("Failed to fetch escalation details");
+      const response = await api.get(`/escalations/${id}`);
+      const data = response.data;
+      return data?.data || data || null;
+    } catch {
+      return null;
     }
   }
 }

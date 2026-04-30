@@ -155,7 +155,7 @@ const EditableSelect = ({
     >
       {renderTag ? renderTag(value) : <Text>{value || "N/A"}</Text>}
       {isEditMode && (
-        <Edit2 size={12} style={{ color: "#3b82f6" }} />
+        <Edit2 size={12} style={{ color: "var(--premium-blue)" }} />
       )}
     </Space>
   );
@@ -231,7 +231,7 @@ const EditableTextArea = ({
     >
       <Text>{value || "N/A"}</Text>
       {isEditMode && (
-        <Edit2 size={12} style={{ color: "#3b82f6", marginLeft: 8 }} />
+        <Edit2 size={12} style={{ color: "var(--premium-blue)", marginLeft: 8 }} />
       )}
     </div>
   );
@@ -242,14 +242,16 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
     bodyStyle={{ padding: "16px 20px" }} 
     style={{ 
       borderRadius: 12, 
-      border: "1px solid #f1f5f9", 
-      height: "100%"
+      border: "1px solid var(--border-slate-100)", 
+      background: "var(--bg-pure-white)",
+      height: "100%",
+      boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
     }}
   >
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-        <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
       </div>
       <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Icon size={20} />
@@ -347,7 +349,7 @@ export default function ClientV2DetailsPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#fff' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-pure-white)' }}>
         <Spin size="large" />
       </div>
     );
@@ -368,7 +370,7 @@ export default function ClientV2DetailsPage() {
         <div style={{ 
           margin: "0 -24px", 
           padding: "20px 24px", 
-          background: "#ffffff", 
+          background: "var(--bg-pure-white)", 
           minHeight: "calc(100vh - 64px)" 
         }}>
           
@@ -382,17 +384,17 @@ export default function ClientV2DetailsPage() {
                   style={{ borderRadius: 10, height: 44, width: 44, display: "flex", alignItems: "center", justifyContent: "center" }}
                 />
                 <div style={{ 
-                  background: "#eff6ff", 
+                  background: "var(--bg-blue-50)", 
                   padding: 10, 
                   borderRadius: 12, 
-                  color: "#2563eb",
+                  color: "var(--text-blue-600)",
                   display: "flex"
                 }}>
                   <Building2 size={24} />
                 </div>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>{client.companyName}</Title>
+                    <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>{client.companyName}</Title>
                     <Tag style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }} color={client.status === "Active" ? "success" : "default"}>
                       {client.status?.toUpperCase()}
                     </Tag>
@@ -404,17 +406,17 @@ export default function ClientV2DetailsPage() {
                     </Tag>
                   </div>
                   <div style={{ display: "flex", gap: 16, marginTop: 4 }}>
-                    <Space size={4} style={{ color: "#64748b", fontSize: 13 }}>
+                    <Space size={4} style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
                       <Globe size={14} />
                       {client.clientType || "N/A"}
                     </Space>
-                    <Space size={4} style={{ color: "#64748b", fontSize: 13 }}>
+                    <Space size={4} style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
                       <ShieldCheck size={14} />
                       {client.industry || "N/A"}
                     </Space>
-                    <Space size={4} style={{ color: "#64748b", fontSize: 13 }}>
-                        <Text type="secondary" style={{ fontSize: 13 }}>Code:</Text>
-                        <Text strong style={{ fontSize: 13 }}>{client.clientCode}</Text>
+                    <Space size={4} style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
+                        <Text style={{ fontSize: 13, color: "var(--text-slate-400)" }}>Code:</Text>
+                        <Text strong style={{ fontSize: 13, color: "var(--text-slate-700)" }}>{client.clientCode}</Text>
                     </Space>
                   </div>
                 </div>
@@ -443,7 +445,7 @@ export default function ClientV2DetailsPage() {
                 children: (
                   <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
                     <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
-                      <Col xs={24} sm={6}>
+                      <Col xs={24} sm={12} xl={6}>
                         <StatCard 
                           label="Active Contacts" 
                           value={activeContacts} 
@@ -451,7 +453,7 @@ export default function ClientV2DetailsPage() {
                           color="#3b82f6" 
                         />
                       </Col>
-                      <Col xs={24} sm={6}>
+                      <Col xs={24} sm={12} xl={6}>
                         <StatCard 
                           label="Resource Allocations" 
                           value={`${activeAllocations} / ${totalAllocations}`} 
@@ -459,7 +461,7 @@ export default function ClientV2DetailsPage() {
                           color="#10b981" 
                         />
                       </Col>
-                      <Col xs={24} sm={6}>
+                      <Col xs={24} sm={12} xl={6}>
                         <StatCard 
                           label="Total Projects" 
                           value={totalProjects} 
@@ -467,7 +469,7 @@ export default function ClientV2DetailsPage() {
                           color="#f59e0b" 
                         />
                       </Col>
-                      <Col xs={24} sm={6}>
+                      <Col xs={24} sm={12} xl={6}>
                         <StatCard 
                           label="Projected Budget" 
                           value={`$${totalProjectBudget.toLocaleString()}`} 
@@ -483,13 +485,13 @@ export default function ClientV2DetailsPage() {
                           title={
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                               <Space size={12}>
-                                <div style={{ background: "#f0f9ff", padding: 8, borderRadius: 8, color: "#0ea5e9", display: "flex" }}>
+                                <div style={{ background: "var(--bg-blue-50)", padding: 8, borderRadius: 8, color: "var(--text-blue-700)", display: "flex" }}>
                                   <Building2 size={18} />
                                 </div>
-                                <span style={{ fontWeight: 700, fontSize: 16 }}>Corporate Profile</span>
+                                <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text-slate-900)" }}>Corporate Profile</span>
                               </Space>
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <Text type="secondary" style={{ fontSize: 12 }}>Edit Mode</Text>
+                                <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Edit Mode</Text>
                                 <Checkbox 
                                   className="premium-checkbox"
                                   onChange={(e) => handleEditModeChange("basic", e.target.checked)} 
@@ -497,7 +499,7 @@ export default function ClientV2DetailsPage() {
                               </div>
                             </div>
                           }
-                          style={{ borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}
+                          style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-secondary)", height: "100%" }}
                           bodyStyle={{ padding: "24px" }}
                         >
                           <Descriptions
@@ -590,10 +592,10 @@ export default function ClientV2DetailsPage() {
                           title={
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                               <Space size={12}>
-                                <div style={{ background: "#fdf2f8", padding: 8, borderRadius: 8, color: "#db2777", display: "flex" }}>
+                                <div style={{ background: "var(--bg-red-50)", padding: 8, borderRadius: 8, color: "var(--text-leave)", display: "flex" }}>
                                   <Globe size={18} />
                                 </div>
-                                <span style={{ fontWeight: 700, fontSize: 16 }}>Operations & Risk</span>
+                                <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text-slate-900)" }}>Operations & Risk</span>
                               </Space>
                               <Checkbox 
                                 className="premium-checkbox"
@@ -601,13 +603,13 @@ export default function ClientV2DetailsPage() {
                               />
                             </div>
                           }
-                          style={{ borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}
+                          style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-secondary)", height: "100%" }}
                           bodyStyle={{ padding: "24px" }}
                         >
                           <Descriptions
                             size="small"
                             layout="vertical"
-                            column={3}
+                            column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
                             colon={false}
                             labelStyle={{ color: "#64748b", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.025em" }}
                             contentStyle={{ fontWeight: 500, fontSize: 15, paddingBottom: 24 }}
@@ -702,10 +704,10 @@ export default function ClientV2DetailsPage() {
                             title={
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                     <Space size={12}>
-                                        <div style={{ background: "#f0fdf4", padding: 8, borderRadius: 8, color: "#16a34a", display: "flex" }}>
+                                        <div style={{ background: "var(--bg-green-50)", padding: 8, borderRadius: 8, color: "var(--text-holiday)", display: "flex" }}>
                                             <ShieldCheck size={18} />
                                         </div>
-                                        <span style={{ fontWeight: 700, fontSize: 16 }}>Compliance & Finance</span>
+                                        <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text-slate-900)" }}>Compliance & Finance</span>
                                     </Space>
                                     <Checkbox 
                                         className="premium-checkbox"
@@ -713,13 +715,13 @@ export default function ClientV2DetailsPage() {
                                     />
                                 </div>
                             }
-                            style={{ borderRadius: 16, border: "1px solid #f1f5f9" }}
+                            style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-secondary)" }}
                             bodyStyle={{ padding: "24px" }}
                         >
                             <Descriptions
                                 size="small"
                                 layout="vertical"
-                                column={3}
+                                column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
                                 colon={false}
                                 labelStyle={{ color: "#64748b", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}
                                 contentStyle={{ fontWeight: 600, fontSize: 14, paddingBottom: 20 }}
@@ -764,10 +766,10 @@ export default function ClientV2DetailsPage() {
                             title={
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                     <Space size={12}>
-                                        <div style={{ background: "#faf5ff", padding: 8, borderRadius: 8, color: "#9333ea", display: "flex" }}>
+                                        <div style={{ background: "var(--bg-purple-50)", padding: 8, borderRadius: 8, color: "var(--text-primary)", display: "flex" }}>
                                             <DollarSign size={18} />
                                         </div>
-                                        <span style={{ fontWeight: 700, fontSize: 16 }}>Banking Information</span>
+                                        <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text-slate-900)" }}>Banking Information</span>
                                     </Space>
                                     <Checkbox 
                                         className="premium-checkbox"
@@ -775,13 +777,13 @@ export default function ClientV2DetailsPage() {
                                     />
                                 </div>
                             }
-                            style={{ borderRadius: 16, border: "1px solid #f1f5f9" }}
+                            style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-secondary)" }}
                             bodyStyle={{ padding: "24px" }}
                         >
                             <Descriptions
                                 size="small"
                                 layout="vertical"
-                                column={2}
+                                column={{ xxl: 2, xl: 2, lg: 2, md: 2, sm: 1, xs: 1 }}
                                 colon={false}
                                 labelStyle={{ color: "#64748b", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}
                                 contentStyle={{ fontWeight: 600, fontSize: 14, paddingBottom: 20 }}

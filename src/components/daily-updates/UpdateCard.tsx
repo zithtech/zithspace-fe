@@ -100,24 +100,24 @@ export default function UpdateCard({
           onClick={onOpen}
           style={{
             borderRadius: 16,
-            border: "1px solid #e2e8f0",
+            border: "1px solid var(--border-slate-200)",
             overflow: "hidden",
-            background: "#ffffff",
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+            background: "var(--bg-pure-white)",
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
           }}
           bodyStyle={{ padding: 0 }}
           className="premium-update-card"
         >
           {/* Header Section */}
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border-slate-100)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <Space size={10}>
                 <Avatar
                   size={32}
+                  src={update.user?.avatarUrl}
                   style={{
-                    backgroundColor: update.updateType === "BOD" ? "#dcfce7" : "#dbeafe",
-                    color: update.updateType === "BOD" ? "#166534" : "#1e40af",
+                    backgroundColor: update.updateType === "BOD" ? "var(--bg-holiday)" : "var(--bg-blue-50)",
+                    color: update.updateType === "BOD" ? "var(--text-holiday)" : "var(--text-blue-700)",
                     fontSize: 12,
                     fontWeight: 700
                   }}
@@ -125,10 +125,10 @@ export default function UpdateCard({
                   {update.user?.name.charAt(0).toUpperCase()}
                 </Avatar>
                 <div>
-                  <Text strong style={{ fontSize: 13, color: "#1e293b", display: "block", lineHeight: 1.2 }}>
+                  <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)", display: "block", lineHeight: 1.2 }}>
                     {update.user?.name}
                   </Text>
-                  <Text style={{ fontSize: 11, color: "#94a3b8" }}>
+                  <Text style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
                     {update.user?.position?.title || "Team Member"}
                   </Text>
                 </div>
@@ -142,8 +142,8 @@ export default function UpdateCard({
                     margin: 0,
                     borderRadius: 6,
                     border: "none",
-                    background: "#fff1f2",
-                    color: "#e11d48",
+                    background: "var(--bg-leave)",
+                    color: "var(--text-leave)",
                     fontSize: 10,
                     fontWeight: 700,
                     textTransform: "uppercase"
@@ -174,14 +174,14 @@ export default function UpdateCard({
                       cursor: "pointer",
                       padding: 10,
                       borderRadius: 6,
-                      color: "#0f172a",     // darker → bold feel
+                      color: "var(--text-slate-900)",     // darker → bold feel
                       fontSize: 18,         // increase size
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center"
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#f1f5f9";
+                      e.currentTarget.style.background = "var(--bg-secondary)";
                       e.currentTarget.style.transform = "scale(1.1)";  // slight zoom
                     }}
                     onMouseLeave={(e) => {
@@ -205,8 +205,8 @@ export default function UpdateCard({
                 margin: 0,
                 borderRadius: 6,
                 border: "none",
-                background: "#f0f9ff",
-                color: "#0ea5e9",
+                background: "var(--bg-sky-50)",
+                color: "var(--text-sky-500)",
                 fontSize: 11,
                 fontWeight: 600,
                 display: "flex",
@@ -219,8 +219,8 @@ export default function UpdateCard({
                 margin: 0,
                 borderRadius: 6,
                 border: "none",
-                background: "#f8fafc",
-                color: "#64748b",
+                background: "var(--bg-slate-50)",
+                color: "var(--text-slate-600)",
                 fontSize: 11,
                 fontWeight: 600,
                 display: "flex",
@@ -234,21 +234,21 @@ export default function UpdateCard({
 
             {/* Work Content Snapshot */}
             <div style={{
-              background: "#f8fafc",
+              background: "var(--bg-secondary)",
               borderRadius: 12,
               padding: 10,
-              border: "1px solid #f1f5f9",
+              border: "1px solid var(--border-slate-100)",
               marginBottom: 12
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                <Activity size={12} color="#94a3b8" />
-                <Text strong style={{ fontSize: 11, color: "#64748b" }}>Recent Tasks ({totalTasks})</Text>
+                <Activity size={12} color="var(--text-slate-400)" />
+                <Text strong style={{ fontSize: 11, color: "var(--text-slate-600)" }}>Recent Tasks ({totalTasks})</Text>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {projectUpdates.slice(0, 2).map((p, idx) => (
                   <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#cbd5e1" }} />
-                    <Text ellipsis style={{ fontSize: 11, color: "#475569", flex: 1 }}>
+                    <div style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--border-color)" }} />
+                    <Text ellipsis style={{ fontSize: 11, color: "var(--text-slate-700)", flex: 1 }}>
                       <span style={{ fontWeight: 600 }}>{p.projectName}:</span> {p.tasks?.[0]?.description || p.tasks?.[0]?.ticketNumber || "No tasks listed"}
                     </Text>
                   </div>
@@ -262,7 +262,7 @@ export default function UpdateCard({
             </div>
 
             {/* Footer Row */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #f1f5f9", paddingTop: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-slate-100)", paddingTop: 12 }}>
               <Space direction="vertical" size={2}>
                 {/* <Text style={{ fontSize: 10, color: "#94a3b8", display: "block" }}>DUE DATE</Text>
                 <Text style={{ fontSize: 11, color: "#475569", fontWeight: 600 }}>
@@ -277,12 +277,11 @@ export default function UpdateCard({
               </Space>
 
               <Space direction="vertical" size={2} align="end">
-                <Text style={{ fontSize: 10, color: "#94a3b8", display: "block" }}>SUBMITTED ON</Text>
+                <Text style={{ fontSize: 10, color: "var(--text-slate-400)", display: "block" }}>SUBMITTED ON</Text>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <Text style={{ fontSize: 11, color: "#475569", fontWeight: 600 }}>
+                  <Text style={{ fontSize: 11, color: "var(--text-slate-700)", fontWeight: 600 }}>
                     {dayjs(update.createdAt).format("MMM D, h:mm A")}
                   </Text>
-                  {/* <ChevronRight size={14} color="#0ea5e9" /> */}
                 </div>
               </Space>
             </div>
@@ -293,7 +292,7 @@ export default function UpdateCard({
       <Modal
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ background: "#fee2e2", padding: 8, borderRadius: 10, color: "#ef4444" }}>
+            <div style={{ background: "var(--bg-leave)", padding: 8, borderRadius: 10, color: "var(--text-leave)" }}>
               <AlertCircle size={20} />
             </div>
             <span>Delete Daily Update</span>
@@ -309,7 +308,7 @@ export default function UpdateCard({
         centered
         style={{ borderRadius: 16 }}
       >
-        <p style={{ color: "#64748b" }}>Are you sure you want to delete this status update? This action cannot be undone.</p>
+        <p style={{ color: "var(--text-slate-600)" }}>Are you sure you want to delete this status update? This action cannot be undone.</p>
       </Modal>
     </>
   );

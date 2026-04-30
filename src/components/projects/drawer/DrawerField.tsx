@@ -33,7 +33,7 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
                 className={`drawer-field table-variant ${interactive ? 'interactive' : ''}`}
                 style={{
                     display: 'flex',
-                    borderBottom: '1px solid #f0f0f0',
+                    borderBottom: '1px solid var(--border-color)',
                     minHeight: 32,
                     transition: 'background-color 0.2s',
                     overflow: 'hidden'
@@ -42,14 +42,14 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
                 {/* Table Label Column */}
                 <div style={{
                     flex: '0 0 110px',
-                    background: '#ffffff', // Exact white as requested
+                    background: 'var(--bg-pure-white)', // Exact white as requested
                     padding: '6px 10px',
-                    borderRight: '1px solid #f0f0f0',
+                    borderRight: '1px solid var(--border-color)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'flex-start'
                 }}>
-                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 500, color: '#595959' }}>
+                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
                         {label}
                     </Text>
                 </div>
@@ -76,7 +76,7 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
 
                 <style jsx>{`
                     .drawer-field.interactive:hover {
-                        background-color: #f5f5f5;
+                        background-color: rgba(144, 144, 144, 0.08);
                     }
                     .drawer-field:hover .field-action {
                         opacity: 1;

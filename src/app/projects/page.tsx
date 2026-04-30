@@ -54,12 +54,16 @@ export default function ProjectsPage() {
   if (authLoading || statsLoading) {
     return (
       <MainLayout>
-        <div style={{ padding: '100px 0', textAlign: 'center' }}>
-        <div style={{ padding: 100, textAlign: 'center' }}>
-          <Spin size="large" tip="Orchestrating your workspace">
-            <div style={{ padding: 20 }} />
-          </Spin>
-        </div>
+        <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px", 
+          background: "var(--bg-pure-white)", 
+          minHeight: "calc(100vh - 64px)",
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <Spin size="large" tip="Orchestrating your workspace" />
         </div>
       </MainLayout>
     );
@@ -97,7 +101,13 @@ export default function ProjectsPage() {
 
   return (
     <MainLayout>
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 24px' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "32px 32px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
         {/* Premium Header */}
         <div style={{ marginBottom: 40 }}>
           <Space align="center" size={16}>
@@ -126,7 +136,7 @@ export default function ProjectsPage() {
         {/* Global Key Metrics */}
         <Row gutter={[20, 20]} style={{ marginBottom: 40 }}>
           <Col xs={24} sm={12} md={6}>
-            <Card bordered={false} hoverable style={{ borderRadius: 16, background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+            <Card bordered={false} hoverable style={{ borderRadius: 16, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", boxShadow: "0 2px 12px rgba(0,0,0,0.1)" }}>
               <Statistic
                 title={<Text strong type="secondary" style={{ fontSize: 12, textTransform: 'uppercase' }}>Active Projects</Text>}
                 value={projectStats.length}
@@ -136,7 +146,7 @@ export default function ProjectsPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card bordered={false} hoverable style={{ borderRadius: 16, background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+            <Card bordered={false} hoverable style={{ borderRadius: 16, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", boxShadow: "0 2px 12px rgba(0,0,0,0.1)" }}>
               <Statistic
                 title={<Text strong type="secondary" style={{ fontSize: 12, textTransform: 'uppercase' }}>In Progress</Text>}
                 value={generalStats.in_progress}
@@ -146,7 +156,7 @@ export default function ProjectsPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card bordered={false} hoverable style={{ borderRadius: 16, background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+            <Card bordered={false} hoverable style={{ borderRadius: 16, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", boxShadow: "0 2px 12px rgba(0,0,0,0.1)" }}>
               <Statistic
                 title={<Text strong type="secondary" style={{ fontSize: 12, textTransform: 'uppercase' }}>Completed</Text>}
                 value={generalStats.completed}
@@ -156,7 +166,7 @@ export default function ProjectsPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card bordered={false} hoverable style={{ borderRadius: 16, background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+            <Card bordered={false} hoverable style={{ borderRadius: 16, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", boxShadow: "0 2px 12px rgba(0,0,0,0.1)" }}>
               <Statistic
                 title={<Text strong type="secondary" style={{ fontSize: 12, textTransform: 'uppercase' }}>Blocked</Text>}
                 value={generalStats.blocked || 0}
@@ -237,8 +247,8 @@ export default function ProjectsPage() {
                     <Card 
                       hoverable 
                       bordered={false}
-                      style={{ borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
-                      onClick={() => router.push(`/projects/${project.id}/tickets`)}
+                      style={{ borderRadius: 16, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
+                      onClick={() => router.push(`/projects/${project.id}/overview`)}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                         <Space direction="vertical" size={2}>
@@ -250,13 +260,13 @@ export default function ProjectsPage() {
 
                       <Row gutter={12} style={{ marginBottom: 24 }}>
                         <Col span={12}>
-                          <div style={{ padding: 12, background: '#f9f9f9', borderRadius: 12 }}>
+                          <div style={{ padding: 12, background: 'var(--bg-secondary)', borderRadius: 12 }}>
                             <Text type="secondary" style={{ fontSize: 11, display: 'block', textTransform: 'uppercase' }}>Total Load</Text>
                             <Text strong style={{ fontSize: 20 }}>{project.total}</Text>
                           </div>
                         </Col>
                         <Col span={12}>
-                          <div style={{ padding: 12, background: '#f0f5ff', borderRadius: 12 }}>
+                          <div style={{ padding: 12, background: 'rgba(22, 119, 255, 0.1)', borderRadius: 12 }}>
                             <Text type="secondary" style={{ fontSize: 11, display: 'block', textTransform: 'uppercase', color: '#1677ff' }}>Pending</Text>
                             <Text strong style={{ fontSize: 20, color: '#1677ff' }}>{project.total - completed}</Text>
                           </div>
@@ -296,8 +306,8 @@ export default function ProjectsPage() {
               bordered={false} 
               style={{ 
                 borderRadius: 20, 
-                background: '#fafafa', 
-                border: '1px solid #f0f0f0',
+                background: "var(--bg-secondary)", 
+                border: "1px solid var(--border-color)",
                 marginBottom: 24 
               }}
             >
@@ -388,6 +398,7 @@ export default function ProjectsPage() {
           </Col>
         </Row>
       </div>
-    </MainLayout>
+    </div>
+  </MainLayout>
   );
 }

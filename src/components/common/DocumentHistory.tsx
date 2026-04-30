@@ -12,6 +12,7 @@ interface HistoryEntry {
         id: string;
         name: string;
         workEmail: string;
+        avatarUrl?: string;
     };
     content: any;
 }
@@ -24,30 +25,37 @@ interface DocumentHistoryProps {
 
 const DocumentHistory: React.FC<DocumentHistoryProps> = ({ history, isLoading, onSelectVersion }) => {
     if (isLoading) {
-        return <div className="p-4 text-center text-gray-500">Loading history...</div>;
+        return <div className="p-4 text-center text-slate-500" style={{ color: 'var(--text-slate-400)' }}>Loading history...</div>;
     }
 
     if (!history || history.length === 0) {
-        return <div className="p-4 text-center text-gray-500">No history available</div>;
+        return <div className="p-4 text-center text-slate-500" style={{ color: 'var(--text-slate-400)' }}>No history available</div>;
     }
 
     return (
         <div className="p-4">
-            <Title level={5} className="mb-4">Version History</Title>
+            <Title level={5} className="mb-4" style={{ color: 'var(--text-slate-900)' }}>Version History</Title>
             <Timeline
                 mode="left"
                 items={history.map((entry) => ({
                     dot: <ClockCircleOutlined style={{ fontSize: '16px' }} />,
                     children: (
                         <div
-                            className=" p-2 rounded hover:bg-gray-50 cursor-pointer transition-colors border border-transparent hover:border-gray-200"
+                            className=" p-2 rounded hover:bg-slate-50 cursor-pointer transition-colors border border-transparent hover:border-slate-200"
+                            style={{ '--hover-bg': 'var(--bg-slate-50)', '--hover-border': 'var(--border-slate-200)' } as any}
                             onClick={() => onSelectVersion(entry)}
                         >
                             <div className="flex items-center gap-2 mb-0.5">
-                                <Avatar size={20} icon={<UserOutlined />} className="bg-blue-500" />
-                                <Text strong className="text-xs">{entry.createdBy.name}</Text>
+                                <Avatar 
+                                    size={20} 
+                                    src={entry.createdBy?.avatarUrl}
+                                    icon={<UserOutlined />} 
+                                    className="bg-blue-500" 
+                                    style={{ backgroundColor: 'var(--premium-blue)' }} 
+                                />
+                                <Text strong className="text-xs" style={{ color: 'var(--text-slate-900)' }}>{entry.createdBy.name}</Text>
                             </div>
-                            <div className="text-[10px] text-gray-500 mb-1 ml-7">
+                            <div className="text-[10px] text-slate-500 mb-1 ml-7" style={{ color: 'var(--text-slate-600)' }}>
                                 {format(new Date(entry.createdAt), 'MMM d, yyyy h:mm a')}
                             </div>
                         </div>

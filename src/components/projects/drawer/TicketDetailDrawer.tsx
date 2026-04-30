@@ -15,7 +15,10 @@ import {
   Descriptions,
   message,
   Tooltip,
+  Avatar,
   Collapse,
+  Input,
+  notification,
 } from "antd";
 import {
   CloseOutlined,
@@ -41,15 +44,35 @@ import {
   HistoryOutlined,
   MessageOutlined,
   PaperClipOutlined,
-  CodeOutlined
+  CodeOutlined,
+  ThunderboltOutlined,
+  FileTextOutlined,
+  LoadingOutlined,
+  PlusOutlined,
+  RiseOutlined,
+  PlusCircleOutlined,
+  MinusCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useQuery } from "@tanstack/react-query";
-import { useTicketComments, useTicketAttachments, useTicketLinks, useAddComment, useDeleteComment, useUploadAttachment, useDeleteAttachment, useAddRelatedLink, useUpdateRelatedLink, useDeleteRelatedLink } from "@/hooks/useTicketDetails";
+import { useTicketComments, useTicketAttachments, useTicketLinks, useAddComment, useUpdateComment, useDeleteComment, useUploadAttachment, useDeleteAttachment, useRenameAttachment, useAddRelatedLink, useUpdateRelatedLink, useDeleteRelatedLink } from "@/hooks/useTicketDetails";
 import { useTicket, useUpdateTicket, ticketKeys } from "@/hooks/useTickets";
 import { useMembers, useTicketConfig, useUserProjects } from "@/hooks/useGlobalData";
+import { useAvailableSprints } from "@/hooks/useAvailableSprints";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
-import { PRIORITY_OPTIONS, TYPE_OPTIONS, STATUS_OPTIONS, getStatusColor, getPriorityColor, getTypeColor, getPlatformColor, getTaskLevelColor, getStackColor } from "@/utils/ticketUtils";
+import { useAuth } from "@/context/AuthContext";
+import {
+  PRIORITY_OPTIONS,
+  TYPE_OPTIONS,
+  STATUS_OPTIONS,
+  getStatusColor,
+  getStatusLabel,
+  getPriorityColor,
+  getTypeColor,
+  getPlatformColor,
+  getTaskLevelColor,
+  getStackColor
+} from "@/utils/ticketUtils";
 import { EditableField } from "./editable/EditableField";
 import { EditableSelect } from "./editable/EditableSelect";
 import { DrawerField } from "./DrawerField";
@@ -91,6 +114,36 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const [descriptionEditorOpen, setDescriptionEditorOpen] = useState(false);
   const [editorContent, setEditorContent] = useState('');
 
+  // Enhance-with-Zai flow: when active, the description box flips to a Zai
+  // prompt panel that takes a short hint and asks Gemini to write a polished
+  // description, which then replaces the ticket's existing description.
+  // True only when the description has visible text after stripping HTML.
+  // Tiptap leaves "<p></p>" / "<p><br></p>" behind on clear, both of which are
+  // truthy strings — so a plain `if (description)` check incorrectly thinks
+  // there's still content.
+  const hasMeaningfulDescription = (html: string | undefined | null): boolean => {
+    if (!html) return false;
+    const stripped = html
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return stripped.length > 0;
+  };
+
+  const [enhanceZaiOpen, setEnhanceZaiOpen] = useState(false);
+  const [zaiHint, setZaiHint] = useState('');
+  const [isEnhancingDescription, setIsEnhancingDescription] = useState(false);
+  // Last failure reason from Zai, surfaced as a retry banner inside the panel.
+  // Cleared when the user starts typing again or successfully generates.
+  const [zaiError, setZaiError] = useState<string | null>(null);
+  // What to do with the AI's output when an existing description is present.
+  //   overwrite — discard old, replace with newly generated description
+  //   enhance   — feed old + hint to AI, replace with the polished version
+  //   append    — keep old, append a new generated section to the bottom
+  type ZaiMode = 'overwrite' | 'enhance' | 'append';
+  const [zaiMode, setZaiMode] = useState<ZaiMode>('enhance');
+
   // Navigation State
   const [navigationStack, setNavigationStack] = useState<string[]>([]);
   const [currentTicketId, setCurrentTicketId] = useState<string | null>(null);
@@ -123,9 +176,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
   // Update editor content when description changes externally
   React.useEffect(() => {
-    if (ticket?.description) {
-      setEditorContent(ticket.description);
-    }
+    setEditorContent(ticket?.description || "");
   }, [ticket?.description]);
 
   // Pagination Navigation
@@ -154,6 +205,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       setCurrentTicketId(null);
       setNavigationStack([]);
       setTimeEntries([]);
+      setEditorContent("");
     }
   }, [open, ticketId]);
 
@@ -189,69 +241,189 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const { data: ticketConfig } = useTicketConfig();
   const { data: projects = [] } = useUserProjects();
 
+  // Available sprints for the current ticket's project
+  const ticketProjectId =
+    typeof (ticket as any)?.project === "string"
+      ? ((ticket as any).project as string)
+      : (ticket as any)?.project?.id;
+  const { data: availableSprints = [] } = useAvailableSprints(ticketProjectId);
+  const activeSprint = availableSprints.find((s: any) => s.status === "active");
+  const ticketSprintId =
+    (ticket as any)?.sprintPlanId ||
+    (ticket as any)?.releasePlanId ||
+    (ticket as any)?.metadata?.releasePlan ||
+    null;
+  const isInActiveSprint = !!activeSprint && ticketSprintId === activeSprint.id;
+  const isInBacklog = !ticketSprintId;
+
+  const [sprintToastApi, sprintToastHolder] = notification.useNotification({
+    placement: "top",
+    top: 12,
+    duration: 2,
+  });
+
+  const showSprintToast = (
+    kind: "added" | "removed" | "error",
+    label?: string
+  ) => {
+    const palette =
+      kind === "added"
+        ? { dot: "#10b981", icon: "✓" }
+        : kind === "removed"
+          ? { dot: "#ef4444", icon: "↺" }
+          : { dot: "#ef4444", icon: "!" };
+
+    sprintToastApi.open({
+      key: "sprint-assignment-toast",
+      className: "tiny-toast",
+      message: (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: "50%",
+              background: palette.dot,
+              color: "#fff",
+              fontSize: 11,
+              fontWeight: 800,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            {palette.icon}
+          </span>
+          {kind === "added" && (
+            <>
+              Added to <strong style={{ color: "var(--text-slate-900)", fontWeight: 700 }}>{label}</strong>
+            </>
+          )}
+          {kind === "removed" && (
+            <>
+              Removed from sprint
+            </>
+          )}
+          {kind === "error" && (
+            <span style={{ color: "#ef4444" }}>Sprint update failed</span>
+          )}
+        </span>
+      ),
+    });
+  };
+
+  // Mirror TicketList's handleSprintAssignment so behavior is identical
+  const handleSprintAssignment = (action: "add" | "remove") => {
+    if (!currentTicketId) return;
+    if (action === "add" && !activeSprint) {
+      showSprintToast("error");
+      return;
+    }
+    const releasePlanId =
+      action === "add" && activeSprint ? activeSprint.id : null;
+
+    updateTicketMutation.mutate(
+      {
+        id: currentTicketId,
+        data: { releasePlan: releasePlanId } as any,
+        optimisticData: { releasePlan: releasePlanId } as any,
+      } as any,
+      {
+        onSuccess: () => {
+          if (action === "add") {
+            showSprintToast(
+              "added",
+              activeSprint?.version || activeSprint?.name || "Sprint"
+            );
+          } else {
+            showSprintToast("removed");
+          }
+        },
+        onError: () => {
+          showSprintToast("error");
+        },
+      }
+    );
+  };
+
   // Mutations
   const updateTicketMutation = useUpdateTicket();
   const addCommentMutation = useAddComment();
   const deleteCommentMutation = useDeleteComment();
   const uploadAttachmentMutation = useUploadAttachment();
   const deleteAttachmentMutation = useDeleteAttachment();
+  const renameAttachmentMutation = useRenameAttachment();
+
+  const { user: authUser } = useAuth();
+  const currentUserId = authUser?.id;
   const addLinkMutation = useAddRelatedLink();
   const updateLinkMutation = useUpdateRelatedLink();
   const deleteLinkMutation = useDeleteRelatedLink();
 
   // Helper Options
   const priorities =
-    ticketConfig?.priorities?.map((p: any) => ({
-      label: p.label,
-      value: p.value,
-      color: getPriorityColor(p.value),
-    })) ||
-    PRIORITY_OPTIONS.map((p) => ({
+    (ticketConfig?.priorities?.length ? ticketConfig.priorities : PRIORITY_OPTIONS).map((p: any) => ({
       label: p.label,
       value: p.value,
       color: getPriorityColor(p.value),
     }));
 
   const types =
-    ticketConfig?.taskTypes?.map((t: any) => ({
-      label: t.label,
-      value: t.value,
-      color: getTypeColor(t.value),
-    })) ||
-    TYPE_OPTIONS.map((t) => ({
+    (ticketConfig?.taskTypes?.length ? ticketConfig.taskTypes : TYPE_OPTIONS).map((t: any) => ({
       label: t.label,
       value: t.value,
       color: getTypeColor(t.value),
     }));
 
   const platforms =
-    ticketConfig?.platforms?.map((p: any) => ({
+    (ticketConfig?.platforms?.length ? ticketConfig.platforms : []).map((p: any) => ({
       label: p.label,
       value: p.value,
       color: getPlatformColor(p.value),
-    })) || [];
+    }));
   const stacks =
-    ticketConfig?.stacks?.map((s: any) => ({
+    (ticketConfig?.stacks?.length ? ticketConfig.stacks : []).map((s: any) => ({
       label: s.label,
       value: s.value,
       color: getStackColor(s.value),
-    })) || [];
+    }));
   const taskLevels =
-    ticketConfig?.taskLevels?.map((l: any) => ({
+    (ticketConfig?.taskLevels?.length ? ticketConfig.taskLevels : []).map((l: any) => ({
       label: l.label,
       value: l.value,
       color: getTaskLevelColor(l.value),
-    })) || [];
+    }));
 
-  const statuses = STATUS_OPTIONS.map(s => ({
-    ...s,
-    color: getStatusColor(s.value)
-  }));
+  const statuses = (() => {
+    const baseOptions = ticketConfig?.statuses?.length ? ticketConfig.statuses : STATUS_OPTIONS;
+    const options = baseOptions.map(s => ({
+      label: s.label,
+      value: s.value,
+      color: getStatusColor(s.value)
+    }));
+
+    // Ensure current status is present in options to prevent 'Select...' placeholder
+    if (ticket?.status) {
+      const normalizedCurrent = ticket.status.toLowerCase().replace(/ /g, '_');
+      const exists = options.some(opt => opt.value?.toLowerCase().replace(/ /g, '_') === normalizedCurrent);
+
+      if (!exists) {
+        options.push({
+          label: getStatusLabel(ticket.status), // fallback label helper handles spaces/underscores
+          value: ticket.status,
+          color: getStatusColor(ticket.status)
+        });
+      }
+    }
+    return options;
+  })();
 
   const projectMembers = members.map((m) => ({
     label: m.label,
     value: m.value,
-    avatar: m.label.charAt(0),
+    avatar: m.label?.charAt(0),
+    avatarUrl: (m as any).avatarUrl,
   }));
 
   // Handlers
@@ -274,10 +446,86 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
     setDescriptionEditorOpen(false);
   };
 
+  /**
+   * Send the user's hint to Zai with mode-specific framing, then apply the
+   * AI's output to the ticket description according to the chosen mode:
+   *   overwrite → replace existing entirely
+   *   enhance   → polish the existing using the hint as guidance
+   *   append    → keep the existing and add the new section underneath
+   */
+  const handleEnhanceWithZai = async () => {
+    const hint = zaiHint.trim();
+    const existing = ticket?.description?.trim() || '';
+    const hasExisting = hasMeaningfulDescription(ticket?.description);
+    const effectiveMode: ZaiMode = hasExisting ? zaiMode : 'overwrite';
+
+    // Hint requirement varies per mode — see canGenerate below.
+    if (isEnhancingDescription) return;
+    if (effectiveMode !== 'enhance' && !hint) return;
+    if (effectiveMode === 'enhance' && !hint && !hasExisting) return;
+
+    setZaiError(null);
+    setIsEnhancingDescription(true);
+    try {
+      // Build a mode-specific seed so the model knows what to do.
+      let seed: string;
+      if (effectiveMode === 'enhance' && hasExisting) {
+        seed =
+          `Improve and polish the following ticket description. ` +
+          `Keep the meaning intact, fix structure, fill gaps, and add acceptance criteria where helpful.` +
+          (hint ? `\n\nUser refinement: ${hint}` : '') +
+          `\n\nExisting description (HTML):\n${existing}`;
+      } else if (effectiveMode === 'append' && hasExisting) {
+        seed =
+          `Write a NEW additional section that complements (does not duplicate) the existing ticket description.\n\n` +
+          `User request: ${hint}\n\nExisting description (for context only — do not repeat it):\n${existing}`;
+      } else {
+        seed = ticket?.title ? `${ticket.title}\n\n${hint}` : hint;
+      }
+
+      const result = await TicketService.generateAiTicketDraft({
+        description: seed,
+        title: ticket?.title || undefined,
+      });
+
+      // If Zai didn't actually generate (heuristic mock fallback), don't save
+      // the generic placeholder — surface the failure with a Retry button so
+      // the user controls the next attempt.
+      if (result.source === 'mock') {
+        setZaiError(result.fallbackReason || 'Zai is unavailable right now.');
+        return;
+      }
+
+      // Decide what to persist based on mode.
+      let next = result.description;
+      if (effectiveMode === 'append' && hasExisting) {
+        next = `${existing}\n${result.description}`;
+      }
+
+      await handleUpdate('description', next);
+      message.success(
+        effectiveMode === 'enhance'
+          ? 'Description enhanced with Zai'
+          : effectiveMode === 'append'
+            ? 'Section appended by Zai'
+            : 'Description generated by Zai',
+      );
+      setEnhanceZaiOpen(false);
+      setZaiHint('');
+    } catch (err: any) {
+      // Network / timeout / 5xx — same retry banner UX, no auto-save.
+      setZaiError(err?.message || 'Failed to reach Zai. Try again.');
+    } finally {
+      setIsEnhancingDescription(false);
+    }
+  };
+
   // Renderers
   if (!currentTicketId) return null;
 
   return (
+    <>
+      {sprintToastHolder}
     <Drawer
       title={
         <div style={{
@@ -297,13 +545,14 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   icon={<ArrowLeftOutlined style={{ fontSize: 14, color: '#8c8c8c' }} />}
                   onClick={navigateBack}
                   style={{
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: 'var(--bg-pure-white)',
                     borderRadius: 6,
                     width: 28,
                     height: 28,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    border: '1px solid var(--border-color)'
                   }}
                 />
                 <Tag
@@ -330,9 +579,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                     fontWeight: 700,
                     margin: 0,
                     padding: '0 8px',
-                    backgroundColor: '#f0f0f0',
+                    backgroundColor: 'var(--bg-pure-white)',
                     color: '#595959',
-                    borderRadius: 4
+                    borderRadius: 4,
+                    border: '1px solid var(--border-color)'
                   }}
                 >
                   {ticket.ticketNumber}
@@ -367,7 +617,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   textTransform: 'capitalize'
                 }}
               >
-                Status: {ticket.status.replace('_', ' ')}
+                Status: {getStatusLabel(ticket.status, ticketConfig?.statuses || STATUS_OPTIONS)}
               </Tag>
             )}
           </Space>
@@ -375,23 +625,87 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           {/* Metadata Header Row */}
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', margin: '0 16px', whiteSpace: 'nowrap' }}>
             <Space split={<Divider type="vertical" style={{ margin: 0, height: 12, borderColor: '#d9d9d9' }} />} size={16} align="center">
-              <Space size={4}>
+              <Space size={8} style={{ alignItems: 'center' }}>
                 <Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Created by</Text>
-                <Text style={{ fontSize: 12, fontWeight: 500, color: '#262626' }}>{ticket?.createdBy?.name || 'System'}</Text>
-                <Text type="secondary" style={{ fontSize: 11, margin: '0 4px 0 2px' }}>on</Text>
-                <Text style={{ fontSize: 12, color: '#8c8c8c' }}>{ticket?.createdAt ? dayjs(ticket.createdAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
+                <Space size={6}>
+                  <Avatar
+                    size={18}
+                    src={ticket?.createdBy?.avatarUrl}
+                    style={{ backgroundColor: '#1890ff', fontSize: 10 }}
+                  >
+                    {ticket?.createdBy?.name?.charAt(0) || 'S'}
+                  </Avatar>
+                  <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{ticket?.createdBy?.name || 'System'}</Text>
+                </Space>
+                <Text type="secondary" style={{ fontSize: 11, margin: '0 4px' }}>•</Text>
+                <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{ticket?.createdAt ? dayjs(ticket.createdAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
               </Space>
 
-              <Space size={4}>
+              <Space size={8} style={{ alignItems: 'center' }}>
                 <Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Updated by</Text>
-                <Text style={{ fontSize: 12, fontWeight: 500, color: '#262626' }}>{(ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System'}</Text>
-                <Text type="secondary" style={{ fontSize: 11, margin: '0 4px 0 2px' }}>on</Text>
-                <Text style={{ fontSize: 12, color: '#8c8c8c' }}>{ticket?.updatedAt ? dayjs(ticket.updatedAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
+                <Space size={6}>
+                  <Avatar
+                    size={18}
+                    src={(ticket as any)?.updatedBy?.avatarUrl || ticket?.createdBy?.avatarUrl}
+                    style={{ backgroundColor: '#87d068', fontSize: 10 }}
+                  >
+                    {((ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System').charAt(0)}
+                  </Avatar>
+                  <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{(ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System'}</Text>
+                </Space>
+                <Text type="secondary" style={{ fontSize: 11, margin: '0 4px' }}>•</Text>
+                <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{ticket?.updatedAt ? dayjs(ticket.updatedAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
               </Space>
             </Space>
           </div>
 
           <Space size={8}>
+            {isInBacklog && activeSprint && (
+              <Tooltip title={`Add to ${activeSprint.version || activeSprint.name || "sprint"}`}>
+                <Button
+                  type="default"
+                  size="middle"
+                  icon={<PlusCircleOutlined style={{ color: "#52c41a" }} />}
+                  onClick={() => handleSprintAssignment("add")}
+                  style={{
+                    height: 32,
+                    borderRadius: 6,
+                    fontWeight: 600,
+                    fontSize: 12,
+                    padding: "0 10px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  Add to Sprint
+                </Button>
+              </Tooltip>
+            )}
+            {isInActiveSprint && (
+              <Tooltip title="Remove from sprint, return to backlog">
+                <Button
+                  danger
+                  type="default"
+                  size="middle"
+                  icon={<MinusCircleOutlined />}
+                  onClick={() => handleSprintAssignment("remove")}
+                  style={{
+                    height: 32,
+                    borderRadius: 6,
+                    fontWeight: 600,
+                    fontSize: 12,
+                    padding: "0 10px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  Remove from Sprint
+                </Button>
+              </Tooltip>
+            )}
+
             <Space size={0} style={{ border: '1px solid #f0f0f0', borderRadius: 6, overflow: 'hidden', marginRight: 8 }}>
               <Tooltip title="Previous Ticket">
                 <Button
@@ -399,7 +713,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   icon={<ArrowLeftOutlined style={{ fontSize: 13 }} />}
                   disabled={!hasPrevious}
                   onClick={navigateToPrevious}
-                  style={{ height: 32, width: 36, borderRight: '1px solid #f0f0f0', borderRadius: 0 }}
+                  style={{ height: 32, width: 36, borderRight: '1px solid var(--border-color)', borderRadius: 0 }}
                 />
               </Tooltip>
               <Tooltip title="Next Ticket">
@@ -443,70 +757,364 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       open={open}
       width={1100} // Increased slightly for better column balance and header single-row fitting
       styles={{
-        header: { padding: '12px 20px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#ffffff' },
+        header: { padding: '12px 20px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' },
         body: { padding: 0 }
       }}
       closeIcon={null}
     >
       {!ticket ? (
-        <div style={{ padding: 40, textAlign: "center" }}><Text>Loading</Text></div>
+        <div style={{ padding: 40, textAlign: "center", background: "var(--bg-pure-white)" }}><Text>Loading</Text></div>
       ) : (
-        <Row style={{ height: '100%', backgroundColor: '#ffffff' }}>
+        <Row style={{ height: '100%', backgroundColor: 'var(--bg-pure-white)' }}>
           {/* LEFT COLUMN: Main Content (Title, Description, Activity) */}
-          <Col 
-            xs={24} 
-            md={15} 
-            style={{ 
-              padding: '24px 32px', 
-              borderRight: '1px solid #f0f0f0', 
-              overflowY: 'auto', 
+          <Col
+            xs={24}
+            md={15}
+            style={{
+              padding: '24px 32px',
+              borderRight: '1px solid var(--border-color)',
+              overflowY: 'auto',
               height: '100%',
-              backgroundColor: '#ffffff' 
+              backgroundColor: 'var(--bg-pure-white)'
             }}
           >
 
             {/* Title */}
-            <div style={{ marginBottom: 16 }}>
-              <EditableField
-                value={ticket.title}
-                onSave={(val) => handleUpdate('title', val)}
-                textStyle={{ fontSize: 20, fontWeight: 700, lineHeight: 1.3, color: '#262626', margin: '0' }}
-                type="textarea"
-                placeholder="Ticket Title"
-                editIconVisibility="hover"
-              />
+            <div className="ticket-title-card">
+              <span className="ticket-title-card__accent" aria-hidden />
+              <span className="ticket-title-card__eyebrow">Ticket Title</span>
+              <div className="ticket-title-card__field">
+                <EditableField
+                  value={ticket.title}
+                  onSave={(val) => handleUpdate('title', val)}
+                  textStyle={{ fontSize: 22, fontWeight: 800, lineHeight: 1.25, color: 'var(--text-primary)', margin: '0', letterSpacing: '-0.015em' }}
+                  type="textarea"
+                  placeholder="Untitled ticket — add a clear, action-oriented title"
+                  editIconVisibility="hover"
+                />
+              </div>
             </div>
 
             {/* Description */}
             <div style={{ marginBottom: 20 }}>
-              <DrawerField
-                label="Description"
-                layout="vertical"
-                action={!descriptionEditorOpen && (
-                  <Button
-                    type="text"
-                    size="small"
-                    style={{ 
-                      fontSize: 12, 
-                      color: "#1890ff", 
-                      fontWeight: 600,
-                      padding: '0 8px',
-                      borderRadius: 4,
-                      background: '#e6f7ff'
-                    }}
-                    onClick={() => setDescriptionEditorOpen(true)}
-                  >
-                    Edit
-                  </Button>
+              <div className="description-header">
+                <span className="description-header__title">
+                  <span className="description-header__bar" />
+                  Description
+                </span>
+                {!descriptionEditorOpen && !enhanceZaiOpen && (
+                  <div className="description-header__actions">
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<ThunderboltOutlined />}
+                      className="description-header__btn description-header__btn--zai"
+                      onClick={() => {
+                        const has = hasMeaningfulDescription(ticket?.description);
+                        setEnhanceZaiOpen(true);
+                        setZaiMode(has ? 'enhance' : 'overwrite');
+                        setZaiHint(has ? '' : (ticket?.title || ''));
+                      }}
+                    >
+                      Enhance with Zai
+                    </Button>
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<EditOutlined />}
+                      className="description-header__btn description-header__btn--edit"
+                      onClick={() => setDescriptionEditorOpen(true)}
+                    >
+                      Edit
+                    </Button>
+                  </div>
                 )}
-              >
+              </div>
+              <div className="description-body">
 
-                {descriptionEditorOpen ? (
+                {enhanceZaiOpen ? (
+                  /* Flipped Zai prompt panel: takes a short hint, asks Gemini
+                     to write a polished description, then replaces the existing
+                     description with the result. */
+                  <div
+                    style={{
+                      border: '1px solid rgba(114, 46, 209, 0.3)',
+                      borderRadius: 14,
+                      padding: '16px',
+                      background: 'linear-gradient(180deg, rgba(114, 46, 209, 0.04) 0%, var(--bg-pure-white) 100%)',
+                      boxShadow: '0 8px 24px rgba(114, 46, 209, 0.08)',
+                      width: '100%',
+                      animation: 'zai-flip-in 320ms cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                  >
+                    <style>{`
+                      @keyframes zai-flip-in {
+                        from { opacity: 0; transform: rotateX(-6deg) translateY(-6px); }
+                        to   { opacity: 1; transform: rotateX(0) translateY(0); }
+                      }
+                    `}</style>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 10,
+                          background: 'linear-gradient(135deg, #722ed1 0%, #391085 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#fff',
+                          boxShadow: '0 4px 12px rgba(114,46,209,0.25)',
+                        }}
+                      >
+                        <ThunderboltOutlined />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>
+                          Enhance with Zai
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                          {hasMeaningfulDescription(ticket.description)
+                            ? 'Pick how Zai should work with the existing description.'
+                            : 'Describe the work in plain English — Zai will draft a polished description.'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mode picker — only when there's already a description.
+                        Three radio-style cards covering the common intents. */}
+                    {hasMeaningfulDescription(ticket.description) && (() => {
+                      const modes: Array<{
+                        key: ZaiMode;
+                        title: string;
+                        sub: string;
+                        icon: React.ReactNode;
+                      }> = [
+                        {
+                          key: 'enhance',
+                          title: 'Enhance existing',
+                          sub: 'Polish & expand what\'s there',
+                          icon: <RiseOutlined />,
+                        },
+                        {
+                          key: 'overwrite',
+                          title: 'Overwrite & generate',
+                          sub: 'Discard old, write fresh',
+                          icon: <SyncOutlined />,
+                        },
+                        {
+                          key: 'append',
+                          title: 'Generate & append',
+                          sub: 'Add a new section below',
+                          icon: <PlusOutlined />,
+                        },
+                      ];
+                      return (
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(3, 1fr)',
+                            gap: 8,
+                            marginBottom: 12,
+                          }}
+                        >
+                          {modes.map((m) => {
+                            const selected = zaiMode === m.key;
+                            return (
+                              <button
+                                key={m.key}
+                                type="button"
+                                onClick={() => setZaiMode(m.key)}
+                                disabled={isEnhancingDescription}
+                                style={{
+                                  textAlign: 'left',
+                                  padding: '10px 12px',
+                                  borderRadius: 10,
+                                  border: selected
+                                    ? '1px solid #722ed1'
+                                    : '1px solid var(--border-color)',
+                                  background: selected
+                                    ? 'linear-gradient(135deg, rgba(114,46,209,0.10) 0%, rgba(57,16,133,0.06) 100%)'
+                                    : 'var(--bg-pure-white)',
+                                  cursor: isEnhancingDescription ? 'not-allowed' : 'pointer',
+                                  transition: 'all 120ms ease',
+                                  boxShadow: selected ? '0 4px 12px rgba(114,46,209,0.12)' : 'none',
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    color: selected ? '#722ed1' : 'var(--text-primary)',
+                                    fontWeight: 700,
+                                    fontSize: 12,
+                                  }}
+                                >
+                                  {m.icon}
+                                  {m.title}
+                                </div>
+                                <div
+                                  style={{
+                                    marginTop: 4,
+                                    fontSize: 11,
+                                    color: 'var(--text-secondary)',
+                                  }}
+                                >
+                                  {m.sub}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Compact error banner with inline Retry. Maps the raw
+                        backend error to a 2-4 word user-friendly summary;
+                        full reason is available on hover via tooltip. */}
+                    {zaiError && (() => {
+                      const e = zaiError.toLowerCase();
+                      const shortLabel =
+                        /quota|exhausted|per[\s_-]*day/.test(e)
+                          ? 'Quota exceeded'
+                          : /timeout|aborted|econn|network|fetch/.test(e)
+                            ? 'Connection failed'
+                            : /not valid json|empty response|malformed/.test(e)
+                              ? 'Bad response'
+                              : /404|not found|not supported/.test(e)
+                                ? 'Model unavailable'
+                                : 'Zai unavailable';
+                      return (
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            padding: '8px 12px',
+                            marginBottom: 10,
+                            borderRadius: 10,
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            color: '#b91c1c',
+                            fontSize: 12,
+                          }}
+                        >
+                          <Tooltip title={zaiError}>
+                            <InfoCircleOutlined style={{ fontSize: 14, cursor: 'help' }} />
+                          </Tooltip>
+                          <span style={{ fontWeight: 700, flex: 1 }}>{shortLabel}</span>
+                          <Button
+                            size="small"
+                            type="primary"
+                            icon={isEnhancingDescription ? <LoadingOutlined /> : <SyncOutlined />}
+                            loading={isEnhancingDescription}
+                            onClick={handleEnhanceWithZai}
+                            style={{
+                              borderRadius: 6,
+                              background: 'linear-gradient(135deg, #722ed1 0%, #531dab 100%)',
+                              border: 'none',
+                              fontWeight: 600,
+                            }}
+                          >
+                            Retry
+                          </Button>
+                        </div>
+                      );
+                    })()}
+
+                    <Input.TextArea
+                      value={zaiHint}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                        setZaiHint(e.target.value);
+                        if (zaiError) setZaiError(null);
+                      }}
+                      placeholder={
+                        hasMeaningfulDescription(ticket.description) && zaiMode === 'enhance'
+                          ? 'Optional — e.g. "make it clearer", "add acceptance criteria"'
+                          : hasMeaningfulDescription(ticket.description) && zaiMode === 'append'
+                            ? 'What new section should Zai add? e.g. "add a testing section"'
+                            : 'e.g. Use UUID primary keys, soft-delete column, indexes on assignee_id and project_id'
+                      }
+                      autoSize={{ minRows: 4, maxRows: 8 }}
+                      autoFocus
+                      disabled={isEnhancingDescription}
+                      style={{
+                        borderRadius: 10,
+                        padding: '12px 14px',
+                        fontSize: 14,
+                        background: 'var(--bg-pure-white)',
+                      }}
+                    />
+
+                    {(() => {
+                      // Hint requirement varies by mode:
+                      //   enhance with existing → optional
+                      //   everything else → required
+                      const hasExisting = hasMeaningfulDescription(ticket.description);
+                      const effective: ZaiMode = hasExisting ? zaiMode : 'overwrite';
+                      const hintRequired = !(effective === 'enhance' && hasExisting);
+                      const canGenerate = !hintRequired || zaiHint.trim().length > 0;
+                      const buttonLabel =
+                        effective === 'enhance'
+                          ? 'Enhance description'
+                          : effective === 'append'
+                            ? 'Generate & append'
+                            : 'Overwrite & generate';
+                      return (
+                        <div
+                          style={{
+                            marginTop: 14,
+                            display: 'flex',
+                            gap: 12,
+                            justifyContent: 'flex-end',
+                          }}
+                        >
+                          <Button
+                            size="small"
+                            disabled={isEnhancingDescription}
+                            style={{ borderRadius: 8, padding: '0 16px', height: 32 }}
+                            onClick={() => {
+                              setEnhanceZaiOpen(false);
+                              setZaiHint('');
+                              setZaiError(null);
+                            }}
+                          >
+                            Back to description
+                          </Button>
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={isEnhancingDescription ? <LoadingOutlined /> : <ThunderboltOutlined />}
+                            loading={isEnhancingDescription}
+                            disabled={!canGenerate || isEnhancingDescription}
+                            onClick={handleEnhanceWithZai}
+                            style={{
+                              borderRadius: 8,
+                              padding: '0 20px',
+                              height: 32,
+                              fontWeight: 600,
+                              background: canGenerate
+                                ? 'linear-gradient(135deg, #722ed1 0%, #531dab 100%)'
+                                : undefined,
+                              border: 'none',
+                              boxShadow: canGenerate
+                                ? '0 4px 12px rgba(114, 46, 209, 0.3)'
+                                : undefined,
+                            }}
+                          >
+                            {isEnhancingDescription ? 'Generating…' : buttonLabel}
+                          </Button>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : descriptionEditorOpen ? (
                   <div style={{
-                    border: '1px solid #1890ff',
+                    border: '1px solid var(--border-color)',
                     borderRadius: 14,
                     padding: '16px',
-                    backgroundColor: '#fff',
+                    backgroundColor: 'var(--bg-pure-white)',
                     boxShadow: '0 8px 24px rgba(24, 144, 255, 0.08)',
                     width: '100%'
                   }}>
@@ -546,61 +1154,36 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   </div>
                 ) : (
                   <div
-                    className="description-viewer"
+                    className={`description-viewer-v2 ${!ticket.description ? 'is-empty' : ''}`}
                     onClick={() => setDescriptionEditorOpen(true)}
-                    style={{
-                      minHeight: 120,
-                      cursor: "text",
-                      padding: "20px",
-                      backgroundColor: "#ffffff",
-                      border: "1px solid #f0f0f0",
-                      borderRadius: 16,
-                      position: "relative",
-                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      width: '100%',
-                      lineHeight: '1.6'
-                    }}
                   >
                     {ticket.description ? (
-                      <div className="prose max-w-none focus:outline-none"
-                        style={{ color: '#334155', fontSize: 14 }}
+                      <div
+                        className="prose max-w-none focus:outline-none description-viewer-v2__content"
                         dangerouslySetInnerHTML={{ __html: ticket.description }}
                       />
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <Text type="secondary" style={{ fontSize: 14, color: '#94a3b8' }}>No description provided yet.</Text>
-                        <Text type="secondary" style={{ fontSize: 12, color: '#cbd5e1' }}>Click to add details about this ticket...</Text>
+                      <div className="description-viewer-v2__empty">
+                        <div className="description-viewer-v2__empty-icon">
+                          <FileTextOutlined />
+                        </div>
+                        <div className="description-viewer-v2__empty-copy">
+                          <Text className="description-viewer-v2__empty-title">No description yet</Text>
+                          <Text className="description-viewer-v2__empty-sub">
+                            Click here to add context, acceptance criteria, or links — or use Enhance with Zai to draft it for you.
+                          </Text>
+                        </div>
                       </div>
                     )}
 
-                    <div
-                      className="description-edit-icon"
-                      style={{
-                        position: "absolute",
-                        top: 12,
-                        right: 12,
-                        opacity: 0,
-                        transition: "all 0.2s ease",
-                        transform: 'scale(0.9)',
-                      }}
-                    >
-                      <Tooltip title="Edit Description">
-                        <EditOutlined
-                          style={{
-                            fontSize: 14,
-                            color: "#1890ff",
-                            background: "#fff",
-                            padding: 8,
-                            borderRadius: 8,
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                            border: '1px solid #e2e8f0'
-                          }}
-                        />
-                      </Tooltip>
-                    </div>
+                    <Tooltip title="Edit description">
+                      <span className="description-viewer-v2__edit-pill">
+                        <EditOutlined />
+                      </span>
+                    </Tooltip>
                   </div>
                 )}
-              </DrawerField>
+              </div>
             </div>
 
             {/* Subtasks Section - Conditional Rendering */}
@@ -635,7 +1218,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 null
               ) : (
                 // Current ticket is a main ticket - show subtasks section
-                <div style={{ border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden' }}>
+                <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-pure-white)' }}>
                   <SubtasksSection
                     tickets={ticket.subTasks || []}
                     parentId={ticket.id}
@@ -654,7 +1237,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
               <Tabs
                 defaultActiveKey="comments"
                 centered
-                tabBarStyle={{ marginBottom: 12, borderBottom: '1px solid #f0f0f0' }}
+                tabBarStyle={{ marginBottom: 12, borderBottom: '1px solid var(--border-color)' }}
                 items={[
                   {
                     key: 'comments',
@@ -688,8 +1271,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                         attachments={attachments}
                         isLoading={attachmentsLoading}
                         isEditing={false} // pass false to enable Uploader
-                        onUpload={async (f, n) => await uploadAttachmentMutation.mutateAsync({ ticketId: currentTicketId, file: f, fileName: n })}
-                        onDelete={async (id) => await deleteAttachmentMutation.mutateAsync({ ticketId: currentTicketId, attachmentId: id })}
+                        onUpload={async (f, n) => await uploadAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", file: f, fileName: n })}
+                        onDelete={async (id) => await deleteAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", attachmentId: id })}
+                        onRename={async (id, newName) => await renameAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", attachmentId: id, newFileName: newName })}
+                        currentUserId={currentUserId}
                       />
                     )
                   },
@@ -759,229 +1344,259 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
             md={9}
             style={{
               padding: '24px 20px',
-              background: "#ffffff",
+              background: "var(--bg-pure-white)",
               height: "100%",
               overflowY: "auto",
-              borderLeft: "1px solid #f0f0f0",
+              borderLeft: "1px solid var(--border-color)",
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {/* Status & Transitions */}
-              <div style={{
-                border: '1px solid #f0f0f0',
-                borderRadius: 14,
-                overflow: 'hidden',
-                backgroundColor: '#ffffff', 
-                padding: '12px 16px', // Compacted from 20px
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12, // Compacted from 16
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)'
-              }}>
-                {/* Current Status Block */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <Text strong style={{ fontSize: 11, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</Text>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                {/* Compact Status Hub */}
                 <div style={(() => {
-                  const s = ticket.status;
-                  let color = "#8c8c8c";
-                  if (s === "in_progress") color = "#1890ff";
-                  else if (s === "completed" || s === "live") color = "#52c41a";
-                  else if (s === "in_testing") color = "#fa8c16";
-                  else if (s === "in_review") color = "#722ed1";
-                  else if (s === "dev_complete") color = "#13c2c2";
+                  const color = getStatusColor(ticket.status);
+                  let hexColor = "#8c8c8c";
+                  if (color === "processing") hexColor = "#3b82f6";
+                  else if (color === "success") hexColor = "#10b981";
+                  else if (color === "warning") hexColor = "#f59e0b";
+                  else if (color === "purple") hexColor = "#8b5cf6";
+                  else if (color === "cyan") hexColor = "#06b6d4";
+                  else if (color === "geekblue") hexColor = "#4f46e5";
+                  else if (color === "orange") hexColor = "#f59e0b";
 
                   return {
-                    backgroundColor: '#ffffff',
-                    borderRadius: 14,
-                    padding: '10px 14px', // Compacted from 14px 16px
+                    backgroundColor: 'var(--bg-pure-white)',
+                    borderRadius: 8,
+                    border: `1px solid ${hexColor}25`,
+                    padding: '6px 10px',
                     display: 'flex',
-                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    color: color,
-                    cursor: 'pointer',
-                    border: `1px solid ${color}40`,
-                    boxShadow: `0 4px 12px ${color}0a`,
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                    gap: 8,
+                    boxShadow: `0 1px 4px ${hexColor}05`
                   };
                 })()} className="status-badge-premium">
-                    <div style={{ flex: 1 }}>
-                      <EditableSelect
-                        value={ticket.status}
-                        options={STATUS_OPTIONS}
-                        onSave={(val) => handleUpdate("status", val)}
-                        mode="text"
-                        plain
-                        textStyle={{ fontWeight: 700, fontSize: 14 }}
-                      />
-                    </div>
-                    {(() => {
-                      const s = ticket.status;
-                      const iconStyle = { fontSize: 20, color: 'inherit' };
-                      if (s === "in_progress") return <PlayCircleOutlined style={iconStyle} />;
-                      if (s === "completed" || s === "live") return <CheckCircleOutlined style={iconStyle} />;
-                      if (s === "in_testing") return <BugOutlined style={iconStyle} />;
-                      if (s === "in_review") return <SyncOutlined style={iconStyle} />;
-                      if (s === "dev_complete") return <RocketOutlined style={iconStyle} />;
-                      return <PauseCircleOutlined style={iconStyle} />;
-                    })()}
+                  <div style={{ flex: 1 }}>
+                    <EditableSelect
+                      value={ticket.status}
+                      options={statuses}
+                      onSave={(val) => handleUpdate("status", val)}
+                      mode="text"
+                      plain
+                      textStyle={{ fontWeight: 700, fontSize: 12, color: 'var(--text-primary)' }}
+                    />
                   </div>
+                  {(() => {
+                    const s = ticket.status;
+                    const iconStyle = { fontSize: 14, color: 'inherit' };
+                    const iconMap: Record<string, React.ReactNode> = {
+                      'not_started': <PlayCircleOutlined style={iconStyle} />,
+                      'in_progress': <SyncOutlined spin style={iconStyle} />,
+                      'dev_complete': <RocketOutlined style={iconStyle} />,
+                      'dev_testing': <BugOutlined style={iconStyle} />,
+                      'in_review': <SyncOutlined style={iconStyle} />,
+                      'live': <CheckCircleOutlined style={iconStyle} />,
+                      'live_testing': <CheckCircleOutlined style={iconStyle} />,
+                      'completed': <CheckSquareOutlined style={iconStyle} />,
+                      'pause': <PauseCircleOutlined style={iconStyle} />
+                    };
+                    return iconMap[s] || <PlayCircleOutlined style={iconStyle} />;
+                  })()}
                 </div>
 
-                {/* Suggested Next Step Block */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, color: '#bfbfbf', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Next Action
-                  </Text>
-
-                  <div style={{ width: '100%' }}>
-                    {ticket.status === 'not_started' && (
+                {/* suggested action hub */}
+                <div style={{ width: '100%' }}>
+                  {ticket.status?.toLowerCase() === 'not_started' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<PlayCircleOutlined />}
+                      onClick={() => handleUpdate('status', 'in_progress')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#1890ff', borderColor: '#1890ff' }}
+                    >
+                      Start Sprint
+                    </Button>
+                  )}
+                  {ticket.status?.toLowerCase() === 'in_progress' && (
+                    <Space direction="vertical" style={{ width: '100%' }} size={4}>
                       <Button
-                        size="middle" // Compacted from large
-                        type="primary"
-                        icon={<PlayCircleOutlined />}
-                        onClick={() => handleUpdate('status', 'in_progress')}
-                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#1890ff', borderColor: '#1890ff', boxShadow: '0 4px 12px rgba(24, 144, 255, 0.2)' }}
-                      >
-                        Start Sprint
-                      </Button>
-                    )}
-                    {ticket.status === 'in_progress' && (
-                      <Button
-                        size="large"
+                        size="small"
                         type="primary"
                         icon={<RocketOutlined />}
                         onClick={() => handleUpdate('status', 'dev_complete')}
-                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#13c2c2', borderColor: '#13c2c2', boxShadow: '0 4px 12px rgba(19, 194, 194, 0.2)' }}
+                        style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#13c2c2', borderColor: '#13c2c2' }}
                       >
                         Finish Development
                       </Button>
-                    )}
-                    {ticket.status === 'dev_complete' && (
                       <Button
-                        size="large"
-                        type="primary"
-                        icon={<BugOutlined />}
-                        onClick={() => handleUpdate('status', 'in_testing')}
-                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#fa8c16', borderColor: '#fa8c16', boxShadow: '0 4px 12px rgba(250, 140, 22, 0.2)' }}
+                        size="small"
+                        type="default"
+                        icon={<PauseCircleOutlined />}
+                        onClick={() => handleUpdate('status', 'pause')}
+                        style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 28, fontWeight: 600, border: '1px solid #fa8c16', color: '#fa8c16' }}
                       >
-                        Send to QA
+                        Pause
                       </Button>
-                    )}
-                    {ticket.status === 'in_testing' && (
-                      <Button
-                        size="large"
-                        type="primary"
-                        icon={<SyncOutlined />}
-                        onClick={() => handleUpdate('status', 'in_review')}
-                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#722ed1', borderColor: '#722ed1', boxShadow: '0 4px 12px rgba(114, 46, 209, 0.2)' }}
-                      >
-                        Request Review
-                      </Button>
-                    )}
-                    {ticket.status === 'in_review' && (
-                      <Button
-                        size="large"
-                        type="primary"
-                        icon={<CheckOutlined />}
-                        onClick={() => handleUpdate('status', 'completed')}
-                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#52c41a', borderColor: '#52c41a', boxShadow: '0 4px 12px rgba(82, 196, 26, 0.2)' }}
-                      >
-                        Complete Ticket
-                      </Button>
-                    )}
-                    {(ticket.status === 'completed' || ticket.status === 'live') && (
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 10, 
-                        padding: '12px',
-                        background: '#f6ffed',
-                        borderRadius: 10,
-                        border: '1px solid #b7eb8f'
-                      }}>
-                        <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 16 }} />
-                        <Text style={{ fontSize: 13, color: '#389e0d', fontWeight: 600 }}>All steps completed</Text>
-                      </div>
-                    )}
-                  </div>
+                    </Space>
+                  )}
+                  {ticket.status?.toLowerCase() === 'pause' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<PlayCircleOutlined />}
+                      onClick={() => handleUpdate('status', 'in_progress')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#1890ff', borderColor: '#1890ff' }}
+                    >
+                      Resume Sprint
+                    </Button>
+                  )}
+                  {ticket.status === 'dev_complete' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<BugOutlined />}
+                      onClick={() => handleUpdate('status', 'dev_testing')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#fa8c16', borderColor: '#fa8c16' }}
+                    >
+                      Move to Dev Testing
+                    </Button>
+                  )}
+                  {ticket.status === 'dev_testing' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<SyncOutlined />}
+                      onClick={() => handleUpdate('status', 'in_review')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#722ed1', borderColor: '#722ed1' }}
+                    >
+                      Request Review
+                    </Button>
+                  )}
+                  {ticket.status === 'in_review' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<CheckOutlined />}
+                      onClick={() => handleUpdate('status', 'live')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#2f54eb', borderColor: '#2f54eb' }}
+                    >
+                      Deploy to Live
+                    </Button>
+                  )}
+                  {ticket.status === 'live' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<SyncOutlined />}
+                      onClick={() => handleUpdate('status', 'live_testing')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#4f46e5', borderColor: '#4f46e5' }}
+                    >
+                      Move to Live Testing
+                    </Button>
+                  )}
+                  {ticket.status === 'live_testing' && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<CheckCircleOutlined />}
+                      onClick={() => handleUpdate('status', 'completed')}
+                      style={{ fontSize: 11, borderRadius: 6, width: '100%', height: 30, fontWeight: 600, backgroundColor: '#10b981', borderColor: '#10b981' }}
+                    >
+                      Complete Ticket
+                    </Button>
+                  )}
+                  {ticket.status === 'completed' && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 10px',
+                      background: 'rgba(82, 196, 26, 0.05)',
+                      borderRadius: 6,
+                      border: '1px solid rgba(82, 196, 26, 0.2)'
+                    }}>
+                      <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 12 }} />
+                      <Text style={{ fontSize: 11, color: '#389e0d', fontWeight: 600 }}>All steps completed</Text>
+                    </div>
+                  )}
                 </div>
               </div>
-              {/* Collapsible Sections */}
-              <div className="sidebar-collapse-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {/* Core Details Card */}
-                <div style={{ border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden', backgroundColor: '#fff' }}>
-                  <Collapse
-                    defaultActiveKey={["details"]}
-                    ghost
-                    expandIconPosition="end"
-                    style={{ backgroundColor: 'transparent' }}
-                    items={[
-                      {
-                        key: "details",
-                        label: (
-                          <div style={{ padding: '4px 0' }}>
-                            <Space size={10}>
-                              <div style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 8,
-                                backgroundColor: '#e6f7ff',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}>
-                                <InfoCircleOutlined style={{ color: '#1890ff', fontSize: 14 }} />
-                              </div>
-                              <Text strong style={{ fontSize: 13, color: '#262626' }}>
-                                Core Details
-                              </Text>
-                            </Space>
-                          </div>
-                        ),
-                        children: (
-                          <div style={{ padding: 0 }}>
-                            <Row gutter={[0, 0]}>
-                              <Col span={24}>
-                                <DrawerField label="Assignee" variant="table">
-                                  <EditableSelect
-                                    value={
-                                      typeof ticket.assignee === "string"
-                                        ? ticket.assignee
-                                        : ticket.assignee?.id
-                                    }
-                                    options={projectMembers}
-                                    onSave={(val) =>
-                                      handleUpdate("assignee", val)
-                                    }
-                                    mode="user"
-                                    emptyText="Unassigned"
-                                  />
-                                </DrawerField>
-                              </Col>
+            </div>
 
-                              <Col span={24}>
-                                <DrawerField label="Report To" variant="table">
-                                  <EditableSelect
-                                    value={
-                                      typeof ticket.reportTo === "string"
-                                        ? ticket.reportTo
-                                        : ticket.reportTo?.id
-                                    }
-                                    options={projectMembers}
-                                    onSave={(val) =>
-                                      handleUpdate("reportTo", val)
-                                    }
-                                    mode="user"
-                                    emptyText="No Reporter"
-                                  />
-                                </DrawerField>
+            {/* Collapsible Sections */}
+            <div className="sidebar-collapse-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {/* Core Details Card */}
+              <Collapse
+                defaultActiveKey={["details"]}
+                ghost
+                expandIconPosition="end"
+                style={{ backgroundColor: 'transparent' }}
+                items={[
+                  {
+                    key: "details",
+                    label: (
+                      <div style={{ padding: '4px 0' }}>
+                        <Space size={10}>
+                          <div style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 8,
+                            backgroundColor: '#e6f7ff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <InfoCircleOutlined style={{ color: '#1890ff', fontSize: 14 }} />
+                          </div>
+                          <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                            Core Details
+                          </Text>
+                        </Space>
+                      </div>
+                    ),
+                    children: (
+                      <div style={{ padding: 0 }}>
+                        <Row gutter={[0, 0]}>
+                          <Col span={24}>
+                            <DrawerField label="Assignee" variant="table">
+                              <EditableSelect
+                                value={
+                                  typeof ticket.assignee === "string"
+                                    ? ticket.assignee
+                                    : ticket.assignee?.id
+                                }
+                                options={projectMembers}
+                                onSave={(val) =>
+                                  handleUpdate("assignee", val)
+                                }
+                                mode="user"
+                                emptyText="Unassigned"
+                              />
+                            </DrawerField>
+                          </Col>
+
+                          <Col span={24}>
+                            <DrawerField label="Report To" variant="table">
+                              <EditableSelect
+                                value={
+                                  typeof ticket.reportTo === "string"
+                                    ? ticket.reportTo
+                                    : ticket.reportTo?.id
+                                }
+                                options={projectMembers}
+                                onSave={(val) =>
+                                  handleUpdate("reportTo", val)
+                                }
+                                mode="user"
+                                emptyText="No Reporter"
+                              />
+                            </DrawerField>
 
                                 <DrawerField label="Platform" variant="table">
                                   <EditableSelect
                                     value={ticket.platform}
                                     options={platforms}
                                     onSave={(val) => handleUpdate("platform", val)}
-                                    mode="tag"
+                                    mode="dot"
                                     emptyText="Select Platform"
                                   />
                                 </DrawerField>
@@ -994,7 +1609,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                       value={ticket.stack || ticket.metadata?.stack}
                                       options={stacks}
                                       onSave={(val) => handleUpdate("stack", val)}
-                                      mode="tag"
+                                      mode="dot"
                                       emptyText="Select Stack"
                                     />
                                   </DrawerField>
@@ -1017,7 +1632,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                     value={ticket.type}
                                     options={types}
                                     onSave={(val) => handleUpdate("type", val)}
-                                    mode="tag"
+                                    mode="dot"
                                   />
                                 </DrawerField>
                               </Col>
@@ -1027,7 +1642,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                     value={ticket.taskLevel}
                                     options={taskLevels}
                                     onSave={(val) => handleUpdate("taskLevel", val)}
-                                    mode="tag"
+                                    mode="dot"
                                   />
                                 </DrawerField>
                               </Col>
@@ -1037,16 +1652,79 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       }
                     ]}
                   />
-                </div>
+                
+                {/* Activity / Audit Card */}
+                <Collapse
+                  defaultActiveKey={["activity"]}
+                  ghost
+                  expandIconPosition="end"
+                  style={{ backgroundColor: 'transparent' }}
+                  items={[
+                    {
+                      key: "activity",
+                      label: (
+                        <div style={{ padding: '4px 0' }}>
+                          <Space size={10}>
+                            <div style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 8,
+                              backgroundColor: 'rgba(168, 85, 247, 0.12)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <HistoryOutlined style={{ color: '#a855f7', fontSize: 14 }} />
+                            </div>
+                            <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                              Activity
+                            </Text>
+                          </Space>
+                        </div>
+                      ),
+                      children: (
+                        <div style={{ padding: 0 }}>
+                          <Row gutter={[0, 0]}>
+                            <Col span={24}>
+                              <DrawerField label="Created by" variant="table">
+                                <Space size={6} align="center">
+                                  <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+                                    {ticket?.createdBy?.name || 'System'}
+                                  </Text>
+                                  <Text type="secondary" style={{ fontSize: 11 }}>·</Text>
+                                  <Text type="secondary" style={{ fontSize: 11 }}>
+                                    {ticket?.createdAt ? dayjs(ticket.createdAt).format('MMM D, YYYY HH:mm') : '-'}
+                                  </Text>
+                                </Space>
+                              </DrawerField>
+                            </Col>
+                            <Col span={24}>
+                              <DrawerField label="Updated by" variant="table">
+                                <Space size={6} align="center">
+                                  <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+                                    {(ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System'}
+                                  </Text>
+                                  <Text type="secondary" style={{ fontSize: 11 }}>·</Text>
+                                  <Text type="secondary" style={{ fontSize: 11 }}>
+                                    {ticket?.updatedAt ? dayjs(ticket.updatedAt).format('MMM D, YYYY HH:mm') : '-'}
+                                  </Text>
+                                </Space>
+                              </DrawerField>
+                            </Col>
+                          </Row>
+                        </div>
+                      ),
+                    }
+                  ]}
+                />
 
                 {/* Planning & Estimates Card */}
-                <div style={{ border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden', backgroundColor: '#fff' }}>
-                  <Collapse
-                    defaultActiveKey={["planning"]}
-                    ghost
-                    expandIconPosition="end"
-                    style={{ backgroundColor: 'transparent' }}
-                    items={[
+                <Collapse
+                  defaultActiveKey={["planning"]}
+                  ghost
+                  expandIconPosition="end"
+                  style={{ backgroundColor: 'transparent' }}
+                  items={[
                       {
                         key: "planning",
                         label: (
@@ -1063,7 +1741,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                               }}>
                                 <CalendarOutlined style={{ color: '#52c41a', fontSize: 14 }} />
                               </div>
-                              <Text strong style={{ fontSize: 13, color: '#262626' }}>
+                              <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
                                 Planning & Estimates
                               </Text>
                             </Space>
@@ -1080,16 +1758,12 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                       handleUpdate("storyPoint", Number(val))
                                     }
                                     type="number"
-                                    emptyText="-"
+                                    emptyText="—"
                                     textStyle={{
-                                      background: "#e6f7ff",
-                                      borderRadius: 12,
-                                      padding: "2px 8px",
-                                      color: "#096dd9",
-                                      fontWeight: 600,
-                                      width: "fit-content",
-                                      minWidth: 24,
-                                      textAlign: "center",
+                                      fontSize: 14,
+                                      fontWeight: 700,
+                                      color: 'var(--text-primary)',
+                                      letterSpacing: '-0.01em',
                                     }}
                                   />
                                 </DrawerField>
@@ -1102,26 +1776,54 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                       handleUpdate("estimateHours", Number(val))
                                     }
                                     type="number"
-                                    emptyText="-"
+                                    emptyText="—"
+                                    textStyle={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}
                                   />
                                 </DrawerField>
                               </Col>
                               <Col span={24}>
                                 <DrawerField label="Start Date" variant="table">
-                                  <EditableDate
-                                    value={ticket.startDate}
-                                    onSave={(val) => handleUpdate("startDate", val)}
-                                    placeholder="Start"
-                                  />
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                    <EditableDate
+                                      value={ticket.startDate}
+                                      onSave={(val) => handleUpdate("startDate", val)}
+                                      placeholder="Start"
+                                    />
+                                    {ticket.startDate && (
+                                      <span className="date-meta-pill">
+                                        {dayjs(ticket.startDate).fromNow()}
+                                      </span>
+                                    )}
+                                  </div>
                                 </DrawerField>
                               </Col>
                               <Col span={24}>
                                 <DrawerField label="Due Date" variant="table">
-                                  <EditableDate
-                                    value={ticket.endDate}
-                                    onSave={(val) => handleUpdate("endDate", val)}
-                                    placeholder="Due By"
-                                  />
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                    <EditableDate
+                                      value={ticket.endDate}
+                                      onSave={(val) => handleUpdate("endDate", val)}
+                                      placeholder="Due By"
+                                    />
+                                    {ticket.endDate && (() => {
+                                      const due = dayjs(ticket.endDate);
+                                      const now = dayjs();
+                                      const diff = due.diff(now, 'day');
+                                      const overdue = diff < 0;
+                                      const isDone = ticket.status === 'completed';
+                                      const tone = isDone ? 'success' : overdue ? 'danger' : diff <= 2 ? 'warning' : 'muted';
+                                      const label = isDone
+                                        ? 'Done'
+                                        : overdue
+                                          ? `${Math.abs(diff)}d overdue`
+                                          : diff === 0 ? 'Due today' : diff === 1 ? 'Due tomorrow' : `Due in ${diff}d`;
+                                      return (
+                                        <span className={`date-meta-pill date-meta-pill--${tone}`}>
+                                          {label}
+                                        </span>
+                                      );
+                                    })()}
+                                  </div>
                                 </DrawerField>
                               </Col>
                             </Row>
@@ -1130,15 +1832,13 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       }
                     ]}
                   />
-                </div>
-
+                
                 {/* Time Tracking Card */}
-                <div style={{ border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden', backgroundColor: '#fff' }}>
-                  <Collapse
-                    ghost
-                    expandIconPosition="end"
-                    style={{ backgroundColor: 'transparent' }}
-                    items={[
+                <Collapse
+                  ghost
+                  expandIconPosition="end"
+                  style={{ backgroundColor: 'transparent' }}
+                  items={[
                       {
                         key: "time-tracking",
                         label: (
@@ -1155,7 +1855,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                               }}>
                                 <FieldTimeOutlined style={{ color: '#fa8c16', fontSize: 14 }} />
                               </div>
-                              <Text strong style={{ fontSize: 13, color: '#262626' }}>Time Tracked</Text>
+                              <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>Time Tracked</Text>
                               {timeEntries.length > 0 && (
                                 <Badge
                                   count={(() => {
@@ -1188,7 +1888,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                                 {timeEntries.map(entry => {
                                   return (
-                                    <div key={entry.id} style={{ padding: '10px 12px', background: '#fff', borderBottom: '1px solid #f0f0f0' }}>
+                                    <div key={entry.id} style={{ padding: '10px 12px', background: 'var(--bg-pure-white)', borderBottom: '1px solid var(--border-color)' }}>
                                       {/* User row */}
                                       {entry.user && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -1200,7 +1900,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                           }}>
                                             {entry.user.name.charAt(0).toUpperCase()}
                                           </div>
-                                          <Text style={{ fontSize: 12, fontWeight: 600, color: '#262626' }}>
+                                          <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
                                             {entry.user.name}
                                           </Text>
                                         </div>
@@ -1208,10 +1908,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                       {/* Date / time / duration row */}
                                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
-                                          <div style={{ fontSize: 12, color: '#595959', fontWeight: 500 }}>
+                                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
                                             {dayjs(entry.startTime).format('MMM D, YYYY')}
                                           </div>
-                                          <div style={{ fontSize: 11, color: '#8c8c8c' }}>
+                                          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                                             {dayjs(entry.startTime).format('h:mm A')}
                                             {entry.endTime ? ` – ${dayjs(entry.endTime).format('h:mm A')}` : ''}
                                           </div>
@@ -1243,23 +1943,20 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       }
                     ]}
                   />
-                </div>
               </div>
 
-
-            </div>
           </Col>
         </Row>
       )}
 
       <style jsx global>{`
         .parent-ticket-badge:hover {
-          background-color: #e6f7ff !important;
+          background-color: rgba(144, 144, 144, 0.1) !important;
           color: #1890ff !important;
           transform: translateY(-1px);
         }
         .description-viewer:hover {
-          background-color: #ffffff !important;
+          background-color: rgba(144, 144, 144, 0.05) !important;
           border-color: #1890ff !important;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
         }
@@ -1271,9 +1968,9 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           position: sticky !important;
           top: -16px !important;
           z-index: 100 !important;
-          background: #ffffff !important;
+          background: var(--bg-pure-white) !important;
           margin-top: 0 !important;
-          border-bottom: 1px solid #f0f0f0 !important;
+          border-bottom: 1px solid var(--border-color) !important;
         }
         .premium-tabs-wrapper .ant-tabs-nav::before {
           content: '' !important;
@@ -1282,7 +1979,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           left: -40px !important;
           right: -40px !important;
           bottom: 0 !important;
-          background: #ffffff !important;
+          background: var(--bg-pure-white) !important;
           z-index: -1 !important;
         }
         .premium-tabs-wrapper .ant-tabs-tab {
@@ -1308,33 +2005,100 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           background: transparent !important;
         }
         .sidebar-collapse-wrapper .ant-collapse-item {
-          border: 1px solid #f0f0f0 !important;
-          border-radius: 14px !important;
-          margin-bottom: 12px !important;
-          background: #ffffff !important;
+          border: 1px solid var(--border-color) !important;
+          border-radius: 12px !important;
+          margin-bottom: 10px !important;
+          background: var(--bg-pure-white) !important;
           overflow: hidden !important;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+          transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+        .sidebar-collapse-wrapper .ant-collapse-item:hover {
+          border-color: var(--border-slate-200) !important;
+          box-shadow: 0 4px 12px -6px rgba(15, 23, 42, 0.08) !important;
         }
         .sidebar-collapse-wrapper .ant-collapse-header {
-          padding: 14px 16px !important;
+          padding: 10px 14px !important;
           background: transparent !important;
           border-bottom: none !important;
+        }
+        .sidebar-collapse-wrapper .ant-collapse-header .ant-space-item:first-child > div {
+          width: 22px !important;
+          height: 22px !important;
+          border-radius: 6px !important;
+        }
+        .sidebar-collapse-wrapper .ant-collapse-header .ant-space-item:first-child .anticon {
+          font-size: 12px !important;
+        }
+        .sidebar-collapse-wrapper .ant-collapse-header .ant-typography {
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.06em !important;
+          text-transform: uppercase !important;
+          color: var(--text-slate-500) !important;
         }
         .sidebar-collapse-wrapper .ant-collapse-content {
           background: transparent !important;
+          border-top: 1px solid var(--border-color) !important;
         }
         .sidebar-collapse-wrapper .ant-collapse-content-box {
-          padding: 0 !important;
+          padding: 4px 0 !important;
         }
         .sidebar-collapse-wrapper .DrawerField-table-variant {
-          border-bottom: 1px solid #f0f0f0 !important;
-        }
-        .sidebar-collapse-wrapper .DrawerField-table-variant:last-child {
           border-bottom: none !important;
+          padding: 9px 14px !important;
+          transition: background-color 0.15s ease;
+          position: relative;
+        }
+        .sidebar-collapse-wrapper .DrawerField-table-variant + .DrawerField-table-variant::before,
+        .sidebar-collapse-wrapper .ant-col + .ant-col .DrawerField-table-variant:first-child::before,
+        .sidebar-collapse-wrapper .ant-col .DrawerField-table-variant + .DrawerField-table-variant::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 14px;
+          right: 14px;
+          height: 1px;
+          background: var(--border-color);
+        }
+        .sidebar-collapse-wrapper .DrawerField-table-variant:hover {
+          background-color: rgba(15, 23, 42, 0.02) !important;
+        }
+        .sidebar-collapse-wrapper .DrawerField-table-variant > div:first-child .ant-typography {
+          font-size: 11.5px !important;
+          font-weight: 600 !important;
+          color: var(--text-slate-500) !important;
+        }
+        .date-meta-pill {
+          font-size: 10.5px;
+          font-weight: 700;
+          line-height: 1;
+          padding: 3px 8px;
+          border-radius: 999px;
+          background: rgba(148, 163, 184, 0.14);
+          color: var(--text-slate-500);
+          letter-spacing: 0.01em;
+          white-space: nowrap;
+        }
+        .date-meta-pill--success {
+          background: rgba(16, 185, 129, 0.12);
+          color: #059669;
+        }
+        .date-meta-pill--warning {
+          background: rgba(245, 158, 11, 0.14);
+          color: #b45309;
+        }
+        .date-meta-pill--danger {
+          background: rgba(239, 68, 68, 0.12);
+          color: #dc2626;
+        }
+        .date-meta-pill--muted {
+          background: rgba(148, 163, 184, 0.14);
+          color: var(--text-slate-500);
         }
         .status-badge-premium:hover {
           filter: brightness(0.98);
-          background-color: #fff !important;
+          background-color: rgba(144, 144, 144, 0.08) !important;
           box-shadow: 0 6px 16px rgba(0,0,0,0.06) !important;
           transform: translateY(-1px);
         }
@@ -1344,5 +2108,6 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
         }
       `}</style>
     </Drawer>
+    </>
   );
 };

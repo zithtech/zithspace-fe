@@ -18,6 +18,7 @@ import {
   List,
   Space,
   DatePicker,
+  App,
 } from 'antd';
 import {
   DashboardOutlined,
@@ -50,6 +51,7 @@ interface DashboardSummary {
 interface PresentEmployee {
   id: string;
   name: string;
+  avatarUrl?: string;
   position: string | { id: string; title: string; code: string; } | null;
   status: string;
   clockInTime: string;
@@ -63,11 +65,11 @@ interface PresentEmployee {
 
 export default function AttendanceDashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const { notification } = App.useApp();
   const router = useRouter();
   const { canReadAttendance } = usePermission();
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
   const [presentEmployees, setPresentEmployees] = useState<PresentEmployee[]>([]);
   const [dateFilter, setDateFilter] = useState<'week' | 'month' | 'custom'>('week');
@@ -90,7 +92,11 @@ export default function AttendanceDashboardPage() {
       setPresentEmployees(employees as any);
     } catch (err: any) {
       console.error('Failed to fetch dashboard data:', err);
-      setError('Failed to load dashboard data');
+      notification.error({
+        message: 'Dashboard Error',
+        description: 'Failed to load dashboard data',
+        placement: 'topRight'
+      });
     } finally {
       setLoading(false);
     }
@@ -130,12 +136,17 @@ export default function AttendanceDashboardPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '24px', background: '#fff', minHeight: '100vh' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "24px 32px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         {/* Header */}
         <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Space align="center" size={16}>
             <div style={{ 
-              background: '#fff', 
+              background: 'var(--bg-pure-white)', 
               padding: '12px', 
               borderRadius: '12px', 
               boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
@@ -143,15 +154,15 @@ export default function AttendanceDashboardPage() {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <DashboardOutlined style={{ fontSize: 24, color: '#1677ff' }} />
+              <DashboardOutlined style={{ fontSize: 24, color: 'var(--premium-blue)' }} />
             </div>
             <div>
-              <Title level={3} style={{ margin: 0, fontWeight: 700 }}>Attendance Dashboard</Title>
-              <Text type="secondary">Overview of organization attendance for today</Text>
+              <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-slate-900)' }}>Attendance Dashboard</Title>
+              <Text type="secondary" style={{ color: 'var(--text-slate-500)' }}>Overview of organization attendance for today</Text>
             </div>
           </Space>
 
-          <Card size="small" style={{ borderRadius: '12px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          <Card size="small" style={{ borderRadius: '12px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', background: 'var(--bg-pure-white)' }}>
             <Space>
               <Button
                 type={dateFilter === 'week' ? 'primary' : 'default'}
@@ -173,13 +184,11 @@ export default function AttendanceDashboardPage() {
                   setCustomDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null);
                   setDateFilter('custom');
                 }}
-                style={{ borderRadius: '6px' }}
+                style={{ borderRadius: '6px', background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)' }}
               />
             </Space>
           </Card>
         </div>
-
-        {error && <Alert message={error} type="error" showIcon closable style={{ marginBottom: 24, borderRadius: '8px' }} />}
 
         {/* Statistics Grid */}
         <Row gutter={[24, 24]} style={{ marginBottom: '24px' }}>
@@ -195,7 +204,7 @@ export default function AttendanceDashboardPage() {
                 style={{ 
                   borderRadius: '16px', 
                   boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-                  background: '#fff'
+                  background: 'var(--bg-pure-white)'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -209,9 +218,9 @@ export default function AttendanceDashboardPage() {
                     {stat.icon}
                   </div>
                   <Statistic 
-                    title={<Text type="secondary" style={{ fontSize: '14px' }}>{stat.title}</Text>} 
+                    title={<Text style={{ fontSize: '14px', color: 'var(--text-slate-500)' }}>{stat.title}</Text>} 
                     value={stat.value || 0} 
-                    valueStyle={{ fontWeight: 700, fontSize: '24px', color: '#1a1a1a' }}
+                    valueStyle={{ fontWeight: 700, fontSize: '24px', color: 'var(--text-slate-900)' }}
                   />
                 </div>
               </Card>
@@ -224,11 +233,11 @@ export default function AttendanceDashboardPage() {
             <Card 
               title={
                 <Space>
-                  <TeamOutlined style={{ color: '#52c41a' }} />
-                  <span style={{ fontWeight: 600 }}>Today's Present Employees</span>
+                  <TeamOutlined style={{ color: 'var(--premium-blue)' }} />
+                  <span style={{ fontWeight: 600, color: 'var(--text-slate-900)' }}>Today's Present Employees</span>
                 </Space>
               }
-              style={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
+              style={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', background: 'var(--bg-pure-white)' }}
               bodyStyle={{ padding: '0 24px' }}
             >
               <List
@@ -240,6 +249,7 @@ export default function AttendanceDashboardPage() {
                       avatar={
                         <Avatar
                           size={48}
+                          src={employee.avatarUrl}
                           style={{
                             backgroundColor: getStatusColor(employee.status),
                             fontSize: '18px',
@@ -252,7 +262,7 @@ export default function AttendanceDashboardPage() {
                       }
                       title={
                         <Space size={12}>
-                          <Text strong style={{ fontSize: '16px' }}>{employee.name}</Text>
+                          <Text strong style={{ fontSize: '16px', color: 'var(--text-slate-900)' }}>{employee.name}</Text>
                           <Tag
                             color={getStatusColor(employee.status)}
                             style={{ 
@@ -268,14 +278,14 @@ export default function AttendanceDashboardPage() {
                       }
                       description={
                         <div style={{ marginTop: '4px' }}>
-                          <Space split={<Divider type="vertical" />} wrap>
-                            <Text type="secondary">{typeof employee.position === 'object' ? employee.position?.title : employee.position || 'N/A'}</Text>
-                            <Text type="secondary">
+                          <Space split={<Divider type="vertical" style={{ borderColor: 'var(--border-slate-100)' }} />} wrap>
+                            <Text style={{ color: 'var(--text-slate-500)' }}>{typeof employee.position === 'object' ? employee.position?.title : employee.position || 'N/A'}</Text>
+                            <Text style={{ color: 'var(--text-slate-500)' }}>
                               <ClockCircleOutlined style={{ marginRight: '4px' }} />
                               Clock In: {dayjs(employee.clockInTime).format('HH:mm')}
                             </Text>
-                            <Text type="secondary">
-                              Work Hours: <Text strong style={{ color: '#1a1a1a' }}>{formatDuration(employee.workHours)}</Text>
+                            <Text style={{ color: 'var(--text-slate-500)' }}>
+                              Work Hours: <Text strong style={{ color: 'var(--text-slate-900)' }}>{formatDuration(employee.workHours)}</Text>
                             </Text>
                           </Space>
                         </div>
@@ -290,12 +300,12 @@ export default function AttendanceDashboardPage() {
 
           <Col xs={24} lg={8}>
             <Card 
-              title={<span style={{ fontWeight: 600 }}>Attendance Health</span>}
-              style={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', height: '100%' }}
+              title={<span style={{ fontWeight: 600, color: 'var(--text-slate-900)' }}>Attendance Health</span>}
+              style={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', height: '100%', background: 'var(--bg-pure-white)' }}
             >
               <div style={{ textAlign: 'center', padding: '24px 0' }}>
                 <Statistic
-                  title={<Text type="secondary">Overall Attendance Rate</Text>}
+                  title={<Text style={{ color: 'var(--text-slate-500)' }}>Overall Attendance Rate</Text>}
                   value={dashboardSummary?.attendanceRate || 0}
                   suffix="%"
                   valueStyle={{
@@ -306,15 +316,15 @@ export default function AttendanceDashboardPage() {
                   }}
                 />
                 <div style={{ marginTop: '24px' }}>
-                  <Divider orientation="left" plain>Insights</Divider>
+                  <Divider orientation="left" plain><span style={{ color: 'var(--text-slate-400)' }}>Insights</span></Divider>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <Text type="secondary">Late Today</Text>
+                    <Text style={{ color: 'var(--text-slate-500)' }}>Late Today</Text>
                     <Tag color="orange" style={{ borderRadius: '6px', border: 'none', fontWeight: 600 }}>
                       {dashboardSummary?.lateToday || 0} Employees
                     </Tag>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Text type="secondary">Work from Home</Text>
+                    <Text style={{ color: 'var(--text-slate-500)' }}>Work from Home</Text>
                     <Tag color="purple" style={{ borderRadius: '6px', border: 'none', fontWeight: 600 }}>
                       {dashboardSummary?.wfhToday || 0} Employees
                     </Tag>
@@ -324,6 +334,14 @@ export default function AttendanceDashboardPage() {
             </Card>
           </Col>
         </Row>
+        <style jsx global>{`
+          .ant-list-item {
+            border-bottom: 1px solid var(--border-slate-100) !important;
+          }
+          .ant-divider-horizontal {
+             border-top: 1px solid var(--border-slate-100) !important;
+          }
+        `}</style>
       </div>
     </MainLayout>
   );

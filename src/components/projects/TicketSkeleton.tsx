@@ -20,9 +20,9 @@ const TicketSkeleton: React.FC<TicketSkeletonProps> = ({ viewMode = 'list', full
     <Header
       style={{
         padding: "0 24px",
-        background: "rgba(255, 255, 255, 0.8)",
+        background: "var(--bg-pure-white)",
         backdropFilter: "blur(12px)",
-        borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
+        borderBottom: "1px solid var(--border-color)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -59,10 +59,9 @@ const TicketSkeleton: React.FC<TicketSkeletonProps> = ({ viewMode = 'list', full
   const renderSideNavSkeleton = () => (
     <Sider
       width={200}
-      theme="light"
       style={{
-        background: "#fff",
-        borderRight: "1px solid #f0f0f0",
+        background: "var(--bg-pure-white)",
+        borderRight: "1px solid var(--border-color)",
         position: "fixed",
         left: 0,
         top: 64,
@@ -87,7 +86,7 @@ const TicketSkeleton: React.FC<TicketSkeletonProps> = ({ viewMode = 'list', full
   );
 
   const renderPageHeader = () => (
-    <div style={{ marginBottom: 24, padding: '16px 24px', backgroundColor: '#fff', borderBottom: '1px solid #f0f0f0' }}>
+    <div style={{ marginBottom: 24, padding: '16px 24px', backgroundColor: 'var(--bg-pure-white)', borderBottom: '1px solid var(--border-color)' }}>
       <Row justify="space-between" align="middle">
         <Col>
           <Space size={16} align="center">
@@ -112,7 +111,7 @@ const TicketSkeleton: React.FC<TicketSkeletonProps> = ({ viewMode = 'list', full
         <Col>
           <Space size={8} align="center">
             {/* Action Group */}
-            <div style={{ backgroundColor: '#f5f5f5', padding: '4px', borderRadius: 8, display: 'flex', gap: 4 }}>
+            <div style={{ backgroundColor: 'var(--bg-secondary, #f1f5f9)', padding: '4px', borderRadius: 8, display: 'flex', gap: 4 }}>
               <Skeleton.Button active size="small" style={{ width: 36, height: 32, borderRadius: 6 }} />
               <Skeleton.Button active size="small" style={{ width: 80, height: 32, borderRadius: 6 }} />
             </div>
@@ -123,7 +122,7 @@ const TicketSkeleton: React.FC<TicketSkeletonProps> = ({ viewMode = 'list', full
             <Divider type="vertical" style={{ height: 24, margin: '0 4px' }} />
             
             {/* View Switchers */}
-            <div style={{ backgroundColor: '#f5f5f5', padding: '2px', borderRadius: 10, display: 'flex', gap: 2 }}>
+            <div style={{ backgroundColor: 'var(--bg-secondary, #f1f5f9)', padding: '2px', borderRadius: 10, display: 'flex', gap: 2 }}>
               <Skeleton.Button active size="small" style={{ width: 70, height: 32, borderRadius: 8 }} />
               <Skeleton.Button active size="small" style={{ width: 70, height: 32, borderRadius: 8 }} />
             </div>
@@ -146,12 +145,12 @@ const TicketSkeleton: React.FC<TicketSkeletonProps> = ({ viewMode = 'list', full
             <Skeleton.Input active size="small" style={{ width: 120, height: 20 }} />
           </div>
         }
-        style={{ marginBottom: 20, borderRadius: 12, border: '1px solid #f0f0f0', overflow: 'hidden' }}
+        style={{ marginBottom: 20, borderRadius: 12, border: '1px solid var(--border-color)', overflow: 'hidden' }}
         styles={{ body: { padding: 0 } }}
       >
         <div style={{ padding: '16px' }}>
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} style={{ display: 'flex', padding: '12px 0', borderBottom: i === 5 ? 'none' : '1px solid #f9f9f9', gap: 16 }}>
+            <div key={i} style={{ display: 'flex', padding: '12px 0', borderBottom: i === 5 ? 'none' : '1px solid var(--border-color)', gap: 16 }}>
               <Skeleton.Button active size="small" style={{ width: 80 }} />
               <Skeleton.Input active size="small" style={{ flex: 1 }} />
               <Skeleton.Button active size="small" style={{ width: 100 }} />
@@ -172,12 +171,12 @@ const TicketSkeleton: React.FC<TicketSkeletonProps> = ({ viewMode = 'list', full
             <Skeleton.Button active size="small" style={{ width: 100, height: 24 }} />
           </div>
         }
-        style={{ borderRadius: 12, border: '1px solid #f0f0f0', overflow: 'hidden' }}
+        style={{ borderRadius: 12, border: '1px solid var(--border-color)', overflow: 'hidden' }}
         styles={{ body: { padding: 0 } }}
       >
         <div style={{ padding: '16px' }}>
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div key={i} style={{ display: 'flex', padding: '12px 0', borderBottom: i === 8 ? 'none' : '1px solid #f9f9f9', gap: 16 }}>
+            <div key={i} style={{ display: 'flex', padding: '12px 0', borderBottom: i === 8 ? 'none' : '1px solid var(--border-color)', gap: 16 }}>
               <Skeleton.Button active size="small" style={{ width: 80 }} />
               <Skeleton.Input active size="small" style={{ flex: 1 }} />
               <Skeleton.Button active size="small" style={{ width: 100 }} />
@@ -193,7 +192,7 @@ const TicketSkeleton: React.FC<TicketSkeletonProps> = ({ viewMode = 'list', full
   const renderBoardSkeleton = () => (
     <div style={{ padding: '0 24px', display: 'flex', gap: 16, height: 'calc(100vh - 250px)', overflow: 'hidden' }}>
       {[1, 2, 3, 4].map((col) => (
-        <div key={col} style={{ flex: 1, minWidth: 280, backgroundColor: '#f8f9fa', borderRadius: 12, padding: 12 }}>
+        <div key={col} style={{ flex: 1, minWidth: 280, backgroundColor: 'var(--bg-secondary, #f1f5f9)', borderRadius: 12, padding: 12 }}>
           <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
             <Skeleton.Input active size="small" style={{ width: 100, height: 24 }} />
             <Skeleton.Avatar active size="small" shape="circle" />
@@ -215,9 +214,9 @@ const TicketSkeleton: React.FC<TicketSkeletonProps> = ({ viewMode = 'list', full
   );
 
   const pageContent = (
-    <div style={{ 
-      backgroundColor: '#fdfdfd', 
-      minHeight: '100vh', 
+    <div style={{
+      backgroundColor: 'var(--bg-pure-white)',
+      minHeight: '100vh',
       width: '100%',
       marginTop: fullPage ? 64 : 0,
       marginLeft: fullPage ? 200 : 0,

@@ -41,6 +41,7 @@ import {
   Modal,
   Table,
   Empty,
+  theme,
 } from "antd";
 import {
   TeamOutlined,
@@ -71,6 +72,7 @@ import dayjs from "dayjs";
 const { Title, Text } = Typography;
 
 function DashboardContent() {
+  const { token } = theme.useToken();
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
@@ -594,14 +596,14 @@ function DashboardContent() {
           <Progress
             type="dashboard"
             percent={completionRate}
-            strokeColor="#1677ff"
+            strokeColor={token.colorPrimary}
             strokeWidth={10}
             width={115}
             gapDegree={80}
             format={(percent) => (
-              <div style={{ marginTop: -5 }}>
-                <div style={{ fontSize: 26, fontWeight: 700, color: '#262626', letterSpacing: '-0.5px' }}>{percent}%</div>
-                <div style={{ fontSize: 8, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Success</div>
+            <div style={{ marginTop: -5 }}>
+                <div style={{ fontSize: 26, fontWeight: 700, color: token.colorText, letterSpacing: '-0.5px' }}>{percent}%</div>
+                <div style={{ fontSize: 8, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Success</div>
               </div>
             )}
           />
@@ -616,47 +618,47 @@ function DashboardContent() {
           {/* Active Pill */}
           <div style={{
             textAlign: 'center',
-            background: 'rgba(0, 0, 0, 0.02)',
+            background: token.colorFillAlter,
             padding: '8px 4px',
             borderRadius: '12px',
-            border: '1px solid #f0f0f0',
+            border: `1px solid ${token.colorBorderSecondary}`,
             transition: 'all 0.3s'
           }} className="metric-pill">
             <Space direction="vertical" size={0}>
-              <Text strong style={{ fontSize: 16, color: '#262626', lineHeight: 1 }}>{inProgressTickets}</Text>
-              <Text style={{ fontSize: 8, color: '#8c8c8c', textTransform: 'uppercase', fontWeight: 700 }}>Active</Text>
+              <Text strong style={{ fontSize: 16, color: token.colorText, lineHeight: 1 }}>{inProgressTickets}</Text>
+              <Text style={{ fontSize: 8, color: token.colorTextSecondary, textTransform: 'uppercase', fontWeight: 700 }}>Active</Text>
             </Space>
           </div>
 
           {/* Done Pill */}
           <div style={{
             textAlign: 'center',
-            background: 'rgba(0, 0, 0, 0.02)',
+            background: token.colorFillAlter,
             padding: '8px 4px',
             borderRadius: '12px',
-            border: '1px solid #f0f0f0',
+            border: `1px solid ${token.colorBorderSecondary}`,
             transition: 'all 0.3s'
           }} className="metric-pill">
             <Space direction="vertical" size={0}>
-              <Text strong style={{ fontSize: 16, color: '#262626', lineHeight: 1 }}>{completedTickets}</Text>
-              <Text style={{ fontSize: 8, color: '#8c8c8c', textTransform: 'uppercase', fontWeight: 700 }}>Done</Text>
+              <Text strong style={{ fontSize: 16, color: token.colorText, lineHeight: 1 }}>{completedTickets}</Text>
+              <Text style={{ fontSize: 8, color: token.colorTextSecondary, textTransform: 'uppercase', fontWeight: 700 }}>Done</Text>
             </Space>
           </div>
 
           {/* Blocked/Total Pill */}
           <div style={{
             textAlign: 'center',
-            background: 'rgba(0, 0, 0, 0.02)',
+            background: token.colorFillAlter,
             padding: '8px 4px',
             borderRadius: '12px',
-            border: '1px solid #f0f0f0',
+            border: `1px solid ${token.colorBorderSecondary}`,
             transition: 'all 0.3s'
           }} className="metric-pill">
             <Space direction="vertical" size={0}>
-              <Text strong style={{ fontSize: 16, color: '#262626', lineHeight: 1 }}>
+              <Text strong style={{ fontSize: 16, color: token.colorText, lineHeight: 1 }}>
                 {blockedTickets > 0 ? blockedTickets : totalTickets}
               </Text>
-              <Text style={{ fontSize: 8, color: '#8c8c8c', textTransform: 'uppercase', fontWeight: 700 }}>
+              <Text style={{ fontSize: 8, color: token.colorTextSecondary, textTransform: 'uppercase', fontWeight: 700 }}>
                 {blockedTickets > 0 ? 'Blocked' : 'Total'}
               </Text>
             </Space>
@@ -694,37 +696,41 @@ function DashboardContent() {
 
   return (
     <MainLayout>
-      <div style={{ background: "#ffffff", minHeight: "100vh" }}>
-        <div style={{ padding: 20 }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "24px 32px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
           {/* ✅ UPDATED HEADER WITH SEGMENT SWITCHER */}
-          <div
-            style={{
-              marginBottom: 20,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
+          <Row
+            justify="space-between"
+            align="middle"
+            gutter={[16, 16]}
+            style={{ marginBottom: 20 }}
           >
-            <div>
-              <Title level={3} style={{ margin: 0, color: "#141414", fontWeight: 600 }}>
+            <Col>
+              <Title level={3} style={{ margin: 0, color: token.colorText, fontWeight: 600 }}>
                 Welcome back, {user?.name}!
               </Title>
-              <Text type="secondary" style={{ fontSize: 13 }}>
+              <Text type="secondary" style={{ fontSize: 13, color: token.colorTextSecondary }}>
                 Here&apos;s what&apos;s happening with your projects today.
               </Text>
-            </div>
+            </Col>
 
-            <Segmented
-              options={[
-                { label: "Me", value: "me", icon: <UserOutlined /> },
-                { label: "Organization", value: "organization", icon: <TeamOutlined /> },
-              ]}
-              value={activeSegment}
-              onChange={(value) =>
-                setActiveSegment(value as "me" | "organization")
-              }
-            />
-          </div>
+            <Col xs={24} sm={8} md={6} style={{ textAlign: "right" }}>
+              <Segmented
+                options={[
+                  { label: "Me", value: "me", icon: <UserOutlined /> },
+                  { label: "Organization", value: "organization", icon: <TeamOutlined /> },
+                ]}
+                value={activeSegment}
+                onChange={(value) =>
+                  setActiveSegment(value as "me" | "organization")
+                }
+              />
+            </Col>
+          </Row>
 
           {/* ✅ ME SEGMENT — your full original dashboard */}
           {activeSegment === "me" && (
@@ -769,7 +775,7 @@ function DashboardContent() {
                   <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
                     {[1, 2, 3, 4].map((i) => (
                       <Col xs={24} sm={12} lg={6} key={i}>
-                        <Card size="small" bordered style={{ boxShadow: "none" }}>
+                        <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
                           <Skeleton active paragraph={{ rows: 1 }} />
                         </Card>
                       </Col>
@@ -777,12 +783,12 @@ function DashboardContent() {
                   </Row>
                   <Row gutter={[12, 12]}>
                     <Col xs={24} lg={16}>
-                      <Card size="small" bordered style={{ boxShadow: "none" }}>
+                      <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
                         <Skeleton active />
                       </Card>
                     </Col>
                     <Col xs={24} lg={8}>
-                      <Card size="small" bordered style={{ boxShadow: "none" }}>
+                      <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
                         <Skeleton active />
                       </Card>
                     </Col>
@@ -798,8 +804,9 @@ function DashboardContent() {
                         style={{
                           height: "100%",
                           borderRadius: "16px",
-                          border: "1px solid #f0f0f0",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                          border: `1px solid ${token.colorBorderSecondary}`,
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                          background: token.colorBgContainer
                         }}
                         styles={{
                           body: { padding: "12px 16px", height: "100%" },
@@ -902,12 +909,13 @@ function DashboardContent() {
                       <Col xs={24} sm={12} lg={6} key={index}>
                         <Card
                           size="small"
-                          bordered
+                          variant="outlined"
                           style={{
                             height: "100%",
                             borderRadius: "16px",
-                            border: "1px solid #f0f0f0",
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                            border: `1px solid ${token.colorBorderSecondary}`,
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                            background: token.colorBgContainer
                           }}
                           styles={{ body: { padding: 16 } }}
                         >
@@ -937,7 +945,7 @@ function DashboardContent() {
                                 valueStyle={{
                                   fontSize: 24,
                                   fontWeight: 600,
-                                  color: "#262626",
+                                  color: token.colorText,
                                   lineHeight: 1,
                                 }}
                               />
@@ -966,13 +974,13 @@ function DashboardContent() {
                       <Card
                         title={
                           <Space>
-                            <TrophyOutlined style={{ color: "#1677ff" }} />
-                            <span style={{ fontSize: 15, fontWeight: 600 }}>My Tickets</span>
+                            <TrophyOutlined style={{ color: token.colorPrimary }} />
+                            <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>My Tickets</span>
                             <span className="live-pulse" style={{ marginLeft: 8 }} />
                           </Space>
                         }
                         size="small"
-                        bordered
+                        variant="outlined"
                         extra={
                           <Button
                             type="link"
@@ -1007,8 +1015,8 @@ function DashboardContent() {
                         <Card
                           title={
                             <Space size={4}>
-                              <VideoCameraOutlined style={{ color: "#8c8c8c", fontSize: 14 }} />
-                              <span style={{ fontSize: 15, fontWeight: 600 }}>Today's Meetings</span>
+                              <VideoCameraOutlined style={{ color: token.colorTextSecondary, fontSize: 14 }} />
+                              <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>Today's Meetings</span>
                               {!connectedProvider && (
                                 <Button
                                   type="link"
@@ -1023,7 +1031,7 @@ function DashboardContent() {
                             </Space>
                           }
                           size="small"
-                          bordered
+                          variant="outlined"
                           extra={
                             connectedProvider && (
                               <Space size={2}>
@@ -1084,8 +1092,8 @@ function DashboardContent() {
                                     <List.Item
                                       style={{
                                         padding: "6px 10px",
-                                        borderBottom: "1px solid #f0f0f0",
-                                        background: isOngoing ? "#f6ffed" : "transparent"
+                                        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                                        background: isOngoing ? "rgba(82, 196, 26, 0.1)" : "transparent"
                                       }}
                                       actions={[
                                         <Tooltip title="Join Meeting" key="join">
@@ -1098,8 +1106,8 @@ function DashboardContent() {
                                             style={{
                                               height: 24,
                                               width: 24,
-                                              backgroundColor: meeting.meetingLink ? "#1677ff" : "#f5f5f5",
-                                              borderColor: meeting.meetingLink ? "#1677ff" : "#d9d9d9"
+                                              backgroundColor: meeting.meetingLink ? token.colorPrimary : token.colorFillAlter,
+                                              borderColor: meeting.meetingLink ? token.colorPrimary : token.colorBorderSecondary
                                             }}
                                           />
                                         </Tooltip>
@@ -1110,7 +1118,7 @@ function DashboardContent() {
                                           <Avatar
                                             size={22}
                                             style={{
-                                              backgroundColor: isOngoing ? "#52c41a" : "#1677ff",
+                                              backgroundColor: isOngoing ? "#52c41a" : token.colorPrimary,
                                               fontSize: 10
                                             }}
                                           >
@@ -1155,8 +1163,8 @@ function DashboardContent() {
                       <Card
                         title={
                           <Space>
-                            <ClockCircleOutlined style={{ color: "#8c8c8c" }} />
-                            <span style={{ fontSize: 15, fontWeight: 600 }}>My Attendance</span>
+                            <ClockCircleOutlined style={{ color: token.colorTextSecondary }} />
+                            <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>My Attendance</span>
                           </Space>
                         }
                         extra={
@@ -1190,13 +1198,13 @@ function DashboardContent() {
                             </div>
 
                             <div style={{
-                              background: '#ffffff',
+                              background: 'var(--bg-pure-white)',
                               borderRadius: '12px',
                               padding: '12px',
                               display: 'flex',
                               justifyContent: 'space-around',
                               marginBottom: 16,
-                              border: '1px solid #f0f0f0'
+                              border: '1px solid var(--border-color)'
                             }}>
                               <div style={{ textAlign: 'center' }}>
                                 <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 2 }}>CLOCK IN</Text>
@@ -1207,7 +1215,7 @@ function DashboardContent() {
                                   </Text>
                                 </Space>
                               </div>
-                              <Divider type="vertical" style={{ height: '32px', borderLeftColor: '#d6e4ff' }} />
+                              <Divider type="vertical" style={{ height: '32px', borderLeftColor: 'var(--border-color)' }} />
                               <div style={{ textAlign: 'center' }}>
                                 <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 2 }}>CLOCK OUT</Text>
                                 <Space size={4}>
@@ -1231,9 +1239,9 @@ function DashboardContent() {
                                   style={{
                                     borderRadius: '10px',
                                     height: 44,
-                                    background: '#1677ff',
-                                    borderColor: '#1677ff',
-                                    boxShadow: '0 2px 4px rgba(22, 119, 255, 0.1)',
+                                    background: token.colorPrimary,
+                                    borderColor: token.colorPrimary,
+                                    boxShadow: `0 2px 4px ${token.colorPrimaryBg}`,
                                     fontWeight: 600
                                   }}
                                 >
@@ -1291,11 +1299,13 @@ function DashboardContent() {
                         {/* Apply Leave Card */}
                         <Card
                           hoverable
+                          bordered
                           style={{
                             borderRadius: 14,
-                            border: '1px solid #f0f0f0',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                            overflow: 'hidden'
+                            border: `1px solid ${token.colorBorderSecondary}`,
+                            boxShadow: "none",
+                            overflow: 'hidden',
+                            background: token.colorBgContainer
                           }}
                           styles={{ body: { padding: '12px 16px' } }}
                           onClick={() => router.push("/apply-leave")}
@@ -1305,16 +1315,16 @@ function DashboardContent() {
                               width: 38,
                               height: 38,
                               borderRadius: 10,
-                              background: '#f8f9fa',
+                              background: token.colorFillAlter,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              border: '1px solid #f0f0f0'
+                              border: `1px solid ${token.colorBorderSecondary}`
                             }}>
-                              <FormOutlined style={{ fontSize: 18, color: '#8c8c8c' }} />
+                              <FormOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
                             </div>
                             <div style={{ flex: 1 }}>
-                              <Title level={5} style={{ margin: 0, color: '#262626', fontSize: 14, fontWeight: 700 }}>Apply Leave</Title>
+                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Apply Leave</Title>
                               <Text type="secondary" style={{ fontSize: 11 }}>Request time off easily</Text>
                             </div>
                             <Button
@@ -1323,7 +1333,7 @@ function DashboardContent() {
                               size="small"
                               icon={<PlusOutlined style={{ fontSize: 12 }} />}
                               style={{
-                                background: '#1677ff',
+                                background: token.colorPrimary,
                                 border: 'none',
                                 width: 24,
                                 height: 24,
@@ -1339,11 +1349,13 @@ function DashboardContent() {
                         {/* Apply Reimbursement Card */}
                         <Card
                           hoverable
+                          bordered
                           style={{
                             borderRadius: 14,
-                            border: '1px solid #f0f0f0',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                            overflow: 'hidden'
+                            border: `1px solid ${token.colorBorderSecondary}`,
+                            boxShadow: "none",
+                            overflow: 'hidden',
+                            background: token.colorBgContainer
                           }}
                           styles={{ body: { padding: '12px 16px' } }}
                           onClick={() => router.push("/reimburseCreate")}
@@ -1353,16 +1365,16 @@ function DashboardContent() {
                               width: 38,
                               height: 38,
                               borderRadius: 10,
-                              background: '#f8f9fa',
+                              background: token.colorFillAlter,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              border: '1px solid #f0f0f0'
+                              border: `1px solid ${token.colorBorderSecondary}`
                             }}>
-                              <WalletOutlined style={{ fontSize: 18, color: '#8c8c8c' }} />
+                              <WalletOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
                             </div>
                             <div style={{ flex: 1 }}>
-                              <Title level={5} style={{ margin: 0, color: '#262626', fontSize: 14, fontWeight: 700 }}>Reimbursement</Title>
+                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Reimbursement</Title>
                               <Text type="secondary" style={{ fontSize: 11 }}>Submit expense claims</Text>
                             </div>
                             <Button
@@ -1371,7 +1383,7 @@ function DashboardContent() {
                               size="small"
                               icon={<PlusOutlined style={{ fontSize: 12 }} />}
                               style={{
-                                background: '#1677ff',
+                                background: token.colorPrimary,
                                 border: 'none',
                                 width: 24,
                                 height: 24,
@@ -1387,11 +1399,13 @@ function DashboardContent() {
                         {/* Submit Timesheet Card */}
                         <Card
                           hoverable
+                          bordered
                           style={{
                             borderRadius: 14,
-                            border: '1px solid #f0f0f0',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                            overflow: 'hidden'
+                            border: `1px solid ${token.colorBorderSecondary}`,
+                            boxShadow: "none",
+                            overflow: 'hidden',
+                            background: token.colorBgContainer
                           }}
                           styles={{ body: { padding: '12px 16px' } }}
                           onClick={() => router.push("/timesheet/submit")}
@@ -1401,16 +1415,16 @@ function DashboardContent() {
                               width: 38,
                               height: 38,
                               borderRadius: 10,
-                              background: '#f8f9fa',
+                              background: token.colorFillAlter,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              border: '1px solid #f0f0f0'
+                              border: `1px solid ${token.colorBorderSecondary}`
                             }}>
-                              <ClockCircleOutlined style={{ fontSize: 18, color: '#8c8c8c' }} />
+                              <ClockCircleOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
                             </div>
                             <div style={{ flex: 1 }}>
-                              <Title level={5} style={{ margin: 0, color: '#262626', fontSize: 14, fontWeight: 700 }}>Submit Timesheet</Title>
+                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Submit Timesheet</Title>
                               <Text type="secondary" style={{ fontSize: 11 }}>Log your daily hours</Text>
                             </div>
                             <Button
@@ -1419,7 +1433,7 @@ function DashboardContent() {
                               size="small"
                               icon={<PlusOutlined style={{ fontSize: 12 }} />}
                               style={{
-                                background: '#1677ff',
+                                background: token.colorPrimary,
                                 border: 'none',
                                 width: 24,
                                 height: 24,
@@ -1438,8 +1452,8 @@ function DashboardContent() {
                       <Card
                         title={
                           <Space>
-                            <FileTextOutlined style={{ color: "#8c8c8c" }} />
-                            <span style={{ fontSize: 15, fontWeight: 600 }}>Recent Tickets</span>
+                            <FileTextOutlined style={{ color: token.colorTextSecondary }} />
+                            <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>Recent Tickets</span>
                           </Space>
                         }
                         size="small"
@@ -1473,81 +1487,81 @@ function DashboardContent() {
                           className="no-scrollbar"
                           style={{ padding: '0 4px' }}
                           renderItem={(item: any) => (
-                            <List.Item
-                              onClick={() => router.push(`/tickets/${item.id}`)}
-                              style={{
-                                padding: "12px 14px",
-                                cursor: "pointer",
-                                borderBottom: "1px solid #f0f0f0",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "12px",
-                                borderRadius: '12px',
-                                margin: '4px 0'
-                              }}
-                              className="ticket-list-item"
-                            >
-                              {/* Priority Bar Indicator */}
-                              <div
-                                style={{
-                                  width: "4px",
-                                  height: "36px",
-                                  borderRadius: "2px",
-                                  background: getPriorityColor(item.priority),
-                                  flexShrink: 0,
-                                }}
-                              />
-
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    marginBottom: 3,
-                                  }}
-                                >
-                                  <Space size={8}>
-                                    <Text
-                                      type="secondary"
-                                      style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.2px' }}
-                                    >
-                                      {item.ticketNumber}
-                                    </Text>
-                                    <Tag
-                                      style={{
-                                        fontSize: 9,
-                                        margin: 0,
-                                        borderRadius: "4px",
-                                        background: "#f5f5f5",
-                                        border: "none",
-                                        color: '#8c8c8c'
-                                      }}
-                                    >
-                                      {typeof item.project === "string"
-                                        ? item.project
-                                        : item.project?.code ||
-                                        item.project?.name}
-                                    </Tag>
-                                  </Space>
-                                  <Text type="secondary" style={{ fontSize: 10, color: '#bfbfbf' }}>
-                                    {formatTimeAgo(item.createdAt)}
-                                  </Text>
-                                </div>
-
-                                <Text
-                                  strong
-                                  ellipsis={{ tooltip: item.title }}
-                                  style={{
-                                    fontSize: 13,
-                                    display: "block",
-                                    color: "#262626",
-                                    lineHeight: 1.3,
-                                    marginBottom: 6
-                                  }}
-                                >
-                                  {item.title}
-                                </Text>
+                             <List.Item
+                               onClick={() => router.push(`/tickets/${item.id}`)}
+                               style={{
+                                 padding: "12px 14px",
+                                 cursor: "pointer",
+                                 borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "12px",
+                                 borderRadius: '12px',
+                                 margin: '4px 0'
+                               }}
+                               className="ticket-list-item"
+                             >
+                               {/* Priority Bar Indicator */}
+                               <div
+                                 style={{
+                                   width: "4px",
+                                   height: "36px",
+                                   borderRadius: "2px",
+                                   background: getPriorityColor(item.priority),
+                                   flexShrink: 0,
+                                 }}
+                               />
+ 
+                               <div style={{ flex: 1, minWidth: 0 }}>
+                                 <div
+                                   style={{
+                                     display: "flex",
+                                     justifyContent: "space-between",
+                                     alignItems: "center",
+                                     marginBottom: 3,
+                                   }}
+                                 >
+                                   <Space size={8}>
+                                     <Text
+                                       type="secondary"
+                                       style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.2px' }}
+                                     >
+                                       {item.ticketNumber}
+                                     </Text>
+                                     <Tag
+                                       style={{
+                                         fontSize: 9,
+                                         margin: 0,
+                                         borderRadius: "4px",
+                                         background: token.colorFillAlter,
+                                         border: "none",
+                                         color: token.colorTextSecondary
+                                       }}
+                                     >
+                                       {typeof item.project === "string"
+                                         ? item.project
+                                         : item.project?.code ||
+                                         item.project?.name}
+                                     </Tag>
+                                   </Space>
+                                   <Text type="secondary" style={{ fontSize: 10, color: token.colorTextDescription }}>
+                                     {formatTimeAgo(item.createdAt)}
+                                   </Text>
+                                 </div>
+ 
+                                 <Text
+                                   strong
+                                   ellipsis={{ tooltip: item.title }}
+                                   style={{
+                                     fontSize: 13,
+                                     display: "block",
+                                     color: token.colorText,
+                                     lineHeight: 1.3,
+                                     marginBottom: 6
+                                   }}
+                                 >
+                                   {item.title}
+                                 </Text>
 
                                 <div
                                   style={{
@@ -1613,9 +1627,8 @@ function DashboardContent() {
           {/* ✅ ORGANIZATION SEGMENT */}
           {activeSegment === "organization" && <Organization />}
         </div>
-      </div>
-    </MainLayout>
-  );
+      </MainLayout>
+    );
 }
 
 export default function DashboardPage() {

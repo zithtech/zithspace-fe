@@ -49,13 +49,9 @@ import {
 import { useRouter } from "next/navigation";
 import isBetween from "dayjs/plugin/isBetween";
 
-import { 
-  useDeletedInvoices, 
-  useRestoreInvoice, 
-  useBulkRestoreInvoices, 
-  usePermanentDeleteInvoice, 
-  useBulkPermanentDeleteInvoices 
-} from "@/hooks/useInvoices";
+import { useDeletedInvoices, useRestoreInvoice, useBulkRestoreInvoices, usePermanentDeleteInvoice, useBulkPermanentDeleteInvoices, invoiceKeys } from "@/hooks/useInvoices";
+import { useQueryClient } from "@tanstack/react-query";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -100,27 +96,29 @@ export default function InvoiceTrashPage() {
   const [modal, modalContextHolder] = Modal.useModal();
   const { canReadInvoice, canDeleteInvoice } = usePermission();
   const { isLoading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
 
   /* ================= ATTRACTIVE METRIC CARDS ================= */
   const StatCard = ({ label, value, icon: Icon, color }: any) => (
-    <Card 
-      styles={{ body: { padding: "12px 16px" } }} 
-      style={{ 
-        borderRadius: 16, 
-        border: "1px solid #f1f5f9", 
+    <Card
+      styles={{ body: { padding: "12px 16px" } }}
+      style={{
+        borderRadius: 16,
+        border: "1px solid var(--customers-card-border)",
         boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-        height: "100%"
+        height: "100%",
+        backgroundColor: "var(--customers-card-bg)"
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+          <Text style={{ color: "var(--customers-stat-label)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "var(--customers-stat-value)", marginTop: 4 }}>{value}</div>
         </div>
-        <div style={{ 
-          color, 
-          background: `${color}12`, 
-          padding: 12, 
+        <div style={{
+          color,
+          background: `${color}12`,
+          padding: 12,
           borderRadius: 12,
           display: "flex",
           alignItems: "center",
@@ -142,15 +140,27 @@ export default function InvoiceTrashPage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
 
+  // Debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchText);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchText]);
+
   // Hooks
-  const { data, isLoading, refetch } = useDeletedInvoices({
+  const { data, isLoading, isFetching, refetch } = useDeletedInvoices({
     page: pagination.page,
     limit: pagination.limit,
-    search: searchText
+    search: debouncedSearch
   });
 
   const restoreMutation = useRestoreInvoice();
@@ -200,8 +210,6 @@ export default function InvoiceTrashPage() {
   const [invoiceToDelete, setInvoiceToDelete] = useState<any>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  /* ================= HANDLERS ================= */
-
   const handleRestore = (record: any) => {
     modal.confirm({
       title: 'Restore Invoice',
@@ -224,7 +232,7 @@ export default function InvoiceTrashPage() {
 
   const handleBulkRestore = () => {
     if (selectedRowKeys.length === 0) return;
-    
+
     modal.confirm({
       title: 'Bulk Restore Invoices',
       icon: <RotateCcw size={20} className="text-green-500 mr-2" />,
@@ -252,7 +260,7 @@ export default function InvoiceTrashPage() {
 
   const handlePermanentDelete = async () => {
     if (!invoiceToDelete) return;
-    
+
     try {
       setDeletingId(invoiceToDelete.id);
       await permanentDeleteMutation.mutateAsync(invoiceToDelete.id);
@@ -277,9 +285,9 @@ export default function InvoiceTrashPage() {
 
   const startBulkDelete = async () => {
     if (selectedInvoices.length === 0) return;
-    
+
     setBulkDeleteModalVisible(false);
-    
+
     const ids = selectedInvoices.map(inv => inv.id);
 
     setBulkDeleteProgress({
@@ -293,7 +301,7 @@ export default function InvoiceTrashPage() {
 
     try {
       await bulkDeleteMutation.mutateAsync(ids);
-      
+
       setBulkDeleteProgress(prev => ({
         ...prev,
         completed: selectedInvoices.length,
@@ -302,14 +310,14 @@ export default function InvoiceTrashPage() {
 
     } catch (error: any) {
       console.error(`Bulk permanent delete failed:`, error);
-      
+
       setBulkDeleteProgress(prev => ({
         ...prev,
         failed: selectedInvoices.length,
         isDeleting: false
       }));
     }
-    
+
     setTimeout(() => {
       setBulkDeleteProgress({
         visible: false,
@@ -319,7 +327,7 @@ export default function InvoiceTrashPage() {
         currentInvoice: null,
         isDeleting: false
       });
-      
+
       setSelectedRowKeys([]);
       setSelectedInvoices([]);
       refetch();
@@ -365,7 +373,7 @@ export default function InvoiceTrashPage() {
       key: "invoiceNumber",
       width: 140,
       render: (text) => (
-        <Text strong style={{ color: '#2563eb', fontWeight: 700 }}>
+        <Text strong style={{ color: 'var(--customers-header-icon-color)', fontWeight: 700 }}>
           {text}
         </Text>
       ),
@@ -379,14 +387,14 @@ export default function InvoiceTrashPage() {
         const companyName = snapshot?.companyName || record.customer?.companyName || "Unknown";
         return (
           <div className="flex items-center gap-3 truncate">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 text-xs font-bold shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: 'var(--customers-avatar-bg)', color: 'var(--customers-avatar-text)' }}>
               {companyName.charAt(0)}
             </div>
             <div className="truncate">
-              <div className="font-bold text-slate-800 truncate">
+              <div className="font-bold truncate" style={{ color: 'var(--text-primary)' }}>
                 {companyName}
               </div>
-              <div className="text-[10px] text-slate-400 truncate">
+              <div className="text-[10px] truncate" style={{ color: 'var(--text-slate-400)' }}>
                 {snapshot?.email || record.customer?.email || ""}
               </div>
             </div>
@@ -399,7 +407,7 @@ export default function InvoiceTrashPage() {
       dataIndex: "invoiceDate",
       width: 100,
       render: (date: string) => (
-        <div className="text-slate-600">
+        <div style={{ color: 'var(--text-secondary)' }}>
           {date ? dayjs(date).format('MMM DD, YYYY') : '-'}
         </div>
       ),
@@ -409,7 +417,7 @@ export default function InvoiceTrashPage() {
       dataIndex: "dueDate",
       width: 100,
       render: (date: string) => (
-        <div className="text-slate-600 text-xs">
+        <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
           {date ? dayjs(date).format('MMM DD, YYYY') : '-'}
         </div>
       ),
@@ -419,7 +427,7 @@ export default function InvoiceTrashPage() {
       dataIndex: "deletedAt",
       width: 120,
       render: (date: string) => (
-        <div className="text-slate-600 font-medium">
+        <div className="font-medium" style={{ color: 'var(--text-secondary)' }}>
           {date ? dayjs(date).format('MMM DD, YYYY') : '-'}
         </div>
       ),
@@ -430,7 +438,7 @@ export default function InvoiceTrashPage() {
       width: 100,
       align: 'right',
       render: (v) => (
-        <div className="font-semibold text-slate-800">
+        <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
           ${Number(v || 0).toLocaleString()}
         </div>
       ),
@@ -441,7 +449,7 @@ export default function InvoiceTrashPage() {
       width: 80,
       render: (_, record) => {
         const menuItems = getMenuItems(record);
-        
+
         return (
           <Dropdown
             menu={{ items: menuItems }}
@@ -450,7 +458,7 @@ export default function InvoiceTrashPage() {
           >
             <Button
               type="text"
-              icon={<MoreVertical size={18} className="text-slate-400" />}
+              icon={<MoreVertical size={18} style={{ color: 'var(--text-slate-400)' }} />}
             />
           </Dropdown>
         );
@@ -471,7 +479,7 @@ export default function InvoiceTrashPage() {
     <div className="w-72 p-1">
       <Space direction="vertical" size="middle" className="w-full">
         <div>
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Filter by Date</div>
+          <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-slate-500)' }}>Filter by Date</div>
           <RangePicker
             className="w-full rounded-lg"
             value={dateRange as any}
@@ -481,7 +489,7 @@ export default function InvoiceTrashPage() {
         </div>
 
         <div>
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Filter by Status</div>
+          <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-slate-500)' }}>Filter by Status</div>
           <Select
             className="w-full"
             placeholder="Select status"
@@ -501,7 +509,7 @@ export default function InvoiceTrashPage() {
           />
         </div>
 
-        <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+        <div className="flex justify-end gap-2 pt-3 border-t" style={{ borderColor: 'var(--border-color)' }}>
           <Button
             size="small"
             type="text"
@@ -528,56 +536,53 @@ export default function InvoiceTrashPage() {
       {messageContextHolder}
       {modalContextHolder}
       <div style={{
-          margin: "0 -24px",
-          padding: "24px 32px",
-          background: "#ffffff",
-          minHeight: "calc(100vh - 64px)"
+        margin: "0 -24px",
+        background: "var(--customers-page-bg)",
+        minHeight: "calc(100vh - 64px)"
       }}>
-        {/* ================= HEADER ================= */}
-        <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
-          <div style={{ flex: 1 }}>
-            <Space size={14} align="center">
-              <div style={{ background: "#fef2f2", padding: 12, borderRadius: 14, color: "#ef4444", display: "flex" }}>
-                <Trash2 size={28} />
-              </div>
-              <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Invoice Trash</Title>
-                <Text style={{ color: "#64748b", fontSize: 15 }}>Review and restore deleted invoices or remove them permanently.</Text>
-              </div>
-            </Space>
-          </div>
-          <div style={{ display: "flex", gap: 12, alignItems: 'center' }}>
-            <Input.Search
-              placeholder="Search deleted..."
-              allowClear
-              size="large"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{ width: 280, borderRadius: 12 }}
-            />
-            <Popover content={filterContent} trigger="click" placement="bottomRight">
-              <Button size="large" icon={<Filter size={18} />} style={{ borderRadius: 12, height: 44 }}>
-                Filter
+        <TimeTrackingHeader
+          style={{ padding: '9.5px 32px' }}
+          icon={<Trash2 size={20} color="#8b5cf6" />}
+          title="Invoice Trash"
+          description="Review and restore deleted invoices or remove them permanently."
+          extra={
+            <div style={{ display: "flex", gap: 10, alignItems: 'center' }}>
+              <Input.Search
+                placeholder="Search deleted..."
+                allowClear
+                size="middle"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: 260, borderRadius: 8, backgroundColor: 'var(--bg-slate-50)' }}
+              />
+              <Popover content={filterContent} trigger="click" placement="bottomRight">
+                <Button size="middle" icon={<Filter size={16} />} style={{ borderRadius: 8, height: 38, backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}>
+                  Filter
+                </Button>
+              </Popover>
+              <Button
+                size="middle"
+                icon={<RefreshCw size={16} className={isFetching ? "animate-spin" : ""} />}
+                onClick={async () => {
+                  await queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
+                  refetch();
+                }}
+                style={{ borderRadius: 8, height: 38, backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--customers-card-border)' }}
+              />
+              <Button
+                type="primary"
+                size="middle"
+                icon={<ArrowLeft size={16} />}
+                onClick={() => router.push("/invoice/invoices")}
+                style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600, backgroundColor: 'var(--customers-header-icon-color)', border: 'none' }}
+              >
+                Back to Invoices
               </Button>
-            </Popover>
-            <Button
-              size="large"
-              icon={<RefreshCw size={18} />}
-              onClick={() => refetch()}
-              loading={isLoading}
-              style={{ borderRadius: 12, height: 44 }}
-            />
-            <Button
-              type="primary"
-              size="large"
-              icon={<ArrowLeft size={18} />}
-              onClick={() => router.push("/invoice/invoices")}
-              style={{ borderRadius: 12, height: 44, padding: "0 20px", fontWeight: 600 }}
-            >
-              Back to Invoices
-            </Button>
-          </div>
-        </div>
+            </div>
+          }
+        />
+
+        <div style={{ padding: "16px 32px 32px 32px" }}>
 
         {/* ================= METRIC STATS ================= */}
         <Row gutter={[24, 24]} style={{ marginBottom: 16 }}>
@@ -589,7 +594,7 @@ export default function InvoiceTrashPage() {
           </Col>
         </Row>
 
-        <Divider style={{ marginTop: "0", borderTop: "1px solid #f1f5f9" }} />
+
 
         {/* ================= BULK ACTIONS ================= */}
         {selectedRowKeys.length > 0 && (
@@ -635,17 +640,17 @@ export default function InvoiceTrashPage() {
 
         {/* ================= TABLE ================= */}
         {isLoading ? (
-          <div className="flex flex-col justify-center items-center h-64 bg-slate-50 rounded-2xl border border-slate-100">
+          <div className="flex flex-col justify-center items-center h-64 rounded-2xl border" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--customers-card-border)' }}>
             <Spin size="large" />
-            <Text className="mt-4 text-slate-500">Loading trashed invoices...</Text>
+            <Text className="mt-4" style={{ color: 'var(--text-slate-500)' }}>Loading trashed invoices...</Text>
           </div>
         ) : filteredInvoices.length === 0 ? (
-          <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-100">
-            <div className="size-20 bg-white rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-6">
-              <Trash2 size={40} className="text-slate-200" />
+          <div className="text-center py-20 rounded-2xl border" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--customers-card-border)' }}>
+            <div className="size-20 rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-6" style={{ backgroundColor: 'var(--customers-card-bg)' }}>
+              <Trash2 size={40} style={{ color: 'var(--text-slate-200)' }} />
             </div>
-            <Title level={4} style={{ color: "#64748b" }}>No deleted invoices found</Title>
-            <Text style={{ color: "#94a3b8" }} className="mb-6 block">
+            <Title level={4} style={{ color: "var(--text-secondary)" }}>No deleted invoices found</Title>
+            <Text style={{ color: "var(--text-slate-400)" }} className="mb-6 block">
               {searchText ? 'Try a different search term' : 'The trash folder is currently empty'}
             </Text>
             <Button
@@ -663,9 +668,10 @@ export default function InvoiceTrashPage() {
             bordered={false}
             style={{
               borderRadius: 16,
-              border: "1px solid #f1f5f9",
+              border: "1px solid var(--customers-card-border)",
               boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-              overflow: "hidden"
+              overflow: "hidden",
+              backgroundColor: "var(--customers-card-bg)"
             }}
             styles={{ body: { padding: 0 } }}
           >
@@ -692,9 +698,11 @@ export default function InvoiceTrashPage() {
             />
           </Card>
         )}
+        </div>
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .trash-table-row:hover {
           background-color: #fef2f2 !important;
         }
@@ -707,6 +715,45 @@ export default function InvoiceTrashPage() {
         .ant-table-tbody > tr > td {
           padding: 12px 16px !important;
           border-bottom: 1px solid #f1f5f9 !important;
+        }
+        
+        /* Dark theme specific styles - only apply when data-theme is dark */
+        [data-theme='dark'] .trash-table-row:hover {
+          background-color: var(--customers-table-row-hover) !important;
+        }
+        [data-theme='dark'] .ant-table-thead > tr > th {
+          background-color: var(--customers-table-header-bg) !important;
+          color: var(--customers-table-header-text) !important;
+          border-bottom: 1px solid var(--border-color) !important;
+        }
+        [data-theme='dark'] .ant-table-tbody > tr > td {
+          border-bottom: 1px solid var(--border-color) !important;
+        }
+        [data-theme='dark'] .ant-table {
+          background-color: var(--customers-card-bg) !important;
+        }
+        [data-theme='dark'] .ant-table-tbody > tr > td {
+          background-color: var(--customers-card-bg) !important;
+        }
+        [data-theme='dark'] .ant-table-pagination {
+          background-color: var(--customers-card-bg) !important;
+        }
+        [data-theme='dark'] .ant-table-pagination .ant-pagination-item {
+          background-color: var(--customers-card-bg) !important;
+          border-color: var(--border-color) !important;
+        }
+        [data-theme='dark'] .ant-table-pagination .ant-pagination-item a {
+          color: var(--text-primary) !important;
+        }
+        [data-theme='dark'] .ant-table-pagination .ant-pagination-item-active {
+          background-color: var(--customers-header-icon-color) !important;
+          border-color: var(--customers-header-icon-color) !important;
+        }
+        [data-theme='dark'] .ant-table-pagination .ant-pagination-item-active a {
+          color: #ffffff !important;
+        }
+        [data-theme='dark'] .ant-table-pagination .ant-pagination-options {
+          color: var(--text-primary) !important;
         }
       `}} />
 
@@ -788,7 +835,7 @@ export default function InvoiceTrashPage() {
             <Info size={20} className="text-red-500 mr-2" />
             Are you sure you want to delete {selectedInvoices.length} selected invoice(s)?
           </div>
-          
+
           <div className="mb-4 max-h-60 overflow-y-auto border border-slate-100 rounded-xl p-3 bg-slate-50">
             <Text type="secondary" className="block mb-2 text-xs uppercase font-semibold">Selected for deletion:</Text>
             <ul className="space-y-1">
@@ -805,7 +852,7 @@ export default function InvoiceTrashPage() {
               )}
             </ul>
           </div>
-          
+
           <Alert
             message="Critical Warning"
             description="All selected invoices will be permanently removed from the database."
@@ -838,7 +885,7 @@ export default function InvoiceTrashPage() {
               {bulkDeleteProgress.completed}/{bulkDeleteProgress.total}
             </Text>
           </div>
-          
+
           <div className="mb-6">
             <Progress
               percent={Math.round((bulkDeleteProgress.completed / bulkDeleteProgress.total) * 100)}
@@ -851,7 +898,7 @@ export default function InvoiceTrashPage() {
               <span className="text-red-600 bg-red-50 px-2 py-0.5 rounded-md">Failed: {bulkDeleteProgress.failed}</span>
             </div>
           </div>
-          
+
           {bulkDeleteProgress.currentInvoice && (
             <div className="text-center p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-center gap-2">
               <Spin size="small" />
@@ -862,7 +909,8 @@ export default function InvoiceTrashPage() {
           )}
         </div>
       </Modal>
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .ant-table-thead > tr > th {
           background-color: #f8fafc !important;
           color: #64748b !important;

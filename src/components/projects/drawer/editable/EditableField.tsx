@@ -150,7 +150,7 @@ export const EditableField: React.FC<EditableFieldProps> = ({
             />
             <style jsx global>{`
         .editable-field-hover:hover {
-          background-color: #fafafa;
+          background-color: rgba(144, 144, 144, 0.08);
         }
         .editable-field-hover:hover .edit-icon {
           opacity: 1 !important;

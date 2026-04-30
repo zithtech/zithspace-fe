@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
@@ -30,6 +30,10 @@ import {
   MenuProps,
   Badge,
   Progress,
+  Spin,
+  Switch,
+  Segmented,
+  type TableProps,
 } from "antd";
 import {
   PlusCircleOutlined,
@@ -41,6 +45,9 @@ import {
   AppstoreOutlined,
   BarsOutlined,
   FilterOutlined,
+  ExpandAltOutlined,
+  InboxOutlined,
+  UserOutlined,
   PlusOutlined,
   MinusOutlined,
   CaretRightOutlined,
@@ -49,15 +56,34 @@ import {
   CheckCircleOutlined,
   ShareAltOutlined,
   MoreOutlined,
+  ProjectOutlined,
+  UnorderedListOutlined,
+  FileTextOutlined,
+  ThunderboltOutlined,
+  CaretDownOutlined,
+  ClockCircleOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { Ticket } from "@/services/ticketService";
 import { ProjectService } from "@/services/projectService";
-import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "@/utils/ticketUtils";
+import {
+  PRIORITY_OPTIONS,
+  TYPE_OPTIONS,
+  STATUS_OPTIONS,
+  getStatusColor,
+  getStatusLabel,
+  getPriorityColor,
+  getTypeColor,
+  getPlatformColor,
+  getTaskLevelColor,
+  getStackColor
+} from "@/utils/ticketUtils";
+import { SettingsService } from "@/services/settingsService";
 import { useTickets, useKanbanTickets, useUpdateTicket, useDeleteTicket } from "@/hooks/useTickets";
 import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
-import { useUserProjects, useMembers } from "@/hooks/useGlobalData";
+import { useAllProjects, useMembers } from "@/hooks/useGlobalData";
 import { InlineCreateTicket } from "./InlineCreateTicket";
 import { TicketFilters } from "./TicketFilters";
 import { TicketKanban } from './kanban/TicketKanban';
@@ -65,6 +91,8 @@ import ReleasePlanService from "@/services/releasePlanService";
 import { TicketDetailDrawer } from "./drawer/TicketDetailDrawer";
 import { SprintCompletionModal } from "./sprint-completion";
 import { SprintCreationForm, type SprintFormData } from "./sprint-completion/SprintCreationForm";
+import { ManualCreateTicketModal } from "./ManualCreateTicketModal";
+import { AiCreateTicketModal } from "./AiCreateTicketModal";
 import TicketSkeleton from "./TicketSkeleton";
 
 const { Title, Text } = Typography;
@@ -73,7 +101,9 @@ interface FilterState {
   status: string[];
   priority: string[];
   assignee: string[];
+  type: string[];
   search: string;
+  showArchived?: boolean;
 }
 
 interface TicketListProps {
@@ -92,13 +122,18 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     status: [],
     priority: [],
     assignee: [],
+    type: [],
     search: "",
+    showArchived: false,
   });
 
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
   const [kanbanScope, setKanbanScope] = useState<'active' | 'backlog'>('active');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [manualModalOpen, setManualModalOpen] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [allTicketIds, setAllTicketIds] = useState<string[]>([]);
 
@@ -114,11 +149,56 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     ticketId: string;
     field: "status" | "assignee" | "title" | "priority" | "type" | "storyPoint";
   } | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [localSearchValue, setLocalSearchValue] = useState("");
+  const [backlogSearchValue, setBacklogSearchValue] = useState("");
+  const [debouncedBacklogSearch, setDebouncedBacklogSearch] = useState("");
+  const [recentTicket, setRecentTicket] = useState<Ticket | null>(null);
+  const recentTicketCardRef = useRef<HTMLDivElement | null>(null);
+
+  // Measure active-sprint card head so the table column headers stick flush below it
+  const activeSprintCardRef = useRef<HTMLDivElement | null>(null);
+  const [activeSprintHeadOffset, setActiveSprintHeadOffset] = useState<number>(128);
+  useEffect(() => {
+    const el = activeSprintCardRef.current?.querySelector('.ant-card-head') as HTMLElement | null;
+    if (!el) return;
+    const update = () => setActiveSprintHeadOffset(56 + el.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [activeSprintCardRef.current]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setFilters(prev => ({ ...prev, search: localSearchValue }));
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [localSearchValue]);
+
+  useEffect(() => {
+    // Immediate reset when cleared
+    if (backlogSearchValue.length === 0) {
+      setDebouncedBacklogSearch("");
+      return;
+    }
+
+    const handler = setTimeout(() => {
+      // Only set debounced value if length is >= 2, otherwise clear it
+      if (backlogSearchValue.length >= 2) {
+        setDebouncedBacklogSearch(backlogSearchValue);
+      } else {
+        setDebouncedBacklogSearch("");
+      }
+    }, 400);
+
+    return () => clearTimeout(handler);
+  }, [backlogSearchValue]);
 
 
 
   // Use cached global data hooks
-  const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
+  const { data: projects = [], isLoading: projectsLoading } = useAllProjects();
   const { data: members = [], isLoading: membersLoading } = useMembers();
 
   // Pagination state
@@ -127,16 +207,56 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     pageSize: 10,
   });
 
+
+
+
+
+
+
+  // Add this after all useState declarations
+  const [dbStatusOptions, setDbStatusOptions] = useState<{ label: string; value: string }[]>([]);
+  const [dbPriorityOptions, setDbPriorityOptions] = useState<{ label: string; value: string }[]>([]);
+
+  // Add this useEffect to fetch from database
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const options = await SettingsService.getDropdownOptions();
+
+        // Status options from DB
+        const statusOpts = (options.status || [])
+          .filter(opt => opt.isActive)
+          .sort((a, b) => a.order - b.order)
+          .map(opt => ({ label: opt.label, value: opt.value }));
+        setDbStatusOptions(statusOpts);
+
+        // Priority options from DB
+        const priorityOpts = (options.priority || [])
+          .filter(opt => opt.isActive)
+          .sort((a, b) => a.order - b.order)
+          .map(opt => ({ label: opt.label, value: opt.value }));
+        setDbPriorityOptions(priorityOpts);
+
+      } catch (error) {
+        console.error('Error fetching dropdown options:', error);
+      }
+    };
+
+    fetchOptions();
+  }, []);
+
   // --- React Query Hooks ---
 
   // Base params (without pagination) for filters
   const baseQueryParams = {
     projectId, // From props, mandatory project context
-    status: filters.status.length > 0 ? filters.status[0] : undefined,
-    priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
+    status: filters.status.length > 0 ? filters.status.join(",") : undefined,
+    priority: filters.priority.length > 0 ? filters.priority.join(",") : undefined,
     assigneeId:
       filters.assignee.length > 0 ? filters.assignee.join(",") : undefined,
+    type: filters.type.length > 0 ? filters.type.join(",") : undefined,
     search: filters.search || undefined,
+    showArchived: filters.showArchived || undefined,
   };
 
   // Fetch Active Sprint to get ID for assignments (scoped to project)
@@ -162,10 +282,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     limit: 9999 // Fetch all tickets in active sprint (no pagination)
   };
 
+  // Combine global and local backlog search
+  const backlogCombinedSearch = [filters.search, debouncedBacklogSearch].filter(Boolean).join(" ");
+
   // Query Params for Backlog List (WITH PAGINATION)
   const backlogParams = {
     ...baseQueryParams,
     sprintId: 'null',
+    search: backlogCombinedSearch || undefined,
     page: pagination.current,
     limit: pagination.pageSize,
   };
@@ -174,6 +298,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const {
     data: activeSprintData,
     isLoading: activeSprintLoading,
+    isFetching: activeSprintFetching,
     refetch: refetchActive
   } = useTickets(activeSprintParams);
 
@@ -181,6 +306,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const {
     data: backlogData,
     isLoading: backlogLoading,
+    isFetching: backlogFetching,
     refetch: refetchBacklog
   } = useTickets(backlogParams);
 
@@ -192,6 +318,17 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const activeTickets = activeSprintData?.data || [];
   const backlogTickets = backlogData?.data || [];
   const totalBacklog = backlogData?.pagination?.total || 0;
+
+  // 3. Fetch ALL Active Sprint Tickets for progress calculation (UNFILTERED)
+  const { data: overallSprintData } = useTickets({
+    projectId,
+    sprintId: 'active',
+    limit: 9999
+  }, {
+    enabled: !!activeSprint // Only fetch if we have an active sprint
+  });
+  const overallSprintTickets = overallSprintData?.data || [];
+
 
   // Sync all ticket IDs for navigation
   useEffect(() => {
@@ -210,13 +347,62 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   // Handle Add/Remove from Sprint
   // Handle Add/Remove from Sprint
-  const [notifyApi, notifyContextHolder] = notification.useNotification(); // Use notification hook
+  const [notifyApi, notifyContextHolder] = notification.useNotification({
+    placement: 'top',
+  }); // Use notification hook
 
   // Handle Add/Remove from Sprint
   // Handle Add/Remove from Sprint
+  const showSprintTinyToast = (
+    kind: 'added' | 'removed' | 'error',
+    label?: string
+  ) => {
+    const palette =
+      kind === 'added'
+        ? { dot: '#10b981', icon: '✓' }
+        : kind === 'removed'
+          ? { dot: '#ef4444', icon: '↺' }
+          : { dot: '#ef4444', icon: '!' };
+
+    notifyApi.open({
+      key: 'sprint-assignment-toast',
+      placement: 'top',
+      duration: 2,
+      className: 'tiny-toast',
+      message: (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              background: palette.dot,
+              color: '#fff',
+              fontSize: 11,
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            {palette.icon}
+          </span>
+          {kind === 'added' && (
+            <>
+              Added to <strong style={{ color: 'var(--text-slate-900)', fontWeight: 700 }}>{label}</strong>
+            </>
+          )}
+          {kind === 'removed' && <>Removed from sprint</>}
+          {kind === 'error' && <span style={{ color: '#ef4444' }}>Sprint update failed</span>}
+        </span>
+      ),
+    });
+  };
+
   const handleSprintAssignment = (ticketId: string, action: 'add' | 'remove') => {
     if (action === 'add' && !activeSprint) {
-      notifyApi.error({ message: "Action Failed", description: "No active sprint found for this project." });
+      showSprintTinyToast('error');
       return;
     }
 
@@ -229,21 +415,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       optimisticData: { releasePlan: releasePlanId } // Critical for optimistic move
     }, {
       onSuccess: () => {
-        notifyApi.success({
-          message: action === 'add' ? "Ticket Added to Sprint" : "Ticket Removed from Sprint",
-          description: action === 'add'
-            ? `${activeSprint?.name || 'Sprint'} updated.`
-            : "Ticket returned to backlog.",
-          placement: 'bottomLeft', // Jira style-ish
-          className: 'custom-notification',
-          style: {
-            borderLeft: `4px solid ${action === 'add' ? '#52c41a' : '#ff4d4f'}`,
-          }
-        });
+        if (action === 'add') {
+          showSprintTinyToast('added', activeSprint?.version || activeSprint?.name || 'Sprint');
+        } else {
+          showSprintTinyToast('removed');
+        }
       },
       onError: (err) => {
         console.error(err);
-        notifyApi.error({ message: "Update Failed", description: "Failed to update sprint assignment." });
+        showSprintTinyToast('error');
       }
     });
   };
@@ -260,7 +440,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     notifyApi.success({
       message: 'Sprint Completed',
       description: 'Sprint completed successfully',
-      placement: 'bottomLeft',
+      placement: 'top',
       style: {
         borderLeft: '4px solid #52c41a',
       }
@@ -299,14 +479,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         notifyApi.success({
           message: 'Active Sprint Created',
           description: `${newSprint.version} is now your active sprint! Start adding tickets.`,
-          placement: 'bottomLeft',
+          placement: 'top',
           style: { borderLeft: '4px solid #52c41a' }
         });
       } else {
         notifyApi.success({
           message: 'Planning Sprint Created',
           description: `${newSprint.version} created as a draft. You can start it after completing the current sprint.`,
-          placement: 'bottomLeft',
+          placement: 'top',
           style: { borderLeft: '4px solid #1890ff' }
         });
       }
@@ -334,6 +514,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     projectId, // From props, mandatory project context
     assigneeId: filters.assignee.length > 0 ? filters.assignee.join(',') : undefined,
     priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
+    type: filters.type.length > 0 ? filters.type.join(',') : undefined,
     search: filters.search || undefined,
     limitPerColumn: 20, // Fast initial load
     sprintId: kanbanScope === 'active' ? 'active' : 'null',
@@ -341,7 +522,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const {
     data: initialKanbanData,
-    isLoading: isInitialKanbanLoading
+    isLoading: isInitialKanbanLoading,
+    isFetching: isInitialKanbanFetching
   } = useKanbanTickets(initialKanbanParams);
 
   // 2. Background complete load (50 tickets/column = 200 total)
@@ -349,6 +531,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     projectId, // From props, mandatory project context
     assigneeId: filters.assignee.length > 0 ? filters.assignee.join(',') : undefined,
     priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
+    type: filters.type.length > 0 ? filters.type.join(',') : undefined,
     search: filters.search || undefined,
     limitPerColumn: 50, // Complete load
     sprintId: kanbanScope === 'active' ? 'active' : 'null',
@@ -388,6 +571,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
     if (key === 'search') return false;
+    if (key === 'showArchived') return value === true;
     return Array.isArray(value) && value.length > 0;
   }).length;
 
@@ -460,59 +644,47 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "success";
-      case "in_progress":
-        return "processing";
-      case "in_testing":
-        return "warning";
-      case "not_started":
-        return "default";
-      default:
-        return "default";
+  const getStatusColorClass = (status: string) => {
+    const color = getStatusColor(status);
+    switch (color) {
+      case 'success': return 'saas-tag-green';
+      case 'processing': return 'saas-tag-blue';
+      case 'warning': return 'saas-tag-orange';
+      case 'purple': return 'saas-tag-purple';
+      case 'blue': return 'saas-tag-blue';
+      case 'cyan': return 'saas-tag-cyan';
+      case 'geekblue': return 'saas-tag-geekblue';
+      case 'orange': return 'saas-tag-orange';
+      default: return 'saas-tag-default';
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "P1":
-        return "red";
-      case "P2":
-        return "orange";
-      case "P3":
-        return "green";
-      default:
-        return "default";
-    }
+  const getPriorityColorClass = (priority: string) => {
+    const color = getPriorityColor(priority);
+    return `saas-tag-${color}`;
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "Bug":
-        return "red";
-      case "Task":
-        return "blue";
-      case "Feat":
-        return "green";
-      case "Overwrite":
-        return "orange";
-      default:
-        return "default";
-    }
+  const getTypeColorClass = (type: string) => {
+    const color = getTypeColor(type);
+    return `saas-tag-${color}`;
   };
 
   const handleViewTicket = (ticket: Ticket) => {
     setSelectedTicketId(ticket.id);
   };
 
-  const handleDeleteTicket = async (ticket: Ticket, event?: React.MouseEvent) => {
+  const handleDeleteTicket = async (ticketId: string) => {
+    console.log("handleDeleteTicket triggered for ID:", ticketId);
     try {
-      await deleteTicketMutation.mutateAsync(ticket.id);
-      message.success("Ticket deleted successfully");
+      if (!ticketId) {
+        console.error("No ticket ID provided for deletion");
+        return;
+      }
+      await deleteTicketMutation.mutateAsync(ticketId);
+      console.log("Delete mutation successful for ID:", ticketId);
+      message.success("Ticket moved to trash");
     } catch (error: any) {
-      console.error("Failed to delete ticket:", error);
+      console.error("Delete mutation failed for ID:", ticketId, error);
 
       // Check if it's a permission error
       const errorMessage = error?.message || "Failed to delete ticket";
@@ -528,8 +700,40 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     }
   };
 
+  const fireConfettiAtCard = () => {
+    try {
+      // @ts-ignore
+      import('canvas-confetti').then((confetti) => {
+        const el = recentTicketCardRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const x = (rect.left + rect.width / 2) / window.innerWidth;
+        const y = (rect.top + rect.height / 2) / window.innerHeight;
+
+        confetti.default({
+          particleCount: 60,
+          spread: 70,
+          startVelocity: 28,
+          ticks: 80,
+          scalar: 0.8,
+          origin: { x, y },
+          zIndex: 1000,
+        });
+      }).catch(err => {
+        console.warn('Confetti module not found, skipping animation', err);
+      });
+    } catch (e) {
+      console.error('Error firing confetti:', e);
+    }
+  };
+
+  const handleTicketCreated = (ticket: Ticket) => {
+    setRecentTicket(ticket);
+    requestAnimationFrame(() => fireConfettiAtCard());
+  };
+
   // Table columns generator
-  const getColumns = (context: 'active' | 'backlog') => [
+  const getColumns = (context: 'active' | 'backlog'): TableProps<Ticket>['columns'] => [
     {
       title: "ID",
       dataIndex: "ticketNumber",
@@ -540,12 +744,17 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           onClick={() => handleViewTicket(record)}
           style={{
             cursor: 'pointer',
-            color: '#1677ff',
-            fontWeight: 500
+            color: 'var(--premium-blue)',
+            fontWeight: 700,
+            fontSize: '12px',
+            fontFamily: 'JetBrains Mono, monospace',
+            letterSpacing: '-0.02em',
+            padding: '2px 6px',
+            background: 'var(--bg-blue-50)',
+            borderRadius: '4px',
+            border: '1px solid var(--border-blue-200)'
           }}
-          className="hover:underline"
-          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+          className="hover:opacity-80 transition-opacity"
         >
           {text}
         </span>
@@ -555,7 +764,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       title: "Title",
       dataIndex: "title",
       key: "title",
-      width: 300,
+      width: 350,
       render: (text: string, record: Ticket) => {
         const isEditing =
           editingField?.ticketId === record.id &&
@@ -571,23 +780,33 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               onBlur={(e) => handleUpdateTicket(record.id, "title", e.target.value)}
               onPressEnter={(e) => handleUpdateTicket(record.id, "title", e.currentTarget.value)}
               disabled={isUpdating}
+              className="premium-input-field"
             />
           );
         }
 
-        const displayText = text.length > 40 ? `${text.slice(0, 40)} ...` : text;
-
         return (
           <div
             className="group"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', minHeight: 22 }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', minHeight: 24 }}
             onClick={() => setEditingField({ ticketId: record.id, field: "title" })}
-            title={text} // Show full text on native tooltip as well
+            title={text}
           >
-            <Text ellipsis={{ tooltip: true }} style={{ flex: 1 }}>{displayText}</Text>
+            <Text
+              strong
+              style={{
+                flex: 1,
+                fontSize: 14,
+                color: 'var(--text-slate-900)',
+                letterSpacing: '-0.01em'
+              }}
+              ellipsis={{ tooltip: true }}
+            >
+              {text}
+            </Text>
             <EditOutlined
-              className="opacity-0 group-hover:opacity-70 transition-opacity"
-              style={{ color: '#1677ff' }}
+              className="opacity-0 group-hover:opacity-40 transition-opacity"
+              style={{ color: 'var(--premium-blue)', fontSize: 12 }}
             />
           </div>
         );
@@ -597,7 +816,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: 150,
+      width: 140,
       render: (status: string, record: Ticket) => {
         const isEditing =
           editingField?.ticketId === record.id &&
@@ -615,20 +834,20 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               onBlur={() => setEditingField(null)}
               autoFocus
               loading={isUpdating}
-              options={STATUS_OPTIONS}
+              options={dbStatusOptions.length > 0 ? dbStatusOptions : STATUS_OPTIONS}
             />
           );
         }
 
         return (
           <Tag
-            color={getStatusColor(status)}
-            style={{ cursor: "pointer" }}
+            className={`saas-tag ${getStatusColorClass(status)}`}
+            style={{ cursor: "pointer", display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 80 }}
             onClick={() =>
               setEditingField({ ticketId: record.id, field: "status" })
             }
           >
-            {status.replace("_", " ").toUpperCase()}
+            {getStatusLabel(status, dbStatusOptions.length > 0 ? dbStatusOptions : STATUS_OPTIONS)}
           </Tag>
         );
       },
@@ -655,7 +874,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               onBlur={() => setEditingField(null)}
               autoFocus
               loading={isUpdating}
-              options={[
+              options={dbPriorityOptions.length > 0 ? dbPriorityOptions : [
                 { label: "High (P1)", value: "P1" },
                 { label: "Medium (P2)", value: "P2" },
                 { label: "Low (P3)", value: "P3" },
@@ -665,7 +884,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         }
 
         return (
-          <Tag color={getPriorityColor(priority)} style={{ cursor: 'pointer' }} onClick={() => setEditingField({ ticketId: record.id, field: "priority" })}>
+          <Tag
+            className={`saas-tag ${getPriorityColorClass(priority)}`}
+            style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            onClick={() => setEditingField({ ticketId: record.id, field: "priority" })}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'currentColor' }} />
             {priority}
           </Tag>
         );
@@ -704,16 +928,24 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         }
 
         if (!type) {
-          return <Text type="secondary" style={{ cursor: 'pointer' }} onClick={() => setEditingField({ ticketId: record.id, field: "type" })}>-</Text>;
+          return <Text type="secondary" style={{ cursor: 'pointer', fontSize: 13 }} onClick={() => setEditingField({ ticketId: record.id, field: "type" })}>-</Text>;
         }
-        return <Tag color={getTypeColor(type)} style={{ cursor: 'pointer' }} onClick={() => setEditingField({ ticketId: record.id, field: "type" })}>{type}</Tag>;
+        return (
+          <Tag
+            className={`saas-tag ${getTypeColorClass(type)}`}
+            style={{ cursor: 'pointer' }}
+            onClick={() => setEditingField({ ticketId: record.id, field: "type" })}
+          >
+            {type}
+          </Tag>
+        );
       },
     },
     {
-      title: "Story Points",
+      title: "SP",
       dataIndex: "storyPoint",
       key: "storyPoint",
-      width: 100,
+      width: 70,
       render: (storyPoint: number | undefined, record: Ticket) => {
         const isEditing =
           editingField?.ticketId === record.id &&
@@ -722,18 +954,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         if (isEditing) {
           return (
-            <Input
-              type="number"
+            <InputNumber
               defaultValue={storyPoint}
-              autoFocus={true}
+              autoFocus
               onBlur={(e) => {
                 const val = parseFloat(e.target.value);
                 handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? 0 : val);
               }}
-              onPressEnter={(e) => {
-                const val = parseFloat(e.currentTarget.value);
-                handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? 0 : val);
-              }}
+              onPressEnter={(e) => handleUpdateTicket(record.id, "storyPoint", parseFloat(e.currentTarget.value))}
               style={{ width: '100%' }}
               disabled={isUpdating}
             />
@@ -742,24 +970,22 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         return (
           <div
-            style={{ cursor: 'pointer', minHeight: 22 }}
+            style={{
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 24,
+              height: 24,
+              borderRadius: 6,
+              background: 'var(--bg-slate-100)',
+              fontSize: 12,
+              fontWeight: 700,
+              color: 'var(--text-slate-500)'
+            }}
             onClick={() => setEditingField({ ticketId: record.id, field: "storyPoint" })}
           >
-            {storyPoint !== undefined && storyPoint !== null ? (
-              <div style={{
-                display: 'inline-block',
-                background: '#f0f0f0',
-                borderRadius: '12px',
-                padding: '0 8px',
-                fontSize: '12px',
-                fontWeight: 600,
-                color: '#555'
-              }}>
-                {storyPoint}
-              </div>
-            ) : (
-              <Text type="secondary">-</Text>
-            )}
+            {storyPoint || 0}
           </div>
         );
       }
@@ -768,7 +994,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       title: "Assignee",
       dataIndex: "assignee",
       key: "assignee",
-      width: 200,
+      width: 180,
       render: (assignee: any, record: Ticket) => {
         const isEditing =
           editingField?.ticketId === record.id &&
@@ -813,15 +1039,20 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         return (
           <Space
-            style={{ cursor: "pointer" }}
+            style={{ cursor: "pointer", transition: 'all 0.2s' }}
+            className="hover:translate-x-1"
             onClick={() =>
               setEditingField({ ticketId: record.id, field: "assignee" })
             }
           >
-            <Avatar size="small" style={{ backgroundColor: "#1677ff" }}>
-              {name.charAt(0)}
+            <Avatar
+              size="small"
+              style={{ backgroundColor: "#1677ff" }}
+              src={assignee?.avatarUrl}
+            >
+              {!assignee?.avatarUrl && name?.charAt(0)}
             </Avatar>
-            <Text>{name}</Text>
+            <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-700)' }}>{name}</Text>
           </Space>
         );
       },
@@ -829,602 +1060,777 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     {
       title: "Actions",
       key: "actions",
-      pinned: true,
-      width: 150,
+      fixed: 'right',
+      width: 160,
       render: (_: any, record: Ticket) => {
         const handleShare = () => {
           const url = `${window.location.origin}/public/tickets/${record.id}`;
           navigator.clipboard.writeText(url);
         };
 
-        const content = (
-          <div>
-            <p>Public link copied to clipboard!</p>
-          </div>
-        );
-
         return (
-          <Space>
-            {/* Sprint Management Actions */}
-            <Space>
-              {context === 'backlog' && (
-                <Tooltip title="Add to Sprint">
-                  <Button
-                    type="text"
-                    icon={<PlusCircleOutlined style={{ color: '#52c41a' }} />}
-                    onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'add'); }}
-                  />
-                </Tooltip>
-              )}
-              {context === 'active' && (
-                <Tooltip title="Remove from Sprint">
-                  <Button
-                    type="text"
-                    danger
-                    icon={<MinusCircleOutlined />}
-                    onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'remove'); }}
-                  />
-                </Tooltip>
-              )}
-            </Space>
-
-            {/* Share Action with Popover */}
-            <Popover content="Link copied!" trigger="click">
-              <Tooltip title="Share Public Link">
+          <Space size={4}>
+            {/* Context based actions */}
+            {context === 'backlog' && (
+              <Tooltip title="Add to Sprint">
                 <Button
                   type="text"
-                  icon={<ShareAltOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleShare();
-                  }}
+                  size="small"
+                  icon={<PlusCircleOutlined style={{ color: '#52c41a' }} />}
+                  onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'add'); }}
+                  className="saas-button-item"
                 />
               </Tooltip>
-            </Popover>
+            )}
+            {context === 'active' && (
+              <Tooltip title="Remove from Sprint">
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<MinusCircleOutlined />}
+                  onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'remove'); }}
+                  className="saas-button-item"
+                />
+              </Tooltip>
+            )}
 
-            {/* Delete Action with Popconfirm */}
-            <Popconfirm
-              title="Delete Ticket"
-              description="Are you sure you want to delete this ticket?"
-              onConfirm={() => handleDeleteTicket(record)}
-              onCancel={(e) => e?.stopPropagation()}
-              okText="Yes"
-              cancelText="No"
-              okButtonProps={{ danger: true }}
-            >
-              <Button
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </Popconfirm>
+            <Divider type="vertical" style={{ margin: '0 4px' }} />
 
-            {/* View Details */}
             <Tooltip title="View Details">
               <Button
                 type="text"
-                icon={<EyeOutlined />}
+                size="small"
+                icon={<EyeOutlined style={{ color: 'var(--premium-blue)' }} />}
                 onClick={(e) => { e.stopPropagation(); handleViewTicket(record); }}
+                className="saas-button-item"
               />
             </Tooltip>
+
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'share',
+                    label: 'Copy Public Link',
+                    icon: <ShareAltOutlined />,
+                    onClick: handleShare
+                  },
+                  {
+                    key: 'delete',
+                    label: 'Delete Ticket',
+                    icon: <DeleteOutlined />,
+                    danger: true,
+                    onClick: (info: any) => {
+                      if (info.domEvent) info.domEvent.stopPropagation();
+                      modal.confirm({
+                        title: 'Confirm Deletion',
+                        content: (
+                          <div style={{ marginTop: 8 }}>
+                            <Text>Are you sure you want to move <b>{record.ticketNumber}</b> to trash?</Text>
+                            <Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 4 }}>
+                              You can restore it for up to 7 days from the Trash Repository.
+                            </Text>
+                          </div>
+                        ),
+                        okText: 'Move to Trash',
+                        okType: 'danger',
+                        centered: true,
+                        okButtonProps: { style: { fontWeight: 700 } },
+                        onOk: () => handleDeleteTicket(record.id)
+                      });
+                    }
+                  }
+                ]
+              }}
+              trigger={['click']}
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<MoreOutlined />}
+                onClick={(e) => e.stopPropagation()}
+                className="saas-button-item"
+              />
+            </Dropdown>
           </Space>
         );
       },
     },
   ];
 
-  // Helper to get columns based on context
-  const columns = getColumns('backlog'); // Fallback/Default
-
-
-  // Show empty state if user has no projects
-  if (!activeSprintLoading && !backlogLoading && !projectsLoading && projects.length === 0) {
-    return (
-      <div>
-        {contextHolder}
-        <Row
-          justify="space-between"
-          align="middle"
-          style={{ marginBottom: 24 }}
-        >
-          <Col>
-            <Title level={3}>Tickets</Title>
-          </Col>
-        </Row>
-        <Card>
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <div>
-                <Text type="secondary">
-                  You are not a member of any projects yet.
-                </Text>
-                <br />
-                <Text type="secondary">
-                  Contact your project manager to be added to a project.
-                </Text>
-              </div>
-            }
-          />
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ backgroundColor: '#ffffff', minHeight: '100%', padding: '16px 24px' }}>
+    <div style={{
+      backgroundColor: 'var(--bg-pure-white)',
+      minHeight: 'calc(100vh - 64px)',
+      padding: '0 24px 24px 24px',
+      margin: '0 -24px'
+    }}>
       {contextHolder}
       {notifyContextHolder}
 
-      {/* Premium Header Row - Sticky */}
-      <div style={{
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .project-switch-trigger:hover {
+          background-color: var(--bg-slate-50);
+        }
+      `}} />
+
+      {/* Premium Header Row - Sticky Glassmorphism */}
+      <div className="saas-header-container" style={{
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(8px)',
-        margin: '0 -24px 20px -24px',
-        padding: '16px 24px',
-        borderBottom: '1px solid #f0f0f0'
+        margin: '0 -24px 16px -24px',
+        padding: '8px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        flexWrap: 'wrap'
       }}>
-        <Row justify="space-between" align="middle">
-          <Col flex="1">
-            <Space size={16} align="center" style={{ width: '100%' }}>
-              {/* Project Switcher Group */}
-              <Space size={4} align="center">
-                <Button
-                  type="text"
-                  icon={<ArrowLeftOutlined style={{ fontSize: 13, color: '#8c8c8c' }} />}
-                  onClick={() => router.push('/projects/select?select=true')}
-                  style={{
-                    backgroundColor: '#f5f5f5',
-                    borderRadius: 6,
-                    width: 28,
-                    height: 28,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                />
-                <Button
-                  type="text"
-                  size="small"
-                  onClick={() => router.push('/projects/select?select=true')}
-                  style={{
-                    fontSize: 12,
-                    color: '#8c8c8c',
-                    fontWeight: 500,
-                    padding: '0 4px',
-                    height: 28
-                  }}
-                >
-                  Switch Project
-                </Button>
-              </Space>
-
-              <Divider type="vertical" style={{ height: 20, margin: 0, borderLeft: '1px solid #e8e8e8' }} />
-
-              {/* Project Name & Code */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Title level={4} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
-                  {projectName}
-                </Title>
-                <Tag
-                  bordered={false}
-                  color="blue"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    borderRadius: 4,
-                    padding: '0 8px',
-                    margin: 0
-                  }}
-                >
-                  {projectCode}
-                </Tag>
-              </div>
-
-              <Divider type="vertical" style={{ height: 20, margin: 0, borderLeft: '1px solid #e8e8e8' }} />
-
-              {/* Search Field */}
-              <Input
-                placeholder="Search tickets..."
-                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-                style={{
-                  width: 240,
-                  borderRadius: 8,
-                  backgroundColor: '#f9f9f9',
-                  border: '1px solid #f0f0f0',
-                  height: 36
-                }}
-                value={filters.search}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, search: e.target.value }))
-                }
-                allowClear
-              />
-            </Space>
-          </Col>
-
-          <Col>
-            <Space size={8}>
-              {/* Action Group */}
-              <div style={{ backgroundColor: '#f5f5f5', padding: '4px', borderRadius: 8, display: 'flex' }}>
-                <Tooltip title="Reload tickets">
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={() => { refetchActive(); refetchBacklog(); }}
-                    loading={(activeSprintLoading || backlogLoading) && !activeSprintLoading}
-                    type="text"
-                    style={{ borderRadius: 6 }}
-                  />
-                </Tooltip>
-                <Popover
-                  content={
-                    <TicketFilters
-                      filters={filters}
-                      onFilterChange={handleFilterChange}
-                      members={members}
-                      onReset={() => setFilters({ status: [], priority: [], assignee: [], search: filters.search })}
-                    />
-                  }
-                  trigger="click"
-                  placement="bottomRight"
-                  open={isFilterPopoverOpen}
-                  onOpenChange={setIsFilterPopoverOpen}
-                >
-                  <Button
-                    icon={<FilterOutlined />}
-                    type="text"
-                    style={{
-                      borderRadius: 6,
-                      backgroundColor: activeFilterCount > 0 ? '#e6f4ff' : 'transparent',
-                      color: activeFilterCount > 0 ? '#1677ff' : '#595959'
-                    }}
-                  >
-                    Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
-                  </Button>
-                </Popover>
-              </div>
-
-              <Button
-                type="primary"
-                icon={showCreateForm ? <MinusOutlined /> : <PlusOutlined />}
-                onClick={() => setShowCreateForm(!showCreateForm)}
-                style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
-              >
-                {showCreateForm ? "Close" : "Create"}
-              </Button>
-
-              <Divider type="vertical" style={{ height: 24, margin: '0 4px' }} />
-
-              {/* View & Scope Switchers Row */}
-              <div style={{ display: 'flex', gap: 8 }}>
-                {/* View Mode Switcher */}
+        {/* Project Switcher */}
+        <Dropdown
+          menu={{
+            items: (projects || []).map(p => ({
+              key: p.value,
+              label: (
                 <div style={{
-                  backgroundColor: '#f5f5f5',
-                  padding: '2px',
-                  borderRadius: 10,
                   display: 'flex',
                   alignItems: 'center',
-                  border: '1px solid #f0f0f0'
+                  gap: 10,
+                  padding: '6px 10px',
+                  minWidth: 210,
+                  borderRadius: 8,
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  background: p.value === projectId ? 'var(--bg-blue-50)' : 'transparent',
                 }}>
-                  <Radio.Group
-                    value={viewMode}
-                    onChange={(e) => setViewMode(e.target.value)}
-                    buttonStyle="solid"
-                    size="middle"
-                    className="premium-switcher"
-                  >
-                    <Radio.Button
-                      value="list"
-                      style={{
-                        borderRadius: 8,
-                        border: 'none',
-                        height: 32,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '0 12px',
-                        fontSize: 13,
-                        fontWeight: viewMode === 'list' ? 600 : 400,
-                        transition: 'all 0.2s ease',
-                        boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
-                      }}
-                    >
-                      <BarsOutlined style={{ marginRight: 6 }} /> List
-                    </Radio.Button>
-                    <Radio.Button
-                      value="board"
-                      style={{
-                        borderRadius: 8,
-                        border: 'none',
-                        height: 32,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '0 12px',
-                        fontSize: 13,
-                        fontWeight: viewMode === 'board' ? 600 : 400,
-                        transition: 'all 0.2s ease',
-                        boxShadow: viewMode === 'board' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
-                      }}
-                    >
-                      <AppstoreOutlined style={{ marginRight: 6 }} /> Board
-                    </Radio.Button>
-                  </Radio.Group>
-                </div>
-
-                {(viewMode === 'board' || viewMode === 'list') && (
                   <div style={{
-                    backgroundColor: '#f5f5f5',
-                    padding: '2px',
-                    borderRadius: 10,
+                    padding: '0 6px',
+                    height: 26,
+                    borderRadius: 6,
+                    background: p.value === projectId
+                      ? 'var(--premium-gradient)'
+                      : 'var(--bg-slate-100)',
                     display: 'flex',
                     alignItems: 'center',
-                    border: '1px solid #f0f0f0'
+                    justifyContent: 'center',
+                    color: p.value === projectId ? '#fff' : 'var(--text-slate-500)',
+                    fontSize: 9,
+                    fontWeight: 800,
+                    boxShadow: p.value === projectId ? 'var(--premium-shadow)' : 'none',
+                    minWidth: 32
                   }}>
-                    <Radio.Group
-                      value={kanbanScope}
-                      onChange={(e) => {
-                        const newScope = e.target.value as 'active' | 'backlog';
-                        setKanbanScope(newScope);
-
-                        // If in list view, auto-scroll to the section
-                        if (viewMode === 'list') {
-                          const sectionId = newScope === 'active' ? 'active-section' : 'backlog-section';
-                          const element = document.getElementById(sectionId);
-                          if (element) {
-                            // Find the scrollable container (MainLayout Content area)
-                            const scrollContainer = element.closest('.ant-layout-content');
-                            const headerOffset = 100; // Account for sticky header
-
-                            if (scrollContainer) {
-                              const elementTop = element.getBoundingClientRect().top;
-                              const containerTop = scrollContainer.getBoundingClientRect().top;
-                              const scrollAmount = elementTop - containerTop - headerOffset;
-
-                              scrollContainer.scrollBy({
-                                top: scrollAmount,
-                                behavior: 'smooth'
-                              });
-                            } else {
-                              // Fallback for window scroll
-                              const elementPosition = element.getBoundingClientRect().top;
-                              const offsetPosition = elementPosition + window.scrollY - headerOffset;
-                              window.scrollTo({
-                                top: offsetPosition,
-                                behavior: 'smooth'
-                              });
-                            }
-                          }
-                        }
-                      }}
-                      buttonStyle="solid"
-                      size="middle"
-                      className="premium-switcher"
-                    >
-                      <Radio.Button
-                        value="active"
-                        style={{
-                          borderRadius: 8,
-                          border: 'none',
-                          height: 32,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '0 12px',
-                          fontSize: 13,
-                          fontWeight: kanbanScope === 'active' ? 600 : 400,
-                          transition: 'all 0.2s ease',
-                          boxShadow: kanbanScope === 'active' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
-                        }}
-                      >
-                        Active
-                      </Radio.Button>
-                      <Radio.Button
-                        value="backlog"
-                        style={{
-                          borderRadius: 8,
-                          border: 'none',
-                          height: 32,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '0 12px',
-                          fontSize: 13,
-                          fontWeight: kanbanScope === 'backlog' ? 600 : 400,
-                          transition: 'all 0.2s ease',
-                          boxShadow: kanbanScope === 'backlog' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
-                        }}
-                      >
-                        Backlog
-                      </Radio.Button>
-                    </Radio.Group>
+                    {p.code?.toUpperCase()}
                   </div>
-                )}
-              </div>
-            </Space>
-          </Col>
-        </Row>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-slate-900)', lineHeight: '1.4' }}>{p.label}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-slate-400)', fontWeight: 500 }}>#{p.code}</div>
+                  </div>
+                  {p.value === projectId && <CheckCircleOutlined style={{ color: '#10b981', fontSize: 12 }} />}
+                </div>
+              ),
+              onClick: () => router.push(`/projects/${p.value}/tickets`)
+            })),
+            style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
+          }}
+          trigger={['click']}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '4px 8px', borderRadius: 8 }} className="project-switch-trigger transition-colors">
+            <div style={{
+              padding: '0 8px',
+              height: 32,
+              borderRadius: 6,
+              background: 'var(--premium-gradient)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              fontSize: 10,
+              fontWeight: 800,
+              boxShadow: 'var(--premium-shadow-lg)',
+              minWidth: 36
+            }}>
+              {projectCode?.toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>{projectName}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-slate-500)', fontWeight: 600 }}>Switch Project <CaretRightOutlined style={{ fontSize: 8 }} /></div>
+            </div>
+          </div>
+        </Dropdown>
+
+        <Divider type="vertical" style={{ height: 32, margin: 0, opacity: 0.5 }} />
+
+        {/* Action Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+          <Input
+            placeholder="Quick search tickets..."
+            prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+            className="saas-input"
+            style={{ maxWidth: 280, borderRadius: 8, height: 36 }}
+            value={localSearchValue}
+            onChange={(e) => setLocalSearchValue(e.target.value)}
+            allowClear
+          />
+
+          <Space.Compact className="ticket-filter-group">
+            <Popover
+              content={
+                <TicketFilters
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  members={members}
+                  showArchivedToggle
+                  onReset={() => setFilters({ status: [], priority: [], assignee: [], type: [], search: filters.search, showArchived: false })}
+                />
+              }
+              trigger="click"
+              placement="bottomLeft"
+            >
+              <Button
+                icon={<FilterOutlined />}
+                className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
+                style={{ height: 36, fontWeight: 600 }}
+              >
+                Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+              </Button>
+            </Popover>
+            <Button
+              icon={<ExpandAltOutlined />}
+              style={{ height: 36 }}
+              aria-label="Expand filters"
+              onClick={() => setIsFilterRowOpen(prev => !prev)}
+            />
+          </Space.Compact>
+
+          <Segmented
+            value={viewMode}
+            onChange={(v) => setViewMode(v as 'list' | 'board')}
+            options={[
+              { label: 'List', value: 'list', icon: <UnorderedListOutlined style={{ fontSize: 13 }} /> },
+              { label: 'Board', value: 'board', icon: <AppstoreOutlined style={{ fontSize: 13 }} /> },
+            ]}
+            className="saas-segmented-premium"
+          />
+        </div>
+
+        {/* Right Side Actions */}
+        <Space size={12}>
+          {recentTicket && (
+            <div
+              ref={recentTicketCardRef}
+              className="ticket-highlight-glow"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 12px',
+                background: 'var(--bg-blue-50)',
+                border: '1px solid var(--border-blue-200)',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <div className="highlight-point" />
+              <Text
+                strong
+                onClick={() => setSelectedTicketId(recentTicket.id)}
+                style={{
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  color: 'var(--premium-blue)',
+                  letterSpacing: '-0.01em'
+                }}
+                className="hover:underline"
+              >
+                {recentTicket.ticketNumber} Created
+              </Text>
+              <Divider type="vertical" style={{ margin: '0 4px', height: 14, opacity: 0.3 }} />
+              <CloseOutlined
+                onClick={(e) => { e.stopPropagation(); setRecentTicket(null); }}
+                style={{ fontSize: 10, color: 'var(--text-slate-400)', cursor: 'pointer' }}
+                className="hover:text-slate-600 transition-colors"
+              />
+            </div>
+          )}
+          <Tooltip title="Refresh view">
+            <Button
+              icon={<ReloadOutlined spin={isRefreshing} />}
+              onClick={async () => {
+                setIsRefreshing(true);
+                await queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                setIsRefreshing(false);
+                message.success("View refreshed");
+              }}
+              style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            />
+          </Tooltip>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'manual',
+                  label: 'Manual Creation',
+                  icon: <FileTextOutlined />,
+                  onClick: () => setManualModalOpen(true)
+                },
+                {
+                  key: 'instant',
+                  label: 'Instant Creation',
+                  icon: <ThunderboltOutlined />,
+                  onClick: () => setShowCreateForm(true)
+                },
+                {
+                  key: 'zai',
+                  label: (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                      Create with Zai
+                      <Tag color="purple" bordered={false} style={{ margin: 0, fontSize: 9 }}>AI</Tag>
+                    </div>
+                  ),
+                  icon: <ThunderboltOutlined style={{ color: '#722ed1' }} />,
+                  onClick: () => setAiModalOpen(true)
+                }
+              ],
+              style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
+            }}
+            trigger={['hover', 'click']}
+            placement="bottomRight"
+          >
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              style={{
+                height: 36,
+                borderRadius: 8,
+                fontWeight: 700,
+                padding: '0 16px',
+                background: 'var(--premium-gradient)',
+                border: 'none',
+                boxShadow: 'var(--premium-shadow-lg)'
+              }}
+            >
+              Create Ticket <CaretDownOutlined style={{ fontSize: 10, marginLeft: 4 }} />
+            </Button>
+          </Dropdown>
+        </Space>
       </div>
 
-      {/* Inline Creation - Controlled Visibility */}
+      {/* Inline Filter Row */}
+      {isFilterRowOpen && (
+        <div className="ticket-filter-row">
+          <div className="ticket-filter-row__header">
+            <span className="ticket-filter-row__badge">
+              <FilterOutlined />
+            </span>
+            <div className="ticket-filter-row__title">
+              <span className="ticket-filter-row__title-text">View Filters</span>
+              <span className="ticket-filter-row__title-sub">
+                {activeFilterCount > 0 ? `${activeFilterCount} active` : 'No filters applied'}
+              </span>
+            </div>
+          </div>
+
+          <div className="ticket-filter-row__fields">
+            <div className="ticket-filter-row__field">
+              <label className="ticket-filter-row__label">
+                <CheckCircleOutlined /> Status
+              </label>
+              <Select
+                mode="multiple"
+                placeholder="Any status"
+                value={filters.status}
+                onChange={(val) => handleFilterChange('status', val)}
+                options={STATUS_OPTIONS}
+                allowClear
+                maxTagCount={1}
+                className="ticket-filter-row__select"
+              />
+            </div>
+
+            <div className="ticket-filter-row__field">
+              <label className="ticket-filter-row__label">
+                <ThunderboltOutlined /> Priority
+              </label>
+              <Select
+                mode="multiple"
+                placeholder="Any priority"
+                value={filters.priority}
+                onChange={(val) => handleFilterChange('priority', val)}
+                options={PRIORITY_OPTIONS}
+                allowClear
+                maxTagCount={1}
+                className="ticket-filter-row__select"
+              />
+            </div>
+
+            <div className="ticket-filter-row__field">
+              <label className="ticket-filter-row__label">
+                <AppstoreOutlined /> Type
+              </label>
+              <Select
+                mode="multiple"
+                placeholder="Any type"
+                value={filters.type}
+                onChange={(val) => handleFilterChange('type', val)}
+                options={TYPE_OPTIONS}
+                allowClear
+                maxTagCount={1}
+                className="ticket-filter-row__select"
+              />
+            </div>
+
+            <div className="ticket-filter-row__field">
+              <label className="ticket-filter-row__label">
+                <UserOutlined /> Assignee
+              </label>
+              <Select
+                mode="multiple"
+                placeholder="All members"
+                value={filters.assignee}
+                onChange={(val) => handleFilterChange('assignee', val)}
+                options={members.map((m) => ({ label: m.label, value: m.value }))}
+                allowClear
+                showSearch
+                maxTagCount={1}
+                filterOption={(input, option) => {
+                  const member = members.find((m) => m.value === option?.value);
+                  return member
+                    ? member.label.toLowerCase().includes(input.toLowerCase()) ||
+                        (member.position || '').toLowerCase().includes(input.toLowerCase())
+                    : false;
+                }}
+                className="ticket-filter-row__select"
+              />
+            </div>
+          </div>
+
+          <div className="ticket-filter-row__actions">
+            <button
+              type="button"
+              onClick={() => handleFilterChange('showArchived', !filters.showArchived)}
+              className={`ticket-filter-row__chip ${filters.showArchived ? 'is-active' : ''}`}
+              aria-pressed={!!filters.showArchived}
+            >
+              <InboxOutlined />
+              <span>Archived</span>
+              <Switch
+                size="small"
+                checked={!!filters.showArchived}
+                onChange={(checked) => handleFilterChange('showArchived', checked)}
+              />
+            </button>
+
+            {activeFilterCount > 0 && (
+              <Button
+                type="text"
+                size="small"
+                icon={<ReloadOutlined />}
+                onClick={() => setFilters({ status: [], priority: [], assignee: [], type: [], search: filters.search, showArchived: false })}
+                className="ticket-filter-row__reset"
+              >
+                Reset
+              </Button>
+            )}
+
+            <Tooltip title="Close filters">
+              <Button
+                type="text"
+                shape="circle"
+                icon={<CloseOutlined />}
+                onClick={() => setIsFilterRowOpen(false)}
+                aria-label="Close filter row"
+                className="ticket-filter-row__close"
+              />
+            </Tooltip>
+          </div>
+        </div>
+      )}
+
+      {/* Inline Creation */}
       <InlineCreateTicket
         visible={showCreateForm}
         onClose={() => setShowCreateForm(false)}
-        onTicketCreated={() => {
-          // Optimistic update handles the UI, no need to refetch immediately, but we can if we want to be safe
-          // refetchActive(); 
-          // refetchBacklog();
-          setShowCreateForm(false);
-        }}
         projectId={projectId}
         filters={filters}
         projects={projects}
         members={members}
+        onTicketCreated={handleTicketCreated}
       />
 
-      {/* Tickets View (List or Board) */}
-      {viewMode === 'list' ? (
-        <>
+      {/* Tickets View */}
+      {(isRefreshing || (viewMode === 'list' ? (activeSprintLoading || backlogLoading) : isKanbanLoading)) ? (
+        <TicketSkeleton viewMode={viewMode} />
+      ) : viewMode === 'list' ? (
+        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Active Sprint Section */}
           {activeSprint && (
-            (typeof activeSprint.project === 'string' ? activeSprint.project === projectId : activeSprint.project?.id === projectId)
-          ) && (
-              <div id="active-section" style={{ scrollMarginTop: '100px' }}>
-                <Card
-                  title={
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                      <Space size={8}>
-                        <Text style={{ fontSize: '16px', fontWeight: 600 }}>
-                          {/* Backend stores sprint name in 'version' field */}
-                          {activeSprint?.version || activeSprint?.name || 'Active Sprint'}
-                        </Text>
-                        <Badge count={activeTickets.length} showZero style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', border: 'none', fontSize: 11 }} />
-                        <Tag color="green" bordered={false} style={{ borderRadius: '4px' }}>RUNNING</Tag>
+            <div id="active-section" ref={activeSprintCardRef} style={{ scrollMarginTop: '100px' }}>
+              <Card
+                className="saas-card saas-card-sticky"
+                title={
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Space size={12}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)' }} />
+                      <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)' }}>
+                        {activeSprint?.version || 'Active Sprint'}
+                      </Text>
+                      <Space size={6}>
+                        <Tag className="saas-tag saas-tag-green" style={{
+                          margin: 0,
+                          height: 24,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: 70,
+                          fontSize: 10,
+                          fontWeight: 800,
+                          borderRadius: 4
+                        }}>
+                          Current
+                        </Tag>
+                        {activeSprint.endDate && (() => {
+                          const isDelayed = dayjs().isAfter(dayjs(activeSprint.endDate), 'day');
+                          const isToday = dayjs().isSame(dayjs(activeSprint.endDate), 'day');
+                          const days = Math.abs(dayjs().diff(dayjs(activeSprint.endDate), 'day'));
+                          return (
+                            <Tag bordered={false} style={{
+                              margin: 0,
+                              height: 24,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              minWidth: 90,
+                              fontSize: 10,
+                              fontWeight: 800,
+                               background: isDelayed ? 'rgba(239, 68, 68, 0.15)' : isToday ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                              color: isDelayed ? '#fb7185' : isToday ? '#fbbf24' : '#34d399',
+                              borderRadius: 4,
+                              border: `1px solid ${isDelayed ? 'rgba(239, 68, 68, 0.2)' : isToday ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`
+                            }}>
+                              {isDelayed ? `${days}d Delayed` : isToday ? 'Ends Today' : `${days}d Left`}
+                            </Tag>
+                          );
+                        })()}
+                        <Tag bordered={false} style={{
+                          margin: 0,
+                          height: 24,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: 90,
+                          background: '#f1f5f9',
+                          color: '#64748b',
+                          fontWeight: 800,
+                          fontSize: 10,
+                          borderRadius: 4,
+                          textTransform: 'uppercase'
+                        }}>
+                          {activeTickets.length} Tickets
+                        </Tag>
                       </Space>
-                      <Space>
-                        {activeSprint?.status === 'active' && (
-                          <Button
-                            type="primary"
-                            size="small"
-                            icon={<CheckCircleOutlined />}
-                            onClick={handleCompleteSprint}
-                          >
-                            Complete Sprint
-                          </Button>
-                        )}
-                        <Text type="secondary" style={{ fontSize: '13px', fontWeight: 400 }}>
-                          {activeSprint.startDate ? dayjs(activeSprint.startDate).format('MMM D') : 'TBD'}
-                          {' - '}
-                          {activeSprint.endDate ? dayjs(activeSprint.endDate).format('MMM D') : 'TBD'}
-                        </Text>
-                      </Space>
-                    </div>
-                  }
-                  style={{ marginBottom: 20 }}
-                  styles={{ body: { padding: 10 } }} // Remove padding to flush table with card
-                >
-                  <Table
-                    columns={getColumns('active')}
-                    dataSource={activeTickets}
-                    rowKey="id"
-                    loading={activeSprintLoading}
-                    pagination={false}
-                    scroll={{ x: 1200 }}
+                    </Space>
+                    <Space size={12} split={<Divider type="vertical" style={{ height: 20, margin: 0, opacity: 1, borderColor: '#e2e8f0', borderWidth: 1 }} />}>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Progress</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#10b981' }}>
+                          {overallSprintTickets.length > 0 ? Math.round((overallSprintTickets.filter(t => ['completed'].includes(t.status?.toLowerCase() || '')).length / overallSprintTickets.length) * 100) : 0}%
+                        </div>
+                      </div>
+                      {(() => {
+                        const start = dayjs(activeSprint.startDate);
+                        const end = dayjs(activeSprint.endDate);
+                        const now = dayjs();
+                        const totalDays = Math.max(end.diff(start, 'day'), 1);
+                        const elapsedDays = Math.max(0, Math.min(totalDays, now.diff(start, 'day')));
+                        const pct = Math.round((elapsedDays / totalDays) * 100);
+                        const isOverdue = now.isAfter(end, 'day');
+                        const accent = isOverdue ? '#ef4444' : pct >= 75 ? '#f59e0b' : '#10b981';
 
-                  />
-                </Card>
-              </div>
-            )}
+                        return (
+                          <div style={{ textAlign: 'left', minWidth: 180 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <div style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Sprint Timeline
+                              </div>
+                              <Text style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: '0.02em' }}>
+                                {isOverdue ? 'OVERDUE' : `${Math.max(0, totalDays - elapsedDays)}d LEFT`}
+                              </Text>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+                                {start.format('MMM D')}
+                              </Text>
+                              <div style={{ flex: 1, position: 'relative', height: 6, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', minWidth: 80 }}>
+                                <div style={{
+                                  position: 'absolute',
+                                  inset: 0,
+                                  width: `${Math.min(100, pct)}%`,
+                                  background: accent,
+                                  opacity: 0.9,
+                                  borderRadius: 999,
+                                  transition: 'width 0.4s ease',
+                                }} />
+                              </div>
+                              <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+                                {end.format('MMM D')}
+                              </Text>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      <Button
+                        type="default"
+                        size="middle"
+                        icon={<UnorderedListOutlined style={{ color: '#64748b' }} />}
+                        onClick={() => document.getElementById('backlog-section')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="saas-button-item"
+                        style={{ height: 32, fontWeight: 600 }}
+                      >
+                        Go To Backlogs
+                      </Button>
+                      <Button
+                        type="primary"
+                        size="middle"
+                        icon={<CheckCircleOutlined />}
+                        onClick={handleCompleteSprint}
+                        className="saas-button-item"
+                        style={{ height: 32, background: '#10b981', borderColor: '#10b981' }}
+                      >
+                        Complete Sprint
+                      </Button>
+                    </Space>
+                  </div>
+                }
+              >
+                <Table
+                  columns={getColumns('active')}
+                  dataSource={activeTickets}
+                  loading={activeSprintFetching}
+                  rowKey="id"
+                  pagination={false}
+                  scroll={{ x: 'max-content' }}
+                  sticky={{ offsetHeader: activeSprintHeadOffset }}
+                  className="saas-table"
+                  size="middle"
+                />
+              </Card>
+            </div>
+          )}
 
           {/* Backlog Section */}
           <div id="backlog-section" style={{ scrollMarginTop: '100px' }}>
             <Card
+              className="saas-card"
               title={
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <Space size={8}>
-                    <Text style={{ fontSize: '16px', fontWeight: 600 }}>Backlog</Text>
-                    <Badge count={totalBacklog} showZero style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', border: 'none', fontSize: 11 }} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Space size={12}>
+                    <ProjectOutlined style={{ color: 'var(--text-slate-500)', fontSize: 18 }} />
+                    <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)' }}>Backlog</Text>
+                    <Tag bordered={false} style={{
+                      margin: 0,
+                      height: 24,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: 90,
+                      background: 'var(--bg-slate-50)',
+                      color: 'var(--text-slate-500)',
+                      fontWeight: 800,
+                      fontSize: 10,
+                      borderRadius: 4,
+                      textTransform: 'uppercase',
+                      border: '1px solid var(--border-color)'
+                    }}>
+                      {totalBacklog} Tickets
+                    </Tag>
                   </Space>
-                  <Button
-                    type="primary"
-                    size="small"
-                    icon={<PlusOutlined />}
-                    onClick={() => setCreateSprintModalOpen(true)}
-                  >
-                    Create Sprint
-                  </Button>
+                  <Space size={12}>
+                    <Input
+                      placeholder="Search backlog..."
+                      prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
+                      className="saas-input"
+                      style={{ width: 220, borderRadius: 6, height: 32, fontSize: 12 }}
+                      value={backlogSearchValue}
+                      onChange={(e) => setBacklogSearchValue(e.target.value)}
+                      allowClear
+                    />
+                    <Divider type="vertical" style={{ height: 20, margin: 0 }} />
+                    <Button
+                      type="default"
+                      icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
+                      onClick={() => document.getElementById('active-section')?.scrollIntoView({ behavior: 'smooth' })}
+                      className="saas-button-item"
+                      style={{ height: 32, fontWeight: 600 }}
+                    >
+                      Go To Sprint
+                    </Button>
+                    <Button
+                      type="default"
+                      icon={<PlusOutlined />}
+                      onClick={() => setCreateSprintModalOpen(true)}
+                      className="saas-button-item"
+                      style={{ height: 32, fontWeight: 600 }}
+                    >
+                      New Sprint
+                    </Button>
+                  </Space>
                 </div>
               }
-              styles={{ body: { padding: 10 } }}
             >
               <Table
                 columns={getColumns('backlog')}
+                loading={backlogFetching}
                 dataSource={backlogTickets}
                 rowKey="id"
-                loading={backlogLoading}
+                className="saas-table"
+                size="middle"
                 pagination={{
                   current: pagination.current,
                   pageSize: pagination.pageSize,
                   total: totalBacklog,
                   showSizeChanger: true,
-                  showQuickJumper: true,
-                  pageSizeOptions: ['10', '20', '50', '100'],
-                  showTotal: (total, range) =>
-                    `${range[0]}-${range[1]} of ${total} tickets`,
-                  onChange: (page, pageSize) => {
-                    setPagination({
-                      current: page,
-                      pageSize: pageSize || pagination.pageSize,
-                    });
-                  },
+                  pageSizeOptions: ['10', '25', '50'],
+                  showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
+                  onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 10 })
                 }}
-                scroll={{ x: 1200 }}
-
-                locale={{
-                  emptyText:
-                    backlogTickets.length === 0 && !backlogLoading ? (
-                      <Empty
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description="No backlog tickets found"
-                      />
-                    ) : undefined,
-                }}
+                scroll={{ x: 'max-content' }}
               />
             </Card>
           </div>
-        </>
+        </div>
       ) : (
-        <>
-          {isKanbanLoading ? (
-            <TicketSkeleton viewMode="board" />
-          ) : kanbanData ? (
-            <>
-              {isKanbanFetching && (
-                <div style={{
-                  position: 'fixed',
-                  top: 70,
-                  right: 20,
-                  zIndex: 1000,
-                  background: '#fff',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                }}>
-                  <Space>
-                    <ReloadOutlined spin />
-                    <Text type="secondary">Refreshing...</Text>
-                  </Space>
-                </div>
-              )}
-              <TicketKanban
-                tickets={kanbanData.columns ? Object.values(kanbanData.columns).flatMap((col: any) => col.tickets) : []}
-                projects={projects}
-                members={members}
-                onTicketUpdate={handleKanbanUpdate}
-                activeSprint={activeSprint}
-                kanbanScope={kanbanScope}
-                onSprintAssignment={handleSprintAssignment}
-                onCompleteSprint={handleCompleteSprint}
-                filters={filters}
-                onFilterChange={handleFilterChange}
-              />
-            </>
+        <div className="fadeIn">
+          {kanbanData ? (
+            <TicketKanban
+              tickets={kanbanData.columns ? Object.values(kanbanData.columns).flatMap((col: any) => col.tickets) : []}
+              projects={projects}
+              members={members}
+              onTicketUpdate={handleKanbanUpdate}
+              activeSprint={activeSprint}
+              kanbanScope={kanbanScope}
+              onSprintAssignment={handleSprintAssignment}
+              onCompleteSprint={handleCompleteSprint}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+            />
           ) : (
-            <Card>
-              <Empty description="No tickets found" />
-            </Card>
+            <Card className="saas-card"><Empty description="No tickets found" /></Card>
           )}
-        </>
+        </div>
       )}
+
+      {/* Overlays */}
       <TicketDetailDrawer
         ticketId={selectedTicketId}
         open={!!selectedTicketId}
         onClose={() => setSelectedTicketId(null)}
         ticketIds={allTicketIds}
-        onNavigate={(id) => setSelectedTicketId(id)}
+        onNavigate={setSelectedTicketId}
       />
 
-      {/* Sprint Completion Modal */}
       <SprintCompletionModal
         sprintId={activeSprint?.id || null}
         open={sprintCompletionModalOpen}
@@ -1432,46 +1838,22 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         onSuccess={handleSprintCompletionSuccess}
       />
 
-      {/* Create Sprint Modal */}
       <Modal
-        title={
-          <Space direction="vertical" size={0}>
-            <Text strong>Create New Sprint</Text>
-            {activeSprint ? (
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                Will be created as "Planning" (draft sprint)
-              </Text>
-            ) : (
-              <Text type="success" style={{ fontSize: 12 }}>
-                Will become your active sprint immediately
-              </Text>
-            )}
-          </Space>
-        }
+        title={<Text strong style={{ fontSize: 16 }}>Create New Sprint</Text>}
         open={createSprintModalOpen}
         onCancel={() => setCreateSprintModalOpen(false)}
         footer={null}
-        width={500}
+        width={480}
+        centered
+        className="saas-modal"
       >
-        {activeSprint && (
-          <Alert
-            message="Creating Planning Sprint"
-            description={`You have an active sprint (${activeSprint.version}). This new sprint will be created as a draft and can be started after completing the current sprint.`}
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
-        )}
-        {!activeSprint && (
-          <Alert
-            message="Creating Active Sprint"
-            description="No active sprint found. This sprint will become active immediately and you can start adding tickets to it."
-            type="success"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
-        )}
-
+        <Alert
+          message={activeSprint ? "Draft Sprint" : "Active Sprint"}
+          description={activeSprint ? "You already have a running sprint. This will be created as a draft." : "This will become your primary active sprint immediately."}
+          type={activeSprint ? "info" : "success"}
+          showIcon
+          style={{ marginBottom: 20, borderRadius: 8 }}
+        />
         <SprintCreationForm
           projectId={projectId}
           loading={creatingSprintLoading}
@@ -1479,6 +1861,19 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           onCancel={() => setCreateSprintModalOpen(false)}
         />
       </Modal>
+      <ManualCreateTicketModal
+        open={manualModalOpen}
+        onClose={() => setManualModalOpen(false)}
+        projectId={projectId}
+        onTicketCreated={handleTicketCreated}
+      />
+
+      <AiCreateTicketModal
+        open={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        projectId={projectId}
+        onTicketCreated={handleTicketCreated}
+      />
     </div>
   );
 }

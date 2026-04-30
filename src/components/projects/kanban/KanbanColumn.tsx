@@ -13,7 +13,7 @@ interface KanbanColumnProps {
   title: string;
   tickets: Ticket[];
   projects: Array<{ value: string; label: string; code: string }>;
-  members: Array<{ value: string; label: string; position: string }>;
+  members: Array<{ value: string; label: string; position: string; avatarUrl?: string | null }>;
   onTicketUpdate: (ticketId: string, updates: Partial<Ticket> & { assigneeId?: string }) => void;
   activeSprint?: any;
   kanbanScope?: 'active' | 'backlog';
@@ -27,24 +27,28 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, tickets, 
 
   const getStatusBadgeColor = (statusId: string) => {
        const color = getStatusColor(statusId);
-       if (color === 'success') return '#52c41a';
-       if (color === 'processing') return '#1677ff';
-       if (color === 'warning') return '#faad14';
-       return '#d9d9d9';
+       if (color === 'success') return '#10b981';
+       if (color === 'processing') return 'var(--premium-blue)';
+       if (color === 'warning') return '#f59e0b';
+       if (color === 'purple') return '#8b5cf6';
+       if (color === 'cyan') return '#06b6d4';
+       if (color === 'geekblue') return '#4f46e5';
+       if (color === 'orange') return '#f59e0b';
+       return 'var(--text-slate-400)';
   };
 
   return (
     <div style={{ 
         flex: 1, 
         minWidth: 300, 
-        backgroundColor: '#f8f9fa', 
+        backgroundColor: 'var(--bg-secondary)', 
         borderRadius: 12, 
         padding: '16px 12px',
         display: 'flex',
         flexDirection: 'column',
         maxHeight: '100%',
         minHeight: '100%',
-        border: '1px solid #f0f0f0'
+        border: '1px solid var(--border-color)'
     }}>
       <div style={{ 
         display: 'flex', 
@@ -59,13 +63,13 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, tickets, 
               height: 10, 
               borderRadius: '50%', 
               backgroundColor: getStatusBadgeColor(id),
-              boxShadow: `0 0 0 2px ${getStatusBadgeColor(id)}20`
+              boxShadow: `0 0 0 2px ${getStatusColor(id) === 'processing' ? 'rgba(59, 130, 246, 0.2)' : 'transparent'}`
             }} />
             <Text strong style={{ 
               textTransform: 'uppercase', 
               fontSize: 11, 
               letterSpacing: '0.5px',
-              color: '#434343' 
+              color: 'var(--text-primary)' 
             }}>
               {title}
             </Text>
@@ -73,9 +77,9 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, tickets, 
               count={tickets.length} 
               showZero 
               style={{ 
-                backgroundColor: '#ffffff', 
-                color: '#8c8c8c',
-                border: '1px solid #f0f0f0',
+                backgroundColor: 'var(--bg-pure-white)', 
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-color)',
                 fontSize: 10,
                 fontWeight: 600,
                 boxShadow: 'none'

@@ -70,12 +70,12 @@ function PreviewContent({ content, title }: { content: any, title: string }) {
     };
 
     return (
-        <div className="flex flex-col h-full bg-gray-50 relative">
+        <div className="flex flex-col h-full bg-slate-50 relative" style={{ background: 'var(--bg-slate-50)' }}>
             {/* <div className="px-8 py-6 bg-white border-b border-gray-200 mb-6">
                 <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
             </div> */}
             <div className="flex-1 overflow-hidden px-8 pb-8">
-                <div style={{ zoom: "80%" }} className="h-full bg-white my-auto w-[60%]  mx-auto  rounded-lg shadow-sm border  border-gray-200 overflow-hidden">
+                <div style={{ zoom: "80%", background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)' }} className="h-full bg-white my-auto w-[60%]  mx-auto  rounded-lg shadow-sm border  border-gray-200 overflow-hidden">
                     <div ref={contentRef} className="overflow-y-scroll h-full no-scrollbar">
                         <DocumentEditor editor={editor} viewMode="preview" />
                     </div>
@@ -114,8 +114,8 @@ export default function DocumentPreviewPage({ params }: { params: Promise<{ docu
             <MainLayout>
                 <div className="flex items-center justify-center h-full">
                     <div className="text-center">
-                        <h2 className="text-xl font-semibold text-gray-900">Document not found</h2>
-                        <p className="text-gray-500 mt-2">The document you are looking for does not exist or you do not have permission to view it.</p>
+                        <h2 className="text-xl font-semibold text-slate-900" style={{ color: 'var(--text-slate-900)' }}>Document not found</h2>
+                        <p className="text-slate-500 mt-2" style={{ color: 'var(--text-slate-400)' }}>The document you are looking for does not exist or you do not have permission to view it.</p>
                     </div>
                 </div>
             </MainLayout>

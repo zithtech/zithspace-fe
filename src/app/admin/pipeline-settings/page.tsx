@@ -53,6 +53,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import MainLayout from '@/components/layout/MainLayout';
 import pipelineStageService, { PipelineStage, CreatePipelineStagePayload } from '@/services/pipelineStageService';
+import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 
 const { Title, Text } = Typography;
 
@@ -221,7 +222,7 @@ export default function PipelineSettingsPage() {
     {
       key: 'sort',
       width: 50,
-      render: () => <MenuOutlined style={{ cursor: 'grab', color: '#999' }} />,
+      render: () => <MenuOutlined style={{ cursor: 'grab', color: 'var(--text-slate-400)' }} />,
     },
     {
       title: 'Stage Name',
@@ -247,8 +248,8 @@ export default function PipelineSettingsPage() {
       key: 'color',
       render: (color) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: color, border: '1px solid #d9d9d9' }} />
-          <Text code>{color}</Text>
+          <div style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: color, border: '1px solid var(--border-slate-200)' }} />
+          <Text code style={{ background: 'var(--bg-slate-50)', color: 'var(--text-slate-700)', border: '1px solid var(--border-slate-100)' }}>{color}</Text>
         </div>
       ),
     },
@@ -313,7 +314,7 @@ export default function PipelineSettingsPage() {
         <div style={{ padding: '20px 0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
             <div>
-              <Text type="secondary">
+              <Text style={{ color: 'var(--text-slate-500)' }}>
                 Define and reorder the stages of your sales process. These will appear in the Deal Board and Sales Pipeline views.
               </Text>
             </div>
@@ -329,7 +330,7 @@ export default function PipelineSettingsPage() {
             </Space>
           </div>
 
-          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: 'none', border: '1px solid #f0f0f0' }}>
+          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: 'none', border: '1px solid var(--border-slate-100)', background: 'var(--bg-pure-white)' }}>
             <DndContext sensors={sensors} modifiers={[restrictToVerticalAxis]} onDragEnd={onDragEnd}>
               <SortableContext
                 items={stages.map((i) => i.id)}
@@ -364,11 +365,11 @@ export default function PipelineSettingsPage() {
       ),
       children: (
         <div style={{ padding: '40px', textAlign: 'center' }}>
-          <ThunderboltOutlined style={{ fontSize: '48px', color: '#bfbfbf', marginBottom: '16px' }} />
-          <Title level={4}>Pipeline Automations</Title>
-          <Text type="secondary">Automate actions when deals move between stages. (Coming Soon)</Text>
+          <ThunderboltOutlined style={{ fontSize: '48px', color: 'var(--text-slate-300)', marginBottom: '16px' }} />
+          <Title level={4} style={{ color: 'var(--text-slate-900)' }}>Pipeline Automations</Title>
+          <Text style={{ color: 'var(--text-slate-500)' }}>Automate actions when deals move between stages. (Coming Soon)</Text>
           <div style={{ marginTop: '24px' }}>
-            <Button disabled>Create Automation Rule</Button>
+            <Button disabled style={{ borderRadius: 8 }}>Create Automation Rule</Button>
           </div>
         </div>
       ),
@@ -383,11 +384,11 @@ export default function PipelineSettingsPage() {
       ),
       children: (
         <div style={{ padding: '40px', textAlign: 'center' }}>
-          <UnorderedListOutlined style={{ fontSize: '48px', color: '#bfbfbf', marginBottom: '16px' }} />
-          <Title level={4}>Deal Custom Fields</Title>
-          <Text type="secondary">Add custom data specific to your business deals. (Coming Soon)</Text>
+          <UnorderedListOutlined style={{ fontSize: '48px', color: 'var(--text-slate-300)', marginBottom: '16px' }} />
+          <Title level={4} style={{ color: 'var(--text-slate-900)' }}>Deal Custom Fields</Title>
+          <Text style={{ color: 'var(--text-slate-500)' }}>Add custom data specific to your business deals. (Coming Soon)</Text>
           <div style={{ marginTop: '24px' }}>
-            <Button disabled>Add Custom Field</Button>
+            <Button disabled style={{ borderRadius: 8 }}>Add Custom Field</Button>
           </div>
         </div>
       ),
@@ -402,11 +403,11 @@ export default function PipelineSettingsPage() {
        ),
        children: (
          <div style={{ padding: '40px', textAlign: 'center' }}>
-           <QuestionCircleOutlined style={{ fontSize: '48px', color: '#bfbfbf', marginBottom: '16px' }} />
-           <Title level={4}>Loss Reason Configuration</Title>
-           <Text type="secondary">Configure common reasons why deals are lost to improve your sales insights.</Text>
+           <QuestionCircleOutlined style={{ fontSize: '48px', color: 'var(--text-slate-300)', marginBottom: '16px' }} />
+           <Title level={4} style={{ color: 'var(--text-slate-900)' }}>Loss Reason Configuration</Title>
+           <Text style={{ color: 'var(--text-slate-500)' }}>Configure common reasons why deals are lost to improve your sales insights.</Text>
            <div style={{ marginTop: '24px' }}>
-             <Button disabled>Manage Loss Reasons</Button>
+             <Button disabled style={{ borderRadius: 8 }}>Manage Loss Reasons</Button>
            </div>
          </div>
        ),
@@ -415,28 +416,31 @@ export default function PipelineSettingsPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '16px', background: '#fff', minHeight: '100vh' }}>
-        <div style={{ marginBottom: '16px' }}>
-          <Space align="center" size={10}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 8, background: '#fff0f6',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              <FireOutlined style={{ color: '#eb2f96', fontSize: 18 }} />
-            </div>
-            <Title level={3} style={{ margin: 0 }}>Pipeline Settings</Title>
-          </Space>
-          <Text type="secondary" style={{ display: 'block', marginTop: 4 }}>Configure your sales funnel, stages, and automation rules</Text>
-        </div>
-
-        <Tabs 
-          activeKey={activeTab} 
-          onChange={setActiveTab} 
-          items={tabItems}
-          size="large"
-          type="line"
-          tabBarStyle={{ marginBottom: '16px' }}
+      <div style={{ 
+        margin: "0 -24px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden"
+      }}>
+        <TimeTrackingHeader
+          style={{ padding: '10.5px 32px' }}
+          icon={<FireOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+          title="Pipeline Settings"
+          description="Configure your sales funnel, stages, and automation rules"
         />
+
+        <div style={{ padding: "0 32px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={setActiveTab} 
+            items={tabItems}
+            size="large"
+            type="line"
+            tabBarStyle={{ marginBottom: '16px' }}
+          />
+        </div>
       </div>
 
       <Modal
@@ -497,10 +501,12 @@ export default function PipelineSettingsPage() {
 
       <style jsx global>{`
         .pipeline-table .ant-table-thead > tr > th {
-          background: #fafafa;
+          background: var(--bg-table-header) !important;
+          color: var(--text-slate-900) !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
         }
         .hover-btn:hover {
-          background: #f5f5f5 !important;
+          background: var(--bg-slate-50) !important;
         }
         .ant-tabs-tab {
           font-weight: 500;

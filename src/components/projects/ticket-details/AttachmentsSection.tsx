@@ -12,6 +12,8 @@ interface AttachmentsSectionProps {
   isEditing: boolean;
   onUpload: (file: string, fileName: string) => Promise<void>;
   onDelete: (attachmentId: string) => Promise<void>;
+  onRename?: (attachmentId: string, newFileName: string) => Promise<void>;
+  currentUserId?: string;
 }
 
 export default function AttachmentsSection({
@@ -20,6 +22,8 @@ export default function AttachmentsSection({
   isEditing,
   onUpload,
   onDelete,
+  onRename,
+  currentUserId,
 }: AttachmentsSectionProps) {
   const handleUpload = async (file: string, fileName: string) => {
     try {
@@ -41,13 +45,24 @@ export default function AttachmentsSection({
     }
   };
 
+  const handleRename = async (attachmentId: string, newFileName: string) => {
+    if (!onRename) return;
+    try {
+      await onRename(attachmentId, newFileName);
+      message.success("Attachment renamed successfully");
+    } catch (error) {
+      console.error("Failed to rename attachment:", error);
+      message.error("Failed to rename attachment");
+    }
+  };
+
   return (
     <div style={{ marginTop: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Typography.Title level={5} style={{ fontSize: 13, margin: 0, color: '#595959' }}>
+        <Typography.Title level={5} style={{ fontSize: 13, margin: 0, color: 'var(--text-primary)' }}>
           Attachments
           {attachments.length > 0 && (
-            <span style={{ fontSize: 12, color: '#bfbfbf', fontWeight: 400, marginLeft: 6 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 400, marginLeft: 6 }}>
               • {attachments.length} files
             </span>
           )}
@@ -66,6 +81,8 @@ export default function AttachmentsSection({
         <AttachmentList
           attachments={attachments}
           onDelete={handleDelete}
+          onRename={handleRename}
+          currentUserId={currentUserId}
           loading={isLoading}
         />
       </div>

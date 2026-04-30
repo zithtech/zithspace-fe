@@ -32,6 +32,7 @@ import { Squad, SquadService } from '@/services/squadService';
 import SquadCard from '@/components/squad/SquadCard';
 import SquadDrawer from '@/components/squad/SquadDrawer';
 import SquadViewDrawer from '@/components/squad/SquadViewDrawer';
+import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -125,12 +126,12 @@ export default function SquadManagement() {
       width: 250,
       render: (text: string, record: Squad) => (
         <Space>
-          <div style={{ backgroundColor: '#f0f0f0', width: 32, height: 32, borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <TeamOutlined style={{ color: '#1890ff' }} />
+          <div style={{ backgroundColor: 'var(--bg-secondary)', width: 32, height: 32, borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <TeamOutlined style={{ color: 'var(--premium-blue)' }} />
           </div>
           <Space direction="vertical" size={0}>
-            <Text strong style={{ fontSize: '14px' }}>{text}</Text>
-            <Text type="secondary" style={{ fontSize: '11px' }}>{record.squadCode}</Text>
+            <Text strong style={{ fontSize: '14px', color: 'var(--text-slate-900)' }}>{text}</Text>
+            <Text type="secondary" style={{ fontSize: '11px', color: 'var(--text-slate-400)' }}>{record.squadCode}</Text>
           </Space>
         </Space>
       ),
@@ -153,8 +154,8 @@ export default function SquadManagement() {
       key: 'membersCount',
       render: (record: Squad) => (
         <Space size={4}>
-          <UserOutlined style={{ color: '#8c8c8c', fontSize: '12px' }} />
-          <Text style={{ fontSize: '13px' }}>{record.squadMembers?.length || 0}</Text>
+          <UserOutlined style={{ color: 'var(--text-slate-400)', fontSize: '12px' }} />
+          <Text style={{ fontSize: '13px', color: 'var(--text-slate-700)' }}>{record.squadMembers?.length || 0}</Text>
         </Space>
       ),
     },
@@ -196,8 +197,16 @@ export default function SquadManagement() {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <LoadingSpinner message="Authenticating..." />
+        <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px", 
+          background: "var(--bg-pure-white)", 
+          minHeight: "calc(100vh - 64px)",
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <LoadingSpinner message="Authenticating system entrance..." />
         </div>
       </MainLayout>
     );
@@ -205,50 +214,39 @@ export default function SquadManagement() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '24px', background: '#ffffff', minHeight: '100%' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         {/* Top Header Section */}
-        <div style={{ marginBottom: '16px' }}>
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Space size={16} align="start">
-                <div style={{
-                  backgroundColor: '#ffffff',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <TeamOutlined style={{ fontSize: '28px', color: '#1890ff' }} />
-                </div>
-                <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 600 }}>Squad Management</Title>
-                  <Text type="secondary" style={{ fontSize: '14px' }}>
-                    Configure and manage project teams, leadership roles, and member allocations.
-                  </Text>
-                </div>
-              </Space>
-            </Col>
-            <Col>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                size="large"
-                onClick={handleCreate}
-                style={{
-                  borderRadius: '10px',
-                  height: '44px',
-                  padding: '0 24px',
-                  fontWeight: 500,
-                  boxShadow: '0 4px 10px rgba(24, 144, 255, 0.2)'
-                }}
-              >
-                Create Squad
-              </Button>
-            </Col>
-          </Row>
-        </div>
+        <TimeTrackingHeader
+          icon={<TeamOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+          title="Squad Management"
+          description="Configure and manage project teams, leadership roles, and member allocations."
+          extra={
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreate}
+              style={{
+                borderRadius: '10px',
+                height: '38px',
+                padding: '0 24px',
+                fontWeight: 600,
+                background: '#1677ff',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}
+            >
+              Create Squad
+            </Button>
+          }
+        />
+
+        <div style={{ padding: "0 32px 32px 32px" }}>
 
         {/* Filter Section - Premium Card Style */}
         <Card
@@ -257,7 +255,8 @@ export default function SquadManagement() {
           style={{
             marginBottom: '16px',
             borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+            background: 'var(--bg-pure-white)',
+            border: '1px solid var(--border-slate-200)',
           }}
           styles={{ body: { padding: '16px 20px' } }}
         >
@@ -266,11 +265,11 @@ export default function SquadManagement() {
               <Space size={20}>
                 <div style={{ width: '320px' }}>
                   <Input
-                    prefix={<SearchOutlined style={{ color: '#bfbfbf', marginRight: '8px' }} />}
+                    prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: '8px' }} />}
                     placeholder="Search Squad by Name or Code"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ borderRadius: '8px', height: '36px' }}
+                    style={{ borderRadius: '8px', height: '36px', background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)', color: 'var(--text-slate-900)' }}
                     allowClear
                   />
                 </div>
@@ -291,8 +290,8 @@ export default function SquadManagement() {
             </Col>
             <Col>
               <Space align="center" size={12}>
-                <Text type="secondary" style={{ fontSize: '13px' }}>View:</Text>
-                <div style={{ background: '#f0f2f5', padding: '3px', borderRadius: '8px', display: 'flex' }}>
+                <Text type="secondary" style={{ fontSize: '13px', color: 'var(--text-slate-400)' }}>View:</Text>
+                <div style={{ background: 'var(--bg-slate-50)', padding: '3px', borderRadius: '8px', display: 'flex', border: '1px solid var(--border-slate-200)' }}>
                   <Button
                     type={viewMode === 'grid' ? 'primary' : 'text'}
                     size="small"
@@ -320,6 +319,8 @@ export default function SquadManagement() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      background: viewMode === 'list' ? 'var(--premium-blue)' : 'transparent',
+                      color: viewMode === 'list' ? '#fff' : 'var(--text-slate-600)',
                       boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
                     }}
                   />
@@ -336,11 +337,11 @@ export default function SquadManagement() {
               <LoadingSpinner message="Fetching squads..." />
             </div>
           ) : filteredSquads.length === 0 ? (
-            <Card bordered={false} style={{ borderRadius: '12px', textAlign: 'center', padding: '60px 0' }}>
+            <Card bordered={false} style={{ borderRadius: '12px', textAlign: 'center', padding: '60px 0', border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)' }}>
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
-                  <span>
+                  <span style={{ color: 'var(--text-slate-400)' }}>
                     {searchTerm || statusFilter !== 'all' ? "No squads match your current filters" : "No squads available yet"}
                   </span>
                 }
@@ -371,6 +372,7 @@ export default function SquadManagement() {
                     dataSource={filteredSquads}
                     columns={columns}
                     rowKey="id"
+                    style={{ background: 'var(--bg-pure-white)' }}
                     pagination={{
                       pageSize: 10,
                       showSizeChanger: true,
@@ -397,6 +399,7 @@ export default function SquadManagement() {
           onClose={() => setViewDrawerVisible(false)}
           squad={currentSquad}
         />
+        </div>
       </div>
     </MainLayout>
   );

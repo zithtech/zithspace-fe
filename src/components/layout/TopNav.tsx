@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, Divider, Badge, Grid, Input, Tooltip, Empty, Modal } from 'antd';
+import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, Divider, Badge, Grid, Input, Tooltip, Empty, Modal, theme } from 'antd';
 import {
   BellOutlined,
   MailOutlined,
@@ -18,6 +18,7 @@ import {
   RightOutlined,
   PlusOutlined,
   MoreOutlined,
+  DeploymentUnitOutlined
 } from '@ant-design/icons';
 
 interface ShortcutItem {
@@ -32,6 +33,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useIsBreakpoint } from '@/hooks/use-is-breakpoint';
 import { TimeTrackerPopover } from '@/components/time-tracking/TimeTrackerPopover';
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
+import ThemeToggle from "./ThemeToggle";
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -54,6 +56,7 @@ export default function TopNav({
 }: TopNavProps) {
   const router = useRouter();
   const { hasPermission, hasAnyPermission } = useAuth();
+  const { token } = theme.useToken();
   const { isPopoverOpen, setPopoverOpen } = useTimeTrackerStore();
   const screens = useBreakpoint();
   const isCustomBreakpoint = useIsBreakpoint("max", 1214); // true when width <= 1213
@@ -206,17 +209,17 @@ export default function TopNav({
     <div
       style={{
         width: isModal ? "100%" : 300,
-        backgroundColor: "white",
+        backgroundColor: "var(--bg-pure-white)",
         boxShadow: isModal ? "none" : "0 6px 16px -8px rgba(0, 0, 0, 0.08), 0 9px 28px 0 rgba(0, 0, 0, 0.05), 0 12px 48px 16px rgba(0, 0, 0, 0.03)",
         borderRadius: isModal ? 0 : 8,
-        border: isModal ? "none" : "1px solid #f0f0f0",
+        border: isModal ? "none" : "1px solid var(--border-color)",
         overflow: "hidden",
       }}
     >
       <div
         style={{
           padding: "12px 16px",
-          borderBottom: "1px solid #f0f0f0",
+          borderBottom: "1px solid var(--border-color)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -262,7 +265,7 @@ export default function TopNav({
                   style={{ color: "#8c8c8c", fontSize: 16 }}
                 />
                 <Text
-                  style={{ fontSize: 13, color: "#262626" }}
+                  style={{ fontSize: 13, color: "var(--text-primary)" }}
                   ellipsis
                 >
                   {item.name}
@@ -302,8 +305,8 @@ export default function TopNav({
       <div
         style={{
           padding: "8px 16px",
-          borderTop: "1px solid #f0f0f0",
-          background: "#fafafa",
+          borderTop: "1px solid var(--border-color)",
+          background: "var(--bg-slate-50)",
         }}
       >
         {isAddMode ? (
@@ -358,10 +361,11 @@ export default function TopNav({
 
   return (
     <Header
+      className="glass-panel"
       style={{
         padding: isMobile ? "0 16px" : "0 24px 0 0",
         background: "rgba(255, 255, 255, 0.8)",
-        backdropFilter: "blur(12px)",
+        backdropFilter: "blur(12px) saturate(180%)",
         borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
         display: "flex",
         alignItems: "center",
@@ -372,7 +376,7 @@ export default function TopNav({
         right: 0,
         left: 0,
         zIndex: 1000,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.03)"
+        boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.03)"
       }}
     >
       {/* Left Side: Logo & Module Selector */}
@@ -410,9 +414,9 @@ export default function TopNav({
                   strong
                   style={{
                     fontSize: 18,
-                    color: '#262626',
+                    color: 'var(--text-primary)',
                     whiteSpace: 'nowrap',
-                    background: "linear-gradient(135deg, #1677ff 0%, #003eb3 100%)",
+                    background: "linear-gradient(135deg, var(--premium-blue) 0%, #1D4ED8 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     fontWeight: 700
@@ -481,7 +485,10 @@ export default function TopNav({
       <Space size={isSmallMobile ? 4 : 12} align="center" style={{ flexShrink: 0 }}>
         {!isCustomBreakpoint ? (
           <>
+            <ThemeToggle />
             <TimeTrackerPopover />
+
+
             <Button
               type="text"
               icon={<MailOutlined />}
@@ -494,19 +501,38 @@ export default function TopNav({
             />
             <Button
               type="text"
+              icon={<DeploymentUnitOutlined />}
+              onClick={() => router.push('/skills')}
+            />
+
+            <Button
+              type="text"
               icon={<MessageOutlined />}
               onClick={() => router.push('/chat')}
             />
-            <div>
+            <div className="novu-inbox-wrapper">
               <Inbox
                 applicationIdentifier="67g_5lVLFWvd"
                 subscriberId={user?.id}
                 socketUrl="wss://socket.novu.co"
                 appearance={{
                   variables: {
-                    colorPrimary: "#DD2450",
-                    colorForeground: "#0E121B",
+                    colorPrimary: "#3B82F6",
+                    colorForeground: token.colorText,
+                    colorBackground: token.colorBgElevated,
+                    colorCounter: "#EF4444",
+                    colorCounterForeground: "#FFFFFF",
                   },
+                  elements: {
+                    notification: {
+                      background: token.colorBgElevated,
+                    },
+                    popoverContent: {
+                      background: token.colorBgElevated,
+                      border: `1px solid ${token.colorBorderSecondary}`,
+                      color: token.colorText,
+                    },
+                  }
                 }}
               />
             </div>
@@ -537,67 +563,72 @@ export default function TopNav({
             </Dropdown>
           </>
         ) : (
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'timer',
-                  label: <TimeTrackerPopover isMenuItem />,
-                  onClick: () => setPopoverOpen(true)
+          <Space size={isSmallMobile ? 4 : 8}>
+            <ThemeToggle />
+            <Inbox
+              applicationIdentifier="67g_5lVLFWvd"
+              subscriberId={user?.id}
+              socketUrl="wss://socket.novu.co"
+              appearance={{
+                variables: {
+                  colorPrimary: "#3B82F6",
+                  colorForeground: token.colorText,
+                  colorBackground: token.colorBgElevated,
+                  colorCounter: "#EF4444",
+                  colorCounterForeground: "#FFFFFF",
                 },
-                {
-                  key: 'mail',
-                  label: 'Mail',
-                  icon: <MailOutlined />,
-                  onClick: () => router.push('/mail')
-                },
-                {
-                  key: 'calendar',
-                  label: 'Calendar',
-                  icon: <CalendarOutlined />,
-                  onClick: () => router.push('/calendar')
-                },
-                {
-                  key: 'chat',
-                  label: 'Messages',
-                  icon: <MessageOutlined />,
-                  onClick: () => router.push('/chat')
-                },
-                {
-                  key: 'notification',
-                  label: (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <Inbox
-                        applicationIdentifier="67g_5lVLFWvd"
-                        subscriberId={user?.id}
-                        socketUrl="wss://socket.novu.co"
-                        appearance={{
-                          variables: {
-                            colorPrimary: "#DD2450",
-                            colorForeground: "#0E121B",
-                          },
-                        }}
-                      />
-                      <span style={{ fontSize: 13, color: '#262626' }}>Notifications</span>
-                    </div>
-                  ),
-                },
-                {
-                  key: 'bookmarks',
-                  label: 'Bookmarks',
-                  icon: <StarOutlined />,
-                  onClick: (e) => {
-                    e.domEvent.stopPropagation();
-                    setShortcutPopoverVisible(true);
-                  }
+                elements: {
+                  popoverContent: {
+                    background: token.colorBgElevated,
+                    border: `1px solid ${token.colorBorderSecondary}`,
+                    color: token.colorText,
+                  },
                 }
-              ]
-            }}
-            trigger={['click']}
-            placement="bottomRight"
-          >
-            <Button type="text" icon={<MoreOutlined style={{ fontSize: 20 }} />} />
-          </Dropdown>
+              }}
+            />
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'timer',
+                    label: <TimeTrackerPopover isMenuItem />,
+                    onClick: () => setPopoverOpen(true)
+                  },
+                  {
+                    key: 'mail',
+                    label: 'Mail',
+                    icon: <MailOutlined />,
+                    onClick: () => router.push('/mail')
+                  },
+                  {
+                    key: 'calendar',
+                    label: 'Calendar',
+                    icon: <CalendarOutlined />,
+                    onClick: () => router.push('/calendar')
+                  },
+                  {
+                    key: 'chat',
+                    label: 'Messages',
+                    icon: <MessageOutlined />,
+                    onClick: () => router.push('/chat')
+                  },
+                  {
+                    key: 'bookmarks',
+                    label: 'Bookmarks',
+                    icon: <StarOutlined />,
+                    onClick: (e) => {
+                      e.domEvent.stopPropagation();
+                      setShortcutPopoverVisible(true);
+                    }
+                  }
+                ]
+              }}
+              trigger={['click']}
+              placement="bottomRight"
+            >
+              <Button type="text" icon={<MoreOutlined style={{ fontSize: 20 }} />} />
+            </Dropdown>
+          </Space>
         )}
 
         {/* Mobile Bookmark Modal - Ensuring bookmarks only show when specifically clicked on mobile */}
@@ -620,6 +651,7 @@ export default function TopNav({
           </Modal>
         )}
 
+
         {/* Mobile Timer Modal - Rendering form content directly for seamless mobile use */}
         {isCustomBreakpoint && (
           <Modal
@@ -628,11 +660,11 @@ export default function TopNav({
             footer={null}
             title={<div style={{ textAlign: 'center', paddingBottom: 12, borderBottom: '1px solid #f0f0f0' }}>Time Tracker</div>}
             closable={true}
-            width={340}
+            width={360}
             centered
             styles={{ body: { padding: "20px 24px" } }}
           >
-             <TimeTrackerPopover showContentOnly />
+            <TimeTrackerPopover showContentOnly />
           </Modal>
         )}
 
@@ -644,16 +676,36 @@ export default function TopNav({
             menu={{ items: userMenuItems }}
             placement="bottomRight"
             trigger={["click"]}
+            dropdownRender={(menu) => (
+              <div style={{ boxShadow: 'none', border: '1px solid var(--border-slate-200)', borderRadius: 8, background: 'var(--bg-pure-white)' }}>
+                {menu}
+              </div>
+            )}
           >
-            <Space className="user-dropdown" style={{ cursor: "pointer", padding: "4px 4px", borderRadius: 6 }}>
-              <Avatar size={isSmallMobile ? "small" : "default"} style={{ backgroundColor: getRoleBadgeColor(user.role) }}>
-                {user.name?.charAt(0).toUpperCase()}
+            <Space
+              style={{
+                cursor: "pointer",
+                padding: "2px 4px",
+                borderRadius: 8,
+              }}
+            >
+              <Avatar
+                size={isSmallMobile ? 32 : 36}
+                style={{
+                  background: user.avatarUrl ? 'transparent' : 'var(--bg-slate-200)',
+                  color: 'var(--text-slate-700)',
+                  fontSize: 14,
+                  fontWeight: 700
+                }}
+                src={user.avatarUrl}
+              >
+                {!user.avatarUrl && user.name?.charAt(0).toUpperCase()}
               </Avatar>
               {!isSmallMobile && (
-                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                  <Text strong style={{ fontSize: 13 }}>{user.name}</Text>
-                  {user.role && user.role.toLowerCase() !== user.name.toLowerCase() && (
-                    <Text type="secondary" style={{ fontSize: 11, textTransform: 'capitalize' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1, marginLeft: 6 }}>
+                  <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{user.name}</Text>
+                  {user.role && (
+                    <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7 }}>
                       {user.role.replace('_', ' ')}
                     </Text>
                   )}
@@ -684,11 +736,15 @@ export default function TopNav({
                     background: rgba(22, 119, 255, 0.06) !important;
                     border-radius: 12px;
                 }
-                .user-dropdown {
-                    transition: all 0.2s;
+                .user-dropdown-premium:hover {
+                    background-color: #fff !important;
+                    border-color: rgba(0,0,0,0.06) !important;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                    transform: translateY(-1px);
                 }
-                .user-dropdown:hover {
-                    background-color: rgba(0,0,0,0.05);
+                [data-theme='dark'] .user-dropdown-premium:hover {
+                    background-color: rgba(255,255,255,0.05) !important;
+                    border-color: rgba(255,255,255,0.1) !important;
                 }
                 .ant-header {
                     transition: all 0.3s ease;

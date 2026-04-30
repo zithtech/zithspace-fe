@@ -18,18 +18,18 @@ import {
   Typography,
   message,
 } from "antd";
-import { 
-  Plus, 
-  Monitor, 
-  Smartphone, 
-  Laptop, 
-  Tablet, 
-  Keyboard, 
-  MousePointer2, 
-  Briefcase, 
-  Headphones, 
-  Trash2, 
-  Edit2, 
+import {
+  Plus,
+  Monitor,
+  Smartphone,
+  Laptop,
+  Tablet,
+  Keyboard,
+  MousePointer2,
+  Briefcase,
+  Headphones,
+  Trash2,
+  Edit2,
   Image as ImageIcon,
   CheckCircle2,
   Info
@@ -40,16 +40,16 @@ const { Text, Title, Paragraph } = Typography;
 const labelStyle: React.CSSProperties = {
   fontSize: "12px",
   fontWeight: 600,
-  color: "#475569",
+  color: "var(--text-slate-500)",
   marginBottom: "4px",
   display: "inline-block",
 };
 
 const cardStyle: React.CSSProperties = {
-  background: "#fff",
-  border: "1px solid #ebedef",
+  background: "var(--bg-pure-white)",
+  border: "1px solid var(--border-slate-100)",
   borderRadius: "12px",
-  padding: "10px",
+  padding: "11px",
   height: "280px",
   transition: "all 0.2s ease",
   display: "flex",
@@ -59,12 +59,12 @@ const cardStyle: React.CSSProperties = {
 
 const SectionHeader = ({ icon: Icon, title, subtitle }: { icon: any; title: string; subtitle?: string }) => (
   <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-    <div style={{ padding: "6px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #f1f5f9" }}>
-      <Icon size={16} style={{ color: "#3b82f6" }} />
+    <div style={{ padding: "6px", background: "var(--bg-blue-50)", borderRadius: "8px", border: "1px solid var(--border-slate-100)" }}>
+      <Icon size={16} style={{ color: "var(--premium-blue)" }} />
     </div>
     <div>
-      <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "14px" }}>{title}</div>
-      {subtitle && <div style={{ fontSize: "11px", color: "#64748b" }}>{subtitle}</div>}
+      <div style={{ fontWeight: 700, color: "var(--text-slate-900)", fontSize: "14px" }}>{title}</div>
+      {subtitle && <div style={{ fontSize: "11px", color: "var(--text-slate-500)" }}>{subtitle}</div>}
     </div>
   </div>
 );
@@ -190,68 +190,68 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
       modelNumber: asset.modelNumber,
       image: asset.image
         ? [
-            {
-              uid: "-1",
-              name: asset.imageName || "asset.png",
-              status: "done",
-              url: asset.image,
-            },
-          ]
+          {
+            uid: "-1",
+            name: asset.imageName || "asset.png",
+            status: "done",
+            url: asset.image,
+          },
+        ]
         : [],
     });
   };
 
   return (
-    <div style={{ padding: "0 24px 20px", background: "#ffffff", borderRadius: "12px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "12px 0", borderBottom: "1px solid #f1f5f9" }}>
+    <div style={{ padding: "0 24px 20px", background: "transparent", borderRadius: "12px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "12px 0", borderBottom: "1px solid var(--border-slate-100)" }}>
         <div>
           <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#1e293b" }}>Assets Information</h2>
-          <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#64748b" }}>Manage assignment hardware.</p>
+          <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#64748b" }}>Manage Assignment Hardware.</p>
         </div>
       </div>
 
       <Row gutter={[16, 16]}>
         {/* ADD BUTTON AS DASHED BOX */}
         <Col span={6}>
-          <div 
+          <div
             onClick={() => {
               setEditIndex(null);
               assetsform.resetFields();
               setOpen(true);
             }}
-            style={{ 
-              height: "280px", 
-              border: "2px dashed #cbd5e1", 
-              borderRadius: "12px", 
+            style={{
+              height: "280px",
+              border: "2px dashed var(--border-slate-200)",
+              borderRadius: "12px",
               padding: "12px",
-              display: "flex", 
+              display: "flex",
               flexDirection: "column",
-              alignItems: "center", 
+              alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
-              background: "#f8fafc",
-              color: "#3b82f6",
+              background: "var(--bg-slate-50)",
+              color: "var(--premium-blue)",
               transition: "all 0.2s ease"
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "#3b82f6";
-              e.currentTarget.style.background = "#eff6ff";
+              e.currentTarget.style.borderColor = "var(--premium-blue)";
+              e.currentTarget.style.background = "var(--bg-blue-50)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "#cbd5e1";
-              e.currentTarget.style.background = "#f8fafc";
+              e.currentTarget.style.borderColor = "var(--border-slate-200)";
+              e.currentTarget.style.background = "var(--bg-slate-50)";
             }}
           >
-            <div style={{ 
-              padding: "8px", 
-              background: "#fff", 
-              borderRadius: "50%", 
+            <div style={{
+              padding: "8px",
+              background: "var(--bg-pure-white)",
+              borderRadius: "50%",
               boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
               marginBottom: "8px"
             }}>
               <Plus size={20} />
             </div>
-            <span style={{ fontSize: "14px", fontWeight: 600, color: "#475569" }}>Add New Asset</span>
+            <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-slate-500)" }}>Add New Asset</span>
           </div>
         </Col>
 
@@ -280,12 +280,12 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
                     <div
                       onClick={() => handleEdit(asset, index)}
                       style={{
-                        background: "#fff",
+                        background: "var(--bg-pure-white)",
                         padding: "6px",
                         borderRadius: "8px",
                         cursor: "pointer",
-                        border: "1px solid #ebedef",
-                        color: "#3b82f6",
+                        border: "1px solid var(--border-slate-200)",
+                        color: "var(--premium-blue)",
                         display: "flex",
                         alignItems: "center",
                         boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
@@ -296,12 +296,12 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
                     <div
                       onClick={() => handleDelete(index)}
                       style={{
-                        background: "#fff",
+                        background: "var(--bg-pure-white)",
                         padding: "6px",
                         borderRadius: "8px",
                         cursor: "pointer",
-                        border: "1px solid #ebedef",
-                        color: "#ef4444",
+                        border: "1px solid var(--border-slate-200)",
+                        color: "var(--text-red-500)",
                         display: "flex",
                         alignItems: "center",
                         boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
@@ -312,16 +312,16 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
                   </div>
                 )}
 
-                <div style={{ 
-                  height: "168px", 
-                  background: "#f8fafc", 
-                  borderRadius: "8px", 
+                <div style={{
+                  height: "168px",
+                  background: "var(--bg-slate-50)",
+                  borderRadius: "8px",
                   marginBottom: "8px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   overflow: "hidden",
-                  border: "1px solid #f1f5f9"
+                  border: "1px solid var(--border-slate-100)"
                 }}>
                   {asset.image ? (
                     <img
@@ -336,34 +336,34 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
 
                 <div style={{ display: "flex", flex: 1, flexDirection: "column", gap: "6px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ 
-                      padding: "4px", 
-                      background: "#eff6ff", 
+                    <div style={{
+                      padding: "4px",
+                      background: "var(--bg-blue-50)",
                       borderRadius: "6px",
-                      color: "#3b82f6",
+                      color: "var(--premium-blue)",
                       display: "flex"
                     }}>
                       <AssetIcon size={12} />
                     </div>
-                    <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style={{ fontWeight: 700, color: "var(--text-slate-900)", fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {asset.item}
                     </div>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                     <div>
-                      <div style={{ fontSize: "10px", color: "#64748b", fontWeight: 500 }}>Brand</div>
-                      <div style={{ fontSize: "12px", color: "#334155", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{asset.brand}</div>
+                      <div style={{ fontSize: "10px", color: "var(--text-slate-500)", fontWeight: 500 }}>Brand</div>
+                      <div style={{ fontSize: "12px", color: "var(--text-slate-900)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{asset.brand}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: "10px", color: "#64748b", fontWeight: 500 }}>Model</div>
-                      <div style={{ fontSize: "12px", color: "#334155", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{asset.model}</div>
+                      <div style={{ fontSize: "10px", color: "var(--text-slate-500)", fontWeight: 500 }}>Model</div>
+                      <div style={{ fontSize: "12px", color: "var(--text-slate-900)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{asset.model}</div>
                     </div>
                   </div>
 
-                  <div style={{ marginTop: "auto", paddingTop: "6px", borderTop: "1px dashed #ebedef" }}>
-                    <div style={{ fontSize: "10px", color: "#64748b", fontWeight: 500 }}>SN / Model Number</div>
-                    <div style={{ fontSize: "12px", color: "#334155", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{asset.modelNumber}</div>
+                  <div style={{ marginTop: "auto", paddingTop: "6px", borderTop: "1px dashed var(--border-slate-100)" }}>
+                    <div style={{ fontSize: "10px", color: "var(--text-slate-500)", fontWeight: 500 }}>SN / Model Number</div>
+                    <div style={{ fontSize: "12px", color: "var(--text-slate-900)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{asset.modelNumber}</div>
                   </div>
                 </div>
               </div>
@@ -376,19 +376,19 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
       <Drawer
         title={
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ 
-              padding: "8px", 
-              background: "#eff6ff", 
+            <div style={{
+              padding: "8px",
+              background: "var(--bg-blue-50)",
               borderRadius: "8px",
-              color: "#3b82f6"
+              color: "var(--premium-blue)"
             }}>
               {editIndex !== null ? <Edit2 size={20} /> : <Plus size={20} />}
             </div>
             <div>
-              <div style={{ fontSize: "18px", fontWeight: 700, color: "#1e293b" }}>
+              <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-slate-900)" }}>
                 {editIndex !== null ? "Update Asset Details" : "Register New Asset"}
               </div>
-              <div style={{ fontSize: "13px", fontWeight: 400, color: "#64748b" }}>
+              <div style={{ fontSize: "13px", fontWeight: 400, color: "var(--text-slate-500)" }}>
                 {editIndex !== null ? "Modify the existing asset information below." : "Enter the details to register a new assignment."}
               </div>
             </div>
@@ -403,12 +403,12 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
         footer={
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", padding: "16px 24px" }}>
             <Button onClick={() => setOpen(false)} style={{ borderRadius: "8px" }}>Cancel</Button>
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               onClick={handleAddOrUpdateAsset}
-              style={{ 
+              style={{
                 borderRadius: "8px",
-                background: "#3b82f6", 
+                background: "var(--premium-blue)",
                 border: "none",
                 padding: "0 24px"
               }}
@@ -418,8 +418,8 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
           </div>
         }
         styles={{
-          header: { borderBottom: "1px solid #f1f5f9", padding: "24px" },
-          footer: { borderTop: "1px solid #f1f5f9" }
+          header: { borderBottom: "1px solid var(--border-slate-100)", padding: "24px" },
+          footer: { borderTop: "1px solid var(--border-slate-100)" }
         }}
       >
         <Form form={assetsform} layout="vertical">
@@ -429,12 +429,12 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
             name="item"
             rules={[{ required: true, message: "Please select an item" }]}
           >
-            <Select 
+            <Select
               placeholder="Select asset type"
               style={{ height: "40px", borderRadius: "8px" }}
               dropdownStyle={{ borderRadius: "8px" }}
             >
-              <Select.Option value="Mobile">Smartphone</Select.Option>
+              <Select.Option value="Mobile">Smartphones</Select.Option>
               <Select.Option value="Laptop">Laptop / Notebook</Select.Option>
               <Select.Option value="Tab">Tablet Device</Select.Option>
               <Select.Option value="Monitor">External Monitor</Select.Option>
@@ -447,7 +447,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
 
           <Divider style={{ margin: "24px 0" }} />
           <SectionHeader icon={Info} title="Device Information" subtitle="Brand and technical specifications" />
-          
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -479,7 +479,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
 
           <Divider style={{ margin: "24px 0" }} />
           <SectionHeader icon={ImageIcon} title="Visual Proof" subtitle="Upload a photograph of the physical asset" />
-          
+
           <Form.Item
             name="image"
             valuePropName="fileList"
@@ -499,10 +499,10 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
             </Upload>
           </Form.Item>
 
-          <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #f1f5f9", marginTop: "24px" }}>
+          <div style={{ background: "var(--bg-slate-50)", padding: "16px", borderRadius: "12px", border: "1px solid var(--border-slate-100)", marginTop: "24px" }}>
             <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-              <CheckCircle2 size={16} style={{ color: "#10b981", marginTop: "2px" }} />
-              <div style={{ fontSize: "12px", color: "#475569", lineHeight: "1.6" }}>
+              <CheckCircle2 size={16} style={{ color: "var(--text-green-500)", marginTop: "2px" }} />
+              <div style={{ fontSize: "12px", color: "var(--text-slate-500)", lineHeight: "1.6" }}>
                 By registering this asset, you acknowledge responsibility for its maintenance and periodic verification.
               </div>
             </div>

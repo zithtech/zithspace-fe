@@ -45,30 +45,31 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { RBACService, RBACRole, RBACPermission, RBACRoleDetail } from "@/services/rbacService";
 import { MembersService } from "@/services/membersService";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 /** Human-readable label per permission resource. */
 const RESOURCE_LABELS: Record<string, string> = {
-  user:         "Users / Members",
-  project:      "Projects",
-  ticket:       "Tickets",
-  attendance:   "Attendance",
-  leave:        "Leaves",
-  shift:        "Shifts",
-  invoice:      "Invoices",
-  transaction:  "Transactions",
-  client:       "Clients",
-  settings:     "Settings",
-  role:         "Roles & RBAC",
-  report:       "Reports",
-  reimbursement:"Reimbursement",
-  salary:       "Payroll / Salary",
-  document:     "Documents",
-  onboarding:   "Onboarding",
-  timesheet:    "Timesheet",
-  org:          "Org Structure",
+  user: "Users / Members",
+  project: "Projects",
+  ticket: "Tickets",
+  attendance: "Attendance",
+  leave: "Leaves",
+  shift: "Shifts",
+  invoice: "Invoices",
+  transaction: "Transactions",
+  client: "Clients",
+  settings: "Settings",
+  role: "Roles & RBAC",
+  report: "Reports",
+  reimbursement: "Reimbursement",
+  salary: "Payroll / Salary",
+  document: "Documents",
+  onboarding: "Onboarding",
+  timesheet: "Timesheet",
+  org: "Org Structure",
   daily_update: "Daily Updates",
 };
 
@@ -334,11 +335,11 @@ export default function RolesPage() {
               width: 36,
               height: 36,
               borderRadius: 8,
-              background: record.isSystem ? "#e6f4ff" : "#f6ffed",
+              background: record.isSystem ? "var(--bg-blue-50)" : "var(--bg-green-50)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: record.isSystem ? "#1677ff" : "#52c41a",
+              color: record.isSystem ? "var(--premium-blue)" : "var(--text-holiday)",
               fontSize: 18,
             }}
           >
@@ -346,7 +347,7 @@ export default function RolesPage() {
           </div>
           <div>
             <Space size={4} align="center">
-              <Text strong style={{ fontSize: 14, letterSpacing: '-0.2px' }}>
+              <Text strong style={{ fontSize: 14, letterSpacing: '-0.2px', color: 'var(--text-slate-900)' }}>
                 {record.name}
               </Text>
               {record.isSystem && (
@@ -356,7 +357,7 @@ export default function RolesPage() {
               )}
             </Space>
             <div style={{ marginTop: -2 }}>
-              <Text type="secondary" style={{ fontSize: 11, fontFamily: 'monospace' }}>
+              <Text style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--text-slate-400)' }}>
                 {record.slug}
               </Text>
             </div>
@@ -369,7 +370,7 @@ export default function RolesPage() {
       dataIndex: "description",
       key: "description",
       render: (text) => (
-        <Text type="secondary" style={{ fontSize: 12 }}>
+        <Text style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>
           {text || "—"}
         </Text>
       ),
@@ -382,7 +383,7 @@ export default function RolesPage() {
       render: (_, record) => (
         <Badge
           count={record._count?.rolePermissions ?? 0}
-          style={{ backgroundColor: "#1677ff" }}
+          style={{ backgroundColor: "var(--premium-blue)" }}
           overflowCount={999}
           showZero
         />
@@ -395,8 +396,8 @@ export default function RolesPage() {
       align: "center",
       render: (_, record) => (
         <Space size={4}>
-          <UserOutlined style={{ color: "#8c8c8c", fontSize: 12 }} />
-          <Text style={{ fontSize: 12 }}>{record._count?.userRoles ?? 0}</Text>
+          <UserOutlined style={{ color: "var(--text-slate-400)", fontSize: 12 }} />
+          <Text style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>{record._count?.userRoles ?? 0}</Text>
         </Space>
       ),
     },
@@ -463,7 +464,7 @@ export default function RolesPage() {
           )}
           {record.isSystem && (
             <Tooltip title="System roles cannot be deleted or renamed">
-              <LockOutlined style={{ color: "#bfbfbf" }} />
+              <LockOutlined style={{ color: "var(--text-slate-300)" }} />
             </Tooltip>
           )}
         </Space>
@@ -480,25 +481,18 @@ export default function RolesPage() {
 
   return (
     <MainLayout>
-      <div style={{ backgroundColor: '#ffffff', minHeight: 'calc(100vh - 64px)', padding: '24px' }}>
-        {/* Header */}
-        <div style={{ marginBottom: 24 }}>
-          <Space
-            align="start"
-            style={{ width: "100%", justifyContent: "space-between" }}
-          >
-            <Space align="start" size={16}>
-              <SafetyOutlined style={{ fontSize: 28, color: "#1677ff", marginTop: 4 }} />
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.5px' }}>
-                  Roles & Permissions
-                </Title>
-                <Text type="secondary" style={{ fontSize: 13, marginTop: 2 }}>
-                  Manage and oversee system-wide access control and role assignments
-                </Text>
-              </div>
-            </Space>
-            {canCreateRole && (
+      <div style={{
+        margin: "0 -24px",
+        backgroundColor: 'var(--bg-pure-white)',
+        minHeight: 'calc(100vh - 64px)'
+      }}>
+        <TimeTrackingHeader
+          style={{ padding: '8.5px 32px' }}
+          icon={<SafetyOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+          title="Roles & Permissions"
+          description="Manage and oversee system-wide access control and role assignments"
+          extra={
+            canCreateRole ? (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -508,88 +502,92 @@ export default function RolesPage() {
               >
                 Create Role
               </Button>
-            )}
-          </Space>
+            ) : null
+          }
+        />
+
+        <div style={{ padding: "24px 32px 32px 32px" }}>
+
+          {/* Stats Cards */}
+          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+            <Col xs={24} sm={12} lg={6}>
+              <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
+                <Space direction="vertical" size={4}>
+                  <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Total Roles</Text>
+                  <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-slate-900)' }}>{roleStats.total}</Title>
+                </Space>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
+                <Space direction="vertical" size={4}>
+                  <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>System Roles</Text>
+                  <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--premium-blue)' }}>{roleStats.system}</Title>
+                </Space>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
+                <Space direction="vertical" size={4}>
+                  <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Custom Roles</Text>
+                  <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-holiday)' }}>{roleStats.custom}</Title>
+                </Space>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
+                <Space direction="vertical" size={4}>
+                  <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Total Permissions</Text>
+                  <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--warning-yellow, #faad14)' }}>{roleStats.permissions}</Title>
+                </Space>
+              </Card>
+            </Col>
+          </Row>
+
+          {/* Alerts */}
+          {error && (
+            <Alert
+              message={error}
+              type="error"
+              showIcon
+              closable
+              style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
+              onClose={() => setError("")}
+            />
+          )}
+          {success && (
+            <Alert
+              message={success}
+              type="success"
+              showIcon
+              closable
+              style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
+              onClose={() => setSuccess("")}
+            />
+          )}
+
+          {/* Roles Table Container */}
+          <Card
+            bordered={false}
+            style={{
+              marginBottom: 16,
+              borderRadius: 12,
+              border: '1px solid var(--border-slate-100)',
+              boxShadow: 'none',
+              background: 'var(--bg-pure-white)'
+            }}
+            styles={{ body: { padding: 0 } }}
+          >
+            <Table
+              columns={columns}
+              dataSource={roles}
+              rowKey="id"
+              loading={loading}
+              pagination={false}
+              scroll={{ x: 1000 }}
+            />
+          </Card>
         </div>
-
-        {/* Stats Cards */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
-              <Space direction="vertical" size={4}>
-                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Roles</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{roleStats.total}</Title>
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
-              <Space direction="vertical" size={4}>
-                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>System Roles</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#1677ff' }}>{roleStats.system}</Title>
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
-              <Space direction="vertical" size={4}>
-                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Custom Roles</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#52c41a' }}>{roleStats.custom}</Title>
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
-              <Space direction="vertical" size={4}>
-                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Permissions</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#faad14' }}>{roleStats.permissions}</Title>
-              </Space>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* Alerts */}
-        {error && (
-          <Alert
-            message={error}
-            type="error"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
-            onClose={() => setError("")}
-          />
-        )}
-        {success && (
-          <Alert
-            message={success}
-            type="success"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
-            onClose={() => setSuccess("")}
-          />
-        )}
-
-        {/* Roles Table Container */}
-        <Card
-          bordered={false}
-          style={{ 
-            marginBottom: 16, 
-            borderRadius: 12, 
-            border: '1px solid #f0f0f0',
-            boxShadow: 'none'
-          }}
-          styles={{ body: { padding: 0 } }}
-        >
-          <Table
-            columns={columns}
-            dataSource={roles}
-            rowKey="id"
-            loading={loading}
-            pagination={false}
-            scroll={{ x: 1000 }}
-          />
-        </Card>
 
         {/* ── Create Role Modal ── */}
         <Modal
@@ -671,12 +669,12 @@ export default function RolesPage() {
           title={
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <Space size={8}>
-                <SafetyOutlined style={{ color: '#1677ff' }} />
-                <Text strong style={{ fontSize: 16 }}>Edit Permissions</Text>
+                <SafetyOutlined style={{ color: 'var(--premium-blue)' }} />
+                <Text strong style={{ fontSize: 16, color: 'var(--text-slate-900)' }}>Edit Permissions</Text>
                 {drawerRole?.isSystem && <Tag bordered={false} color="blue" style={{ fontSize: 10 }}>SYSTEM</Tag>}
               </Space>
-              <Text type="secondary" style={{ fontSize: 12, fontWeight: 400, marginTop: 4 }}>
-                Configure access rights for the <strong>{drawerRole?.name}</strong> role
+              <Text style={{ fontSize: 12, fontWeight: 400, marginTop: 4, color: 'var(--text-slate-500)' }}>
+                Configure access rights for the <strong style={{ color: 'var(--text-slate-900)' }}>{drawerRole?.name}</strong> role
               </Text>
             </div>
           }
@@ -684,14 +682,14 @@ export default function RolesPage() {
           onClose={() => setDrawerOpen(false)}
           width={560}
           styles={{
-            header: { borderBottom: '1px solid #f0f0f0', padding: '16px 24px' },
-            body: { padding: '0 0 24px 0' }
+            header: { borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
+            body: { padding: '0 0 24px 0', background: 'var(--bg-pure-white)' }
           }}
           extra={
             canUpdateRole && (
-              <Button 
-                type="primary" 
-                loading={drawerSaving} 
+              <Button
+                type="primary"
+                loading={drawerSaving}
                 onClick={handleSavePermissions}
                 style={{ borderRadius: 6 }}
               >
@@ -715,18 +713,18 @@ export default function RolesPage() {
                   alignItems: "center",
                   justifyContent: "space-between",
                   padding: "12px 24px",
-                  background: "#fafafa",
-                  borderBottom: "1px solid #f0f0f0",
+                  background: "var(--bg-slate-50)",
+                  borderBottom: "1px solid var(--border-slate-100)",
                   position: 'sticky',
                   top: 0,
                   zIndex: 1,
                   marginBottom: 16
                 }}
               >
-                <Text style={{ fontSize: 13, fontWeight: 500 }}>
-                  <Badge 
-                    count={selectedPermIds.length} 
-                    style={{ backgroundColor: '#1677ff', marginRight: 8 }} 
+                <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-900)' }}>
+                  <Badge
+                    count={selectedPermIds.length}
+                    style={{ backgroundColor: 'var(--premium-blue)', marginRight: 8 }}
                   />
                   Permissions Selected
                 </Text>
@@ -763,13 +761,14 @@ export default function RolesPage() {
                   const someInGroup = selectedCount > 0 && !allInGroup;
 
                   return (
-                    <div 
-                      key={resource} 
-                      style={{ 
-                        marginBottom: 16, 
-                        border: '1px solid #f0f0f0', 
+                    <div
+                      key={resource}
+                      style={{
+                        marginBottom: 16,
+                        border: '1px solid var(--border-slate-100)',
                         borderRadius: 10,
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        background: 'var(--bg-pure-white)'
                       }}
                     >
                       {/* Group Header */}
@@ -779,8 +778,8 @@ export default function RolesPage() {
                           alignItems: "center",
                           justifyContent: 'space-between',
                           padding: "10px 16px",
-                          background: '#fafafa',
-                          borderBottom: '1px solid #f0f0f0'
+                          background: 'var(--bg-slate-50)',
+                          borderBottom: '1px solid var(--border-slate-100)'
                         }}
                       >
                         <Space size={12}>
@@ -790,7 +789,7 @@ export default function RolesPage() {
                             onChange={() => toggleResource(perms)}
                             disabled={!canUpdateRole}
                           />
-                          <Text strong style={{ fontSize: 13, color: '#262626' }}>
+                          <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>
                             {label}
                           </Text>
                         </Space>
@@ -808,7 +807,7 @@ export default function RolesPage() {
                                 checked={selectedPermIds.includes(perm.id)}
                                 onChange={() => togglePermission(perm.id)}
                                 disabled={!canUpdateRole}
-                                style={{ fontSize: 12, display: 'flex', alignItems: 'center' }}
+                                style={{ fontSize: 12, display: 'flex', alignItems: 'center', color: 'var(--text-slate-700)' }}
                               >
                                 <Tooltip title={perm.description || perm.name}>
                                   <span style={{ marginLeft: 4 }}>{perm.action}</span>
@@ -831,11 +830,11 @@ export default function RolesPage() {
           title={
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <Space size={8}>
-                <TeamOutlined style={{ color: '#1677ff' }} />
-                <Text strong style={{ fontSize: 16 }}>Manage Members</Text>
+                <TeamOutlined style={{ color: 'var(--premium-blue)' }} />
+                <Text strong style={{ fontSize: 16, color: 'var(--text-slate-900)' }}>Manage Members</Text>
               </Space>
-              <Text type="secondary" style={{ fontSize: 12, fontWeight: 400, marginTop: 4 }}>
-                Assign or remove users from the <strong>{membersDrawerRole?.name}</strong> role
+              <Text style={{ fontSize: 12, fontWeight: 400, marginTop: 4, color: 'var(--text-slate-500)' }}>
+                Assign or remove users from the <strong style={{ color: 'var(--text-slate-900)' }}>{membersDrawerRole?.name}</strong> role
               </Text>
             </div>
           }
@@ -843,8 +842,8 @@ export default function RolesPage() {
           onClose={() => setMembersDrawerOpen(false)}
           width={480}
           styles={{
-            header: { borderBottom: '1px solid #f0f0f0', padding: '16px 24px' },
-            body: { padding: '24px' }
+            header: { borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
+            body: { padding: '24px', background: 'var(--bg-pure-white)' }
           }}
         >
           {membersDrawerLoading ? (
@@ -857,14 +856,14 @@ export default function RolesPage() {
             <div>
               {/* Add member section */}
               {canAssignRole && (
-                <div style={{ 
-                  marginBottom: 24, 
-                  padding: 16, 
-                  background: '#fafafa', 
+                <div style={{
+                  marginBottom: 24,
+                  padding: 16,
+                  background: 'var(--bg-slate-50)',
                   borderRadius: 10,
-                  border: '1px solid #f0f0f0'
+                  border: '1px solid var(--border-slate-100)'
                 }}>
-                  <Text strong style={{ fontSize: 13, display: "block", marginBottom: 12, color: '#262626' }}>
+                  <Text strong style={{ fontSize: 13, display: "block", marginBottom: 12, color: 'var(--text-slate-900)' }}>
                     Assign New Member
                   </Text>
                   <Space.Compact style={{ width: "100%" }}>
@@ -897,31 +896,31 @@ export default function RolesPage() {
 
               {/* Current members list */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <Text strong style={{ fontSize: 14 }}>
+                <Text strong style={{ fontSize: 14, color: 'var(--text-slate-900)' }}>
                   Current Members
                 </Text>
-                <Badge 
-                  count={roleMembers.length} 
-                  showZero 
+                <Badge
+                  count={roleMembers.length}
+                  showZero
                   overflowCount={999}
-                  style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', boxShadow: 'none' }}
+                  style={{ backgroundColor: 'var(--bg-slate-100)', color: 'var(--text-slate-500)', boxShadow: 'none' }}
                 />
               </div>
 
               {roleMembers.length === 0 ? (
-                <div style={{ 
-                  textAlign: "center", 
-                  padding: "48px 0", 
-                  background: '#fafafa', 
+                <div style={{
+                  textAlign: "center",
+                  padding: "48px 0",
+                  background: 'var(--bg-slate-50)',
                   borderRadius: 10,
-                  border: '1px dashed #d9d9d9'
+                  border: '1px dashed var(--border-slate-200)'
                 }}>
-                  <TeamOutlined style={{ fontSize: 32, marginBottom: 12, color: '#bfbfbf' }} />
+                  <TeamOutlined style={{ fontSize: 32, marginBottom: 12, color: 'var(--text-slate-300)' }} />
                   <br />
-                  <Text type="secondary" style={{ fontSize: 13 }}>No members assigned to this role</Text>
+                  <span style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>No members assigned to this role</span>
                 </div>
               ) : (
-                <div style={{ border: '1px solid #f0f0f0', borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ border: '1px solid var(--border-slate-100)', borderRadius: 10, overflow: 'hidden', background: 'var(--bg-pure-white)' }}>
                   <List
                     size="large"
                     dataSource={roleMembers}
@@ -931,42 +930,42 @@ export default function RolesPage() {
                         actions={
                           canAssignRole
                             ? [
-                                <Popconfirm
-                                  key="remove"
-                                  title="Remove from role?"
-                                  description={`Are you sure you want to remove ${entry.user.name} from this role?`}
-                                  onConfirm={() => handleRemoveMember(entry.user.id)}
-                                  okText="Remove"
-                                  okButtonProps={{ danger: true }}
-                                >
-                                  <Button
-                                    type="text"
-                                    icon={<MinusCircleOutlined />}
-                                    size="small"
-                                    danger
-                                    className="hover-danger-bg"
-                                  />
-                                </Popconfirm>,
-                              ]
+                              <Popconfirm
+                                key="remove"
+                                title="Remove from role?"
+                                description={`Are you sure you want to remove ${entry.user.name} from this role?`}
+                                onConfirm={() => handleRemoveMember(entry.user.id)}
+                                okText="Remove"
+                                okButtonProps={{ danger: true }}
+                              >
+                                <Button
+                                  type="text"
+                                  icon={<MinusCircleOutlined />}
+                                  size="small"
+                                  danger
+                                  className="hover-danger-bg"
+                                />
+                              </Popconfirm>,
+                            ]
                             : []
                         }
                       >
                         <List.Item.Meta
                           avatar={
-                            <Avatar 
-                              style={{ backgroundColor: '#1677ff' }} 
-                              icon={<UserOutlined />} 
+                            <Avatar
+                              style={{ backgroundColor: 'var(--premium-blue)' }}
+                              icon={<UserOutlined />}
                               size={40}
                             />
                           }
                           title={
-                            <Text strong style={{ fontSize: 13 }}>
+                            <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>
                               {entry.user.name}
                             </Text>
                           }
                           description={
                             <div style={{ marginTop: -2 }}>
-                              <Text type="secondary" style={{ fontSize: 11 }}>
+                              <Text style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>
                                 {entry.user.workEmail || 'No email provided'}
                               </Text>
                             </div>
@@ -980,6 +979,34 @@ export default function RolesPage() {
             </div>
           )}
         </Drawer>
+        <style jsx global>{`
+          .ant-form-item-label > label {
+            font-weight: 500;
+            color: var(--text-slate-600) !important;
+            font-size: 13px;
+          }
+          .ant-input, .ant-input-number, .ant-select-selector, .ant-picker, .ant-input-affix-wrapper {
+            border-radius: 8px !important;
+            border-color: var(--border-slate-200) !important;
+            background: var(--bg-pure-white) !important;
+            color: var(--text-slate-900) !important;
+          }
+          .ant-input:focus, .ant-input-number:focus, .ant-select-selector:focus {
+            border-color: var(--premium-blue) !important;
+            outline: none;
+          }
+          .ant-table-thead > tr > th {
+            background: var(--bg-table-header) !important;
+            border-bottom: 2px solid var(--border-slate-100) !important;
+            color: var(--text-slate-900) !important;
+          }
+          .ant-table-row:hover > td {
+            background: var(--bg-slate-50) !important;
+          }
+          .ant-drawer-content {
+            background-color: var(--bg-pure-white) !important;
+          }
+        `}</style>
       </div>
     </MainLayout>
   );

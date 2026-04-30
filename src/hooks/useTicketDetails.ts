@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import TicketService from '@/services/ticketService';
+import DocumentHubService from '@/services/documentHub';
 
 /**
  * React Query hooks for ticket details with optimized caching
@@ -70,6 +71,21 @@ export const useTicketAttachments = (ticketId: string | undefined) => {
     enabled: !!ticketId,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+/**
+ * Fetch document hubs linked to a ticket. These are surfaced alongside file
+ * attachments on the ticket — the ticket→hub relationship is bidirectional
+ * (the hub also exposes the ticket on the doc-hub list page).
+ */
+export const useTicketDocumentHubs = (ticketId: string | undefined) => {
+  return useQuery({
+    queryKey: ['ticket', ticketId, 'documentHubs'],
+    queryFn: () => DocumentHubService.getDocumentHubsByTicket(ticketId!),
+    enabled: !!ticketId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 };
 

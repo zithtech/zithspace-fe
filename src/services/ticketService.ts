@@ -21,6 +21,7 @@ export interface TicketFormData {
   endDate?: string;
   releasePlan?: string;
   selectedWorkflowSteps?: string[];
+  tags?: string[];
 }
 
 export interface TicketConfiguration {
@@ -138,6 +139,7 @@ export interface Ticket {
   bucketId?: string;
   isArchived?: boolean;
   parentId?: string; // Hierarchy support (Subtask)
+  tags?: string[];
   metadata?: {
     platform?: string;
     stack?: string;

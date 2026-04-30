@@ -54,8 +54,8 @@ import {
   MinusCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { useQuery } from "@tanstack/react-query";
-import { useTicketComments, useTicketAttachments, useTicketLinks, useAddComment, useUpdateComment, useDeleteComment, useUploadAttachment, useDeleteAttachment, useRenameAttachment, useAddRelatedLink, useUpdateRelatedLink, useDeleteRelatedLink } from "@/hooks/useTicketDetails";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTicketComments, useTicketAttachments, useTicketLinks, useAddComment, useUpdateComment, useDeleteComment, useUploadAttachment, useDeleteAttachment, useRenameAttachment, useAddRelatedLink, useUpdateRelatedLink, useDeleteRelatedLink, useTicketDocumentHubs } from "@/hooks/useTicketDetails";
 import { useTicket, useUpdateTicket, ticketKeys } from "@/hooks/useTickets";
 import { useMembers, useTicketConfig, useUserProjects } from "@/hooks/useGlobalData";
 import { useAvailableSprints } from "@/hooks/useAvailableSprints";
@@ -75,6 +75,7 @@ import {
 } from "@/utils/ticketUtils";
 import { EditableField } from "./editable/EditableField";
 import { EditableSelect } from "./editable/EditableSelect";
+import { EditableTags } from "./editable/EditableTags";
 import { DrawerField } from "./DrawerField";
 import { EditableDate } from "./editable/EditableDate";
 import TiptapEditor from "@/components/common/TiptapEditor";
@@ -84,11 +85,17 @@ import {
   CommentsSection,
   RelatedLinksSection,
   ActivityTimeline,
+  LinkedDocumentHubsList,
 } from "../ticket-details";
 import SubtasksSection from "../ticket-details/SubtasksSection";
 import CodeIntegrationSection from "../ticket-details/code/CodeIntegrationSection";
 import TicketService from "@/services/ticketService";
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
+import CreateDocHubModal from "@/components/documenthub/CreateDocHubModal";
+import AiCreateHubModal from "@/components/documenthub/AiCreateHubModal";
+import { Dropdown } from "antd";
+import type { MenuProps } from "antd";
+import { useRouter } from "next/navigation";
 
 // Add relativeTime plugin
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -150,6 +157,9 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
   const [timeEntries, setTimeEntries] = useState<TimeTrackingEntry[]>([]);
   const [timeEntriesLoading, setTimeEntriesLoading] = useState(false);
+  const [createDocOpen, setCreateDocOpen] = useState(false);
+  const [createDocAiOpen, setCreateDocAiOpen] = useState(false);
+  const router = useRouter();
 
   // Data Hooks - Use currentTicketId instead of ticketId prop
   const { data: ticket, isLoading: ticketLoading } = useTicket(currentTicketId || "");
@@ -173,6 +183,8 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const { data: comments = [], isLoading: commentsLoading } = useTicketComments(currentTicketId || "");
   const { data: relatedLinks = [], isLoading: linksLoading } = useTicketLinks(currentTicketId || "");
   const { data: attachments = [], isLoading: attachmentsLoading } = useTicketAttachments(currentTicketId || "");
+  const { data: linkedHubs = [], isLoading: linkedHubsLoading } = useTicketDocumentHubs(currentTicketId || "");
+  const queryClient = useQueryClient();
 
   // Update editor content when description changes externally
   React.useEffect(() => {
@@ -622,42 +634,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
             )}
           </Space>
 
-          {/* Metadata Header Row */}
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', margin: '0 16px', whiteSpace: 'nowrap' }}>
-            <Space split={<Divider type="vertical" style={{ margin: 0, height: 12, borderColor: '#d9d9d9' }} />} size={16} align="center">
-              <Space size={8} style={{ alignItems: 'center' }}>
-                <Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Created by</Text>
-                <Space size={6}>
-                  <Avatar
-                    size={18}
-                    src={ticket?.createdBy?.avatarUrl}
-                    style={{ backgroundColor: '#1890ff', fontSize: 10 }}
-                  >
-                    {ticket?.createdBy?.name?.charAt(0) || 'S'}
-                  </Avatar>
-                  <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{ticket?.createdBy?.name || 'System'}</Text>
-                </Space>
-                <Text type="secondary" style={{ fontSize: 11, margin: '0 4px' }}>•</Text>
-                <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{ticket?.createdAt ? dayjs(ticket.createdAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
-              </Space>
-
-              <Space size={8} style={{ alignItems: 'center' }}>
-                <Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Updated by</Text>
-                <Space size={6}>
-                  <Avatar
-                    size={18}
-                    src={(ticket as any)?.updatedBy?.avatarUrl || ticket?.createdBy?.avatarUrl}
-                    style={{ backgroundColor: '#87d068', fontSize: 10 }}
-                  >
-                    {((ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System').charAt(0)}
-                  </Avatar>
-                  <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{(ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System'}</Text>
-                </Space>
-                <Text type="secondary" style={{ fontSize: 11, margin: '0 4px' }}>•</Text>
-                <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{ticket?.updatedAt ? dayjs(ticket.updatedAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
-              </Space>
-            </Space>
-          </div>
+         
 
           <Space size={8}>
             {isInBacklog && activeSprint && (
@@ -726,6 +703,114 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 />
               </Tooltip>
             </Space>
+
+            <Dropdown
+              trigger={['hover', 'click']}
+              placement="bottomRight"
+              overlayClassName="create-doc-from-ticket-menu"
+              menu={{
+                items: [
+                  {
+                    key: 'manual',
+                    label: (
+                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 260 }}>
+                        <div
+                          className="flex items-center justify-center shrink-0 text-white"
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 12,
+                            background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                            boxShadow: '0 2px 6px rgba(59, 130, 246, 0.25)',
+                          }}
+                        >
+                          <FileTextOutlined style={{ fontSize: 15 }} />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span
+                            className="text-[13px] font-semibold leading-tight"
+                            style={{ color: 'var(--text-slate-900)' }}
+                          >
+                            Manual creation
+                          </span>
+                          <span
+                            className="text-[11.5px] leading-snug mt-0.5"
+                            style={{ color: 'var(--text-slate-400)' }}
+                          >
+                            Start from a blank document hub
+                          </span>
+                        </div>
+                      </div>
+                    ),
+                    onClick: () => setCreateDocOpen(true),
+                  },
+                  {
+                    key: 'zai',
+                    label: (
+                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 260 }}>
+                        <div
+                          className="flex items-center justify-center shrink-0 text-white"
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 12,
+                            background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
+                            boxShadow: '0 2px 6px rgba(139, 92, 246, 0.3)',
+                          }}
+                        >
+                          <ThunderboltOutlined style={{ fontSize: 15 }} />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="text-[13px] font-semibold leading-tight"
+                              style={{ color: 'var(--text-slate-900)' }}
+                            >
+                              Create with Zai
+                            </span>
+                            <span
+                              className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-[1px] rounded"
+                              style={{
+                                background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
+                                color: '#fff',
+                              }}
+                            >
+                              AI
+                            </span>
+                          </div>
+                          <span
+                            className="text-[11.5px] leading-snug mt-0.5"
+                            style={{ color: 'var(--text-slate-400)' }}
+                          >
+                            Draft the hub from this ticket's context
+                          </span>
+                        </div>
+                      </div>
+                    ),
+                    onClick: () => setCreateDocAiOpen(true),
+                  },
+                ] as MenuProps['items'],
+              }}
+            >
+              <Button
+                size="middle"
+                icon={<FileTextOutlined />}
+                style={{
+                  height: 32,
+                  borderRadius: 8,
+                  paddingInline: 12,
+                  fontWeight: 600,
+                  fontSize: 12,
+                  background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                  color: '#fff',
+                  border: 'none',
+                  boxShadow:
+                    '0 2px 8px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+                }}
+              >
+                Create Doc
+              </Button>
+            </Dropdown>
 
             <Tooltip title="Copy Public Link">
               <Button
@@ -1263,19 +1348,26 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                     label: (
                       <span>
                         <PaperClipOutlined style={{ marginRight: 8 }} />
-                        Attachments ({attachments.length})
+                        Attachments ({attachments.length + linkedHubs.length})
                       </span>
                     ),
                     children: (
-                      <AttachmentsSection
-                        attachments={attachments}
-                        isLoading={attachmentsLoading}
-                        isEditing={false} // pass false to enable Uploader
-                        onUpload={async (f, n) => await uploadAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", file: f, fileName: n })}
-                        onDelete={async (id) => await deleteAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", attachmentId: id })}
-                        onRename={async (id, newName) => await renameAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", attachmentId: id, newFileName: newName })}
-                        currentUserId={currentUserId}
-                      />
+                      <>
+                        <LinkedDocumentHubsList
+                          hubs={linkedHubs}
+                          isLoading={linkedHubsLoading}
+                          onOpenHub={(hubId) => router.push(`/documenthub/${hubId}`)}
+                        />
+                        <AttachmentsSection
+                          attachments={attachments}
+                          isLoading={attachmentsLoading}
+                          isEditing={false} // pass false to enable Uploader
+                          onUpload={async (f, n) => await uploadAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", file: f, fileName: n })}
+                          onDelete={async (id) => await deleteAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", attachmentId: id })}
+                          onRename={async (id, newName) => await renameAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", attachmentId: id, newFileName: newName })}
+                          currentUserId={currentUserId}
+                        />
+                      </>
                     )
                   },
                   {
@@ -1643,6 +1735,14 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                     options={taskLevels}
                                     onSave={(val) => handleUpdate("taskLevel", val)}
                                     mode="dot"
+                                  />
+                                </DrawerField>
+                              </Col>
+                              <Col span={24}>
+                                <DrawerField label="Tags" variant="table">
+                                  <EditableTags
+                                    value={ticket.tags || []}
+                                    onSave={(next) => handleUpdate("tags", next)}
                                   />
                                 </DrawerField>
                               </Col>
@@ -2108,6 +2208,70 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
         }
       `}</style>
     </Drawer>
+
+    <CreateDocHubModal
+      open={createDocOpen}
+      onClose={() => setCreateDocOpen(false)}
+      defaultName={ticket?.title ? `${ticket?.ticketNumber || 'Ticket'} — ${ticket.title}` : ''}
+      defaultProjectId={
+        typeof ticket?.project === 'string'
+          ? (ticket.project as string)
+          : (ticket?.project as any)?.id
+      }
+      defaultTicketId={ticket?.id}
+      lockLink
+      onCreated={(hubId) => {
+        queryClient.invalidateQueries({ queryKey: ['ticket', currentTicketId, 'documentHubs'] });
+        router.push(`/documenthub/${hubId}`);
+      }}
+    />
+
+    <AiCreateHubModal
+      open={createDocAiOpen}
+      onClose={() => setCreateDocAiOpen(false)}
+      defaultProjectId={
+        typeof ticket?.project === 'string'
+          ? (ticket.project as string)
+          : (ticket?.project as any)?.id
+      }
+      defaultTicketId={ticket?.id}
+      lockedTicket={ticket as any}
+      onCreated={(hubId) => {
+        queryClient.invalidateQueries({ queryKey: ['ticket', currentTicketId, 'documentHubs'] });
+        router.push(`/documenthub/${hubId}`);
+      }}
+    />
+
+    {/* Plain global <style> tag (not styled-jsx) — Next.js disallows two
+        nested `<style jsx global>` blocks in the same tree, and this file
+        already has one inside the Drawer for ticket-card styling. */}
+    <style
+      dangerouslySetInnerHTML={{
+        __html: `
+          .create-doc-from-ticket-menu .ant-dropdown-menu {
+            padding: 6px !important;
+            border-radius: 14px !important;
+            border: 1px solid var(--border-slate-200) !important;
+            background: var(--bg-pure-white) !important;
+            box-shadow:
+              0 12px 32px rgba(15, 23, 42, 0.10),
+              0 2px 6px rgba(15, 23, 42, 0.06) !important;
+            min-width: 290px !important;
+          }
+          .create-doc-from-ticket-menu .ant-dropdown-menu-item {
+            border-radius: 10px !important;
+            padding: 8px 10px !important;
+            margin-bottom: 2px !important;
+          }
+          .create-doc-from-ticket-menu .ant-dropdown-menu-item:last-child {
+            margin-bottom: 0 !important;
+          }
+          .create-doc-from-ticket-menu .ant-dropdown-menu-item:hover {
+            background: var(--bg-slate-50) !important;
+          }
+        `,
+      }}
+    />
     </>
   );
 };

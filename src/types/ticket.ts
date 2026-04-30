@@ -48,6 +48,7 @@ export interface TicketDetails {
   completedSteps?: number;
   totalSteps?: number;
   releasePlan?: string;
+  tags?: string[];
   // Archive fields
   isArchived?: boolean;
   archivedAt?: string;

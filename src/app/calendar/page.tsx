@@ -165,10 +165,10 @@ function CalendarPageContent() {
         setShowFormDrawer(true);
     };
 
-    const handleDeleteFromDrawer = async (event: any) => {
+    const handleDeleteFromDrawer = async (event: any, action?: number) => {
         if (event) {
             const finalOccurrenceDate = selectedOccurrenceDate?.toISOString();
-            const ok = await deleteEvent(event.id, undefined, finalOccurrenceDate);
+            const ok = await deleteEvent(event.id, action, finalOccurrenceDate);
             if (ok) setShowDrawer(false);
         }
     };

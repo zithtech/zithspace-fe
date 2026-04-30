@@ -16,7 +16,7 @@ interface WeekViewProps {
 }
 
 export default function WeekView({ currentDate, events, onEventClick, onTimeSlotClick }: WeekViewProps) {
-    const startOfWeek = currentDate.startOf('week').add(1, 'day'); // Monday start
+    const startOfWeek = currentDate.subtract((currentDate.day() + 6) % 7, 'day').startOf('day');
     const days = Array.from({ length: 7 }, (_, i) => startOfWeek.add(i, 'day'));
     const hours = Array.from({ length: 24 }, (_, i) => i);
 

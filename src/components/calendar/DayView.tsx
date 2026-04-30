@@ -44,8 +44,8 @@ export default function DayView({ currentDate, events, onEventClick, onTimeSlotC
         const duration = end.diff(start, 'hour', true);
 
         return {
-            top: `${startHour * 60}px`,
-            height: `${duration * 60}px`,
+            top: `${startHour * 80}px`,
+            height: `${duration * 80}px`,
             left: '12px',
             right: '12px',
             position: 'absolute' as const,

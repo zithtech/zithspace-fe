@@ -114,10 +114,18 @@ export default function EventFormDrawer({
                     recurringDays: parsedDays
                 });
             } else {
-                let start = initialDate ? initialDate.hour(9).minute(0) : dayjs().hour(9).minute(0);
-                if (start.isBefore(dayjs())) {
+                let start = initialDate ? initialDate : dayjs().hour(9).minute(0).second(0).millisecond(0);
+                
+                // If initialDate is at midnight (likely from MonthView or DatePicker), default to 9 AM
+                if (initialDate && initialDate.hour() === 0 && initialDate.minute() === 0) {
+                    start = initialDate.hour(9).minute(0);
+                }
+                
+                // Only force to future if no initialDate was provided (i.e. clicking "Create Event" button)
+                if (!initialDate && start.isBefore(dayjs())) {
                     start = dayjs().add(1, 'hour').startOf('hour');
                 }
+                
                 const end = start.add(1, 'hour');
                 form.setFieldsValue({
                     title: '',
@@ -482,8 +490,16 @@ export default function EventFormDrawer({
                                         style={{ marginBottom: 0 }}
                                     >
                                         <DatePicker
-                                            showTime={{ format: 'HH:mm' }}
+                                            showTime={{ format: 'hh:mm A', use12Hours: true }}
                                             format="DD MMM YYYY, hh:mm A"
+                                            onChange={(date) => {
+                                                if (date) {
+                                                    const currentEnd = form.getFieldValue('endTime');
+                                                    // By default, assume 1 hour duration if they change start time and we want to keep it reasonable
+                                                    // This prevents accidentally creating 12-hour or multi-day events
+                                                    form.setFieldsValue({ endTime: date.add(1, 'hour') });
+                                                }
+                                            }}
                                             style={{
                                                 width: '100%',
                                                 borderRadius: '10px',
@@ -503,7 +519,7 @@ export default function EventFormDrawer({
                                         style={{ marginBottom: 0 }}
                                     >
                                         <DatePicker
-                                            showTime={{ format: 'HH:mm' }}
+                                            showTime={{ format: 'hh:mm A', use12Hours: true }}
                                             format="DD MMM YYYY, hh:mm A"
                                             style={{
                                                 width: '100%',

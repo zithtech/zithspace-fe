@@ -29,8 +29,14 @@ export const ProposalService = {
     return api.post(`/api/proposals/generate-from-lead/${leadId}`);
   },
 
-  generateContentOnly: async (leadId: string) => {
-    return api.post(`/api/proposals/generate-content-only/${leadId}`);
+  generateContentOnly: async (leadId: string, payload?: {
+    selection?: 'client' | 'custom';
+    duration?: string;
+    cost?: string | number;
+    startDate?: string;
+    endDate?: string;
+  }) => {
+    return api.post(`/api/proposals/generate-content-only/${leadId}`, payload || {});
   },
   
   refineBlock: async (params: { blockId?: string; blockType: string; currentData: any; userPrompt: string }) => {

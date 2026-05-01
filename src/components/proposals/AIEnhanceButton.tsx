@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Button, Modal, Input, message, Spin, Typography, Space, Divider, Tag } from 'antd';
-import { Sparkles } from 'lucide-react';
+import { Button, Modal, Input, message, Typography, Tag } from 'antd';
+import { Sparkles, Wand2, ArrowRight, Check, Zap } from 'lucide-react';
 import { ProposalService } from '@/services/proposalService';
-import { ExperimentOutlined, CheckCircleOutlined, CloseCircleOutlined, ArrowRightOutlined } from '@ant-design/icons';
 
-const { Text, Title, Paragraph } = Typography;
+const { Text } = Typography;
 
 interface AIEnhanceButtonProps {
   originalData: any;
@@ -14,60 +13,65 @@ interface AIEnhanceButtonProps {
   style?: React.CSSProperties;
 }
 
+const QUICK_SUGGESTIONS = [
+  { label: 'Make it professional', icon: '💼' },
+  { label: 'Summarize this',        icon: '📋' },
+  { label: 'Fix grammar & flow',    icon: '✏️' },
+  { label: 'Make it more persuasive', icon: '🎯' },
+  { label: 'Simplify the language', icon: '✨' },
+];
+
 export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
   originalData,
   blockType,
   label,
   onApply,
-  style
+  style,
 }) => {
   const [visible, setVisible] = useState(false);
   const [instruction, setInstruction] = useState('');
   const [loading, setLoading] = useState(false);
   const [refinedData, setRefinedData] = useState<any>(null);
 
+  const isEmptyOriginal = !originalData ||
+    (typeof originalData === 'object' && Object.values(originalData).every((v) => !v));
+
+  const triggerLabel = label || (isEmptyOriginal ? 'Create with Zai' : 'Enhance with Zai');
+
   const handleRefine = async () => {
     if (!instruction.trim()) return message.warning('Please enter an instruction first.');
 
     setLoading(true);
+    setRefinedData(null);
     try {
-      const res = await ProposalService.refineBlock({
+      const res = (await ProposalService.refineBlock({
         blockType,
         currentData: originalData,
-        userPrompt: instruction
-      }) as any;
+        userPrompt: instruction,
+      })) as any;
 
-      console.log('🔍 [AI DEBUG] Refined Response:', res);
-
-      // Your interceptor returns the data directly (e.g. { id, title, etc })
-      // Or sometimes the success wrapper if it's a different path
       let payload = null;
       let isSuccess = false;
 
       if (res && (res.success === true || res?.data?.success === true)) {
-        // Standard wrapper case
         payload = res.data?.data || res.data;
         isSuccess = true;
       } else if (res && typeof res === 'object') {
-        // Direct payload case (interceptor stripped the wrapper)
         payload = res;
         isSuccess = true;
       } else if (res && typeof res === 'string') {
-        // Direct string case
         payload = res;
         isSuccess = true;
       }
 
       if (isSuccess && payload) {
-        console.log('✨ [AI DEBUG] Final Payload to display:', payload);
         setRefinedData(payload);
-        message.success('Ready to review!');
+        message.success('Zai is ready — review the suggestion');
       } else {
-        console.warn('⚠️ [AI DEBUG] Could not determine success or payload');
         message.error('Failed to refine content.');
       }
     } catch (err: any) {
-      console.error('❌ [AI DEBUG] Error:', err);
+      console.error('Zai refine error:', err);
       message.error('Error during refinement.');
     } finally {
       setLoading(false);
@@ -82,37 +86,23 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
   };
 
   const renderPreview = (content: any, type: 'original' | 'refined' = 'original') => {
-    // For original strings, if empty, show placeholder
     if (!content && type === 'original') {
-      return <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>Empty / No content</div>;
+      return <div style={{ color: 'var(--text-slate-400)', fontStyle: 'italic' }}>Empty / No content</div>;
     }
-    
     if (!content) return null;
-    
+
     if (typeof content === 'string') {
       const isHtml = /<[a-z][\s\S]*>/i.test(content);
-      
       if (isHtml) {
         return (
-          <div 
-            style={{ 
-              color: type === 'refined' ? 'var(--premium-blue)' : 'var(--text-primary)', 
-              lineHeight: 1.6, 
-              fontSize: '0.9rem' 
-            }}
+          <div
+            className={type === 'refined' ? 'zai-refined-text' : 'zai-original-text'}
             dangerouslySetInnerHTML={{ __html: content }}
           />
         );
       }
-
       return (
-        <div style={{ 
-          color: type === 'refined' ? 'var(--premium-blue)' : 'var(--text-primary)', 
-          lineHeight: 1.7, 
-          fontSize: '0.95rem', 
-          whiteSpace: 'pre-wrap',
-          fontWeight: type === 'refined' ? 500 : 400
-        }}>
+        <div className={type === 'refined' ? 'zai-refined-text' : 'zai-original-text'} style={{ whiteSpace: 'pre-wrap' }}>
           {content}
         </div>
       );
@@ -122,45 +112,50 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
     const hasOriginalObject = originalData && typeof originalData === 'object' && !Array.isArray(originalData);
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {isObject && Object.entries(content).map(([key, value]) => {
-          if (key === 'id') return null;
-          
-          // For refined view, only show if it changed from original
-          if (type === 'refined' && hasOriginalObject) {
-            const originalValue = (originalData as any)[key];
-            const isChanged = JSON.stringify(originalValue) !== JSON.stringify(value);
-            if (!isChanged) return null;
-            
-            return (
-              <div key={key} style={{ padding: '12px 16px', background: 'var(--bg-primary)', borderRadius: '10px', border: '1px solid var(--border-color)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{key.replace(/([A-Z])/g, ' $1')}</div>
-                  <Tag color="green" style={{ fontSize: '0.6rem', margin: 0, borderRadius: '10px', border: 'none', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>UPDATED</Tag>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {isObject &&
+          Object.entries(content).map(([key, value]) => {
+            if (key === 'id') return null;
+
+            if (type === 'refined' && hasOriginalObject) {
+              const originalValue = (originalData as any)[key];
+              const isChanged = JSON.stringify(originalValue) !== JSON.stringify(value);
+              if (!isChanged) return null;
+              return (
+                <div key={key} className="zai-field-card zai-field-card--changed">
+                  <div className="zai-field-card__head">
+                    <span className="zai-field-card__label">{key.replace(/([A-Z])/g, ' $1')}</span>
+                    <span className="zai-chip zai-chip--changed">Updated by Zai</span>
+                  </div>
+                  <div className="zai-field-card__value zai-field-card__value--refined">
+                    {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.9rem', color: 'var(--premium-blue)', whiteSpace: 'pre-wrap', fontWeight: 500 }}>
+              );
+            }
+
+            return (
+              <div key={key} className="zai-field-card">
+                <div className="zai-field-card__head">
+                  <span className="zai-field-card__label">{key.replace(/([A-Z])/g, ' $1')}</span>
+                </div>
+                <div className="zai-field-card__value">
                   {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
                 </div>
               </div>
             );
-          }
+          })}
 
-          return (
-            <div key={key} style={{ padding: '12px 16px', background: 'var(--bg-primary)', borderRadius: '10px', border: '1px solid var(--border-color)', boxShadow: '0 1px 2px rgba(0,0,0,0.01)' }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>{key.replace(/([A-Z])/g, ' $1')}</div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap', fontWeight: 400 }}>
-                {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
-              </div>
+        {type === 'refined' &&
+          isObject &&
+          hasOriginalObject &&
+          Object.keys(content).every(
+            (k) => JSON.stringify((originalData as any)[k]) === JSON.stringify(content[k])
+          ) && (
+            <div style={{ textAlign: 'center', color: 'var(--text-slate-400)', padding: 20 }}>
+              No changes detected for these fields.
             </div>
-          );
-        })}
-
-        {type === 'refined' && isObject && hasOriginalObject && 
-         Object.keys(content).every(k => JSON.stringify((originalData as any)[k]) === JSON.stringify(content[k])) && (
-           <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
-             No changes detected for these fields.
-           </div>
-        )}
+          )}
       </div>
     );
   };
@@ -170,210 +165,182 @@ export const AIEnhanceButton: React.FC<AIEnhanceButtonProps> = ({
       <Button
         type="text"
         size="small"
-        icon={<Sparkles size={14} color="var(--premium-blue)" />}
         onClick={() => {
           setRefinedData(null);
           setInstruction('');
           setVisible(true);
         }}
-        style={{
-          fontSize: '0.7rem',
-          fontWeight: 600,
-          color: 'var(--premium-blue)',
-          height: '24px',
-          padding: '0 8px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-          background: 'var(--bg-secondary)',
-          borderRadius: '6px',
-          border: '1px solid var(--border-color)',
-          transition: 'all 0.2s',
-          ...style
-        }}
-        className="hover:shadow-sm hover:scale-105"
+        className="zai-trigger"
+        style={style}
       >
-        {label || 'Enhance'}
+        <span className="zai-trigger__icon">
+          <Sparkles size={11} />
+        </span>
+        <span className="zai-trigger__text">{triggerLabel}</span>
       </Button>
 
       <Modal
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 0' }}>
-            <div style={{ background: 'rgba(99, 102, 241, 0.1)', padding: '8px', borderRadius: '10px' }}>
-              <Sparkles size={18} color="var(--premium-blue)" />
-            </div>
-            <div>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>AI Smart Refinement</div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-secondary)' }}>Precision editing powered by Gemini AI</div>
-            </div>
-          </div>
-        }
+        title={null}
         open={visible}
         onCancel={() => !loading && setVisible(false)}
-        width={950} // Increased width for better side-by-side
+        width={1000}
         footer={null}
         destroyOnHidden
         centered
+        closable={false}
         styles={{
-          mask: { backdropFilter: 'blur(4px)', background: 'rgba(0,0,0,0.5)' },
-          content: { borderRadius: '20px', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)', background: 'var(--bg-pure-white)' }
+          mask: { backdropFilter: 'blur(8px)', background: 'rgba(8, 12, 24, 0.55)' },
+          content: { padding: 0, borderRadius: 22, overflow: 'hidden', background: 'transparent', boxShadow: '0 30px 80px rgba(8,12,24,0.45)' },
+          body: { padding: 0 },
         }}
+        wrapClassName="zai-modal-wrap"
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Top Instruction Bar */}
-          <div style={{ background: 'var(--bg-secondary)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <ExperimentOutlined style={{ color: 'var(--premium-blue)' }} />
-              <Text strong style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.025em' }}>What should AI change?</Text>
-            </div>
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <Input.TextArea
-                rows={2}
-                placeholder="e.g. 'Make it professional', 'Add a step for testing', 'Focus on value proposition'..."
-                value={instruction}
-                onChange={(e) => setInstruction(e.target.value)}
-                disabled={loading}
-                style={{
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  padding: '12px',
-                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
-                }}
-              />
-              <Button
-                type="primary"
-                onClick={handleRefine}
-                loading={loading}
-                style={{
-                  background: 'var(--premium-blue)',
-                  height: 'auto',
-                  padding: '0 24px',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  boxShadow: '0 4px 6px -1px rgba(99, 102, 241, 0.2)'
-                }}
-              >
-                Refine Content
-              </Button>
-            </div>
-
-            {/* Quick Suggestions */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
-              {[
-                'Make it professional',
-                'Summarize this',
-                'Fix grammar & flow',
-                'Make it more persuasive',
-                'Simplify the language'
-              ].map((s) => (
-                <Tag
-                  key={s}
-                  style={{
-                    cursor: 'pointer',
-                    borderRadius: '20px',
-                    padding: '4px 12px',
-                    background: 'var(--bg-primary)',
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.75rem',
-                    transition: 'all 0.2s'
-                  }}
-                  className="hover:border-indigo-400 hover:text-indigo-600"
-                  onClick={() => setInstruction(s)}
-                >
-                  {s}
-                </Tag>
-              ))}
+        <div className="zai-modal">
+          {/* Hero */}
+          <div className="zai-hero">
+            <div className="zai-hero__bg" />
+            <div className="zai-hero__content">
+              <div className="zai-hero__brand">
+                <div className="zai-orb">
+                  <Sparkles size={20} />
+                </div>
+                <div className="zai-hero__title-wrap">
+                  <div className="zai-hero__eyebrow">
+                    <span className="zai-pill"><Zap size={10} strokeWidth={2.5} />ZAI · Smart Refinement</span>
+                  </div>
+                  <h2 className="zai-hero__title">
+                    {isEmptyOriginal ? 'Create with' : 'Enhance with'} <span className="zai-grad">Zai</span>
+                  </h2>
+                  <p className="zai-hero__sub">
+                    Tell Zai what to change. It rewrites your block in your voice — precise, persuasive, on-brand.
+                  </p>
+                </div>
+              </div>
+              <button className="zai-close" onClick={() => !loading && setVisible(false)} aria-label="Close">×</button>
             </div>
           </div>
 
-          {/* Comparison View */}
-          <div style={{ display: 'flex', gap: '24px', position: 'relative' }}>
-            {/* LEFT: ORIGINAL */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, paddingLeft: 4 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#94a3b8' }} />
-                <Text strong style={{ color: '#64748b', fontSize: '0.7rem', textTransform: 'uppercase' }}>Old Content</Text>
+          {/* Body */}
+          <div className="zai-body">
+            {/* Prompt bar */}
+            <div className="zai-prompt">
+              <div className="zai-prompt__label">
+                <Wand2 size={14} />
+                <span>Instruction</span>
               </div>
-              <div style={{
-                background: 'var(--bg-primary)',
-                borderRadius: '16px',
-                padding: '24px',
-                border: '1px solid var(--border-color)',
-                height: '400px',
-                overflow: 'auto',
-                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
-              }}>
-                {renderPreview(originalData, 'original')}
+              <div className="zai-prompt__row">
+                <Input.TextArea
+                  rows={2}
+                  placeholder='Tell Zai what to change… e.g. "Make it more persuasive and lead with ROI"'
+                  value={instruction}
+                  onChange={(e) => setInstruction(e.target.value)}
+                  disabled={loading}
+                  className="zai-textarea"
+                  bordered={false}
+                />
+                <Button
+                  type="primary"
+                  onClick={handleRefine}
+                  loading={loading}
+                  className="zai-cta"
+                  icon={!loading ? <Sparkles size={14} /> : null}
+                >
+                  {loading ? 'Zai is thinking…' : isEmptyOriginal ? 'Create with Zai' : 'Enhance with Zai'}
+                </Button>
+              </div>
+
+              <div className="zai-suggestions">
+                <span className="zai-suggestions__label">Try:</span>
+                {QUICK_SUGGESTIONS.map((s) => (
+                  <Tag
+                    key={s.label}
+                    className={`zai-chip ${instruction === s.label ? 'zai-chip--active' : ''}`}
+                    onClick={() => setInstruction(s.label)}
+                  >
+                    <span style={{ marginRight: 6 }}>{s.icon}</span>
+                    {s.label}
+                  </Tag>
+                ))}
               </div>
             </div>
 
-            {/* Middle Divider Arrow */}
-            <div style={{ alignSelf: 'center', color: '#cbd5e1' }}>
-              <ArrowRightOutlined style={{ fontSize: '20px' }} />
-            </div>
-
-            {/* AI Suggestion */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, paddingLeft: 4 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: refinedData ? 'var(--premium-blue)' : 'var(--text-secondary)' }} />
-                <Text strong style={{ color: refinedData ? 'var(--premium-blue)' : 'var(--text-secondary)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Updated Content</Text>
+            {/* Comparison */}
+            <div className="zai-compare">
+              <div className="zai-pane">
+                <div className="zai-pane__head">
+                  <span className="zai-pane__dot zai-pane__dot--old" />
+                  <Text className="zai-pane__title">Current</Text>
+                </div>
+                <div className="zai-pane__body zai-pane__body--old">
+                  {renderPreview(originalData, 'original')}
+                </div>
               </div>
-              <div style={{
-                background: refinedData ? 'rgba(16, 185, 129, 0.05)' : 'var(--bg-primary)',
-                borderRadius: '16px',
-                padding: '24px',
-                border: refinedData ? '1px solid rgba(16, 185, 129, 0.2)' : '1px dashed var(--border-color)',
-                height: '400px',
-                overflow: 'auto',
-                boxShadow: refinedData ? '0 10px 15px -3px rgba(16, 185, 129, 0.05)' : 'none'
-              }}>
-                {loading ? (
-                  <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-                    <Spin size="large" />
-                    <Text style={{ color: '#64748b', fontSize: '0.85rem' }}>AI is polishing your content...</Text>
-                  </div>
-                ) : refinedData ? (
-                  renderPreview(refinedData, 'refined')
-                ) : (
-                  <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ textAlign: 'center', opacity: 0.5 }}>
-                      <ExperimentOutlined style={{ fontSize: '32px', color: '#94a3b8', marginBottom: '12px' }} />
-                      <div style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Results will appear here</div>
+
+              <div className="zai-arrow">
+                <ArrowRight size={18} />
+              </div>
+
+              <div className="zai-pane zai-pane--new">
+                <div className="zai-pane__head">
+                  <span className={`zai-pane__dot ${refinedData ? 'zai-pane__dot--new' : 'zai-pane__dot--idle'}`} />
+                  <Text className={`zai-pane__title ${refinedData ? 'zai-pane__title--new' : ''}`}>
+                    {refinedData ? "Zai's Suggestion" : 'Awaiting Zai'}
+                  </Text>
+                  {refinedData && <span className="zai-pane__badge">Ready</span>}
+                </div>
+                <div className={`zai-pane__body ${refinedData ? 'zai-pane__body--new' : 'zai-pane__body--idle'}`}>
+                  {loading ? (
+                    <div className="zai-loading">
+                      <div className="zai-loading__orb">
+                        <Sparkles size={24} />
+                      </div>
+                      <div className="zai-loading__bars">
+                        <span /><span /><span />
+                      </div>
+                      <Text className="zai-loading__text">Zai is composing your refinement…</Text>
                     </div>
-                  </div>
+                  ) : refinedData ? (
+                    renderPreview(refinedData, 'refined')
+                  ) : (
+                    <div className="zai-empty">
+                      <div className="zai-empty__orb">
+                        <Sparkles size={22} />
+                      </div>
+                      <div className="zai-empty__title">Zai is standing by</div>
+                      <div className="zai-empty__sub">Write an instruction above to begin.</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="zai-footer">
+              <div className="zai-footer__hint">
+                {refinedData
+                  ? 'Review the suggestion. Apply replaces the current content.'
+                  : 'Powered by Zai — your AI co-writer.'}
+              </div>
+              <div className="zai-footer__actions">
+                <Button onClick={() => !loading && setVisible(false)} className="zai-btn-ghost" disabled={loading}>
+                  Cancel
+                </Button>
+                {refinedData && (
+                  <Button
+                    type="primary"
+                    icon={<Check size={14} />}
+                    onClick={handleApply}
+                    className="zai-btn-apply"
+                  >
+                    Apply Zai's Suggestion
+                  </Button>
                 )}
               </div>
             </div>
           </div>
-
-          {/* Bottom Action */}
-          {refinedData && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
-              <Button
-                type="primary"
-                size="large"
-                icon={<CheckCircleOutlined />}
-                onClick={handleApply}
-                style={{
-                  background: '#10b981',
-                  borderColor: '#10b981',
-                  borderRadius: '14px',
-                  padding: '0 40px',
-                  height: '48px',
-                  fontWeight: 700,
-                  fontSize: '1rem',
-                  boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.25)'
-                }}
-              >
-                Apply AI Suggestions
-              </Button>
-            </div>
-          )}
         </div>
       </Modal>
+
     </>
   );
 };

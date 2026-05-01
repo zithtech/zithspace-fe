@@ -9,7 +9,6 @@ import { useAuth } from "@/context/AuthContext";
 import {
   Space,
   Typography,
-  Card,
   Table,
   Dropdown,
   Button,
@@ -23,15 +22,11 @@ import {
   Tooltip,
   Alert,
   Popover,
-  Divider,
   Drawer,
   Spin,
-  Empty,
   message,
   Menu,
   Progress,
-  Row,
-  Col
 } from "antd";
 import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
@@ -84,7 +79,6 @@ import type {
   PaymentMethod
 } from "@/services/invoiceService";
 import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
-import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -166,36 +160,52 @@ export default function InvoiceInvoicesPage() {
   const { canReadInvoice, canCreateInvoice, canUpdateInvoice, canDeleteInvoice } = usePermission();
   const { isLoading: authLoading } = useAuth();
 
-  /* ================= ATTRACTIVE METRIC CARDS ================= */
-  const StatCard = ({ label, value, icon: Icon, color }: any) => (
-    <Card
-      styles={{ body: { padding: "12px 16px" } }}
+  /* ================= STAT TILE (accent strip) ================= */
+  const StatCard = ({ label, value, icon: Icon, color, sub }: any) => (
+    <div
+      className="rounded-2xl px-5 py-4 flex items-center gap-4 relative overflow-hidden"
       style={{
-        borderRadius: 16,
-        border: "1px solid var(--customers-card-border)",
-        boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-        height: "100%",
-        backgroundColor: "var(--customers-card-bg)"
+        background: "var(--bg-secondary)",
+        border: "1px solid var(--border-color)",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <Text style={{ color: "var(--customers-stat-label)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "var(--customers-stat-value)", marginTop: 4 }}>{value}</div>
-        </div>
-        <div style={{
+      <span
+        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        style={{ background: color }}
+      />
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{
+          background: `${color}14`,
           color,
-          background: `${color}12`,
-          padding: 12,
-          borderRadius: 12,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }}>
-          <Icon size={24} />
-        </div>
+          border: `1px solid ${color}33`,
+        }}
+      >
+        <Icon size={18} strokeWidth={2.25} />
       </div>
-    </Card>
+      <div className="min-w-0 flex-1">
+        <div
+          className="text-[11px] font-semibold uppercase tracking-[0.08em]"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          {label}
+        </div>
+        <div
+          className="text-[22px] font-bold leading-tight tabular-nums truncate"
+          style={{ color: "var(--text-primary)" }}
+        >
+          {value}
+        </div>
+        {sub && (
+          <div
+            className="text-[11px] mt-0.5"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            {sub}
+          </div>
+        )}
+      </div>
+    </div>
   );
 
   // Route guard
@@ -276,6 +286,7 @@ export default function InvoiceInvoicesPage() {
 
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [previewInvoiceNumber, setPreviewInvoiceNumber] = useState<string | null>(null);
 
   dayjs.extend(isBetween);
 
@@ -788,9 +799,28 @@ export default function InvoiceInvoicesPage() {
       key: "invoice_number",
       width: 140,
       render: (text) => (
-        <Text strong style={{ color: 'var(--customers-header-icon-color)', fontWeight: 700 }}>
-          {text}
-        </Text>
+        <Tooltip title="Click to preview invoice">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (text) setPreviewInvoiceNumber(text);
+            }}
+            className="font-semibold transition-colors hover:underline"
+            style={{
+              color: "var(--text-blue-700)",
+              fontFamily:
+                "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontSize: 13,
+              background: "transparent",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+            }}
+          >
+            {text}
+          </button>
+        </Tooltip>
       ),
     },
     {
@@ -1093,162 +1123,293 @@ export default function InvoiceInvoicesPage() {
         background: "var(--customers-page-bg)",
         minHeight: "calc(100vh - 64px)"
       }}>
-        <TimeTrackingHeader
-          style={{ padding: '9.5px 32px' }}
-          icon={<FileText size={20} color="#8b5cf6" />}
-          title="Invoices"
-          description="Manage, track payments, and monitor invoice statuses."
-          extra={
-            <div style={{ display: "flex", gap: 10 }}>
+        {/* TOP BAR */}
+        <div
+          className="sticky top-0 z-40 backdrop-blur-md border-b"
+          style={{
+            background:
+              "color-mix(in oklab, var(--customers-page-bg) 85%, transparent)",
+            borderColor: "var(--border-color)",
+          }}
+        >
+          <div className="px-8 h-14 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: "var(--bg-blue-50)",
+                  color: "var(--text-blue-700)",
+                  border: "1px solid var(--border-blue-200)",
+                }}
+              >
+                <FileText size={14} strokeWidth={2.25} />
+              </div>
+              <span
+                className="text-[14px] font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Invoices
+              </span>
+              <span
+                className="h-4 w-px"
+                style={{ background: "var(--border-color)" }}
+              />
+              <span
+                className="text-[12px]"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                Manage, track payments, and monitor invoice statuses
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
               <Input
                 placeholder="Search invoices..."
                 allowClear
-                size="middle"
-                prefix={<Search size={16} className="mr-2" style={{ color: 'var(--text-slate-400)' }} />}
+                prefix={
+                  <Search
+                    size={14}
+                    style={{ color: "var(--text-secondary)" }}
+                  />
+                }
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 style={{
                   width: 280,
+                  height: 36,
                   borderRadius: 8,
-                  height: 38,
-                  backgroundColor: "var(--bg-slate-50)",
-                  border: "1px solid var(--customers-card-border)",
-                  fontSize: "13px"
+                  background: "var(--bg-secondary)",
+                  borderColor: "var(--border-color)",
                 }}
-                className="search-input-modern"
               />
               <Popover content={filterContent} trigger="click" placement="bottomRight">
-                <Button size="middle" icon={<Filter size={16} />} style={{ borderRadius: 8, height: 38, display: 'flex', alignItems: 'center' }}>
+                <Button
+                  icon={<Filter size={14} />}
+                  style={{
+                    borderRadius: 8,
+                    height: 36,
+                    fontWeight: 600,
+                  }}
+                >
                   Filter
                 </Button>
               </Popover>
               {canCreateInvoice && (
                 <Button
                   type="primary"
-                  size="middle"
-                  icon={<Plus size={16} />}
-                  style={{ borderRadius: 8, height: 38, backgroundColor: 'var(--customers-header-icon-color)', border: 'none', fontWeight: 600 }}
+                  icon={<Plus size={14} />}
                   onClick={() => router.push("/invoice/newinvoice")}
+                  style={{
+                    borderRadius: 8,
+                    height: 36,
+                    fontWeight: 600,
+                    background: "#2563eb",
+                  }}
                 >
-                  New Invoice
+                  New invoice
                 </Button>
               )}
             </div>
-          }
-        />
+          </div>
+        </div>
 
-        <div style={{ padding: "16px 32px 32px 32px" }}>
+        <div className="px-8 pt-6 pb-12">
+          <div className="mx-auto max-w-[1600px]">
 
-        {/* ================= METRIC STATS ================= */}
-        <Row gutter={[24, 24]} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={12} md={6}>
-            <StatCard
-              label="Total Revenue"
-              value={`$${invoices.reduce((sum, inv) => sum + Number(inv.grandTotal || (inv as any).total || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              icon={TrendingUp}
-              color="#3b82f6"
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <StatCard label="Paid Invoices" value={paidCount} icon={CheckCircle} color="#10b981" />
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <StatCard label="Pending Invoices" value={pendingCount} icon={Clock} color="#f59e0b" />
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <StatCard label="Total Customers" value={customerCount} icon={User} color="#8b5cf6" />
-          </Col>
-        </Row>
+        {/* ================= STATS ================= */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+          <StatCard
+            label="Total revenue"
+            value={`$${invoices.reduce((sum, inv) => sum + Number(inv.grandTotal || (inv as any).total || 0), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+            icon={TrendingUp}
+            color="#2563eb"
+            sub="All-time billed"
+          />
+          <StatCard
+            label="Paid"
+            value={paidCount}
+            icon={CheckCircle}
+            color="#10b981"
+            sub="Settled invoices"
+          />
+          <StatCard
+            label="Pending"
+            value={pendingCount}
+            icon={Clock}
+            color="#f59e0b"
+            sub="Awaiting payment"
+          />
+          <StatCard
+            label="Customers"
+            value={customerCount}
+            icon={User}
+            color="#8b5cf6"
+            sub="Unique clients"
+          />
+        </div>
 
         {/* Bulk Action Bar */}
         {selectedRowKeys.length > 0 && (
-          <div className="mb-3">
-            <Alert
-              message={
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">
-                    {selectedRowKeys.length} invoice(s) selected
-                  </span>
-                  <Space size="middle">
-                    {/* <Button
-                        icon={<Mail size={16} />}
-                        onClick={() => messageApi.info('Send email feature coming soon')}
-                      >
-                        Send Email
-                      </Button> */}
-                    <Button
-                      icon={<Download size={16} />}
-                      loading={isDownloading}
-                      onClick={handleBulkDownload}
-                    >
-                      Download Selected
-                    </Button>
-                    {canDeleteInvoice && (
-                      <Button
-                        danger
-                        icon={<Trash2 size={16} />}
-                        onClick={openBulkDeleteModal}
-                        loading={bulkDeleteProgress.isDeleting}
-                      >
-                        Move to Trash
-                      </Button>
-                    )}
-                  </Space>
-                </div>
-              }
-              type="info"
-              className="mb-0"
-              closable
-              onClose={() => {
-                setSelectedRowKeys([]);
-                setSelectedInvoices([]);
-              }}
-            />
+          <div
+            className="rounded-xl px-4 py-2.5 mb-3 flex items-center justify-between"
+            style={{
+              background: "var(--bg-blue-50)",
+              border: "1px solid var(--border-blue-200)",
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle
+                size={14}
+                style={{ color: "var(--text-blue-700)" }}
+              />
+              <span
+                className="text-[12.5px] font-semibold"
+                style={{ color: "var(--text-blue-700)" }}
+              >
+                {selectedRowKeys.length} selected
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="small"
+                icon={<Download size={13} />}
+                loading={isDownloading}
+                onClick={handleBulkDownload}
+                style={{ borderRadius: 8, height: 32, fontWeight: 600 }}
+              >
+                Download
+              </Button>
+              {canDeleteInvoice && (
+                <Button
+                  size="small"
+                  danger
+                  type="primary"
+                  icon={<Trash2 size={13} />}
+                  onClick={openBulkDeleteModal}
+                  loading={bulkDeleteProgress.isDeleting}
+                  style={{ borderRadius: 8, height: 32, fontWeight: 600 }}
+                >
+                  Move to trash
+                </Button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedRowKeys([]);
+                  setSelectedInvoices([]);
+                }}
+                className="p-1.5 rounded-md transition-colors hover:bg-white"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                <XCircle size={14} />
+              </button>
+            </div>
           </div>
         )}
 
         {isLoading ? (
-          <div className="flex justify-center items-center h-64 rounded-2xl border" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--customers-card-border)' }}>
-            <Spin indicator={<TrendingUp size={32} className="animate-pulse text-blue-500" />} />
+          <div
+            className="flex justify-center items-center h-64 rounded-2xl"
+            style={{
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border-color)",
+            }}
+          >
+            <Spin />
           </div>
         ) : isError ? (
-          <div className="text-center py-20 rounded-2xl border" style={{ backgroundColor: 'var(--customers-delete-header-bg)', borderColor: 'var(--customers-delete-icon-bg)' }}>
-            <AlertCircle className="size-12 text-red-500 mb-4 mx-auto" />
-            <Title level={4} style={{ color: "#991b1b" }}>Failed to load invoices</Title>
-            <Text style={{ color: "#ef4444" }}>Please try again later</Text>
+          <div
+            className="flex flex-col items-center justify-center py-16 rounded-2xl"
+            style={{
+              background: "var(--bg-secondary)",
+              border: "1.5px dashed #fecaca",
+            }}
+          >
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
+              style={{
+                background: "#fef2f2",
+                color: "#dc2626",
+                border: "1px solid #fecaca",
+              }}
+            >
+              <AlertCircle size={20} strokeWidth={2} />
+            </div>
+            <div
+              className="text-[14px] font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              Failed to load invoices
+            </div>
+            <div
+              className="text-[12px] mt-1"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Please try again later
+            </div>
+            <Button
+              icon={<RefreshCw size={14} />}
+              onClick={() => refetch()}
+              style={{ borderRadius: 8, height: 36, fontWeight: 600, marginTop: 16 }}
+            >
+              Retry
+            </Button>
           </div>
         ) : filteredInvoices.length === 0 ? (
-          <div className="text-center py-20 rounded-2xl border" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--customers-card-border)' }}>
-            <div className="size-16 rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-6" style={{ backgroundColor: 'var(--customers-card-bg)' }}>
-              <FileText size={32} style={{ color: 'var(--text-slate-300)' }} />
+          <div
+            className="flex flex-col items-center justify-center py-20 rounded-2xl"
+            style={{
+              background: "var(--bg-secondary)",
+              border: "1.5px dashed var(--border-color)",
+            }}
+          >
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+              style={{
+                background: "var(--bg-blue-50)",
+                color: "var(--text-blue-700)",
+                border: "1px solid var(--border-blue-200)",
+              }}
+            >
+              <FileText size={24} strokeWidth={2} />
             </div>
-            <Title level={4} style={{ color: "var(--text-secondary)" }}>No invoices found</Title>
-            <Text style={{ color: "var(--text-slate-400)" }} className="mb-6 block">
-              {searchText ? 'Try a different search term' : 'Create your first invoice to get started'}
-            </Text>
+            <div
+              className="text-[14px] font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {searchText ? "No invoices match your search" : "No invoices yet"}
+            </div>
+            <div
+              className="text-[12px] mt-1 mb-5"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {searchText
+                ? "Try a different search term"
+                : "Create your first invoice to get started"}
+            </div>
             {!searchText && canCreateInvoice && (
               <Button
                 type="primary"
-                size="large"
-                icon={<Plus size={18} />}
+                icon={<Plus size={14} />}
                 onClick={() => router.push("/invoice/newinvoice")}
-                style={{ borderRadius: 12, height: 48, padding: "0 24px" }}
+                style={{
+                  borderRadius: 8,
+                  height: 38,
+                  fontWeight: 600,
+                  background: "#2563eb",
+                }}
               >
-                Create First Invoice
+                Create first invoice
               </Button>
             )}
           </div>
         ) : (
-          <Card
-            bordered={false}
+          <div
+            className="rounded-2xl overflow-hidden"
             style={{
-              borderRadius: 16,
-              border: "1px solid var(--customers-card-border)",
-              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-              overflow: "hidden",
-              backgroundColor: "var(--customers-card-bg)"
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border-color)",
             }}
-            styles={{ body: { padding: 0 } }}
           >
             <Table
               size="middle"
@@ -1262,35 +1423,40 @@ export default function InvoiceInvoicesPage() {
                 pageSize: 10,
                 showSizeChanger: true,
                 showQuickJumper: true,
-                style: { padding: "16px 24px" },
-                showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} invoices`,
+                style: { padding: "12px 20px" },
+                showTotal: (total, range) =>
+                  `${range[0]}–${range[1]} of ${total}`,
               }}
               scroll={{ x: 1000 }}
+              className="invoices-table"
               rowClassName={() => "invoice-table-row"}
             />
-        </Card>
+          </div>
         )}
+          </div>
         </div>
       </div>
 
       <style dangerouslySetInnerHTML={{
         __html: `
-        .invoice-table-row:hover {
-          background-color: #f8fafc !important;
-        }
-        .ant-table-thead > tr > th {
-          background-color: #f8fafc !important;
-          color: #64748b !important;
-          font-weight: 700 !important;
+        .invoices-table .ant-table-thead > tr > th {
+          background-color: var(--bg-slate-50) !important;
+          color: var(--text-secondary) !important;
+          font-weight: 600 !important;
           font-size: 11px !important;
-          padding: 8px 16px !important;
-          text-transform: uppercase !important;
-          letter-spacing: 0.05em !important;
-          border-bottom: 2px solid #f1f5f9 !important;
+          padding: 10px 16px !important;
+          letter-spacing: 0.06em !important;
+          border-bottom: 1px solid var(--border-color) !important;
         }
-        .ant-table-tbody > tr > td {
-          padding: 8px 16px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+        .invoices-table .ant-table-tbody > tr > td {
+          padding: 14px 16px !important;
+          border-bottom: 1px solid var(--border-color) !important;
+        }
+        .invoices-table .ant-table-row:hover > td {
+          background-color: var(--bg-slate-50) !important;
+        }
+        .invoices-table .ant-table-tbody > tr:last-child > td {
+          border-bottom: none !important;
         }
         .ant-input-search-button {
           height: 100% !important;
@@ -2174,8 +2340,110 @@ export default function InvoiceInvoicesPage() {
         />
       )}
 
-
-
+      {/* INVOICE PREVIEW SLIDER */}
+      <Drawer
+        open={!!previewInvoiceNumber}
+        onClose={() => setPreviewInvoiceNumber(null)}
+        placement="right"
+        width={1100}
+        closable={false}
+        styles={{
+          body: { padding: 0, background: "var(--customers-page-bg)" },
+          header: { display: "none" },
+          wrapper: { boxShadow: "-12px 0 32px rgba(15, 23, 42, 0.08)" },
+          mask: {
+            backdropFilter: "blur(2px)",
+            background: "rgba(15, 23, 42, 0.35)",
+          },
+        }}
+      >
+        <div className="h-full flex flex-col">
+          <div
+            className="px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+            style={{
+              background:
+                "color-mix(in oklab, var(--bg-secondary) 92%, transparent)",
+              borderColor: "var(--border-color)",
+            }}
+          >
+            <div className="flex items-start gap-3 min-w-0">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: "var(--bg-blue-50)",
+                  color: "var(--text-blue-700)",
+                  border: "1px solid var(--border-blue-200)",
+                }}
+              >
+                <FileText size={18} strokeWidth={2.25} />
+              </div>
+              <div className="min-w-0">
+                <div
+                  className="text-[15px] font-semibold leading-tight"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  Invoice preview
+                </div>
+                <div
+                  className="text-[12px] mt-0.5 truncate"
+                  style={{
+                    color: "var(--text-secondary)",
+                    fontFamily:
+                      "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  }}
+                >
+                  {previewInvoiceNumber}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Tooltip title="Open in full view">
+                <Button
+                  size="small"
+                  onClick={() => {
+                    if (previewInvoiceNumber) {
+                      router.push(
+                        `/invoice/invoices/view/${previewInvoiceNumber}`
+                      );
+                      setPreviewInvoiceNumber(null);
+                    }
+                  }}
+                  style={{
+                    borderRadius: 8,
+                    height: 32,
+                    fontWeight: 600,
+                  }}
+                >
+                  Full view
+                </Button>
+              </Tooltip>
+              <button
+                type="button"
+                onClick={() => setPreviewInvoiceNumber(null)}
+                aria-label="Close"
+                className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                <XCircle size={18} />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            {previewInvoiceNumber && (
+              <iframe
+                key={previewInvoiceNumber}
+                src={`/invoice/invoices/view/${previewInvoiceNumber}`}
+                className="w-full h-full"
+                style={{
+                  border: "none",
+                  background: "var(--customers-page-bg)",
+                }}
+                title="Invoice preview"
+              />
+            )}
+          </div>
+        </div>
+      </Drawer>
 
 
 

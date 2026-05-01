@@ -16,7 +16,8 @@ import { useInvoice, useDownloadInvoice, useInvoicePaymentHistory } from "@/hook
 import { useSettingsProfile } from "@/hooks/useInvoiceSettings";
 import { useTheme } from "@/context/ThemeContext";
 
-import { DownloadOutlined } from "@ant-design/icons";
+import { DownloadOutlined, PrinterOutlined } from "@ant-design/icons";
+import { ArrowLeft } from "lucide-react";
 
 const { Title, Text } = Typography;
 
@@ -363,44 +364,70 @@ export default function ViewInvoicePage() {
       style={{
         height: "calc(100vh - 64px)",
         overflowY: "auto",
-        padding: "16px 16px 27px 16px",
-        backgroundColor: "var(--invoice-view-bg)"
+        backgroundColor: "var(--invoice-view-bg)",
       }}
     >
-      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-        {/* Header with Back button */}
+      {/* STICKY TOP HEADER */}
+      <div
+        className="sticky top-0 z-40 backdrop-blur-md border-b print:hidden"
+        style={{
+          background:
+            "color-mix(in oklab, var(--invoice-view-bg) 88%, transparent)",
+          borderColor: "var(--border-color)",
+        }}
+      >
         <div
-          style={{
-            marginBottom: 24,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
+          className="px-6 h-14 flex items-center justify-between gap-4 mx-auto"
+          style={{ maxWidth: 1100 }}
         >
           <Button
             onClick={() => router.back()}
-            style={{ display: "flex", alignItems: "center", gap: 8 }}
+            icon={<ArrowLeft size={14} />}
+            style={{
+              borderRadius: 8,
+              height: 36,
+              fontWeight: 600,
+            }}
           >
-            Back to Invoices
+            Back to invoices
           </Button>
 
-          <Space>
-            <Space>
-              <Button
-                type="default"
-                icon={<DownloadOutlined />}
-                loading={isDownloading}
-                onClick={() => downloadInvoice(invoice.id)}
-              >
-                {isDownloading ? "Generating PDF..." : "Download PDF"}
-              </Button>
-              <Button type="primary" onClick={() => window.print()}>
-                Print
-              </Button>
-            </Space>
-          </Space>
+          <div className="flex items-center gap-2">
+            <Button
+              icon={<DownloadOutlined />}
+              loading={isDownloading}
+              onClick={() => downloadInvoice(invoice.id)}
+              style={{
+                borderRadius: 8,
+                height: 36,
+                fontWeight: 600,
+              }}
+            >
+              {isDownloading ? "Generating PDF..." : "Download PDF"}
+            </Button>
+            <Button
+              type="primary"
+              icon={<PrinterOutlined />}
+              onClick={() => window.print()}
+              style={{
+                borderRadius: 8,
+                height: 36,
+                fontWeight: 600,
+                background: "#2563eb",
+              }}
+            >
+              Print
+            </Button>
+          </div>
         </div>
+      </div>
 
+      <div
+        style={{
+          padding: "24px 16px 27px 16px",
+        }}
+      >
+        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
         <Card
           id="invoice"
           style={{
@@ -480,7 +507,7 @@ export default function ViewInvoicePage() {
                   <div style={{ fontWeight: "bold", fontSize: "14px", marginBottom: 4 }}>
                     {settings?.general?.companyName || "Your Company"}
                   </div>
-                  <div style={{ fontSize: "12px", color: "#555", marginBottom: 4, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: "12px", color: "var(--text-primary)", marginBottom: 4, lineHeight: 1.5 }}>
                     {settings?.general?.address ? [
                       settings.general.address.plot_no,
                       settings.general.address.floor_no,
@@ -495,19 +522,19 @@ export default function ViewInvoicePage() {
 
                   {/* Tax related fields with labels */}
                   {settings?.general?.taxId && (
-                    <div style={{ marginTop: 6, fontSize: "11px", color: "#666" }}>
+                    <div style={{ marginTop: 6, fontSize: "11px", color: "var(--text-secondary)" }}>
                       <Text type="secondary" style={{ fontSize: "11px" }}>Tax ID: </Text>
                       <Text style={{ fontSize: "11px" }}>{settings.general.taxId}</Text>
                     </div>
                   )}
                   {settings?.general?.gstin && (
-                    <div style={{ fontSize: "11px", color: "#666" }}>
+                    <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
                       <Text type="secondary" style={{ fontSize: "11px" }}>GSTIN: </Text>
                       <Text style={{ fontSize: "11px" }}>{settings.general.gstin}</Text>
                     </div>
                   )}
                   {settings?.general?.pan && (
-                    <div style={{ fontSize: "11px", color: "#666" }}>
+                    <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
                       <Text type="secondary" style={{ fontSize: "11px" }}>PAN: </Text>
                       <Text style={{ fontSize: "11px" }}>{settings.general.pan}</Text>
                     </div>
@@ -533,32 +560,32 @@ export default function ViewInvoicePage() {
                   <div style={{ fontWeight: "bold", fontSize: "14px", marginBottom: 4 }}>
                     {customer?.companyName || "Customer Name"}
                   </div>
-                  <div style={{ fontSize: "12px", color: "#555", marginBottom: 4, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: "12px", color: "var(--text-primary)", marginBottom: 4, lineHeight: 1.5 }}>
                     {[
                       customer?.address,
                       customer?.city,
                       customer?.country
                     ].filter(Boolean).join(", ") || "---"}
                   </div>
-                  <div style={{ fontSize: "12px", color: "#555", marginBottom: 4 }}>
+                  <div style={{ fontSize: "12px", color: "var(--text-primary)", marginBottom: 4 }}>
                     {customer?.email || ""}
                   </div>
 
                   {/* Tax related fields with labels */}
                   {customer?.gstin && (
-                    <div style={{ marginTop: 6, fontSize: "11px", color: "#666" }}>
+                    <div style={{ marginTop: 6, fontSize: "11px", color: "var(--text-secondary)" }}>
                       <Text type="secondary" style={{ fontSize: "11px" }}>GSTIN: </Text>
                       <Text style={{ fontSize: "11px" }}>{customer.gstin}</Text>
                     </div>
                   )}
                   {customer?.pan && (
-                    <div style={{ fontSize: "11px", color: "#666" }}>
+                    <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
                       <Text type="secondary" style={{ fontSize: "11px" }}>PAN: </Text>
                       <Text style={{ fontSize: "11px" }}>{customer.pan}</Text>
                     </div>
                   )}
                   {customer?.taxId && !customer?.gstin && (
-                    <div style={{ marginTop: 6, fontSize: "11px", color: "#666" }}>
+                    <div style={{ marginTop: 6, fontSize: "11px", color: "var(--text-secondary)" }}>
                       <Text type="secondary" style={{ fontSize: "11px" }}>Tax ID: </Text>
                       <Text style={{ fontSize: "11px" }}>{customer.taxId}</Text>
                     </div>
@@ -875,7 +902,7 @@ export default function ViewInvoicePage() {
                     <Title level={5} style={{ marginBottom: 8, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>
                       Notes
                     </Title>
-                    <div style={{ fontSize: "12px", color: "#555" }}>
+                    <div style={{ fontSize: "12px", color: "var(--text-primary)" }}>
                       <Text>{invoice.notes}</Text>
                     </div>
                   </Card>
@@ -896,7 +923,7 @@ export default function ViewInvoicePage() {
                     <Title level={5} style={{ marginBottom: 8, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>
                       Terms & Conditions
                     </Title>
-                    <div style={{ fontSize: "12px", color: "#555" }}>
+                    <div style={{ fontSize: "12px", color: "var(--text-primary)" }}>
                       <Text>{invoice.terms}</Text>
                     </div>
                   </Card>
@@ -1006,6 +1033,7 @@ export default function ViewInvoicePage() {
             </div>
           </div>
         </Card>
+        </div>
       </div>
     </div>
   );

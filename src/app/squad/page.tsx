@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Typography,
   Button,
@@ -10,13 +10,10 @@ import {
   Col,
   Space,
   Table,
-  Tag,
   Avatar,
   message,
-  Empty,
   Tooltip,
   Card,
-  Alert
 } from 'antd';
 import {
   TeamOutlined,
@@ -26,7 +23,11 @@ import {
   BarsOutlined,
   UserOutlined,
   EyeOutlined,
-  EditOutlined
+  EditOutlined,
+  CrownOutlined,
+  StarOutlined,
+  InboxOutlined,
+  RocketOutlined,
 } from '@ant-design/icons';
 import { Squad, SquadService } from '@/services/squadService';
 import SquadCard from '@/components/squad/SquadCard';
@@ -37,8 +38,19 @@ import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
+
+type StatTone = 'blue' | 'green' | 'amber' | 'purple';
+
+interface StatCardConfig {
+  key: string;
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  tone: StatTone;
+  hint?: string;
+}
 
 export default function SquadManagement() {
   const { user, isLoading: authLoading } = useAuth();
@@ -47,11 +59,9 @@ export default function SquadManagement() {
   const [filteredSquads, setFilteredSquads] = useState<Squad[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Drawers
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [viewDrawerVisible, setViewDrawerVisible] = useState(false);
   const [currentSquad, setCurrentSquad] = useState<Squad | null>(null);
@@ -65,7 +75,6 @@ export default function SquadManagement() {
   useEffect(() => {
     filterSquads();
   }, [squads, searchTerm, statusFilter]);
-
 
   const fetchSquads = async () => {
     try {
@@ -84,9 +93,10 @@ export default function SquadManagement() {
     let filtered = [...squads];
 
     if (searchTerm) {
+      const q = searchTerm.toLowerCase();
       filtered = filtered.filter(s =>
-        s.squadName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.squadCode.toLowerCase().includes(searchTerm.toLowerCase())
+        s.squadName.toLowerCase().includes(q) ||
+        s.squadCode.toLowerCase().includes(q)
       );
     }
 
@@ -102,6 +112,54 @@ export default function SquadManagement() {
 
     setFilteredSquads(filtered);
   };
+
+  const stats = useMemo<StatCardConfig[]>(() => {
+    const totalSquads = squads.length;
+    const activeSquads = squads.filter(s => s.squadStatus && !s.isArchived).length;
+    const archivedSquads = squads.filter(s => s.isArchived).length;
+    const totalMembers = squads.reduce((sum, s) => {
+      const ids = new Set(s.squadMembers?.map(m => m.squadMemberId));
+      return sum + ids.size;
+    }, 0);
+    const totalLeads = squads.reduce(
+      (sum, s) => sum + (s.squadMembers?.filter(m => m.memberType === 'HEAD' || m.memberType === 'SUB_HEAD').length || 0),
+      0
+    );
+
+    return [
+      {
+        key: 'total',
+        label: 'Total Squads',
+        value: totalSquads,
+        icon: <RocketOutlined />,
+        tone: 'blue',
+        hint: `${activeSquads} active`,
+      },
+      {
+        key: 'active',
+        label: 'Active Squads',
+        value: activeSquads,
+        icon: <StarOutlined />,
+        tone: 'green',
+      },
+      {
+        key: 'leads',
+        label: 'Leadership',
+        value: totalLeads,
+        icon: <CrownOutlined />,
+        tone: 'amber',
+        hint: 'Heads + Sub-Heads',
+      },
+      {
+        key: 'members',
+        label: 'Total Members',
+        value: totalMembers,
+        icon: <TeamOutlined />,
+        tone: 'purple',
+        hint: archivedSquads ? `${archivedSquads} archived` : undefined,
+      },
+    ];
+  }, [squads]);
 
   const handleCreate = () => {
     setCurrentSquad(null);
@@ -120,73 +178,87 @@ export default function SquadManagement() {
 
   const columns = [
     {
-      title: 'Squad Name',
+      title: 'Squad',
       dataIndex: 'squadName',
       key: 'squadName',
-      width: 250,
-      render: (text: string, record: Squad) => (
-        <Space>
-          <div style={{ backgroundColor: 'var(--bg-secondary)', width: 32, height: 32, borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <TeamOutlined style={{ color: 'var(--premium-blue)' }} />
-          </div>
-          <Space direction="vertical" size={0}>
-            <Text strong style={{ fontSize: '14px', color: 'var(--text-slate-900)' }}>{text}</Text>
-            <Text type="secondary" style={{ fontSize: '11px', color: 'var(--text-slate-400)' }}>{record.squadCode}</Text>
+      width: 280,
+      render: (text: string, record: Squad) => {
+        const initials = text.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+        return (
+          <Space size={12}>
+            <div className="squad-card-v2__avatar" style={{ width: 38, height: 38, fontSize: 14 }}>
+              {initials || <TeamOutlined />}
+            </div>
+            <Space direction="vertical" size={2}>
+              <Text strong style={{ fontSize: '14px', color: 'var(--text-slate-900)' }}>{text}</Text>
+              <span className="squad-card-v2__code" style={{ marginTop: 0 }}>{record.squadCode}</span>
+            </Space>
           </Space>
-        </Space>
-      ),
+        );
+      },
     },
     {
       title: 'Heads',
       key: 'heads',
-      render: (record: Squad) => (
-        <Avatar.Group maxCount={2} size="small">
-          {record.squadMembers?.filter(m => m.memberType === 'HEAD').map(m => (
-            <Tooltip key={m.id} title={`${m.member.name} (Head)`}>
-              <Avatar style={{ backgroundColor: '#52c41a' }}>{m.member.name.substring(0, 1).toUpperCase()}</Avatar>
-            </Tooltip>
-          ))}
-        </Avatar.Group>
-      ),
+      render: (record: Squad) => {
+        const heads = record.squadMembers?.filter(m => m.memberType === 'HEAD') || [];
+        if (heads.length === 0) return <Text style={{ color: 'var(--text-slate-400)', fontSize: 12 }}>—</Text>;
+        return (
+          <Avatar.Group max={{ count: 3 }} size="small">
+            {heads.map(m => (
+              <Tooltip key={m.id} title={`${m.member.name} • Head`}>
+                <Avatar style={{ background: 'linear-gradient(135deg, #10b981, #059669)', fontWeight: 600, fontSize: 11 }}>
+                  {m.member.name.substring(0, 2).toUpperCase()}
+                </Avatar>
+              </Tooltip>
+            ))}
+          </Avatar.Group>
+        );
+      },
     },
     {
       title: 'Members',
       key: 'membersCount',
-      render: (record: Squad) => (
-        <Space size={4}>
-          <UserOutlined style={{ color: 'var(--text-slate-400)', fontSize: '12px' }} />
-          <Text style={{ fontSize: '13px', color: 'var(--text-slate-700)' }}>{record.squadMembers?.length || 0}</Text>
-        </Space>
-      ),
+      render: (record: Squad) => {
+        const total = record.squadMembers?.length || 0;
+        return (
+          <Space size={6}>
+            <UserOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />
+            <Text style={{ fontSize: '13px', color: 'var(--text-slate-700)', fontWeight: 600 }}>{total}</Text>
+          </Space>
+        );
+      },
     },
     {
       title: 'Status',
       dataIndex: 'squadStatus',
       key: 'status',
       render: (status: boolean, record: Squad) => {
-        if (record.isArchived) return <Tag color="warning" bordered={false} style={{ borderRadius: '12px' }}>Archived</Tag>;
+        const cls = record.isArchived
+          ? 'squad-status--archived'
+          : status
+            ? 'squad-status--active'
+            : 'squad-status--inactive';
+        const label = record.isArchived ? 'Archived' : status ? 'Active' : 'Inactive';
         return (
-          <Tag
-            color={status ? 'success' : 'error'}
-            bordered={false}
-            style={{ borderRadius: '12px', padding: '0 10px' }}
-          >
-            {status ? 'Active' : 'Inactive'}
-          </Tag>
+          <span className={`squad-card-v2__status ${cls}`}>
+            <span className="squad-status-dot" />
+            {label}
+          </span>
         );
       },
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: 150,
+      width: 120,
       align: 'right' as const,
       render: (record: Squad) => (
         <Space>
-          <Tooltip title="View Details">
+          <Tooltip title="View details">
             <Button size="small" type="text" icon={<EyeOutlined />} onClick={() => handleOpen(record)} />
           </Tooltip>
-          <Tooltip title="Manage Squad">
+          <Tooltip title="Manage squad">
             <Button size="small" type="text" icon={<EditOutlined />} onClick={() => handleManage(record)} />
           </Tooltip>
         </Space>
@@ -197,29 +269,37 @@ export default function SquadManagement() {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ 
-          margin: "0 -24px", 
-          padding: "24px 32px", 
-          background: "var(--bg-pure-white)", 
-          minHeight: "calc(100vh - 64px)",
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
+        <div className="squad-shell" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <LoadingSpinner message="Authenticating system entrance..." />
         </div>
       </MainLayout>
     );
   }
 
+  const renderSkeletonGrid = () => (
+    <Row gutter={[20, 20]}>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <Col key={i} xs={24} sm={12} lg={8} xl={6}>
+          <div className="squad-skel-card">
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 18 }}>
+              <div className="squad-skel-bar" style={{ width: 46, height: 46, borderRadius: 12 }} />
+              <div style={{ flex: 1 }}>
+                <div className="squad-skel-bar" style={{ width: '60%', height: 14, marginBottom: 8 }} />
+                <div className="squad-skel-bar" style={{ width: '40%', height: 10 }} />
+              </div>
+            </div>
+            <div className="squad-skel-bar" style={{ width: '100%', height: 36, marginBottom: 8 }} />
+            <div className="squad-skel-bar" style={{ width: '100%', height: 36, marginBottom: 8 }} />
+            <div className="squad-skel-bar" style={{ width: '100%', height: 36 }} />
+          </div>
+        </Col>
+      ))}
+    </Row>
+  );
+
   return (
     <MainLayout>
-      <div style={{ 
-        margin: "0 -24px", 
-        background: "var(--bg-pure-white)", 
-        minHeight: "calc(100vh - 64px)" 
-      }}>
-        {/* Top Header Section */}
+      <div className="squad-shell">
         <TimeTrackingHeader
           icon={<TeamOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
           title="Squad Management"
@@ -231,14 +311,15 @@ export default function SquadManagement() {
               onClick={handleCreate}
               style={{
                 borderRadius: '10px',
-                height: '38px',
-                padding: '0 24px',
+                height: '40px',
+                padding: '0 22px',
                 fontWeight: 600,
-                background: '#1677ff',
+                background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
                 border: 'none',
-                display: 'flex',
+                boxShadow: '0 8px 18px -8px rgba(37, 99, 235, 0.55)',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: 8
+                gap: 8,
               }}
             >
               Create Squad
@@ -246,159 +327,167 @@ export default function SquadManagement() {
           }
         />
 
-        <div style={{ padding: "0 32px 32px 32px" }}>
-
-        {/* Filter Section - Premium Card Style */}
-        <Card
-          size="small"
-          bordered={false}
-          style={{
-            marginBottom: '16px',
-            borderRadius: '12px',
-            background: 'var(--bg-pure-white)',
-            border: '1px solid var(--border-slate-200)',
-          }}
-          styles={{ body: { padding: '16px 20px' } }}
-        >
-          <Row gutter={24} align="middle">
-            <Col flex="auto">
-              <Space size={20}>
-                <div style={{ width: '320px' }}>
-                  <Input
-                    prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: '8px' }} />}
-                    placeholder="Search Squad by Name or Code"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ borderRadius: '8px', height: '36px', background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)', color: 'var(--text-slate-900)' }}
-                    allowClear
-                  />
+        <div className="squad-content">
+          {/* Stats Overview */}
+          <div className="squad-stats-row">
+            {stats.map(s => (
+              <div key={s.key} className={`squad-stat-card is-${s.tone}`}>
+                <div className="squad-stat-card__icon">{s.icon}</div>
+                <div className="squad-stat-card__label">{s.label}</div>
+                <div className="squad-stat-card__value">
+                  {s.value.toLocaleString()}
+                  {s.hint && <span className="squad-stat-card__delta">{s.hint}</span>}
                 </div>
-                <Select
-                  placeholder="All Status"
-                  style={{ width: '180px' }}
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                  allowClear
-                  className="status-filter-select"
-                >
-                  <Option value="all">All Status</Option>
-                  <Option value="active">Active Squads</Option>
-                  <Option value="inactive">Inactive Squads</Option>
-                  <Option value="archived">Archived</Option>
-                </Select>
-              </Space>
-            </Col>
-            <Col>
-              <Space align="center" size={12}>
-                <Text type="secondary" style={{ fontSize: '13px', color: 'var(--text-slate-400)' }}>View:</Text>
-                <div style={{ background: 'var(--bg-slate-50)', padding: '3px', borderRadius: '8px', display: 'flex', border: '1px solid var(--border-slate-200)' }}>
-                  <Button
-                    type={viewMode === 'grid' ? 'primary' : 'text'}
-                    size="small"
-                    icon={<AppstoreOutlined />}
-                    onClick={() => setViewMode('grid')}
-                    style={{
-                      borderRadius: '6px',
-                      width: '32px',
-                      height: '32px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: viewMode === 'grid' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                    }}
-                  />
-                  <Button
-                    type={viewMode === 'list' ? 'primary' : 'text'}
-                    size="small"
-                    icon={<BarsOutlined />}
-                    onClick={() => setViewMode('list')}
-                    style={{
-                      borderRadius: '6px',
-                      width: '32px',
-                      height: '32px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: viewMode === 'list' ? 'var(--premium-blue)' : 'transparent',
-                      color: viewMode === 'list' ? '#fff' : 'var(--text-slate-600)',
-                      boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                    }}
-                  />
-                </div>
-              </Space>
-            </Col>
-          </Row>
-        </Card>
+              </div>
+            ))}
+          </div>
 
-        {/* Content Area */}
-        <div className="squad-content-area">
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '80px 0' }}>
-              <LoadingSpinner message="Fetching squads..." />
-            </div>
-          ) : filteredSquads.length === 0 ? (
-            <Card bordered={false} style={{ borderRadius: '12px', textAlign: 'center', padding: '60px 0', border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)' }}>
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
-                  <span style={{ color: 'var(--text-slate-400)' }}>
-                    {searchTerm || statusFilter !== 'all' ? "No squads match your current filters" : "No squads available yet"}
-                  </span>
-                }
+          {/* Toolbar */}
+          <div className="squad-toolbar">
+            <div className="squad-toolbar__left">
+              <Input
+                className="squad-search"
+                prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 8 }} />}
+                placeholder="Search by squad name or code…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                allowClear
+              />
+              <Select
+                className="squad-status-pill"
+                value={statusFilter}
+                onChange={setStatusFilter}
+                style={{ minWidth: 180 }}
+                suffixIcon={null}
               >
-                {!searchTerm && statusFilter === 'all' && (
-                  <Button type="primary" onClick={handleCreate}>Create First Squad</Button>
-                )}
-              </Empty>
-            </Card>
-          ) : (
-            <>
-              {viewMode === 'grid' ? (
-                <Row gutter={[20, 20]}>
-                  {filteredSquads.map(squad => (
-                    <Col key={squad.id} xs={24} sm={12} lg={8} xl={6}>
-                      <SquadCard
-                        squad={squad}
-                        onOpen={handleOpen}
-                        onManage={handleManage}
-                        onRefresh={fetchSquads}
-                      />
-                    </Col>
-                  ))}
-                </Row>
+                <Option value="all">All Statuses</Option>
+                <Option value="active">Active</Option>
+                <Option value="inactive">Inactive</Option>
+                <Option value="archived">Archived</Option>
+              </Select>
+              <Text style={{ fontSize: 12, color: 'var(--text-slate-400)', marginLeft: 4 }}>
+                {filteredSquads.length} of {squads.length}
+              </Text>
+            </div>
+
+            <div className="squad-view-switch">
+              <Tooltip title="Grid view">
+                <button
+                  className={viewMode === 'grid' ? 'is-active' : ''}
+                  onClick={() => setViewMode('grid')}
+                  aria-label="Grid view"
+                >
+                  <AppstoreOutlined />
+                </button>
+              </Tooltip>
+              <Tooltip title="List view">
+                <button
+                  className={viewMode === 'list' ? 'is-active' : ''}
+                  onClick={() => setViewMode('list')}
+                  aria-label="List view"
+                >
+                  <BarsOutlined />
+                </button>
+              </Tooltip>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="squad-content-area">
+            {loading ? (
+              viewMode === 'grid' ? (
+                renderSkeletonGrid()
               ) : (
-                <Card bordered={false} style={{ borderRadius: '12px', overflow: 'hidden' }} styles={{ body: { padding: 0 } }}>
-                  <Table
-                    dataSource={filteredSquads}
-                    columns={columns}
-                    rowKey="id"
-                    style={{ background: 'var(--bg-pure-white)' }}
-                    pagination={{
-                      pageSize: 10,
-                      showSizeChanger: true,
-                      position: ['bottomRight']
+                <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                  <LoadingSpinner message="Fetching squads..." />
+                </div>
+              )
+            ) : filteredSquads.length === 0 ? (
+              <div className="squad-empty">
+                <div className="squad-empty__illustration">
+                  {searchTerm || statusFilter !== 'all' ? <SearchOutlined /> : <InboxOutlined />}
+                </div>
+                <div className="squad-empty__title">
+                  {searchTerm || statusFilter !== 'all' ? 'No squads match your filters' : 'No squads yet'}
+                </div>
+                <div className="squad-empty__sub">
+                  {searchTerm || statusFilter !== 'all'
+                    ? 'Try adjusting your search or status filter to find what you’re looking for.'
+                    : 'Create your first squad to start organising teams, leadership, and project allocations.'}
+                </div>
+                {!searchTerm && statusFilter === 'all' && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    size="large"
+                    onClick={handleCreate}
+                    style={{
+                      borderRadius: 10,
+                      background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                      border: 'none',
+                      fontWeight: 600,
+                      height: 42,
+                      padding: '0 22px',
+                      boxShadow: '0 8px 18px -8px rgba(37, 99, 235, 0.55)',
                     }}
-                    className="premium-table"
-                  />
-                </Card>
-              )}
-            </>
-          )}
-        </div>
+                  >
+                    Create First Squad
+                  </Button>
+                )}
+              </div>
+            ) : viewMode === 'grid' ? (
+              <Row gutter={[20, 20]} className="squad-grid">
+                {filteredSquads.map(squad => (
+                  <Col key={squad.id} xs={24} sm={12} lg={8} xl={6}>
+                    <SquadCard
+                      squad={squad}
+                      onOpen={handleOpen}
+                      onManage={handleManage}
+                      onRefresh={fetchSquads}
+                    />
+                  </Col>
+                ))}
+              </Row>
+            ) : (
+              <Card
+                bordered={false}
+                style={{
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                  border: '1px solid var(--border-slate-200)',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+                }}
+                styles={{ body: { padding: 0 } }}
+              >
+                <Table
+                  dataSource={filteredSquads}
+                  columns={columns}
+                  rowKey="id"
+                  style={{ background: 'var(--bg-pure-white)' }}
+                  pagination={{
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    position: ['bottomRight'],
+                  }}
+                  className="premium-table"
+                />
+              </Card>
+            )}
+          </div>
 
-        {/* Drawers */}
-        <SquadDrawer
-          visible={drawerVisible}
-          onClose={() => setDrawerVisible(false)}
-          onSuccess={fetchSquads}
-          initialData={currentSquad}
-        />
+          <SquadDrawer
+            visible={drawerVisible}
+            onClose={() => setDrawerVisible(false)}
+            onSuccess={fetchSquads}
+            initialData={currentSquad}
+          />
 
-        <SquadViewDrawer
-          visible={viewDrawerVisible}
-          onClose={() => setViewDrawerVisible(false)}
-          squad={currentSquad}
-        />
+          <SquadViewDrawer
+            visible={viewDrawerVisible}
+            onClose={() => setViewDrawerVisible(false)}
+            squad={currentSquad}
+            onManage={handleManage}
+          />
         </div>
       </div>
     </MainLayout>

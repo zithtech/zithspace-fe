@@ -1,11 +1,17 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Card, Tag, Button, Dropdown, Menu, Modal, Typography, Avatar, Tooltip, Space, App } from 'antd';
-import { MoreOutlined, TeamOutlined, EditOutlined, EyeOutlined, DeleteOutlined, InboxOutlined, RollbackOutlined } from '@ant-design/icons';
+import React, { useMemo, useState } from 'react';
+import { Button, Dropdown, Avatar, Tooltip, App, MenuProps } from 'antd';
+import {
+  MoreOutlined,
+  TeamOutlined,
+  DeleteOutlined,
+  InboxOutlined,
+  RollbackOutlined,
+  EyeOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
 import { Squad, SquadService } from '@/services/squadService';
-
-const { Text, Title } = Typography;
 
 interface SquadCardProps {
   squad: Squad;
@@ -14,14 +20,17 @@ interface SquadCardProps {
   onRefresh: () => void;
 }
 
+const HEAD_AVATAR_BG = 'linear-gradient(135deg, #10b981, #059669)';
+const SUBHEAD_AVATAR_BG = 'linear-gradient(135deg, #f59e0b, #d97706)';
+const MEMBER_AVATAR_BG = 'linear-gradient(135deg, #3b82f6, #6366f1)';
+
 const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefresh }) => {
   const { message, modal } = App.useApp();
-  const [loading, setLoading] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const handleArchive = async () => {
     try {
-      setLoading(true);
+      setBusy(true);
       await SquadService.archiveSquad(squad.id, !squad.isArchived);
       message.success(`Squad ${squad.isArchived ? 'unarchived' : 'archived'} successfully`);
       onRefresh();
@@ -29,17 +38,17 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
       console.error(error);
       message.error('Failed to update squad archive status');
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
   const handleDelete = () => {
     modal.confirm({
-      title: 'Are you sure you want to delete this squad?',
-      content: 'This action cannot be undone.',
-      okText: 'Yes, Delete',
+      title: 'Delete this squad?',
+      content: 'This action cannot be undone. All squad memberships will be removed.',
+      okText: 'Yes, delete',
       okType: 'danger',
-      cancelText: 'No',
+      cancelText: 'Cancel',
       onOk: async () => {
         try {
           await SquadService.deleteSquad(squad.id);
@@ -53,107 +62,142 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
     });
   };
 
-  const menu = (
-    <Menu>
-      <Menu.Item key="archive" icon={squad.isArchived ? <RollbackOutlined /> : <InboxOutlined />} onClick={handleArchive}>
-        {squad.isArchived ? 'Unarchive' : 'Archive'}
-      </Menu.Item>
-      <Menu.Item key="delete" icon={<DeleteOutlined />} danger onClick={handleDelete}>
-        Delete
-      </Menu.Item>
-    </Menu>
-  );
+  const menuItems: MenuProps['items'] = [
+    {
+      key: 'archive',
+      icon: squad.isArchived ? <RollbackOutlined /> : <InboxOutlined />,
+      label: squad.isArchived ? 'Unarchive' : 'Archive',
+      onClick: handleArchive,
+    },
+    { type: 'divider' },
+    {
+      key: 'delete',
+      icon: <DeleteOutlined />,
+      danger: true,
+      label: 'Delete',
+      onClick: handleDelete,
+    },
+  ];
 
-  const headCount = squad.squadMembers.filter(m => m.memberType === 'HEAD').length;
-  const subHeadCount = squad.squadMembers.filter(m => m.memberType === 'SUB_HEAD').length;
-  const memberCount = squad.squadMembers.filter(m => m.memberType === 'MEMBER').length;
-  const totalCount = squad.squadMembers.length;
+  const { heads, subHeads, members, initials, statusClass, statusBadgeClass, statusLabel } = useMemo(() => {
+    const heads = squad.squadMembers?.filter(m => m.memberType === 'HEAD') || [];
+    const subHeads = squad.squadMembers?.filter(m => m.memberType === 'SUB_HEAD') || [];
+    const members = squad.squadMembers?.filter(m => m.memberType === 'MEMBER') || [];
+    const initials = squad.squadName
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(w => w[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+    const statusClass = squad.isArchived
+      ? 'is-archived'
+      : squad.squadStatus
+        ? 'is-active'
+        : 'is-inactive';
+    const statusBadgeClass = squad.isArchived
+      ? 'squad-status--archived'
+      : squad.squadStatus
+        ? 'squad-status--active'
+        : 'squad-status--inactive';
+    const statusLabel = squad.isArchived ? 'Archived' : squad.squadStatus ? 'Active' : 'Inactive';
+    return { heads, subHeads, members, initials, statusClass, statusBadgeClass, statusLabel };
+  }, [squad]);
+
+  const renderAvatarGroup = (
+    group: typeof heads,
+    bg: string,
+    maxCount = 3,
+  ) => {
+    if (group.length === 0) {
+      return <span className="squad-card-v2__avatars-empty">— Unassigned</span>;
+    }
+    return (
+      <Avatar.Group max={{ count: maxCount }} size={26} className="squad-card-v2__avatars">
+        {group.map(m => (
+          <Tooltip key={m.id} title={m.member.name}>
+            <Avatar style={{ background: bg }}>
+              {m.member.name.substring(0, 2).toUpperCase()}
+            </Avatar>
+          </Tooltip>
+        ))}
+      </Avatar.Group>
+    );
+  };
 
   return (
-    <Card
-      className="squad-card-premium"
-      hoverable
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      style={{
-        borderRadius: '12px',
-        overflow: 'hidden',
-        transition: 'all 0.3s ease',
-        background: 'var(--bg-pure-white)',
-        border: '1px solid var(--border-slate-200)',
-        transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
-        boxShadow: isHovered
-          ? '0 12px 24px rgba(0,0,0,0.12)'
-          : 'var(--card-shadow)'
-      }}
-      bodyStyle={{ padding: '24px' }}
-      actions={[
-        <Button key="open" type="primary" style={{ border: 'none', height: '40px', borderRadius: '8px' }} onClick={() => onOpen(squad)}>View Squad</Button>,
-        <Button key="manage" style={{ height: '40px', borderRadius: '8px' }} onClick={() => onManage(squad)}>Manage Squad</Button>
-      ]}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <Avatar
-            shape="square"
-            size={40}
-            icon={<TeamOutlined />}
-            style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--premium-blue)', borderRadius: '8px' }}
-          />
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Title level={5} style={{ margin: 0, color: 'var(--text-slate-900)' }}>{squad.squadName}</Title>
-              <Space size={4} style={{ color: 'var(--text-slate-400)', fontSize: '14px' }}>
-                <TeamOutlined />
-                <Text type="secondary" style={{ color: 'var(--text-slate-400)' }}>{totalCount}</Text>
-              </Space>
+    <div className={`squad-card-v2 ${statusClass}`}>
+      <div className="squad-card-v2__accent" />
+      <div className="squad-card-v2__body">
+        <div className="squad-card-v2__header">
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
+            <div className="squad-card-v2__avatar">{initials || <TeamOutlined />}</div>
+            <div className="squad-card-v2__title-block">
+              <div className="squad-card-v2__title" title={squad.squadName}>
+                {squad.squadName}
+              </div>
+              <div className="squad-card-v2__code">{squad.squadCode}</div>
             </div>
-            <Text type="secondary" style={{ fontSize: '12px', color: 'var(--text-slate-400)' }}>{squad.squadCode}</Text>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <span className={`squad-card-v2__status ${statusBadgeClass}`}>
+              <span className="squad-status-dot" />
+              {statusLabel}
+            </span>
+            <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight" disabled={busy}>
+              <Button
+                type="text"
+                icon={<MoreOutlined />}
+                className="squad-card-v2__menu-btn"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Dropdown>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Tag color={squad.isArchived ? 'orange' : (squad.squadStatus ? 'green' : 'red')} style={{ borderRadius: '12px', margin: 0 }}>
-            {squad.isArchived ? 'Archived' : (squad.squadStatus ? 'Active' : 'Inactive')}
-          </Tag>
-          <Dropdown overlay={menu} trigger={['click']} placement="bottomRight">
-            <Button type="text" icon={<MoreOutlined />} />
-          </Dropdown>
+
+        <div>
+          <div className="squad-card-v2__role-row">
+            <div className="squad-card-v2__role-label">
+              <span className="squad-card-v2__role-dot is-head" />
+              Heads
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span className="squad-card-v2__role-count">{heads.length}</span>
+              {renderAvatarGroup(heads, HEAD_AVATAR_BG)}
+            </div>
+          </div>
+          <div className="squad-card-v2__role-row">
+            <div className="squad-card-v2__role-label">
+              <span className="squad-card-v2__role-dot is-subhead" />
+              Sub-Heads
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span className="squad-card-v2__role-count">{subHeads.length}</span>
+              {renderAvatarGroup(subHeads, SUBHEAD_AVATAR_BG)}
+            </div>
+          </div>
+          <div className="squad-card-v2__role-row">
+            <div className="squad-card-v2__role-label">
+              <span className="squad-card-v2__role-dot is-member" />
+              Members
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span className="squad-card-v2__role-count">{members.length}</span>
+              {renderAvatarGroup(members, MEMBER_AVATAR_BG, 5)}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div style={{ marginBottom: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-slate-400)' }}>SQUAD HEADS</Text>
-          <Avatar.Group maxCount={3} size="small">
-            {squad.squadMembers.filter(m => m.memberType === 'HEAD').map(m => (
-              <Tooltip key={m.id} title={m.member.name}>
-                <Avatar style={{ backgroundColor: '#87d068' }}>{m.member.name.substring(0, 2).toUpperCase()}</Avatar>
-              </Tooltip>
-            ))}
-          </Avatar.Group>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-slate-400)' }}>SUB HEADS</Text>
-          <Avatar.Group maxCount={3} size="small">
-            {squad.squadMembers.filter(m => m.memberType === 'SUB_HEAD').map(m => (
-              <Tooltip key={m.id} title={m.member.name}>
-                <Avatar style={{ backgroundColor: '#2db7f5' }}>{m.member.name.substring(0, 2).toUpperCase()}</Avatar>
-              </Tooltip>
-            ))}
-          </Avatar.Group>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-slate-400)' }}>MEMBERS</Text>
-          <Avatar.Group maxCount={5} size="small">
-            {squad.squadMembers.filter(m => m.memberType === 'MEMBER').map(m => (
-              <Tooltip key={m.id} title={m.member.name}>
-                <Avatar style={{ backgroundColor: '#108ee9' }}>{m.member.name.substring(0, 2).toUpperCase()}</Avatar>
-              </Tooltip>
-            ))}
-          </Avatar.Group>
-        </div>
+      <div className="squad-card-v2__footer">
+        <Button icon={<EyeOutlined />} onClick={() => onOpen(squad)}>
+          View
+        </Button>
+        <Button type="primary" icon={<SettingOutlined />} onClick={() => onManage(squad)}>
+          Manage
+        </Button>
       </div>
-    </Card>
+    </div>
   );
 };
 

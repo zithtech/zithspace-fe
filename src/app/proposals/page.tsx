@@ -1,30 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Typography,
   Button,
   Table,
-  Tag,
   Space,
   Input,
-  Card,
   message,
-  Empty,
-  theme,
   Dropdown,
-  Modal,
   Tooltip,
-  Breadcrumb,
   Popconfirm,
-  Row,
-  Col,
-  Divider
+  Segmented,
 } from 'antd';
 import {
   PlusOutlined,
   SearchOutlined,
-  EllipsisOutlined,
   EditOutlined,
   DeleteOutlined,
   FilePdfOutlined,
@@ -33,8 +24,13 @@ import {
   SnippetsOutlined,
   EyeOutlined,
   FileWordOutlined,
-  DownloadOutlined
+  DownloadOutlined,
+  SendOutlined,
+  CloseCircleOutlined,
+  AppstoreOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons';
+import { Sparkles, TrendingUp } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
 import { useRouter } from 'next/navigation';
@@ -42,20 +38,29 @@ import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
+type StatusKey = 'all' | 'draft' | 'sent' | 'accepted' | 'declined';
+
+const STATUS_META: Record<Exclude<StatusKey, 'all'>, { label: string; color: string; bg: string; ring: string; icon: React.ReactNode }> = {
+  draft:    { label: 'Draft',    color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)', icon: <ClockCircleOutlined /> },
+  sent:     { label: 'Sent',     color: '#3b82f6', bg: 'rgba(59,130,246,0.10)',  ring: 'rgba(59,130,246,0.25)',  icon: <SendOutlined /> },
+  accepted: { label: 'Accepted', color: '#10b981', bg: 'rgba(16,185,129,0.10)',  ring: 'rgba(16,185,129,0.25)',  icon: <CheckCircleOutlined /> },
+  declined: { label: 'Declined', color: '#ef4444', bg: 'rgba(239,68,68,0.10)',   ring: 'rgba(239,68,68,0.25)',   icon: <CloseCircleOutlined /> },
+};
+
 export default function ProposalsListPage() {
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusKey>('all');
+  const [view, setView] = useState<'list' | 'grid'>('list');
 
   const router = useRouter();
-  const { token } = theme.useToken();
-  const [modal, contextHolder] = Modal.useModal();
+  const [messageApi, messageHolder] = message.useMessage();
 
   const fetchProposals = async () => {
     try {
       setLoading(true);
       const data = await ProposalService.getProposals();
-      console.log('📊 [PROPOSAL API RESPONSE]:', data);
 
       if (Array.isArray(data)) {
         setProposals(data);
@@ -89,160 +94,40 @@ export default function ProposalsListPage() {
     }
   };
 
-
   const getStatusTag = (status: string) => {
-    const s = status?.toLowerCase();
-    const tagStyles = {
-      padding: '4px 12px',
-      borderRadius: '20px',
-      fontSize: '11px',
-      fontWeight: 700,
-      textTransform: 'uppercase' as const,
-      letterSpacing: '0.05em',
-      border: 'none',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px'
-    };
-
-    switch (s) {
-      case 'sent':
-        return <Tag icon={<ClockCircleOutlined />} style={{ ...tagStyles, background: `${token.colorInfo}15`, color: token.colorInfo }}>Sent</Tag>;
-      case 'accepted':
-        return <Tag icon={<CheckCircleOutlined />} style={{ ...tagStyles, background: `${token.colorSuccess}15`, color: token.colorSuccess }}>Accepted</Tag>;
-      case 'draft':
-        return <Tag style={{ ...tagStyles, background: token.colorFillTertiary, color: token.colorTextDescription }}>Draft</Tag>;
-      case 'declined':
-        return <Tag style={{ ...tagStyles, background: `${token.colorError}15`, color: token.colorError }}>Declined</Tag>;
-      default:
-        return <Tag style={{ ...tagStyles, background: token.colorFillQuaternary, color: token.colorTextTertiary }}>{status}</Tag>;
+    const s = (status?.toLowerCase() || '') as Exclude<StatusKey, 'all'>;
+    const meta = STATUS_META[s];
+    if (!meta) {
+      return (
+        <span className="prop-status">
+          <span className="prop-status__dot" style={{ background: '#94a3b8' }} />
+          {status || '—'}
+        </span>
+      );
     }
+    return (
+      <span
+        className="prop-status"
+        style={{
+          color: meta.color,
+          background: meta.bg,
+          borderColor: meta.ring,
+        }}
+      >
+        <span className="prop-status__dot" style={{ background: meta.color, boxShadow: `0 0 0 3px ${meta.bg}` }} />
+        {meta.label}
+      </span>
+    );
   };
 
-  const columns = [
-    {
-      title: 'PROPOSAL NAME',
-      dataIndex: 'title',
-      key: 'title',
-      render: (text: string, record: any) => {
-        let displayTitle = text;
-        if (!text || text === 'Updated Proposal') {
-          try {
-            const blocks = typeof record.blocks_data === 'string'
-              ? JSON.parse(record.blocks_data)
-              : (record.blocks_data || []);
-            const coverData = blocks.find((b: any) => b.type === 'cover')?.data;
-            if (coverData?.title) displayTitle = coverData.title;
-          } catch (e) { }
-        }
-
-        return (
-          <Space size="middle">
-            <div style={{
-              width: 40,
-              height: 40,
-              borderRadius: 8,
-              background: token.colorFillTertiary,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: token.colorPrimary,
-              fontSize: 18
-            }}>
-              <SnippetsOutlined />
-            </div>
-            <div>
-              <Text strong style={{ display: 'block', fontSize: 15 }}>{displayTitle || 'Untitled Proposal'}</Text>
-              <Text type="secondary" style={{ fontSize: 12 }}>Created {dayjs(record.created_at).format('MMM D, YYYY')}</Text>
-            </div>
-          </Space>
-        );
-      },
-    },
-    {
-      title: 'CLIENT',
-      dataIndex: 'client_name',
-      key: 'client_name',
-      render: (text: string) => <Text style={{ fontWeight: 500 }}>{text || '—'}</Text>
-    },
-    {
-      title: 'STATUS',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => getStatusTag(status)
-    },
-    {
-      title: 'LAST UPDATED',
-      dataIndex: 'updated_at',
-      key: 'updated_at',
-      render: (date: string) => dayjs(date).format('MMM D, h:mm A')
-    },
-    {
-      title: 'ACTIONS',
-      key: 'actions',
-      align: 'right' as const,
-      render: (_: any, record: any) => (
-        <Space>
-          <Tooltip title="View Details">
-            <Button
-              type="text"
-              icon={<EyeOutlined style={{ color: token.colorPrimary }} />}
-              onClick={() => router.push(`/proposals/${record.id}`)}
-            />
-          </Tooltip>
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<EditOutlined style={{ color: token.colorPrimary }} />}
-              onClick={() => router.push(`/proposals/builder?id=${record.id}`)}
-            />
-          </Tooltip>
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'pdf',
-                  label: 'Export PDF',
-                  icon: <FilePdfOutlined />,
-                },
-                {
-                  key: 'word',
-                  label: 'Export Word',
-                  icon: <FileWordOutlined />,
-                },
-              ],
-              onClick: ({ key }) => {
-                if (key === 'pdf') handleExport(record.id, 'pdf');
-                else if (key === 'word') handleExport(record.id, 'word');
-              }
-            }}
-            trigger={['click']}
-          >
-            <Button type="text" icon={<DownloadOutlined style={{ color: token.colorPrimary }} />} />
-          </Dropdown>
-          <Tooltip title="Delete">
-            <Popconfirm
-              title="Delete Proposal"
-              description="Are you sure you want to delete this proposal?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Yes, Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
-            >
-              <Button
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-              />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
-
-  const [messageApi, messageHolder] = message.useMessage();
-  const [downloadingProposal, setDownloadingProposal] = useState<any>(null);
+  const stats = useMemo(() => {
+    const total = proposals.length;
+    const drafts = proposals.filter((p) => p.status === 'draft').length;
+    const sent = proposals.filter((p) => p.status === 'sent').length;
+    const accepted = proposals.filter((p) => p.status === 'accepted').length;
+    const winRate = total > 0 ? Math.round((accepted / total) * 100) : 0;
+    return { total, drafts, sent, accepted, winRate };
+  }, [proposals]);
 
   const handleExport = async (id: string, format: 'pdf' | 'word') => {
     const key = 'exporting';
@@ -254,7 +139,6 @@ export default function ProposalsListPage() {
       const { pdfUrl, docxUrl } = resData || {};
 
       const fileUrl = format === 'pdf' ? pdfUrl : docxUrl;
-
       if (!fileUrl) throw new Error("Server didn't return a file URL");
 
       if (format === 'pdf') {
@@ -267,235 +151,362 @@ export default function ProposalsListPage() {
         link.click();
         document.body.removeChild(link);
       }
-
       messageApi.open({ key, type: 'success', content: 'Export complete!', duration: 3 });
     } catch (err: any) {
-      console.error("Export Failed:", err);
+      console.error('Export Failed:', err);
       messageApi.open({ key, type: 'error', content: `Export Failed: ${err.message}` });
     }
   };
 
-  const filteredProposals = proposals.filter(p =>
-    p.title?.toLowerCase().includes(searchText.toLowerCase()) ||
-    p.client_name?.toLowerCase().includes(searchText.toLowerCase())
-  );
+  const filteredProposals = useMemo(() => {
+    return proposals.filter((p) => {
+      const matchesSearch =
+        p.title?.toLowerCase().includes(searchText.toLowerCase()) ||
+        p.client_name?.toLowerCase().includes(searchText.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || p.status?.toLowerCase() === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [proposals, searchText, statusFilter]);
 
+  const resolveTitle = (record: any) => {
+    let displayTitle = record.title;
+    if (!displayTitle || displayTitle === 'Updated Proposal') {
+      try {
+        const blocks = typeof record.blocks_data === 'string' ? JSON.parse(record.blocks_data) : record.blocks_data || [];
+        const coverData = blocks.find((b: any) => b.type === 'cover')?.data;
+        if (coverData?.title) displayTitle = coverData.title;
+      } catch (e) {}
+    }
+    return displayTitle || 'Untitled Proposal';
+  };
+
+  const columns = [
+    {
+      title: 'PROPOSAL',
+      dataIndex: 'title',
+      key: 'title',
+      render: (_: string, record: any) => (
+        <Space size="middle" className="prop-cell-title">
+          <div className="prop-cell-title__icon">
+            <SnippetsOutlined />
+          </div>
+          <div>
+            <Text strong className="prop-cell-title__name">{resolveTitle(record)}</Text>
+            <Text type="secondary" className="prop-cell-title__sub">
+              Created {dayjs(record.created_at).format('MMM D, YYYY')}
+            </Text>
+          </div>
+        </Space>
+      ),
+    },
+    {
+      title: 'CLIENT',
+      dataIndex: 'client_name',
+      key: 'client_name',
+      render: (text: string) => {
+        const initials = (text || '—').split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase();
+        return (
+          <div className="prop-client">
+            <div className="prop-client__avatar">{initials || '—'}</div>
+            <Text className="prop-client__name">{text || '—'}</Text>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'STATUS',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => getStatusTag(status),
+    },
+    {
+      title: 'LAST UPDATED',
+      dataIndex: 'updated_at',
+      key: 'updated_at',
+      render: (date: string) => (
+        <Text className="prop-time">
+          <ClockCircleOutlined style={{ marginRight: 6, opacity: 0.6 }} />
+          {dayjs(date).format('MMM D · h:mm A')}
+        </Text>
+      ),
+    },
+    {
+      title: '',
+      key: 'actions',
+      align: 'right' as const,
+      width: 200,
+      render: (_: any, record: any) => (
+        <Space size={2} className="prop-actions">
+          <Tooltip title="View">
+            <Button type="text" className="prop-icon-btn" icon={<EyeOutlined />} onClick={() => router.push(`/proposals/${record.id}`)} />
+          </Tooltip>
+          <Tooltip title="Edit">
+            <Button type="text" className="prop-icon-btn" icon={<EditOutlined />} onClick={() => router.push(`/proposals/builder?id=${record.id}`)} />
+          </Tooltip>
+          <Dropdown
+            menu={{
+              items: [
+                { key: 'pdf', label: 'Export PDF', icon: <FilePdfOutlined style={{ color: '#ef4444' }} /> },
+                { key: 'word', label: 'Export Word', icon: <FileWordOutlined style={{ color: '#2563eb' }} /> },
+              ],
+              onClick: ({ key }) => {
+                if (key === 'pdf') handleExport(record.id, 'pdf');
+                else if (key === 'word') handleExport(record.id, 'word');
+              },
+            }}
+            trigger={['click']}
+          >
+            <Button type="text" className="prop-icon-btn" icon={<DownloadOutlined />} />
+          </Dropdown>
+          <Popconfirm
+            title="Delete Proposal"
+            description="Are you sure you want to delete this proposal?"
+            onConfirm={() => handleDelete(record.id)}
+            okText="Yes, Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+          >
+            <Button type="text" className="prop-icon-btn prop-icon-btn--danger" icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  const StatCard = ({
+    label,
+    value,
+    icon,
+    color,
+    bg,
+    ring,
+    suffix,
+    delta,
+  }: {
+    label: string;
+    value: number | string;
+    icon: React.ReactNode;
+    color: string;
+    bg: string;
+    ring: string;
+    suffix?: string;
+    delta?: string;
+  }) => (
+    <div className="prop-stat" style={{ ['--st-color' as any]: color, ['--st-bg' as any]: bg, ['--st-ring' as any]: ring }}>
+      <div className="prop-stat__icon">{icon}</div>
+      <div className="prop-stat__body">
+        <div className="prop-stat__label">{label}</div>
+        <div className="prop-stat__value">
+          {value}
+          {suffix && <span className="prop-stat__suffix">{suffix}</span>}
+        </div>
+      </div>
+      {delta && (
+        <div className="prop-stat__delta">
+          <TrendingUp size={10} />
+          {delta}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <MainLayout>
-      {contextHolder}
       {messageHolder}
 
-      <div style={{
-        margin: '0 -24px',
-        padding: '12px 24px',
-        minHeight: 'calc(100vh - 64px)',
-        background: 'var(--bg-pure-white)'
-      }}>
-        {/* Compact Header Section */}
-        <div style={{
-          marginBottom: 2,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ flex: 1 }}>
-            <Space size={12} align="center">
-              <div style={{
-                width: 40,
-                height: 40,
-                borderRadius: 10,
-                background: `${token.colorPrimary}12`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: token.colorPrimary
-              }}>
-                <SnippetsOutlined style={{ fontSize: 20 }} />
-              </div>
-              <div>
-                <Title level={4} className="premium-title" style={{
-                  margin: 0,
-                  fontWeight: 800,
-                  letterSpacing: '-0.01em',
-                  fontSize: '18px',
-                  color: token.colorText
-                }}>
-                  Proposals
-                </Title>
-                <Text type="secondary" className="premium-text-sec" style={{ fontSize: '11px', display: 'block', color: token.colorTextDescription }}>
-                  Manage and track your winning business proposals
-                </Text>
-              </div>
-            </Space>
+      <div className="prop-page">
+        {/* Compact Header */}
+        <div className="prop-header">
+          <div className="prop-header__left">
+            <div className="prop-header__icon">
+              <SnippetsOutlined />
+            </div>
+            <div className="prop-header__text">
+              <Title level={4} className="prop-header__title">Proposals</Title>
+              <Text className="prop-header__sub">Manage and track your winning business proposals</Text>
+            </div>
           </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            size="middle"
-            onClick={() => router.push('/proposals/builder')}
-            style={{
-              height: 40,
-              padding: '0 20px',
-              borderRadius: 10,
-              fontWeight: 700,
-              fontSize: '14px',
-              background: token.colorPrimary,
-              boxShadow: `0 4px 6px -1px ${token.colorPrimary}40`,
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            New Proposal
-          </Button>
+          <div className="prop-header__right">
+            <Button
+              type="primary"
+              className="prop-cta-primary"
+              icon={<PlusOutlined />}
+              onClick={() => router.push('/proposals/builder')}
+            >
+              New Proposal
+            </Button>
+          </div>
         </div>
-        <Divider style={{ margin: '0 -24px 24px', opacity: 0.6 }} />
 
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          {[
-            { label: 'Total', value: proposals.length, icon: <SnippetsOutlined />, color: token.colorPrimary, bg: `${token.colorPrimary}15` },
-            { label: 'Drafts', value: proposals.filter(p => p.status === 'draft').length, icon: <ClockCircleOutlined />, color: token.colorTextSecondary, bg: token.colorFillTertiary },
-            { label: 'Accepted', value: proposals.filter(p => p.status === 'accepted').length, icon: <CheckCircleOutlined />, color: token.colorSuccess, bg: `${token.colorSuccess}15` },
-          ].map((stat, idx) => (
-            <Col xs={24} sm={8} key={idx}>
-              <Card
-                bordered={false}
-                style={{
-                  borderRadius: 12,
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
-                  border: `1px solid ${token.colorBorderSecondary}`,
-                  background: token.colorBgContainer
-                }}
-                styles={{ body: { padding: '16px 20px' } }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: '10px',
-                    background: stat.bg,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '18px',
-                    color: stat.color
-                  }}>
-                    {stat.icon}
-                  </div>
-                  <div>
-                    <Text strong style={{
-                      fontSize: '10px',
-                      color: token.colorTextTertiary,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      display: 'block',
-                      marginBottom: '0px'
-                    }}>
-                      {stat.label}
-                    </Text>
-                    <Title level={4} style={{ margin: 0, fontWeight: 800, color: token.colorText, fontSize: '18px' }}>
-                      {stat.value}
-                    </Title>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+        {/* Stats */}
+        <div className="prop-stats-grid">
+          <StatCard
+            label="Total Proposals"
+            value={stats.total}
+            icon={<SnippetsOutlined />}
+            color="#3b82f6"
+            bg="rgba(59,130,246,0.10)"
+            ring="rgba(59,130,246,0.25)"
+          />
+          <StatCard
+            label="In Draft"
+            value={stats.drafts}
+            icon={<ClockCircleOutlined />}
+            color="#64748b"
+            bg="rgba(100,116,139,0.10)"
+            ring="rgba(100,116,139,0.25)"
+          />
+          <StatCard
+            label="Sent to Clients"
+            value={stats.sent}
+            icon={<SendOutlined />}
+            color="#8b5cf6"
+            bg="rgba(139,92,246,0.10)"
+            ring="rgba(139,92,246,0.25)"
+          />
+          <StatCard
+            label="Win Rate"
+            value={stats.winRate}
+            suffix="%"
+            icon={<CheckCircleOutlined />}
+            color="#10b981"
+            bg="rgba(16,185,129,0.10)"
+            ring="rgba(16,185,129,0.25)"
+            delta={stats.accepted > 0 ? `${stats.accepted} closed` : undefined}
+          />
+        </div>
 
-        <Card
-          bordered={false}
-          style={{
-            borderRadius: 16,
-            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02), 0 4px 6px -2px rgba(0,0,0,0.01)',
-            background: token.colorBgContainer,
-            border: `1px solid ${token.colorBorderSecondary}`
-          }}
-          styles={{ body: { padding: '0' } }}
-        >
-          <div style={{
-            padding: '16px 24px',
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <Input
-              placeholder="Filter by name..."
-              prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
-              value={searchText}
-              onChange={e => setSearchText(e.target.value)}
-              style={{
-                width: 280,
-                height: 36,
-                borderRadius: 8,
-                background: token.colorFillQuaternary,
-                border: `1px solid ${token.colorBorderSecondary}`,
-                fontSize: '13px'
+        {/* Toolbar + Table */}
+        <div className="prop-card">
+          <div className="prop-toolbar">
+            <div className="prop-toolbar__left">
+              <Input
+                placeholder="Search by name, client…"
+                prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="prop-search"
+                allowClear
+              />
+              <Segmented
+                className="prop-status-seg"
+                value={statusFilter}
+                onChange={(v) => setStatusFilter(v as StatusKey)}
+                options={[
+                  { label: `All (${stats.total})`, value: 'all' },
+                  { label: `Drafts (${stats.drafts})`, value: 'draft' },
+                  { label: `Sent (${stats.sent})`, value: 'sent' },
+                  { label: `Accepted (${stats.accepted})`, value: 'accepted' },
+                ]}
+              />
+            </div>
+
+            <div className="prop-toolbar__right">
+              <Text className="prop-count">
+                <strong>{filteredProposals.length}</strong> {filteredProposals.length === 1 ? 'result' : 'results'}
+              </Text>
+              <Segmented
+                className="prop-view-seg"
+                value={view}
+                onChange={(v) => setView(v as 'list' | 'grid')}
+                options={[
+                  { value: 'list', icon: <UnorderedListOutlined /> },
+                  { value: 'grid', icon: <AppstoreOutlined /> },
+                ]}
+              />
+            </div>
+          </div>
+
+          {view === 'list' ? (
+            <Table
+              columns={columns}
+              dataSource={filteredProposals}
+              loading={loading}
+              rowKey="id"
+              size="middle"
+              pagination={{
+                pageSize: 10,
+                style: { padding: '14px 24px', margin: 0 },
+                showSizeChanger: false,
+              }}
+              rowClassName={() => 'prop-row'}
+              locale={{
+                emptyText: (
+                  <div className="prop-empty">
+                    <div className="prop-empty__orb">
+                      <Sparkles size={28} />
+                    </div>
+                    <div className="prop-empty__title">No proposals yet</div>
+                    <div className="prop-empty__sub">Start by creating your first premium proposal.</div>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      className="prop-cta-primary"
+                      onClick={() => router.push('/proposals/builder')}
+                      style={{ marginTop: 14 }}
+                    >
+                      New Proposal
+                    </Button>
+                  </div>
+                ),
               }}
             />
-            <Space size="middle">
-              <Button type="text" size="small" icon={<ClockCircleOutlined />} style={{ fontWeight: 600, color: token.colorTextDescription, fontSize: '12px' }}>Recent</Button>
-              <Text style={{ fontWeight: 700, color: token.colorText, fontSize: '12px' }}>{filteredProposals.length} Items</Text>
-            </Space>
-          </div>
-
-          <Table
-            columns={columns}
-            dataSource={filteredProposals}
-            loading={loading}
-            rowKey="id"
-            size="middle"
-            pagination={{
-              pageSize: 10,
-              style: { padding: '16px 24px', margin: 0 },
-              showSizeChanger: false
-            }}
-            rowClassName={() => 'proposal-table-row-compact'}
-            locale={{
-              emptyText: (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  style={{ padding: '30px 0' }}
-                  description={<Text strong style={{ color: token.colorTextTertiary, fontSize: '13px' }}>No proposals</Text>}
-                />
-              )
-            }}
-          />
-        </Card>
-
-        <style jsx global>{`
-          .proposal-table-row-compact {
-            transition: all 0.2s ease;
-            cursor: pointer;
-          }
-          .proposal-table-row-compact:hover {
-            background-color: ${token.colorFillQuaternary} !important;
-          }
-          .ant-table-thead > tr > th {
-            background: ${token.colorBgContainer} !important;
-            color: ${token.colorTextTertiary} !important;
-            font-size: 10px !important;
-            font-weight: 800 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.1em !important;
-            border-bottom: 1px solid ${token.colorBorderSecondary} !important;
-            padding: 10px 24px !important;
-          }
-          .ant-table-tbody > tr > td {
-            padding: 12px 24px !important;
-            border-bottom: 1px solid ${token.colorBorderSecondary} !important;
-            font-size: 13px !important;
-            color: ${token.colorTextSecondary} !important;
-          }
-          .ant-avatar {
-            width: 32px !important;
-            height: 32px !important;
-            line-height: 32px !important;
-          }
-        `}</style>
+          ) : (
+            <div className="prop-grid">
+              {loading ? (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading…</div>
+              ) : filteredProposals.length === 0 ? (
+                <div className="prop-empty" style={{ gridColumn: '1 / -1' }}>
+                  <div className="prop-empty__orb">
+                    <Sparkles size={28} />
+                  </div>
+                  <div className="prop-empty__title">No proposals yet</div>
+                  <div className="prop-empty__sub">Start by creating your first premium proposal.</div>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    className="prop-cta-primary"
+                    onClick={() => router.push('/proposals/builder')}
+                    style={{ marginTop: 14 }}
+                  >
+                    New Proposal
+                  </Button>
+                </div>
+              ) : (
+                filteredProposals.map((p) => (
+                  <div
+                    key={p.id}
+                    className="prop-grid-card"
+                    onClick={() => router.push(`/proposals/${p.id}`)}
+                  >
+                    <div className="prop-grid-card__head">
+                      <div className="prop-grid-card__icon">
+                        <SnippetsOutlined />
+                      </div>
+                      {getStatusTag(p.status)}
+                    </div>
+                    <div className="prop-grid-card__title">{resolveTitle(p)}</div>
+                    <div className="prop-grid-card__client">
+                      <div className="prop-client__avatar prop-client__avatar--sm">
+                        {(p.client_name || '—')
+                          .split(' ')
+                          .map((s: string) => s[0])
+                          .slice(0, 2)
+                          .join('')
+                          .toUpperCase()}
+                      </div>
+                      <Text className="prop-client__name">{p.client_name || '—'}</Text>
+                    </div>
+                    <div className="prop-grid-card__foot">
+                      <ClockCircleOutlined style={{ marginRight: 6, opacity: 0.6 }} />
+                      {dayjs(p.updated_at).format('MMM D · h:mm A')}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </MainLayout>
   );

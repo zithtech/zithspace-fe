@@ -1,5 +1,6 @@
 import React from 'react';
 import { Typography, Form, Input, Button, DatePicker, Timeline, Tooltip, Row, Col } from 'antd';
+import { BlockGhostHint, BlockGhostLine } from './BlockGhost';
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -25,20 +26,34 @@ interface TimelineBlockProps {
 
 export const TimelineBlock: React.FC<TimelineBlockProps> = ({ data }) => {
   const phases = data.phases || [];
+  const isEmpty = !data.title && phases.length === 0 && !data.startDate && !data.finalDate && !data.dependencyNotes;
+
+  const ghostPhases = [
+    { id: 'g1', title: 'Phase 1 — Discovery', reviewPeriod: '3 Days', description: 'Define goals, audit, and align on scope.', _ghost: true },
+    { id: 'g2', title: 'Phase 2 — Design & Build', reviewPeriod: '5 Days', description: 'Wireframes, visual design, then development.', _ghost: true },
+  ];
+  const phasesToRender = phases.length > 0 ? phases : ghostPhases;
 
   return (
     <div style={{ padding: '16px 0' }}>
-      {data.title && (
-        <Title level={2} style={{ marginBottom: '16px', color: 'var(--text-primary)', fontWeight: 700 }}>
-          {data.title}
-        </Title>
-      )}
+      {isEmpty && <BlockGhostHint />}
+
+      <Title
+        level={2}
+        style={{
+          marginBottom: '16px',
+          color: data.title ? 'var(--text-primary)' : 'var(--text-slate-400)',
+          fontStyle: data.title ? 'normal' : 'italic',
+          fontWeight: 700,
+        }}
+      >
+        {data.title || 'Timeline & Schedule'}
+      </Title>
 
       <div style={{ padding: '24px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--box-shadow)' }}>
         <Timeline
           mode="left"
           items={[
-            // Start Date
             {
               dot: <FlagOutlined style={{ fontSize: '16px', color: '#10b981' }} />,
               color: 'green',
@@ -47,36 +62,38 @@ export const TimelineBlock: React.FC<TimelineBlockProps> = ({ data }) => {
                   <Text style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>
                     Project Kickoff
                   </Text>
-                  <Text strong style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>
-                    {data.startDate ? dayjs(data.startDate).format('MMMM D, YYYY') : 'TBD'}
+                  <Text strong style={{ fontSize: '1.2rem', color: data.startDate ? 'var(--text-primary)' : 'var(--text-slate-400)', fontStyle: data.startDate ? 'normal' : 'italic' }}>
+                    {data.startDate ? dayjs(data.startDate).format('MMMM D, YYYY') : 'Set kickoff date'}
                   </Text>
                 </div>
               ),
             },
-            // Phases
-            ...phases.map((phase: any, index: number) => ({
+            ...phasesToRender.map((phase: any, index: number) => ({
               dot: <ClockCircleOutlined style={{ fontSize: '16px' }} />,
               color: 'blue',
               children: (
-                <div style={{ paddingBottom: '24px' }}>
+                <div style={{ paddingBottom: '24px', opacity: phase._ghost ? 0.75 : 1 }}>
                   <Text style={{ display: 'block', color: '#3b82f6', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '0.05em' }}>
                     Phase {index + 1}
                   </Text>
-                  <Text strong style={{ display: 'block', fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: '8px' }}>
+                  <Text strong style={{ display: 'block', fontSize: '1.1rem', color: phase._ghost ? 'var(--text-slate-400)' : 'var(--text-primary)', fontStyle: phase._ghost ? 'italic' : 'normal', marginBottom: '8px' }}>
                     {phase.title || 'Untitled Phase'}
                   </Text>
                   <div style={{ background: 'var(--bg-primary)', padding: '12px 16px', borderRadius: '8px', display: 'inline-flex', flexDirection: 'column', gap: '4px', borderLeft: '3px solid var(--border-color)' }}>
                     <Text style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Deadline:</span> {phase.deadline ? dayjs(phase.deadline).format('MMMM D, YYYY') : 'TBD'}
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Deadline:</span>{' '}
+                      <span style={{ color: phase.deadline ? 'inherit' : 'var(--text-slate-400)', fontStyle: phase.deadline ? 'normal' : 'italic' }}>
+                        {phase.deadline ? dayjs(phase.deadline).format('MMMM D, YYYY') : 'Set a date'}
+                      </span>
                     </Text>
                     {phase.reviewPeriod && (
-                      <Text style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                      <Text style={{ color: phase._ghost ? 'var(--text-slate-400)' : 'var(--text-secondary)', fontStyle: phase._ghost ? 'italic' : 'normal', fontSize: '0.95rem' }}>
                         <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Review Period:</span> {phase.reviewPeriod}
                       </Text>
                     )}
                     {phase.description && (
                       <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
-                        <Text style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', lineHeight: 1.5, display: 'block' }}>
+                        <Text style={{ color: phase._ghost ? 'var(--text-slate-400)' : 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', lineHeight: 1.5, display: 'block' }}>
                           {phase.description}
                         </Text>
                       </div>
@@ -85,7 +102,6 @@ export const TimelineBlock: React.FC<TimelineBlockProps> = ({ data }) => {
                 </div>
               ),
             })),
-            // Final Launch
             {
               dot: <RocketOutlined style={{ fontSize: '16px', color: '#6366f1' }} />,
               color: '#6366f1',
@@ -94,27 +110,23 @@ export const TimelineBlock: React.FC<TimelineBlockProps> = ({ data }) => {
                   <Text style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>
                     Final Launch / Delivery
                   </Text>
-                  <Text strong style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>
-                    {data.finalDate ? dayjs(data.finalDate).format('MMMM D, YYYY') : 'TBD'}
+                  <Text strong style={{ fontSize: '1.2rem', color: data.finalDate ? 'var(--text-primary)' : 'var(--text-slate-400)', fontStyle: data.finalDate ? 'normal' : 'italic' }}>
+                    {data.finalDate ? dayjs(data.finalDate).format('MMMM D, YYYY') : 'Set delivery date'}
                   </Text>
                 </div>
               ),
-            }
+            },
           ]}
         />
       </div>
 
-      {/* Dependency Notes */}
-      {data.dependencyNotes && (
+      {data.dependencyNotes ? (
         <div style={{
-          marginTop: '24px',
-          padding: '24px',
+          marginTop: '24px', padding: '24px',
           background: 'rgba(253, 230, 138, 0.1)',
           borderRadius: '12px',
           border: '1px solid rgba(253, 230, 138, 0.3)',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '16px'
+          display: 'flex', alignItems: 'flex-start', gap: '16px',
         }}>
           <InfoCircleOutlined style={{ color: '#d97706', fontSize: '20px', marginTop: '2px' }} />
           <div>
@@ -124,9 +136,23 @@ export const TimelineBlock: React.FC<TimelineBlockProps> = ({ data }) => {
             </div>
           </div>
         </div>
+      ) : (
+        <div style={{
+          marginTop: '24px', padding: '20px',
+          background: 'rgba(253, 230, 138, 0.06)',
+          borderRadius: '12px',
+          border: '1px dashed rgba(253, 230, 138, 0.5)',
+          display: 'flex', alignItems: 'flex-start', gap: '16px',
+        }}>
+          <InfoCircleOutlined style={{ color: '#d97706', fontSize: '20px', marginTop: '2px', opacity: 0.6 }} />
+          <div style={{ flex: 1 }}>
+            <Text strong style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '8px', fontSize: '1rem' }}>Timeline Constraints & Dependencies</Text>
+            <BlockGhostLine width="80%" />
+            <BlockGhostLine width="60%" />
+          </div>
+        </div>
       )}
     </div>
-
   );
 };
 

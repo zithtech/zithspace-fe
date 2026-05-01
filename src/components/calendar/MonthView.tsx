@@ -1,12 +1,9 @@
 "use client";
 
 import React from 'react';
-import { Typography, Badge, Space } from 'antd';
 import { VideoCameraOutlined } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
 import { CalendarEvent } from '@/services/calendarService';
-
-const { Text } = Typography;
 
 interface MonthViewProps {
     currentDate: Dayjs;
@@ -15,38 +12,26 @@ interface MonthViewProps {
     onEventClick: (event: CalendarEvent, occurrenceDate?: Dayjs) => void;
 }
 
+const PALETTE_KEYS = [1, 2, 3, 4, 5, 6] as const;
+const colorIndex = (e: CalendarEvent) => {
+    const key = (e.calendar || e.id || 'x').toString();
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+    return PALETTE_KEYS[hash % PALETTE_KEYS.length];
+};
+
 export default function MonthView({ currentDate, events, onDayClick, onEventClick }: MonthViewProps) {
     const startOfMonth = currentDate.startOf('month');
-    const endOfMonth = currentDate.endOf('month');
-    const startOfGrid = startOfMonth.startOf('week'); // Assumes Sunday start
-    const endOfGrid = endOfMonth.endOf('week');
-
-    const days = [];
-    let day = startOfGrid;
-    while (day.isBefore(endOfGrid) || day.isSame(endOfGrid, 'day')) {
-        days.push(day);
-        day = day.add(1, 'day');
-    }
-
     const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-    // Re-adjust startOfGrid logic if week starts on Monday
-    // In reference it seems week starts on Monday
-    const adjustedStartOfGrid = startOfMonth.startOf('week').add(1, 'day');
-    if (startOfMonth.day() === 0) { // If it's Sunday, startOf('week') gives Sunday. 
-        // We want Monday.
-    }
 
-    // Let's use simplified grid for now and align with dayNames
-    const rows = [];
-    let currentRow = [];
-
-    // Real logic for Monday-start week:
-    const firstDayOfMonth = startOfMonth.day(); // 0=Sun, 1=Mon...
+    const rows: Dayjs[][] = [];
+    let currentRow: Dayjs[] = [];
+    const firstDayOfMonth = startOfMonth.day();
     const daysToShift = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
     const gridStart = startOfMonth.subtract(daysToShift, 'day');
 
     let d = gridStart;
-    for (let i = 0; i < 42; i++) { // 6 weeks
+    for (let i = 0; i < 42; i++) {
         currentRow.push(d);
         if (currentRow.length === 7) {
             rows.push(currentRow);
@@ -55,17 +40,10 @@ export default function MonthView({ currentDate, events, onDayClick, onEventClic
         d = d.add(1, 'day');
     }
 
-    const formatTime = (iso: string) => {
-        return dayjs(iso).format('h:mm A');
-    };
+    const formatTime = (iso: string) => dayjs(iso).format('h:mm A');
 
     const getEventsForDay = (date: Dayjs) => {
-        const dayEvents = events.filter(e => {
-            const start = dayjs(e.startTime);
-            return start.isSame(date, 'day');
-        });
-
-        // Deduplicate: If an occurrence for a series exists, hide the master record
+        const dayEvents = events.filter(e => dayjs(e.startTime).isSame(date, 'day'));
         return dayEvents.filter(e => {
             const isMaster = e.isRecurring && e.rrule && !e.rrule.includes('seriesMasterId');
             if (isMaster) {
@@ -79,60 +57,112 @@ export default function MonthView({ currentDate, events, onDayClick, onEventClic
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#f0f2f5' }}>
-            {/* Header */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#fff' }}>
-                {dayNames.map(name => (
-                    <div key={name} style={{ padding: '12px', textAlign: 'center', borderRight: '1px solid #f0f0f0', borderBottom: '1px solid #f0f0f0' }}>
-                        <Text type="secondary" strong style={{ fontSize: '12px' }}>{name}</Text>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--cal-surface)' }}>
+            {/* Weekday header */}
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(7, 1fr)',
+                    background: 'var(--cal-surface-2)',
+                    borderBottom: '1px solid var(--cal-border)',
+                }}
+            >
+                {dayNames.map((name, idx) => (
+                    <div
+                        key={name}
+                        style={{
+                            padding: '12px 0',
+                            textAlign: 'center',
+                            borderRight: idx < 6 ? '1px solid var(--cal-border-soft)' : 'none',
+                        }}
+                    >
+                        <span style={{
+                            fontSize: 11,
+                            color: 'var(--cal-text-muted)',
+                            fontWeight: 700,
+                            letterSpacing: '0.06em',
+                        }}>
+                            {name}
+                        </span>
                     </div>
                 ))}
             </div>
 
             {/* Grid */}
-            <div style={{ display: 'grid', gridTemplateRows: 'repeat(6, 1fr)', flex: 1, background: '#fff' }}>
+            <div style={{ display: 'grid', gridTemplateRows: 'repeat(6, 1fr)', flex: 1 }}>
                 {rows.map((row, rowIndex) => (
-                    <div key={rowIndex} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', minHeight: '120px' }}>
+                    <div
+                        key={rowIndex}
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(7, 1fr)',
+                            borderBottom: rowIndex < 5 ? '1px solid var(--cal-border-soft)' : 'none',
+                            minHeight: 110,
+                        }}
+                    >
                         {row.map((date, colIndex) => {
                             const isCurrentMonth = date.isSame(currentDate, 'month');
                             const isToday = date.isSame(dayjs(), 'day');
+                            const isWeekend = date.day() === 0 || date.day() === 6;
                             const dayEvents = getEventsForDay(date);
+                            const visible = dayEvents.slice(0, 3);
+                            const overflow = dayEvents.length - visible.length;
+
+                            const cellBg = isCurrentMonth
+                                ? (isWeekend ? 'var(--cal-surface-3)' : 'var(--cal-surface)')
+                                : 'var(--cal-surface-2)';
 
                             return (
                                 <div
                                     key={date.toString()}
                                     onClick={() => onDayClick(date)}
+                                    className="month-cell"
                                     style={{
-                                        borderRight: '1px solid #f0f0f0',
-                                        borderBottom: '1px solid #f0f0f0',
-                                        padding: '8px',
-                                        background: isCurrentMonth ? '#fff' : '#fafafa',
+                                        borderRight: colIndex < 6 ? '1px solid var(--cal-border-soft)' : 'none',
+                                        padding: '8px 8px 6px',
+                                        background: cellBg,
                                         cursor: 'pointer',
-                                        transition: 'background 0.2s'
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: 4,
+                                        position: 'relative',
+                                        transition: 'background 0.15s ease',
                                     }}
-                                    className="calendar-cell"
+                                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--cal-surface-hover)')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.background = cellBg)}
                                 >
-                                    <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '4px' }}>
-                                        <div style={{
-                                            width: '28px',
-                                            height: '28px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            borderRadius: '50%',
-                                            background: isToday ? '#1677ff' : 'transparent',
-                                            color: isToday ? '#fff' : (isCurrentMonth ? '#262626' : '#bfbfbf'),
-                                            fontSize: '14px',
-                                            fontWeight: isToday ? 600 : 400
-                                        }}>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+                                        <div
+                                            style={{
+                                                minWidth: 24,
+                                                height: 24,
+                                                padding: '0 7px',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                borderRadius: 999,
+                                                background: isToday ? 'var(--cal-brand)' : 'transparent',
+                                                color: isToday
+                                                    ? '#FFFFFF'
+                                                    : (isCurrentMonth ? 'var(--cal-text-strong)' : 'var(--cal-text-disabled)'),
+                                                fontSize: 12,
+                                                fontWeight: isToday ? 700 : 600,
+                                                boxShadow: isToday ? '0 2px 6px -1px rgba(79, 70, 229, 0.5)' : 'none',
+                                            }}
+                                        >
                                             {date.date()}
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'hidden' }}>
-                                        {getEventsForDay(date).map((e, idx) => {
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                        {visible.map((e, idx) => {
                                             const start = dayjs(e.startTime);
-                                            const occurrenceDate = date.hour(start.hour()).minute(start.minute()).second(start.second()).millisecond(start.millisecond());
+                                            const occurrenceDate = date
+                                                .hour(start.hour())
+                                                .minute(start.minute())
+                                                .second(start.second())
+                                                .millisecond(start.millisecond());
+                                            const ci = colorIndex(e);
 
                                             return (
                                                 <div
@@ -142,49 +172,68 @@ export default function MonthView({ currentDate, events, onDayClick, onEventClic
                                                         onEventClick(e, occurrenceDate);
                                                     }}
                                                     style={{
-                                                        background: '#e6f4ff',
-                                                        borderLeft: '3px solid #1677ff',
-                                                        borderRadius: '4px',
-                                                        padding: '2px 6px',
-                                                        marginBottom: '2px',
+                                                        background: `var(--cal-ev${ci}-bg)`,
+                                                        borderLeft: `3px solid var(--cal-ev${ci}-bar)`,
+                                                        borderRadius: 6,
+                                                        padding: '3px 7px',
                                                         cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 5,
+                                                        overflow: 'hidden',
+                                                        transition: 'transform 0.12s ease, box-shadow 0.12s ease',
+                                                    }}
+                                                    onMouseEnter={(ev) => {
+                                                        ev.currentTarget.style.transform = 'translateX(1px)';
+                                                        ev.currentTarget.style.boxShadow = 'var(--cal-event-shadow)';
+                                                    }}
+                                                    onMouseLeave={(ev) => {
+                                                        ev.currentTarget.style.transform = 'translateX(0)';
+                                                        ev.currentTarget.style.boxShadow = 'none';
                                                     }}
                                                 >
-                                                    <div
+                                                    {e.meetingLink && (
+                                                        <VideoCameraOutlined
+                                                            onClick={(ev) => {
+                                                                ev.stopPropagation();
+                                                                if (typeof e.meetingLink === "string") {
+                                                                    window.open(e.meetingLink, "_blank", "noopener,noreferrer");
+                                                                }
+                                                            }}
+                                                            style={{ fontSize: 10, color: `var(--cal-ev${ci}-bar)`, flexShrink: 0 }}
+                                                        />
+                                                    )}
+                                                    <span
                                                         style={{
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '4px',
+                                                            fontSize: 11,
+                                                            color: `var(--cal-ev${ci}-text)`,
+                                                            whiteSpace: 'nowrap',
                                                             overflow: 'hidden',
-                                                            width: '100%',
+                                                            textOverflow: 'ellipsis',
+                                                            fontWeight: 600,
                                                         }}
                                                     >
-                                                        {e.meetingLink && (
-                                                            <VideoCameraOutlined
-                                                                style={{
-                                                                    fontSize: '12px',
-                                                                    color: '#52c41a',
-                                                                    flexShrink: 0,
-                                                                    cursor: 'pointer',
-                                                                    transition: 'transform 0.2s',
-                                                                }}
-                                                                onClick={(ev) => {
-                                                                    ev.stopPropagation();
-                                                                    if (typeof e.meetingLink === "string") {
-                                                                        window.open(e.meetingLink, "_blank", "noopener,noreferrer");
-                                                                    }
-                                                                }}
-                                                                onMouseEnter={(ev) => (ev.currentTarget.style.transform = 'scale(1.2)')}
-                                                                onMouseLeave={(ev) => (ev.currentTarget.style.transform = 'scale(1)')}
-                                                            />
-                                                        )}
-                                                        <Text ellipsis style={{ fontSize: '11px', color: '#0958d9' }}>
-                                                            {formatTime(e.startTime)} {e.title}
-                                                        </Text>
-                                                    </div>
+                                                        <span style={{ opacity: 0.7, fontWeight: 500 }}>
+                                                            {formatTime(e.startTime)}
+                                                        </span>
+                                                        {' '}
+                                                        {e.title}
+                                                    </span>
                                                 </div>
                                             );
                                         })}
+                                        {overflow > 0 && (
+                                            <div
+                                                style={{
+                                                    fontSize: 11,
+                                                    color: 'var(--cal-text-muted)',
+                                                    fontWeight: 600,
+                                                    padding: '2px 7px',
+                                                }}
+                                            >
+                                                +{overflow} more
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );

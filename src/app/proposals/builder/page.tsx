@@ -15,14 +15,15 @@ import { useProposalStore, BlockType } from '@/store/proposalStore';
 import { BlockPalette } from '@/components/proposals/BlockPalette';
 import { BlockProperties } from '@/components/proposals/BlockProperties';
 import { EditorCanvas } from '@/components/proposals/EditorCanvas';
-import { Typography, Row, Col, Layout, Button, message, Drawer, Space, Dropdown, Segmented, Progress } from 'antd';
+import { Typography, Layout, Button, message, Drawer, Space, Dropdown, Segmented, Progress } from 'antd';
 import type { MenuProps } from 'antd';
-import { SaveOutlined, EyeOutlined, DownloadOutlined, FilePdfOutlined, FileWordOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SnippetsOutlined } from '@ant-design/icons';
+import { SaveOutlined, EyeOutlined, DownloadOutlined, FilePdfOutlined, FileWordOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SnippetsOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
 import { useTheme } from '@/context/ThemeContext';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Wand2 } from 'lucide-react';
+import { EndToEndZaiModal } from '@/components/proposals/EndToEndZaiModal';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -41,7 +42,11 @@ function BuilderContent() {
   const [isPropertiesVisible, setIsPropertiesVisible] = useState(true);
   const [palettePosition, setPalettePosition] = useState<'top' | 'left' | 'right'>('top');
   const [paletteWidth, setPaletteWidth] = useState(240);
-  const [propertiesWidth, setPropertiesWidth] = useState(440);
+  const [propertiesWidth, setPropertiesWidth] = useState(() => {
+    if (typeof window === 'undefined') return 520;
+    // Default split: canvas 65% / properties 35%
+    return Math.max(320, Math.min(800, Math.round(window.innerWidth * 0.35)));
+  });
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const resizingPane = useRef<'left' | 'right' | 'palette-right' | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -49,6 +54,7 @@ function BuilderContent() {
   const [genStep, setGenStep] = useState('');
   const [showGenOverlay, setShowGenOverlay] = useState(false);
   const [pendingLeadId, setPendingLeadId] = useState<string | null>(null);
+  const [endToEndOpen, setEndToEndOpen] = useState(false);
 
   const isInitialized = useRef(false);
 
@@ -172,6 +178,8 @@ function BuilderContent() {
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     `;
     document.head.appendChild(style);
+    // Apply default 65/35 split on mount in case SSR fallback was used
+    setPropertiesWidth(Math.max(320, Math.min(800, Math.round(window.innerWidth * 0.35))));
     return () => { document.head.removeChild(style); };
   }, []);
 
@@ -251,9 +259,30 @@ function BuilderContent() {
   }, [blocks]);
 
   const prevBlocksLength = useRef(blocks.length);
+  const initialLoadCompletedAt = useRef<number | null>(null);
+  // Mark initial load complete shortly after mount so the bulk-add of default blocks
+  // doesn't trigger the auto-scroll-to-bottom behavior.
   useEffect(() => {
-    if (blocks.length > prevBlocksLength.current && blocks.length > 0) {
-      editorScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    const t = setTimeout(() => {
+      initialLoadCompletedAt.current = Date.now();
+      editorScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+      // Default-select the first (Cover) block so the right panel highlights it
+      const firstBlock = useProposalStore.getState().blocks[0];
+      if (firstBlock && !useProposalStore.getState().selectedBlockId) {
+        setSelectedBlockId(firstBlock.id);
+      }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [setSelectedBlockId]);
+
+  useEffect(() => {
+    const initialDone = initialLoadCompletedAt.current !== null;
+    const isUserAdd = initialDone && blocks.length > prevBlocksLength.current && blocks.length > 0;
+    if (isUserAdd) {
+      editorScrollRef.current?.scrollTo({
+        top: editorScrollRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
     }
     prevBlocksLength.current = blocks.length;
   }, [blocks]);
@@ -280,6 +309,8 @@ function BuilderContent() {
     if (!scrollContainer) return;
 
     const handleScroll = () => {
+      // Skip during initial load so the bulk-mount of default blocks doesn't auto-select the bottom one
+      if (initialLoadCompletedAt.current === null) return;
       const canvas = document.getElementById('proposal-builder-canvas');
       if (!canvas) return;
 
@@ -453,59 +484,71 @@ function BuilderContent() {
   ];
 
   return (
-    <div style={{ height: 'calc(100vh - 52px)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', paddingTop: 1 }}>
       {messageHolder}
-      <Header style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '52px', lineHeight: 'normal' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <Header className="pb-header" style={{ lineHeight: 'normal' }}>
+        <div className="pb-header__left">
           <Button
             type="text"
-            icon={isPaletteVisible ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
-            onClick={() => setIsPaletteVisible(!isPaletteVisible)}
-            style={{ fontSize: '18px', padding: '4px 8px', color: '#64748b' }}
-          />
+            className="pb-back-btn"
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.push('/proposals')}
+          >
+            
+          </Button>
+          <span className="pb-header__sep" />
+          
           <Space size={12} align="center">
-            <div style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              background: 'rgba(59, 130, 246, 0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--premium-blue)'
-            }}>
+            <div className="pb-header__brand">
               <SnippetsOutlined style={{ fontSize: 18 }} />
             </div>
-            <div>
-              <Title level={4} className="premium-title" style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)', fontSize: 18, letterSpacing: "-0.01em" }}>Proposal Builder</Title>
-              <Text type="secondary" className="premium-text-sec" style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Draft and design your perfect proposal</Text>
+            <div className="pb-header__title-wrap">
+              <Title level={4} className="pb-header__title premium-title">Proposal Builder</Title>
+              <Text className="pb-header__sub premium-text-sec">Draft and design your perfect proposal</Text>
             </div>
+            <span className="pb-status-pill">
+              <span className="pb-status-pill__dot" />
+              Auto-saved
+            </span>
           </Space>
         </div>
-        <Space size="middle">
+        <Space size={10} className="pb-header__actions">
           {isPaletteVisible && (
             <Segmented
-              options={[{ label: 'Top', value: 'top' }, { label: 'Left', value: 'left' }, { label: 'Right', value: 'right' }]}
+              className="pb-seg"
+              options={[{ label: 'Top', value: 'top' }, { label: 'Left', value: 'left' }]}
               value={palettePosition}
               onChange={(val) => setPalettePosition(val as 'top' | 'left' | 'right')}
             />
           )}
-          <Button icon={<EyeOutlined />} onClick={() => setPreviewOpen(true)} size="large" style={{ borderRadius: 8 }}>
+          <Button
+            className="pb-zai-cta"
+            onClick={() => setEndToEndOpen(true)}
+            icon={<Wand2 size={14} />}
+          >
+            Create with Zai
+          </Button>
+          <Button className="pb-action-btn" icon={<EyeOutlined />} onClick={() => setPreviewOpen(true)}>
             Live Preview
           </Button>
           <Dropdown menu={{ items: exportMenu }} placement="bottomRight">
-            <Button size="large" icon={<DownloadOutlined />} style={{ borderRadius: 8 }}>
+            <Button className="pb-action-btn" icon={<DownloadOutlined />}>
               Export
             </Button>
           </Dropdown>
-          <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} size="large" style={{ borderRadius: 8 }}>
+          <Button
+            className="pb-action-btn pb-action-btn--primary"
+            type="primary"
+            icon={<SaveOutlined />}
+            onClick={handleSave}
+          >
             {proposalId ? 'Save Changes' : 'Save'}
           </Button>
           <Button
             type="text"
+            className="pb-iconbtn"
             icon={isPropertiesVisible ? <MenuFoldOutlined style={{ transform: 'rotate(180deg)' }} /> : <MenuUnfoldOutlined style={{ transform: 'rotate(180deg)' }} />}
             onClick={() => setIsPropertiesVisible(!isPropertiesVisible)}
-            style={{ fontSize: '18px', padding: '4px 8px', color: '#64748b' }}
           />
         </Space>
       </Header>
@@ -614,24 +657,54 @@ function BuilderContent() {
         </DndContext>
       </Content>
 
+      <EndToEndZaiModal
+        visible={endToEndOpen}
+        onClose={() => setEndToEndOpen(false)}
+      />
+
       <Drawer
-        title={<span style={{ color: 'var(--text-slate-900)' }}>Live Preview</span>}
+        className="pb-preview-drawer"
+        rootClassName="pb-preview-drawer-root"
+        title={
+          <div className="pb-preview-title">
+            <div className="pb-preview-title__icon">
+              <EyeOutlined />
+            </div>
+            <div className="pb-preview-title__text">
+              <span className="pb-preview-title__name">Live Preview</span>
+              <span className="pb-preview-title__sub">{blocks.length} {blocks.length === 1 ? 'section' : 'sections'} · synced in real-time</span>
+            </div>
+            <span className="pb-preview-title__pill">
+              <Sparkles size={11} />
+              CLIENT VIEW
+            </span>
+          </div>
+        }
         placement="right"
-        width={850}
+        width={Math.min(960, typeof window !== 'undefined' ? window.innerWidth - 80 : 960)}
         onClose={() => setPreviewOpen(false)}
         open={previewOpen}
+        closeIcon={<span className="pb-preview-close" aria-label="Close">×</span>}
+        extra={
+          <Space size={8}>
+            <Dropdown menu={{ items: exportMenu }} placement="bottomRight">
+              <Button icon={<DownloadOutlined />} className="pb-preview-extra-btn">Export</Button>
+            </Dropdown>
+          </Space>
+        }
         styles={{
-          body: { padding: 0, background: 'var(--bg-pure-white)' },
-          header: { background: 'var(--bg-pure-white)', borderBottom: '1px solid var(--border-color)' },
-          mask: { backdropFilter: 'blur(4px)' }
+          mask: { backdropFilter: 'blur(8px)', background: 'rgba(8, 12, 24, 0.45)' },
+          wrapper: { boxShadow: '-30px 0 80px rgba(8, 12, 24, 0.25)' },
         }}
       >
-        <iframe
-          ref={iframeRef}
-          src={`/proposals/preview?theme=${theme}`}
-          style={{ width: '100%', height: '100%', border: 'none' }}
-          title="Proposal Preview Slider"
-        />
+        <div className="pb-preview-frame">
+          <iframe
+            ref={iframeRef}
+            src={`/proposals/preview?theme=${theme}`}
+            className="pb-preview-iframe"
+            title="Proposal Preview Slider"
+          />
+        </div>
       </Drawer>
 
       {/* AI GENERATION OVERLAY */}

@@ -27,6 +27,7 @@ import {
   Divider,
   Empty,
   Drawer,
+  Switch,
 } from 'antd';
 import {
   PlusOutlined,
@@ -126,7 +127,11 @@ export default function AccountsPage() {
   const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>(undefined);
   const [memberFilter, setMemberFilter] = useState<string | undefined>(undefined);
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+  const [thisMonthOnly, setThisMonthOnly] = useState<boolean>(true);
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>([
+    dayjs().startOf('month'),
+    dayjs().endOf('month'),
+  ]);
 
   // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -356,6 +361,17 @@ export default function AccountsPage() {
   // Handle date range change
   const handleDateRangeChange = (dates: any) => {
     setDateRange(dates);
+    setThisMonthOnly(false);
+  };
+
+  // Handle "This Month" toggle
+  const handleThisMonthToggle = (checked: boolean) => {
+    setThisMonthOnly(checked);
+    if (checked) {
+      setDateRange([dayjs().startOf('month'), dayjs().endOf('month')]);
+    } else {
+      setDateRange(null);
+    }
   };
 
   // Table columns
@@ -451,7 +467,7 @@ export default function AccountsPage() {
       title: 'Category',
       dataIndex: 'category',
       key: 'category',
-      width: 120,
+      width: 180,
       render: (category: string) => (
         <Tag
           color={getCategoryColor(category)}
@@ -670,6 +686,30 @@ export default function AccountsPage() {
                 className="bg-white rounded-lg border-slate-200 hover:border-blue-400 transition-colors h-[34px] px-3 w-full border text-xs"
                 allowClear
               />
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                height: 34,
+                padding: '0 12px',
+                background: 'var(--bg-pure-white)',
+                border: '1px solid var(--border-slate-200)',
+                borderRadius: 8,
+                fontSize: 12,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Switch
+                size="small"
+                checked={thisMonthOnly}
+                onChange={handleThisMonthToggle}
+              />
+              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
+                This Month
+              </span>
             </div>
 
             <div style={{ width: 120 }}>

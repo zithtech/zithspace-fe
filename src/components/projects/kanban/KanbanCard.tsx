@@ -1,26 +1,74 @@
-
 import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card, Tag, Typography, Avatar, Space, Select, Input, Dropdown, MenuProps, Button, Divider } from 'antd';
+import {
+  Avatar,
+  Select,
+  Input,
+  Dropdown,
+  MenuProps,
+  Button,
+  Tooltip,
+} from 'antd';
 import { Ticket } from '@/services/ticketService';
-import { getPriorityColor, getTypeColor, PRIORITY_OPTIONS, TYPE_OPTIONS } from '@/utils/ticketUtils';
-import { MoreOutlined, RocketOutlined, CloseCircleOutlined } from '@ant-design/icons';
-
-const { Text } = Typography;
-const { TextArea } = Input;
+import { PRIORITY_OPTIONS, TYPE_OPTIONS } from '@/utils/ticketUtils';
+import {
+  MoreOutlined,
+  RocketOutlined,
+  CloseCircleOutlined,
+  BugOutlined,
+  CheckSquareOutlined,
+  ThunderboltOutlined,
+  RetweetOutlined,
+  MessageOutlined,
+  PaperClipOutlined,
+  FlagFilled,
+  UserAddOutlined,
+} from '@ant-design/icons';
 
 interface KanbanCardProps {
   ticket: Ticket;
   projects?: Array<{ value: string; label: string; code: string }>;
   members?: Array<{ value: string; label: string; position: string; avatarUrl?: string | null }>;
   onUpdate: (ticketId: string, updates: Partial<Ticket> & { assigneeId?: string }) => void;
-  activeSprint?: any; // Replace with ReleasePlan type if available, using any to avoid import cycles for now or just Ticket interactions
+  activeSprint?: any;
   kanbanScope?: 'active' | 'backlog';
   onSprintAssignment?: (ticketId: string, action: 'add' | 'remove') => void;
+  onClick?: () => void;
+  isOverlay?: boolean;
 }
 
-export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, members, onUpdate, activeSprint, kanbanScope, onSprintAssignment }) => {
+const PRIORITY_COLOR_VAR: Record<string, string> = {
+  P1: 'var(--kb-pri-p1)',
+  P2: 'var(--kb-pri-p2)',
+  P3: 'var(--kb-pri-p3)',
+};
+
+const PRIORITY_LABEL: Record<string, string> = {
+  P1: 'High',
+  P2: 'Medium',
+  P3: 'Low',
+};
+
+const getTypeMeta = (type: string) => {
+  if (!type) return { color: 'var(--kb-type-task)', icon: <CheckSquareOutlined /> };
+  const t = type.toLowerCase();
+  if (t.includes('bug')) return { color: 'var(--kb-type-bug)', icon: <BugOutlined /> };
+  if (t.includes('feat')) return { color: 'var(--kb-type-feat)', icon: <ThunderboltOutlined /> };
+  if (t.includes('overwrite')) return { color: 'var(--kb-type-overwrite)', icon: <RetweetOutlined /> };
+  return { color: 'var(--kb-type-task)', icon: <CheckSquareOutlined /> };
+};
+
+export const KanbanCard: React.FC<KanbanCardProps> = ({
+  ticket,
+  members,
+  onUpdate,
+  activeSprint,
+  kanbanScope,
+  onSprintAssignment,
+  onClick,
+  isOverlay = false,
+}) => {
   const {
     attributes,
     listeners,
@@ -28,33 +76,21 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: ticket.id });
+  } = useSortable({ id: ticket.id, disabled: isOverlay });
 
-  const shadowStyle = isDragging
-    ? { boxShadow: 'var(--premium-shadow-lg)' }
-    : { boxShadow: 'var(--premium-shadow)' };
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.6 : 1,
-    cursor: 'grab',
-    marginBottom: 12,
-    backgroundColor: 'var(--bg-pure-white)',
-    borderRadius: 12,
-    ...shadowStyle,
-  };
-
-  // Editing logic
-  const [editingField, setEditingField] = useState<"title" | "priority" | "type" | "storyPoint" | "assignee" | null>(null);
+  const [editingField, setEditingField] = useState<
+    'title' | 'priority' | 'type' | 'storyPoint' | 'assignee' | null
+  >(null);
   const [activeValue, setActiveValue] = useState<any>(null);
 
-  // Stop drag propagation
   const stopPropagation = (e: React.PointerEvent | React.MouseEvent | React.UIEvent) => {
     e.stopPropagation();
   };
 
-  const startEditing = (field: "title" | "priority" | "type" | "storyPoint" | "assignee", initialValue: any) => {
+  const startEditing = (
+    field: 'title' | 'priority' | 'type' | 'storyPoint' | 'assignee',
+    initialValue: any
+  ) => {
     setActiveValue(initialValue);
     setEditingField(field);
   };
@@ -71,58 +107,126 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
     cleanup();
   };
 
+  const priorityColor = PRIORITY_COLOR_VAR[ticket.priority] || 'var(--kb-pri-default)';
+  const typeMeta = getTypeMeta(ticket.type);
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    // expose CSS variables so card stripes/chips pick up the right hue
+    ['--kb-pri-color' as any]: priorityColor,
+    ['--kb-type-color' as any]: typeMeta.color,
+  };
+
+  const commentCount = ticket.comments?.length || 0;
+  const attachmentCount = ticket.attachments?.length || 0;
+  const subtaskCount = ticket.subTasks?.length || 0;
+
+  const getMenuItems = (): MenuProps['items'] => {
+    const items: MenuProps['items'] = [];
+    if (kanbanScope === 'backlog' && activeSprint && onSprintAssignment) {
+      items.push({
+        key: 'addToSprint',
+        label: 'Add to Active Sprint',
+        icon: <RocketOutlined />,
+        onClick: () => onSprintAssignment(ticket.id, 'add'),
+      });
+    }
+    if (kanbanScope === 'active' && onSprintAssignment) {
+      items.push({
+        key: 'removeFromSprint',
+        label: 'Remove from Sprint',
+        icon: <CloseCircleOutlined />,
+        danger: true,
+        onClick: () => onSprintAssignment(ticket.id, 'remove'),
+      });
+    }
+    return items;
+  };
+
+  const menuItems = getMenuItems();
+  const className = [
+    'kb-card',
+    isDragging ? 'kb-card-dragging' : '',
+    isOverlay ? 'kb-card-overlay' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   const renderTitle = () => {
     if (editingField === 'title') {
       return (
-        <TextArea
-          value={activeValue}
-          autoSize={{ minRows: 2, maxRows: 4 }}
-          onChange={(e) => setActiveValue(e.target.value)}
-          onFocus={(e) => {
-            const val = e.currentTarget.value;
-            e.currentTarget.setSelectionRange(val.length, val.length);
-          }}
-          onBlur={() => handleSave(activeValue)}
-          onKeyDown={(e) => {
-            if (e.key === ' ') {
-              e.stopPropagation();
-            }
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSave(activeValue);
-            }
-            if (e.key === 'Escape') cleanup();
-          }}
-          autoFocus
-          onPointerDown={stopPropagation}
-          onMouseDown={stopPropagation}
-        />
+        <div className="kb-card-title-edit" onPointerDown={stopPropagation} onMouseDown={stopPropagation}>
+          <Input.TextArea
+            value={activeValue}
+            autoSize={{ minRows: 2, maxRows: 4 }}
+            onChange={(e) => setActiveValue(e.target.value)}
+            onFocus={(e) => {
+              const val = e.currentTarget.value;
+              e.currentTarget.setSelectionRange(val.length, val.length);
+            }}
+            onBlur={() => handleSave(activeValue)}
+            onKeyDown={(e) => {
+              if (e.key === ' ') e.stopPropagation();
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSave(activeValue);
+              }
+              if (e.key === 'Escape') cleanup();
+            }}
+            autoFocus
+          />
+        </div>
       );
     }
     return (
-      <div
+      <h4
+        className="kb-card-title"
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
-        onClick={() => startEditing('title', ticket.title)}
-        style={{
-          cursor: 'text',
-          marginBottom: 10,
-          minHeight: 40
+        onClick={(e) => {
+          e.stopPropagation();
+          startEditing('title', ticket.title);
         }}
+        title={ticket.title}
       >
-        <Text style={{
-          fontSize: 13,
-          fontWeight: 500,
-          color: '#262626',
-          lineHeight: '1.5',
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden'
-        }}>
-          {ticket.title}
-        </Text>
-      </div>
+        {ticket.title}
+      </h4>
+    );
+  };
+
+  const renderType = () => {
+    if (editingField === 'type') {
+      return (
+        <div onPointerDown={stopPropagation}>
+          <Select
+            autoFocus
+            open
+            size="small"
+            style={{ width: 100 }}
+            value={activeValue}
+            onChange={(val) => handleSave(val)}
+            onBlur={cleanup}
+            options={TYPE_OPTIONS}
+          />
+        </div>
+      );
+    }
+    return (
+      <Tooltip title={`Type: ${ticket.type}`}>
+        <span
+          className="kb-chip kb-chip-type"
+          onPointerDown={stopPropagation}
+          onMouseDown={stopPropagation}
+          onClick={(e) => {
+            e.stopPropagation();
+            startEditing('type', ticket.type);
+          }}
+        >
+          {typeMeta.icon}
+          {ticket.type}
+        </span>
+      </Tooltip>
     );
   };
 
@@ -134,12 +238,9 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
             autoFocus
             open
             size="small"
-            style={{ width: 80 }}
+            style={{ width: 110 }}
             value={activeValue}
-            onChange={(val) => {
-              // Select commits immediately
-              handleSave(val);
-            }}
+            onChange={(val) => handleSave(val)}
             onBlur={cleanup}
             options={PRIORITY_OPTIONS}
           />
@@ -147,22 +248,20 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
       );
     }
     return (
-      <div onPointerDown={stopPropagation} onMouseDown={stopPropagation} onClick={() => startEditing('priority', ticket.priority)}>
-        <Tag
-          bordered={false}
-          color={getPriorityColor(ticket.priority)}
-          style={{
-            margin: 0,
-            fontSize: 10,
-            fontWeight: 700,
-            borderRadius: 4,
-            padding: '0 6px',
-            cursor: 'pointer'
+      <Tooltip title={`Priority: ${PRIORITY_LABEL[ticket.priority] || ticket.priority || '—'}`}>
+        <span
+          className="kb-chip kb-chip-pri"
+          onPointerDown={stopPropagation}
+          onMouseDown={stopPropagation}
+          onClick={(e) => {
+            e.stopPropagation();
+            startEditing('priority', ticket.priority);
           }}
         >
-          {ticket.priority}
-        </Tag>
-      </div>
+          <FlagFilled style={{ fontSize: 9 }} />
+          {ticket.priority || '—'}
+        </span>
+      </Tooltip>
     );
   };
 
@@ -173,7 +272,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
           <Input
             type="number"
             size="small"
-            style={{ width: 60 }}
+            style={{ width: 70 }}
             autoFocus
             value={activeValue}
             onChange={(e) => setActiveValue(e.target.value)}
@@ -192,23 +291,21 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
         </div>
       );
     }
+    const hasSp = ticket.storyPoint !== undefined && ticket.storyPoint !== null;
     return (
-      <div onPointerDown={stopPropagation} onMouseDown={stopPropagation} onClick={() => startEditing('storyPoint', ticket.storyPoint)}>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          backgroundColor: '#f5f5f5',
-          borderRadius: 4,
-          padding: '0 6px',
-          height: 20,
-          fontSize: 10,
-          fontWeight: 600,
-          color: '#595959',
-          cursor: 'pointer'
-        }}>
-          {ticket.storyPoint !== undefined && ticket.storyPoint !== null ? `${ticket.storyPoint} SP` : '- SP'}
-        </div>
-      </div>
+      <Tooltip title="Story points">
+        <span
+          className="kb-chip kb-chip-sp"
+          onPointerDown={stopPropagation}
+          onMouseDown={stopPropagation}
+          onClick={(e) => {
+            e.stopPropagation();
+            startEditing('storyPoint', ticket.storyPoint);
+          }}
+        >
+          {hasSp ? `${ticket.storyPoint} SP` : '— SP'}
+        </span>
+      </Tooltip>
     );
   };
 
@@ -221,159 +318,126 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
             autoFocus
             defaultOpen
             size="small"
-            style={{ width: 120 }}
+            style={{ width: 160 }}
             placeholder="Assign"
             filterOption={(input, option) =>
-              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
             }
             value={activeValue}
             onChange={(val) => handleSave(val)}
             onBlur={cleanup}
-            options={members?.map(m => ({ label: m.label, value: m.value }))}
+            options={members?.map((m) => ({ label: m.label, value: m.value }))}
           />
         </div>
       );
     }
-    return (
-      <div
-        style={{ cursor: 'pointer' }}
-        onClick={() => startEditing('assignee', ticket.assignee?.id)}
-        onPointerDown={stopPropagation}
-        onMouseDown={stopPropagation}
-      >
-        {ticket.assignee ? (
-          <Avatar
-            size="small"
-            style={{ backgroundColor: '#1677ff', fontSize: 12 }}
-            src={ticket.assignee.avatarUrl}
+    if (ticket.assignee) {
+      return (
+        <Tooltip title={`Assigned to ${ticket.assignee.name}`}>
+          <span
+            className="kb-assignee"
+            onPointerDown={stopPropagation}
+            onMouseDown={stopPropagation}
+            onClick={(e) => {
+              e.stopPropagation();
+              startEditing('assignee', ticket.assignee?.id);
+            }}
           >
-            {!ticket.assignee.avatarUrl && ticket.assignee.name?.[0]?.toUpperCase()}
-          </Avatar>
-        ) : (
-          <Avatar size="small" style={{ backgroundColor: '#f0f0f0', fontSize: 12, border: '1px dashed #d9d9d9' }} >+</Avatar>
-        )}
-      </div>
+            <Avatar
+              size={24}
+              style={{ backgroundColor: '#1677ff', fontSize: 11, fontWeight: 600 }}
+              src={ticket.assignee.avatarUrl || undefined}
+            >
+              {!ticket.assignee.avatarUrl && ticket.assignee.name?.[0]?.toUpperCase()}
+            </Avatar>
+          </span>
+        </Tooltip>
+      );
+    }
+    return (
+      <Tooltip title="Assign someone">
+        <span
+          className="kb-assignee-empty"
+          onPointerDown={stopPropagation}
+          onMouseDown={stopPropagation}
+          onClick={(e) => {
+            e.stopPropagation();
+            startEditing('assignee', undefined);
+          }}
+        >
+          <UserAddOutlined />
+        </span>
+      </Tooltip>
     );
   };
 
-  const getMenuItems = (): MenuProps['items'] => {
-    const items: MenuProps['items'] = [];
-    if (kanbanScope === 'backlog' && activeSprint && onSprintAssignment) {
-      items.push({
-        key: 'addToSprint',
-        label: 'Add to Active Sprint',
-        icon: <RocketOutlined />,
-        onClick: () => onSprintAssignment(ticket.id, 'add')
-      });
-    }
-    if (kanbanScope === 'active' && onSprintAssignment) {
-      items.push({
-        key: 'removeFromSprint',
-        label: 'Remove from Sprint',
-        icon: <CloseCircleOutlined />,
-        danger: true,
-        onClick: () => onSprintAssignment(ticket.id, 'remove')
-      });
-    }
-    return items;
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (isOverlay || editingField) return;
+    if (e.defaultPrevented) return;
+    onClick?.();
   };
 
-  const menuItems = getMenuItems();
-
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...(editingField ? {} : listeners)}>
-      <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
-        <Card
-          size="small"
-          hoverable
-          bodyStyle={{ padding: '12px' }}
-          style={{
-            borderRadius: 12,
-            cursor: editingField ? 'default' : 'grab',
-            border: '1px solid #f0f0f0',
-            transition: 'all 0.2s ease',
-          }}
-          className="kanban-card-premium"
-        >
-          <Space direction="vertical" size={2} style={{ width: '100%' }}>
-            {/* Header: ID and Type */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <Text type="secondary" style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.2px' }}>{ticket.ticketNumber}</Text>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={className}
+      onClick={handleCardClick}
+      {...attributes}
+      {...(editingField || isOverlay ? {} : listeners)}
+    >
+      <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']} disabled={!menuItems?.length}>
+        <div>
+          <div className="kb-card-head">
+            <span className="kb-card-id">{ticket.ticketNumber}</span>
+            <div className="kb-card-actions" onPointerDown={stopPropagation} onMouseDown={stopPropagation}>
+              {menuItems && menuItems.length > 0 && (
+                <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
+                  <Button type="text" size="small" icon={<MoreOutlined />} onClick={(e) => e.stopPropagation()} />
+                </Dropdown>
+              )}
+            </div>
+          </div>
 
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                {/* Type Edit */}
-                {editingField === 'type' ? (
-                  <div onPointerDown={stopPropagation}>
-                    <Select
-                      autoFocus
-                      open
-                      size="small"
-                      style={{ width: 70 }}
-                      value={activeValue}
-                      onChange={(val) => handleSave(val)}
-                      onBlur={cleanup}
-                      options={TYPE_OPTIONS}
-                    />
-                  </div>
-                ) : (
-                  <div onPointerDown={stopPropagation} onMouseDown={stopPropagation} onClick={() => startEditing('type', ticket.type)}>
-                    <Tag
-                      bordered={false}
-                      color={getTypeColor(ticket.type)}
-                      style={{
-                        margin: 0,
-                        fontSize: 9,
-                        fontWeight: 700,
-                        lineHeight: '16px',
-                        borderRadius: 4,
-                        textTransform: 'uppercase',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {ticket.type}
-                    </Tag>
-                  </div>
-                )}
+          {renderTitle()}
 
-                {/* Extra Actions Trigger */}
-                {menuItems && menuItems.length > 0 && (
-                  <div onPointerDown={stopPropagation} onClick={(e) => e.stopPropagation()}>
-                    <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<MoreOutlined style={{ color: 'var(--text-slate-400)', fontSize: 16 }} />}
-                        style={{ width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      />
-                    </Dropdown>
-                  </div>
-                )}
-              </div>
+          <div className="kb-card-meta">
+            {renderType()}
+            {renderPriority()}
+            {renderStoryPoints()}
+          </div>
+
+          <div className="kb-card-foot">
+            <div className="kb-card-foot-left">
+              {commentCount > 0 && (
+                <Tooltip title={`${commentCount} comment${commentCount > 1 ? 's' : ''}`}>
+                  <span className="kb-foot-stat">
+                    <MessageOutlined />
+                    {commentCount}
+                  </span>
+                </Tooltip>
+              )}
+              {attachmentCount > 0 && (
+                <Tooltip title={`${attachmentCount} attachment${attachmentCount > 1 ? 's' : ''}`}>
+                  <span className="kb-foot-stat">
+                    <PaperClipOutlined />
+                    {attachmentCount}
+                  </span>
+                </Tooltip>
+              )}
+              {subtaskCount > 0 && (
+                <Tooltip title={`${subtaskCount} subtask${subtaskCount > 1 ? 's' : ''}`}>
+                  <span className="kb-foot-stat">
+                    <CheckSquareOutlined />
+                    {subtaskCount}
+                  </span>
+                </Tooltip>
+              )}
             </div>
 
-            {/* Title Edit */}
-            {renderTitle()}
-
-            <Divider style={{ margin: '8px 0', opacity: 0.6 }} />
-
-            {/* Footer: Priority, SP, Assignee */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Space size={6}>
-                {renderPriority()}
-                {renderStoryPoints()}
-              </Space>
-
-              <div style={{
-                backgroundColor: '#f9f9f9',
-                padding: '2px',
-                borderRadius: '50%',
-                border: '1px solid #f0f0f0'
-              }}>
-                {renderAssignee()}
-              </div>
-            </div>
-          </Space>
-        </Card>
+            {renderAssignee()}
+          </div>
+        </div>
       </Dropdown>
     </div>
   );

@@ -1815,6 +1815,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               onCompleteSprint={handleCompleteSprint}
               filters={filters}
               onFilterChange={handleFilterChange}
+              onTicketClick={setSelectedTicketId}
             />
           ) : (
             <Card className="saas-card"><Empty description="No tickets found" /></Card>

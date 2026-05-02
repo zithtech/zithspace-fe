@@ -1,8 +1,20 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Popover, Button, Input, Select, Switch, Form, Spin, App } from "antd";
-import { PlayCircleFilled, PauseCircleFilled, HistoryOutlined } from "@ant-design/icons";
+import { Popover, Button, Input, Select, Form, Spin, App } from "antd";
+import {
+  PlayCircleFilled,
+  PauseCircleFilled,
+  HistoryOutlined,
+} from "@ant-design/icons";
+import {
+  Briefcase,
+  ListChecks,
+  FileText,
+  Square,
+  ArrowUpRight,
+  Timer,
+} from "lucide-react";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import { ProjectService } from "@/services/projectService";
 import TicketService from "@/services/ticketService";
@@ -13,7 +25,12 @@ interface TimeTrackerPopoverProps {
   showContentOnly?: boolean;
 }
 
-export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuItem, showContentOnly }) => {
+type TimerState = "running" | "paused" | "idle";
+
+export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
+  isMenuItem,
+  showContentOnly,
+}) => {
   const { notification } = App.useApp();
   const {
     activeEntry,
@@ -22,11 +39,10 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
     isPopoverOpen,
     setPopoverOpen,
     fetchActiveTimer,
-    startTimer,
     startMultipleTimers,
     pauseTimer,
     resumeTimer,
-    stopTimer
+    stopTimer,
   } = useTimeTrackerStore();
 
   const [form] = Form.useForm();
@@ -40,18 +56,23 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
     loadProjects();
   }, []);
 
-  // Pre-fill form when there are active entries
   useEffect(() => {
-    const runningOrPaused = activeEntries.filter(e => e.status === 'RUNNING' || e.status === 'PAUSED');
+    const runningOrPaused = activeEntries.filter(
+      (e) => e.status === "RUNNING" || e.status === "PAUSED"
+    );
     if (runningOrPaused.length > 0) {
-      const pIds = Array.from(new Set(runningOrPaused.map(e => e.projectId).filter(Boolean))) as string[];
-      const tIds = Array.from(new Set(runningOrPaused.map(e => e.ticketId).filter(Boolean))) as string[];
+      const pIds = Array.from(
+        new Set(runningOrPaused.map((e) => e.projectId).filter(Boolean))
+      ) as string[];
+      const tIds = Array.from(
+        new Set(runningOrPaused.map((e) => e.ticketId).filter(Boolean))
+      ) as string[];
 
       form.setFieldsValue({
         projectId: pIds,
         ticketId: tIds,
-        description: runningOrPaused[0].description, // Use the most recent description
-        billable: runningOrPaused.some(e => e.billable),
+        description: runningOrPaused[0].description,
+        billable: runningOrPaused.some((e) => e.billable),
         billingRate: runningOrPaused[0].billingRate,
       });
       if (pIds.length > 0) {
@@ -62,22 +83,29 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
     }
   }, [activeEntries.length]);
 
-  // Elapsed time ticker
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
     if (activeEntry) {
       const baseDuration = activeEntry.duration || 0;
 
-      if (activeEntry.status === 'RUNNING') {
-        const lastLog = activeEntry.logs?.find(l => l.action === 'STARTED' || l.action === 'RESUMED');
-        const lastActiveTime = lastLog ? new Date(lastLog.createdAt).getTime() : new Date(activeEntry.startTime).getTime();
+      if (activeEntry.status === "RUNNING") {
+        const lastLog = activeEntry.logs?.find(
+          (l) => l.action === "STARTED" || l.action === "RESUMED"
+        );
+        const lastActiveTime = lastLog
+          ? new Date(lastLog.createdAt).getTime()
+          : new Date(activeEntry.startTime).getTime();
 
-        const updateTime = () => setElapsedTime(baseDuration + Math.floor((new Date().getTime() - lastActiveTime) / 1000));
+        const updateTime = () =>
+          setElapsedTime(
+            baseDuration +
+              Math.floor((new Date().getTime() - lastActiveTime) / 1000)
+          );
 
         updateTime();
         interval = setInterval(updateTime, 1000);
-      } else if (activeEntry.status === 'PAUSED') {
+      } else if (activeEntry.status === "PAUSED") {
         setElapsedTime(baseDuration);
       }
     } else {
@@ -91,9 +119,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
     try {
       const res = await ProjectService.getUserProjects();
       setProjects(res || []);
-    } catch (err) {
-      // omit Error log to stay clean
-    }
+    } catch (err) {}
   };
 
   const loadTickets = async (projectIds: string[]) => {
@@ -102,12 +128,10 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
       return;
     }
     try {
-      // Use individual try-catches to ensure one failing project doesn't block others
       const ticketPromises = projectIds.map(async (pid) => {
         try {
-          // Only fetch tickets assigned to the current user for this project
           const projectTickets = await TicketService.getMyTicketsByProject(pid);
-          return (projectTickets || []).map(t => ({ ...t, projectId: pid }));
+          return (projectTickets || []).map((t) => ({ ...t, projectId: pid }));
         } catch (err) {
           console.error(`Failed to load tickets for project ${pid}:`, err);
           return [];
@@ -115,9 +139,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
       });
 
       const allTicketsResults = await Promise.all(ticketPromises);
-      const mergedTickets = allTicketsResults.flat();
-
-      setTickets(mergedTickets);
+      setTickets(allTicketsResults.flat());
     } catch (err) {
       console.error("General error in loadTickets:", err);
       setTickets([]);
@@ -133,29 +155,35 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
   const handleStart = async (values: any) => {
     try {
       const entriesToCreate = values.ticketId.map((tId: string) => {
-        const ticket = tickets.find(t => t.id === tId);
-        // Fallback to searching in all visible ticket options if needed
-        const pId = ticket?.projectId || (values.projectId.length === 1 ? values.projectId[0] : undefined);
+        const ticket = tickets.find((t) => t.id === tId);
+        const pId =
+          ticket?.projectId ||
+          (values.projectId.length === 1 ? values.projectId[0] : undefined);
 
         return {
           projectId: pId,
           ticketId: tId,
           description: values.description,
           billable: values.billable,
-          billingRate: values.billingRate
+          billingRate: values.billingRate,
         };
       });
 
       await startMultipleTimers(entriesToCreate);
-      notification.success({ message: "Timers started successfully!" });
+      notification.success({ message: "Timer started" });
     } catch (error: any) {
-      notification.error({ message: "Failed to start timers", description: error.message });
+      notification.error({
+        message: "Failed to start timer",
+        description: error.message,
+      });
     }
   };
 
@@ -163,88 +191,165 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
     try {
       await stopTimer();
       form.resetFields();
-      notification.success({ message: "Timer stopped and saved!" });
+      notification.success({ message: "Timer stopped and saved" });
     } catch (error: any) {
-      notification.error({ message: "Failed to stop timer", description: error.message });
+      notification.error({
+        message: "Failed to stop timer",
+        description: error.message,
+      });
     }
   };
 
-  const selectedPids = Form.useWatch('projectId', form) || [];
+  const selectedPids = Form.useWatch("projectId", form) || [];
+
+  const state: TimerState = !activeEntry
+    ? "idle"
+    : activeEntry.status === "RUNNING"
+    ? "running"
+    : "paused";
+
+  const stateMeta: Record<TimerState, { label: string; dot: string; ring: string; text: string }> = {
+    running: {
+      label: "Running",
+      dot: "#10b981",
+      ring: "rgba(16, 185, 129, 0.18)",
+      text: "#059669",
+    },
+    paused: {
+      label: "Paused",
+      dot: "#f59e0b",
+      ring: "rgba(245, 158, 11, 0.18)",
+      text: "#d97706",
+    },
+    idle: {
+      label: "Ready to track",
+      dot: "#94a3b8",
+      ring: "rgba(148, 163, 184, 0.18)",
+      text: "#64748b",
+    },
+  };
 
   const renderContent = () => (
-    <div style={{ width: showContentOnly ? '100%' : 320, maxWidth: 320, margin: '0 auto' }}>
-      {isLoading && <div style={{ textAlign: "center", marginBottom: 16 }}><Spin /></div>}
+    <div
+      className={`ttp-root ttp-state-${state}`}
+      style={{ width: showContentOnly ? "100%" : 360, maxWidth: 360 }}
+    >
+      {isLoading && (
+        <div className="ttp-loading">
+          <Spin size="small" />
+        </div>
+      )}
 
-      <div style={{ textAlign: "center", fontSize: '2rem', fontWeight: 600, fontFamily: 'monospace', marginBottom: '16px', color: activeEntry ? (activeEntry.status === 'PAUSED' ? '#f59e0b' : '#10b981') : 'var(--text-slate-800)' }}>
-        {formatTime(elapsedTime)}
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: '24px' }}>
-        {activeEntry ? (
-          activeEntry.status === 'RUNNING' ? (
-            <>
-              <Button
-                type="default"
-                shape="circle"
-                icon={<PauseCircleFilled style={{ fontSize: 32, color: '#f59e0b' }} />}
-                style={{ width: 64, height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-                onClick={async () => { try { await pauseTimer(); } catch (e) { } }}
-                loading={isLoading}
-              />
-              <Button
-                type="primary"
-                danger
-                shape="circle"
-                icon={<div style={{ width: 24, height: 24, backgroundColor: 'white', borderRadius: 4 }} />}
-                style={{ width: 64, height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-                onClick={handleStop}
-                loading={isLoading}
-              />
-            </>
-          ) : (
-            <>
-              <Button
-                type="primary"
-                shape="circle"
-                icon={<PlayCircleFilled style={{ fontSize: 32 }} />}
-                style={{ width: 64, height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1677ff' }}
-                onClick={async () => { try { await resumeTimer(); } catch (e) { } }}
-                loading={isLoading}
-              />
-              <Button
-                type="primary"
-                danger
-                shape="circle"
-                icon={<div style={{ width: 24, height: 24, backgroundColor: 'white', borderRadius: 4 }} />}
-                style={{ width: 64, height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-                onClick={handleStop}
-                loading={isLoading}
-              />
-            </>
-          )
-        ) : (
-          <Button
-            type="primary"
-            shape="circle"
-            icon={<PlayCircleFilled style={{ fontSize: 32 }} />}
-            style={{ width: 64, height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1677ff' }}
-            onClick={() => form.submit()}
-            loading={isLoading}
+      {/* Hero: status pill + timer + actions */}
+      <div className="ttp-hero">
+        <div className="ttp-status-pill">
+          <span
+            className="ttp-status-dot"
+            style={{
+              background: stateMeta[state].dot,
+              boxShadow: state === "running" ? `0 0 0 4px ${stateMeta[state].ring}` : "none",
+            }}
           />
-        )}
+          <span style={{ color: stateMeta[state].text }}>
+            {stateMeta[state].label}
+          </span>
+        </div>
+
+        <div className="ttp-timer">{formatTime(elapsedTime)}</div>
+
+        <div className="ttp-controls">
+          {state === "running" && (
+            <>
+              <button
+                type="button"
+                className="ttp-btn ttp-btn-secondary"
+                onClick={async () => {
+                  try {
+                    await pauseTimer();
+                  } catch (e) {}
+                }}
+                disabled={isLoading}
+                aria-label="Pause"
+              >
+                <PauseCircleFilled style={{ fontSize: 20 }} />
+                <span>Pause</span>
+              </button>
+              <button
+                type="button"
+                className="ttp-btn ttp-btn-stop"
+                onClick={handleStop}
+                disabled={isLoading}
+                aria-label="Stop"
+              >
+                <Square size={14} fill="currentColor" strokeWidth={0} />
+                <span>Stop</span>
+              </button>
+            </>
+          )}
+          {state === "paused" && (
+            <>
+              <button
+                type="button"
+                className="ttp-btn ttp-btn-primary"
+                onClick={async () => {
+                  try {
+                    await resumeTimer();
+                  } catch (e) {}
+                }}
+                disabled={isLoading}
+                aria-label="Resume"
+              >
+                <PlayCircleFilled style={{ fontSize: 20 }} />
+                <span>Resume</span>
+              </button>
+              <button
+                type="button"
+                className="ttp-btn ttp-btn-stop"
+                onClick={handleStop}
+                disabled={isLoading}
+                aria-label="Stop"
+              >
+                <Square size={14} fill="currentColor" strokeWidth={0} />
+                <span>Stop</span>
+              </button>
+            </>
+          )}
+          {state === "idle" && (
+            <button
+              type="button"
+              className="ttp-btn ttp-btn-primary ttp-btn-wide"
+              onClick={() => form.submit()}
+              disabled={isLoading}
+              aria-label="Start timer"
+            >
+              <PlayCircleFilled style={{ fontSize: 20 }} />
+              <span>Start timer</span>
+            </button>
+          )}
+        </div>
       </div>
 
+      <div className="ttp-divider" />
+
+      {/* Form */}
       <Form
         form={form}
         layout="vertical"
         onFinish={handleStart}
         initialValues={{ billable: false }}
         disabled={!!activeEntry || isLoading}
+        className="ttp-form"
+        requiredMark={false}
       >
         <Form.Item
           name="projectId"
-          label="Project"
-          rules={[{ required: true, message: 'Please select at least one project' }]}
+          label={
+            <span className="ttp-label">
+              <Briefcase size={13} />
+              Project
+            </span>
+          }
+          rules={[{ required: true, message: "Select a project" }]}
         >
           <Select
             mode="multiple"
@@ -253,15 +358,25 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
             allowClear
             disabled={!!activeEntry || isLoading}
             showSearch
-            options={projects.map(p => ({ label: p.label, value: p.value }))}
-            filterOption={(input, option) => String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+            maxTagCount="responsive"
+            options={projects.map((p) => ({ label: p.label, value: p.value }))}
+            filterOption={(input, option) =>
+              String(option?.label ?? "")
+                .toLowerCase()
+                .includes(input.toLowerCase())
+            }
           />
         </Form.Item>
 
         <Form.Item
           name="ticketId"
-          label="Task / Ticket"
-          rules={[{ required: true, message: 'Please select at least one task' }]}
+          label={
+            <span className="ttp-label">
+              <ListChecks size={13} />
+              Task
+            </span>
+          }
+          rules={[{ required: true, message: "Select a task" }]}
         >
           <Select
             mode="multiple"
@@ -269,24 +384,305 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
             allowClear
             disabled={!!activeEntry || isLoading || !selectedPids.length}
             showSearch
-            options={tickets.map(t => ({
-              label: `${t.title} ${selectedPids.length > 1 ? `(${projects.find(p => p.value === t.projectId)?.label || 'Unknown'})` : ''}`,
-              value: t.id
+            maxTagCount="responsive"
+            options={tickets.map((t) => ({
+              label: `${t.title}${
+                selectedPids.length > 1
+                  ? ` · ${
+                      projects.find((p) => p.value === t.projectId)?.label ||
+                      "Unknown"
+                    }`
+                  : ""
+              }`,
+              value: t.id,
             }))}
-            filterOption={(input, option) => String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+            filterOption={(input, option) =>
+              String(option?.label ?? "")
+                .toLowerCase()
+                .includes(input.toLowerCase())
+            }
           />
         </Form.Item>
 
-        <Form.Item name="description" label="What are you working on?">
-          <Input.TextArea rows={2} placeholder="Description..." />
+        <Form.Item
+          name="description"
+          label={
+            <span className="ttp-label">
+              <FileText size={13} />
+              What are you working on?
+            </span>
+          }
+        >
+          <Input.TextArea
+            rows={2}
+            placeholder="Add a brief note (optional)"
+            maxLength={240}
+            showCount
+          />
         </Form.Item>
       </Form>
 
-      <div style={{ marginTop: 24, textAlign: 'center', borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
-        <Button type="link" onClick={() => { setPopoverOpen(false); router.push('/time-tracking'); }}>
-          View All Time Entries
-        </Button>
+      <div className="ttp-footer">
+        <button
+          type="button"
+          className="ttp-link"
+          onClick={() => {
+            setPopoverOpen(false);
+            router.push("/time-tracking");
+          }}
+        >
+          <HistoryOutlined />
+          <span>View all time entries</span>
+          <ArrowUpRight size={14} />
+        </button>
       </div>
+
+      <style jsx global>{`
+        .ttp-root {
+          padding: 4px 2px 0;
+          color: var(--text-primary);
+          position: relative;
+        }
+        .ttp-loading {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          z-index: 2;
+        }
+        .ttp-hero {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          padding: 18px 8px 20px;
+          border-radius: 14px;
+          background:
+            radial-gradient(120% 100% at 50% 0%, var(--bg-blue-50) 0%, transparent 70%),
+            var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          position: relative;
+          overflow: hidden;
+        }
+        .ttp-state-running .ttp-hero {
+          background:
+            radial-gradient(120% 100% at 50% 0%, rgba(16, 185, 129, 0.12) 0%, transparent 70%),
+            var(--bg-pure-white);
+          border-color: rgba(16, 185, 129, 0.2);
+        }
+        .ttp-state-paused .ttp-hero {
+          background:
+            radial-gradient(120% 100% at 50% 0%, rgba(245, 158, 11, 0.12) 0%, transparent 70%),
+            var(--bg-pure-white);
+          border-color: rgba(245, 158, 11, 0.2);
+        }
+        .ttp-status-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 4px 10px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+        }
+        .ttp-status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          display: inline-block;
+        }
+        .ttp-state-running .ttp-status-dot {
+          animation: ttp-pulse 1.6s ease-in-out infinite;
+        }
+        @keyframes ttp-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(0.92); }
+        }
+        .ttp-timer {
+          font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+          font-size: 40px;
+          font-weight: 700;
+          letter-spacing: -0.02em;
+          color: var(--text-slate-900);
+          font-variant-numeric: tabular-nums;
+          line-height: 1;
+        }
+        .ttp-state-running .ttp-timer { color: #059669; }
+        .ttp-state-paused .ttp-timer { color: #d97706; }
+        .ttp-controls {
+          display: flex;
+          gap: 8px;
+          width: 100%;
+          padding: 0 12px;
+          margin-top: 4px;
+        }
+        .ttp-btn {
+          flex: 1;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          height: 40px;
+          padding: 0 14px;
+          border-radius: 10px;
+          font-size: 13px;
+          font-weight: 600;
+          border: 1px solid transparent;
+          cursor: pointer;
+          transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, border-color 120ms ease;
+          font-family: inherit;
+        }
+        .ttp-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .ttp-btn:not(:disabled):active { transform: translateY(1px); }
+        .ttp-btn-wide { flex: 1; }
+        .ttp-btn-primary {
+          background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+          color: #fff;
+          box-shadow: 0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 14px rgba(37, 99, 235, 0.28);
+        }
+        .ttp-btn-primary:not(:disabled):hover {
+          box-shadow: 0 1px 0 rgba(255,255,255,0.2) inset, 0 6px 18px rgba(37, 99, 235, 0.36);
+        }
+        .ttp-btn-secondary {
+          background: var(--bg-pure-white);
+          color: var(--text-slate-700);
+          border-color: var(--border-slate-200);
+        }
+        .ttp-btn-secondary:not(:disabled):hover {
+          border-color: var(--border-slate-300, #cbd5e1);
+          background: var(--bg-slate-50);
+        }
+        .ttp-btn-stop {
+          background: #fff;
+          color: #dc2626;
+          border-color: #fecaca;
+        }
+        .ttp-btn-stop:not(:disabled):hover {
+          background: #fef2f2;
+          border-color: #fca5a5;
+        }
+        .ttp-divider {
+          height: 1px;
+          background: var(--border-slate-100);
+          margin: 16px -2px 12px;
+        }
+        .ttp-form .ant-form-item { margin-bottom: 12px; }
+        .ttp-form .ant-form-item-label { padding-bottom: 4px; }
+        .ttp-form .ant-form-item-label > label {
+          height: auto;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: var(--text-slate-600);
+        }
+        .ttp-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .ttp-form .ant-select-selector,
+        .ttp-form .ant-input,
+        .ttp-form textarea.ant-input {
+          border-radius: 10px !important;
+          background: var(--bg-pure-white) !important;
+        }
+        .ttp-form .ant-select-selector:hover,
+        .ttp-form .ant-input:hover {
+          border-color: #93c5fd !important;
+        }
+        .ttp-footer {
+          display: flex;
+          justify-content: center;
+          padding: 8px 0 4px;
+          margin-top: 4px;
+          border-top: 1px solid var(--border-slate-100);
+        }
+        .ttp-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          background: transparent;
+          border: none;
+          color: var(--text-slate-600);
+          font-size: 12px;
+          font-weight: 500;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background 120ms ease, color 120ms ease;
+        }
+        .ttp-link:hover {
+          background: var(--bg-slate-50);
+          color: var(--text-blue-700);
+        }
+
+        /* Trigger button polish */
+        .ttp-trigger {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          height: 36px;
+          padding: 0 12px;
+          border-radius: 999px;
+          border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          color: var(--text-slate-700);
+          font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+          font-weight: 600;
+          font-size: 13px;
+          font-variant-numeric: tabular-nums;
+          cursor: pointer;
+          transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+        }
+        .ttp-trigger:hover {
+          border-color: #93c5fd;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+        }
+        .ttp-trigger-running {
+          background: var(--bg-running-row);
+          border-color: rgba(16, 185, 129, 0.35);
+          color: #059669;
+        }
+        .ttp-trigger-paused {
+          background: var(--bg-paused-row);
+          border-color: #fcd34d;
+          color: #d97706;
+        }
+        .ttp-trigger-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: currentColor;
+          flex-shrink: 0;
+        }
+        .ttp-trigger-running .ttp-trigger-dot {
+          animation: ttp-pulse 1.6s ease-in-out infinite;
+          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18);
+        }
+
+        /* Popover container override */
+        .ttp-popover .ant-popover-inner {
+          border-radius: 16px;
+          padding: 14px;
+          box-shadow:
+            0 1px 0 rgba(255,255,255,0.06) inset,
+            0 12px 32px -8px rgba(15, 23, 42, 0.18),
+            0 8px 16px -8px rgba(15, 23, 42, 0.12);
+          border: 1px solid var(--border-slate-100);
+        }
+        .ttp-popover .ant-popover-title {
+          padding: 4px 6px 12px;
+          margin-bottom: 6px;
+          border-bottom: 1px solid var(--border-slate-100);
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-slate-900);
+        }
+      `}</style>
     </div>
   );
 
@@ -296,46 +692,83 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
 
   if (isMenuItem) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        {activeEntry ? (activeEntry.status === 'RUNNING' ? <div style={{ width: 12, height: 12, backgroundColor: '#15803d', borderRadius: 2 }} /> : <PauseCircleFilled style={{ color: '#f59e0b' }} />) : <PlayCircleFilled style={{ color: '#1890ff' }} />}
-        <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{formatTime(elapsedTime)}</span>
-        <span style={{ marginLeft: 8, color: '#8c8c8c' }}>{activeEntry ? (activeEntry.status === 'RUNNING' ? 'Running' : 'Paused') : 'Start Timer'}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {activeEntry ? (
+          activeEntry.status === "RUNNING" ? (
+            <div
+              style={{
+                width: 12,
+                height: 12,
+                backgroundColor: "#15803d",
+                borderRadius: 2,
+              }}
+            />
+          ) : (
+            <PauseCircleFilled style={{ color: "#f59e0b" }} />
+          )
+        ) : (
+          <PlayCircleFilled style={{ color: "#1890ff" }} />
+        )}
+        <span style={{ fontFamily: "monospace", fontWeight: 600 }}>
+          {formatTime(elapsedTime)}
+        </span>
+        <span style={{ marginLeft: 8, color: "#8c8c8c" }}>
+          {activeEntry
+            ? activeEntry.status === "RUNNING"
+              ? "Running"
+              : "Paused"
+            : "Start Timer"}
+        </span>
       </div>
     );
   }
+
+  const triggerClass = `ttp-trigger ${
+    state === "running"
+      ? "ttp-trigger-running"
+      : state === "paused"
+      ? "ttp-trigger-paused"
+      : ""
+  }`;
 
   return (
     <Popover
       content={renderContent()}
       title={
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>{activeEntry ? (activeEntry.status === 'RUNNING' ? "Running Timer" : "Paused Timer") : "Start New Timer"}</span>
-          <Button type="text" size="small" icon={<HistoryOutlined />} onClick={() => router.push('/time-tracking')} />
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <Timer size={14} />
+            {state === "running"
+              ? "Running timer"
+              : state === "paused"
+              ? "Paused timer"
+              : "Start a timer"}
+          </span>
+          <Button
+            type="text"
+            size="small"
+            icon={<HistoryOutlined />}
+            onClick={() => router.push("/time-tracking")}
+          />
         </div>
       }
       trigger="click"
       open={isPopoverOpen}
       onOpenChange={setPopoverOpen}
       placement="bottomRight"
+      overlayClassName="ttp-popover"
+      arrow={false}
     >
-      <Button
-        type={activeEntry ? (activeEntry.status === 'RUNNING' ? "primary" : "default") : "default"}
-        icon={activeEntry ? (activeEntry.status === 'RUNNING' ? <div style={{ width: 12, height: 12, backgroundColor: 'currentColor', borderRadius: 2 }} /> : <PauseCircleFilled style={{ color: '#f59e0b' }} />) : <PlayCircleFilled style={{ color: '#1677ff' }} />}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
-          backgroundColor: activeEntry
-            ? (activeEntry.status === 'RUNNING' ? 'var(--bg-running-row)' : 'var(--bg-paused-row)')
-            : 'var(--bg-pure-white)',
-          color: activeEntry
-            ? (activeEntry.status === 'RUNNING' ? '#15803d' : '#d97706')
-            : 'var(--text-slate-700)',
-          borderColor: activeEntry
-            ? (activeEntry.status === 'RUNNING' ? 'var(--border-blue-200)' : '#fcd34d')
-            : 'var(--border-slate-300)'
-        }}
-      >
-        <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{formatTime(elapsedTime)}</span>
-      </Button>
+      <button type="button" className={triggerClass}>
+        <span className="ttp-trigger-dot" />
+        <span>{formatTime(elapsedTime)}</span>
+      </button>
     </Popover>
   );
 };

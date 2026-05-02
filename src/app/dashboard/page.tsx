@@ -4,11 +4,9 @@ import React, { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
-import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
   dashboardService,
   DashboardData,
-  ProjectProgress,
 } from "@/services/dashboardService";
 import { useCalendar } from "@/hooks/useCalendar";
 import { CalendarService, CalendarProvider } from "@/services/calendarService";
@@ -17,63 +15,52 @@ import TicketService from "@/services/ticketService";
 import { AttendanceService } from "@/services/attendanceService";
 import Organization from "@/components/organaization/Organization";
 
-//import { dashboardService, DashboardData } from "@/services/dashboardService";
 import {
   Card,
   Row,
   Col,
-  Statistic,
   Typography,
   Space,
   Progress,
-  List,
-  Popover,
   Avatar,
   Tag,
   Button,
-  Divider,
   Alert,
   Skeleton,
-  Badge,
   Tooltip,
   Segmented,
-  Input,
-  Modal,
-  Table,
   Empty,
   theme,
 } from "antd";
 import {
   TeamOutlined,
-  ProjectOutlined,
   UserOutlined,
   ClockCircleOutlined,
-  DollarOutlined,
   TrophyOutlined,
-  RiseOutlined,
   CalendarOutlined,
-  BellOutlined,
-  PlusOutlined,
   FileTextOutlined,
   VideoCameraOutlined,
-  EnvironmentOutlined,
-  LinkOutlined,
   PlayCircleOutlined,
   PauseCircleOutlined,
-  StarOutlined,
   LoginOutlined,
   LogoutOutlined,
   FormOutlined,
   WalletOutlined,
+  ArrowRightOutlined,
+  CheckCircleFilled,
+  ThunderboltFilled,
+  PlusCircleOutlined,
+  FolderOpenOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
 
 function DashboardContent() {
   const { token } = theme.useToken();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
     null,
@@ -247,7 +234,6 @@ function DashboardContent() {
       }
 
       if (isMatch) {
-        // Clone event with today's date for display
         const duration = end.diff(start);
         const occurrenceStart = today
           .hour(start.hour())
@@ -265,23 +251,6 @@ function DashboardContent() {
     return acc;
   }, []);
 
-  // Upcoming meetings (next 7 days)
-  const upcomingMeetings = calendarEvents
-    .filter((event) => {
-      // Filter: User must be an attendee or the creator
-      const isUserAttendee =
-        event.attendees?.includes(user?.email) || event.userId === user?.id;
-      if (!isUserAttendee) return false;
-
-      const eventDate = dayjs(event.startTime);
-      const today = dayjs().startOf("day");
-      const nextWeek = today.add(7, "day");
-      return eventDate.isAfter(today) && eventDate.isBefore(nextWeek);
-    })
-    .sort(
-      (a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf(),
-    );
-
   useEffect(() => {
     if (
       dashboardData?.projectProgress &&
@@ -296,19 +265,13 @@ function DashboardContent() {
     const fetchTodayAttendance = async () => {
       try {
         const attendance = await AttendanceService.getTodayAttendance();
-        console.log("Today Attendance:", attendance);
-
-        // State la store pannuthu
         setTodayAttendance(attendance);
-
-        // console.log("Clock In Time:", attendance.clockInTime);
-        // console.log("Clock Out Time:", attendance.clockOutTime);
       } catch (error) {
         console.error("Failed to fetch attendance", error);
       }
     };
 
-    fetchTodayAttendance(); // function call pannanu
+    fetchTodayAttendance();
   }, [user]);
 
   useEffect(() => {
@@ -341,7 +304,6 @@ function DashboardContent() {
             date: today,
           });
 
-          // Separate BOD & EOD
           const bodUpdate = updates.find(
             (item: any) => item.updateType === "BOD",
           );
@@ -380,7 +342,6 @@ function DashboardContent() {
           setMyTicketsStats({ open, closed, total });
         } catch (e) {
           console.error("Failed to fetch my tickets stats", e);
-          // Set stats to 0 on error to avoid incorrect display
           setMyTicketsStats({ open: 0, closed: 0, total: 0 });
         }
       }
@@ -415,7 +376,6 @@ function DashboardContent() {
             limit: 20,
           });
           setTickets(response.data);
-
           setRecentTickets(response.data.slice(0, 5));
         } catch (error) {
           console.error("Failed to fetch recent tickets", error);
@@ -439,12 +399,6 @@ function DashboardContent() {
     }
   };
 
-  const getProgressColor = (progress: number) => {
-    if (progress >= 75) return "#52c41a";
-    if (progress >= 40) return "#1677ff";
-    return "#8c8c8c";
-  };
-
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -454,218 +408,10 @@ function DashboardContent() {
     const diffDays = Math.floor(diffHours / 24);
 
     if (diffMins < 60)
-      return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
+      return `${diffMins}m ago`;
     if (diffHours < 24)
-      return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
-    return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
-  };
-
-  const formatDueDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return `Today, ${date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      })}`;
-    }
-    if (date.toDateString() === tomorrow.toDateString()) {
-      return `Tomorrow, ${date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      })}`;
-    }
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
-
-  const selectedProject = dashboardData?.projectProgress.find(
-    (p) => p.id === selectedProjectId,
-  );
-
-  // Statistics cards configuration
-  const stats = dashboardData
-    ? [
-      {
-        title: "Assigned / Closed Tickets",
-        value: `${myTicketsStats.total} / ${myTicketsStats.closed}`,
-        icon: <UserOutlined style={{ color: "#8c8c8c" }} />,
-        color: "#1677ff",
-        change: dashboardData.trends.ticketCompletionRate,
-      },
-      {
-        title: "Average Working Hours",
-        value: averageWorkHours,
-        icon: <ProjectOutlined style={{ color: "#8c8c8c" }} />,
-        color: "#1677ff",
-        change: "Last 5 days avg",
-      },
-      {
-        title: "Today's Attendance",
-        value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
-        icon: <ClockCircleOutlined style={{ color: "#8c8c8c" }} />,
-        color: "#1677ff",
-        change: `${dashboardData.stats.attendance.attendanceRate}% Present`,
-        isAttendance: true,
-        stats: dashboardData.stats.attendance,
-      },
-    ]
-    : [];
-
-  const LegendItem = ({
-    color,
-    label,
-    value,
-  }: {
-    color: string;
-    label: string;
-    value: string | number;
-  }) => (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-      <div
-        style={{
-          width: 8,
-          height: 8,
-          background: color,
-          borderRadius: "50%",
-          marginBottom: "2px",
-        }}
-      />
-      <Text style={{ fontSize: 10, color: "#888", lineHeight: 1, textAlign: "center" }}>
-        {label}
-      </Text>
-      <Text strong style={{ fontSize: 13, lineHeight: 1.2, textAlign: "center" }}>
-        {value}
-      </Text>
-    </div>
-  );
-
-  const renderTicketSummary = () => {
-    if (!tickets || tickets.length === 0) {
-      return (
-        <div
-          style={{
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Empty description="No tickets found" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-        </div>
-      );
-    }
-
-    const totalTickets = tickets.length;
-    const completedTickets = tickets.filter((t) =>
-      ["completed", "live", "done"].includes(t.status?.toLowerCase())
-    ).length;
-    const inProgressTickets = tickets.filter(
-      (t) => t.status?.toLowerCase() === "in_progress" || t.status?.toLowerCase() === "doing"
-    ).length;
-    const blockedTickets = tickets.filter(
-      (t) => t.status?.toLowerCase() === "blocked"
-    ).length;
-
-    const completionRate = totalTickets > 0 ? Math.round((completedTickets / totalTickets) * 100) : 0;
-
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        justifyContent: 'center',
-        padding: '0 4px'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          marginBottom: 4,
-          position: 'relative',
-          paddingTop: 4
-        }}>
-          <Progress
-            type="dashboard"
-            percent={completionRate}
-            strokeColor={token.colorPrimary}
-            strokeWidth={10}
-            width={115}
-            gapDegree={80}
-            format={(percent) => (
-            <div style={{ marginTop: -5 }}>
-                <div style={{ fontSize: 26, fontWeight: 700, color: token.colorText, letterSpacing: '-0.5px' }}>{percent}%</div>
-                <div style={{ fontSize: 8, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Success</div>
-              </div>
-            )}
-          />
-        </div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '8px',
-          marginTop: '0px'
-        }}>
-          {/* Active Pill */}
-          <div style={{
-            textAlign: 'center',
-            background: token.colorFillAlter,
-            padding: '8px 4px',
-            borderRadius: '12px',
-            border: `1px solid ${token.colorBorderSecondary}`,
-            transition: 'all 0.3s'
-          }} className="metric-pill">
-            <Space direction="vertical" size={0}>
-              <Text strong style={{ fontSize: 16, color: token.colorText, lineHeight: 1 }}>{inProgressTickets}</Text>
-              <Text style={{ fontSize: 8, color: token.colorTextSecondary, textTransform: 'uppercase', fontWeight: 700 }}>Active</Text>
-            </Space>
-          </div>
-
-          {/* Done Pill */}
-          <div style={{
-            textAlign: 'center',
-            background: token.colorFillAlter,
-            padding: '8px 4px',
-            borderRadius: '12px',
-            border: `1px solid ${token.colorBorderSecondary}`,
-            transition: 'all 0.3s'
-          }} className="metric-pill">
-            <Space direction="vertical" size={0}>
-              <Text strong style={{ fontSize: 16, color: token.colorText, lineHeight: 1 }}>{completedTickets}</Text>
-              <Text style={{ fontSize: 8, color: token.colorTextSecondary, textTransform: 'uppercase', fontWeight: 700 }}>Done</Text>
-            </Space>
-          </div>
-
-          {/* Blocked/Total Pill */}
-          <div style={{
-            textAlign: 'center',
-            background: token.colorFillAlter,
-            padding: '8px 4px',
-            borderRadius: '12px',
-            border: `1px solid ${token.colorBorderSecondary}`,
-            transition: 'all 0.3s'
-          }} className="metric-pill">
-            <Space direction="vertical" size={0}>
-              <Text strong style={{ fontSize: 16, color: token.colorText, lineHeight: 1 }}>
-                {blockedTickets > 0 ? blockedTickets : totalTickets}
-              </Text>
-              <Text style={{ fontSize: 8, color: token.colorTextSecondary, textTransform: 'uppercase', fontWeight: 700 }}>
-                {blockedTickets > 0 ? 'Blocked' : 'Total'}
-              </Text>
-            </Space>
-          </div>
-        </div>
-      </div>
-    );
+      return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
   };
 
   const handleClockIn = async () => {
@@ -694,352 +440,975 @@ function DashboardContent() {
     }
   };
 
+  // ─── Premium Layout Helpers ───────────────────────────────────────────
+  const hour = dayjs().hour();
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const firstName =
+    user?.name?.split(" ")[0] || user?.name || "there";
+
+  const heroSubtext = todayAttendance?.canClockOut
+    ? `You're clocked in — ${workDuration} elapsed today.`
+    : todayAttendance?.canClockIn
+      ? "Ready when you are. Clock in to start your day."
+      : todayAttendance && !todayAttendance.canClockIn && !todayAttendance.canClockOut
+        ? "Shift wrapped — nice work today."
+        : "Here's a quick look at what's on your plate.";
+
+  const totalTickets = tickets.length;
+  const completedTickets = tickets.filter((t) =>
+    ["completed", "live", "done"].includes(t.status?.toLowerCase()),
+  ).length;
+  const inProgressTickets = tickets.filter(
+    (t) =>
+      t.status?.toLowerCase() === "in_progress" ||
+      t.status?.toLowerCase() === "doing",
+  ).length;
+  const blockedTickets = tickets.filter(
+    (t) => t.status?.toLowerCase() === "blocked",
+  ).length;
+  const completionRate =
+    totalTickets > 0
+      ? Math.round((completedTickets / totalTickets) * 100)
+      : 0;
+
+  const cardBase: React.CSSProperties = {
+    borderRadius: 16,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    background: token.colorBgContainer,
+    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+  };
+
+  const sectionTitle = (
+    icon: React.ReactNode,
+    label: string,
+    accent?: string,
+  ) => (
+    <Space size={10} align="center">
+      <div
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 8,
+          background: accent ? `${accent}14` : token.colorFillAlter,
+          border: `1px solid ${accent ? `${accent}33` : token.colorBorderSecondary}`,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: accent || token.colorTextSecondary,
+          fontSize: 13,
+        }}
+      >
+        {icon}
+      </div>
+      <span
+        style={{
+          fontSize: 14,
+          fontWeight: 600,
+          color: token.colorText,
+          letterSpacing: "-0.1px",
+        }}
+      >
+        {label}
+      </span>
+    </Space>
+  );
+
+  const KpiCard = ({
+    eyebrow,
+    value,
+    trend,
+    trendTone = "neutral",
+    icon,
+    accent,
+  }: {
+    eyebrow: string;
+    value: React.ReactNode;
+    trend?: string;
+    trendTone?: "positive" | "neutral" | "warning";
+    icon: React.ReactNode;
+    accent: string;
+  }) => {
+    const trendColors: Record<string, { bg: string; fg: string }> = {
+      positive: { bg: "#ECFDF5", fg: "#047857" },
+      neutral: { bg: token.colorFillAlter, fg: token.colorTextSecondary },
+      warning: { bg: "#FEF3C7", fg: "#92400E" },
+    };
+    const tc = trendColors[trendTone];
+    return (
+      <Card
+        size="small"
+        style={{ ...cardBase, height: "100%" }}
+        styles={{ body: { padding: "14px 16px" } }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: 10,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: token.colorTextSecondary,
+              letterSpacing: "0.6px",
+              textTransform: "uppercase",
+            }}
+          >
+            {eyebrow}
+          </Text>
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 9,
+              background: `${accent}14`,
+              border: `1px solid ${accent}26`,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: accent,
+              fontSize: 14,
+            }}
+          >
+            {icon}
+          </div>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: 10,
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 26,
+              fontWeight: 700,
+              lineHeight: 1.05,
+              color: token.colorText,
+              letterSpacing: "-0.6px",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {value}
+          </div>
+          {trend && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "2px 8px",
+                borderRadius: 999,
+                background: tc.bg,
+                color: tc.fg,
+                fontSize: 11,
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {trend}
+            </span>
+          )}
+        </div>
+      </Card>
+    );
+  };
+
+  const QuickActionCard = ({
+    icon,
+    title,
+    desc,
+    onClick,
+    accent,
+  }: {
+    icon: React.ReactNode;
+    title: string;
+    desc: string;
+    onClick: () => void;
+    accent: string;
+  }) => (
+    <Card
+      hoverable
+      style={{ ...cardBase, cursor: "pointer" }}
+      styles={{ body: { padding: "14px 16px" } }}
+      onClick={onClick}
+      className="quick-action-card"
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            background: `${accent}14`,
+            border: `1px solid ${accent}26`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: accent,
+            fontSize: 18,
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: token.colorText,
+              display: "block",
+              lineHeight: 1.3,
+            }}
+          >
+            {title}
+          </Text>
+          <Text
+            type="secondary"
+            style={{ fontSize: 11, lineHeight: 1.3 }}
+          >
+            {desc}
+          </Text>
+        </div>
+        <ArrowRightOutlined
+          style={{ fontSize: 12, color: token.colorTextTertiary }}
+        />
+      </div>
+    </Card>
+  );
+
   return (
     <MainLayout>
-      <div style={{ 
-        margin: "0 -24px", 
-        padding: "24px 32px", 
-        background: "var(--bg-pure-white)", 
-        minHeight: "calc(100vh - 64px)" 
-      }}>
-          {/* ✅ UPDATED HEADER WITH SEGMENT SWITCHER */}
-          <Row
-            justify="space-between"
-            align="middle"
-            gutter={[16, 16]}
-            style={{ marginBottom: 20 }}
-          >
-            <Col>
-              <Title level={3} style={{ margin: 0, color: token.colorText, fontWeight: 600 }}>
-                Welcome back, {user?.name}!
+      <div
+        style={{
+          margin: "0 -24px",
+          padding: "28px 32px 40px",
+          background: "var(--bg-pure-white)",
+          minHeight: "calc(100vh - 64px)",
+        }}
+      >
+        {/* ─── Hero Header ──────────────────────────────────────── */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 16,
+            marginBottom: 24,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <Title
+                level={2}
+                style={{
+                  margin: 0,
+                  color: token.colorText,
+                  fontWeight: 700,
+                  letterSpacing: "-0.6px",
+                  fontSize: 26,
+                }}
+              >
+                {greeting}, {firstName} 👋
               </Title>
-              <Text type="secondary" style={{ fontSize: 13, color: token.colorTextSecondary }}>
-                Here&apos;s what&apos;s happening with your projects today.
-              </Text>
-            </Col>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  background: token.colorFillAlter,
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                }}
+              >
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#10B981",
+                    boxShadow: "0 0 8px rgba(16, 185, 129, 0.6)",
+                  }}
+                  className="live-pulse"
+                />
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: token.colorTextSecondary,
+                    letterSpacing: "0.2px",
+                  }}
+                >
+                  {dayjs().format("dddd, MMM D")}
+                </Text>
+              </div>
+            </div>
+            <Text
+              style={{
+                fontSize: 13,
+                color: token.colorTextSecondary,
+                marginTop: 6,
+                display: "block",
+              }}
+            >
+              {heroSubtext}
+            </Text>
+          </div>
 
-            <Col xs={24} sm={8} md={6} style={{ textAlign: "right" }}>
-              <Segmented
-                options={[
-                  { label: "Me", value: "me", icon: <UserOutlined /> },
-                  { label: "Organization", value: "organization", icon: <TeamOutlined /> },
-                ]}
-                value={activeSegment}
-                onChange={(value) =>
-                  setActiveSegment(value as "me" | "organization")
-                }
+          <Segmented
+            size="large"
+            options={[
+              { label: "Me", value: "me", icon: <UserOutlined /> },
+              {
+                label: "Organization",
+                value: "organization",
+                icon: <TeamOutlined />,
+              },
+            ]}
+            value={activeSegment}
+            onChange={(value) =>
+              setActiveSegment(value as "me" | "organization")
+            }
+            style={{
+              padding: 4,
+              borderRadius: 12,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              background: token.colorFillAlter,
+            }}
+          />
+        </div>
+
+        {/* ─── ME SEGMENT ───────────────────────────────────────── */}
+        {activeSegment === "me" && (
+          <>
+            {/* Alerts */}
+            {error && (
+              <Alert
+                message="Error"
+                description={error}
+                type="error"
+                showIcon
+                closable
+                style={{ marginBottom: 16, borderRadius: 12 }}
               />
-            </Col>
-          </Row>
+            )}
+            {calendarError && (
+              <Alert
+                message="Calendar Error"
+                description={calendarError}
+                type="error"
+                showIcon
+                closable
+                style={{ marginBottom: 16, borderRadius: 12 }}
+              />
+            )}
+            {calendarSuccess && (
+              <Alert
+                message="Success"
+                description={calendarSuccess}
+                type="success"
+                showIcon
+                closable
+                style={{ marginBottom: 16, borderRadius: 12 }}
+              />
+            )}
 
-          {/* ✅ ME SEGMENT — your full original dashboard */}
-          {activeSegment === "me" && (
-            <>
-              {/* Error Alert */}
-              {error && (
-                <Alert
-                  message="Error"
-                  description={error}
-                  type="error"
-                  showIcon
-                  closable
-                  style={{ marginBottom: 16 }}
-                />
-              )}
-
-              {/* Calendar Error/Success Alerts */}
-              {calendarError && (
-                <Alert
-                  message="Calendar Error"
-                  description={calendarError}
-                  type="error"
-                  showIcon
-                  closable
-                  style={{ marginBottom: 16 }}
-                />
-              )}
-              {calendarSuccess && (
-                <Alert
-                  message="Success"
-                  description={calendarSuccess}
-                  type="success"
-                  showIcon
-                  closable
-                  style={{ marginBottom: 16 }}
-                />
-              )}
-
-              {/* Loading State */}
-              {loading ? (
-                <>
-                  <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
-                    {[1, 2, 3, 4].map((i) => (
-                      <Col xs={24} sm={12} lg={6} key={i}>
-                        <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
-                          <Skeleton active paragraph={{ rows: 1 }} />
-                        </Card>
-                      </Col>
-                    ))}
-                  </Row>
-                  <Row gutter={[12, 12]}>
-                    <Col xs={24} lg={16}>
-                      <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
-                        <Skeleton active />
-                      </Card>
-                    </Col>
-                    <Col xs={24} lg={8}>
-                      <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
-                        <Skeleton active />
-                      </Card>
-                    </Col>
-                  </Row>
-                </>
-              ) : dashboardData ? (
-                <>
-                  {/* Statistics Cards */}
-                  <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-                    <Col xs={24} sm={12} lg={6}>
+            {loading ? (
+              <>
+                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <Col xs={24} sm={12} lg={6} key={i}>
                       <Card
                         size="small"
+                        style={{ ...cardBase }}
+                        styles={{ body: { padding: 18 } }}
+                      >
+                        <Skeleton active paragraph={{ rows: 1 }} />
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} lg={16}>
+                    <Card style={cardBase}>
+                      <Skeleton active paragraph={{ rows: 5 }} />
+                    </Card>
+                  </Col>
+                  <Col xs={24} lg={8}>
+                    <Card style={cardBase}>
+                      <Skeleton active paragraph={{ rows: 5 }} />
+                    </Card>
+                  </Col>
+                </Row>
+              </>
+            ) : dashboardData ? (
+              <>
+                {/* ─── KPI Strip ──────────────────────────────────── */}
+                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                  {/* BOD / EOD */}
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card
+                      style={{ ...cardBase, height: "100%" }}
+                      styles={{ body: { padding: "14px 16px" } }}
+                    >
+                      <div
                         style={{
-                          height: "100%",
-                          borderRadius: "16px",
-                          border: `1px solid ${token.colorBorderSecondary}`,
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                          background: token.colorBgContainer
-                        }}
-                        styles={{
-                          body: { padding: "12px 16px", height: "100%" },
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          marginBottom: 10,
                         }}
                       >
-                        <Row
-                          align="middle"
-                          justify="space-around"
-                          style={{ height: "100%" }}
-                        >
-                          <Col xs={24} sm={11}>
-                            <Space
-                              align="center"
-                              style={{
-                                justifyContent: "space-between",
-                                width: "100%",
-                              }}
-                            >
-                              <Statistic
-                                title="Beginning of Day"
-                                value={
-                                  todayUpdates.bod
-                                    ? "BOD – Updated"
-                                    : "Not Submitted"
-                                }
-                                valueStyle={{
-                                  fontSize: 12,
-                                  fontWeight: 500,
-                                  color: todayUpdates.bod
-                                    ? "#52c41a"
-                                    : "#faad14",
-                                }}
-                              />
-                              <RiseOutlined
-                                style={{
-                                  fontSize: 16,
-                                  color: todayUpdates.bod
-                                    ? "#52c41a"
-                                    : "#faad14",
-                                }}
-                              />
-                            </Space>
-                          </Col>
-
-                          <Col xs={24} sm={0}>
-                            <Divider style={{ margin: "8px 0" }} />
-                          </Col>
-                          <Col
-                            xs={0}
-                            sm={1}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <Divider
-                              type="vertical"
-                              style={{ height: "40px" }}
-                            />
-                          </Col>
-
-                          <Col xs={24} sm={11}>
-                            <Space
-                              align="center"
-                              style={{
-                                justifyContent: "space-between",
-                                width: "100%",
-                              }}
-                            >
-                              <Statistic
-                                title="End of Day"
-                                value={
-                                  todayUpdates.eod
-                                    ? "EOD – Updated"
-                                    : "Not Submitted"
-                                }
-                                valueStyle={{
-                                  fontSize: 12,
-                                  fontWeight: 500,
-                                  color: todayUpdates.eod
-                                    ? "#52c41a"
-                                    : "#faad14",
-                                }}
-                              />
-                              <StarOutlined
-                                style={{
-                                  fontSize: 16,
-                                  color: todayUpdates.eod
-                                    ? "#52c41a"
-                                    : "#faad14",
-                                }}
-                              />
-                            </Space>
-                          </Col>
-                        </Row>
-                      </Card>
-                    </Col>
-                    {stats.map((stat, index) => (
-                      <Col xs={24} sm={12} lg={6} key={index}>
-                        <Card
-                          size="small"
-                          variant="outlined"
+                        <Text
                           style={{
-                            height: "100%",
-                            borderRadius: "16px",
-                            border: `1px solid ${token.colorBorderSecondary}`,
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                            background: token.colorBgContainer
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: token.colorTextSecondary,
+                            letterSpacing: "0.6px",
+                            textTransform: "uppercase",
                           }}
-                          styles={{ body: { padding: 16 } }}
                         >
-                          <Space
-                            direction="vertical"
-                            size={4}
-                            style={{ width: "100%" }}
+                          Daily Updates
+                        </Text>
+                        <div
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 9,
+                            background: "#EEF2FF",
+                            border: "1px solid #C7D2FE",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#4F46E5",
+                            fontSize: 13,
+                          }}
+                        >
+                          <ThunderboltFilled />
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 8,
+                        }}
+                      >
+                        {[
+                          { label: "BOD", state: todayUpdates.bod },
+                          { label: "EOD", state: todayUpdates.eod },
+                        ].map((item) => (
+                          <div
+                            key={item.label}
+                            style={{
+                              padding: "6px 10px",
+                              borderRadius: 10,
+                              background: token.colorFillAlter,
+                              border: `1px solid ${token.colorBorderSecondary}`,
+                            }}
                           >
-                            <Space
-                              align="center"
+                            <Text
                               style={{
-                                width: "100%",
+                                fontSize: 10,
+                                fontWeight: 600,
+                                color: token.colorTextSecondary,
+                                letterSpacing: "0.5px",
+                              }}
+                            >
+                              {item.label}
+                            </Text>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                                marginTop: 4,
+                              }}
+                            >
+                              {item.state ? (
+                                <CheckCircleFilled
+                                  style={{ fontSize: 11, color: "#10B981" }}
+                                />
+                              ) : (
+                                <span
+                                  style={{
+                                    width: 8,
+                                    height: 8,
+                                    borderRadius: "50%",
+                                    background: "#F59E0B",
+                                    display: "inline-block",
+                                  }}
+                                />
+                              )}
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  color: item.state ? "#10B981" : "#F59E0B",
+                                }}
+                              >
+                                {item.state ? "Submitted" : "Pending"}
+                              </Text>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  </Col>
+
+                  {/* Avg Working Hours */}
+                  <Col xs={24} sm={12} lg={6}>
+                    <KpiCard
+                      eyebrow="Avg Working Hours"
+                      value={averageWorkHours}
+                      trend="Last 5 days"
+                      trendTone="neutral"
+                      icon={<ClockCircleOutlined />}
+                      accent="#0EA5E9"
+                    />
+                  </Col>
+
+                  {/* My Tickets */}
+                  <Col xs={24} sm={12} lg={6}>
+                    <KpiCard
+                      eyebrow="Tickets · Closed / Total"
+                      value={`${myTicketsStats.closed} / ${myTicketsStats.total}`}
+                      trend={
+                        dashboardData.trends.ticketCompletionRate || "—"
+                      }
+                      trendTone="positive"
+                      icon={<TrophyOutlined />}
+                      accent="#7C3AED"
+                    />
+                  </Col>
+
+                  {/* Today's Attendance */}
+                  <Col xs={24} sm={12} lg={6}>
+                    <KpiCard
+                      eyebrow="Team Attendance"
+                      value={`${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`}
+                      trend={`${dashboardData.stats.attendance.attendanceRate}% Present`}
+                      trendTone="positive"
+                      icon={<TeamOutlined />}
+                      accent="#10B981"
+                    />
+                  </Col>
+                </Row>
+
+                {/* ─── Main Grid ──────────────────────────────────── */}
+                <Row gutter={[16, 16]}>
+                  {/* Time Tracker */}
+                  <Col xs={24} lg={8}>
+                    <Card
+                      style={{
+                        ...cardBase,
+                        background: todayAttendance?.canClockOut
+                          ? `linear-gradient(135deg, ${token.colorPrimaryBg}33 0%, ${token.colorBgContainer} 60%)`
+                          : token.colorBgContainer,
+                        overflow: "hidden",
+                        position: "relative",
+                        height: 340,
+                      }}
+                      styles={{ body: { padding: 18, height: "100%", display: "flex", flexDirection: "column" } }}
+                    >
+                      {todayAttendance?.canClockOut && (
+                        <div
+                          aria-hidden
+                          style={{
+                            position: "absolute",
+                            top: -40,
+                            right: -40,
+                            width: 220,
+                            height: 220,
+                            borderRadius: "50%",
+                            background: `radial-gradient(circle, ${token.colorPrimary}1A 0%, transparent 70%)`,
+                            pointerEvents: "none",
+                          }}
+                        />
+                      )}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          marginBottom: 20,
+                          position: "relative",
+                          zIndex: 1,
+                        }}
+                      >
+                        {sectionTitle(
+                          <ClockCircleOutlined />,
+                          "Daily Attendance",
+                          token.colorPrimary,
+                        )}
+                        {todayAttendance && (
+                          <Tag
+                            style={{
+                              borderRadius: 999,
+                              border: "none",
+                              padding: "2px 10px",
+                              fontWeight: 600,
+                              fontSize: 11,
+                              background: todayAttendance.canClockOut
+                                ? "#ECFDF5"
+                                : todayAttendance.canClockIn
+                                  ? token.colorFillAlter
+                                  : "#F0F9FF",
+                              color: todayAttendance.canClockOut
+                                ? "#047857"
+                                : todayAttendance.canClockIn
+                                  ? token.colorTextSecondary
+                                  : "#0369A1",
+                            }}
+                          >
+                            {todayAttendance.canClockOut && (
+                              <span
+                                className="live-pulse"
+                                style={{
+                                  display: "inline-block",
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: "50%",
+                                  background: "#10B981",
+                                  marginRight: 6,
+                                }}
+                              />
+                            )}
+                            {todayAttendance.canClockIn
+                              ? "Not Clocked In"
+                              : todayAttendance.canClockOut
+                                ? "Active Now"
+                                : "Shift Completed"}
+                          </Tag>
+                        )}
+                      </div>
+
+                      {todayAttendance ? (
+                        (() => {
+                          const TARGET_HOURS = 8;
+                          const parts = (workDuration || "00:00:00").split(":");
+                          const elapsedSec =
+                            (parseInt(parts[0] || "0", 10) || 0) * 3600 +
+                            (parseInt(parts[1] || "0", 10) || 0) * 60 +
+                            (parseInt(parts[2] || "0", 10) || 0);
+                          const targetSec = TARGET_HOURS * 3600;
+                          const progressPct = Math.min(
+                            100,
+                            Math.round((elapsedSec / targetSec) * 100),
+                          );
+                          const remainingSec = Math.max(0, targetSec - elapsedSec);
+                          const remH = Math.floor(remainingSec / 3600)
+                            .toString()
+                            .padStart(2, "0");
+                          const remM = Math.floor((remainingSec % 3600) / 60)
+                            .toString()
+                            .padStart(2, "0");
+                          const isActive = !!todayAttendance.canClockOut;
+                          const ringColor = isActive
+                            ? token.colorPrimary
+                            : todayAttendance.canClockIn
+                              ? token.colorTextTertiary
+                              : "#10B981";
+                          return (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 10,
+                                position: "relative",
+                                zIndex: 1,
+                                flex: 1,
                                 justifyContent: "space-between",
                               }}
                             >
-                              <Text
-                                type="secondary"
-                                style={{ fontSize: 12, fontWeight: 500 }}
-                              >
-                                {stat.title}
-                              </Text>
-                              {stat.icon}
-                            </Space>
-                            <Space align="baseline">
-                              <Statistic
-                                value={stat.value as string | number}
-                                valueStyle={{
-                                  fontSize: 24,
-                                  fontWeight: 600,
-                                  color: token.colorText,
-                                  lineHeight: 1,
-                                }}
-                              />
-                              <Tag
-                                color={stat.isAttendance ? "purple" : "green"}
+                              {/* Hero ring with timer */}
+                              <div
                                 style={{
-                                  fontSize: 10,
-                                  padding: "0 4px",
-                                  margin: 0,
-                                  border: "none",
+                                  position: "relative",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
                                 }}
                               >
-                                {stat.change}
-                              </Tag>
-                            </Space>
-                          </Space>
-                        </Card>
-                      </Col>
-                    ))}
-                  </Row>
-
-                  {/* Row 1: My Info */}
-                  <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-                    <Col xs={24} lg={8}>
-                      {/* My Tickets */}
-                      <Card
-                        title={
-                          <Space>
-                            <TrophyOutlined style={{ color: token.colorPrimary }} />
-                            <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>My Tickets</span>
-                            <span className="live-pulse" style={{ marginLeft: 8 }} />
-                          </Space>
-                        }
-                        size="small"
-                        variant="outlined"
-                        extra={
-                          <Button
-                            type="link"
-                            size="small"
-                            onClick={() => router.push("/tickets")}
-                            style={{ fontSize: 12 }}
-                          >
-                            View
-                          </Button>
-                        }
-                        styles={{ body: { padding: 12 } }}
-                        style={{ height: "260px", boxShadow: "none" }}
-                      >
-                        <div style={{ height: "100%" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              marginBottom: 4,
-                            }}
-                          >
-
-                          </div>
-                          {renderTicketSummary()}
-                        </div>
-                      </Card>
-                    </Col>
-                    <Col xs={24} lg={8}>
-                      {/* Today's Meetings */}
-                      <div style={{ height: "100%" }}>
-                        <Card
-                          title={
-                            <Space size={4}>
-                              <VideoCameraOutlined style={{ color: token.colorTextSecondary, fontSize: 14 }} />
-                              <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>Today's Meetings</span>
-                              {!connectedProvider && (
-                                <Button
-                                  type="link"
-                                  size="small"
-                                  onClick={() => router.push("/integrations")}
-                                  loading={calendarLoading}
-                                  style={{ marginLeft: 4, fontSize: 11 }}
+                                <div style={{ position: "relative" }}>
+                                  <Progress
+                                    type="circle"
+                                    percent={progressPct}
+                                    size={108}
+                                    strokeWidth={6}
+                                    strokeLinecap="round"
+                                    strokeColor={
+                                      isActive
+                                        ? {
+                                            "0%": token.colorPrimary,
+                                            "100%": "#7C3AED",
+                                          }
+                                        : ringColor
+                                    }
+                                    trailColor={token.colorFillAlter}
+                                    format={() => (
+                                      <div>
+                                        <div
+                                          style={{
+                                            fontSize: 16,
+                                            fontWeight: 700,
+                                            lineHeight: 1,
+                                            color: isActive
+                                              ? token.colorPrimary
+                                              : token.colorText,
+                                            letterSpacing: "-0.4px",
+                                            fontVariantNumeric: "tabular-nums",
+                                          }}
+                                        >
+                                          {workDuration || "00:00:00"}
+                                        </div>
+                                        <div
+                                          style={{
+                                            fontSize: 8,
+                                            color: token.colorTextTertiary,
+                                            fontWeight: 700,
+                                            letterSpacing: "0.4px",
+                                            marginTop: 3,
+                                            fontVariantNumeric: "tabular-nums",
+                                          }}
+                                        >
+                                          {progressPct}% / {TARGET_HOURS}h
+                                        </div>
+                                      </div>
+                                    )}
+                                  />
+                                  {isActive && (
+                                    <span
+                                      className="live-pulse"
+                                      style={{
+                                        position: "absolute",
+                                        top: 8,
+                                        right: 8,
+                                        width: 7,
+                                        height: 7,
+                                        borderRadius: "50%",
+                                        background: "#10B981",
+                                        boxShadow:
+                                          "0 0 0 3px rgba(16, 185, 129, 0.18)",
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                                <Text
+                                  style={{
+                                    fontSize: 9,
+                                    fontWeight: 700,
+                                    color: token.colorTextSecondary,
+                                    letterSpacing: "0.5px",
+                                    textTransform: "uppercase",
+                                    marginTop: 6,
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
                                 >
-                                  Connect
-                                </Button>
-                              )}
-                            </Space>
-                          }
-                          size="small"
-                          variant="outlined"
+                                  {isActive
+                                    ? `${remH}h ${remM}m to target`
+                                    : todayAttendance.canClockIn
+                                      ? "Session not started"
+                                      : "Daily target reached"}
+                                </Text>
+                              </div>
+
+                              {/* In / Out session pills */}
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: "1fr 1fr",
+                                  gap: 8,
+                                }}
+                              >
+                                {[
+                                  {
+                                    icon: <LoginOutlined />,
+                                    label: "Clock In",
+                                    color: "#10B981",
+                                    time: todayAttendance.clockInTime,
+                                  },
+                                  {
+                                    icon: <LogoutOutlined />,
+                                    label: "Clock Out",
+                                    color: "#EF4444",
+                                    time: todayAttendance.clockOutTime,
+                                  },
+                                ].map((s) => (
+                                  <div
+                                    key={s.label}
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 8,
+                                      padding: "8px 10px",
+                                      borderRadius: 10,
+                                      background: token.colorFillAlter,
+                                      border: `1px solid ${token.colorBorderSecondary}`,
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        width: 26,
+                                        height: 26,
+                                        borderRadius: 8,
+                                        background: `${s.color}14`,
+                                        border: `1px solid ${s.color}33`,
+                                        color: s.color,
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: 12,
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      {s.icon}
+                                    </div>
+                                    <div style={{ minWidth: 0 }}>
+                                      <Text
+                                        style={{
+                                          fontSize: 9,
+                                          fontWeight: 700,
+                                          letterSpacing: "0.5px",
+                                          color: token.colorTextSecondary,
+                                          textTransform: "uppercase",
+                                          display: "block",
+                                          lineHeight: 1,
+                                        }}
+                                      >
+                                        {s.label}
+                                      </Text>
+                                      <Text
+                                        strong
+                                        style={{
+                                          fontSize: 12,
+                                          color: token.colorText,
+                                          fontVariantNumeric: "tabular-nums",
+                                          letterSpacing: "-0.2px",
+                                          display: "block",
+                                          marginTop: 2,
+                                        }}
+                                      >
+                                        {s.time
+                                          ? dayjs(s.time).format("hh:mm A")
+                                          : "--:-- --"}
+                                      </Text>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Action */}
+                              <div>
+                                {todayAttendance.canClockIn ? (
+                                  <Button
+                                    type="primary"
+                                    block
+                                    icon={<PlayCircleOutlined />}
+                                    onClick={handleClockIn}
+                                    loading={isClocking}
+                                    style={{
+                                      borderRadius: 10,
+                                      height: 40,
+                                      fontWeight: 600,
+                                      fontSize: 13,
+                                      boxShadow: `0 6px 16px -8px ${token.colorPrimary}99`,
+                                      background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #7C3AED 100%)`,
+                                      border: "none",
+                                    }}
+                                  >
+                                    Start Workday
+                                  </Button>
+                                ) : todayAttendance.canClockOut ? (
+                                  <Button
+                                    danger
+                                    block
+                                    icon={<PauseCircleOutlined />}
+                                    onClick={handleClockOut}
+                                    loading={isClocking}
+                                    style={{
+                                      borderRadius: 10,
+                                      height: 40,
+                                      fontWeight: 600,
+                                      fontSize: 13,
+                                      boxShadow:
+                                        "0 6px 16px -8px rgba(239, 68, 68, 0.55)",
+                                    }}
+                                  >
+                                    End Shift · Clock Out
+                                  </Button>
+                                ) : (
+                                  <div
+                                    style={{
+                                      padding: "10px 14px",
+                                      borderRadius: 10,
+                                      background: "#ECFDF5",
+                                      border: "1px solid #A7F3D0",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      gap: 8,
+                                      color: "#047857",
+                                      fontWeight: 600,
+                                      fontSize: 12,
+                                    }}
+                                  >
+                                    <CheckCircleFilled />
+                                    <span>Shift Complete · Great work!</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <Skeleton active paragraph={{ rows: 3 }} />
+                      )}
+                    </Card>
+                  </Col>
+
+                  {/* Today's Meetings */}
+                  <Col xs={24} lg={8}>
+                    <Card
+                      style={{ ...cardBase, height: 340 }}
+                      styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
+                      title={sectionTitle(
+                        <VideoCameraOutlined />,
+                        "Today's Meetings",
+                        "#7C3AED",
+                      )}
                           extra={
-                            connectedProvider && (
-                              <Space size={2}>
+                            connectedProvider ? (
+                              <Space size={4}>
                                 <Button
                                   type="text"
                                   size="small"
-                                  icon={<ClockCircleOutlined style={{ fontSize: 11 }} />}
-                                  onClick={() => syncCalendar(connectedProvider)}
+                                  icon={
+                                    <ClockCircleOutlined
+                                      style={{ fontSize: 11 }}
+                                    />
+                                  }
+                                  onClick={() =>
+                                    syncCalendar(connectedProvider)
+                                  }
                                   loading={calendarLoading}
                                   style={{ fontSize: 11 }}
                                 >
@@ -1054,581 +1423,1166 @@ function DashboardContent() {
                                   View
                                 </Button>
                               </Space>
-                            )
-                          }
-                          styles={{ body: { padding: 0 } }}
-                          style={{ height: "260px", boxShadow: "none" }}
-                        >
-                          {calendarLoading ? (
-                            <div style={{ padding: 16, textAlign: "center" }}>
-                              <Skeleton active paragraph={{ rows: 2 }} />
-                            </div>
-                          ) : !connectedProvider ? (
-                            <div style={{ padding: 20, textAlign: "center" }}>
-                              <VideoCameraOutlined style={{ fontSize: 28, color: "#bfbfbf", marginBottom: 6 }} />
-                              <div>
-                                <Text type="secondary" style={{ fontSize: 11 }}>Connect calendar to see meetings</Text>
-                              </div>
+                            ) : (
                               <Button
-                                type="primary"
+                                type="link"
                                 size="small"
                                 onClick={() => router.push("/integrations")}
-                                style={{ marginTop: 8, fontSize: 11, height: 24 }}
+                                style={{ fontSize: 11 }}
                               >
-                                Connect Calendar
+                                Connect
                               </Button>
-                            </div>
-                          ) : todaysMeetings.length > 0 ? (
-                            <div style={{ height: 220, overflowY: 'auto' }}>
-                              <List
-                                size="small"
-                                dataSource={todaysMeetings}
-                                renderItem={(meeting) => {
-                                  const startTime = dayjs(meeting.startTime);
-                                  const endTime = dayjs(meeting.endTime);
-                                  const isOngoing = startTime.isBefore(dayjs()) && endTime.isAfter(dayjs());
+                            )
+                          }
+                        >
+                          <div
+                            style={{
+                              flex: 1,
+                              overflowY: "auto",
+                              padding: 0,
+                            }}
+                            className="no-scrollbar"
+                          >
+                            {calendarLoading ? (
+                              <div style={{ padding: 16 }}>
+                                <Skeleton active paragraph={{ rows: 3 }} />
+                              </div>
+                            ) : !connectedProvider ? (
+                              <div
+                                style={{
+                                  padding: 24,
+                                  textAlign: "center",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: 48,
+                                    height: 48,
+                                    borderRadius: 14,
+                                    background: token.colorFillAlter,
+                                    margin: "0 auto 12px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    color: token.colorTextTertiary,
+                                  }}
+                                >
+                                  <VideoCameraOutlined
+                                    style={{ fontSize: 22 }}
+                                  />
+                                </div>
+                                <Text
+                                  type="secondary"
+                                  style={{
+                                    fontSize: 12,
+                                    display: "block",
+                                    marginBottom: 12,
+                                  }}
+                                >
+                                  Connect your calendar to see today's meetings
+                                </Text>
+                                <Button
+                                  type="primary"
+                                  size="small"
+                                  onClick={() =>
+                                    router.push("/integrations")
+                                  }
+                                  style={{ borderRadius: 8 }}
+                                >
+                                  Connect Calendar
+                                </Button>
+                              </div>
+                            ) : todaysMeetings.length > 0 ? (
+                              (() => {
+                                const now = dayjs();
+                                const sorted = [...todaysMeetings].sort(
+                                  (a: any, b: any) =>
+                                    dayjs(a.startTime).valueOf() -
+                                    dayjs(b.startTime).valueOf(),
+                                );
+                                const isLive = (m: any) =>
+                                  dayjs(m.startTime).isBefore(now) &&
+                                  dayjs(m.endTime).isAfter(now);
+                                const isPast = (m: any) =>
+                                  dayjs(m.endTime).isBefore(now);
+                                const liveMeeting = sorted.find(isLive);
+                                const upcoming = sorted.filter((m: any) =>
+                                  dayjs(m.startTime).isAfter(now),
+                                );
+                                const ended = sorted.filter(isPast);
+                                const heroMeeting = liveMeeting || upcoming[0];
+                                const restMeetings = sorted.filter(
+                                  (m: any) => m !== heroMeeting,
+                                );
 
-                                  return (
-                                    <List.Item
+                                const formatRelative = (m: any) => {
+                                  const s = dayjs(m.startTime);
+                                  const e = dayjs(m.endTime);
+                                  if (s.isBefore(now) && e.isAfter(now)) {
+                                    const minLeft = e.diff(now, "minute");
+                                    return `${minLeft}m left`;
+                                  }
+                                  if (s.isAfter(now)) {
+                                    const diff = s.diff(now, "minute");
+                                    if (diff < 60) return `in ${diff}m`;
+                                    const h = Math.floor(diff / 60);
+                                    const mm = diff % 60;
+                                    return mm
+                                      ? `in ${h}h ${mm}m`
+                                      : `in ${h}h`;
+                                  }
+                                  const minAgo = now.diff(e, "minute");
+                                  if (minAgo < 60) return `${minAgo}m ago`;
+                                  return `${Math.floor(minAgo / 60)}h ago`;
+                                };
+
+                                return (
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      gap: 10,
+                                      padding: "10px 14px 14px",
+                                    }}
+                                  >
+                                    {/* Summary row */}
+                                    <div
                                       style={{
-                                        padding: "6px 10px",
-                                        borderBottom: `1px solid ${token.colorBorderSecondary}`,
-                                        background: isOngoing ? "rgba(82, 196, 26, 0.1)" : "transparent"
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
                                       }}
-                                      actions={[
-                                        <Tooltip title="Join Meeting" key="join">
-                                          <Button
-                                            type="primary"
-                                            size="small"
-                                            icon={<VideoCameraOutlined />}
-                                            onClick={() => meeting.meetingLink && window.open(meeting.meetingLink, '_blank')}
-                                            disabled={!meeting.meetingLink}
-                                            style={{
-                                              height: 24,
-                                              width: 24,
-                                              backgroundColor: meeting.meetingLink ? token.colorPrimary : token.colorFillAlter,
-                                              borderColor: meeting.meetingLink ? token.colorPrimary : token.colorBorderSecondary
-                                            }}
-                                          />
-                                        </Tooltip>
-                                      ]}
                                     >
-                                      <List.Item.Meta
-                                        avatar={
-                                          <Avatar
-                                            size={22}
+                                      <Text
+                                        style={{
+                                          fontSize: 10,
+                                          fontWeight: 700,
+                                          color: token.colorTextSecondary,
+                                          letterSpacing: "0.6px",
+                                          textTransform: "uppercase",
+                                        }}
+                                      >
+                                        {sorted.length} meeting
+                                        {sorted.length !== 1 ? "s" : ""}
+                                        {liveMeeting && " · 1 live"}
+                                        {!liveMeeting && upcoming.length > 0 &&
+                                          ` · ${upcoming.length} upcoming`}
+                                      </Text>
+                                      {ended.length > 0 && (
+                                        <Text
+                                          style={{
+                                            fontSize: 10,
+                                            color: token.colorTextTertiary,
+                                            fontWeight: 600,
+                                          }}
+                                        >
+                                          {ended.length} done
+                                        </Text>
+                                      )}
+                                    </div>
+
+                                    {/* Hero meeting */}
+                                    {heroMeeting &&
+                                      (() => {
+                                        const live = isLive(heroMeeting);
+                                        const start = dayjs(heroMeeting.startTime);
+                                        const end = dayjs(heroMeeting.endTime);
+                                        const totalMin = Math.max(
+                                          1,
+                                          end.diff(start, "minute"),
+                                        );
+                                        const progressPct = live
+                                          ? Math.min(
+                                              100,
+                                              Math.round(
+                                                (now.diff(start, "minute") /
+                                                  totalMin) *
+                                                  100,
+                                              ),
+                                            )
+                                          : 0;
+                                        return (
+                                          <div
                                             style={{
-                                              backgroundColor: isOngoing ? "#52c41a" : token.colorPrimary,
-                                              fontSize: 10
+                                              position: "relative",
+                                              borderRadius: 12,
+                                              padding: 12,
+                                              background: token.colorFillAlter,
+                                              border: `1px solid ${token.colorBorderSecondary}`,
+                                              overflow: "hidden",
                                             }}
                                           >
-                                            {meeting.title.charAt(0)}
-                                          </Avatar>
-                                        }
-                                        title={
-                                          <Space align="center" size={2}>
-                                            <Text strong style={{ fontSize: 11 }}>
-                                              {meeting.title.length > 18 ? meeting.title.substring(0, 18) + '...' : meeting.title}
+                                            <div
+                                              style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 8,
+                                                marginBottom: 4,
+                                              }}
+                                            >
+                                              <Tooltip title={heroMeeting.title}>
+                                                <div
+                                                  style={{
+                                                    flex: 1,
+                                                    minWidth: 0,
+                                                    fontSize: 14,
+                                                    fontWeight: 700,
+                                                    color: token.colorText,
+                                                    letterSpacing: "-0.2px",
+                                                    whiteSpace: "nowrap",
+                                                    overflow: "hidden",
+                                                    textOverflow: "ellipsis",
+                                                  }}
+                                                >
+                                                  {heroMeeting.title}
+                                                </div>
+                                              </Tooltip>
+                                              <span
+                                                style={{
+                                                  display: "inline-flex",
+                                                  alignItems: "center",
+                                                  gap: 5,
+                                                  padding: "2px 8px",
+                                                  borderRadius: 999,
+                                                  background: live
+                                                    ? "#ECFDF5"
+                                                    : "rgba(79,70,229,0.10)",
+                                                  border: live
+                                                    ? "1px solid #A7F3D0"
+                                                    : "1px solid rgba(79,70,229,0.25)",
+                                                  color: live
+                                                    ? "#047857"
+                                                    : "#4F46E5",
+                                                  fontSize: 9,
+                                                  fontWeight: 700,
+                                                  letterSpacing: "0.6px",
+                                                  flexShrink: 0,
+                                                }}
+                                              >
+                                                <span
+                                                  className={
+                                                    live ? "live-pulse" : ""
+                                                  }
+                                                  style={{
+                                                    width: 5,
+                                                    height: 5,
+                                                    borderRadius: "50%",
+                                                    background: live
+                                                      ? "#10B981"
+                                                      : "#4F46E5",
+                                                  }}
+                                                />
+                                                {live ? "LIVE NOW" : "NEXT UP"}
+                                              </span>
+                                              <Text
+                                                style={{
+                                                  fontSize: 10,
+                                                  color: token.colorTextSecondary,
+                                                  fontWeight: 600,
+                                                  fontVariantNumeric:
+                                                    "tabular-nums",
+                                                  flexShrink: 0,
+                                                }}
+                                              >
+                                                {formatRelative(heroMeeting)}
+                                              </Text>
+                                            </div>
+
+                                            <Text
+                                              style={{
+                                                fontSize: 11,
+                                                color: token.colorTextSecondary,
+                                                fontVariantNumeric:
+                                                  "tabular-nums",
+                                                fontWeight: 500,
+                                                display: "block",
+                                              }}
+                                            >
+                                              {start.format("h:mm A")} —{" "}
+                                              {end.format("h:mm A")} ·{" "}
+                                              {totalMin}m
                                             </Text>
-                                            {isOngoing && (
-                                              <Badge status="processing" style={{ fontSize: 9 }} text="Live" />
+
+                                            {live && (
+                                              <div
+                                                style={{
+                                                  marginTop: 8,
+                                                  height: 4,
+                                                  background: token.colorBgContainer,
+                                                  border: `1px solid ${token.colorBorderSecondary}`,
+                                                  borderRadius: 999,
+                                                  overflow: "hidden",
+                                                }}
+                                              >
+                                                <div
+                                                  style={{
+                                                    height: "100%",
+                                                    width: `${progressPct}%`,
+                                                    background: token.colorPrimary,
+                                                    borderRadius: 999,
+                                                    transition:
+                                                      "width 1s linear",
+                                                  }}
+                                                />
+                                              </div>
                                             )}
-                                          </Space>
-                                        }
-                                        description={
-                                          <Text type="secondary" style={{ fontSize: 9 }}>
-                                            <ClockCircleOutlined style={{ marginRight: 2, fontSize: 8 }} />
-                                            {startTime.format("hh:mm A")} - {endTime.format("hh:mm A")}
-                                          </Text>
-                                        }
-                                      />
-                                    </List.Item>
-                                  );
+
+                                            <Tooltip
+                                              title={
+                                                heroMeeting.meetingLink
+                                                  ? "Join Meeting"
+                                                  : "No meeting link"
+                                              }
+                                            >
+                                              <Button
+                                                type="primary"
+                                                block
+                                                size="small"
+                                                icon={<VideoCameraOutlined />}
+                                                onClick={() =>
+                                                  heroMeeting.meetingLink &&
+                                                  window.open(
+                                                    heroMeeting.meetingLink,
+                                                    "_blank",
+                                                  )
+                                                }
+                                                disabled={!heroMeeting.meetingLink}
+                                                style={{
+                                                  marginTop: 10,
+                                                  borderRadius: 8,
+                                                  height: 30,
+                                                  fontSize: 12,
+                                                  fontWeight: 600,
+                                                }}
+                                              >
+                                                {live ? "Join now" : "Join meeting"}
+                                              </Button>
+                                            </Tooltip>
+                                          </div>
+                                        );
+                                      })()}
+
+                                    {/* Rest list */}
+                                    {restMeetings.length > 0 && (
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          gap: 6,
+                                        }}
+                                      >
+                                        {restMeetings.map(
+                                          (m: any, idx: number) => {
+                                            const start = dayjs(m.startTime);
+                                            const end = dayjs(m.endTime);
+                                            const past = isPast(m);
+                                            const totalMin = Math.max(
+                                              1,
+                                              end.diff(start, "minute"),
+                                            );
+                                            return (
+                                              <div
+                                                key={m.id || idx}
+                                                style={{
+                                                  display: "flex",
+                                                  alignItems: "center",
+                                                  gap: 10,
+                                                  padding: "6px 10px",
+                                                  borderRadius: 10,
+                                                  background:
+                                                    token.colorFillAlter,
+                                                  border: `1px solid ${token.colorBorderSecondary}`,
+                                                  opacity: past ? 0.55 : 1,
+                                                }}
+                                              >
+                                                <div
+                                                  style={{
+                                                    minWidth: 42,
+                                                    textAlign: "center",
+                                                    padding: "3px 0",
+                                                    borderRadius: 8,
+                                                    background:
+                                                      token.colorBgContainer,
+                                                    border: `1px solid ${token.colorBorderSecondary}`,
+                                                  }}
+                                                >
+                                                  <div
+                                                    style={{
+                                                      fontSize: 11,
+                                                      fontWeight: 700,
+                                                      color: token.colorText,
+                                                      fontVariantNumeric:
+                                                        "tabular-nums",
+                                                      lineHeight: 1,
+                                                    }}
+                                                  >
+                                                    {start.format("h:mm")}
+                                                  </div>
+                                                  <div
+                                                    style={{
+                                                      fontSize: 8,
+                                                      fontWeight: 700,
+                                                      color:
+                                                        token.colorTextTertiary,
+                                                      letterSpacing: "0.5px",
+                                                      marginTop: 1,
+                                                    }}
+                                                  >
+                                                    {start.format("A")}
+                                                  </div>
+                                                </div>
+
+                                                <div
+                                                  style={{
+                                                    flex: 1,
+                                                    minWidth: 0,
+                                                  }}
+                                                >
+                                                  <Tooltip title={m.title}>
+                                                    <div
+                                                      style={{
+                                                        fontSize: 12,
+                                                        fontWeight: 600,
+                                                        color:
+                                                          token.colorText,
+                                                        whiteSpace: "nowrap",
+                                                        overflow: "hidden",
+                                                        textOverflow:
+                                                          "ellipsis",
+                                                        lineHeight: 1.3,
+                                                      }}
+                                                    >
+                                                      {m.title}
+                                                    </div>
+                                                  </Tooltip>
+                                                  <Text
+                                                    style={{
+                                                      fontSize: 10,
+                                                      color:
+                                                        token.colorTextTertiary,
+                                                      fontWeight: 500,
+                                                    }}
+                                                  >
+                                                    {totalMin}m ·{" "}
+                                                    {formatRelative(m)}
+                                                  </Text>
+                                                </div>
+
+                                                <Tooltip
+                                                  title={
+                                                    m.meetingLink
+                                                      ? past
+                                                        ? "Meeting ended"
+                                                        : "Join Meeting"
+                                                      : "No meeting link"
+                                                  }
+                                                >
+                                                  <Button
+                                                    type={
+                                                      m.meetingLink && !past
+                                                        ? "primary"
+                                                        : "default"
+                                                    }
+                                                    size="small"
+                                                    icon={
+                                                      <VideoCameraOutlined
+                                                        style={{
+                                                          fontSize: 11,
+                                                        }}
+                                                      />
+                                                    }
+                                                    onClick={() =>
+                                                      m.meetingLink &&
+                                                      window.open(
+                                                        m.meetingLink,
+                                                        "_blank",
+                                                      )
+                                                    }
+                                                    disabled={
+                                                      !m.meetingLink || past
+                                                    }
+                                                    style={{
+                                                      borderRadius: 8,
+                                                      height: 26,
+                                                      fontSize: 11,
+                                                      fontWeight: 600,
+                                                    }}
+                                                  >
+                                                    Join
+                                                  </Button>
+                                                </Tooltip>
+                                              </div>
+                                            );
+                                          },
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()
+                            ) : (
+                              <div
+                                style={{
+                                  padding: 24,
+                                  textAlign: "center",
                                 }}
+                              >
+                                <div
+                                  style={{
+                                    width: 48,
+                                    height: 48,
+                                    borderRadius: 14,
+                                    background: `linear-gradient(135deg, #EEF2FF 0%, #FAFBFF 100%)`,
+                                    border: "1px solid #C7D2FE",
+                                    margin: "0 auto 10px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    color: "#4F46E5",
+                                  }}
+                                >
+                                  <CalendarOutlined
+                                    style={{ fontSize: 22 }}
+                                  />
+                                </div>
+                                <Text
+                                  strong
+                                  style={{
+                                    fontSize: 13,
+                                    display: "block",
+                                    color: token.colorText,
+                                    marginBottom: 2,
+                                  }}
+                                >
+                                  No meetings today
+                                </Text>
+                                <Text
+                                  type="secondary"
+                                  style={{ fontSize: 11 }}
+                                >
+                                  Enjoy the deep focus time 🌿
+                                </Text>
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      </Col>
+
+                      <Col xs={24} lg={8}>
+                        {(() => {
+                          const pendingTickets = Math.max(
+                            0,
+                            totalTickets - completedTickets - inProgressTickets - blockedTickets,
+                          );
+                          const segments = [
+                            { key: "done", label: "Done", value: completedTickets, color: "#10B981" },
+                            { key: "active", label: "Active", value: inProgressTickets, color: "#0EA5E9" },
+                            { key: "blocked", label: "Blocked", value: blockedTickets, color: "#EF4444" },
+                            { key: "pending", label: "Pending", value: pendingTickets, color: "#F59E0B" },
+                          ];
+                          const pct = (n: number) =>
+                            totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
+                          return (
+                        <Card
+                          style={{ ...cardBase, height: 340, overflow: "hidden", position: "relative" }}
+                          styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
+                          title={sectionTitle(
+                            <TrophyOutlined />,
+                            "My Tickets",
+                            "#7C3AED",
+                          )}
+                          extra={
+                            <Button
+                              type="link"
+                              size="small"
+                              onClick={() => router.push("/tickets")}
+                              style={{ fontSize: 11 }}
+                            >
+                              View all
+                            </Button>
+                          }
+                        >
+                          {totalTickets === 0 ? (
+                            <div style={{ padding: 24, textAlign: "center", flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Empty
+                                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                description={
+                                  <Text type="secondary" style={{ fontSize: 12 }}>
+                                    No tickets found
+                                  </Text>
+                                }
                               />
                             </div>
                           ) : (
-                            <div style={{ padding: 20, textAlign: "center" }}>
-                              <VideoCameraOutlined style={{ fontSize: 24, color: "#bfbfbf", marginBottom: 6 }} />
-                              <div>
-                                <Text type="secondary" style={{ fontSize: 11 }}>No meetings scheduled</Text>
-                              </div>
-                            </div>
-                          )}
-                        </Card>
-                      </div>
-                    </Col>
-                    <Col xs={24} lg={8}>
-                      {/* My Attendance */}
-                      <Card
-                        title={
-                          <Space>
-                            <ClockCircleOutlined style={{ color: token.colorTextSecondary }} />
-                            <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>My Attendance</span>
-                          </Space>
-                        }
-                        extra={
-                          todayAttendance && (
-                            <Tag
-                              color={todayAttendance.canClockIn ? "default" : todayAttendance.canClockOut ? "processing" : "success"}
-                              style={{ borderRadius: '6px', margin: 0 }}
+                            <div
+                              style={{
+                                flex: 1,
+                                display: "flex",
+                                flexDirection: "column",
+                                padding: "12px 16px 14px",
+                              }}
                             >
-                              {todayAttendance.canClockIn ? "Not Clocked In" : todayAttendance.canClockOut ? "Active Now" : "Shift Completed"}
-                            </Tag>
-                          )
-                        }
-                        size="small"
-                        bordered
-                        styles={{ body: { padding: 20 } }}
-                        style={{ height: "260px", boxShadow: "none" }}
-                      >
-                        {todayAttendance ? (
-                          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                            <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                              <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>TOTAL WORK DURATION</Text>
-                              <div style={{
-                                fontSize: 32,
-                                fontWeight: 700,
-                                color: (todayAttendance.canClockOut) ? '#722ed1' : '#262626',
-                                letterSpacing: '-0.5px',
-                                lineHeight: 1
-                              }}>
-                                {workDuration || "00:00:00"}
-                              </div>
-                            </div>
-
-                            <div style={{
-                              background: 'var(--bg-pure-white)',
-                              borderRadius: '12px',
-                              padding: '12px',
-                              display: 'flex',
-                              justifyContent: 'space-around',
-                              marginBottom: 16,
-                              border: '1px solid var(--border-color)'
-                            }}>
-                              <div style={{ textAlign: 'center' }}>
-                                <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 2 }}>CLOCK IN</Text>
-                                <Space size={4}>
-                                  <LoginOutlined style={{ fontSize: 12, color: '#52c41a' }} />
-                                  <Text strong style={{ fontSize: 13 }}>
-                                    {todayAttendance.clockInTime ? dayjs(todayAttendance.clockInTime).format("hh:mm A") : "--:--"}
+                              {/* Hero row: completion % + closed/total */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "flex-end",
+                                  justifyContent: "space-between",
+                                  gap: 12,
+                                  marginBottom: 8,
+                                }}
+                              >
+                                <div>
+                                  <Text
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      color: token.colorTextSecondary,
+                                      letterSpacing: "0.6px",
+                                      textTransform: "uppercase",
+                                      display: "block",
+                                    }}
+                                  >
+                                    Completion
                                   </Text>
-                                </Space>
-                              </div>
-                              <Divider type="vertical" style={{ height: '32px', borderLeftColor: 'var(--border-color)' }} />
-                              <div style={{ textAlign: 'center' }}>
-                                <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 2 }}>CLOCK OUT</Text>
-                                <Space size={4}>
-                                  <LogoutOutlined style={{ fontSize: 12, color: '#ff4d4f' }} />
-                                  <Text strong style={{ fontSize: 13 }}>
-                                    {todayAttendance.clockOutTime ? dayjs(todayAttendance.clockOutTime).format("hh:mm A") : "--:--"}
-                                  </Text>
-                                </Space>
-                              </div>
-                            </div>
-
-                            <div style={{ display: "flex", justifyContent: "center" }}>
-                              {todayAttendance.canClockIn ? (
-                                <Button
-                                  type="primary"
-                                  block
-                                  icon={<PlayCircleOutlined />}
-                                  onClick={handleClockIn}
-                                  loading={isClocking}
-                                  size="large"
-                                  style={{
-                                    borderRadius: '10px',
-                                    height: 44,
-                                    background: token.colorPrimary,
-                                    borderColor: token.colorPrimary,
-                                    boxShadow: `0 2px 4px ${token.colorPrimaryBg}`,
-                                    fontWeight: 600
-                                  }}
-                                >
-                                  Clock In Now
-                                </Button>
-                              ) : todayAttendance.canClockOut ? (
-                                <Button
-                                  danger
-                                  block
-                                  icon={<PauseCircleOutlined />}
-                                  onClick={handleClockOut}
-                                  loading={isClocking}
-                                  size="large"
-                                  style={{
-                                    borderRadius: '10px',
-                                    height: 44,
-                                    boxShadow: '0 4px 10px rgba(255, 77, 79, 0.2)',
-                                    fontWeight: 600
-                                  }}
-                                >
-                                  Clock Out
-                                </Button>
-                              ) : (
-                                <div style={{
-                                  width: '100%',
-                                  padding: '10px',
-                                  // background: '#f6ffed',
-                                  border: '1px solid #b7eb8f',
-                                  borderRadius: '10px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: 8,
-                                  color: '#52c41a',
-                                  fontWeight: 500
-                                }}>
-                                  <TrophyOutlined />
-                                  <span>Shift Completed Successfully</span>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "baseline",
+                                      gap: 6,
+                                      marginTop: 2,
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        fontSize: 28,
+                                        fontWeight: 700,
+                                        lineHeight: 1,
+                                        color: token.colorText,
+                                        letterSpacing: "-0.8px",
+                                        fontVariantNumeric: "tabular-nums",
+                                        background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #7C3AED 100%)`,
+                                        WebkitBackgroundClip: "text",
+                                        WebkitTextFillColor: "transparent",
+                                        backgroundClip: "text",
+                                      }}
+                                    >
+                                      {completionRate}%
+                                    </span>
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <Skeleton active paragraph={{ rows: 4 }} />
-                        )}
-                      </Card>
-                    </Col>
-                  </Row>
-
-                  {/* Row 2: Leave & Recent Tickets */}
-                  <Row gutter={[12, 12]}>
-                    <Col xs={24} lg={8}>
-                      {/* Action Cards Container */}
-                      <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                        {/* Apply Leave Card */}
-                        <Card
-                          hoverable
-                          bordered
-                          style={{
-                            borderRadius: 14,
-                            border: `1px solid ${token.colorBorderSecondary}`,
-                            boxShadow: "none",
-                            overflow: 'hidden',
-                            background: token.colorBgContainer
-                          }}
-                          styles={{ body: { padding: '12px 16px' } }}
-                          onClick={() => router.push("/apply-leave")}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <div style={{
-                              width: 38,
-                              height: 38,
-                              borderRadius: 10,
-                              background: token.colorFillAlter,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              border: `1px solid ${token.colorBorderSecondary}`
-                            }}>
-                              <FormOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Apply Leave</Title>
-                              <Text type="secondary" style={{ fontSize: 11 }}>Request time off easily</Text>
-                            </div>
-                            <Button
-                              type="primary"
-                              shape="circle"
-                              size="small"
-                              icon={<PlusOutlined style={{ fontSize: 12 }} />}
-                              style={{
-                                background: token.colorPrimary,
-                                border: 'none',
-                                width: 24,
-                                height: 24,
-                                minWidth: 24,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                            />
-                          </div>
-                        </Card>
-
-                        {/* Apply Reimbursement Card */}
-                        <Card
-                          hoverable
-                          bordered
-                          style={{
-                            borderRadius: 14,
-                            border: `1px solid ${token.colorBorderSecondary}`,
-                            boxShadow: "none",
-                            overflow: 'hidden',
-                            background: token.colorBgContainer
-                          }}
-                          styles={{ body: { padding: '12px 16px' } }}
-                          onClick={() => router.push("/reimburseCreate")}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <div style={{
-                              width: 38,
-                              height: 38,
-                              borderRadius: 10,
-                              background: token.colorFillAlter,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              border: `1px solid ${token.colorBorderSecondary}`
-                            }}>
-                              <WalletOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Reimbursement</Title>
-                              <Text type="secondary" style={{ fontSize: 11 }}>Submit expense claims</Text>
-                            </div>
-                            <Button
-                              type="primary"
-                              shape="circle"
-                              size="small"
-                              icon={<PlusOutlined style={{ fontSize: 12 }} />}
-                              style={{
-                                background: token.colorPrimary,
-                                border: 'none',
-                                width: 24,
-                                height: 24,
-                                minWidth: 24,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                            />
-                          </div>
-                        </Card>
-
-                        {/* Submit Timesheet Card */}
-                        <Card
-                          hoverable
-                          bordered
-                          style={{
-                            borderRadius: 14,
-                            border: `1px solid ${token.colorBorderSecondary}`,
-                            boxShadow: "none",
-                            overflow: 'hidden',
-                            background: token.colorBgContainer
-                          }}
-                          styles={{ body: { padding: '12px 16px' } }}
-                          onClick={() => router.push("/timesheet/submit")}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <div style={{
-                              width: 38,
-                              height: 38,
-                              borderRadius: 10,
-                              background: token.colorFillAlter,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              border: `1px solid ${token.colorBorderSecondary}`
-                            }}>
-                              <ClockCircleOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Submit Timesheet</Title>
-                              <Text type="secondary" style={{ fontSize: 11 }}>Log your daily hours</Text>
-                            </div>
-                            <Button
-                              type="primary"
-                              shape="circle"
-                              size="small"
-                              icon={<PlusOutlined style={{ fontSize: 12 }} />}
-                              style={{
-                                background: token.colorPrimary,
-                                border: 'none',
-                                width: 24,
-                                height: 24,
-                                minWidth: 24,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                            />
-                          </div>
-                        </Card>
-                      </Space>
-                    </Col>
-                    <Col xs={24} lg={16}>
-                      {/* Recent Tickets */}
-                      <Card
-                        title={
-                          <Space>
-                            <FileTextOutlined style={{ color: token.colorTextSecondary }} />
-                            <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>Recent Tickets</span>
-                          </Space>
-                        }
-                        size="small"
-                        bordered
-                        extra={
-                          <Button
-                            type="link"
-                            size="small"
-                            onClick={() => router.push("/tickets")}
-                            style={{ fontSize: 12 }}
-                          >
-                            View All
-                          </Button>
-                        }
-                        style={{
-                          height: "230px",
-                          display: "flex",
-                          flexDirection: "column",
-                          boxShadow: "none",
-                        }}
-                        styles={{
-                          body: {
-                            padding: 0,
-                            flex: 1,
-                            overflowY: "auto",
-                          }
-                        }}
-                      >
-                        <List
-                          dataSource={recentTickets}
-                          className="no-scrollbar"
-                          style={{ padding: '0 4px' }}
-                          renderItem={(item: any) => (
-                             <List.Item
-                               onClick={() => router.push(`/tickets/${item.id}`)}
-                               style={{
-                                 padding: "12px 14px",
-                                 cursor: "pointer",
-                                 borderBottom: `1px solid ${token.colorBorderSecondary}`,
-                                 display: "flex",
-                                 alignItems: "center",
-                                 gap: "12px",
-                                 borderRadius: '12px',
-                                 margin: '4px 0'
-                               }}
-                               className="ticket-list-item"
-                             >
-                               {/* Priority Bar Indicator */}
-                               <div
-                                 style={{
-                                   width: "4px",
-                                   height: "36px",
-                                   borderRadius: "2px",
-                                   background: getPriorityColor(item.priority),
-                                   flexShrink: 0,
-                                 }}
-                               />
- 
-                               <div style={{ flex: 1, minWidth: 0 }}>
-                                 <div
-                                   style={{
-                                     display: "flex",
-                                     justifyContent: "space-between",
-                                     alignItems: "center",
-                                     marginBottom: 3,
-                                   }}
-                                 >
-                                   <Space size={8}>
-                                     <Text
-                                       type="secondary"
-                                       style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.2px' }}
-                                     >
-                                       {item.ticketNumber}
-                                     </Text>
-                                     <Tag
-                                       style={{
-                                         fontSize: 9,
-                                         margin: 0,
-                                         borderRadius: "4px",
-                                         background: token.colorFillAlter,
-                                         border: "none",
-                                         color: token.colorTextSecondary
-                                       }}
-                                     >
-                                       {typeof item.project === "string"
-                                         ? item.project
-                                         : item.project?.code ||
-                                         item.project?.name}
-                                     </Tag>
-                                   </Space>
-                                   <Text type="secondary" style={{ fontSize: 10, color: token.colorTextDescription }}>
-                                     {formatTimeAgo(item.createdAt)}
-                                   </Text>
-                                 </div>
- 
-                                 <Text
-                                   strong
-                                   ellipsis={{ tooltip: item.title }}
-                                   style={{
-                                     fontSize: 13,
-                                     display: "block",
-                                     color: token.colorText,
-                                     lineHeight: 1.3,
-                                     marginBottom: 6
-                                   }}
-                                 >
-                                   {item.title}
-                                 </Text>
-
                                 <div
                                   style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
+                                    textAlign: "right",
+                                    paddingBottom: 4,
                                   }}
                                 >
-                                  {(() => {
-                                    let color = "default";
-                                    const status = item.status?.toLowerCase();
-                                    if (status === "completed" || status === "live") color = "success";
-                                    if (status === "in_progress") color = "processing";
-                                    if (status === "not_started") color = "default";
-                                    if (status === "blocked") color = "error";
-
-                                    return (
-                                      <Tag
-                                        color={color}
-                                        style={{
-                                          fontSize: 9,
-                                          margin: 0,
-                                          borderRadius: "5px",
-                                          padding: "0 8px",
-                                          border: 'none',
-                                          fontWeight: 600
-                                        }}
-                                      >
-                                        {item.status?.replace(/_/g, " ").toUpperCase()}
-                                      </Tag>
-                                    );
-                                  })()}
-
-                                  {item.assignee && (
-                                    <Tooltip title={`Assignee: ${item.assignee.name}`}>
-                                      <Avatar
-                                        size={20}
-                                        src={item.assignee.avatar}
-                                        style={{
-                                          backgroundColor: "#722ed1",
-                                          fontSize: 10,
-                                          border: '1.5px solid white',
-                                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                        }}
-                                      >
-                                        {item.assignee.name?.charAt(0).toUpperCase()}
-                                      </Avatar>
-                                    </Tooltip>
-                                  )}
+                                  <div
+                                    style={{
+                                      fontSize: 16,
+                                      fontWeight: 700,
+                                      color: token.colorText,
+                                      lineHeight: 1,
+                                      fontVariantNumeric: "tabular-nums",
+                                    }}
+                                  >
+                                    {completedTickets}
+                                    <span style={{ color: token.colorTextTertiary, fontWeight: 500 }}>
+                                      {" "}/ {totalTickets}
+                                    </span>
+                                  </div>
+                                  <Text
+                                    style={{
+                                      fontSize: 10,
+                                      color: token.colorTextSecondary,
+                                      fontWeight: 600,
+                                      letterSpacing: "0.4px",
+                                      textTransform: "uppercase",
+                                    }}
+                                  >
+                                    Closed · Total
+                                  </Text>
                                 </div>
                               </div>
-                            </List.Item>
-                          )}
-                        />
-                      </Card>
-                    </Col>
-                  </Row>
-                </>
-              ) : null}
-            </>
-          )}
 
-          {/* ✅ ORGANIZATION SEGMENT */}
-          {activeSegment === "organization" && <Organization />}
-        </div>
-      </MainLayout>
-    );
+                              {/* Segmented progress bar */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  width: "100%",
+                                  height: 6,
+                                  borderRadius: 999,
+                                  overflow: "hidden",
+                                  background: token.colorFillAlter,
+                                  border: `1px solid ${token.colorBorderSecondary}`,
+                                  gap: 2,
+                                  padding: 1,
+                                  marginBottom: 10,
+                                }}
+                              >
+                                {segments
+                                  .filter((s) => s.value > 0)
+                                  .map((s) => (
+                                    <Tooltip
+                                      key={s.key}
+                                      title={`${s.label}: ${s.value} (${pct(s.value)}%)`}
+                                    >
+                                      <div
+                                        style={{
+                                          flex: s.value,
+                                          background: s.color,
+                                          borderRadius: 999,
+                                          minWidth: 4,
+                                          transition: "opacity 0.2s",
+                                        }}
+                                      />
+                                    </Tooltip>
+                                  ))}
+                              </div>
+
+                              {/* Status breakdown list */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 4,
+                                  flex: 1,
+                                }}
+                              >
+                                {segments.map((s) => (
+                                  <div
+                                    key={s.key}
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      padding: "5px 10px",
+                                      borderRadius: 8,
+                                      background: token.colorFillAlter,
+                                      border: `1px solid ${token.colorBorderSecondary}`,
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 8,
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          width: 8,
+                                          height: 8,
+                                          borderRadius: "50%",
+                                          background: s.color,
+                                          boxShadow: `0 0 0 3px ${s.color}1F`,
+                                        }}
+                                      />
+                                      <Text
+                                        style={{
+                                          fontSize: 12,
+                                          fontWeight: 600,
+                                          color: token.colorText,
+                                        }}
+                                      >
+                                        {s.label}
+                                      </Text>
+                                    </div>
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "baseline",
+                                        gap: 6,
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          fontSize: 14,
+                                          fontWeight: 700,
+                                          color: token.colorText,
+                                          fontVariantNumeric: "tabular-nums",
+                                          lineHeight: 1,
+                                        }}
+                                      >
+                                        {s.value}
+                                      </span>
+                                      <span
+                                        style={{
+                                          fontSize: 10,
+                                          color: token.colorTextTertiary,
+                                          fontWeight: 600,
+                                          fontVariantNumeric: "tabular-nums",
+                                          minWidth: 28,
+                                          textAlign: "right",
+                                        }}
+                                      >
+                                        {pct(s.value)}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </Card>
+                          );
+                        })()}
+                      </Col>
+                </Row>
+
+                {/* Bottom Row: Recent Tickets + Quick Actions */}
+                <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                      <Col xs={24} lg={16}>
+                        <Card
+                          style={{ ...cardBase, height: "100%" }}
+                          styles={{ body: { padding: 16, display: "flex", flexDirection: "column" } }}
+                          title={sectionTitle(
+                            <FileTextOutlined />,
+                            "Recent Tickets",
+                            "#0EA5E9",
+                          )}
+                          extra={
+                            <Space size={8}>
+                              <Tag
+                                style={{
+                                  margin: 0,
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                  borderRadius: 999,
+                                  padding: "1px 8px",
+                                  background: token.colorFillAlter,
+                                  border: `1px solid ${token.colorBorderSecondary}`,
+                                  color: token.colorTextSecondary,
+                                }}
+                              >
+                                {recentTickets.length} recent
+                              </Tag>
+                              <Button
+                                type="link"
+                                size="small"
+                                onClick={() => router.push("/tickets")}
+                                style={{ fontSize: 11 }}
+                              >
+                                View all
+                              </Button>
+                            </Space>
+                          }
+                        >
+                          {recentTickets.length === 0 ? (
+                            <div
+                              style={{
+                                padding: 40,
+                                textAlign: "center",
+                                flex: 1,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Empty
+                                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                description={
+                                  <Text type="secondary" style={{ fontSize: 12 }}>
+                                    No tickets yet
+                                  </Text>
+                                }
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns:
+                                  "repeat(auto-fill, minmax(240px, 1fr))",
+                                gap: 12,
+                              }}
+                            >
+                              {recentTickets.map((item: any) => {
+                                const status = item.status?.toLowerCase();
+                                const statusMeta: Record<
+                                  string,
+                                  { label: string; color: string; bg: string }
+                                > = {
+                                  completed: { label: "Completed", color: "#10B981", bg: "#ECFDF5" },
+                                  live: { label: "Live", color: "#10B981", bg: "#ECFDF5" },
+                                  done: { label: "Done", color: "#10B981", bg: "#ECFDF5" },
+                                  in_progress: { label: "In Progress", color: "#0EA5E9", bg: "#F0F9FF" },
+                                  doing: { label: "In Progress", color: "#0EA5E9", bg: "#F0F9FF" },
+                                  blocked: { label: "Blocked", color: "#EF4444", bg: "#FEF2F2" },
+                                  not_started: { label: "Not Started", color: "#94A3B8", bg: token.colorFillAlter },
+                                };
+                                const sm =
+                                  statusMeta[status] || {
+                                    label: (item.status || "—")
+                                      .replace(/_/g, " ")
+                                      .toUpperCase(),
+                                    color: token.colorTextSecondary,
+                                    bg: token.colorFillAlter,
+                                  };
+                                const priorityColor = getPriorityColor(item.priority);
+                                const priority = (item.priority || "")
+                                  .toString()
+                                  .toUpperCase();
+                                const projectLabel =
+                                  typeof item.project === "string"
+                                    ? item.project
+                                    : item.project?.code || item.project?.name || "—";
+
+                                return (
+                                  <div
+                                    key={item.id}
+                                    onClick={() =>
+                                      router.push(`/tickets/${item.id}`)
+                                    }
+                                    className="ticket-list-item"
+                                    style={{
+                                      position: "relative",
+                                      cursor: "pointer",
+                                      borderRadius: 14,
+                                      border: `1px solid ${token.colorBorderSecondary}`,
+                                      background: token.colorBgContainer,
+                                      padding: "14px 14px 12px 18px",
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      gap: 10,
+                                      overflow: "hidden",
+                                    }}
+                                  >
+                                    {/* Priority left bar */}
+                                    <div
+                                      aria-hidden
+                                      style={{
+                                        position: "absolute",
+                                        left: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        width: 4,
+                                        background: priorityColor,
+                                      }}
+                                    />
+
+                                    {/* Header row */}
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 8,
+                                      }}
+                                    >
+                                      <Space size={6} align="center">
+                                        <span
+                                          style={{
+                                            fontSize: 10,
+                                            fontWeight: 700,
+                                            letterSpacing: "0.4px",
+                                            color: token.colorTextSecondary,
+                                            background: token.colorFillAlter,
+                                            border: `1px solid ${token.colorBorderSecondary}`,
+                                            padding: "2px 6px",
+                                            borderRadius: 6,
+                                            fontVariantNumeric: "tabular-nums",
+                                          }}
+                                        >
+                                          {item.ticketNumber}
+                                        </span>
+                                        {projectLabel && projectLabel !== "—" && (
+                                          <span
+                                            style={{
+                                              fontSize: 10,
+                                              fontWeight: 600,
+                                              color: token.colorTextTertiary,
+                                              maxWidth: 100,
+                                              overflow: "hidden",
+                                              textOverflow: "ellipsis",
+                                              whiteSpace: "nowrap",
+                                            }}
+                                          >
+                                            · {projectLabel}
+                                          </span>
+                                        )}
+                                      </Space>
+                                      {priority && (
+                                        <Tooltip title={`Priority: ${priority}`}>
+                                          <span
+                                            style={{
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: 4,
+                                              fontSize: 9,
+                                              fontWeight: 700,
+                                              letterSpacing: "0.4px",
+                                              color: priorityColor,
+                                              padding: "2px 6px",
+                                              borderRadius: 999,
+                                              background: `${priorityColor}14`,
+                                              border: `1px solid ${priorityColor}33`,
+                                            }}
+                                          >
+                                            <span
+                                              style={{
+                                                width: 5,
+                                                height: 5,
+                                                borderRadius: "50%",
+                                                background: priorityColor,
+                                              }}
+                                            />
+                                            {priority}
+                                          </span>
+                                        </Tooltip>
+                                      )}
+                                    </div>
+
+                                    {/* Title */}
+                                    <Tooltip title={item.title}>
+                                      <div
+                                        style={{
+                                          fontSize: 13,
+                                          fontWeight: 600,
+                                          color: token.colorText,
+                                          lineHeight: 1.35,
+                                          letterSpacing: "-0.1px",
+                                          display: "-webkit-box",
+                                          WebkitLineClamp: 2,
+                                          WebkitBoxOrient: "vertical",
+                                          overflow: "hidden",
+                                          minHeight: 36,
+                                        }}
+                                      >
+                                        {item.title}
+                                      </div>
+                                    </Tooltip>
+
+                                    {/* Footer row */}
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 8,
+                                        paddingTop: 8,
+                                        borderTop: `1px dashed ${token.colorBorderSecondary}`,
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 6,
+                                          fontSize: 10,
+                                          fontWeight: 700,
+                                          letterSpacing: "0.3px",
+                                          color: sm.color,
+                                          background: sm.bg,
+                                          padding: "3px 8px",
+                                          borderRadius: 999,
+                                          border: `1px solid ${sm.color}26`,
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            width: 5,
+                                            height: 5,
+                                            borderRadius: "50%",
+                                            background: sm.color,
+                                            boxShadow: `0 0 6px ${sm.color}80`,
+                                          }}
+                                        />
+                                        {sm.label.toUpperCase()}
+                                      </span>
+
+                                      <Space size={8} align="center">
+                                        <Text
+                                          style={{
+                                            fontSize: 10,
+                                            color: token.colorTextTertiary,
+                                            fontWeight: 500,
+                                          }}
+                                        >
+                                          {formatTimeAgo(item.createdAt)}
+                                        </Text>
+                                        {item.assignee && (
+                                          <Tooltip
+                                            title={`Assignee: ${item.assignee.name}`}
+                                          >
+                                            <Avatar
+                                              size={22}
+                                              src={item.assignee.avatar}
+                                              style={{
+                                                backgroundColor: "#7C3AED",
+                                                fontSize: 10,
+                                                fontWeight: 700,
+                                                border: `2px solid ${token.colorBgContainer}`,
+                                                boxShadow:
+                                                  "0 2px 6px rgba(15, 23, 42, 0.12)",
+                                              }}
+                                            >
+                                              {item.assignee.name
+                                                ?.charAt(0)
+                                                .toUpperCase()}
+                                            </Avatar>
+                                          </Tooltip>
+                                        )}
+                                      </Space>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </Card>
+                      </Col>
+
+                      <Col xs={24} lg={8}>
+                        <Card
+                          style={{ ...cardBase, height: "100%" }}
+                          styles={{ body: { padding: 16 } }}
+                          title={sectionTitle(
+                            <ThunderboltFilled />,
+                            "Quick Actions",
+                            "#F59E0B",
+                          )}
+                        >
+                          <Space
+                            direction="vertical"
+                            size={10}
+                            style={{ width: "100%" }}
+                          >
+                            <QuickActionCard
+                              icon={<PlusCircleOutlined />}
+                              title="Create Ticket"
+                              desc="Log a new task or issue"
+                              accent="#7C3AED"
+                              onClick={() => router.push("/tickets")}
+                            />
+                            <QuickActionCard
+                              icon={<FolderOpenOutlined />}
+                              title="Document Hub"
+                              desc="Browse and manage documents"
+                              accent="#10B981"
+                              onClick={() => router.push("/documenthub")}
+                            />
+                            <QuickActionCard
+                              icon={<AppstoreOutlined />}
+                              title="Projects"
+                              desc="View all active projects"
+                              accent="#0EA5E9"
+                              onClick={() => router.push("/projects")}
+                            />
+                          </Space>
+                        </Card>
+                      </Col>
+                </Row>
+              </>
+            ) : null}
+          </>
+        )}
+
+        {/* ─── ORGANIZATION SEGMENT ─────────────────────────────── */}
+        {activeSegment === "organization" && <Organization />}
+      </div>
+    </MainLayout>
+  );
 }
 
 export default function DashboardPage() {

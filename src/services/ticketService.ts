@@ -561,6 +561,19 @@ class TicketService {
   }
 
   /**
+   * Get distinct tags used across all tickets in the tenant.
+   */
+  static async getAllTags(): Promise<string[]> {
+    try {
+      const response = await apiClient.get(`/api/tickets/tags`);
+      return response.data.data || [];
+    } catch (error: any) {
+      console.error("Error fetching ticket tags:", error);
+      return [];
+    }
+  }
+
+  /**
    * Delete ticket
    */
   static async deleteTicket(id: string): Promise<void> {

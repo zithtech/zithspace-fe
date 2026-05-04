@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
-import { Input, Tag, Typography, Spin, Tooltip } from 'antd';
+import React, { useState, useEffect, useRef, KeyboardEvent, useMemo } from 'react';
+import { AutoComplete, Tag, Typography, Spin, Tooltip } from 'antd';
 import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
-import type { InputRef } from 'antd';
+import type { RefSelectProps } from 'antd';
 
 const { Text } = Typography;
 
@@ -11,6 +11,8 @@ interface EditableTagsProps {
     placeholder?: string;
     emptyText?: string;
     maxTagLength?: number;
+    /** Existing tags across the workspace, shown in the searchable dropdown. */
+    suggestions?: string[];
 }
 
 const TAG_PALETTE = [
@@ -43,19 +45,46 @@ const normalize = (tags: string[]): string[] => {
 export const EditableTags: React.FC<EditableTagsProps> = ({
     value,
     onSave,
-    placeholder = 'Add tag…',
+    placeholder = 'Search or create tag…',
     emptyText = 'No tags',
     maxTagLength = 32,
+    suggestions = [],
 }) => {
     const tags = value ?? [];
     const [isAdding, setIsAdding] = useState(false);
     const [draft, setDraft] = useState('');
     const [loading, setLoading] = useState(false);
-    const inputRef = useRef<InputRef>(null);
+    const inputRef = useRef<RefSelectProps>(null);
 
     useEffect(() => {
         if (isAdding) inputRef.current?.focus();
     }, [isAdding]);
+
+    const dropdownOptions = useMemo(() => {
+        const usedKeys = new Set(tags.map(t => t.toLowerCase()));
+        const trimmedDraft = draft.trim();
+        const draftKey = trimmedDraft.toLowerCase();
+        const draftIsExistingTag = usedKeys.has(draftKey);
+
+        const filtered = suggestions
+            .filter(s => {
+                const k = s.toLowerCase();
+                if (usedKeys.has(k)) return false;
+                if (!trimmedDraft) return true;
+                return k.includes(draftKey);
+            })
+            .map(s => ({ value: s, label: s }));
+
+        const exactMatch = filtered.some(o => o.value.toLowerCase() === draftKey);
+        if (trimmedDraft && !exactMatch && !draftIsExistingTag) {
+            filtered.unshift({
+                value: trimmedDraft,
+                label: `+ Create "${trimmedDraft}"`,
+            });
+        }
+
+        return filtered;
+    }, [suggestions, tags, draft]);
 
     const persist = async (next: string[]) => {
         const normalized = normalize(next);
@@ -89,8 +118,8 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
         await persist(tags.filter(t => t !== tag));
     };
 
-    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' || e.key === ',') {
+    const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === ',') {
             e.preventDefault();
             commitDraft();
         } else if (e.key === 'Escape') {
@@ -101,6 +130,15 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
             e.preventDefault();
             removeTag(tags[tags.length - 1]);
         }
+    };
+
+    const handleSelect = async (selected: string) => {
+        const v = selected.trim();
+        setDraft('');
+        setIsAdding(false);
+        if (!v) return;
+        if (tags.some(t => t.toLowerCase() === v.toLowerCase())) return;
+        await persist([...tags, v]);
     };
 
     return (
@@ -156,21 +194,23 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
             })}
 
             {isAdding ? (
-                <Input
+                <AutoComplete
                     ref={inputRef}
                     size="small"
                     value={draft}
+                    options={dropdownOptions}
                     placeholder={placeholder}
                     maxLength={maxTagLength}
-                    onChange={e => setDraft(e.target.value)}
+                    onChange={(val) => setDraft(val ?? '')}
+                    onSelect={handleSelect}
                     onBlur={commitDraft}
                     onKeyDown={handleKeyDown}
+                    open
+                    backfill={false}
+                    notFoundContent={null}
+                    filterOption={false}
                     style={{
-                        width: 110,
-                        height: 22,
-                        fontSize: 12,
-                        borderRadius: 10,
-                        padding: '0 8px',
+                        width: 180,
                     }}
                 />
             ) : (

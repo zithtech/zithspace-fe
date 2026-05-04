@@ -279,7 +279,7 @@ export default function TicketSettings() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em', lineHeight: 'normal' }}>
-                System Architecture
+                Ticket Settings
               </Title>
               <div className="ts-divider" />
               <Text className="ts-header-subtitle">

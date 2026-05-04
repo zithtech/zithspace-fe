@@ -118,6 +118,9 @@ export const useUpdateTicket = () => {
     onSuccess: (_, { ticketId }) => {
       // Only invalidate ticket details, not comments/links
       queryClient.invalidateQueries({ queryKey: ['ticket', ticketId] });
+      // Sprint completion summary aggregates ticket statuses server-side;
+      // invalidate so the Complete Sprint pending tab refetches.
+      queryClient.invalidateQueries({ queryKey: ['sprint-completion'] });
     },
   });
 };

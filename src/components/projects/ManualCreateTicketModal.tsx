@@ -6,15 +6,15 @@ import {
   FileTextOutlined, UserOutlined, CalendarOutlined, ThunderboltOutlined,
   CheckCircleOutlined, InfoCircleOutlined, CloseOutlined, PlusOutlined,
   ProjectOutlined, RocketOutlined, FieldTimeOutlined, TeamOutlined,
-  LineChartOutlined, FundProjectionScreenOutlined
+  LineChartOutlined, FundProjectionScreenOutlined, TagsOutlined
 } from "@ant-design/icons";
-import dayjs from "dayjs";
 import { ProjectService } from "@/services/projectService";
-import { useCreateTicket } from "@/hooks/useTickets";
+import { useCreateTicket, useAllTicketTags } from "@/hooks/useTickets";
 import { useUserProjects, useTicketConfig } from "@/hooks/useGlobalData";
 import { PRIORITY_OPTIONS, TYPE_OPTIONS, getPriorityColor } from "@/utils/ticketUtils";
 import { Ticket } from "@/services/ticketService";
 import TiptapEditor from "@/components/common/TiptapEditor";
+import { EditableTags } from "@/components/projects/drawer/editable/EditableTags";
 
 const { Text, Title } = Typography;
 const { Option } = Select;
@@ -41,6 +41,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
 
   const { data: projects = [] } = useUserProjects();
   const { data: ticketConfig } = useTicketConfig();
+  const { data: tagSuggestions = [] } = useAllTicketTags();
   const createTicketMutation = useCreateTicket();
 
   const platforms = ticketConfig?.platforms || [];
@@ -51,6 +52,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
 
   // Watch for platform changes
   const selectedPlatform = Form.useWatch("platform", form);
+  const tagsValue: string[] = Form.useWatch("tags", form) || [];
 
   useEffect(() => {
     if (open && projectId) {
@@ -144,7 +146,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
           form={form}
           layout="vertical"
           onFinish={onFinish}
-          initialValues={{ storyPoint: 2, estimateHours: 8, priority: 'P2', type: 'Task' }}
+          initialValues={{ storyPoint: 2, estimateHours: 8, priority: 'P2', type: 'Task', tags: [] }}
           requiredMark={false}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -280,10 +282,10 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
                             <Text style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-slate-500)' }}>Est. Hours</Text>
                           </div>
                           <Form.Item name="estimateHours" label={null} style={{ marginBottom: 0 }}>
-                            <InputNumber 
-                              min={1} 
-                              max={1000} 
-                              style={{ width: '100%', height: 32, borderRadius: 0 }} 
+                            <InputNumber
+                              min={1}
+                              max={1000}
+                              style={{ width: '100%', height: 32, borderRadius: 0 }}
                               placeholder="Hours"
                             />
                           </Form.Item>
@@ -296,7 +298,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
             </div>
 
             {/* Field Section: Ownership & Timeline */}
-            <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: 12, border: '1px solid var(--border-color)', boxShadow: 'var(--premium-shadow)', marginBottom: 80 }}>
+            <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: 12, border: '1px solid var(--border-color)', boxShadow: 'var(--premium-shadow)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                 <div style={{ padding: 6, background: 'var(--bg-green-50)', borderRadius: 6, display: 'flex' }}>
                   <TeamOutlined style={{ color: '#10b981', fontSize: 14 }} />
@@ -346,6 +348,33 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
                   </Col>
                 </Row>
               </ConfigProvider>
+            </div>
+
+            {/* Field Section: Tags */}
+            <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: 12, border: '1px solid var(--border-color)', boxShadow: 'var(--premium-shadow)', marginBottom: 80 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <div style={{ padding: 6, background: 'var(--bg-blue-50)', borderRadius: 6, display: 'flex' }}>
+                  <TagsOutlined style={{ color: 'var(--premium-blue)', fontSize: 14 }} />
+                </div>
+                <Text style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Tags</Text>
+                {tagsValue.length > 0 && (
+                  <Text style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-slate-400)', marginLeft: 'auto' }}>
+                    {tagsValue.length} added
+                  </Text>
+                )}
+              </div>
+              <Form.Item name="tags" label={null} style={{ marginBottom: 0 }}>
+                <Input type="hidden" />
+              </Form.Item>
+              <div style={{ padding: '10px 12px', background: 'var(--bg-primary)', border: '1px dashed var(--border-color)', borderRadius: 8, minHeight: 44 }}>
+                <EditableTags
+                  value={tagsValue}
+                  suggestions={tagSuggestions}
+                  onSave={async (next) => {
+                    form.setFieldValue("tags", next);
+                  }}
+                />
+              </div>
             </div>
           </div>
         </Form>

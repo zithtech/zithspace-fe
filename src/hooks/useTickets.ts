@@ -16,6 +16,7 @@ export const ticketKeys = {
   my: (params: any) => [...ticketKeys.all, "my", params] as const,
   kanban: (params: any) => [...ticketKeys.all, "kanban", params] as const,
   dashboardStats: () => [...ticketKeys.all, "dashboard-stats"] as const,
+  allTags: () => [...ticketKeys.all, "all-tags"] as const,
 };
 
 // --- Queries ---
@@ -53,6 +54,14 @@ export const useTicket = (id: string) => {
     queryKey: ticketKeys.detail(id),
     queryFn: () => TicketService.getTicketById(id),
     enabled: !!id,
+  });
+};
+
+export const useAllTicketTags = () => {
+  return useQuery<string[]>({
+    queryKey: ticketKeys.allTags(),
+    queryFn: () => TicketService.getAllTags(),
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -404,9 +413,20 @@ export const useUpdateTicket = () => {
       }
       message.error("Failed to update ticket");
     },
-    onSuccess: (savedTicket) => {
+    onSuccess: (savedTicket, variables) => {
       // Update detail
       queryClient.setQueryData(ticketKeys.detail(savedTicket.id), savedTicket);
+
+      // If tags were touched, refresh the workspace-wide tag list so
+      // newly-created tags appear in the autocomplete dropdown.
+      if (variables?.data && 'tags' in variables.data) {
+        queryClient.invalidateQueries({ queryKey: ticketKeys.allTags() });
+      }
+
+      // Sprint completion summary is a server-computed aggregate over ticket
+      // statuses; invalidate so the Complete Sprint modal's pending tab
+      // reflects the latest status the next time it opens or refetches.
+      queryClient.invalidateQueries({ queryKey: ['sprint-completion'] });
 
       // Iterate lists to update
       const ticketLists = queryClient.getQueriesData({ queryKey: ticketKeys.lists() });

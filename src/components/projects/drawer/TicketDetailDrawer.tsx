@@ -56,7 +56,7 @@ import {
 import dayjs from "dayjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTicketComments, useTicketAttachments, useTicketLinks, useAddComment, useUpdateComment, useDeleteComment, useUploadAttachment, useDeleteAttachment, useRenameAttachment, useAddRelatedLink, useUpdateRelatedLink, useDeleteRelatedLink, useTicketDocumentHubs } from "@/hooks/useTicketDetails";
-import { useTicket, useUpdateTicket, ticketKeys } from "@/hooks/useTickets";
+import { useTicket, useUpdateTicket, useAllTicketTags, ticketKeys } from "@/hooks/useTickets";
 import { useMembers, useTicketConfig, useUserProjects } from "@/hooks/useGlobalData";
 import { useAvailableSprints } from "@/hooks/useAvailableSprints";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
@@ -163,6 +163,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
   // Data Hooks - Use currentTicketId instead of ticketId prop
   const { data: ticket, isLoading: ticketLoading } = useTicket(currentTicketId || "");
+  const { data: tagSuggestions = [] } = useAllTicketTags();
   const { activeEntry } = useTimeTrackerStore();
 
   // Fetch parent ticket if current is a subtask using useQuery directly
@@ -876,6 +877,20 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   type="textarea"
                   placeholder="Untitled ticket — add a clear, action-oriented title"
                   editIconVisibility="hover"
+                />
+              </div>
+            </div>
+
+            {/* Tags — below the title on the left side */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0 16px' }}>
+              <Text strong style={{ fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Tags
+              </Text>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <EditableTags
+                  value={ticket.tags || []}
+                  suggestions={tagSuggestions}
+                  onSave={(next) => handleUpdate("tags", next)}
                 />
               </div>
             </div>
@@ -1735,14 +1750,6 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                     options={taskLevels}
                                     onSave={(val) => handleUpdate("taskLevel", val)}
                                     mode="dot"
-                                  />
-                                </DrawerField>
-                              </Col>
-                              <Col span={24}>
-                                <DrawerField label="Tags" variant="table">
-                                  <EditableTags
-                                    value={ticket.tags || []}
-                                    onSave={(next) => handleUpdate("tags", next)}
                                   />
                                 </DrawerField>
                               </Col>

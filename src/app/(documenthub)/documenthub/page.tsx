@@ -9,7 +9,10 @@ import {
   useUserProjects,
   useUserTicketsByProjects,
   useMembers,
+  useAllDocumentHubs,
+  globalDataKeys,
 } from "@/hooks/useGlobalData";
+import { useDocumentSocketEvents } from "@/hooks/useDocumentSocketEvents";
 import DocumentHubService, { DocumentHub } from "@/services/documentHub";
 import { TicketDetails } from "@/types/ticket";
 import {
@@ -259,6 +262,9 @@ const InlineProjectSelector = ({
 };
 
 const DocumentHubPage = (props: Props) => {
+  // Enable real-time synchronization
+  useDocumentSocketEvents();
+
   const router = useRouter();
   // ... rest of state ...
   const { user, isLoading: authLoading } = useAuth();
@@ -315,10 +321,7 @@ const DocumentHubPage = (props: Props) => {
     isLoading: hubsLoading,
     isFetching: hubsFetching,
     refetch,
-  } = useQuery({
-    queryKey: ["documentHubs"],
-    queryFn: DocumentHubService.getAllDocumentHubs,
-  });
+  } = useAllDocumentHubs();
 
   const updateHub = async (id: string, data: any) => {
     try {
@@ -340,7 +343,7 @@ const DocumentHubPage = (props: Props) => {
       };
 
       const data = await DocumentHubService.createDocumentHub(documentDetails);
-      await queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
+      await queryClient.invalidateQueries({ queryKey: globalDataKeys.documentHub.all });
       setModalVisible(false);
       form.resetFields();
       router.push(`/documenthub/${data?.id}`);
@@ -362,7 +365,7 @@ const DocumentHubPage = (props: Props) => {
         try {
           await DocumentHubService.deleteDocumentHub(id);
           messageApi.success("Document Hub moved to trash");
-          queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
+          queryClient.invalidateQueries({ queryKey: globalDataKeys.documentHub.all });
         } catch (error) {
           console.error(error);
           messageApi.error("Failed to delete Document Hub");

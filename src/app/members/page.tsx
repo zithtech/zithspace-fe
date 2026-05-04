@@ -500,7 +500,16 @@ export default function MembersPage() {
         minHeight: "calc(100vh - 64px)"
       }}>
         <TimeTrackingHeader
-          style={{ padding: '8.5px 32px' }}
+          style={{ 
+            padding: '8.5px 32px',
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(12px)',
+            borderBottom: '1px solid var(--border-slate-100)',
+            marginBottom: 0
+          }}
           icon={<TeamOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
           title="Members Management"
           description="Directory and access control for all organization members"

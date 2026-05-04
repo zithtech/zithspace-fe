@@ -7,8 +7,12 @@ import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import TicketSettings from '@/components/projects/TicketSettings';
+import { useProjectSocketEvents } from '@/hooks/useProjectSocketEvents';
 
 export default function ProjectsSettingsPage() {
+  // Initialize real-time project listeners
+  useProjectSocketEvents();
+
   const { user, isLoading: authLoading } = useAuth();
   const { canManageProjects } = usePermission();
   const router = useRouter();

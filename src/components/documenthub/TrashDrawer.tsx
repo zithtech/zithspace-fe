@@ -14,6 +14,8 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import DocumentHubService, { DocumentHub } from "@/services/documentHub";
 import { format } from "date-fns";
+import { globalDataKeys } from "@/hooks/useGlobalData";
+import { useDocumentSocketEvents } from "@/hooks/useDocumentSocketEvents";
 
 const { Text, Title } = Typography;
 
@@ -23,6 +25,9 @@ interface TrashDrawerProps {
 }
 
 const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
+    // Enable real-time synchronization
+    useDocumentSocketEvents();
+
     const [activeTab, setActiveTab] = useState<"hubs" | "documents" | "folders">("hubs");
     const queryClient = useQueryClient();
     const [messageApi, contextHolder] = message.useMessage();
@@ -31,7 +36,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
     const [restoreForm] = Form.useForm();
 
     const { data: trashItems, isLoading, refetch } = useQuery({
-        queryKey: ["trashItems"],
+        queryKey: globalDataKeys.documentHub.trash,
         queryFn: () => DocumentHubService.getTrash(),
         enabled: open,
         staleTime: 0,
@@ -44,7 +49,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
             await DocumentHubService.restoreDocumentHub(id);
             messageApi.success("Document Hub restored successfully");
             refetch();
-            queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
+            queryClient.invalidateQueries({ queryKey: globalDataKeys.documentHub.all });
         } catch (error) {
             console.error(error);
             messageApi.error("Failed to restore Document Hub");
@@ -56,7 +61,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
             await DocumentHubService.restoreDocument(id);
             messageApi.success("Document restored successfully");
             refetch();
-            queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
+            queryClient.invalidateQueries({ queryKey: globalDataKeys.documentHub.all });
         } catch (error) {
             console.error(error);
             messageApi.error("Failed to restore Document");
@@ -79,7 +84,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
             messageApi.success("Folder restored successfully");
             setIsRestoreModalOpen(false);
             refetch();
-            queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
+            queryClient.invalidateQueries({ queryKey: globalDataKeys.documentHub.all });
         } catch (error: any) {
             console.error(error);
             messageApi.error(error.message || "Failed to restore Folder");

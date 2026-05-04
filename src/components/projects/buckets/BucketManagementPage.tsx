@@ -43,11 +43,16 @@ import type { Bucket } from "@/services/bucketService";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useRouter } from "next/navigation";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { useBucketSocketEvents } from "@/hooks/useBucketSocketEvents";
+import { useTrashSocketEvents } from "@/hooks/useTrashSocketEvents";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 export default function BucketManagementPage() {
+  // Initialize real-time listeners
+  useBucketSocketEvents();
+  useTrashSocketEvents();
   const [api, contextHolder] = notification.useNotification({
     placement: 'top',
   });

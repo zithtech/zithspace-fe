@@ -16,6 +16,7 @@ import { DailyUpdateService } from "@/services/dailyUpdateService";
 import TicketService from "@/services/ticketService";
 import { AttendanceService } from "@/services/attendanceService";
 import Organization from "@/components/organaization/Organization";
+import FreelancerTab from "@/components/dashboard/FreelancerTab";
 
 //import { dashboardService, DashboardData } from "@/services/dashboardService";
 import {
@@ -99,7 +100,7 @@ function DashboardContent() {
   const [averageWorkHours, setAverageWorkHours] = useState("00:00:00");
 
   // ✅ SEGMENT STATE
-  const [activeSegment, setActiveSegment] = useState<"me" | "organization">(
+  const [activeSegment, setActiveSegment] = useState<"me" | "organization" | "freelancer">(
     "me",
   );
   const [isClocking, setIsClocking] = useState(false);
@@ -601,7 +602,7 @@ function DashboardContent() {
             width={115}
             gapDegree={80}
             format={(percent) => (
-            <div style={{ marginTop: -5 }}>
+              <div style={{ marginTop: -5 }}>
                 <div style={{ fontSize: 26, fontWeight: 700, color: token.colorText, letterSpacing: '-0.5px' }}>{percent}%</div>
                 <div style={{ fontSize: 8, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Success</div>
               </div>
@@ -696,111 +697,223 @@ function DashboardContent() {
 
   return (
     <MainLayout>
-      <div style={{ 
-        margin: "0 -24px", 
-        padding: "24px 32px", 
-        background: "var(--bg-pure-white)", 
-        minHeight: "calc(100vh - 64px)" 
+      <div style={{
+        margin: "0 -24px",
+        padding: "24px 32px",
+        background: "var(--bg-pure-white)",
+        minHeight: "calc(100vh - 64px)"
       }}>
-          {/* ✅ UPDATED HEADER WITH SEGMENT SWITCHER */}
-          <Row
-            justify="space-between"
-            align="middle"
-            gutter={[16, 16]}
-            style={{ marginBottom: 20 }}
-          >
-            <Col>
-              <Title level={3} style={{ margin: 0, color: token.colorText, fontWeight: 600 }}>
-                Welcome back, {user?.name}!
-              </Title>
-              <Text type="secondary" style={{ fontSize: 13, color: token.colorTextSecondary }}>
-                Here&apos;s what&apos;s happening with your projects today.
-              </Text>
-            </Col>
+        {/* ✅ UPDATED HEADER WITH SEGMENT SWITCHER */}
+        <Row
+          justify="space-between"
+          align="middle"
+          gutter={[16, 16]}
+          style={{ marginBottom: 20 }}
+        >
+          <Col>
+            <Title level={3} style={{ margin: 0, color: token.colorText, fontWeight: 600 }}>
+              Welcome back, {user?.name}!
+            </Title>
+            <Text type="secondary" style={{ fontSize: 13, color: token.colorTextSecondary }}>
+              Here&apos;s what&apos;s happening with your projects today.
+            </Text>
+          </Col>
 
-            <Col xs={24} sm={8} md={6} style={{ textAlign: "right" }}>
-              <Segmented
-                options={[
-                  { label: "Me", value: "me", icon: <UserOutlined /> },
-                  { label: "Organization", value: "organization", icon: <TeamOutlined /> },
-                ]}
-                value={activeSegment}
-                onChange={(value) =>
-                  setActiveSegment(value as "me" | "organization")
-                }
+          <Col xs={24} sm={10} md={8} style={{ textAlign: "right" }}>
+            <Segmented
+              options={[
+                { label: "Me", value: "me", icon: <UserOutlined /> },
+
+                { label: "Organization", value: "organization", icon: <TeamOutlined /> },
+                { label: "Freelancer", value: "freelancer", icon: <DollarOutlined /> },
+              ]}
+              value={activeSegment}
+              onChange={(value) =>
+                setActiveSegment(value as "me" | "organization" | "freelancer")
+              }
+            />
+          </Col>
+        </Row>
+
+
+        {/* ✅ ME SEGMENT — your full original dashboard */}
+        {activeSegment === "me" && (
+          <>
+            {/* Error Alert */}
+            {error && (
+              <Alert
+                message="Error"
+                description={error}
+                type="error"
+                showIcon
+                closable
+                style={{ marginBottom: 16 }}
               />
-            </Col>
-          </Row>
+            )}
 
-          {/* ✅ ME SEGMENT — your full original dashboard */}
-          {activeSegment === "me" && (
-            <>
-              {/* Error Alert */}
-              {error && (
-                <Alert
-                  message="Error"
-                  description={error}
-                  type="error"
-                  showIcon
-                  closable
-                  style={{ marginBottom: 16 }}
-                />
-              )}
+            {/* Calendar Error/Success Alerts */}
+            {calendarError && (
+              <Alert
+                message="Calendar Error"
+                description={calendarError}
+                type="error"
+                showIcon
+                closable
+                style={{ marginBottom: 16 }}
+              />
+            )}
+            {calendarSuccess && (
+              <Alert
+                message="Success"
+                description={calendarSuccess}
+                type="success"
+                showIcon
+                closable
+                style={{ marginBottom: 16 }}
+              />
+            )}
 
-              {/* Calendar Error/Success Alerts */}
-              {calendarError && (
-                <Alert
-                  message="Calendar Error"
-                  description={calendarError}
-                  type="error"
-                  showIcon
-                  closable
-                  style={{ marginBottom: 16 }}
-                />
-              )}
-              {calendarSuccess && (
-                <Alert
-                  message="Success"
-                  description={calendarSuccess}
-                  type="success"
-                  showIcon
-                  closable
-                  style={{ marginBottom: 16 }}
-                />
-              )}
-
-              {/* Loading State */}
-              {loading ? (
-                <>
-                  <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
-                    {[1, 2, 3, 4].map((i) => (
-                      <Col xs={24} sm={12} lg={6} key={i}>
-                        <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
-                          <Skeleton active paragraph={{ rows: 1 }} />
-                        </Card>
-                      </Col>
-                    ))}
-                  </Row>
-                  <Row gutter={[12, 12]}>
-                    <Col xs={24} lg={16}>
+            {/* Loading State */}
+            {loading ? (
+              <>
+                <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <Col xs={24} sm={12} lg={6} key={i}>
                       <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
-                        <Skeleton active />
+                        <Skeleton active paragraph={{ rows: 1 }} />
                       </Card>
                     </Col>
-                    <Col xs={24} lg={8}>
-                      <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
-                        <Skeleton active />
-                      </Card>
-                    </Col>
-                  </Row>
-                </>
-              ) : dashboardData ? (
-                <>
-                  {/* Statistics Cards */}
-                  <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-                    <Col xs={24} sm={12} lg={6}>
+                  ))}
+                </Row>
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} lg={16}>
+                    <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
+                      <Skeleton active />
+                    </Card>
+                  </Col>
+                  <Col xs={24} lg={8}>
+                    <Card size="small" variant="outlined" style={{ boxShadow: "none" }}>
+                      <Skeleton active />
+                    </Card>
+                  </Col>
+                </Row>
+              </>
+            ) : dashboardData ? (
+              <>
+                {/* Statistics Cards */}
+                <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card
+                      size="small"
+                      style={{
+                        height: "100%",
+                        borderRadius: "16px",
+                        border: `1px solid ${token.colorBorderSecondary}`,
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                        background: token.colorBgContainer
+                      }}
+                      styles={{
+                        body: { padding: "12px 16px", height: "100%" },
+                      }}
+                    >
+                      <Row
+                        align="middle"
+                        justify="space-around"
+                        style={{ height: "100%" }}
+                      >
+                        <Col xs={24} sm={11}>
+                          <Space
+                            align="center"
+                            style={{
+                              justifyContent: "space-between",
+                              width: "100%",
+                            }}
+                          >
+                            <Statistic
+                              title="Beginning of Day"
+                              value={
+                                todayUpdates.bod
+                                  ? "BOD – Updated"
+                                  : "Not Submitted"
+                              }
+                              valueStyle={{
+                                fontSize: 12,
+                                fontWeight: 500,
+                                color: todayUpdates.bod
+                                  ? "#52c41a"
+                                  : "#faad14",
+                              }}
+                            />
+                            <RiseOutlined
+                              style={{
+                                fontSize: 16,
+                                color: todayUpdates.bod
+                                  ? "#52c41a"
+                                  : "#faad14",
+                              }}
+                            />
+                          </Space>
+                        </Col>
+
+                        <Col xs={24} sm={0}>
+                          <Divider style={{ margin: "8px 0" }} />
+                        </Col>
+                        <Col
+                          xs={0}
+                          sm={1}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Divider
+                            type="vertical"
+                            style={{ height: "40px" }}
+                          />
+                        </Col>
+
+                        <Col xs={24} sm={11}>
+                          <Space
+                            align="center"
+                            style={{
+                              justifyContent: "space-between",
+                              width: "100%",
+                            }}
+                          >
+                            <Statistic
+                              title="End of Day"
+                              value={
+                                todayUpdates.eod
+                                  ? "EOD – Updated"
+                                  : "Not Submitted"
+                              }
+                              valueStyle={{
+                                fontSize: 12,
+                                fontWeight: 500,
+                                color: todayUpdates.eod
+                                  ? "#52c41a"
+                                  : "#faad14",
+                              }}
+                            />
+                            <StarOutlined
+                              style={{
+                                fontSize: 16,
+                                color: todayUpdates.eod
+                                  ? "#52c41a"
+                                  : "#faad14",
+                              }}
+                            />
+                          </Space>
+                        </Col>
+                      </Row>
+                    </Card>
+                  </Col>
+                  {stats.map((stat, index) => (
+                    <Col xs={24} sm={12} lg={6} key={index}>
                       <Card
                         size="small"
+                        variant="outlined"
                         style={{
                           height: "100%",
                           borderRadius: "16px",
@@ -808,827 +921,721 @@ function DashboardContent() {
                           boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
                           background: token.colorBgContainer
                         }}
-                        styles={{
-                          body: { padding: "12px 16px", height: "100%" },
-                        }}
+                        styles={{ body: { padding: 16 } }}
                       >
-                        <Row
-                          align="middle"
-                          justify="space-around"
-                          style={{ height: "100%" }}
-                        >
-                          <Col xs={24} sm={11}>
-                            <Space
-                              align="center"
-                              style={{
-                                justifyContent: "space-between",
-                                width: "100%",
-                              }}
-                            >
-                              <Statistic
-                                title="Beginning of Day"
-                                value={
-                                  todayUpdates.bod
-                                    ? "BOD – Updated"
-                                    : "Not Submitted"
-                                }
-                                valueStyle={{
-                                  fontSize: 12,
-                                  fontWeight: 500,
-                                  color: todayUpdates.bod
-                                    ? "#52c41a"
-                                    : "#faad14",
-                                }}
-                              />
-                              <RiseOutlined
-                                style={{
-                                  fontSize: 16,
-                                  color: todayUpdates.bod
-                                    ? "#52c41a"
-                                    : "#faad14",
-                                }}
-                              />
-                            </Space>
-                          </Col>
-
-                          <Col xs={24} sm={0}>
-                            <Divider style={{ margin: "8px 0" }} />
-                          </Col>
-                          <Col
-                            xs={0}
-                            sm={1}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <Divider
-                              type="vertical"
-                              style={{ height: "40px" }}
-                            />
-                          </Col>
-
-                          <Col xs={24} sm={11}>
-                            <Space
-                              align="center"
-                              style={{
-                                justifyContent: "space-between",
-                                width: "100%",
-                              }}
-                            >
-                              <Statistic
-                                title="End of Day"
-                                value={
-                                  todayUpdates.eod
-                                    ? "EOD – Updated"
-                                    : "Not Submitted"
-                                }
-                                valueStyle={{
-                                  fontSize: 12,
-                                  fontWeight: 500,
-                                  color: todayUpdates.eod
-                                    ? "#52c41a"
-                                    : "#faad14",
-                                }}
-                              />
-                              <StarOutlined
-                                style={{
-                                  fontSize: 16,
-                                  color: todayUpdates.eod
-                                    ? "#52c41a"
-                                    : "#faad14",
-                                }}
-                              />
-                            </Space>
-                          </Col>
-                        </Row>
-                      </Card>
-                    </Col>
-                    {stats.map((stat, index) => (
-                      <Col xs={24} sm={12} lg={6} key={index}>
-                        <Card
-                          size="small"
-                          variant="outlined"
-                          style={{
-                            height: "100%",
-                            borderRadius: "16px",
-                            border: `1px solid ${token.colorBorderSecondary}`,
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                            background: token.colorBgContainer
-                          }}
-                          styles={{ body: { padding: 16 } }}
+                        <Space
+                          direction="vertical"
+                          size={4}
+                          style={{ width: "100%" }}
                         >
                           <Space
-                            direction="vertical"
-                            size={4}
-                            style={{ width: "100%" }}
+                            align="center"
+                            style={{
+                              width: "100%",
+                              justifyContent: "space-between",
+                            }}
                           >
-                            <Space
-                              align="center"
+                            <Text
+                              type="secondary"
+                              style={{ fontSize: 12, fontWeight: 500 }}
+                            >
+                              {stat.title}
+                            </Text>
+                            {stat.icon}
+                          </Space>
+                          <Space align="baseline">
+                            <Statistic
+                              value={stat.value as string | number}
+                              valueStyle={{
+                                fontSize: 24,
+                                fontWeight: 600,
+                                color: token.colorText,
+                                lineHeight: 1,
+                              }}
+                            />
+                            <Tag
+                              color={stat.isAttendance ? "purple" : "green"}
                               style={{
-                                width: "100%",
-                                justifyContent: "space-between",
+                                fontSize: 10,
+                                padding: "0 4px",
+                                margin: 0,
+                                border: "none",
                               }}
                             >
-                              <Text
-                                type="secondary"
-                                style={{ fontSize: 12, fontWeight: 500 }}
-                              >
-                                {stat.title}
-                              </Text>
-                              {stat.icon}
-                            </Space>
-                            <Space align="baseline">
-                              <Statistic
-                                value={stat.value as string | number}
-                                valueStyle={{
-                                  fontSize: 24,
-                                  fontWeight: 600,
-                                  color: token.colorText,
-                                  lineHeight: 1,
-                                }}
-                              />
-                              <Tag
-                                color={stat.isAttendance ? "purple" : "green"}
-                                style={{
-                                  fontSize: 10,
-                                  padding: "0 4px",
-                                  margin: 0,
-                                  border: "none",
-                                }}
-                              >
-                                {stat.change}
-                              </Tag>
-                            </Space>
+                              {stat.change}
+                            </Tag>
                           </Space>
-                        </Card>
-                      </Col>
-                    ))}
-                  </Row>
+                        </Space>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
 
-                  {/* Row 1: My Info */}
-                  <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-                    <Col xs={24} lg={8}>
-                      {/* My Tickets */}
+                {/* Row 1: My Info */}
+                <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
+                  <Col xs={24} lg={8}>
+                    {/* My Tickets */}
+                    <Card
+                      title={
+                        <Space>
+                          <TrophyOutlined style={{ color: token.colorPrimary }} />
+                          <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>My Tickets</span>
+                          <span className="live-pulse" style={{ marginLeft: 8 }} />
+                        </Space>
+                      }
+                      size="small"
+                      variant="outlined"
+                      extra={
+                        <Button
+                          type="link"
+                          size="small"
+                          onClick={() => router.push("/projects/tickets")}
+                          style={{ fontSize: 12 }}
+                        >
+                          View
+                        </Button>
+                      }
+                      styles={{ body: { padding: 12 } }}
+                      style={{ height: "260px", boxShadow: "none" }}
+                    >
+                      <div style={{ height: "100%" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: 4,
+                          }}
+                        >
+
+                        </div>
+                        {renderTicketSummary()}
+                      </div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} lg={8}>
+                    {/* Today's Meetings */}
+                    <div style={{ height: "100%" }}>
                       <Card
                         title={
-                          <Space>
-                            <TrophyOutlined style={{ color: token.colorPrimary }} />
-                            <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>My Tickets</span>
-                            <span className="live-pulse" style={{ marginLeft: 8 }} />
+                          <Space size={4}>
+                            <VideoCameraOutlined style={{ color: token.colorTextSecondary, fontSize: 14 }} />
+                            <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>Today's Meetings</span>
+                            {!connectedProvider && (
+                              <Button
+                                type="link"
+                                size="small"
+                                onClick={() => router.push("/integrations")}
+                                loading={calendarLoading}
+                                style={{ marginLeft: 4, fontSize: 11 }}
+                              >
+                                Connect
+                              </Button>
+                            )}
                           </Space>
                         }
                         size="small"
                         variant="outlined"
                         extra={
-                          <Button
-                            type="link"
-                            size="small"
-                            onClick={() => router.push("/tickets")}
-                            style={{ fontSize: 12 }}
-                          >
-                            View
-                          </Button>
-                        }
-                        styles={{ body: { padding: 12 } }}
-                        style={{ height: "260px", boxShadow: "none" }}
-                      >
-                        <div style={{ height: "100%" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              marginBottom: 4,
-                            }}
-                          >
-
-                          </div>
-                          {renderTicketSummary()}
-                        </div>
-                      </Card>
-                    </Col>
-                    <Col xs={24} lg={8}>
-                      {/* Today's Meetings */}
-                      <div style={{ height: "100%" }}>
-                        <Card
-                          title={
-                            <Space size={4}>
-                              <VideoCameraOutlined style={{ color: token.colorTextSecondary, fontSize: 14 }} />
-                              <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>Today's Meetings</span>
-                              {!connectedProvider && (
-                                <Button
-                                  type="link"
-                                  size="small"
-                                  onClick={() => router.push("/integrations")}
-                                  loading={calendarLoading}
-                                  style={{ marginLeft: 4, fontSize: 11 }}
-                                >
-                                  Connect
-                                </Button>
-                              )}
-                            </Space>
-                          }
-                          size="small"
-                          variant="outlined"
-                          extra={
-                            connectedProvider && (
-                              <Space size={2}>
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  icon={<ClockCircleOutlined style={{ fontSize: 11 }} />}
-                                  onClick={() => syncCalendar(connectedProvider)}
-                                  loading={calendarLoading}
-                                  style={{ fontSize: 11 }}
-                                >
-                                  Sync
-                                </Button>
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  onClick={() => router.push("/calendar")}
-                                  style={{ fontSize: 11 }}
-                                >
-                                  View
-                                </Button>
-                              </Space>
-                            )
-                          }
-                          styles={{ body: { padding: 0 } }}
-                          style={{ height: "260px", boxShadow: "none" }}
-                        >
-                          {calendarLoading ? (
-                            <div style={{ padding: 16, textAlign: "center" }}>
-                              <Skeleton active paragraph={{ rows: 2 }} />
-                            </div>
-                          ) : !connectedProvider ? (
-                            <div style={{ padding: 20, textAlign: "center" }}>
-                              <VideoCameraOutlined style={{ fontSize: 28, color: "#bfbfbf", marginBottom: 6 }} />
-                              <div>
-                                <Text type="secondary" style={{ fontSize: 11 }}>Connect calendar to see meetings</Text>
-                              </div>
+                          connectedProvider && (
+                            <Space size={2}>
                               <Button
-                                type="primary"
+                                type="text"
                                 size="small"
-                                onClick={() => router.push("/integrations")}
-                                style={{ marginTop: 8, fontSize: 11, height: 24 }}
+                                icon={<ClockCircleOutlined style={{ fontSize: 11 }} />}
+                                onClick={() => syncCalendar(connectedProvider)}
+                                loading={calendarLoading}
+                                style={{ fontSize: 11 }}
                               >
-                                Connect Calendar
+                                Sync
                               </Button>
-                            </div>
-                          ) : todaysMeetings.length > 0 ? (
-                            <div style={{ height: 220, overflowY: 'auto' }}>
-                              <List
+                              <Button
+                                type="text"
                                 size="small"
-                                dataSource={todaysMeetings}
-                                renderItem={(meeting) => {
-                                  const startTime = dayjs(meeting.startTime);
-                                  const endTime = dayjs(meeting.endTime);
-                                  const isOngoing = startTime.isBefore(dayjs()) && endTime.isAfter(dayjs());
-
-                                  return (
-                                    <List.Item
-                                      style={{
-                                        padding: "6px 10px",
-                                        borderBottom: `1px solid ${token.colorBorderSecondary}`,
-                                        background: isOngoing ? "rgba(82, 196, 26, 0.1)" : "transparent"
-                                      }}
-                                      actions={[
-                                        <Tooltip title="Join Meeting" key="join">
-                                          <Button
-                                            type="primary"
-                                            size="small"
-                                            icon={<VideoCameraOutlined />}
-                                            onClick={() => meeting.meetingLink && window.open(meeting.meetingLink, '_blank')}
-                                            disabled={!meeting.meetingLink}
-                                            style={{
-                                              height: 24,
-                                              width: 24,
-                                              backgroundColor: meeting.meetingLink ? token.colorPrimary : token.colorFillAlter,
-                                              borderColor: meeting.meetingLink ? token.colorPrimary : token.colorBorderSecondary
-                                            }}
-                                          />
-                                        </Tooltip>
-                                      ]}
-                                    >
-                                      <List.Item.Meta
-                                        avatar={
-                                          <Avatar
-                                            size={22}
-                                            style={{
-                                              backgroundColor: isOngoing ? "#52c41a" : token.colorPrimary,
-                                              fontSize: 10
-                                            }}
-                                          >
-                                            {meeting.title.charAt(0)}
-                                          </Avatar>
-                                        }
-                                        title={
-                                          <Space align="center" size={2}>
-                                            <Text strong style={{ fontSize: 11 }}>
-                                              {meeting.title.length > 18 ? meeting.title.substring(0, 18) + '...' : meeting.title}
-                                            </Text>
-                                            {isOngoing && (
-                                              <Badge status="processing" style={{ fontSize: 9 }} text="Live" />
-                                            )}
-                                          </Space>
-                                        }
-                                        description={
-                                          <Text type="secondary" style={{ fontSize: 9 }}>
-                                            <ClockCircleOutlined style={{ marginRight: 2, fontSize: 8 }} />
-                                            {startTime.format("hh:mm A")} - {endTime.format("hh:mm A")}
-                                          </Text>
-                                        }
-                                      />
-                                    </List.Item>
-                                  );
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <div style={{ padding: 20, textAlign: "center" }}>
-                              <VideoCameraOutlined style={{ fontSize: 24, color: "#bfbfbf", marginBottom: 6 }} />
-                              <div>
-                                <Text type="secondary" style={{ fontSize: 11 }}>No meetings scheduled</Text>
-                              </div>
-                            </div>
-                          )}
-                        </Card>
-                      </div>
-                    </Col>
-                    <Col xs={24} lg={8}>
-                      {/* My Attendance */}
-                      <Card
-                        title={
-                          <Space>
-                            <ClockCircleOutlined style={{ color: token.colorTextSecondary }} />
-                            <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>My Attendance</span>
-                          </Space>
-                        }
-                        extra={
-                          todayAttendance && (
-                            <Tag
-                              color={todayAttendance.canClockIn ? "default" : todayAttendance.canClockOut ? "processing" : "success"}
-                              style={{ borderRadius: '6px', margin: 0 }}
-                            >
-                              {todayAttendance.canClockIn ? "Not Clocked In" : todayAttendance.canClockOut ? "Active Now" : "Shift Completed"}
-                            </Tag>
+                                onClick={() => router.push("/calendar")}
+                                style={{ fontSize: 11 }}
+                              >
+                                View
+                              </Button>
+                            </Space>
                           )
                         }
-                        size="small"
-                        bordered
-                        styles={{ body: { padding: 20 } }}
+                        styles={{ body: { padding: 0 } }}
                         style={{ height: "260px", boxShadow: "none" }}
                       >
-                        {todayAttendance ? (
-                          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                            <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                              <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>TOTAL WORK DURATION</Text>
-                              <div style={{
-                                fontSize: 32,
-                                fontWeight: 700,
-                                color: (todayAttendance.canClockOut) ? '#722ed1' : '#262626',
-                                letterSpacing: '-0.5px',
-                                lineHeight: 1
-                              }}>
-                                {workDuration || "00:00:00"}
-                              </div>
+                        {calendarLoading ? (
+                          <div style={{ padding: 16, textAlign: "center" }}>
+                            <Skeleton active paragraph={{ rows: 2 }} />
+                          </div>
+                        ) : !connectedProvider ? (
+                          <div style={{ padding: 20, textAlign: "center" }}>
+                            <VideoCameraOutlined style={{ fontSize: 28, color: "#bfbfbf", marginBottom: 6 }} />
+                            <div>
+                              <Text type="secondary" style={{ fontSize: 11 }}>Connect calendar to see meetings</Text>
                             </div>
+                            <Button
+                              type="primary"
+                              size="small"
+                              onClick={() => router.push("/integrations")}
+                              style={{ marginTop: 8, fontSize: 11, height: 24 }}
+                            >
+                              Connect Calendar
+                            </Button>
+                          </div>
+                        ) : todaysMeetings.length > 0 ? (
+                          <div style={{ height: 220, overflowY: 'auto' }}>
+                            <List
+                              size="small"
+                              dataSource={todaysMeetings}
+                              renderItem={(meeting) => {
+                                const startTime = dayjs(meeting.startTime);
+                                const endTime = dayjs(meeting.endTime);
+                                const isOngoing = startTime.isBefore(dayjs()) && endTime.isAfter(dayjs());
 
-                            <div style={{
-                              background: 'var(--bg-pure-white)',
-                              borderRadius: '12px',
-                              padding: '12px',
-                              display: 'flex',
-                              justifyContent: 'space-around',
-                              marginBottom: 16,
-                              border: '1px solid var(--border-color)'
-                            }}>
-                              <div style={{ textAlign: 'center' }}>
-                                <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 2 }}>CLOCK IN</Text>
-                                <Space size={4}>
-                                  <LoginOutlined style={{ fontSize: 12, color: '#52c41a' }} />
-                                  <Text strong style={{ fontSize: 13 }}>
-                                    {todayAttendance.clockInTime ? dayjs(todayAttendance.clockInTime).format("hh:mm A") : "--:--"}
-                                  </Text>
-                                </Space>
-                              </div>
-                              <Divider type="vertical" style={{ height: '32px', borderLeftColor: 'var(--border-color)' }} />
-                              <div style={{ textAlign: 'center' }}>
-                                <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 2 }}>CLOCK OUT</Text>
-                                <Space size={4}>
-                                  <LogoutOutlined style={{ fontSize: 12, color: '#ff4d4f' }} />
-                                  <Text strong style={{ fontSize: 13 }}>
-                                    {todayAttendance.clockOutTime ? dayjs(todayAttendance.clockOutTime).format("hh:mm A") : "--:--"}
-                                  </Text>
-                                </Space>
-                              </div>
-                            </div>
-
-                            <div style={{ display: "flex", justifyContent: "center" }}>
-                              {todayAttendance.canClockIn ? (
-                                <Button
-                                  type="primary"
-                                  block
-                                  icon={<PlayCircleOutlined />}
-                                  onClick={handleClockIn}
-                                  loading={isClocking}
-                                  size="large"
-                                  style={{
-                                    borderRadius: '10px',
-                                    height: 44,
-                                    background: token.colorPrimary,
-                                    borderColor: token.colorPrimary,
-                                    boxShadow: `0 2px 4px ${token.colorPrimaryBg}`,
-                                    fontWeight: 600
-                                  }}
-                                >
-                                  Clock In Now
-                                </Button>
-                              ) : todayAttendance.canClockOut ? (
-                                <Button
-                                  danger
-                                  block
-                                  icon={<PauseCircleOutlined />}
-                                  onClick={handleClockOut}
-                                  loading={isClocking}
-                                  size="large"
-                                  style={{
-                                    borderRadius: '10px',
-                                    height: 44,
-                                    boxShadow: '0 4px 10px rgba(255, 77, 79, 0.2)',
-                                    fontWeight: 600
-                                  }}
-                                >
-                                  Clock Out
-                                </Button>
-                              ) : (
-                                <div style={{
-                                  width: '100%',
-                                  padding: '10px',
-                                  // background: '#f6ffed',
-                                  border: '1px solid #b7eb8f',
-                                  borderRadius: '10px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: 8,
-                                  color: '#52c41a',
-                                  fontWeight: 500
-                                }}>
-                                  <TrophyOutlined />
-                                  <span>Shift Completed Successfully</span>
-                                </div>
-                              )}
-                            </div>
+                                return (
+                                  <List.Item
+                                    style={{
+                                      padding: "6px 10px",
+                                      borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                                      background: isOngoing ? "rgba(82, 196, 26, 0.1)" : "transparent"
+                                    }}
+                                    actions={[
+                                      <Tooltip title="Join Meeting" key="join">
+                                        <Button
+                                          type="primary"
+                                          size="small"
+                                          icon={<VideoCameraOutlined />}
+                                          onClick={() => meeting.meetingLink && window.open(meeting.meetingLink, '_blank')}
+                                          disabled={!meeting.meetingLink}
+                                          style={{
+                                            height: 24,
+                                            width: 24,
+                                            backgroundColor: meeting.meetingLink ? token.colorPrimary : token.colorFillAlter,
+                                            borderColor: meeting.meetingLink ? token.colorPrimary : token.colorBorderSecondary
+                                          }}
+                                        />
+                                      </Tooltip>
+                                    ]}
+                                  >
+                                    <List.Item.Meta
+                                      avatar={
+                                        <Avatar
+                                          size={22}
+                                          style={{
+                                            backgroundColor: isOngoing ? "#52c41a" : token.colorPrimary,
+                                            fontSize: 10
+                                          }}
+                                        >
+                                          {meeting.title.charAt(0)}
+                                        </Avatar>
+                                      }
+                                      title={
+                                        <Space align="center" size={2}>
+                                          <Text strong style={{ fontSize: 11 }}>
+                                            {meeting.title.length > 18 ? meeting.title.substring(0, 18) + '...' : meeting.title}
+                                          </Text>
+                                          {isOngoing && (
+                                            <Badge status="processing" style={{ fontSize: 9 }} text="Live" />
+                                          )}
+                                        </Space>
+                                      }
+                                      description={
+                                        <Text type="secondary" style={{ fontSize: 9 }}>
+                                          <ClockCircleOutlined style={{ marginRight: 2, fontSize: 8 }} />
+                                          {startTime.format("hh:mm A")} - {endTime.format("hh:mm A")}
+                                        </Text>
+                                      }
+                                    />
+                                  </List.Item>
+                                );
+                              }}
+                            />
                           </div>
                         ) : (
-                          <Skeleton active paragraph={{ rows: 4 }} />
+                          <div style={{ padding: 20, textAlign: "center" }}>
+                            <VideoCameraOutlined style={{ fontSize: 24, color: "#bfbfbf", marginBottom: 6 }} />
+                            <div>
+                              <Text type="secondary" style={{ fontSize: 11 }}>No meetings scheduled</Text>
+                            </div>
+                          </div>
                         )}
                       </Card>
-                    </Col>
-                  </Row>
-
-                  {/* Row 2: Leave & Recent Tickets */}
-                  <Row gutter={[12, 12]}>
-                    <Col xs={24} lg={8}>
-                      {/* Action Cards Container */}
-                      <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                        {/* Apply Leave Card */}
-                        <Card
-                          hoverable
-                          bordered
-                          style={{
-                            borderRadius: 14,
-                            border: `1px solid ${token.colorBorderSecondary}`,
-                            boxShadow: "none",
-                            overflow: 'hidden',
-                            background: token.colorBgContainer
-                          }}
-                          styles={{ body: { padding: '12px 16px' } }}
-                          onClick={() => router.push("/apply-leave")}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <div style={{
-                              width: 38,
-                              height: 38,
-                              borderRadius: 10,
-                              background: token.colorFillAlter,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              border: `1px solid ${token.colorBorderSecondary}`
-                            }}>
-                              <FormOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Apply Leave</Title>
-                              <Text type="secondary" style={{ fontSize: 11 }}>Request time off easily</Text>
-                            </div>
-                            <Button
-                              type="primary"
-                              shape="circle"
-                              size="small"
-                              icon={<PlusOutlined style={{ fontSize: 12 }} />}
-                              style={{
-                                background: token.colorPrimary,
-                                border: 'none',
-                                width: 24,
-                                height: 24,
-                                minWidth: 24,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                            />
-                          </div>
-                        </Card>
-
-                        {/* Apply Reimbursement Card */}
-                        <Card
-                          hoverable
-                          bordered
-                          style={{
-                            borderRadius: 14,
-                            border: `1px solid ${token.colorBorderSecondary}`,
-                            boxShadow: "none",
-                            overflow: 'hidden',
-                            background: token.colorBgContainer
-                          }}
-                          styles={{ body: { padding: '12px 16px' } }}
-                          onClick={() => router.push("/reimburseCreate")}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <div style={{
-                              width: 38,
-                              height: 38,
-                              borderRadius: 10,
-                              background: token.colorFillAlter,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              border: `1px solid ${token.colorBorderSecondary}`
-                            }}>
-                              <WalletOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Reimbursement</Title>
-                              <Text type="secondary" style={{ fontSize: 11 }}>Submit expense claims</Text>
-                            </div>
-                            <Button
-                              type="primary"
-                              shape="circle"
-                              size="small"
-                              icon={<PlusOutlined style={{ fontSize: 12 }} />}
-                              style={{
-                                background: token.colorPrimary,
-                                border: 'none',
-                                width: 24,
-                                height: 24,
-                                minWidth: 24,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                            />
-                          </div>
-                        </Card>
-
-                        {/* Submit Timesheet Card */}
-                        <Card
-                          hoverable
-                          bordered
-                          style={{
-                            borderRadius: 14,
-                            border: `1px solid ${token.colorBorderSecondary}`,
-                            boxShadow: "none",
-                            overflow: 'hidden',
-                            background: token.colorBgContainer
-                          }}
-                          styles={{ body: { padding: '12px 16px' } }}
-                          onClick={() => router.push("/timesheet/submit")}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <div style={{
-                              width: 38,
-                              height: 38,
-                              borderRadius: 10,
-                              background: token.colorFillAlter,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              border: `1px solid ${token.colorBorderSecondary}`
-                            }}>
-                              <ClockCircleOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Submit Timesheet</Title>
-                              <Text type="secondary" style={{ fontSize: 11 }}>Log your daily hours</Text>
-                            </div>
-                            <Button
-                              type="primary"
-                              shape="circle"
-                              size="small"
-                              icon={<PlusOutlined style={{ fontSize: 12 }} />}
-                              style={{
-                                background: token.colorPrimary,
-                                border: 'none',
-                                width: 24,
-                                height: 24,
-                                minWidth: 24,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                            />
-                          </div>
-                        </Card>
-                      </Space>
-                    </Col>
-                    <Col xs={24} lg={16}>
-                      {/* Recent Tickets */}
-                      <Card
-                        title={
-                          <Space>
-                            <FileTextOutlined style={{ color: token.colorTextSecondary }} />
-                            <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>Recent Tickets</span>
-                          </Space>
-                        }
-                        size="small"
-                        bordered
-                        extra={
-                          <Button
-                            type="link"
-                            size="small"
-                            onClick={() => router.push("/tickets")}
-                            style={{ fontSize: 12 }}
+                    </div>
+                  </Col>
+                  <Col xs={24} lg={8}>
+                    {/* My Attendance */}
+                    <Card
+                      title={
+                        <Space>
+                          <ClockCircleOutlined style={{ color: token.colorTextSecondary }} />
+                          <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>My Attendance</span>
+                        </Space>
+                      }
+                      extra={
+                        todayAttendance && (
+                          <Tag
+                            color={todayAttendance.canClockIn ? "default" : todayAttendance.canClockOut ? "processing" : "success"}
+                            style={{ borderRadius: '6px', margin: 0 }}
                           >
-                            View All
-                          </Button>
-                        }
-                        style={{
-                          height: "230px",
-                          display: "flex",
-                          flexDirection: "column",
-                          boxShadow: "none",
-                        }}
-                        styles={{
-                          body: {
-                            padding: 0,
-                            flex: 1,
-                            overflowY: "auto",
-                          }
-                        }}
-                      >
-                        <List
-                          dataSource={recentTickets}
-                          className="no-scrollbar"
-                          style={{ padding: '0 4px' }}
-                          renderItem={(item: any) => (
-                             <List.Item
-                               onClick={() => router.push(`/tickets/${item.id}`)}
-                               style={{
-                                 padding: "12px 14px",
-                                 cursor: "pointer",
-                                 borderBottom: `1px solid ${token.colorBorderSecondary}`,
-                                 display: "flex",
-                                 alignItems: "center",
-                                 gap: "12px",
-                                 borderRadius: '12px',
-                                 margin: '4px 0'
-                               }}
-                               className="ticket-list-item"
-                             >
-                               {/* Priority Bar Indicator */}
-                               <div
-                                 style={{
-                                   width: "4px",
-                                   height: "36px",
-                                   borderRadius: "2px",
-                                   background: getPriorityColor(item.priority),
-                                   flexShrink: 0,
-                                 }}
-                               />
- 
-                               <div style={{ flex: 1, minWidth: 0 }}>
-                                 <div
-                                   style={{
-                                     display: "flex",
-                                     justifyContent: "space-between",
-                                     alignItems: "center",
-                                     marginBottom: 3,
-                                   }}
-                                 >
-                                   <Space size={8}>
-                                     <Text
-                                       type="secondary"
-                                       style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.2px' }}
-                                     >
-                                       {item.ticketNumber}
-                                     </Text>
-                                     <Tag
-                                       style={{
-                                         fontSize: 9,
-                                         margin: 0,
-                                         borderRadius: "4px",
-                                         background: token.colorFillAlter,
-                                         border: "none",
-                                         color: token.colorTextSecondary
-                                       }}
-                                     >
-                                       {typeof item.project === "string"
-                                         ? item.project
-                                         : item.project?.code ||
-                                         item.project?.name}
-                                     </Tag>
-                                   </Space>
-                                   <Text type="secondary" style={{ fontSize: 10, color: token.colorTextDescription }}>
-                                     {formatTimeAgo(item.createdAt)}
-                                   </Text>
-                                 </div>
- 
-                                 <Text
-                                   strong
-                                   ellipsis={{ tooltip: item.title }}
-                                   style={{
-                                     fontSize: 13,
-                                     display: "block",
-                                     color: token.colorText,
-                                     lineHeight: 1.3,
-                                     marginBottom: 6
-                                   }}
-                                 >
-                                   {item.title}
-                                 </Text>
+                            {todayAttendance.canClockIn ? "Not Clocked In" : todayAttendance.canClockOut ? "Active Now" : "Shift Completed"}
+                          </Tag>
+                        )
+                      }
+                      size="small"
+                      bordered
+                      styles={{ body: { padding: 20 } }}
+                      style={{ height: "260px", boxShadow: "none" }}
+                    >
+                      {todayAttendance ? (
+                        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                          <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>TOTAL WORK DURATION</Text>
+                            <div style={{
+                              fontSize: 32,
+                              fontWeight: 700,
+                              color: (todayAttendance.canClockOut) ? '#722ed1' : '#262626',
+                              letterSpacing: '-0.5px',
+                              lineHeight: 1
+                            }}>
+                              {workDuration || "00:00:00"}
+                            </div>
+                          </div>
 
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                  }}
-                                >
-                                  {(() => {
-                                    let color = "default";
-                                    const status = item.status?.toLowerCase();
-                                    if (status === "completed" || status === "live") color = "success";
-                                    if (status === "in_progress") color = "processing";
-                                    if (status === "not_started") color = "default";
-                                    if (status === "blocked") color = "error";
+                          <div style={{
+                            background: 'var(--bg-pure-white)',
+                            borderRadius: '12px',
+                            padding: '12px',
+                            display: 'flex',
+                            justifyContent: 'space-around',
+                            marginBottom: 16,
+                            border: '1px solid var(--border-color)'
+                          }}>
+                            <div style={{ textAlign: 'center' }}>
+                              <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 2 }}>CLOCK IN</Text>
+                              <Space size={4}>
+                                <LoginOutlined style={{ fontSize: 12, color: '#52c41a' }} />
+                                <Text strong style={{ fontSize: 13 }}>
+                                  {todayAttendance.clockInTime ? dayjs(todayAttendance.clockInTime).format("hh:mm A") : "--:--"}
+                                </Text>
+                              </Space>
+                            </div>
+                            <Divider type="vertical" style={{ height: '32px', borderLeftColor: 'var(--border-color)' }} />
+                            <div style={{ textAlign: 'center' }}>
+                              <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 2 }}>CLOCK OUT</Text>
+                              <Space size={4}>
+                                <LogoutOutlined style={{ fontSize: 12, color: '#ff4d4f' }} />
+                                <Text strong style={{ fontSize: 13 }}>
+                                  {todayAttendance.clockOutTime ? dayjs(todayAttendance.clockOutTime).format("hh:mm A") : "--:--"}
+                                </Text>
+                              </Space>
+                            </div>
+                          </div>
 
-                                    return (
-                                      <Tag
-                                        color={color}
-                                        style={{
-                                          fontSize: 9,
-                                          margin: 0,
-                                          borderRadius: "5px",
-                                          padding: "0 8px",
-                                          border: 'none',
-                                          fontWeight: 600
-                                        }}
-                                      >
-                                        {item.status?.replace(/_/g, " ").toUpperCase()}
-                                      </Tag>
-                                    );
-                                  })()}
-
-                                  {item.assignee && (
-                                    <Tooltip title={`Assignee: ${item.assignee.name}`}>
-                                      <Avatar
-                                        size={20}
-                                        src={item.assignee.avatar}
-                                        style={{
-                                          backgroundColor: "#722ed1",
-                                          fontSize: 10,
-                                          border: '1.5px solid white',
-                                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                        }}
-                                      >
-                                        {item.assignee.name?.charAt(0).toUpperCase()}
-                                      </Avatar>
-                                    </Tooltip>
-                                  )}
-                                </div>
+                          <div style={{ display: "flex", justifyContent: "center" }}>
+                            {todayAttendance.canClockIn ? (
+                              <Button
+                                type="primary"
+                                block
+                                icon={<PlayCircleOutlined />}
+                                onClick={handleClockIn}
+                                loading={isClocking}
+                                size="large"
+                                style={{
+                                  borderRadius: '10px',
+                                  height: 44,
+                                  background: token.colorPrimary,
+                                  borderColor: token.colorPrimary,
+                                  boxShadow: `0 2px 4px ${token.colorPrimaryBg}`,
+                                  fontWeight: 600
+                                }}
+                              >
+                                Clock In Now
+                              </Button>
+                            ) : todayAttendance.canClockOut ? (
+                              <Button
+                                danger
+                                block
+                                icon={<PauseCircleOutlined />}
+                                onClick={handleClockOut}
+                                loading={isClocking}
+                                size="large"
+                                style={{
+                                  borderRadius: '10px',
+                                  height: 44,
+                                  boxShadow: '0 4px 10px rgba(255, 77, 79, 0.2)',
+                                  fontWeight: 600
+                                }}
+                              >
+                                Clock Out
+                              </Button>
+                            ) : (
+                              <div style={{
+                                width: '100%',
+                                padding: '10px',
+                                // background: '#f6ffed',
+                                border: '1px solid #b7eb8f',
+                                borderRadius: '10px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 8,
+                                color: '#52c41a',
+                                fontWeight: 500
+                              }}>
+                                <TrophyOutlined />
+                                <span>Shift Completed Successfully</span>
                               </div>
-                            </List.Item>
-                          )}
-                        />
-                      </Card>
-                    </Col>
-                  </Row>
-                </>
-              ) : null}
-            </>
-          )}
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <Skeleton active paragraph={{ rows: 4 }} />
+                      )}
+                    </Card>
+                  </Col>
+                </Row>
 
-          {/* ✅ ORGANIZATION SEGMENT */}
-          {activeSegment === "organization" && <Organization />}
-        </div>
-      </MainLayout>
-    );
+                {/* Row 2: Leave & Recent Tickets */}
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} lg={8}>
+                    {/* Action Cards Container */}
+                    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                      {/* Apply Leave Card */}
+                      <Card
+                        hoverable
+                        bordered
+                        style={{
+                          borderRadius: 14,
+                          border: `1px solid ${token.colorBorderSecondary}`,
+                          boxShadow: "none",
+                          overflow: 'hidden',
+                          background: token.colorBgContainer
+                        }}
+                        styles={{ body: { padding: '12px 16px' } }}
+                        onClick={() => router.push("/apply-leave")}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                          <div style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 10,
+                            background: token.colorFillAlter,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: `1px solid ${token.colorBorderSecondary}`
+                          }}>
+                            <FormOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Apply Leave</Title>
+                            <Text type="secondary" style={{ fontSize: 11 }}>Request time off easily</Text>
+                          </div>
+                          <Button
+                            type="primary"
+                            shape="circle"
+                            size="small"
+                            icon={<PlusOutlined style={{ fontSize: 12 }} />}
+                            style={{
+                              background: token.colorPrimary,
+                              border: 'none',
+                              width: 24,
+                              height: 24,
+                              minWidth: 24,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          />
+                        </div>
+                      </Card>
+
+                      {/* Apply Reimbursement Card */}
+                      <Card
+                        hoverable
+                        bordered
+                        style={{
+                          borderRadius: 14,
+                          border: `1px solid ${token.colorBorderSecondary}`,
+                          boxShadow: "none",
+                          overflow: 'hidden',
+                          background: token.colorBgContainer
+                        }}
+                        styles={{ body: { padding: '12px 16px' } }}
+                        onClick={() => router.push("/reimburseCreate")}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                          <div style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 10,
+                            background: token.colorFillAlter,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: `1px solid ${token.colorBorderSecondary}`
+                          }}>
+                            <WalletOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Reimbursement</Title>
+                            <Text type="secondary" style={{ fontSize: 11 }}>Submit expense claims</Text>
+                          </div>
+                          <Button
+                            type="primary"
+                            shape="circle"
+                            size="small"
+                            icon={<PlusOutlined style={{ fontSize: 12 }} />}
+                            style={{
+                              background: token.colorPrimary,
+                              border: 'none',
+                              width: 24,
+                              height: 24,
+                              minWidth: 24,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          />
+                        </div>
+                      </Card>
+
+                      {/* Submit Timesheet Card */}
+                      <Card
+                        hoverable
+                        bordered
+                        style={{
+                          borderRadius: 14,
+                          border: `1px solid ${token.colorBorderSecondary}`,
+                          boxShadow: "none",
+                          overflow: 'hidden',
+                          background: token.colorBgContainer
+                        }}
+                        styles={{ body: { padding: '12px 16px' } }}
+                        onClick={() => router.push("/timesheet/submit")}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                          <div style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 10,
+                            background: token.colorFillAlter,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: `1px solid ${token.colorBorderSecondary}`
+                          }}>
+                            <ClockCircleOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Submit Timesheet</Title>
+                            <Text type="secondary" style={{ fontSize: 11 }}>Log your daily hours</Text>
+                          </div>
+                          <Button
+                            type="primary"
+                            shape="circle"
+                            size="small"
+                            icon={<PlusOutlined style={{ fontSize: 12 }} />}
+                            style={{
+                              background: token.colorPrimary,
+                              border: 'none',
+                              width: 24,
+                              height: 24,
+                              minWidth: 24,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          />
+                        </div>
+                      </Card>
+                    </Space>
+                  </Col>
+                  <Col xs={24} lg={16}>
+                    {/* Recent Tickets */}
+                    <Card
+                      title={
+                        <Space>
+                          <FileTextOutlined style={{ color: token.colorTextSecondary }} />
+                          <span style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>Recent Tickets</span>
+                        </Space>
+                      }
+                      size="small"
+                      bordered
+                      extra={
+                        <Button
+                          type="link"
+                          size="small"
+                          onClick={() => router.push("/projects/tickets")}
+                          style={{ fontSize: 12 }}
+                        >
+                          View All
+                        </Button>
+                      }
+                      style={{
+                        height: "230px",
+                        display: "flex",
+                        flexDirection: "column",
+                        boxShadow: "none",
+                      }}
+                      styles={{
+                        body: {
+                          padding: 0,
+                          flex: 1,
+                          overflowY: "auto",
+                        }
+                      }}
+                    >
+                      <List
+                        dataSource={recentTickets}
+                        className="no-scrollbar"
+                        style={{ padding: '0 4px' }}
+                        renderItem={(item: any) => (
+                          <List.Item
+                            onClick={() => router.push(`/tickets/${item.id}`)}
+                            style={{
+                              padding: "12px 14px",
+                              cursor: "pointer",
+                              borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "12px",
+                              borderRadius: '12px',
+                              margin: '4px 0'
+                            }}
+                            className="ticket-list-item"
+                          >
+                            {/* Priority Bar Indicator */}
+                            <div
+                              style={{
+                                width: "4px",
+                                height: "36px",
+                                borderRadius: "2px",
+                                background: getPriorityColor(item.priority),
+                                flexShrink: 0,
+                              }}
+                            />
+
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  marginBottom: 3,
+                                }}
+                              >
+                                <Space size={8}>
+                                  <Text
+                                    type="secondary"
+                                    style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.2px' }}
+                                  >
+                                    {item.ticketNumber}
+                                  </Text>
+                                  <Tag
+                                    style={{
+                                      fontSize: 9,
+                                      margin: 0,
+                                      borderRadius: "4px",
+                                      background: token.colorFillAlter,
+                                      border: "none",
+                                      color: token.colorTextSecondary
+                                    }}
+                                  >
+                                    {typeof item.project === "string"
+                                      ? item.project
+                                      : item.project?.code ||
+                                      item.project?.name}
+                                  </Tag>
+                                </Space>
+                                <Text type="secondary" style={{ fontSize: 10, color: token.colorTextDescription }}>
+                                  {formatTimeAgo(item.createdAt)}
+                                </Text>
+                              </div>
+
+                              <Text
+                                strong
+                                ellipsis={{ tooltip: item.title }}
+                                style={{
+                                  fontSize: 13,
+                                  display: "block",
+                                  color: token.colorText,
+                                  lineHeight: 1.3,
+                                  marginBottom: 6
+                                }}
+                              >
+                                {item.title}
+                              </Text>
+
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                {(() => {
+                                  let color = "default";
+                                  const status = item.status?.toLowerCase();
+                                  if (status === "completed" || status === "live") color = "success";
+                                  if (status === "in_progress") color = "processing";
+                                  if (status === "not_started") color = "default";
+                                  if (status === "blocked") color = "error";
+
+                                  return (
+                                    <Tag
+                                      color={color}
+                                      style={{
+                                        fontSize: 9,
+                                        margin: 0,
+                                        borderRadius: "5px",
+                                        padding: "0 8px",
+                                        border: 'none',
+                                        fontWeight: 600
+                                      }}
+                                    >
+                                      {item.status?.replace(/_/g, " ").toUpperCase()}
+                                    </Tag>
+                                  );
+                                })()}
+
+                                {item.assignee && (
+                                  <Tooltip title={`Assignee: ${item.assignee.name}`}>
+                                    <Avatar
+                                      size={20}
+                                      src={item.assignee.avatar}
+                                      style={{
+                                        backgroundColor: "#722ed1",
+                                        fontSize: 10,
+                                        border: '1.5px solid white',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                      }}
+                                    >
+                                      {item.assignee.name?.charAt(0).toUpperCase()}
+                                    </Avatar>
+                                  </Tooltip>
+                                )}
+                              </div>
+                            </div>
+                          </List.Item>
+                        )}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+              </>
+            ) : null}
+          </>
+        )}
+
+        {/* ✅ ORGANIZATION SEGMENT */}
+        {activeSegment === "organization" && <Organization />}
+
+        {/* ✅ FREELANCER SEGMENT */}
+        {activeSegment === "freelancer" && <FreelancerTab />}
+      </div>
+    </MainLayout>
+  );
 }
 
 export default function DashboardPage() {

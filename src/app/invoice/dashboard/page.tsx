@@ -572,7 +572,16 @@ const fullCellRender = (value: Dayjs) => {
           minHeight: "calc(100vh - 64px)"
         }}>
           <TimeTrackingHeader
-            style={{ padding: '9.5px 32px' }}
+            style={{ 
+              padding: '9.5px 32px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(12px)',
+              borderBottom: '1px solid var(--border-slate-100)',
+              marginBottom: 0
+            }}
             icon={<LayoutDashboard size={20} color="#8b5cf6" />}
             title="Dashboard"
             description="Overview of your invoicing and revenue performance."

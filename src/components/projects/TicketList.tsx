@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
@@ -83,7 +83,9 @@ import {
 import { SettingsService } from "@/services/settingsService";
 import { useTickets, useKanbanTickets, useUpdateTicket, useDeleteTicket } from "@/hooks/useTickets";
 import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
-import { useAllProjects, useMembers } from "@/hooks/useGlobalData";
+import { useBucketSocketEvents } from "@/hooks/useBucketSocketEvents";
+import { usePlanSocketEvents } from "@/hooks/usePlanSocketEvents";
+import { useAllProjects, useMembers, useDropdownOptions } from "@/hooks/useGlobalData";
 import { InlineCreateTicket } from "./InlineCreateTicket";
 import { TicketFilters } from "./TicketFilters";
 import { TicketKanban } from './kanban/TicketKanban';
@@ -213,37 +215,24 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
 
 
-  // Add this after all useState declarations
-  const [dbStatusOptions, setDbStatusOptions] = useState<{ label: string; value: string }[]>([]);
-  const [dbPriorityOptions, setDbPriorityOptions] = useState<{ label: string; value: string }[]>([]);
+  const { data: dropdownData } = useDropdownOptions();
 
-  // Add this useEffect to fetch from database
-  useEffect(() => {
-    const fetchOptions = async () => {
-      try {
-        const options = await SettingsService.getDropdownOptions();
+  // Memoize DB options derived from the hook data
+  const dbStatusOptions = React.useMemo(() => {
+    if (!dropdownData?.status) return [];
+    return (dropdownData.status as any[])
+      .filter(opt => opt.isActive)
+      .sort((a, b) => a.order - b.order)
+      .map(opt => ({ label: opt.label, value: opt.value }));
+  }, [dropdownData]);
 
-        // Status options from DB
-        const statusOpts = (options.status || [])
-          .filter(opt => opt.isActive)
-          .sort((a, b) => a.order - b.order)
-          .map(opt => ({ label: opt.label, value: opt.value }));
-        setDbStatusOptions(statusOpts);
-
-        // Priority options from DB
-        const priorityOpts = (options.priority || [])
-          .filter(opt => opt.isActive)
-          .sort((a, b) => a.order - b.order)
-          .map(opt => ({ label: opt.label, value: opt.value }));
-        setDbPriorityOptions(priorityOpts);
-
-      } catch (error) {
-        console.error('Error fetching dropdown options:', error);
-      }
-    };
-
-    fetchOptions();
-  }, []);
+  const dbPriorityOptions = React.useMemo(() => {
+    if (!dropdownData?.priority) return [];
+    return (dropdownData.priority as any[])
+      .filter(opt => opt.isActive)
+      .sort((a, b) => a.order - b.order)
+      .map(opt => ({ label: opt.label, value: opt.value }));
+  }, [dropdownData]);
 
   // --- React Query Hooks ---
 
@@ -505,6 +494,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   // Enable live updates
   useTicketSocketEvents();
+  useBucketSocketEvents();
+  usePlanSocketEvents();
 
   // --- Effects ---
 

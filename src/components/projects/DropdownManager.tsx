@@ -44,6 +44,8 @@ import {
   HolderOutlined
 } from "@ant-design/icons";
 import { SettingsService, DropdownOption, CreateDropdownOptionData, UpdateDropdownOptionData } from '@/services/settingsService';
+import { useDropdownOptions } from '@/hooks/useGlobalData';
+import { useMemo } from 'react';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -55,13 +57,12 @@ interface DropdownManagerProps {
 export default function DropdownManager({ onDataChange }: DropdownManagerProps) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [dataLoading, setDataLoading] = useState(true);
+  // Use real-time hook
+  const { data: serverOptions, isLoading: isQueryLoading, refetch } = useDropdownOptions();
+  
   const [modalVisible, setModalVisible] = useState(false);
   const [editingOption, setEditingOption] = useState<DropdownOption | null>(null);
   const [activeTab, setActiveTab] = useState('platform');
-  
-  // State for dropdown options grouped by type
-  const [dropdownOptions, setDropdownOptions] = useState<Record<string, DropdownOption[]>>({});
 
   const dropdownTypes = [
     { key: 'platform', label: 'Platforms', icon: <DeploymentUnitOutlined />, description: 'Core team platforms and delivery departments', color: '#1677ff' },
@@ -72,29 +73,25 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
     { key: 'status', label: 'Lifecycles', icon: <ControlOutlined />, description: 'Global status mapping for ticket workflows', color: '#eb2f96' }
   ];
 
-  // Load dropdown options
+  // State for dropdown options grouped by type
+  const [dropdownOptions, setDropdownOptions] = useState<Record<string, DropdownOption[]>>({});
+
+  // Synchronize local state with server data
   useEffect(() => {
-    loadDropdownOptions();
-  }, []);
+    if (serverOptions) {
+      const sortedOptions: Record<string, DropdownOption[]> = {};
+      Object.keys(serverOptions).forEach(type => {
+        sortedOptions[type] = [...serverOptions[type]].sort((a, b) => (a.order || 0) - (b.order || 0));
+      });
+      setDropdownOptions(sortedOptions);
+    }
+  }, [serverOptions]);
+
+  // Combined loading state
+  const dataLoading = isQueryLoading || (!serverOptions && Object.keys(dropdownOptions).length === 0);
 
   const loadDropdownOptions = async () => {
-    try {
-      setDataLoading(true);
-      const options = await SettingsService.getDropdownOptions();
-      
-      // Sort each category by order
-      const sortedOptions: Record<string, DropdownOption[]> = {};
-      Object.keys(options).forEach(type => {
-        sortedOptions[type] = [...options[type]].sort((a, b) => (a.order || 0) - (b.order || 0));
-      });
-      
-      setDropdownOptions(sortedOptions);
-    } catch (error) {
-      console.error('Error loading dropdown options:', error);
-      message.error('Failed to load dropdown options');
-    } finally {
-      setDataLoading(false);
-    }
+    await refetch();
   };
 
   const handleCreate = () => {

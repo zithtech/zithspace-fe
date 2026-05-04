@@ -33,11 +33,15 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useTicketDashboardStats } from "@/hooks/useTickets";
+import { useProjectSocketEvents } from "@/hooks/useProjectSocketEvents";
 import dayjs from "dayjs";
 
 const { Title, Paragraph, Text } = Typography;
 
 export default function ProjectsPage() {
+  // Initialize real-time listeners for projects
+  useProjectSocketEvents();
+
   const { user, isLoading: authLoading } = useAuth();
   const { canReadProject } = usePermission();
   const router = useRouter();

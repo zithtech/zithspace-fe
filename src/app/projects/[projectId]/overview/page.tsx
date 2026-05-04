@@ -14,9 +14,17 @@ import { TeamProgressTable } from "@/components/projects/overview/TeamProgressTa
 import { InsightsPanel } from "@/components/projects/overview/InsightsPanel";
 import { RecentActivitiesPanel } from "@/components/projects/overview/RecentActivitiesPanel";
 import MainLayout from "@/components/layout/MainLayout";
+import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
+import { usePlanSocketEvents } from "@/hooks/usePlanSocketEvents";
+import { useProjectSocketEvents } from "@/hooks/useProjectSocketEvents";
 
 const ProjectOverviewPage = () => {
   const { projectId } = useParams() as { projectId: string };
+
+  // Initialize real-time synchronization
+  useTicketSocketEvents();
+  usePlanSocketEvents();
+  useProjectSocketEvents();
 
   const { data: response, isLoading, error } = useQuery({
     queryKey: ["projectOverview", projectId],

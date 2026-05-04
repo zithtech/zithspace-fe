@@ -41,6 +41,7 @@ import {
   useBulkPermanentlyDelete,
   useEmptyTrash,
 } from "@/hooks/useTrash";
+import { useTrashSocketEvents } from "@/hooks/useTrashSocketEvents";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -58,6 +59,9 @@ const calculateDaysRemaining = (deletedAt: string) => {
 };
 
 export default function TrashManagementPage() {
+  // Initialize socket events for real-time trash updates
+  useTrashSocketEvents();
+
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");

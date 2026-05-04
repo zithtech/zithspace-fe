@@ -14,8 +14,8 @@ export const useTicketSocketEvents = () => {
 
     const handleTicketCreated = (ticket: Ticket) => {
       console.log("Socket: Ticket Created", ticket);
-      // Invalidate lists so the new ticket appears
-      queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
+      // Invalidate all ticket-related queries (lists, kanban, stats)
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
       message.info(`New ticket created: ${ticket.ticketNumber}`);
     };
 
@@ -25,8 +25,8 @@ export const useTicketSocketEvents = () => {
       // Update detail view immediately
       queryClient.setQueryData(ticketKeys.detail(updatedTicket.id), updatedTicket);
 
-      // Invalidate lists to reflect status/content changes
-      queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
+      // Invalidate all ticket-related queries to reflect status/content changes
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
     };
 
     const handleTicketDeleted = ({ id }: { id: string }) => {
@@ -35,8 +35,8 @@ export const useTicketSocketEvents = () => {
       // Remove from detail view cache if present (or just invalidate)
       queryClient.removeQueries({ queryKey: ticketKeys.detail(id) });
       
-      // Invalidate lists
-      queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
+      // Invalidate all ticket-related queries
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
     };
 
     socket.on("ticket:created", handleTicketCreated);

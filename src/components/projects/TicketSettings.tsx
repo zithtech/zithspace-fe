@@ -28,16 +28,21 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { globalDataKeys } from '@/hooks/useGlobalData';
 import DropdownManager from './DropdownManager';
+import { useSettingsSocketEvents } from '@/hooks/useSettingsSocketEvents';
 
 const { Title, Paragraph, Text } = Typography;
 
 export default function TicketSettings() {
+  // Initialize real-time settings listeners
+  useSettingsSocketEvents();
+
   const [activeTab, setActiveTab] = useState('integration');
   const queryClient = useQueryClient();
 
   // Handle data changes from DropdownManager
   const handleDataChange = () => {
     queryClient.invalidateQueries({ queryKey: globalDataKeys.ticketConfig });
+    queryClient.invalidateQueries({ queryKey: globalDataKeys.dropdownOptions });
   };
 
   const settingsFeatures = [

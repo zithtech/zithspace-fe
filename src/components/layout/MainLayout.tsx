@@ -30,10 +30,24 @@ export default function MainLayout({ children }: MainLayoutProps) {
   useEffect(() => {
     if (!pathname) return;
 
-    // Find module that matches the path prefix
-    const foundModule = NAVIGATION_CONFIG.find((module) =>
-      module.pathPrefixes.some((prefix) => pathname.startsWith(prefix)),
-    );
+    // Helper to check if a path exists within module items
+    const isPathInItems = (items: any[], targetPath: string): boolean => {
+      return items.some(item => {
+        if (item.path === targetPath) return true;
+        if (item.children) return isPathInItems(item.children, targetPath);
+        return false;
+      });
+    };
+
+    // Find module that matches the path prefix or contains the path in its items
+    const foundModule = NAVIGATION_CONFIG.find((module) => {
+      // 1. Check primary path prefixes
+      if (module.pathPrefixes.some((prefix) => pathname.startsWith(prefix))) {
+        return true;
+      }
+      // 2. Fallback: Check if the exact pathname exists in module items
+      return isPathInItems(module.items, pathname);
+    });
 
     if (foundModule) {
       setActiveModule(foundModule.key);

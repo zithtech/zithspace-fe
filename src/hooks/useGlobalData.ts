@@ -12,7 +12,14 @@ export const globalDataKeys = {
   members: ["global", "members"] as const,
   ticketConfig: ["global", "ticketConfig"] as const,
   tickets: ["global", "userTicketsByProject"],
-  documentHub: ["documentHub"],
+  documentHub: {
+    all: ["documentHub", "all"] as const,
+    detail: (id: string) => ["documentHub", "detail", id] as const,
+    document: (id: string) => ["documentHub", "document", id] as const,
+    history: (id: string) => ["documentHub", "history", id] as const,
+    trash: ["documentHub", "trash"] as const,
+  },
+  dropdownOptions: ["global", "dropdownOptions"] as const,
 };
 
 /**
@@ -58,15 +65,39 @@ export const useUserTicketsByProjects = (
 
 
 
+export const useAllDocumentHubs = (options?: { enabled?: boolean }) => {
+  return useQuery({
+    queryKey: globalDataKeys.documentHub.all,
+    queryFn: () => DocumentHubService.getAllDocumentHubs(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    ...options,
+  });
+};
+
 export const useDocumentHub = (
+  hubId: string | undefined,
+  options?: { enabled?: boolean },
+) => {
+  return useQuery({
+    queryKey: globalDataKeys.documentHub.detail(hubId as string),
+    queryFn: () => DocumentHubService.getDocumentHub(hubId as string),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    enabled: Boolean(hubId) && options?.enabled !== false,
+    ...options,
+  });
+};
+
+export const useDocument = (
   documentId: string | undefined,
   options?: { enabled?: boolean },
 ) => {
   return useQuery({
-    queryKey: [...globalDataKeys.documentHub, documentId],
-    queryFn: () => DocumentHubService.getDocumentHub(documentId as string),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    queryKey: globalDataKeys.documentHub.document(documentId as string),
+    queryFn: () => DocumentHubService.getDocument(documentId as string),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     enabled: Boolean(documentId) && options?.enabled !== false,
     ...options,
   });
@@ -97,6 +128,18 @@ export const useTicketConfig = (options?: { enabled?: boolean }) => {
     queryFn: () => SettingsService.getTicketConfigurations(),
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch all dropdown options
+ */
+export const useDropdownOptions = (options?: { enabled?: boolean }) => {
+  return useQuery({
+    queryKey: globalDataKeys.dropdownOptions,
+    queryFn: () => SettingsService.getDropdownOptions(),
+    staleTime: 10 * 60 * 1000,
     ...options,
   });
 };

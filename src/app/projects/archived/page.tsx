@@ -39,11 +39,15 @@ import { useTickets } from '@/hooks/useTickets';
 import { useMoveToTrash } from '@/hooks/useTrash';
 import { Ticket } from '@/services/ticketService';
 import { Avatar, Tooltip, Row, Col } from 'antd';
+import { useTicketSocketEvents } from '@/hooks/useTicketSocketEvents';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 export default function ArchivedTicketsPage() {
+  // Initialize real-time ticket listeners
+  useTicketSocketEvents();
+
   const { message, modal } = App.useApp();
   const { data: projects } = useUserProjects();
   const { isLoading: authLoading } = useAuth();

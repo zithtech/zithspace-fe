@@ -20,7 +20,8 @@ import {
 import { useRouter } from 'next/navigation'
 import DocumentEditor, { ViewMode } from '@/components/common/DocumentEditor'
 import MainLayout from '@/components/layout/MainLayout'
-import { useDocumentHub, globalDataKeys } from '@/hooks/useGlobalData'
+import { useDocumentHub, globalDataKeys, useDocument } from '@/hooks/useGlobalData'
+import { useDocumentSocketEvents } from '@/hooks/useDocumentSocketEvents'
 import { DocumentTreeNode } from '@/services/documentHub'
 import { Modal, Form, Input, Dropdown, MenuProps, Button, message, Segmented, Drawer, Tooltip } from 'antd'
 import { documentHubService as DocumentHubService } from '@/services/documentHub'
@@ -220,6 +221,9 @@ interface DocumentWorkspaceProps {
 }
 
 export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps) {
+    // Enable real-time synchronization
+    useDocumentSocketEvents();
+
     const router = useRouter()
     const [collapsed, setCollapsed] = useState(false)
     const [selectedDoc, setSelectedDoc] = useState('api-ref')
@@ -257,15 +261,13 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     }, [documentHub?.name]);
 
     // Fetch selected document content
-    const { data: documentContent, isLoading: isDocumentLoading, refetch: refetchDocument } = useQuery({
-        queryKey: ['document', selectedDoc],
-        queryFn: () => DocumentHubService.getDocument(selectedDoc),
-        enabled: !!selectedDoc && selectedDoc !== 'api-ref', // Don't fetch if placeholder
+    const { data: documentContent, isLoading: isDocumentLoading, refetch: refetchDocument } = useDocument(selectedDoc, {
+        enabled: !!selectedDoc && selectedDoc !== 'api-ref',
     });
 
     // Fetch document history
     const { data: documentHistory = [], isLoading: isHistoryLoading, refetch: refetchHistory } = useQuery({
-        queryKey: ['documentHistory', selectedDoc],
+        queryKey: globalDataKeys.documentHub.history(selectedDoc),
         queryFn: () => DocumentHubService.getDocumentHistory(selectedDoc),
         enabled: !!selectedDoc && selectedDoc !== 'api-ref' && isHistoryOpen,
         refetchOnMount: 'always', // Ensure fresh history
@@ -439,7 +441,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
 
             // Invalidate query to refetch tree
             const ticketsKey = [...globalDataKeys.tickets, documentId];
-            const hubKey = [...globalDataKeys.documentHub, documentId];
+            const hubKey = globalDataKeys.documentHub.detail(documentId);
             console.log('Invalidating and refetching Document Hub tree with keys:', { ticketsKey, hubKey });
 
             queryClient.invalidateQueries({ queryKey: ticketsKey });
@@ -545,7 +547,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             await DocumentHubService.updateDocumentHub(documentId, { name: hubName });
             messageApi.success('Document Hub renamed successfully');
             const ticketsKey = [...globalDataKeys.tickets, documentId];
-            const hubKey = [...globalDataKeys.documentHub, documentId];
+            const hubKey = globalDataKeys.documentHub.detail(documentId);
             console.log('Invalidating and refetching Document Hub tree after rename with keys:', { ticketsKey, hubKey });
 
             queryClient.invalidateQueries({ queryKey: ticketsKey });
@@ -564,7 +566,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             await DocumentHubService.updateTreeNode(id, { title: newTitle });
             messageApi.success('Renamed successfully');
             const ticketsKey = [...globalDataKeys.tickets, documentId];
-            const hubKey = [...globalDataKeys.documentHub, documentId];
+            const hubKey = globalDataKeys.documentHub.detail(documentId);
             console.log('Invalidating and refetching Document Hub tree after node rename with keys:', { ticketsKey, hubKey });
 
             queryClient.invalidateQueries({ queryKey: ticketsKey });
@@ -597,20 +599,20 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                         if (docId) {
                             await DocumentHubService.deleteDocument(docId);
                             messageApi.success('Document deleted');
-                            // Invalidate document hub to refresh tree (removes deleted node)
-                            const ticketsKey = [...globalDataKeys.tickets, documentId];
-                            const hubKey = [...globalDataKeys.documentHub, documentId];
-                            console.log('Invalidating and refetching Document Hub tree after file deletion with keys:', { ticketsKey, hubKey });
+                             // Invalidate document hub to refresh tree (removes deleted node)
+                             const ticketsKey = [...globalDataKeys.tickets, documentId];
+                             const hubKey = globalDataKeys.documentHub.detail(documentId);
+                             console.log('Invalidating and refetching Document Hub tree after file deletion with keys:', { ticketsKey, hubKey });
 
-                            queryClient.invalidateQueries({ queryKey: ticketsKey });
-                            queryClient.refetchQueries({ queryKey: ticketsKey });
-                            queryClient.invalidateQueries({ queryKey: hubKey });
-                            queryClient.refetchQueries({ queryKey: hubKey });
+                             queryClient.invalidateQueries({ queryKey: ticketsKey });
+                             queryClient.refetchQueries({ queryKey: ticketsKey });
+                             queryClient.invalidateQueries({ queryKey: hubKey });
+                             queryClient.refetchQueries({ queryKey: hubKey });
 
-                            // Invalidate the individual document cache
-                            queryClient.removeQueries({ queryKey: ['document', docId] });
-                            // Invalidate document history cache
-                            queryClient.removeQueries({ queryKey: ['documentHistory', docId] });
+                             // Invalidate the individual document cache
+                             queryClient.removeQueries({ queryKey: globalDataKeys.documentHub.document(docId) });
+                             // Invalidate document history cache
+                             queryClient.removeQueries({ queryKey: globalDataKeys.documentHub.history(docId) });
                             if (selectedDoc === docId) {
                                 setSelectedDoc('api-ref');
                             }
@@ -632,7 +634,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                         await DocumentHubService.deleteTreeNode(id);
                         messageApi.success(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted`);
                         const ticketsKey = [...globalDataKeys.tickets, documentId];
-                        const hubKey = [...globalDataKeys.documentHub, documentId];
+                        const hubKey = globalDataKeys.documentHub.detail(documentId);
                         console.log('Invalidating and refetching Document Hub tree after node deletion with keys:', { ticketsKey, hubKey });
 
                         queryClient.invalidateQueries({ queryKey: ticketsKey });

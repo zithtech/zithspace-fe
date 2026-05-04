@@ -55,6 +55,8 @@ import ReleasePlanService, {
 } from "@/services/releasePlanService";
 import { ProjectService } from "@/services/projectService";
 import { SprintCompletionModal } from "./sprint-completion";
+import { useSocket } from "@/providers/SocketProvider";
+import { useBucketSocketEvents } from "@/hooks/useBucketSocketEvents";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -62,6 +64,10 @@ const { Option } = Select;
 
 export default function SprintPlanComponent() {
   const router = useRouter();
+  const { socket, connected } = useSocket();
+
+  // Initialize bucket socket events (for React Query based parts of the app)
+  useBucketSocketEvents();
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification({
     placement: 'top',
@@ -105,6 +111,34 @@ export default function SprintPlanComponent() {
     loadData();
     loadProjects();
   }, []);
+
+  // Real-time socket listeners for manual refresh
+  useEffect(() => {
+    if (!socket || !connected) return;
+
+    const handleRefresh = () => {
+      console.log("Socket: Refreshing Sprint Plan data...");
+      loadData();
+    };
+
+    socket.on("plan:created", handleRefresh);
+    socket.on("plan:updated", handleRefresh);
+    socket.on("plan:deleted", handleRefresh);
+    socket.on("sprint:started", handleRefresh);
+    socket.on("sprint:completed", handleRefresh);
+    socket.on("bucket:moved_to_sprint", handleRefresh);
+    socket.on("bucket:moved_to_backlog", handleRefresh);
+
+    return () => {
+      socket.off("plan:created", handleRefresh);
+      socket.off("plan:updated", handleRefresh);
+      socket.off("plan:deleted", handleRefresh);
+      socket.off("sprint:started", handleRefresh);
+      socket.off("sprint:completed", handleRefresh);
+      socket.off("bucket:moved_to_sprint", handleRefresh);
+      socket.off("bucket:moved_to_backlog", handleRefresh);
+    };
+  }, [socket, connected]);
 
   const loadData = async (filtersOverride?: any) => {
     try {

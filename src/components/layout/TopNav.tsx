@@ -676,7 +676,7 @@ export default function TopNav({
             menu={{ items: userMenuItems }}
             placement="bottomRight"
             trigger={["click"]}
-            dropdownRender={(menu) => (
+            popupRender={(menu) => (
               <div style={{ boxShadow: 'none', border: '1px solid var(--border-slate-200)', borderRadius: 8, background: 'var(--bg-pure-white)' }}>
                 {menu}
               </div>

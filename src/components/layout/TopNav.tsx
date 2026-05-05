@@ -633,7 +633,7 @@ export default function TopNav({
                 </div>
               }
               placement="bottom"
-              overlayClassName="navbar-icon-tooltip"
+              classNames={{ root: "navbar-icon-tooltip" }}
               mouseEnterDelay={0.1}
               zIndex={1100}
             >
@@ -651,7 +651,7 @@ export default function TopNav({
                 </div>
               }
               placement="bottom"
-              overlayClassName="navbar-icon-tooltip"
+              classNames={{ root: "navbar-icon-tooltip" }}
               mouseEnterDelay={0.1}
               zIndex={1100}
             >
@@ -669,7 +669,7 @@ export default function TopNav({
                 </div>
               }
               placement="bottom"
-              overlayClassName="navbar-icon-tooltip"
+              classNames={{ root: "navbar-icon-tooltip" }}
               mouseEnterDelay={0.1}
               zIndex={1100}
             >
@@ -688,7 +688,7 @@ export default function TopNav({
                 </div>
               }
               placement="bottom"
-              overlayClassName="navbar-icon-tooltip"
+              classNames={{ root: "navbar-icon-tooltip" }}
               mouseEnterDelay={0.1}
               zIndex={1100}
             >
@@ -706,7 +706,7 @@ export default function TopNav({
                 </div>
               }
               placement="bottom"
-              overlayClassName="navbar-icon-tooltip"
+              classNames={{ root: "navbar-icon-tooltip" }}
               mouseEnterDelay={0.1}
               zIndex={1100}
             >
@@ -727,7 +727,7 @@ export default function TopNav({
                 </div>
               }
               placement="bottom"
-              overlayClassName="navbar-icon-tooltip"
+              classNames={{ root: "navbar-icon-tooltip" }}
               mouseEnterDelay={0.1}
               zIndex={1100}
               open={shortcutPopoverVisible ? false : undefined}
@@ -860,7 +860,7 @@ export default function TopNav({
             menu={{ items: userMenuItems }}
             placement="bottomRight"
             trigger={["click"]}
-            dropdownRender={(menu) => (
+            popupRender={(menu) => (
               <div style={{ boxShadow: 'none', border: '1px solid var(--border-slate-200)', borderRadius: 8, background: 'var(--bg-pure-white)' }}>
                 {menu}
               </div>

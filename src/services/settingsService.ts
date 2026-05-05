@@ -231,7 +231,7 @@ export class SettingsService {
    */
   static async getDropdownOptions(): Promise<Record<string, DropdownOption[]>> {
     try {
-      return await api.get<Record<string, DropdownOption[]>>('/api/settings/dropdown-options');
+      return await api.get<Record<string, DropdownOption[]>>('/api/settings/dropdown-options?includeInactive=true');
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);

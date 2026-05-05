@@ -6,9 +6,9 @@ import {
   Select,
   Space,
   Typography,
-  message,
   Tag,
   Avatar,
+  App,
 } from "antd";
 import { UserAddOutlined } from "@ant-design/icons";
 import { useMembers } from "@/hooks/useGlobalData";
@@ -29,15 +29,57 @@ export function BucketMemberManager({
   onClose,
   onSuccess,
 }: BucketMemberManagerProps) {
+  const { notification: notifyApi } = App.useApp();
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedRole, setSelectedRole] = useState<"editor" | "viewer">("editor");
 
   const { data: members = [], isLoading: membersLoading } = useMembers();
   const addMember = useAddBucketMember();
 
+  const showTinyToast = (
+    kind: 'success' | 'error' | 'warning',
+    label: string
+  ) => {
+    const palette =
+      kind === 'success'
+        ? { dot: '#10b981', icon: '✓' }
+        : kind === 'error'
+          ? { dot: '#ef4444', icon: '!' }
+          : { dot: '#f59e0b', icon: '!' };
+
+    notifyApi.open({
+      key: 'member-manager-toast',
+      placement: 'top',
+      duration: 3,
+      className: 'tiny-toast',
+      message: (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+          <span
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              background: palette.dot,
+              color: '#fff',
+              fontSize: 10,
+              fontWeight: 900,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            {palette.icon}
+          </span>
+          {label}
+        </span>
+      ),
+    });
+  };
+
   const handleSubmit = async () => {
     if (selectedUserIds.length === 0) {
-      message.warning("Please select at least one member");
+      showTinyToast('warning', "Please select at least one member");
       return;
     }
 
@@ -51,15 +93,13 @@ export function BucketMemberManager({
         });
       }
 
-      message.success(
-        `${selectedUserIds.length} member(s) added successfully`
-      );
+      showTinyToast('success', `${selectedUserIds.length} member(s) added successfully`);
       setSelectedUserIds([]);
       setSelectedRole("editor");
       onSuccess();
     } catch (error: any) {
       console.error("Failed to add members:", error);
-      message.error(error.message || "Failed to add members");
+      showTinyToast('error', error.message || "Failed to add members");
     }
   };
 
@@ -106,7 +146,7 @@ export function BucketMemberManager({
               const member = members.find((m) => m.value === option?.value);
               return member
                 ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                    member.position.toLowerCase().includes(input.toLowerCase())
+                member.position.toLowerCase().includes(input.toLowerCase())
                 : false;
             }}
             optionRender={(option) => {

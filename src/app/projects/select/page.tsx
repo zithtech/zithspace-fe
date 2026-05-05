@@ -163,7 +163,7 @@ function ProjectSelectContent() {
                 height: 48,
                 fontSize: 14,
                 border: '1px solid var(--border-color)',
-                background: 'var(--bg-pure-white)',
+                background: 'transparent',
                 boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                 padding: '0 16px'
               }}

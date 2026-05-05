@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   Table,
@@ -38,6 +39,7 @@ import {
   useBulkRestoreFromTrash,
   useBulkPermanentlyDelete,
   useEmptyTrash,
+  trashKeys,
 } from "@/hooks/useTrash";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
@@ -65,11 +67,13 @@ const calculatePurgeProgress = (deletedAt: string) => {
 };
 
 export default function TrashManagementPage() {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState<string | undefined>(undefined);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     data: trashData,
@@ -154,7 +158,7 @@ export default function TrashManagementPage() {
 
   const handleEmptyTrash = async () => {
     try {
-      await emptyTrash.mutateAsync(false);
+      await emptyTrash.mutateAsync({ projectId: projectFilter, force: true });
       setSelectedRowKeys([]);
       refetch();
     } catch (error) {
@@ -313,7 +317,7 @@ export default function TrashManagementPage() {
   ];
 
   const isFiltered = !!(projectFilter || searchQuery);
-  const hasItems = (trashData?.tickets?.length || 0) > 0;
+  const hasItems = (trashData?.pagination.total || 0) > 0;
 
   return (
     <div className="tr-page">
@@ -341,8 +345,14 @@ export default function TrashManagementPage() {
             <Tooltip title="Refresh">
               <Button
                 type="text"
-                icon={<ReloadOutlined />}
-                onClick={() => refetch()}
+                icon={<ReloadOutlined spin={isRefreshing} />}
+                onClick={async () => {
+                  setIsRefreshing(true);
+                  await queryClient.invalidateQueries({ queryKey: trashKeys.all });
+                  setIsRefreshing(false);
+                  message.success("Trash refreshed");
+                }}
+                loading={isLoading && !isRefreshing}
                 className="tr-hero-ghost"
               />
             </Tooltip>
@@ -934,7 +944,7 @@ export default function TrashManagementPage() {
           gap: 8px;
           height: 32px;
           padding: 0 10px;
-          background: var(--bg-pure-white);
+          background: transparent !important;
           border: 1px solid var(--border-slate-100);
           border-radius: 7px;
           transition: all 0.15s ease;
@@ -947,7 +957,7 @@ export default function TrashManagementPage() {
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
         }
         [data-theme='dark'] .tr-filter-field {
-          background: #161b22;
+          background: transparent !important;
           border-color: #1f2937;
         }
         [data-theme='dark'] .tr-filter-field:hover {
@@ -967,10 +977,16 @@ export default function TrashManagementPage() {
         .tr-filter-search {
           width: 280px;
         }
-        .tr-filter-search .ant-input {
+        .tr-filter-search .ant-input,
+        .tr-filter-search .ant-input-affix-wrapper,
+        .tr-filter-search .ant-input-affix-wrapper-focused,
+        .tr-filter-search .ant-input-affix-wrapper:hover {
           font-size: 12px;
           font-weight: 500;
           padding: 0;
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
         }
         .tr-filter-select {
           width: 180px;

@@ -20,6 +20,8 @@ import {
   Spin,
 } from 'antd';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+dayjs.extend(relativeTime);
 import {
   FolderOpenOutlined,
   SearchOutlined,
@@ -862,7 +864,7 @@ export default function ArchivedTicketsPage() {
             gap: 8px;
             height: 32px;
             padding: 0 10px;
-            background: var(--bg-pure-white);
+            background: transparent !important;
             border: 1px solid var(--border-slate-100);
             border-radius: 7px;
             transition: all 0.15s ease;
@@ -875,7 +877,7 @@ export default function ArchivedTicketsPage() {
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
           }
           [data-theme='dark'] .ar-filter-field {
-            background: #161b22;
+            background: transparent !important;
             border-color: #1f2937;
           }
           [data-theme='dark'] .ar-filter-field:hover {
@@ -895,10 +897,16 @@ export default function ArchivedTicketsPage() {
           .ar-filter-search {
             width: 280px;
           }
-          .ar-filter-search .ant-input {
+          .ar-filter-search .ant-input,
+          .ar-filter-search .ant-input-affix-wrapper,
+          .ar-filter-search .ant-input-affix-wrapper-focused,
+          .ar-filter-search .ant-input-affix-wrapper:hover {
             font-size: 12px;
             font-weight: 500;
             padding: 0;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
           }
           .ar-filter-select {
             width: 200px;

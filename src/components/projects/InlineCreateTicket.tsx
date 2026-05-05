@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Input, Button, Select, message, Space, Card, Tag, notification, Divider } from "antd";
+import { Input, Button, Select, message, Space, Card, Tag, notification, Divider, App } from "antd";
 import { PlusOutlined, LoadingOutlined } from "@ant-design/icons";
 import { useCreateTicket } from "@/hooks/useTickets";
 import { Ticket, TicketFormData } from "@/services/ticketService";
@@ -29,9 +29,10 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
   visible,
   onClose,
 }) => {
-  const [api, contextHolder] = notification.useNotification({
-    placement: 'top',
-  });
+  const { message: messageApi } = App.useApp();
+  // const [api, contextHolder] = notification.useNotification({
+  //   placement: 'top',
+  // });
   // Internal state for uncontrolled mode
   const [internalIsCreating, setInternalIsCreating] = useState(false);
 
@@ -46,12 +47,12 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
     console.log("handleCreate CALLED", { title, projectId, filters });
 
     if (!title.trim()) {
-      api.error({ message: "Validation Error", description: "Please enter a ticket title" });
+      messageApi.error("Please enter a ticket title");
       return;
     }
 
     if (!projectId) {
-      api.error({ message: "Validation Error", description: "Project context is missing" });
+      messageApi.error("Project context is missing");
       return;
     }
 
@@ -73,15 +74,12 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
     createTicketMutation.mutate(newTicketData, {
       onError: (error: any) => {
         console.error("Failed to create ticket:", error);
-        api.error({
-          message: "Creation Failed",
-          description: error?.message || "Failed to create ticket."
-        });
+        messageApi.error(error?.message || "Failed to create ticket.");
         // Ideally restore the title here if it failed so user doesn't lose text
         setTitle(newTicketData.title);
       },
       onSuccess: (savedTicket) => {
-        api.success({ message: "Ticket created", duration: 2 });
+        // Removed local success message, let handleTicketCreated in TicketList handle it
         if (onTicketCreated) onTicketCreated(savedTicket);
         if (onClose) onClose();
         if (visible === undefined) setInternalIsCreating(false);
@@ -98,11 +96,10 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
 
   if (!isCreating) {
     // If controlled (visible is provided) and false, render nothing
-    if (visible !== undefined) return <>{contextHolder}</>;
+    if (visible !== undefined) return null;
 
     return (
       <>
-        {contextHolder}
         <Button
           type="dashed"
           block
@@ -118,7 +115,6 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
 
   return (
     <>
-      {contextHolder}
       <Card
         size="small"
         className="saas-card"

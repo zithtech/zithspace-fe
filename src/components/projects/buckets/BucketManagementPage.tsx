@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   Button,
@@ -15,6 +16,7 @@ import {
   Segmented,
   Skeleton,
   Avatar,
+  App,
 } from "antd";
 import {
   PlusOutlined,
@@ -43,6 +45,7 @@ import {
   useDeleteBucket,
   useMoveBucketToSprint,
   useMoveBucketToBacklog,
+  bucketKeys,
 } from "@/hooks/useBuckets";
 import { CreateBucketModal } from "./CreateBucketModal";
 import { MoveToSprintAction } from "./MoveToSprintAction";
@@ -69,8 +72,9 @@ const initialsOf = (name?: string) =>
     .toUpperCase();
 
 export default function BucketManagementPage() {
-  const [, contextHolder] = notification.useNotification({ placement: "top" });
+  const { message } = App.useApp();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // State
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -79,6 +83,7 @@ export default function BucketManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "shared" | "private">("all");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Queries
   const { data: projects } = useUserProjects();
@@ -105,12 +110,13 @@ export default function BucketManagementPage() {
           typeFilter === "all"
             ? true
             : typeFilter === "shared"
-            ? bucket.isShared
-            : !bucket.isShared;
+              ? bucket.isShared
+              : !bucket.isShared;
         return matchesSearch && matchesType;
       }),
     [allBuckets, searchQuery, typeFilter]
   );
+
 
   // Aggregate KPIs use the unfiltered list for true totals
   const kpis = useMemo(() => {
@@ -179,8 +185,10 @@ export default function BucketManagementPage() {
     return (
       <div
         className="bh-card"
-        onClick={() => handleView(bucket.id)}
-        style={{ ["--accent" as any]: accent }}
+        onClick={() => {
+          if (ticketCount > 0) handleView(bucket.id);
+        }}
+        style={{ ["--accent" as any]: accent, cursor: ticketCount > 0 ? 'pointer' : 'default' }}
       >
         <div className="bh-card-accent" />
         <div className="bh-card-glow" />
@@ -282,19 +290,45 @@ export default function BucketManagementPage() {
             <MoveToSprintAction
               bucket={bucket}
               onMove={(sprintId) =>
-                moveBucketToSprint.mutate({ bucketId: bucket.id, sprintId })
+                moveBucketToSprint.mutate(
+                  { bucketId: bucket.id, sprintId },
+                  {
+                    onSuccess: (result) => {
+                      if (result.movedCount > 0) {
+                        message.success(`Ticket added to sprint successfully`);
+                      } else {
+                        message.info("This hub has no tickets to move");
+                      }
+                    },
+                    onError: (err: any) => {
+                      message.error(err.message || "Movement failed");
+                    }
+                  }
+                )
               }
               loading={
                 moveBucketToSprint.isPending &&
                 moveBucketToSprint.variables?.bucketId === bucket.id
               }
+              disabled={ticketCount === 0}
             />
             <Popconfirm
               title="Move to Backlog"
               description="Move all tickets back to the backlog?"
               onConfirm={(e) => {
                 e?.stopPropagation();
-                moveBucketToBacklog.mutate(bucket.id);
+                moveBucketToBacklog.mutate(bucket.id, {
+                  onSuccess: (result) => {
+                    if (result.movedCount > 0) {
+                      message.success(`Ticket removed from sprint successfully`);
+                    } else {
+                      message.info("This hub has no tickets to move");
+                    }
+                  },
+                  onError: (err: any) => {
+                    message.error(err.message || "Movement failed");
+                  }
+                });
               }}
               okText="Move"
               cancelText="Cancel"
@@ -308,6 +342,7 @@ export default function BucketManagementPage() {
                   moveBucketToBacklog.isPending &&
                   moveBucketToBacklog.variables === bucket.id
                 }
+                disabled={ticketCount === 0}
               />
             </Popconfirm>
             <Popconfirm
@@ -336,6 +371,7 @@ export default function BucketManagementPage() {
               icon={<ArrowRightOutlined />}
               className="bh-icon-btn bh-icon-btn-go"
               onClick={() => handleView(bucket.id)}
+              disabled={ticketCount === 0}
             />
           </div>
         </div>
@@ -468,12 +504,13 @@ export default function BucketManagementPage() {
       width: 160,
       render: (_: any, record: Bucket) => (
         <Space size={2} onClick={(e) => e.stopPropagation()}>
-          <Tooltip title="Deep Dive">
+          <Tooltip title={record._count?.tickets === 0 ? "No tickets to view" : "Deep Dive"}>
             <Button
               type="text"
               icon={<EyeOutlined style={{ fontSize: 14 }} />}
               onClick={() => handleView(record.id)}
               className="saas-action-btn"
+              disabled={record._count?.tickets === 0}
             />
           </Tooltip>
           <Tooltip title="Configure">
@@ -487,19 +524,45 @@ export default function BucketManagementPage() {
           <MoveToSprintAction
             bucket={record}
             onMove={(sprintId) =>
-              moveBucketToSprint.mutate({ bucketId: record.id, sprintId })
+              moveBucketToSprint.mutate(
+                { bucketId: record.id, sprintId },
+                {
+                  onSuccess: (result) => {
+                    if (result.movedCount > 0) {
+                      message.success(`Ticket added to sprint successfully`);
+                    } else {
+                      message.info("This hub has no tickets to move");
+                    }
+                  },
+                  onError: (err: any) => {
+                    message.error(err.message || "Movement failed");
+                  }
+                }
+              )
             }
             loading={
               moveBucketToSprint.isPending &&
               moveBucketToSprint.variables?.bucketId === record.id
             }
+            disabled={record._count?.tickets === 0}
           />
           <Popconfirm
             title="Move to Backlog"
             description="Move all tickets in this hub back to the backlog?"
             onConfirm={(e) => {
               e?.stopPropagation();
-              moveBucketToBacklog.mutate(record.id);
+              moveBucketToBacklog.mutate(record.id, {
+                onSuccess: (result) => {
+                  if (result.movedCount > 0) {
+                    message.success(`Ticket removed from sprint successfully`);
+                  } else {
+                    message.info("This hub has no tickets to move");
+                  }
+                },
+                onError: (err: any) => {
+                  message.error(err.message || "Movement failed");
+                }
+              });
             }}
             okText="Move"
             cancelText="Cancel"
@@ -512,6 +575,7 @@ export default function BucketManagementPage() {
                 moveBucketToBacklog.variables === record.id
               }
               className="saas-action-btn"
+              disabled={record._count?.tickets === 0}
             />
           </Popconfirm>
           <Popconfirm
@@ -538,7 +602,7 @@ export default function BucketManagementPage() {
   // ───────────────────────────── Render ─────────────────────────────
   return (
     <div className="bh-page">
-      {contextHolder}
+      {/* {contextHolder} */}
 
       <TimeTrackingHeader
         style={{ padding: "9.5px 32px" }}
@@ -548,9 +612,14 @@ export default function BucketManagementPage() {
         extra={
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <Button
-              icon={<ReloadOutlined />}
-              onClick={() => refetch()}
-              loading={isLoading}
+              icon={<ReloadOutlined spin={isRefreshing} />}
+              onClick={async () => {
+                setIsRefreshing(true);
+                await queryClient.invalidateQueries({ queryKey: bucketKeys.all });
+                setIsRefreshing(false);
+                message.success("Buckets refreshed");
+              }}
+              loading={isLoading && !isRefreshing}
               className="bh-header-btn"
             />
             <Button
@@ -703,7 +772,7 @@ export default function BucketManagementPage() {
               <Input
                 placeholder="Search hub..."
                 variant="borderless"
-                style={{ fontSize: 12, fontWeight: 600, padding: 0 }}
+                style={{ fontSize: 12, fontWeight: 600, padding: 0, background: 'transparent' }}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 allowClear
@@ -807,7 +876,13 @@ export default function BucketManagementPage() {
                 ),
                 style: { padding: "12px 20px", margin: 0 },
               }}
-              onRow={(record) => ({ onClick: () => handleView(record.id) })}
+              onRow={(record) => ({
+                onClick: () => {
+                  if ((record as any)._count?.tickets > 0) {
+                    handleView(record.id);
+                  }
+                }
+              })}
             />
           </Card>
         )}
@@ -1000,7 +1075,7 @@ export default function BucketManagementPage() {
             display: flex;
             align-items: center;
             gap: 10px;
-            background: var(--bg-slate-50);
+            background: transparent !important;
             padding: 0 12px;
             border-radius: 8px;
             border: 1px solid var(--border-slate-100);
@@ -1013,7 +1088,7 @@ export default function BucketManagementPage() {
             box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.08);
           }
           [data-theme='dark'] .bh-search-box {
-            background: #1f2937 !important;
+            background: transparent !important;
             border-color: #374151 !important;
           }
 

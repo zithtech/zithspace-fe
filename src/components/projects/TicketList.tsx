@@ -16,7 +16,6 @@ import {
   Avatar,
   Table,
   Empty,
-  message,
   Modal,
   Popconfirm,
   Radio,
@@ -31,6 +30,7 @@ import {
   Progress,
   Spin,
   Segmented,
+  App,
   type TableProps,
 } from "antd";
 import {
@@ -113,7 +113,8 @@ interface TicketListProps {
 export default function TicketList({ projectId, projectName, projectCode }: TicketListProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [modal, contextHolder] = Modal.useModal();
+  const { message, modal, notification } = App.useApp();
+  // const [modal, contextHolder] = Modal.useModal();
 
   // Local state for filters only
   const [filters, setFilters] = useState<FilterState>({
@@ -346,9 +347,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   // Handle Add/Remove from Sprint
   // Handle Add/Remove from Sprint
-  const [notifyApi, notifyContextHolder] = notification.useNotification({
-    placement: 'top',
-  }); // Use notification hook
+  // const [notifyApi, notifyContextHolder] = notification.useNotification({
+  //   placement: 'top',
+  // }); // Use notification hook
 
   // Handle Add/Remove from Sprint
   // Handle Add/Remove from Sprint
@@ -356,47 +357,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     kind: 'added' | 'removed' | 'error',
     label?: string
   ) => {
-    const palette =
-      kind === 'added'
-        ? { dot: '#10b981', icon: '✓' }
-        : kind === 'removed'
-          ? { dot: '#ef4444', icon: '↺' }
-          : { dot: '#ef4444', icon: '!' };
-
-    notifyApi.open({
-      key: 'sprint-assignment-toast',
-      placement: 'top',
-      duration: 2,
-      className: 'tiny-toast',
-      message: (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <span
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
-              background: palette.dot,
-              color: '#fff',
-              fontSize: 11,
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            {palette.icon}
-          </span>
-          {kind === 'added' && (
-            <>
-              Added to <strong style={{ color: 'var(--text-slate-900)', fontWeight: 700 }}>{label}</strong>
-            </>
-          )}
-          {kind === 'removed' && <>Removed from sprint</>}
-          {kind === 'error' && <span style={{ color: '#ef4444' }}>Sprint update failed</span>}
-        </span>
-      ),
-    });
+    if (kind === 'added') {
+      message.success(`Ticket added to ${label} successfully`);
+    } else if (kind === 'removed') {
+      message.success(`Ticket removed from sprint successfully`);
+    } else if (kind === 'error') {
+      message.error(`Sprint update failed`);
+    }
   };
 
   const handleSprintAssignment = (ticketId: string, action: 'add' | 'remove') => {
@@ -436,14 +403,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const handleSprintCompletionSuccess = () => {
     setSprintCompletionModalOpen(false);
-    notifyApi.success({
-      message: 'Sprint Completed',
-      description: 'Sprint completed successfully',
-      placement: 'top',
-      style: {
-        borderLeft: '4px solid #52c41a',
-      }
-    });
+    message.success('Sprint completed successfully');
     // Refresh both ticket lists and active sprint query
     refetchActive();
     refetchBacklog();
@@ -475,19 +435,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
       // Show appropriate success message
       if (sprintStatus === 'active') {
-        notifyApi.success({
-          message: 'Active Sprint Created',
-          description: `${newSprint.version} is now your active sprint! Start adding tickets.`,
-          placement: 'top',
-          style: { borderLeft: '4px solid #52c41a' }
-        });
+        message.success(`${newSprint.version} is now your active sprint!`);
       } else {
-        notifyApi.success({
-          message: 'Planning Sprint Created',
-          description: `${newSprint.version} created as a draft. You can start it after completing the current sprint.`,
-          placement: 'top',
-          style: { borderLeft: '4px solid #1890ff' }
-        });
+        message.success(`${newSprint.version} created in planning`);
       }
 
       // Refresh data
@@ -728,6 +678,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const handleTicketCreated = (ticket: Ticket) => {
     setRecentTicket(ticket);
     requestAnimationFrame(() => fireConfettiAtCard());
+    message.success(`1 ticket(s) created successfully`);
   };
 
   // Table columns generator
@@ -1165,9 +1116,6 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       padding: '0 24px 24px 24px',
       margin: '0 -24px'
     }}>
-      {contextHolder}
-      {notifyContextHolder}
-
       <style dangerouslySetInnerHTML={{
         __html: `
         .project-switch-trigger:hover {
@@ -1266,7 +1214,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             placeholder="Quick search tickets..."
             prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
             className="saas-input"
-            style={{ maxWidth: 280, borderRadius: 8, height: 36 }}
+            style={{ maxWidth: 280, borderRadius: 8, height: 36, background: 'transparent' }}
             value={localSearchValue}
             onChange={(e) => setLocalSearchValue(e.target.value)}
             allowClear
@@ -1756,7 +1704,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       placeholder="Search backlog..."
                       prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
                       className="saas-input"
-                      style={{ width: 220, borderRadius: 6, height: 32, fontSize: 12 }}
+                      style={{ width: 220, borderRadius: 6, height: 32, fontSize: 12, background: 'transparent' }}
                       value={backlogSearchValue}
                       onChange={(e) => setBacklogSearchValue(e.target.value)}
                       allowClear

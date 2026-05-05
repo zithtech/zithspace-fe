@@ -13,6 +13,7 @@ import {
   Upload,
   Tooltip,
   Select,
+  App,
 } from "antd";
 import {
   ThunderboltOutlined,
@@ -119,7 +120,7 @@ export const AiCreateTicketModal: React.FC<AiCreateTicketModalProps> = ({
   // number is shown but the user is free to tweak it.
   const [hoursMode, setHoursMode] = useState<HoursMode>("hybrid");
 
-  const [api, contextHolder] = notification.useNotification({ placement: "top" });
+  const { message, notification: api } = App.useApp();
   const createTicketMutation = useCreateTicket();
 
   // Reset to input view whenever the modal closes so it opens fresh next time.
@@ -355,18 +356,12 @@ export const AiCreateTicketModal: React.FC<AiCreateTicketModalProps> = ({
       }
 
       console.log("[Zai] Structured ticket created:", { parent, subtasks: cleanSubtasks });
-      api.success({
-        message: "Ticket created successfully",
-        description: `${parent.ticketNumber || parent.title}${
-          cleanSubtasks.length ? ` + ${cleanSubtasks.length} subtask${cleanSubtasks.length > 1 ? "s" : ""}` : ""
-        }`,
-        icon: <CheckCircleOutlined style={{ color: "#10b981" }} />,
-      });
-
+      // Removed local success message, let handleTicketCreated in TicketList handle it
+      
       if (onTicketCreated) onTicketCreated(parent);
       onClose();
     } catch (err: any) {
-      api.error({ message: err?.message || "Failed to create ticket" });
+      message.error(err?.message || "Failed to create ticket");
       setStep("preview");
     }
   };
@@ -395,7 +390,6 @@ export const AiCreateTicketModal: React.FC<AiCreateTicketModalProps> = ({
         body: { padding: 0 },
       }}
     >
-      {contextHolder}
       {/* Header */}
       <div
         style={{

@@ -1,23 +1,31 @@
 import React, { useState } from "react";
-import { Popover, Button, Select, Space, Typography, Tooltip, Empty } from "antd";
-import { RocketOutlined } from "@ant-design/icons";
+import { Popover, Button, Select, Space, Typography, Tooltip, Empty, Divider, Badge } from "antd";
+import {
+  RocketOutlined,
+  ProjectOutlined,
+  ThunderboltOutlined,
+  FileTextOutlined,
+  InfoCircleOutlined
+} from "@ant-design/icons";
 import { useAvailableSprints } from "@/hooks/useAvailableSprints";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { Bucket } from "@/services/bucketService";
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 const { Option } = Select;
 
 interface MoveToSprintActionProps {
   bucket: Bucket;
   onMove: (sprintId: string) => void;
   loading?: boolean;
+  disabled?: boolean;
 }
 
 export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
   bucket,
   onMove,
   loading = false,
+  disabled = false,
 }) => {
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(
@@ -28,6 +36,8 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
   const { data: projects } = useUserProjects();
   const { data: sprints, isLoading: isLoadingSprints } = useAvailableSprints(selectedProjectId);
 
+  const ticketCount = (bucket as any)._count?.tickets || 0;
+
   const handleMove = () => {
     if (selectedSprintId) {
       onMove(selectedSprintId);
@@ -37,26 +47,35 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
   };
 
   const content = (
-    <div style={{ width: 280, padding: "4px 0" }}>
-      <Space direction="vertical" style={{ width: "100%" }} size={12}>
-        <div>
-          <Text strong style={{ fontSize: 13, color: "#0f172a" }}>Reassign Hub Tickets</Text>
-          <br />
-          <Text type="secondary" style={{ fontSize: 11 }}>Move all tickets in this hub to a specific sprint.</Text>
+    <div className="move-sprint-popover-content">
+      <div className="move-sprint-header">
+        <div className="move-sprint-icon-wrapper">
+          <RocketOutlined />
         </div>
+        <div className="move-sprint-title-area">
+          <Title level={5} className="move-sprint-title">Operational Migration</Title>
+          <Text className="move-sprint-subtitle">Relocate hub tickets to an active execution sprint.</Text>
+        </div>
+      </div>
 
+      <Divider style={{ margin: "10px 0" }} />
+
+      <Space direction="vertical" style={{ width: "100%" }} size={12}>
+        {/* Project Selection (Conditional) */}
         {!bucket.projectId && (
-          <div style={{ width: "100%" }}>
-            <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", marginBottom: 4, display: "block" }}>Select Project</Text>
+          <div className="move-sprint-field">
+            <Text className="move-sprint-label">
+              <ProjectOutlined /> TARGET PROJECT
+            </Text>
             <Select
-              placeholder="Target Project"
+              placeholder="Select destination project"
+              className="saas-select-premium"
               style={{ width: "100%" }}
               value={selectedProjectId}
               onChange={(val) => {
                 setSelectedProjectId(val);
                 setSelectedSprintId(undefined);
               }}
-              size="small"
               dropdownMatchSelectWidth={false}
             >
               {projects?.map((p: any) => (
@@ -66,49 +85,177 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
           </div>
         )}
 
-        <div style={{ width: "100%" }}>
-          <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", marginBottom: 4, display: "block" }}>Select Sprint</Text>
+        {/* Sprint Selection */}
+        <div className="move-sprint-field">
+          <Text className="move-sprint-label">
+            <ThunderboltOutlined /> TARGET EXECUTION SPRINT
+          </Text>
           <Select
-            placeholder={isLoadingSprints ? "Loading..." : "Target Sprint"}
+            placeholder={isLoadingSprints ? "Synchronizing sprints..." : "Select operational sprint"}
+            className="saas-select-premium"
             style={{ width: "100%" }}
             value={selectedSprintId}
             onChange={setSelectedSprintId}
-            size="small"
             disabled={!selectedProjectId || isLoadingSprints}
             dropdownMatchSelectWidth={false}
-            notFoundContent={selectedProjectId && !isLoadingSprints ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No active sprints" /> : null}
+            notFoundContent={selectedProjectId && !isLoadingSprints ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No active sprints found" /> : null}
           >
             {sprints?.map((s) => (
               <Option key={s.id} value={s.id}>
-                <Space>
-                  <RocketOutlined style={{ fontSize: 11, color: s.status === 'active' ? '#10b981' : '#64748b' }} />
-                  <span style={{ fontSize: 12 }}>{s.version}</span>
-                  {s.status === 'active' && <Text style={{ fontSize: 8, background: '#ecfdf5', color: '#059669', padding: '1px 4px', borderRadius: 2, fontWeight: 800 }}>ACTIVE</Text>}
-                </Space>
+                <div className="sprint-option-render">
+                  <Badge status={s.status === 'active' ? 'processing' : 'default'} />
+                  <span className="sprint-version">{s.version}</span>
+                  {s.status === 'active' && <span className="active-badge">ACTIVE</span>}
+                </div>
               </Option>
             ))}
           </Select>
         </div>
 
+        {/* Movement Summary / Preview */}
+        <div className="move-sprint-preview">
+          <div className="preview-stat">
+            <FileTextOutlined />
+            <Text strong>{ticketCount}</Text>
+            <Text type="secondary">tickets will be migrated</Text>
+          </div>
+          <Tooltip title="This action will unassign all tickets from this hub and relocate them to the selected sprint.">
+            <InfoCircleOutlined className="info-trigger" />
+          </Tooltip>
+        </div>
+
+        {/* Action Button */}
         <Button
           type="primary"
           block
-          size="small"
+          size="large"
           onClick={handleMove}
           disabled={!selectedSprintId}
           loading={loading}
-          style={{ 
-            borderRadius: 4, 
-            height: 32, 
-            fontWeight: 700,
-            background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-            border: 'none',
-            marginTop: 4
-          }}
+          className="move-sprint-confirm-btn"
         >
-          Confirm Movement
+          Move to Sprint
         </Button>
       </Space>
+
+      <style jsx global>{`
+        .move-sprint-popover-content {
+          width: 280px;
+          padding: 4px 2px;
+        }
+        .move-sprint-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          padding: 4px 4px 8px;
+        }
+        .move-sprint-icon-wrapper {
+          width: 32px;
+          height: 32px;
+          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 16px;
+          box-shadow: 0 4px 10px rgba(124, 58, 237, 0.2);
+        }
+        .move-sprint-title-area {
+          flex: 1;
+        }
+        .move-sprint-title {
+          margin: 0 !important;
+          font-weight: 800 !important;
+          font-size: 14px !important;
+          color: #0f172a !important;
+          letter-spacing: -0.02em;
+        }
+        .move-sprint-subtitle {
+          font-size: 11px;
+          color: #64748b;
+          line-height: 1.4;
+          display: block;
+          margin-top: 2px;
+        }
+        .move-sprint-label {
+          font-size: 10px;
+          font-weight: 800;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 8px;
+        }
+        .sprint-option-render {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .sprint-version {
+          font-size: 13px;
+          font-weight: 600;
+          color: #1e293b;
+        }
+        .active-badge {
+          font-size: 8px;
+          font-weight: 900;
+          background: #ecfdf5;
+          color: #059669;
+          padding: 1px 4px;
+          border-radius: 3px;
+          border: 1px solid #d1fae5;
+          line-height: 1;
+        }
+        .move-sprint-preview {
+          background: #f8fafc;
+          border-radius: 8px;
+          padding: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border: 1px solid #f1f5f9;
+        }
+        .preview-stat {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+        }
+        .preview-stat span:first-child {
+          color: #6366f1;
+        }
+        .info-trigger {
+          color: #94a3b8;
+          cursor: help;
+        }
+        .move-sprint-confirm-btn {
+          height: 40px !important;
+          border-radius: 8px !important;
+          font-weight: 800 !important;
+          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
+          border: none !important;
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3) !important;
+          transition: all 0.3s ease !important;
+        }
+        .move-sprint-confirm-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45) !important;
+        }
+        .move-sprint-confirm-btn:disabled {
+          background: #f1f5f9 !important;
+          color: #94a3b8 !important;
+        }
+
+        /* Dark Theme Adjustments */
+        [data-theme='dark'] .move-sprint-title { color: #f1f5f9 !important; }
+        [data-theme='dark'] .move-sprint-subtitle { color: #94a3b8; }
+        [data-theme='dark'] .move-sprint-preview { background: #1e293b; border-color: #334155; }
+        [data-theme='dark'] .sprint-version { color: #f1f5f9; }
+        [data-theme='dark'] .active-badge { background: rgba(5, 150, 105, 0.15); border-color: rgba(5, 150, 105, 0.25); }
+      `}</style>
     </div>
   );
 
@@ -120,17 +267,23 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
       open={open}
       onOpenChange={setOpen}
       placement="bottomRight"
-      overlayClassName="saas-popover"
+      overlayClassName="saas-popover saas-popover-premium"
+      overlayInnerStyle={{ borderRadius: 16, padding: 10 }}
     >
-      <Tooltip title="Move to Sprint">
+      <Tooltip title="Move to sprint">
         <Button
           type="text"
-          icon={<RocketOutlined style={{ fontSize: 14, color: "#8b5cf6" }} />}
+          icon={<RocketOutlined style={{ fontSize: 16, color: disabled ? '#94a3b8' : "#8b5cf6" }} />}
           className="saas-action-btn"
           loading={loading}
-          onClick={(e) => e.stopPropagation()}
+          disabled={disabled}
+          onClick={(e) => {
+            if (disabled) return;
+            e.stopPropagation();
+          }}
         />
       </Tooltip>
     </Popover>
   );
 };
+

@@ -780,7 +780,7 @@ const ProjectsManagePage: React.FC = () => {
               value={filters.search || ""}
               onChange={(e) => handleSearch(e.target.value)}
               className="saas-input"
-              style={{ width: 240, height: 36, borderRadius: 8 }}
+              style={{ width: 240, height: 36, borderRadius: 8, background: 'transparent' }}
               allowClear
             />
             <Select

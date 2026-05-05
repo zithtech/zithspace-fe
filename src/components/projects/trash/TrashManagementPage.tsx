@@ -237,9 +237,8 @@ export default function TrashManagementPage() {
         const isUrgent = daysRemaining <= 2;
         return (
           <Tooltip
-            title={`Permanently purged in approx. ${daysRemaining} ${
-              daysRemaining === 1 ? "day" : "days"
-            }`}
+            title={`Permanently purged in approx. ${daysRemaining} ${daysRemaining === 1 ? "day" : "days"
+              }`}
           >
             <div className="tr-purge-cell">
               <div className="tr-purge-row">
@@ -330,7 +329,7 @@ export default function TrashManagementPage() {
               <DeleteOutlined />
             </div>
             <div className="tr-hero-text">
-              
+
               <Title level={3} className="tr-hero-title">
                 Trash Repository
               </Title>
@@ -608,17 +607,17 @@ export default function TrashManagementPage() {
             pagination={
               hasItems
                 ? {
-                    current: page,
-                    pageSize: limit,
-                    total: trashData?.pagination.total || 0,
-                    onChange: (p) => setPage(p),
-                    showTotal: (total, range) => (
-                      <Text className="tr-pagination-total">
-                        Showing {range[0]}–{range[1]} of {total}
-                      </Text>
-                    ),
-                    style: { padding: "16px 24px", margin: 0 },
-                  }
+                  current: page,
+                  pageSize: limit,
+                  total: trashData?.pagination.total || 0,
+                  onChange: (p) => setPage(p),
+                  showTotal: (total, range) => (
+                    <Text className="tr-pagination-total">
+                      Showing {range[0]}–{range[1]} of {total}
+                    </Text>
+                  ),
+                  style: { padding: "16px 24px", margin: 0 },
+                }
                 : false
             }
             scroll={{ x: 1100 }}
@@ -631,13 +630,14 @@ export default function TrashManagementPage() {
         .tr-page {
           background: var(--bg-pure-white);
           min-height: 100vh;
+          margin: 0 -8px;
         }
 
         /* ── Hero ────────────────────────────────────────────────── */
         .tr-hero {
           position: relative;
-          margin: 0 -24px 20px;
-          padding: 14px 48px 0;
+          margin-bottom: 20px;
+          padding: 14px 32px 0;
           background:
             linear-gradient(180deg, rgba(239, 68, 68, 0.04) 0%, rgba(239, 68, 68, 0) 60%),
             var(--bg-pure-white);
@@ -670,7 +670,7 @@ export default function TrashManagementPage() {
           align-items: center;
           justify-content: space-between;
           gap: 24px;
-          padding-bottom: 14px;
+          padding-bottom: 7px;
         }
         .tr-hero-left {
           display: flex;
@@ -783,7 +783,8 @@ export default function TrashManagementPage() {
           grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
           align-items: center;
           gap: 0;
-          padding: 12px 0;
+          padding: 10px 32px;
+          margin: 0 -32px;
           border-top: 1px solid var(--border-slate-200);
         }
         [data-theme='dark'] .tr-stat-strip {
@@ -898,7 +899,7 @@ export default function TrashManagementPage() {
 
         /* ── Body ────────────────────────────────────────────────── */
         .tr-body {
-          padding: 0 24px 32px;
+          padding: 0 32px 32px;
         }
 
         /* ── Control bar ─────────────────────────────────────────── */

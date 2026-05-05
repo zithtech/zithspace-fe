@@ -1006,7 +1006,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         );
       }
     },
-    
+
     {
       title: "Actions",
       key: "actions",
@@ -1445,7 +1445,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   const member = members.find((m) => m.value === option?.value);
                   return member
                     ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                        (member.position || '').toLowerCase().includes(input.toLowerCase())
+                    (member.position || '').toLowerCase().includes(input.toLowerCase())
                     : false;
                 }}
                 className="ticket-filter-row__select"
@@ -1557,7 +1557,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                               minWidth: 90,
                               fontSize: 10,
                               fontWeight: 800,
-                               background: isDelayed ? 'rgba(239, 68, 68, 0.15)' : isToday ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                              background: isDelayed ? 'rgba(239, 68, 68, 0.15)' : isToday ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
                               color: isDelayed ? '#fb7185' : isToday ? '#fbbf24' : '#34d399',
                               borderRadius: 4,
                               border: `1px solid ${isDelayed ? 'rgba(239, 68, 68, 0.2)' : isToday ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`

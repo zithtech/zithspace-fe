@@ -261,7 +261,7 @@ export default function ArchivedTicketsPage() {
       <MainLayout>
         <div
           style={{
-            margin: '0 -24px',
+            margin: '0 -8px',
             padding: '24px 32px',
             background: 'var(--bg-pure-white)',
             minHeight: 'calc(100vh - 64px)',
@@ -469,9 +469,8 @@ export default function ArchivedTicketsPage() {
               <div className="ar-bulk-actions">
                 <Popconfirm
                   title="Move to Trash"
-                  description={`Move ${selectedRowKeys.length} ticket${
-                    selectedRowKeys.length === 1 ? '' : 's'
-                  } to trash?`}
+                  description={`Move ${selectedRowKeys.length} ticket${selectedRowKeys.length === 1 ? '' : 's'
+                    } to trash?`}
                   onConfirm={handleDelete}
                   okText="Move to Trash"
                   cancelText="Cancel"
@@ -541,21 +540,21 @@ export default function ArchivedTicketsPage() {
               pagination={
                 hasItems
                   ? {
-                      current: page,
-                      pageSize,
-                      total: pagination?.total || 0,
-                      showSizeChanger: true,
-                      showTotal: (total, range) => (
-                        <Text className="ar-pagination-total">
-                          Showing {range[0]}–{range[1]} of {total}
-                        </Text>
-                      ),
-                      onChange: (newPage, newPageSize) => {
-                        setPage(newPage);
-                        setPageSize(newPageSize);
-                      },
-                      style: { padding: '16px 24px', margin: 0 },
-                    }
+                    current: page,
+                    pageSize,
+                    total: pagination?.total || 0,
+                    showSizeChanger: true,
+                    showTotal: (total, range) => (
+                      <Text className="ar-pagination-total">
+                        Showing {range[0]}–{range[1]} of {total}
+                      </Text>
+                    ),
+                    onChange: (newPage, newPageSize) => {
+                      setPage(newPage);
+                      setPageSize(newPageSize);
+                    },
+                    style: { padding: '16px 24px', margin: 0 },
+                  }
                   : false
               }
               scroll={{ x: 1200 }}
@@ -566,8 +565,7 @@ export default function ArchivedTicketsPage() {
         <style jsx global>{`
           /* ── Page ────────────────────────────────────────────── */
           .ar-page {
-            margin: 0 -24px;
-            padding: 0 24px 32px;
+            margin: 0 -8px;
             background: var(--bg-pure-white);
             min-height: calc(100vh - 64px);
           }
@@ -575,8 +573,8 @@ export default function ArchivedTicketsPage() {
           /* ── Hero ────────────────────────────────────────────── */
           .ar-hero {
             position: relative;
-            margin: 0 -24px 20px;
-            padding: 14px 48px 0;
+            margin-bottom: 20px;
+            padding: 14px 32px 0;
             background:
               linear-gradient(180deg, rgba(59, 130, 246, 0.04) 0%, rgba(59, 130, 246, 0) 60%),
               var(--bg-pure-white);
@@ -609,7 +607,7 @@ export default function ArchivedTicketsPage() {
             align-items: center;
             justify-content: space-between;
             gap: 24px;
-            padding-bottom: 14px;
+            padding-bottom: 7px;
           }
           .ar-hero-left {
             display: flex;
@@ -713,7 +711,8 @@ export default function ArchivedTicketsPage() {
             grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
             align-items: center;
             gap: 0;
-            padding: 12px 0;
+            padding: 10px 32px;
+            margin: 0 -32px;
             border-top: 1px solid var(--border-slate-200);
           }
           [data-theme='dark'] .ar-stat-strip {
@@ -818,7 +817,7 @@ export default function ArchivedTicketsPage() {
 
           /* ── Body ────────────────────────────────────────────── */
           .ar-body {
-            padding: 0;
+            padding: 0 32px 32px;
           }
 
           /* ── Control bar ─────────────────────────────────────── */

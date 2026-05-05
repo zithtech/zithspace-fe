@@ -70,7 +70,7 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
             <Select
               placeholder="Select destination project"
               className="saas-select-premium"
-              style={{ width: "100%" }}
+              style={{ width: "90%", margin: "0 auto", display: "block" }}
               value={selectedProjectId}
               onChange={(val) => {
                 setSelectedProjectId(val);
@@ -93,7 +93,7 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
           <Select
             placeholder={isLoadingSprints ? "Synchronizing sprints..." : "Select operational sprint"}
             className="saas-select-premium"
-            style={{ width: "100%" }}
+            style={{ width: "90%", margin: "0 auto", display: "block" }}
             value={selectedSprintId}
             onChange={setSelectedSprintId}
             disabled={!selectedProjectId || isLoadingSprints}
@@ -127,8 +127,7 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
         {/* Action Button */}
         <Button
           type="primary"
-          block
-          size="large"
+          style={{ width: '90%', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={handleMove}
           disabled={!selectedSprintId}
           loading={loading}
@@ -167,7 +166,7 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
         .move-sprint-title {
           margin: 0 !important;
           font-weight: 800 !important;
-          font-size: 14px !important;
+          font-size: 13px !important;
           color: #0f172a !important;
           letter-spacing: -0.02em;
         }
@@ -195,7 +194,7 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
           gap: 8px;
         }
         .sprint-version {
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 600;
           color: #1e293b;
         }
@@ -211,9 +210,11 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
         }
         .move-sprint-preview {
           background: #f8fafc;
-          border-radius: 8px;
-          padding: 10px;
+          border-radius: 6px;
+          padding: 7px 10px;
           display: flex;
+          width: 90%;
+          margin: 0 auto;
           align-items: center;
           justify-content: space-between;
           border: 1px solid #f1f5f9;
@@ -222,7 +223,7 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
           display: flex;
           align-items: center;
           gap: 8px;
-          font-size: 12px;
+          font-size: 11.5px;
         }
         .preview-stat span:first-child {
           color: #6366f1;
@@ -230,11 +231,13 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
         .info-trigger {
           color: #94a3b8;
           cursor: help;
+          font-size: 14px;
         }
         .move-sprint-confirm-btn {
-          height: 40px !important;
-          border-radius: 8px !important;
-          font-weight: 800 !important;
+          height: 31px !important;
+          border-radius: 6px !important;
+          font-weight: 700 !important;
+          font-size: 11.5px !important;
           background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
           border: none !important;
           box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3) !important;
@@ -247,6 +250,16 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
         .move-sprint-confirm-btn:disabled {
           background: #f1f5f9 !important;
           color: #94a3b8 !important;
+        }
+
+        .saas-select-premium .ant-select-selector {
+          height: 31px !important;
+          border-radius: 6px !important;
+        }
+        .saas-select-premium .ant-select-selection-item,
+        .saas-select-premium .ant-select-selection-placeholder {
+          font-size: 12px !important;
+          line-height: 29px !important;
         }
 
         /* Dark Theme Adjustments */
@@ -273,7 +286,7 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
       <Tooltip title="Move to sprint">
         <Button
           type="text"
-          icon={<RocketOutlined style={{ fontSize: 16, color: disabled ? '#94a3b8' : "#8b5cf6" }} />}
+          icon={<RocketOutlined style={{ fontSize: 13, color: disabled ? '#94a3b8' : "#8b5cf6" }} />}
           className="saas-action-btn"
           loading={loading}
           disabled={disabled}

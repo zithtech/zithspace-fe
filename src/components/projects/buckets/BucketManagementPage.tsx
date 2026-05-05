@@ -905,7 +905,7 @@ export default function BucketManagementPage() {
             overflow: hidden;
           }
           .bh-body {
-            padding: 16px 32px 32px 32px;
+            padding: 10px 32px 32px 32px;
             flex: 1;
             overflow-y: auto;
           }
@@ -940,7 +940,7 @@ export default function BucketManagementPage() {
             display: grid;
             grid-template-columns: repeat(6, minmax(0, 1fr));
             gap: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
           }
           @media (max-width: 1280px) {
             .bh-kpi-ribbon { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -1028,7 +1028,7 @@ export default function BucketManagementPage() {
             justify-content: space-between;
             gap: 16px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-            margin-bottom: 16px;
+            margin-bottom: 12px;
           }
           [data-theme='dark'] .bh-control-bar {
             background: #161b22 !important;
@@ -1124,7 +1124,8 @@ export default function BucketManagementPage() {
           .bh-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 14px;
+            gap: 20px;
+            padding-top: 0;
           }
 
           .bh-card {

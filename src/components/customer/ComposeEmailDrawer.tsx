@@ -35,7 +35,7 @@ export default function ComposeEmailDrawer({ open, onClose, invoice }: ComposeEm
     form.setFieldsValue({
       to: customer?.email,
       subject: `Invoice ${invoice.invoiceNumber} from your Company Name`,
-      message: `Dear ${customer?.name || 'Customer'},\n\nPlease find attached invoice ${invoice.invoiceNumber} for the amount of $${invoice.total}.\n\nKind regards,\nAccounts Team`,
+      message: `Dear ${customer?.name || 'Customer'},\n\nPlease find attached invoice ${invoice.invoiceNumber} for the amount of $${invoice.grandTotal || '0.00'}.\n\nKind regards,\nAccounts Team`,
     });
   }
 }, [open, invoice, form]);
@@ -49,7 +49,7 @@ export default function ComposeEmailDrawer({ open, onClose, invoice }: ComposeEm
       form.setFieldsValue({
         to: customer?.email,
         subject: `Invoice ${invoice.invoiceNumber} from your Company Name`,
-        message: `Dear ${customer?.name || 'Customer'},\n\nPlease find attached invoice ${invoice.invoiceNumber} for the amount of $${invoice.total}.\n\nKind regards,\nAccounts Team`,
+        message: `Dear ${customer?.name || 'Customer'},\n\nPlease find attached invoice ${invoice.invoiceNumber} for the amount of $${invoice.grandTotal || '0.00'}.\n\nKind regards,\nAccounts Team`,
       });
     }
   }, [open, invoice, form]);

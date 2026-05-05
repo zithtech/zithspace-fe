@@ -464,7 +464,7 @@ export default function SprintPlanComponent() {
       title: "Sprint",
       dataIndex: "name",
       key: "name",
-      width: 380,
+      width: 450,
       render: (text: string, record: ReleasePlan) => {
         const project = typeof record.project === 'object' ? record.project : null;
         const initial = (text || '?').charAt(0).toUpperCase();
@@ -534,7 +534,7 @@ export default function SprintPlanComponent() {
       title: "Progress",
       dataIndex: "progress",
       key: "progress",
-      width: 220,
+      width: 250,
       render: (progress: number, record: ReleasePlan) => {
         const pct = progress || 0;
         const done = record?.completedTickets || 0;
@@ -561,7 +561,7 @@ export default function SprintPlanComponent() {
     {
       title: "Timeline",
       key: "timeline",
-      width: 220,
+      width: 250,
       render: (_: any, record: ReleasePlan) => {
         const today = dayjs();
         const start = record.startDate ? dayjs(record.startDate) : null;
@@ -621,40 +621,40 @@ export default function SprintPlanComponent() {
         );
       },
     },
-    {
-      title: "Team",
-      key: "team",
-      width: 130,
-      render: (_: any, record: ReleasePlan) => {
-        const seen = new Map<string, { name: string; color: string }>();
-        const palette = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
-        (record.tickets || []).forEach((t, i) => {
-          if (t.assignee?.id && !seen.has(t.assignee.id)) {
-            seen.set(t.assignee.id, { name: t.assignee.name, color: palette[seen.size % palette.length] });
-          }
-        });
-        const members = Array.from(seen.values());
-        const visible = members.slice(0, 3);
-        const overflow = Math.max(members.length - 3, 0);
-        if (members.length === 0) {
-          return <Text style={{ fontSize: 11, color: 'var(--text-slate-400)', fontWeight: 500 }}>—</Text>;
-        }
-        return (
-          <Tooltip title={members.map(m => m.name).join(', ')}>
-            <div className="sp-avatar-stack">
-              {visible.map((m, i) => (
-                <span key={i} className="sp-avatar-stack-item" style={{ background: `${m.color}1a`, color: m.color, borderColor: `${m.color}55` }}>
-                  {m.name.charAt(0).toUpperCase()}
-                </span>
-              ))}
-              {overflow > 0 && (
-                <span className="sp-avatar-stack-item sp-avatar-stack-more">+{overflow}</span>
-              )}
-            </div>
-          </Tooltip>
-        );
-      },
-    },
+    // {
+    //   title: "Team",
+    //   key: "team",
+    //   width: 130,
+    //   render: (_: any, record: ReleasePlan) => {
+    //     const seen = new Map<string, { name: string; color: string }>();
+    //     const palette = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+    //     (record.tickets || []).forEach((t, i) => {
+    //       if (t.assignee?.id && !seen.has(t.assignee.id)) {
+    //         seen.set(t.assignee.id, { name: t.assignee.name, color: palette[seen.size % palette.length] });
+    //       }
+    //     });
+    //     const members = Array.from(seen.values());
+    //     const visible = members.slice(0, 3);
+    //     const overflow = Math.max(members.length - 3, 0);
+    //     if (members.length === 0) {
+    //       return <Text style={{ fontSize: 11, color: 'var(--text-slate-400)', fontWeight: 500 }}>—</Text>;
+    //     }
+    //     return (
+    //       <Tooltip title={members.map(m => m.name).join(', ')}>
+    //         <div className="sp-avatar-stack">
+    //           {visible.map((m, i) => (
+    //             <span key={i} className="sp-avatar-stack-item" style={{ background: `${m.color}1a`, color: m.color, borderColor: `${m.color}55` }}>
+    //               {m.name.charAt(0).toUpperCase()}
+    //             </span>
+    //           ))}
+    //           {overflow > 0 && (
+    //             <span className="sp-avatar-stack-item sp-avatar-stack-more">+{overflow}</span>
+    //           )}
+    //         </div>
+    //       </Tooltip>
+    //     );
+    //   },
+    // },
     {
       title: "",
       key: "actions",

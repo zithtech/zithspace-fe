@@ -690,7 +690,7 @@ function DashboardContent() {
       <div
         style={{
           margin: "0 -24px",
-          padding: "28px 32px 40px",
+          padding: "16px 32px 40px",
           background: "var(--bg-pure-white)",
           minHeight: "calc(100vh - 64px)",
         }}
@@ -1026,8 +1026,10 @@ function DashboardContent() {
                         overflow: "hidden",
                         position: "relative",
                         height: 340,
+                        display: "flex",
+                        flexDirection: "column",
                       }}
-                      styles={{ body: { padding: 18, height: "100%", display: "flex", flexDirection: "column" } }}
+                      styles={{ body: { padding: 18, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
                     >
                       {todayAttendance?.canClockOut && (
                         <div
@@ -1388,8 +1390,8 @@ function DashboardContent() {
                   {/* Today's Meetings */}
                   <Col xs={24} lg={8}>
                     <Card
-                      style={{ ...cardBase, height: 340 }}
-                      styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
+                      style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column" }}
+                      styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
                       title={sectionTitle(
                         <VideoCameraOutlined />,
                         "Today's Meetings",

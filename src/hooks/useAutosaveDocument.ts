@@ -50,7 +50,7 @@ export interface AutosaveControls {
    * `replaceBlocks` doesn't trigger an autosave that overwrites the just-
    * loaded content.
    */
-  resync: (version?: number | null) => void;
+  resync: (version?: number | null, suppress?: boolean) => void;
   /**
    * Open a "programmatic-update" window: suppresses notifyChange for ~1s.
    * Call this BEFORE running `editor.replaceBlocks(...)` so the onChange that
@@ -531,36 +531,42 @@ export function useAutosaveDocument({
   }, [enabled, documentId]);
 
   /* --- programmatic resync (post-load) ---------------------------------- */
-  const resync = useCallback((version?: number | null) => {
+  const resync = useCallback((version?: number | null, suppress = true) => {
     const ed = editorRef.current;
     if (!ed) return;
-    // Extend the suppress window so any onChange that fires *after* resync
-    // (BlockNote may fire it on a microtask / next render) is still ignored.
-    setSuppressFor(500);
     // Snapshot the now-loaded content as the "last saved" baseline, clear any
     // dirty/queued state from the spurious onChange that BlockNote fires after
     // replaceBlocks, and stop pending timers so we don't autosave the just-
     // loaded content as if it were a user edit.
+    if (suppress) {
+      // Extend the suppress window so any onChange that fires *after* resync
+      // (BlockNote may fire it on a microtask / next render) is still ignored.
+      setSuppressFor(500);
+    }
+    
     try {
       lastSavedHashRef.current = hashContent(ed.document);
     } catch {
       lastSavedHashRef.current = null;
     }
     if (typeof version === "number") versionRef.current = version;
-    dirtyRef.current = false;
-    queuedRef.current = false;
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
+    
+    if (suppress) {
+      dirtyRef.current = false;
+      queuedRef.current = false;
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      if (maxWaitTimerRef.current) {
+        clearTimeout(maxWaitTimerRef.current);
+        maxWaitTimerRef.current = null;
+      }
+      // We're now back in sync with the server — drop any stale localStorage
+      // draft so the recovery banner doesn't surface on the next visit.
+      if (documentIdRef.current) clearDraft(documentIdRef.current);
+      setStatus((prev) => (prev === "saving" ? prev : "idle"));
     }
-    if (maxWaitTimerRef.current) {
-      clearTimeout(maxWaitTimerRef.current);
-      maxWaitTimerRef.current = null;
-    }
-    // We're now back in sync with the server — drop any stale localStorage
-    // draft so the recovery banner doesn't surface on the next visit.
-    if (documentIdRef.current) clearDraft(documentIdRef.current);
-    setStatus((prev) => (prev === "saving" ? prev : "idle"));
   }, []);
 
   /* --- programmatic-update guard (pre-load) ------------------------------ */

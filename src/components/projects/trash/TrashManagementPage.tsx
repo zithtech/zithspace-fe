@@ -16,6 +16,7 @@ import {
   Avatar,
   Progress,
   Badge,
+  Skeleton,
 } from "antd";
 import {
   DeleteOutlined,
@@ -351,7 +352,7 @@ export default function TrashManagementPage() {
                   setIsRefreshing(false);
                   message.success("Trash refreshed");
                 }}
-                loading={isLoading && !isRefreshing}
+                loading={isLoading}
                 className="tr-hero-ghost"
               />
             </Tooltip>
@@ -569,11 +570,19 @@ export default function TrashManagementPage() {
           className="tr-table-card"
         >
           <Table
-            rowSelection={{ selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }}
-            columns={columns}
-            dataSource={trashData?.tickets || []}
-            rowKey="id"
-            loading={isLoading}
+            rowSelection={(isLoading || isRefreshing) ? undefined : { selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }}
+            columns={columns.map(col => ({
+              ...col,
+              render: (text: any, record: any, index: number) => {
+                if (isLoading || isRefreshing) {
+                  return <Skeleton.Input active size="small" block style={{ height: 24 }} />;
+                }
+                return col.render ? (col.render as any)(text, record, index) : text;
+              }
+            }))}
+            dataSource={(isLoading || isRefreshing) ? Array(5).fill({}) : (trashData?.tickets || [])}
+            rowKey={(record: any) => record.id || Math.random()}
+            loading={false}
             className="tr-table"
             locale={{
               emptyText: isLoading ? null : (

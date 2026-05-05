@@ -43,6 +43,7 @@ import {
   ApartmentOutlined,
   InfoCircleOutlined,
   CloseOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -76,8 +77,9 @@ interface Member {
 
 const ProjectsManagePage: React.FC = () => {
   const { user, isLoading } = useAuth();
-  const { notification } = App.useApp();
+  const { notification, message } = App.useApp();
   const [form] = Form.useForm();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
 
   // State management
@@ -256,18 +258,10 @@ const ProjectsManagePage: React.FC = () => {
           editingProject.id,
           projectData as UpdateProjectData
         );
-        notification.success({
-          message: "Project Updated",
-          description: `Project "${values.name}" has been successfully updated.`,
-          placement: "topRight"
-        });
+        message.success(`Project "${values.name}" has been successfully updated.`);
       } else {
         await ProjectService.createProject(projectData as CreateProjectData);
-        notification.success({
-          message: "Project Created",
-          description: `Project "${values.name}" has been successfully created.`,
-          placement: "topRight"
-        });
+        message.success(`Project "${values.name}" has been successfully created.`);
       }
 
       setDrawerVisible(false);
@@ -287,11 +281,7 @@ const ProjectsManagePage: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       await ProjectService.deleteProject(id);
-      notification.success({
-        message: "Project Deleted",
-        description: "The project has been permanently removed.",
-        placement: "topRight"
-      });
+      message.success("Project moved to Trash Repository");
       loadProjects();
     } catch (error: any) {
       notification.error({
@@ -648,6 +638,28 @@ const ProjectsManagePage: React.FC = () => {
           </div>
 
           <Space size={10} align="center">
+            <Tooltip title="Refresh view">
+              <Button
+                icon={<ReloadOutlined spin={isRefreshing} />}
+                onClick={async () => {
+                  setIsRefreshing(true);
+                  await loadProjects();
+                  setIsRefreshing(false);
+                  message.success("Projects view synchronized");
+                }}
+                loading={loading}
+                style={{ 
+                  width: 34, 
+                  height: 34, 
+                  borderRadius: 8, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center",
+                  background: "transparent",
+                  borderColor: "var(--border-color)"
+                }}
+              />
+            </Tooltip>
             <Segmented
               value={viewMode}
               onChange={(v) => setViewMode(v as "card" | "table")}

@@ -46,6 +46,7 @@ interface ShortcutItem {
   path: string;
 }
 import { Inbox } from '@novu/nextjs';
+import { Permissions } from '@/types/permissions';
 import { ModuleType, NAVIGATION_CONFIG, NAV_MOBILE_BREAKPOINT } from './navigationConfig';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -625,91 +626,156 @@ export default function TopNav({
             <TimeTrackerPopover />
 
 
-            <Tooltip
-              title={
-                <div className="navbar-tooltip">
-                  <span className="navbar-tooltip-title">Mail</span>
-                  <span className="navbar-tooltip-sub">Inbox & messages</span>
-                </div>
-              }
-              placement="bottom"
-              overlayClassName="navbar-icon-tooltip"
-              mouseEnterDelay={0.1}
-              zIndex={1100}
-            >
-              <Button
-                type="text"
-                icon={<Mail size={18} strokeWidth={1.75} />}
-                onClick={() => router.push('/mail')}
-              />
-            </Tooltip>
-            <Tooltip
-              title={
-                <div className="navbar-tooltip">
-                  <span className="navbar-tooltip-title">Calendar</span>
-                  <span className="navbar-tooltip-sub">Schedule & events</span>
-                </div>
-              }
-              placement="bottom"
-              overlayClassName="navbar-icon-tooltip"
-              mouseEnterDelay={0.1}
-              zIndex={1100}
-            >
-              <Button
-                type="text"
-                icon={<CalendarDays size={18} strokeWidth={1.75} />}
-                onClick={() => router.push('/calendar')}
-              />
-            </Tooltip>
-            <Tooltip
-              title={
-                <div className="navbar-tooltip">
-                  <span className="navbar-tooltip-title">Skills</span>
-                  <span className="navbar-tooltip-sub">Learning & growth</span>
-                </div>
-              }
-              placement="bottom"
-              overlayClassName="navbar-icon-tooltip"
-              mouseEnterDelay={0.1}
-              zIndex={1100}
-            >
-              <Button
-                type="text"
-                icon={<Sparkles size={18} strokeWidth={1.75} />}
-                onClick={() => router.push('/skills')}
-              />
-            </Tooltip>
+            {hasPermission(Permissions.MAIL_READ) && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Mail</span>
+                    <span className="navbar-tooltip-sub">Inbox & messages</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <Button
+                  type="text"
+                  icon={<Mail size={18} strokeWidth={1.75} />}
+                  onClick={() => router.push('/mail')}
+                />
+              </Tooltip>
+            )}
+            {hasPermission(Permissions.CALENDAR_READ) && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Calendar</span>
+                    <span className="navbar-tooltip-sub">Schedule & events</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <Button
+                  type="text"
+                  icon={<CalendarDays size={18} strokeWidth={1.75} />}
+                  onClick={() => router.push('/calendar')}
+                />
+              </Tooltip>
+            )}
+            {hasPermission(Permissions.SKILLS_READ) && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Skills</span>
+                    <span className="navbar-tooltip-sub">Learning & growth</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <Button
+                  type="text"
+                  icon={<Sparkles size={18} strokeWidth={1.75} />}
+                  onClick={() => router.push('/skills')}
+                />
+              </Tooltip>
+            )}
 
-            <Tooltip
-              title={
-                <div className="navbar-tooltip">
-                  <span className="navbar-tooltip-title">Messages</span>
-                  <span className="navbar-tooltip-sub">Team chat</span>
+            {hasPermission(Permissions.CHAT_READ) && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Messages</span>
+                    <span className="navbar-tooltip-sub">Team chat</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <Button
+                  type="text"
+                  icon={<MessageSquareText size={18} strokeWidth={1.75} />}
+                  onClick={() => router.push('/chat')}
+                />
+              </Tooltip>
+            )}
+            {hasPermission(Permissions.NOTIFICATION_READ) && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Notifications</span>
+                    <span className="navbar-tooltip-sub">Alerts & updates</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <div className={`novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
+                  <Inbox
+                    applicationIdentifier="67g_5lVLFWvd"
+                    subscriberId={user?.id}
+                    socketUrl="wss://socket.novu.co"
+                    appearance={novuAppearance}
+                  />
                 </div>
-              }
-              placement="bottom"
-              overlayClassName="navbar-icon-tooltip"
-              mouseEnterDelay={0.1}
-              zIndex={1100}
-            >
-              <Button
-                type="text"
-                icon={<MessageSquareText size={18} strokeWidth={1.75} />}
-                onClick={() => router.push('/chat')}
-              />
-            </Tooltip>
-            <Tooltip
-              title={
-                <div className="navbar-tooltip">
-                  <span className="navbar-tooltip-title">Notifications</span>
-                  <span className="navbar-tooltip-sub">Alerts & updates</span>
-                </div>
-              }
-              placement="bottom"
-              overlayClassName="navbar-icon-tooltip"
-              mouseEnterDelay={0.1}
-              zIndex={1100}
-            >
+              </Tooltip>
+            )}
+            {hasPermission(Permissions.BOOKMARK_READ) && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Bookmarks</span>
+                    <span className="navbar-tooltip-sub">Saved shortcuts</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+                open={shortcutPopoverVisible ? false : undefined}
+              >
+                <Dropdown
+                  open={shortcutPopoverVisible && !isCustomBreakpoint}
+                  onOpenChange={(visible) => {
+                    if (!visible && deleteModalOpen) return;
+                    setShortcutPopoverVisible(visible);
+                    if (!visible) {
+                      setIsAddMode(false);
+                      setNewShortcutName("");
+                      setNewShortcutPath("");
+                    }
+                  }}
+                  popupRender={() => renderShortcutsDropdownContent(false)}
+                  trigger={["click"]}
+                >
+                  <Button
+                    type="text"
+                    icon={
+                      (shortcutPopoverVisible && !isCustomBreakpoint) ? (
+                        <Bookmark size={18} strokeWidth={1.75} fill="#1677ff" color="#1677ff" />
+                      ) : (
+                        <Bookmark size={18} strokeWidth={1.75} />
+                      )
+                    }
+                  />
+                </Dropdown>
+              </Tooltip>
+            )}
+          </>
+        ) : (
+          <Space size={isSmallMobile ? 4 : 8}>
+            <ThemeToggle />
+            {hasPermission(Permissions.NOTIFICATION_READ) && (
               <div className={`novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
                 <Inbox
                   applicationIdentifier="67g_5lVLFWvd"
@@ -718,58 +784,7 @@ export default function TopNav({
                   appearance={novuAppearance}
                 />
               </div>
-            </Tooltip>
-            <Tooltip
-              title={
-                <div className="navbar-tooltip">
-                  <span className="navbar-tooltip-title">Bookmarks</span>
-                  <span className="navbar-tooltip-sub">Saved shortcuts</span>
-                </div>
-              }
-              placement="bottom"
-              overlayClassName="navbar-icon-tooltip"
-              mouseEnterDelay={0.1}
-              zIndex={1100}
-              open={shortcutPopoverVisible ? false : undefined}
-            >
-              <Dropdown
-                open={shortcutPopoverVisible && !isCustomBreakpoint}
-                onOpenChange={(visible) => {
-                  if (!visible && deleteModalOpen) return;
-                  setShortcutPopoverVisible(visible);
-                  if (!visible) {
-                    setIsAddMode(false);
-                    setNewShortcutName("");
-                    setNewShortcutPath("");
-                  }
-                }}
-                popupRender={() => renderShortcutsDropdownContent(false)}
-                trigger={["click"]}
-              >
-                <Button
-                  type="text"
-                  icon={
-                    (shortcutPopoverVisible && !isCustomBreakpoint) ? (
-                      <Bookmark size={18} strokeWidth={1.75} fill="#1677ff" color="#1677ff" />
-                    ) : (
-                      <Bookmark size={18} strokeWidth={1.75} />
-                    )
-                  }
-                />
-              </Dropdown>
-            </Tooltip>
-          </>
-        ) : (
-          <Space size={isSmallMobile ? 4 : 8}>
-            <ThemeToggle />
-            <div className={`novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
-              <Inbox
-                applicationIdentifier="67g_5lVLFWvd"
-                subscriberId={user?.id}
-                socketUrl="wss://socket.novu.co"
-                appearance={novuAppearance}
-              />
-            </div>
+            )}
             <Dropdown
               menu={{
                 items: [
@@ -778,33 +793,33 @@ export default function TopNav({
                     label: <TimeTrackerPopover isMenuItem />,
                     onClick: () => setPopoverOpen(true)
                   },
-                  {
+                  ...(hasPermission(Permissions.MAIL_READ) ? [{
                     key: 'mail',
                     label: 'Mail',
                     icon: <Mail size={16} strokeWidth={1.75} />,
                     onClick: () => router.push('/mail')
-                  },
-                  {
+                  }] : []),
+                  ...(hasPermission(Permissions.CALENDAR_READ) ? [{
                     key: 'calendar',
                     label: 'Calendar',
                     icon: <CalendarDays size={16} strokeWidth={1.75} />,
                     onClick: () => router.push('/calendar')
-                  },
-                  {
+                  }] : []),
+                  ...(hasPermission(Permissions.CHAT_READ) ? [{
                     key: 'chat',
                     label: 'Messages',
                     icon: <MessageSquareText size={16} strokeWidth={1.75} />,
                     onClick: () => router.push('/chat')
-                  },
-                  {
+                  }] : []),
+                  ...(hasPermission(Permissions.BOOKMARK_READ) ? [{
                     key: 'bookmarks',
                     label: 'Bookmarks',
                     icon: <Bookmark size={16} strokeWidth={1.75} />,
-                    onClick: (e) => {
+                    onClick: (e: any) => {
                       e.domEvent.stopPropagation();
                       setShortcutPopoverVisible(true);
                     }
-                  }
+                  }] : [])
                 ]
               }}
               trigger={['click']}

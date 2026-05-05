@@ -60,10 +60,23 @@ import {
     LinkOutlined,
 } from "@ant-design/icons";
 import { useLeadSettings } from "@/hooks/useLeadSettings";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
+import { useRouter } from "next/navigation";
 
 const { Text, Title } = Typography;
 
 export default function LeadSettingsPage() {
+    const { user, isLoading } = useAuth();
+    const { canManageLeads } = usePermission();
+    const router = useRouter();
+
+    // ─── Route Guard ────────────────────────────────────────────────────────────
+    useEffect(() => {
+        if (!isLoading && user && !canManageLeads) {
+            router.push("/dashboard");
+        }
+    }, [user, isLoading, canManageLeads, router]);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [form] = Form.useForm();
     const [activeTab, setActiveTab] = useState<"1" | "2">("1");

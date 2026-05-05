@@ -52,26 +52,63 @@ const { TextArea } = Input;
 
 /** Human-readable label per permission resource. */
 const RESOURCE_LABELS: Record<string, string> = {
+  dashboard: "Dashboard",
+  integration: "Integrations",
   user: "Users / Members",
   project: "Projects",
   ticket: "Tickets",
   attendance: "Attendance",
   leave: "Leaves",
   shift: "Shifts",
-  invoice: "Invoices",
-  transaction: "Transactions",
+  invoice:      "Invoices",
+  transaction: "Transactions / Accounts",
   client: "Clients",
-  settings: "Settings",
+  settings: "General Settings",
   role: "Roles & RBAC",
   report: "Reports",
-  reimbursement: "Reimbursement",
+  reimbursement: "Reimbursements",
   salary: "Payroll / Salary",
-  document: "Documents",
+  document: "Documents / Hub",
   onboarding: "Onboarding",
   timesheet: "Timesheet",
   org: "Org Structure",
   daily_update: "Daily Updates",
+  squad: "Squad Management",
+  lead: "Lead Management",
+  proposal: "Proposals",
+  vendor: "Vendors",
+  escalation: "Escalations",
+  exit: "Employee Exit",
+  performance: "Performance Management",
+  opening: "Job Openings / Recruitment",
+  profile: "User Profile Management",
+  system: "System Features (Mail, Chat, etc.)",
 };
+
+/** Logical grouping for permissions drawer */
+const PERMISSION_MODULES = [
+  {
+    title: "Home",
+    icon: <PlusOutlined />, // Placeholder or appropriate icon
+    resources: ["dashboard", "integration", "system"]
+  },
+  {
+    title: "Work",
+    resources: ["project", "ticket", "timesheet", "daily_update", "document", "proposal", "squad", "escalation", "lead"]
+  },
+  {
+    title: "HRMS",
+    resources: ["user", "attendance", "leave", "shift", "onboarding", "exit", "org", "performance", "opening", "profile"]
+  },
+  {
+    title: "Finance",
+    resources: ["invoice", "transaction", "reimbursement", "salary", "vendor"]
+  },
+  {
+    title: "Admin",
+    resources: ["client", "settings", "role", "report"]
+  }
+];
 
 export default function RolesPage() {
   const { user, isLoading } = useAuth();
@@ -754,72 +791,168 @@ export default function RolesPage() {
 
               {/* Permission Groups */}
               <div style={{ padding: '0 24px' }}>
-                {Object.entries(allPermissions).map(([resource, perms]) => {
-                  const label = RESOURCE_LABELS[resource] || resource;
-                  const selectedCount = perms.filter((p) => selectedPermIds.includes(p.id)).length;
-                  const allInGroup = selectedCount === perms.length;
-                  const someInGroup = selectedCount > 0 && !allInGroup;
+                {PERMISSION_MODULES.map((module) => {
+                  const moduleResources = module.resources.filter(r => allPermissions[r]);
+                  if (moduleResources.length === 0) return null;
 
                   return (
-                    <div
-                      key={resource}
-                      style={{
-                        marginBottom: 16,
-                        border: '1px solid var(--border-slate-100)',
-                        borderRadius: 10,
-                        overflow: 'hidden',
-                        background: 'var(--bg-pure-white)'
-                      }}
-                    >
-                      {/* Group Header */}
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: 'space-between',
-                          padding: "10px 16px",
-                          background: 'var(--bg-slate-50)',
-                          borderBottom: '1px solid var(--border-slate-100)'
-                        }}
-                      >
-                        <Space size={12}>
-                          <Checkbox
-                            checked={allInGroup}
-                            indeterminate={someInGroup}
-                            onChange={() => toggleResource(perms)}
-                            disabled={!canUpdateRole}
-                          />
-                          <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>
-                            {label}
-                          </Text>
-                        </Space>
-                        <Tag bordered={false} style={{ fontSize: 11, borderRadius: 4, margin: 0 }}>
-                          {selectedCount} / {perms.length}
-                        </Tag>
+                    <div key={module.title} style={{ marginBottom: 32 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                        <div style={{ width: 4, height: 16, background: 'var(--premium-blue)', borderRadius: 2 }} />
+                        <Text strong style={{ fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-slate-900)' }}>
+                          {module.title}
+                        </Text>
                       </div>
 
-                      {/* Individual permission checkboxes */}
-                      <div style={{ padding: '12px 16px' }}>
-                        <Row gutter={[12, 12]}>
-                          {perms.map((perm) => (
-                            <Col key={perm.id} xs={12} sm={8}>
-                              <Checkbox
-                                checked={selectedPermIds.includes(perm.id)}
-                                onChange={() => togglePermission(perm.id)}
-                                disabled={!canUpdateRole}
-                                style={{ fontSize: 12, display: 'flex', alignItems: 'center', color: 'var(--text-slate-700)' }}
-                              >
-                                <Tooltip title={perm.description || perm.name}>
-                                  <span style={{ marginLeft: 4 }}>{perm.action}</span>
-                                </Tooltip>
-                              </Checkbox>
-                            </Col>
-                          ))}
-                        </Row>
-                      </div>
+                      {moduleResources.map((resource) => {
+                        const perms = allPermissions[resource];
+                        const label = RESOURCE_LABELS[resource] || resource;
+                        const selectedCount = perms.filter((p) => selectedPermIds.includes(p.id)).length;
+                        const allInGroup = selectedCount === perms.length;
+                        const someInGroup = selectedCount > 0 && !allInGroup;
+
+                        return (
+                          <div
+                            key={resource}
+                            style={{
+                              marginBottom: 16,
+                              border: '1px solid var(--border-slate-100)',
+                              borderRadius: 10,
+                              overflow: 'hidden',
+                              background: 'var(--bg-pure-white)'
+                            }}
+                          >
+                            {/* Group Header */}
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: 'space-between',
+                                padding: "10px 16px",
+                                background: 'var(--bg-slate-50)',
+                                borderBottom: '1px solid var(--border-slate-100)'
+                              }}
+                            >
+                              <Space size={12}>
+                                <Checkbox
+                                  checked={allInGroup}
+                                  indeterminate={someInGroup}
+                                  onChange={() => toggleResource(perms)}
+                                  disabled={!canUpdateRole}
+                                />
+                                <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>
+                                  {label}
+                                </Text>
+                              </Space>
+                              <Tag bordered={false} style={{ fontSize: 11, borderRadius: 4, margin: 0 }}>
+                                {selectedCount} / {perms.length}
+                              </Tag>
+                            </div>
+
+                            {/* Individual permission checkboxes */}
+                            <div style={{ padding: '12px 16px' }}>
+                              <Row gutter={[12, 12]}>
+                                {perms.map((perm) => (
+                                  <Col key={perm.id} xs={12} sm={8}>
+                                    <Checkbox
+                                      checked={selectedPermIds.includes(perm.id)}
+                                      onChange={() => togglePermission(perm.id)}
+                                      disabled={!canUpdateRole}
+                                      style={{ fontSize: 12, display: 'flex', alignItems: 'center', color: 'var(--text-slate-700)' }}
+                                    >
+                                      <Tooltip title={perm.description || perm.name}>
+                                        <span style={{ marginLeft: 4 }}>{perm.action}</span>
+                                      </Tooltip>
+                                    </Checkbox>
+                                  </Col>
+                                ))}
+                              </Row>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
+
+                {/* Handle any resources not assigned to a module */}
+                {Object.entries(allPermissions)
+                  .filter(([res]) => !PERMISSION_MODULES.some(m => m.resources.includes(res)))
+                  .length > 0 && (
+                    <div style={{ marginBottom: 32 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                        <div style={{ width: 4, height: 16, background: 'var(--text-slate-400)', borderRadius: 2 }} />
+                        <Text strong style={{ fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-slate-400)' }}>
+                          Other Permissions
+                        </Text>
+                      </div>
+                      {Object.entries(allPermissions)
+                        .filter(([res]) => !PERMISSION_MODULES.some(m => m.resources.includes(res)))
+                        .map(([resource, perms]) => {
+                          const label = RESOURCE_LABELS[resource] || resource;
+                          const selectedCount = perms.filter((p) => selectedPermIds.includes(p.id)).length;
+                          const allInGroup = selectedCount === perms.length;
+                          const someInGroup = selectedCount > 0 && !allInGroup;
+
+                          return (
+                            <div
+                              key={resource}
+                              style={{
+                                marginBottom: 16,
+                                border: '1px solid var(--border-slate-100)',
+                                borderRadius: 10,
+                                overflow: 'hidden',
+                                background: 'var(--bg-pure-white)'
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: 'space-between',
+                                  padding: "10px 16px",
+                                  background: 'var(--bg-slate-50)',
+                                  borderBottom: '1px solid var(--border-slate-100)'
+                                }}
+                              >
+                                <Space size={12}>
+                                  <Checkbox
+                                    checked={allInGroup}
+                                    indeterminate={someInGroup}
+                                    onChange={() => toggleResource(perms)}
+                                    disabled={!canUpdateRole}
+                                  />
+                                  <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>
+                                    {label}
+                                  </Text>
+                                </Space>
+                                <Tag bordered={false} style={{ fontSize: 11, borderRadius: 4, margin: 0 }}>
+                                  {selectedCount} / {perms.length}
+                                </Tag>
+                              </div>
+                              <div style={{ padding: '12px 16px' }}>
+                                <Row gutter={[12, 12]}>
+                                  {perms.map((perm) => (
+                                    <Col key={perm.id} xs={12} sm={8}>
+                                      <Checkbox
+                                        checked={selectedPermIds.includes(perm.id)}
+                                        onChange={() => togglePermission(perm.id)}
+                                        disabled={!canUpdateRole}
+                                        style={{ fontSize: 12, display: 'flex', alignItems: 'center', color: 'var(--text-slate-700)' }}
+                                      >
+                                        <Tooltip title={perm.description || perm.name}>
+                                          <span style={{ marginLeft: 4 }}>{perm.action}</span>
+                                        </Tooltip>
+                                      </Checkbox>
+                                    </Col>
+                                  ))}
+                                </Row>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
               </div>
             </div>
           )}

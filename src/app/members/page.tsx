@@ -50,6 +50,7 @@ import {
 } from "@/services/membersService";
 import { SettingsService, Shift } from "@/services/settingsService";
 import { ApiError } from "@/lib/axios";
+import { RBACService, RBACRole } from "@/services/rbacService";
 import type { ColumnsType } from "antd/es/table";
 import { usePermission } from "@/hooks/usePermission";
 import { usePositions } from "@/hooks/usePositions";
@@ -158,6 +159,7 @@ interface MemberDrawerContentProps {
   positionsLoading: boolean;
   managers: Member[];
   shifts: Shift[];
+  availableRoles: RBACRole[];
 }
 
 const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
@@ -171,6 +173,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
   positionsLoading,
   managers,
   shifts,
+  availableRoles,
 }) => {
   const watchedRole =
     Form.useWatch("role", form) || selectedMember?.role || "user";
@@ -197,6 +200,15 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
       desc: "Full org-wide control",
       color: "#e11d48",
     },
+    ...availableRoles
+      .filter((r) => !["user", "admin", "super_admin"].includes(r.slug))
+      .map((r) => ({
+        value: r.slug,
+        icon: <UserOutlined />,
+        title: r.name,
+        desc: r.description || "Custom organization role",
+        color: "#6366f1",
+      })),
   ];
 
   return (
@@ -665,6 +677,7 @@ export default function MembersPage() {
 
   const [managers, setManagers] = useState<Member[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<RBACRole[]>([]);
 
   const memberStats = React.useMemo(() => {
     return {
@@ -732,6 +745,15 @@ export default function MembersPage() {
     }
   };
 
+  const fetchRoles = async () => {
+    try {
+      const roles = await RBACService.listRoles();
+      setAvailableRoles(roles || []);
+    } catch (error) {
+      console.error("Failed to fetch roles:", error);
+    }
+  };
+
   useEffect(() => {
     if (!isLoading && !canReadUser) {
       router.push("/dashboard");
@@ -743,6 +765,7 @@ export default function MembersPage() {
       fetchMembers();
       fetchManagers();
       fetchShifts();
+      fetchRoles();
     }
   }, [
     user,
@@ -979,8 +1002,16 @@ export default function MembersPage() {
       dataIndex: "role",
       key: "role",
       width: 140,
-      render: (role: string) => {
-        const meta = ROLE_META[role] || ROLE_META.user;
+      render: (role: string, record: any) => {
+        // Use RBAC role name if available, otherwise use legacy label
+        const rbacRole = record.userRoles?.[0]?.role;
+        const label = rbacRole ? rbacRole.name : (ROLE_META[role]?.label || role);
+        const meta = ROLE_META[role] || {
+          bg: "rgba(99,102,241,0.10)",
+          color: "#6366f1",
+          dot: "#6366f1",
+        };
+
         return (
           <span
             style={{
@@ -1005,7 +1036,7 @@ export default function MembersPage() {
                 boxShadow: `0 0 0 2px ${meta.bg}`,
               }}
             />
-            {meta.label}
+            {label}
           </span>
         );
       },
@@ -1289,6 +1320,13 @@ export default function MembersPage() {
                   <Option value="super_admin">Super Admin</Option>
                   <Option value="admin">Admin</Option>
                   <Option value="user">User</Option>
+                  {availableRoles
+                    .filter((r) => !["user", "admin", "super_admin"].includes(r.slug))
+                    .map((r) => (
+                      <Option key={r.id} value={r.slug}>
+                        {r.name}
+                      </Option>
+                    ))}
                 </Select>
 
                 <Select
@@ -1454,6 +1492,7 @@ export default function MembersPage() {
             positionsLoading={positionsLoading}
             managers={managers}
             shifts={shifts}
+            availableRoles={availableRoles}
           />
         </Drawer>
 

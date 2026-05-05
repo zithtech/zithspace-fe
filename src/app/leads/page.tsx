@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
@@ -94,8 +95,10 @@ const { TextArea } = Input;
 const { Text, Title } = Typography;
 
 export default function LeadsPage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
+  const { canReadLead } = usePermission();
+
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
   const [modal, modalContextHolder] = Modal.useModal();
@@ -107,6 +110,13 @@ export default function LeadsPage() {
   const [filterPlatform, setFilterPlatform] = useState<string | null>(null);
   const [filterDateRange, setFilterDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "week" | "won">("all");
+
+  // ─── Route Guard ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isLoading && user && !canReadLead) {
+      router.push("/dashboard");
+    }
+  }, [user, isLoading, canReadLead, router]);
 
   // Use the custom hook for backend connectivity
   const { leads, loading: leadsLoading, error, fetchLeads, createLead, updateLead, deleteLead } = useLeads();

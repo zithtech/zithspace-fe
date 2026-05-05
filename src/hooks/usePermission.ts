@@ -146,6 +146,93 @@ export const usePermission = () => {
     canReadDailyUpdate:   hasPermission(Permissions.DAILY_UPDATE_READ),
     canManageDailyUpdates: hasPermission(Permissions.DAILY_UPDATE_MANAGE),
 
+    // ─── Leads & CRM ────────────────────────────────────────────────
+    canCreateLead: hasPermission(Permissions.LEAD_CREATE),
+    canReadLead:   hasPermission(Permissions.LEAD_READ),
+    canUpdateLead: hasPermission(Permissions.LEAD_UPDATE),
+    canDeleteLead: hasPermission(Permissions.LEAD_DELETE),
+    canManageLeads: hasPermission(Permissions.LEAD_MANAGE),
+
+    // ─── Proposals ──────────────────────────────────────────────────
+    canCreateProposal: hasPermission(Permissions.PROPOSAL_CREATE),
+    canReadProposal:   hasPermission(Permissions.PROPOSAL_READ),
+    canUpdateProposal: hasPermission(Permissions.PROPOSAL_UPDATE),
+    canDeleteProposal: hasPermission(Permissions.PROPOSAL_DELETE),
+    canManageProposals: hasPermission(Permissions.PROPOSAL_MANAGE),
+
+    // ─── Vendors ────────────────────────────────────────────────────
+    canCreateVendor: hasPermission(Permissions.VENDOR_CREATE),
+    canReadVendor:   hasPermission(Permissions.VENDOR_READ),
+    canUpdateVendor: hasPermission(Permissions.VENDOR_UPDATE),
+    canDeleteVendor: hasPermission(Permissions.VENDOR_DELETE),
+    canManageVendors: hasPermission(Permissions.VENDOR_MANAGE),
+
+    // ─── Escalations ────────────────────────────────────────────────
+    canCreateEscalation: hasPermission(Permissions.ESCALATION_CREATE),
+    canReadEscalation:   hasPermission(Permissions.ESCALATION_READ),
+    canUpdateEscalation: hasPermission(Permissions.ESCALATION_UPDATE),
+    canDeleteEscalation: hasPermission(Permissions.ESCALATION_DELETE),
+    canManageEscalations: hasPermission(Permissions.ESCALATION_MANAGE),
+
+    // ─── Employee Exit ──────────────────────────────────────────────
+    canCreateExit: hasPermission(Permissions.EXIT_CREATE),
+    canReadExit:   hasPermission(Permissions.EXIT_READ),
+    canUpdateExit: hasPermission(Permissions.EXIT_UPDATE),
+    canManageExits: hasPermission(Permissions.EXIT_MANAGE),
+
+    // ─── Performance ────────────────────────────────────────────────
+    canReadPerformance:   hasPermission(Permissions.PERFORMANCE_READ),
+    canManagePerformance: hasPermission(Permissions.PERFORMANCE_MANAGE),
+
+    // ─── Job Openings ───────────────────────────────────────────────
+    canCreateOpening: hasPermission(Permissions.OPENING_CREATE),
+    canReadOpening:   hasPermission(Permissions.OPENING_READ),
+    canUpdateOpening: hasPermission(Permissions.OPENING_UPDATE),
+    canDeleteOpening: hasPermission(Permissions.OPENING_DELETE),
+    canManageOpenings: hasPermission(Permissions.OPENING_MANAGE),
+
+    // ─── User Profile ───────────────────────────────────────────────
+    canCreateProfile: hasPermission(Permissions.PROFILE_CREATE),
+    canReadProfile:   hasPermission(Permissions.PROFILE_READ),
+    canUpdateProfile: hasPermission(Permissions.PROFILE_UPDATE),
+    canDeleteProfile: hasPermission(Permissions.PROFILE_DELETE),
+    canManageProfile: hasPermission(Permissions.PROFILE_MANAGE),
+
+    // ─── Squads ─────────────────────────────────────────────────────
+    canCreateSquad: hasPermission(Permissions.SQUAD_CREATE),
+    canReadSquad:   hasPermission(Permissions.SQUAD_READ),
+    canUpdateSquad: hasPermission(Permissions.SQUAD_UPDATE),
+    canDeleteSquad: hasPermission(Permissions.SQUAD_DELETE),
+    canManageSquads: hasPermission(Permissions.SQUAD_MANAGE),
+
+    // ─── System / General ───────────────────────────────────────────
+    canCreateMail:   hasPermission(Permissions.MAIL_CREATE),
+    canReadMail:     hasPermission(Permissions.MAIL_READ),
+    canUpdateMail:   hasPermission(Permissions.MAIL_UPDATE),
+    canDeleteMail:   hasPermission(Permissions.MAIL_DELETE),
+    canManageMail:   hasPermission(Permissions.MAIL_MANAGE),
+
+    canCreateCalendar: hasPermission(Permissions.CALENDAR_CREATE),
+    canReadCalendar:   hasPermission(Permissions.CALENDAR_READ),
+    canUpdateCalendar: hasPermission(Permissions.CALENDAR_UPDATE),
+    canDeleteCalendar: hasPermission(Permissions.CALENDAR_DELETE),
+    canManageCalendar: hasPermission(Permissions.CALENDAR_MANAGE),
+
+    canCreateChat: hasPermission(Permissions.CHAT_CREATE),
+    canReadChat:   hasPermission(Permissions.CHAT_READ),
+    canUpdateChat: hasPermission(Permissions.CHAT_UPDATE),
+    canDeleteChat: hasPermission(Permissions.CHAT_DELETE),
+    canManageChat: hasPermission(Permissions.CHAT_MANAGE),
+
+    canCreateSkills: hasPermission(Permissions.SKILLS_CREATE),
+    canReadSkills:   hasPermission(Permissions.SKILLS_READ),
+    canUpdateSkills: hasPermission(Permissions.SKILLS_UPDATE),
+    canDeleteSkills: hasPermission(Permissions.SKILLS_DELETE),
+    canManageSkills: hasPermission(Permissions.SKILLS_MANAGE),
+
+    canReadNotification: hasPermission(Permissions.NOTIFICATION_READ),
+    canReadBookmark:     hasPermission(Permissions.BOOKMARK_READ),
+
     // ─── Raw helpers ─────────────────────────────────────────────────
     /** Check a single permission string */
     can:    hasPermission,

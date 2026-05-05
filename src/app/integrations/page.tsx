@@ -94,13 +94,13 @@
 //   // Check if another provider is already connected
 //   const anyConnected = Object.values(statuses).some(s => s?.connected);
 //   const currentProviderConnected = statuses[provider]?.connected;
-  
+
 //   // If this provider is already connected, do nothing
 //   if (currentProviderConnected) {
 //     message.info(`${provider} is already connected`);
 //     return;
 //   }
-  
+
 //   // If another provider is connected, show confirmation
 //   if (anyConnected) {
 //     Modal.confirm({
@@ -238,12 +238,12 @@
 //     const status = statuses[provider.key];
 //     const isConnected = status?.connected;
 //     const isLoading = loading[provider.key];
-    
+
 //     // Check if ANY provider is connected (and it's not this one)
 //     const anyOtherConnected = Object.entries(statuses).some(
 //         ([key, s]) => s?.connected && key !== provider.key
 //     );
-    
+
 //     return (
 //         <Col xs={24} sm={12} lg={8} key={provider.key}>
 //             <Card
@@ -344,6 +344,7 @@ import {
   LinkOutlined
 } from "@ant-design/icons";
 import { CalendarService, CalendarProvider, CalendarStatus } from "@/services/calendarService";
+import { useRouter } from "next/navigation";
 
 interface ProviderConfig {
   key: CalendarProvider;
@@ -377,7 +378,11 @@ const PROVIDERS: ProviderConfig[] = [
   }
 ];
 
+import { usePermission } from "@/hooks/usePermission";
+import { AlertCircle } from "lucide-react";
+
 export default function IntegrationPage() {
+  const { canReadMail, canReadCalendar } = usePermission();
   const [statuses, setStatuses] = useState<Record<string, CalendarStatus | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
@@ -388,7 +393,6 @@ export default function IntegrationPage() {
         const status = await CalendarService.getStatus(provider.key);
         newStatuses[provider.key] = status;
       } catch (error) {
-        console.error(`Failed to get status for ${provider.key}:`, error);
         newStatuses[provider.key] = { connected: false, provider: provider.key, lastSync: null };
       }
     }
@@ -396,10 +400,31 @@ export default function IntegrationPage() {
   };
 
   useEffect(() => {
-    fetchStatuses();
-  }, []);
+    if (canReadMail || canReadCalendar) {
+      fetchStatuses();
+    }
+  }, [canReadMail, canReadCalendar]);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!canReadMail && !canReadCalendar) {
+      Modal.error({
+        title: 'Access Denied',
+        content: "You don't have the required permissions (Mail or Calendar) to manage integrations. Please contact your administrator.",
+        onOk: () => router.push('/dashboard'),
+        okText: 'Back to Dashboard',
+        centered: true,
+        maskClosable: false,
+      });
+    }
+  }, [canReadMail, canReadCalendar, router]);
 
   const handleConnect = async (provider: CalendarProvider) => {
+    if (!canReadCalendar) {
+      message.error("You don't have permission to connect calendars.");
+      return;
+    }
     const token = localStorage.getItem('accessToken');
     if (!token) {
       message.warning('Please log in to connect your calendar');
@@ -409,12 +434,12 @@ export default function IntegrationPage() {
 
     const anyConnected = Object.values(statuses).some(s => s?.connected);
     const currentProviderConnected = statuses[provider]?.connected;
-    
+
     if (currentProviderConnected) {
       message.info(`${provider} is already connected`);
       return;
     }
-    
+
     if (anyConnected) {
       Modal.confirm({
         title: 'Switch Calendar Provider?',
@@ -458,12 +483,12 @@ export default function IntegrationPage() {
     <MainLayout>
       <div style={{ padding: '24px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
         {/* Main content container */}
-        <div style={{ 
-          background: 'var(--bg-pure-white)', 
-          padding: '16px 0', 
+        <div style={{
+          background: 'var(--bg-pure-white)',
+          padding: '16px 0',
           width: '100%'
         }}>
-          
+
           <div style={{ marginBottom: 32 }}>
             <Space align="center" size="middle">
               <SettingOutlined style={{ fontSize: 24, color: "var(--premium-blue)" }} />
@@ -484,17 +509,17 @@ export default function IntegrationPage() {
                 const status = statuses[provider.key];
                 const isConnected = status?.connected;
                 const isLoading = loading[provider.key];
-                
+
                 // Check if ANY provider is connected
                 const anyProviderConnected = Object.values(statuses).some(s => s?.connected);
-                
+
                 return (
                   <Col xs={24} sm={12} md={8} lg={6} key={provider.key}>
                     <Card
                       hoverable
                       size="small"
-                      style={{ 
-                        borderRadius: 8, 
+                      style={{
+                        borderRadius: 8,
                         border: isConnected ? `1px solid ${provider.color}` : '1px solid var(--border-color)',
                         background: 'var(--bg-pure-white)',
                         transition: 'all 0.2s',
@@ -514,9 +539,9 @@ export default function IntegrationPage() {
                           {provider.icon}
                         </div>
                         {isConnected && (
-                          <Badge 
-                            color={provider.color} 
-                            text={<Text strong style={{ fontSize: 11, color: provider.color }}>Active</Text>} 
+                          <Badge
+                            color={provider.color}
+                            text={<Text strong style={{ fontSize: 11, color: provider.color }}>Active</Text>}
                           />
                         )}
                       </div>
@@ -559,8 +584,8 @@ export default function IntegrationPage() {
                             loading={isLoading}
                             // Button is disabled if another provider is connected
                             disabled={anyProviderConnected}
-                            style={{ 
-                              background: anyProviderConnected ? '#f5f5f5' : provider.color, 
+                            style={{
+                              background: anyProviderConnected ? '#f5f5f5' : provider.color,
                               borderColor: anyProviderConnected ? '#d9d9d9' : provider.color,
                               color: anyProviderConnected ? 'rgba(0,0,0,0.25)' : '#fff',
                               borderRadius: '6px'

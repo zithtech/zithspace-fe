@@ -45,6 +45,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import { EscalationServiceV2 } from '@/services/escalationServiceV2';
 import { EscalationSettingsService } from '@/services/escalationSettings';
 import dayjs from 'dayjs';
@@ -58,7 +59,8 @@ const BLUE_PRIMARY = 'var(--premium-blue)';
 
 export default function EscalationListPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  const { canReadEscalation } = usePermission();
   const [searchText, setSearchText] = useState('');
   const [activeTab, setActiveTab] = useState('1');
   const [escalations, setEscalations] = useState<any[]>([]);
@@ -101,9 +103,18 @@ export default function EscalationListPage() {
     }
   };
 
+  // ─── Route Guard ────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchEscalations();
-  }, []);
+    if (!isLoading && user && !canReadEscalation) {
+      router.push("/dashboard");
+    }
+  }, [user, isLoading, canReadEscalation, router]);
+
+  useEffect(() => {
+    if (canReadEscalation) {
+      fetchEscalations();
+    }
+  }, [canReadEscalation]);
 
   const handleUpdateStatus = async () => {
     if (!selectedEscalation || !tempStatus) return;

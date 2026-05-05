@@ -33,6 +33,8 @@ import {
 import { Sparkles, TrendingUp } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
+import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 
@@ -48,14 +50,24 @@ const STATUS_META: Record<Exclude<StatusKey, 'all'>, { label: string; color: str
 };
 
 export default function ProposalsListPage() {
+  const { user, isLoading } = useAuth();
+  const { canReadProposal } = usePermission();
+  const router = useRouter();
+
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusKey>('all');
   const [view, setView] = useState<'list' | 'grid'>('list');
 
-  const router = useRouter();
   const [messageApi, messageHolder] = message.useMessage();
+
+  // ─── Route Guard ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isLoading && user && !canReadProposal) {
+      router.push("/dashboard");
+    }
+  }, [user, isLoading, canReadProposal, router]);
 
   const fetchProposals = async () => {
     try {

@@ -3,11 +3,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSocket } from "@/providers/SocketProvider";
 import { ticketKeys } from "./useTickets";
 import { Ticket } from "@/services/ticketService";
-import { message } from "antd";
+import { App } from "antd";
 
 export const useTicketSocketEvents = () => {
   const queryClient = useQueryClient();
   const { socket, connected } = useSocket();
+  const { message } = App.useApp();
 
   useEffect(() => {
     if (!socket || !connected) return;
@@ -16,7 +17,7 @@ export const useTicketSocketEvents = () => {
       console.log("Socket: Ticket Created", ticket);
       // Invalidate lists so the new ticket appears
       queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
-      message.info(`New ticket created: ${ticket.ticketNumber}`);
+      message.success(`1 ticket(s) created successfully`);
     };
 
     const handleTicketUpdated = (updatedTicket: Ticket) => {

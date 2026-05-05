@@ -1,25 +1,44 @@
 import React, { useState } from 'react';
 import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, Divider, Badge, Grid, Input, Tooltip, Empty, Modal, theme } from 'antd';
 import {
-  BellOutlined,
-  MailOutlined,
-  MessageOutlined,
-  UserOutlined,
-  SettingOutlined,
-  LogoutOutlined,
-  MenuUnfoldOutlined,
-  MenuFoldOutlined,
-  CalendarOutlined,
-  AppstoreOutlined,
-  StarFilled,
-  StarOutlined,
-  FolderOutlined,
-  DeleteOutlined,
-  RightOutlined,
-  PlusOutlined,
-  MoreOutlined,
-  DeploymentUnitOutlined
-} from '@ant-design/icons';
+  Mail,
+  MessageSquareText,
+  CircleUser,
+  Settings,
+  LogOut,
+  CalendarDays,
+  LayoutGrid,
+  Folder,
+  Trash2,
+  ChevronRight,
+  Plus,
+  MoreHorizontal,
+  Sparkles,
+  Bookmark,
+  BookmarkCheck,
+  // Module icons (top navbar)
+  Sparkle,
+  Briefcase,
+  ShieldCheck,
+  UsersRound,
+  Wallet,
+} from 'lucide-react';
+
+const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
+  HOME: Sparkle,
+  WORK: Briefcase,
+  ADMIN: ShieldCheck,
+  HRMS: UsersRound,
+  FINANCE: Wallet,
+};
+
+const MODULE_ACCENT: Record<string, string> = {
+  HOME: '#6366F1',     // indigo
+  WORK: '#0EA5E9',     // sky
+  ADMIN: '#10B981',    // emerald
+  HRMS: '#F59E0B',     // amber
+  FINANCE: '#8B5CF6',  // violet
+};
 
 interface ShortcutItem {
   id: string;
@@ -34,6 +53,7 @@ import { useIsBreakpoint } from '@/hooks/use-is-breakpoint';
 import { TimeTrackerPopover } from '@/components/time-tracking/TimeTrackerPopover';
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
 import ThemeToggle from "./ThemeToggle";
+import { useTheme } from "@/context/ThemeContext";
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -57,6 +77,99 @@ export default function TopNav({
   const router = useRouter();
   const { hasPermission, hasAnyPermission } = useAuth();
   const { token } = theme.useToken();
+  const { theme: appTheme } = useTheme();
+  const isDark = appTheme === "dark";
+
+  const novuAppearance = {
+    baseTheme: isDark ? { variables: {} } : undefined,
+    variables: {
+      colorPrimary: "#3B82F6",
+      colorPrimaryForeground: "#FFFFFF",
+      colorForeground: isDark ? "#F1F5F9" : "#0F172A",
+      colorSecondaryForeground: isDark ? "#94A3B8" : "#475569",
+      colorBackground: isDark ? "#0F172A" : "#FFFFFF",
+      colorSecondary: isDark ? "#1E293B" : "#F1F5F9",
+      colorNeutral: isDark ? "#F8FAFC" : "#0F172A",
+      colorCounter: "#EF4444",
+      colorCounterForeground: "#FFFFFF",
+      colorBorder: isDark ? "rgba(148, 163, 184, 0.16)" : "rgba(15, 23, 42, 0.08)",
+      colorRing: isDark ? "rgba(59, 130, 246, 0.45)" : "rgba(59, 130, 246, 0.35)",
+    },
+    elements: {
+      popoverContent: {
+        background: isDark ? "#0F172A" : "#FFFFFF",
+        border: isDark ? "1px solid rgba(148, 163, 184, 0.16)" : "1px solid rgba(15, 23, 42, 0.08)",
+        color: isDark ? "#F1F5F9" : "#0F172A",
+        boxShadow: isDark
+          ? "0 12px 32px -10px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.35)"
+          : "0 12px 32px -10px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.06)",
+        borderRadius: 12,
+        overflow: "hidden",
+      },
+      inboxHeader: {
+        background: isDark ? "#0F172A" : "#FFFFFF",
+        borderBottom: isDark ? "1px solid rgba(148, 163, 184, 0.12)" : "1px solid rgba(15, 23, 42, 0.06)",
+        color: isDark ? "#F1F5F9" : "#0F172A",
+      },
+      notification: {
+        background: isDark ? "#0F172A" : "#FFFFFF",
+        borderBottom: isDark ? "1px solid rgba(148, 163, 184, 0.08)" : "1px solid rgba(15, 23, 42, 0.04)",
+      },
+      notificationDot: { background: "#3B82F6" },
+      notificationSubject: { color: isDark ? "#F1F5F9" : "#0F172A" },
+      notificationBody: { color: isDark ? "#CBD5E1" : "#475569" },
+      notificationDate: { color: isDark ? "#94A3B8" : "#64748B" },
+      notificationPrimaryAction: {
+        background: "#3B82F6",
+        color: "#FFFFFF",
+      },
+      notificationSecondaryAction: {
+        background: isDark ? "#1E293B" : "#F1F5F9",
+        color: isDark ? "#F1F5F9" : "#0F172A",
+      },
+      tabsList: {
+        background: isDark ? "#0F172A" : "#FFFFFF",
+        borderBottom: isDark ? "1px solid rgba(148, 163, 184, 0.1)" : "1px solid rgba(15, 23, 42, 0.05)",
+      },
+      tabsTrigger: {
+        color: isDark ? "#94A3B8" : "#64748B",
+      },
+      inboxStatus__dropdownTrigger: {
+        color: isDark ? "#F1F5F9" : "#0F172A",
+      },
+      moreActionsDropdownTrigger: {
+        color: isDark ? "#94A3B8" : "#64748B",
+      },
+      moreActionsDropdownContent: {
+        background: isDark ? "#0F172A" : "#FFFFFF",
+        border: isDark ? "1px solid rgba(148, 163, 184, 0.16)" : "1px solid rgba(15, 23, 42, 0.08)",
+        color: isDark ? "#F1F5F9" : "#0F172A",
+      },
+      moreActionsDropdownItem: {
+        color: isDark ? "#E2E8F0" : "#0F172A",
+      },
+      empty: {
+        color: isDark ? "#94A3B8" : "#64748B",
+      },
+      emptyText: {
+        color: isDark ? "#94A3B8" : "#64748B",
+      },
+      preferencesHeader: {
+        background: isDark ? "#0F172A" : "#FFFFFF",
+        color: isDark ? "#F1F5F9" : "#0F172A",
+      },
+      workflowContainer: {
+        background: isDark ? "#0F172A" : "#FFFFFF",
+        borderBottom: isDark ? "1px solid rgba(148, 163, 184, 0.08)" : "1px solid rgba(15, 23, 42, 0.04)",
+      },
+      workflowLabel: {
+        color: isDark ? "#F1F5F9" : "#0F172A",
+      },
+      workflowDescription: {
+        color: isDark ? "#94A3B8" : "#64748B",
+      },
+    },
+  };
   const { isPopoverOpen, setPopoverOpen } = useTimeTrackerStore();
   const screens = useBreakpoint();
   const isCustomBreakpoint = useIsBreakpoint("max", 1214); // true when width <= 1213
@@ -133,13 +246,13 @@ export default function TopNav({
   const userMenuItems = [
     {
       key: "profile",
-      icon: <UserOutlined />,
+      icon: <CircleUser size={16} strokeWidth={1.75} />,
       label: "Profile",
       onClick: () => router.push("/profile"),
     },
     {
       key: "settings",
-      icon: <SettingOutlined />,
+      icon: <Settings size={16} strokeWidth={1.75} />,
       label: "Settings",
       onClick: () => router.push("/settings"),
     },
@@ -160,7 +273,7 @@ export default function TopNav({
     { type: "divider" as const },
     {
       key: "logout",
-      icon: <LogoutOutlined />,
+      icon: <LogOut size={16} strokeWidth={1.75} />,
       label: "Logout",
       onClick: handleLogout,
     },
@@ -174,36 +287,65 @@ export default function TopNav({
     }
   };
 
-  const menuItems = visibleModules.map((module, index) => ({
-    key: module.key,
-    label: (
-      <div style={{
-        fontWeight: 600,
-        padding: '0 12px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        height: '100%',
-        position: 'relative',
-        transition: 'all 0.3s'
-      }}>
-        <span className="module-icon" style={{ fontSize: '16px', display: 'flex' }}>{module.icon}</span>
-        <span className={`module-text module-text-${index}`} style={{ fontSize: '13px', letterSpacing: '0.3px' }}>{module.label}</span>
-        {activeModule === module.key && (
-          <div style={{
-            position: 'absolute',
-            bottom: '4px',
-            left: '12px',
-            right: '12px',
-            height: '3px',
-            background: '#1677ff',
-            borderRadius: '2px',
-            boxShadow: '0 2px 4px rgba(22, 119, 255, 0.2)'
-          }} />
-        )}
-      </div>
-    ),
-  }));
+  const menuItems = visibleModules.map((module, index) => {
+    const ModuleIcon = MODULE_ICONS[module.key] || LayoutGrid;
+    const accent = MODULE_ACCENT[module.key] || '#1677ff';
+    const isActive = activeModule === module.key;
+    return {
+      key: module.key,
+      label: (
+        <div style={{
+          fontWeight: 600,
+          padding: '0 12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          height: '100%',
+          position: 'relative',
+          transition: 'all 0.3s'
+        }}>
+          <span
+            className="module-icon"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: isActive ? `${accent}1A` : 'transparent',
+              color: isActive ? accent : 'var(--text-slate-700, #475569)',
+              transition: 'all 0.25s ease',
+            }}
+          >
+            <ModuleIcon size={17} strokeWidth={isActive ? 2 : 1.75} />
+          </span>
+          <span
+            className={`module-text module-text-${index}`}
+            style={{
+              fontSize: '13px',
+              letterSpacing: '0.3px',
+              color: isActive ? accent : undefined,
+            }}
+          >
+            {module.label}
+          </span>
+          {isActive && (
+            <div style={{
+              position: 'absolute',
+              bottom: '4px',
+              left: '12px',
+              right: '12px',
+              height: '3px',
+              background: accent,
+              borderRadius: '2px',
+              boxShadow: `0 2px 6px ${accent}40`,
+            }} />
+          )}
+        </div>
+      ),
+    };
+  });
 
   const renderShortcutsDropdownContent = (isModal = false) => (
     <div
@@ -226,7 +368,7 @@ export default function TopNav({
         }}
       >
         <Space>
-          <StarFilled style={{ color: "#1677ff" }} />
+          <BookmarkCheck size={16} strokeWidth={1.75} color="#1677ff" />
           <Text strong>Bookmarks</Text>
         </Space>
       </div>
@@ -261,9 +403,7 @@ export default function TopNav({
                   minWidth: 0,
                 }}
               >
-                <FolderOutlined
-                  style={{ color: "#8c8c8c", fontSize: 16 }}
-                />
+                <Folder size={16} strokeWidth={1.75} color="#8c8c8c" />
                 <Text
                   style={{ fontSize: 13, color: "var(--text-primary)" }}
                   ellipsis
@@ -278,18 +418,14 @@ export default function TopNav({
                     type="text"
                     shape="circle"
                     icon={
-                      <DeleteOutlined
-                        style={{ fontSize: 14, color: "#8c8c8c" }}
-                      />
+                      <Trash2 size={14} strokeWidth={1.75} color="#8c8c8c" />
                     }
                     size="small"
                     onClick={(e) => handleDeleteBookmark(item.id, e)}
                   />
                 </Tooltip>
               ) : (
-                <RightOutlined
-                  style={{ fontSize: 10, color: "#bfbfbf" }}
-                />
+                <ChevronRight size={12} strokeWidth={2} color="#bfbfbf" />
               )}
             </div>
           ))
@@ -344,7 +480,7 @@ export default function TopNav({
         ) : (
           <Button
             type="text"
-            icon={<PlusOutlined />}
+            icon={<Plus size={14} strokeWidth={2} />}
             onClick={() => setIsAddMode(true)}
             style={{
               width: "100%",
@@ -474,7 +610,7 @@ export default function TopNav({
             }}
             trigger={["click"]}
           >
-            <Button type="text" icon={<AppstoreOutlined />} style={{ fontWeight: 600, marginLeft: 20 }}>
+            <Button type="text" icon={<LayoutGrid size={16} strokeWidth={1.75} />} style={{ fontWeight: 600, marginLeft: 20 }}>
               {!isSmallMobile && activeModule}
             </Button>
           </Dropdown>
@@ -489,103 +625,151 @@ export default function TopNav({
             <TimeTrackerPopover />
 
 
-            <Button
-              type="text"
-              icon={<MailOutlined />}
-              onClick={() => router.push('/mail')}
-            />
-            <Button
-              type="text"
-              icon={<CalendarOutlined />}
-              onClick={() => router.push('/calendar')}
-            />
-            <Button
-              type="text"
-              icon={<DeploymentUnitOutlined />}
-              onClick={() => router.push('/skills')}
-            />
-
-            <Button
-              type="text"
-              icon={<MessageOutlined />}
-              onClick={() => router.push('/chat')}
-            />
-            <div className="novu-inbox-wrapper">
-              <Inbox
-                applicationIdentifier="67g_5lVLFWvd"
-                subscriberId={user?.id}
-                socketUrl="wss://socket.novu.co"
-                appearance={{
-                  variables: {
-                    colorPrimary: "#3B82F6",
-                    colorForeground: token.colorText,
-                    colorBackground: token.colorBgElevated,
-                    colorCounter: "#EF4444",
-                    colorCounterForeground: "#FFFFFF",
-                  },
-                  elements: {
-                    notification: {
-                      background: token.colorBgElevated,
-                    },
-                    popoverContent: {
-                      background: token.colorBgElevated,
-                      border: `1px solid ${token.colorBorderSecondary}`,
-                      color: token.colorText,
-                    },
-                  }
-                }}
-              />
-            </div>
-            <Dropdown
-              open={shortcutPopoverVisible && !isCustomBreakpoint}
-              onOpenChange={(visible) => {
-                if (!visible && deleteModalOpen) return;
-                setShortcutPopoverVisible(visible);
-                if (!visible) {
-                  setIsAddMode(false);
-                  setNewShortcutName("");
-                  setNewShortcutPath("");
-                }
-              }}
-              popupRender={() => renderShortcutsDropdownContent(false)}
-              trigger={["click"]}
+            <Tooltip
+              title={
+                <div className="navbar-tooltip">
+                  <span className="navbar-tooltip-title">Mail</span>
+                  <span className="navbar-tooltip-sub">Inbox & messages</span>
+                </div>
+              }
+              placement="bottom"
+              classNames={{ root: "navbar-icon-tooltip" }}
+              mouseEnterDelay={0.1}
+              zIndex={1100}
             >
               <Button
                 type="text"
-                icon={
-                  (shortcutPopoverVisible && !isCustomBreakpoint) ? (
-                    <StarFilled style={{ color: "#1677ff" }} />
-                  ) : (
-                    <StarOutlined />
-                  )
-                }
+                icon={<Mail size={18} strokeWidth={1.75} />}
+                onClick={() => router.push('/mail')}
               />
-            </Dropdown>
+            </Tooltip>
+            <Tooltip
+              title={
+                <div className="navbar-tooltip">
+                  <span className="navbar-tooltip-title">Calendar</span>
+                  <span className="navbar-tooltip-sub">Schedule & events</span>
+                </div>
+              }
+              placement="bottom"
+              classNames={{ root: "navbar-icon-tooltip" }}
+              mouseEnterDelay={0.1}
+              zIndex={1100}
+            >
+              <Button
+                type="text"
+                icon={<CalendarDays size={18} strokeWidth={1.75} />}
+                onClick={() => router.push('/calendar')}
+              />
+            </Tooltip>
+            <Tooltip
+              title={
+                <div className="navbar-tooltip">
+                  <span className="navbar-tooltip-title">Skills</span>
+                  <span className="navbar-tooltip-sub">Learning & growth</span>
+                </div>
+              }
+              placement="bottom"
+              classNames={{ root: "navbar-icon-tooltip" }}
+              mouseEnterDelay={0.1}
+              zIndex={1100}
+            >
+              <Button
+                type="text"
+                icon={<Sparkles size={18} strokeWidth={1.75} />}
+                onClick={() => router.push('/skills')}
+              />
+            </Tooltip>
+
+            <Tooltip
+              title={
+                <div className="navbar-tooltip">
+                  <span className="navbar-tooltip-title">Messages</span>
+                  <span className="navbar-tooltip-sub">Team chat</span>
+                </div>
+              }
+              placement="bottom"
+              classNames={{ root: "navbar-icon-tooltip" }}
+              mouseEnterDelay={0.1}
+              zIndex={1100}
+            >
+              <Button
+                type="text"
+                icon={<MessageSquareText size={18} strokeWidth={1.75} />}
+                onClick={() => router.push('/chat')}
+              />
+            </Tooltip>
+            <Tooltip
+              title={
+                <div className="navbar-tooltip">
+                  <span className="navbar-tooltip-title">Notifications</span>
+                  <span className="navbar-tooltip-sub">Alerts & updates</span>
+                </div>
+              }
+              placement="bottom"
+              classNames={{ root: "navbar-icon-tooltip" }}
+              mouseEnterDelay={0.1}
+              zIndex={1100}
+            >
+              <div className={`novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
+                <Inbox
+                  applicationIdentifier="67g_5lVLFWvd"
+                  subscriberId={user?.id}
+                  socketUrl="wss://socket.novu.co"
+                  appearance={novuAppearance}
+                />
+              </div>
+            </Tooltip>
+            <Tooltip
+              title={
+                <div className="navbar-tooltip">
+                  <span className="navbar-tooltip-title">Bookmarks</span>
+                  <span className="navbar-tooltip-sub">Saved shortcuts</span>
+                </div>
+              }
+              placement="bottom"
+              classNames={{ root: "navbar-icon-tooltip" }}
+              mouseEnterDelay={0.1}
+              zIndex={1100}
+              open={shortcutPopoverVisible ? false : undefined}
+            >
+              <Dropdown
+                open={shortcutPopoverVisible && !isCustomBreakpoint}
+                onOpenChange={(visible) => {
+                  if (!visible && deleteModalOpen) return;
+                  setShortcutPopoverVisible(visible);
+                  if (!visible) {
+                    setIsAddMode(false);
+                    setNewShortcutName("");
+                    setNewShortcutPath("");
+                  }
+                }}
+                popupRender={() => renderShortcutsDropdownContent(false)}
+                trigger={["click"]}
+              >
+                <Button
+                  type="text"
+                  icon={
+                    (shortcutPopoverVisible && !isCustomBreakpoint) ? (
+                      <Bookmark size={18} strokeWidth={1.75} fill="#1677ff" color="#1677ff" />
+                    ) : (
+                      <Bookmark size={18} strokeWidth={1.75} />
+                    )
+                  }
+                />
+              </Dropdown>
+            </Tooltip>
           </>
         ) : (
           <Space size={isSmallMobile ? 4 : 8}>
             <ThemeToggle />
-            <Inbox
-              applicationIdentifier="67g_5lVLFWvd"
-              subscriberId={user?.id}
-              socketUrl="wss://socket.novu.co"
-              appearance={{
-                variables: {
-                  colorPrimary: "#3B82F6",
-                  colorForeground: token.colorText,
-                  colorBackground: token.colorBgElevated,
-                  colorCounter: "#EF4444",
-                  colorCounterForeground: "#FFFFFF",
-                },
-                elements: {
-                  popoverContent: {
-                    background: token.colorBgElevated,
-                    border: `1px solid ${token.colorBorderSecondary}`,
-                    color: token.colorText,
-                  },
-                }
-              }}
-            />
+            <div className={`novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
+              <Inbox
+                applicationIdentifier="67g_5lVLFWvd"
+                subscriberId={user?.id}
+                socketUrl="wss://socket.novu.co"
+                appearance={novuAppearance}
+              />
+            </div>
             <Dropdown
               menu={{
                 items: [
@@ -597,25 +781,25 @@ export default function TopNav({
                   {
                     key: 'mail',
                     label: 'Mail',
-                    icon: <MailOutlined />,
+                    icon: <Mail size={16} strokeWidth={1.75} />,
                     onClick: () => router.push('/mail')
                   },
                   {
                     key: 'calendar',
                     label: 'Calendar',
-                    icon: <CalendarOutlined />,
+                    icon: <CalendarDays size={16} strokeWidth={1.75} />,
                     onClick: () => router.push('/calendar')
                   },
                   {
                     key: 'chat',
                     label: 'Messages',
-                    icon: <MessageOutlined />,
+                    icon: <MessageSquareText size={16} strokeWidth={1.75} />,
                     onClick: () => router.push('/chat')
                   },
                   {
                     key: 'bookmarks',
                     label: 'Bookmarks',
-                    icon: <StarOutlined />,
+                    icon: <Bookmark size={16} strokeWidth={1.75} />,
                     onClick: (e) => {
                       e.domEvent.stopPropagation();
                       setShortcutPopoverVisible(true);
@@ -626,7 +810,7 @@ export default function TopNav({
               trigger={['click']}
               placement="bottomRight"
             >
-              <Button type="text" icon={<MoreOutlined style={{ fontSize: 20 }} />} />
+              <Button type="text" icon={<MoreHorizontal size={20} strokeWidth={1.75} />} />
             </Dropdown>
           </Space>
         )}
@@ -676,7 +860,7 @@ export default function TopNav({
             menu={{ items: userMenuItems }}
             placement="bottomRight"
             trigger={["click"]}
-            dropdownRender={(menu) => (
+            popupRender={(menu) => (
               <div style={{ boxShadow: 'none', border: '1px solid var(--border-slate-200)', borderRadius: 8, background: 'var(--bg-pure-white)' }}>
                 {menu}
               </div>
@@ -776,6 +960,144 @@ export default function TopNav({
                     .ant-layout-header {
                         padding: 0 16px !important;
                     }
+                }
+
+                /* Premium navbar icon tooltip */
+                .navbar-icon-tooltip {
+                    --tooltip-bg: rgba(15, 23, 42, 0.95);
+                    --tooltip-fg: #f8fafc;
+                    --tooltip-sub: rgba(248, 250, 252, 0.65);
+                    z-index: 1100 !important;
+                }
+                .navbar-icon-tooltip .ant-tooltip-arrow::before,
+                .navbar-icon-tooltip .ant-tooltip-arrow::after {
+                    background: var(--tooltip-bg) !important;
+                }
+                .navbar-icon-tooltip .ant-tooltip-inner {
+                    background: var(--tooltip-bg) !important;
+                    color: var(--tooltip-fg) !important;
+                    backdrop-filter: blur(10px) saturate(160%);
+                    -webkit-backdrop-filter: blur(10px) saturate(160%);
+                    padding: 8px 12px !important;
+                    border-radius: 10px !important;
+                    box-shadow:
+                        0 8px 24px -8px rgba(0, 0, 0, 0.35),
+                        0 2px 6px rgba(0, 0, 0, 0.18),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    min-width: 0;
+                    font-size: 12px !important;
+                    line-height: 1.35 !important;
+                }
+                .navbar-tooltip {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 1px;
+                }
+                .navbar-tooltip-title {
+                    font-weight: 600;
+                    font-size: 12.5px;
+                    letter-spacing: 0.1px;
+                    color: var(--tooltip-fg);
+                }
+                .navbar-tooltip-sub {
+                    font-size: 11px;
+                    font-weight: 400;
+                    color: var(--tooltip-sub);
+                    letter-spacing: 0.15px;
+                }
+                /* Animation polish */
+                .navbar-icon-tooltip.ant-tooltip {
+                    animation-duration: 0.18s !important;
+                }
+
+                /* Novu Inbox dark-mode polish */
+                .novu-inbox-dark .nv-popoverContent,
+                [data-theme='dark'] .nv-popoverContent {
+                    background: #0F172A !important;
+                    border: 1px solid rgba(148, 163, 184, 0.16) !important;
+                    color: #F1F5F9 !important;
+                    box-shadow:
+                        0 12px 32px -10px rgba(0, 0, 0, 0.6),
+                        0 4px 12px rgba(0, 0, 0, 0.35) !important;
+                }
+                [data-theme='dark'] .nv-inboxHeader,
+                [data-theme='dark'] .nv-tabsList,
+                [data-theme='dark'] .nv-preferencesHeader,
+                [data-theme='dark'] .nv-notification,
+                [data-theme='dark'] .nv-workflowContainer,
+                [data-theme='dark'] .nv-moreActionsDropdownContent {
+                    background: #0F172A !important;
+                    color: #F1F5F9 !important;
+                }
+                [data-theme='dark'] .nv-inboxHeader {
+                    border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+                }
+                [data-theme='dark'] .nv-tabsList {
+                    border-bottom: 1px solid rgba(148, 163, 184, 0.10) !important;
+                }
+                [data-theme='dark'] .nv-notification {
+                    border-bottom: 1px solid rgba(148, 163, 184, 0.08) !important;
+                }
+                [data-theme='dark'] .nv-notification:hover {
+                    background: rgba(59, 130, 246, 0.08) !important;
+                }
+                [data-theme='dark'] .nv-notificationSubject,
+                [data-theme='dark'] .nv-tabsTrigger[data-state="active"],
+                [data-theme='dark'] .nv-inboxStatus__dropdownTrigger,
+                [data-theme='dark'] .nv-workflowLabel {
+                    color: #F1F5F9 !important;
+                }
+                [data-theme='dark'] .nv-notificationBody {
+                    color: #CBD5E1 !important;
+                }
+                [data-theme='dark'] .nv-notificationDate,
+                [data-theme='dark'] .nv-tabsTrigger,
+                [data-theme='dark'] .nv-workflowDescription,
+                [data-theme='dark'] .nv-emptyText,
+                [data-theme='dark'] .nv-moreActionsDropdownTrigger {
+                    color: #94A3B8 !important;
+                }
+                [data-theme='dark'] .nv-tabsTrigger:hover {
+                    color: #E2E8F0 !important;
+                    background: rgba(148, 163, 184, 0.06) !important;
+                }
+                [data-theme='dark'] .nv-notificationSecondaryAction {
+                    background: #1E293B !important;
+                    color: #F1F5F9 !important;
+                    border-color: rgba(148, 163, 184, 0.12) !important;
+                }
+                [data-theme='dark'] .nv-notificationPrimaryAction {
+                    background: #3B82F6 !important;
+                    color: #FFFFFF !important;
+                }
+                [data-theme='dark'] .nv-moreActionsDropdownContent {
+                    border: 1px solid rgba(148, 163, 184, 0.16) !important;
+                    box-shadow:
+                        0 8px 24px -8px rgba(0, 0, 0, 0.55),
+                        0 2px 8px rgba(0, 0, 0, 0.3) !important;
+                }
+                [data-theme='dark'] .nv-moreActionsDropdownItem:hover {
+                    background: rgba(59, 130, 246, 0.12) !important;
+                }
+                [data-theme='dark'] .nv-button:hover {
+                    background: rgba(148, 163, 184, 0.08) !important;
+                }
+                /* Custom scrollbar inside dark popover */
+                [data-theme='dark'] .nv-popoverContent ::-webkit-scrollbar {
+                    width: 8px;
+                    height: 8px;
+                }
+                [data-theme='dark'] .nv-popoverContent ::-webkit-scrollbar-thumb {
+                    background: rgba(148, 163, 184, 0.2);
+                    border-radius: 4px;
+                }
+                [data-theme='dark'] .nv-popoverContent ::-webkit-scrollbar-thumb:hover {
+                    background: rgba(148, 163, 184, 0.35);
+                }
+                [data-theme='dark'] .nv-popoverContent ::-webkit-scrollbar-track {
+                    background: transparent;
                 }
             `}</style>
     </Header >

@@ -21,6 +21,7 @@ export interface TicketFormData {
   endDate?: string;
   releasePlan?: string;
   selectedWorkflowSteps?: string[];
+  tags?: string[];
 }
 
 export interface TicketConfiguration {
@@ -138,6 +139,7 @@ export interface Ticket {
   bucketId?: string;
   isArchived?: boolean;
   parentId?: string; // Hierarchy support (Subtask)
+  tags?: string[];
   metadata?: {
     platform?: string;
     stack?: string;
@@ -555,6 +557,19 @@ class TicketService {
       const errorMessage =
         error.response?.data?.error || "Failed to update ticket";
       throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Get distinct tags used across all tickets in the tenant.
+   */
+  static async getAllTags(): Promise<string[]> {
+    try {
+      const response = await apiClient.get(`/api/tickets/tags`);
+      return response.data.data || [];
+    } catch (error: any) {
+      console.error("Error fetching ticket tags:", error);
+      return [];
     }
   }
 

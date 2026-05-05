@@ -4,6 +4,7 @@ import { EditOutlined } from '@ant-design/icons';
 import TiptapEditor from '@/components/common/TiptapEditor';
 import TiptapViewer from '@/components/common/TiptapViewer';
 import { AIEnhanceButton } from '../AIEnhanceButton';
+import { BlockGhostHint, BlockGhostLine } from './BlockGhost';
 
 const { Title } = Typography;
 
@@ -14,16 +15,33 @@ interface TextBlockProps {
 }
 
 export const TextBlock: React.FC<TextBlockProps> = ({ data }) => {
+  const isEmpty = !data.heading && !data.content;
   return (
     <div style={{ padding: '40px' }}>
-      {data.heading && (
-        <Title level={2} style={{ marginBottom: '8px', color: 'var(--text-primary)', fontWeight: 700 }}>
-          {data.heading}
-        </Title>
+      {isEmpty && <BlockGhostHint />}
+      <Title
+        level={2}
+        style={{
+          marginBottom: '12px',
+          color: data.heading ? 'var(--text-primary)' : 'var(--text-slate-400)',
+          fontWeight: 700,
+          fontStyle: data.heading ? 'normal' : 'italic',
+        }}
+      >
+        {data.heading || 'Section Heading'}
+      </Title>
+      {data.content ? (
+        <div style={{ fontSize: '1.05rem', color: 'var(--text-primary)', lineHeight: 1.6 }}>
+          <TiptapViewer content={data.content} />
+        </div>
+      ) : (
+        <div>
+          <BlockGhostLine width="92%" />
+          <BlockGhostLine width="86%" />
+          <BlockGhostLine width="78%" />
+          <BlockGhostLine width="64%" />
+        </div>
       )}
-      <div style={{ fontSize: '1.05rem', color: 'var(--text-primary)', lineHeight: 1.6 }}>
-        <TiptapViewer content={data.content || ''} />
-      </div>
     </div>
   );
 };

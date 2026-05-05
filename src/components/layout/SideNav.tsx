@@ -228,6 +228,19 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                     display: inline-flex !important;
                 }
 
+                /* Lucide icon defaults — premium, consistent sizing */
+                .sidebar-sider .nav-lucide-icon {
+                    width: 16px;
+                    height: 16px;
+                    vertical-align: -0.125em;
+                    flex-shrink: 0;
+                }
+                .sidebar-sider.ant-layout-sider-collapsed .nav-lucide-icon {
+                    width: 18px !important;
+                    height: 18px !important;
+                    margin: 0 !important;
+                }
+
                 /* HIDE the text labels specifically when collapsed */
                 .sidebar-sider.ant-layout-sider-collapsed .ant-menu-title-content {
                     display: none !important;

@@ -1,22 +1,17 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
   Table,
   Button,
   Space,
-  Tag,
   Select,
   Typography,
-  Card,
   Empty,
   Tooltip,
-  Badge,
   Alert,
   App,
   Modal,
-  Dropdown,
-  Divider,
 } from "antd";
 import {
   SendOutlined,
@@ -28,25 +23,40 @@ import {
   PlusOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import { SprintCompletionSummary, BulkResolveAction, BulkActionType } from "@/services/sprintCompletionService";
+import {
+  SprintCompletionSummary,
+  BulkResolveAction,
+  BulkActionType,
+} from "@/services/sprintCompletionService";
 import { useBulkResolveTickets } from "@/hooks/useSprintCompletion";
-import { useCreateBucket } from "@/hooks/useBuckets";
 import SprintCompletionService from "@/services/sprintCompletionService";
-import { SprintSelector } from "../SprintSelector";
-import { BucketSelector } from "../BucketSelector";
 import { SprintCreationForm, type SprintFormData } from "../SprintCreationForm";
 import { BucketCreationForm, type BucketFormData } from "../BucketCreationForm";
-import ReleasePlanService, { type ReleasePlan } from "@/services/releasePlanService";
-import BucketService, { type Bucket } from "@/services/bucketService";
+import ReleasePlanService from "@/services/releasePlanService";
+import BucketService from "@/services/bucketService";
 
 const { Text } = Typography;
-const { Option } = Select;
 
 interface PendingTicketsTabProps {
   sprintId: string;
   summary: SprintCompletionSummary;
   onActionComplete: () => void;
 }
+
+const PRIORITY_CHIP: Record<string, string> = {
+  HIGH: 'sc-chip-pri-high',
+  P1: 'sc-chip-pri-high',
+  MEDIUM: 'sc-chip-pri-med',
+  P2: 'sc-chip-pri-med',
+  LOW: 'sc-chip-pri-low',
+  P3: 'sc-chip-pri-low',
+};
+
+const STATUS_CHIP_CLASS = (status: string) => {
+  if (status === 'completed') return 'sc-chip-status-success';
+  if (status === 'in_progress') return 'sc-chip-status-progress';
+  return 'sc-chip-status-default';
+};
 
 export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
   sprintId,
@@ -60,16 +70,14 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
     destinationId?: string;
     destinationName?: string;
   } | null>(null);
-  
-  // Modal state for creation forms
+
   const [showSprintModal, setShowSprintModal] = useState(false);
   const [showBucketModal, setShowBucketModal] = useState(false);
   const [creatingSprintLoading, setCreatingSprintLoading] = useState(false);
   const [creatingBucketLoading, setCreatingBucketLoading] = useState(false);
-  
+
   const bulkResolve = useBulkResolveTickets();
 
-  // Handle sprint creation
   const handleCreateSprint = async (data: SprintFormData) => {
     try {
       setCreatingSprintLoading(true);
@@ -83,8 +91,7 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
         type: 'sprint_plan',
       });
       setShowSprintModal(false);
-      message.success(`Sprint "${newSprint.version}" created successfully! You can now select it from the dropdown.`);
-      // Refresh the summary to update available sprints list
+      message.success(`Sprint "${newSprint.version}" created successfully!`);
       onActionComplete();
     } catch (error: any) {
       message.error(error.message || 'Failed to create sprint');
@@ -93,7 +100,6 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
     }
   };
 
-  // Handle bucket creation
   const handleCreateBucket = async (data: BucketFormData) => {
     try {
       setCreatingBucketLoading(true);
@@ -101,10 +107,10 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
         name: data.name,
         description: data.description || '',
         projectId: summary.sprint.project.id,
+        isShared: true,
       });
       setShowBucketModal(false);
-      message.success(`Bucket "${newBucket.name}" created successfully! You can now select it from the dropdown.`);
-      // Refresh the summary to update available buckets list
+      message.success(`Bucket "${newBucket.name}" created successfully!`);
       onActionComplete();
     } catch (error: any) {
       message.error(error.message || 'Failed to create bucket');
@@ -113,71 +119,69 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
     }
   };
 
-  // Set bulk action to apply to selected tickets
   const handleBulkAction = (action: BulkActionType, destinationId?: string) => {
     if (selectedRowKeys.length === 0) {
-      message.warning("Please select tickets first");
+      message.warning('Please select tickets first');
       return;
     }
-    
+
     if ((action === 'move_to_sprint' || action === 'move_to_bucket') && !destinationId) {
       message.error(`Please select a destination for ${SprintCompletionService.getActionLabel(action)}`);
       return;
     }
-    
-    // Get destination name for display
+
     let destinationName = '';
     if (destinationId) {
       if (action === 'move_to_sprint') {
-        const sprint = summary.availableDestinations.sprints.find(s => s.id === destinationId);
+        const sprint = summary.availableDestinations.sprints.find((s) => s.id === destinationId);
         destinationName = sprint?.name || '';
       } else if (action === 'move_to_bucket') {
-        const bucket = summary.availableDestinations.buckets.find(b => b.id === destinationId);
+        const bucket = summary.availableDestinations.buckets.find((b) => b.id === destinationId);
         destinationName = bucket?.name || '';
       }
     }
-    
+
     setActiveBulkAction({ action, destinationId, destinationName });
     message.success(
-      `Ready to ${SprintCompletionService.getActionLabel(action).toLowerCase()}${destinationName ? ` to ${destinationName}` : ''} for ${selectedRowKeys.length} selected ticket(s). Click "Resolve" to apply.`
+      `Ready to ${SprintCompletionService.getActionLabel(action).toLowerCase()}${
+        destinationName ? ` to ${destinationName}` : ''
+      } for ${selectedRowKeys.length} selected ticket(s). Click "Resolve" to apply.`
     );
   };
 
-  // Submit bulk resolve
   const handleSubmit = async () => {
     if (!activeBulkAction || selectedRowKeys.length === 0) {
-      message.warning("Please select tickets and choose an action");
+      message.warning('Please select tickets and choose an action');
       return;
     }
 
-    // Build actions for all selected tickets
     const actions: BulkResolveAction[] = selectedRowKeys.map((ticketId) => ({
       ticketId: ticketId as string,
       action: activeBulkAction.action,
       destinationId: activeBulkAction.destinationId,
     }));
 
-    // Validate actions
     const validation = SprintCompletionService.validateBulkActions(actions);
     if (!validation.valid) {
       validation.errors.forEach((error) => message.error(error));
       return;
     }
 
-    // Calculate action breakdown
     const actionBreakdown = {
-      backlog: actions.filter(a => a.action === 'move_to_backlog').length,
-      sprint: actions.filter(a => a.action === 'move_to_sprint').length,
-      bucket: actions.filter(a => a.action === 'move_to_bucket').length,
-      trash: actions.filter(a => a.action === 'move_to_trash').length,
+      backlog: actions.filter((a) => a.action === 'move_to_backlog').length,
+      sprint: actions.filter((a) => a.action === 'move_to_sprint').length,
+      bucket: actions.filter((a) => a.action === 'move_to_bucket').length,
+      trash: actions.filter((a) => a.action === 'move_to_trash').length,
     };
 
     modal.confirm({
-      title: "Confirm Bulk Resolution",
+      title: 'Confirm Bulk Resolution',
       icon: <ExclamationCircleOutlined />,
       content: (
         <div>
-          <p>You are about to resolve <strong>{actions.length}</strong> pending ticket(s):</p>
+          <p>
+            You are about to resolve <strong>{actions.length}</strong> pending ticket(s):
+          </p>
           <ul style={{ marginTop: 12 }}>
             {actionBreakdown.backlog > 0 && <li>Move to Backlog: {actionBreakdown.backlog}</li>}
             {actionBreakdown.sprint > 0 && <li>Move to Sprint: {actionBreakdown.sprint}</li>}
@@ -187,9 +191,9 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
           <p style={{ marginTop: 12, color: '#8c8c8c' }}>This action cannot be easily undone. Continue?</p>
         </div>
       ),
-      okText: "Resolve Tickets",
-      okType: "primary",
-      cancelText: "Cancel",
+      okText: 'Resolve Tickets',
+      okType: 'primary',
+      cancelText: 'Cancel',
       onOk: async () => {
         try {
           await bulkResolve.mutateAsync({ sprintId, actions });
@@ -198,273 +202,264 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
           message.success(`${actions.length} ticket(s) resolved successfully`);
           onActionComplete();
         } catch (error: any) {
-          message.error(error.message || "Failed to resolve tickets");
+          message.error(error.message || 'Failed to resolve tickets');
         }
       },
     });
   };
 
-  // Table columns
   const columns: ColumnsType<any> = [
     {
-      title: "Ticket",
-      dataIndex: "ticketNumber",
-      key: "ticketNumber",
+      title: 'Ticket',
+      dataIndex: 'ticketNumber',
+      key: 'ticketNumber',
       width: 120,
-      fixed: "left",
-      render: (text) => <Tag color="blue">{text}</Tag>,
+      fixed: 'left',
+      render: (text) => <span className="sc-chip sc-chip-ticket">{text}</span>,
     },
     {
-      title: "Title",
-      dataIndex: "title",
-      key: "title",
+      title: 'Title',
+      dataIndex: 'title',
+      key: 'title',
       ellipsis: true,
-      width: 250,
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 120,
-      render: (status) => (
-        <Tag color={status === 'completed' ? 'success' : status === 'in_progress' ? 'processing' : 'default'}>
-          {status.replace('_', ' ')}
-        </Tag>
+      width: 280,
+      render: (title) => (
+        <Tooltip title={title}>
+          <span style={{ fontWeight: 600, color: 'var(--sc-text)' }}>{title}</span>
+        </Tooltip>
       ),
     },
     {
-      title: "Priority",
-      dataIndex: "priority",
-      key: "priority",
-      width: 100,
-      render: (priority) => (
-        <Tag color={priority === 'HIGH' ? 'red' : priority === 'MEDIUM' ? 'orange' : 'default'}>
-          {priority}
-        </Tag>
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      width: 130,
+      render: (status: string) => (
+        <span className={`sc-chip ${STATUS_CHIP_CLASS(status)}`}>{(status || '').replace('_', ' ')}</span>
       ),
     },
     {
-      title: "Points",
-      dataIndex: "storyPoint",
-      key: "storyPoint",
-      width: 80,
-      align: "center",
-      render: (points) => (
-        <Badge count={points} showZero style={{ backgroundColor: '#1890ff' }} />
+      title: 'Priority',
+      dataIndex: 'priority',
+      key: 'priority',
+      width: 110,
+      render: (priority: string) => (
+        <span className={`sc-chip ${PRIORITY_CHIP[priority] || 'sc-chip-status-default'}`}>{priority || '—'}</span>
       ),
     },
     {
-      title: "Assignee",
-      dataIndex: ["assignee", "name"],
-      key: "assignee",
-      width: 150,
+      title: 'Points',
+      dataIndex: 'storyPoint',
+      key: 'storyPoint',
+      width: 90,
+      align: 'center',
+      render: (points) => <span className="sc-points-pill">{points ?? 0}</span>,
+    },
+    {
+      title: 'Assignee',
+      dataIndex: ['assignee', 'name'],
+      key: 'assignee',
+      width: 160,
       ellipsis: true,
-      render: (name) => name || <Text type="secondary">Unassigned</Text>,
+      render: (name) =>
+        name ? <Text style={{ color: 'var(--sc-text)' }}>{name}</Text> : <Text type="secondary">Unassigned</Text>,
     },
   ];
 
   const pendingTickets = summary?.tickets?.pending || [];
   const hasPendingTickets = pendingTickets.length > 0;
+  const hasSelection = selectedRowKeys.length > 0;
 
   return (
-    <div style={{ padding: '8px 20px 16px 20px', height: "calc(85vh - 220px)", overflow: "auto", background: 'var(--bg-pure-white)' }}>
+    <div className="sc-tab">
       {!hasPendingTickets ? (
-        <div style={{ padding: '100px 0', textAlign: 'center' }}>
+        <div
+          style={{
+            padding: '60px 0',
+            textAlign: 'center',
+            background: 'var(--sc-surface)',
+            border: '1px solid var(--sc-border)',
+            borderRadius: 16,
+            boxShadow: 'var(--sc-shadow-sm)',
+          }}
+        >
           <Empty
-            description={<Text type="secondary" style={{ fontSize: 16 }}>All tickets have been resolved!</Text>}
             image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              <span style={{ fontSize: 14, color: 'var(--sc-text-muted)' }}>
+                All tickets have been resolved — you're ready to complete this sprint.
+              </span>
+            }
           />
         </div>
       ) : (
         <>
-          {/* Empty State Warning */}
           {(summary.availableDestinations.sprints.length === 0 ||
             summary.availableDestinations.buckets.length === 0) && (
             <Alert
-              message={<Text strong style={{ fontSize: 13, color: '#d48806' }}>Limited Resolution Options</Text>}
+              message={<strong style={{ fontSize: 13 }}>Limited resolution options</strong>}
               description={
-                <Space direction="vertical" size={0}>
+                <Space direction="vertical" size={2}>
                   {summary.availableDestinations.sprints.length === 0 && (
-                    <Text style={{ fontSize: 12 }}>• No upcoming sprints available. You can move tickets to Backlog or Trash.</Text>
-                  ) || null}
+                    <Text style={{ fontSize: 12 }}>
+                      • No upcoming sprints available. Move tickets to Backlog or Trash, or create a new sprint.
+                    </Text>
+                  )}
                   {summary.availableDestinations.buckets.length === 0 && (
-                    <Text style={{ fontSize: 12 }}>• No buckets found. Create a bucket in the Buckets page to organize tickets.</Text>
-                  ) || null}
+                    <Text style={{ fontSize: 12 }}>
+                      • No buckets configured. Create a bucket to organize tickets.
+                    </Text>
+                  )}
                 </Space>
               }
               type="warning"
               showIcon
-              style={{ marginBottom: 12, borderRadius: 10, padding: '6px 12px' }}
+              style={{ marginBottom: 12, borderRadius: 12, border: '1px solid rgba(245, 158, 11, 0.3)' }}
             />
           )}
 
-          {/* Bulk Action Toolbar */}
-          <Card 
-            bordered={false} 
-            style={{ 
-              marginBottom: 12, 
-              borderRadius: 16, 
-              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.04)',
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-color)'
-            }}
-            styles={{ body: { padding: '10px 16px' } }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: 'wrap', gap: 16 }}>
-              <Space direction="vertical" size={0}>
-                <Text strong style={{ fontSize: 15, color: 'var(--text-primary)' }}>Resolve Pending Tickets</Text>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Selected <strong>{selectedRowKeys.length}</strong> of {summary.tickets.pending.length} tickets
-                </Text>
-              </Space>
-
-              <Space size={12} wrap>
-                {selectedRowKeys.length > 0 && (
+          {/* Toolbar */}
+          <div className="sc-toolbar">
+            <div>
+              <div className="sc-toolbar-title">Resolve Pending Tickets</div>
+              <div className="sc-toolbar-sub">
+                {hasSelection ? (
                   <>
-                    <Tooltip title="Move to Backlog">
-                      <Button
-                        icon={<ArrowLeftOutlined />}
-                        onClick={() => handleBulkAction('move_to_backlog')}
-                        style={{ borderRadius: 8, height: 36 }}
-                      >
-                        Backlog
-                      </Button>
-                    </Tooltip>
-                    
-                    <Select
-                      placeholder="Move to Sprint"
-                      style={{ width: 180 }}
-                      onChange={(value) => {
-                        if (value === '__create_new__') {
-                          setShowSprintModal(true);
-                        } else {
-                          handleBulkAction('move_to_sprint', value);
-                        }
-                      }}
-                      suffixIcon={<RocketOutlined />}
-                      dropdownStyle={{ borderRadius: 8 }}
-                    >
-                      {summary.availableDestinations.sprints.map((sprint) => (
-                        <Option key={sprint.id} value={sprint.id}>
-                          {sprint.version}
-                        </Option>
-                      ))}
-                      <Option value="__create_new__" style={{ borderTop: '1px solid var(--border-color)', marginTop: 4, paddingTop: 8 }}>
-                        <PlusOutlined style={{ marginRight: 8 }} />
-                        Create New Sprint
-                      </Option>
-                    </Select>
-
-                    <Select
-                      placeholder="Move to Bucket"
-                      style={{ width: 180 }}
-                      onChange={(value) => {
-                        if (value === '__create_new__') {
-                          setShowBucketModal(true);
-                        } else {
-                          handleBulkAction('move_to_bucket', value);
-                        }
-                      }}
-                      suffixIcon={<FolderOutlined />}
-                      dropdownStyle={{ borderRadius: 8 }}
-                    >
-                      {summary.availableDestinations.buckets.map((bucket) => (
-                        <Option key={bucket.id} value={bucket.id}>
-                          {bucket.name}
-                        </Option>
-                      ))}
-                      <Option value="__create_new__" style={{ borderTop: '1px solid var(--border-color)', marginTop: 4, paddingTop: 8 }}>
-                        <PlusOutlined style={{ marginRight: 8 }} />
-                        Create New Bucket
-                      </Option>
-                    </Select>
-
-                    <Tooltip title="Move to Trash">
-                      <Button
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => handleBulkAction('move_to_trash')}
-                        style={{ borderRadius: 8, height: 36 }}
-                      />
-                    </Tooltip>
-
-                    {activeBulkAction && (
-                      <div style={{ display: 'flex', alignItems: 'center', marginLeft: 8, gap: 12 }}>
-                        <Divider type="vertical" style={{ height: 24, margin: '0 4px' }} />
-                        <Button
-                          type="primary"
-                          icon={<SendOutlined />}
-                          onClick={handleSubmit}
-                          loading={bulkResolve.isPending}
-                          style={{ 
-                            borderRadius: 8, 
-                            height: 36, 
-                            padding: '0 20px',
-                            background: 'linear-gradient(90deg, #1890ff, #096dd9)',
-                            border: 'none',
-                            boxShadow: '0 4px 10px rgba(24, 144, 255, 0.25)'
-                          }}
-                        >
-                          Resolve {selectedRowKeys.length}
-                        </Button>
-                      </div>
-                    )}
+                    Selected <b>{selectedRowKeys.length}</b> of {pendingTickets.length}
+                  </>
+                ) : (
+                  <>
+                    {pendingTickets.length} ticket{pendingTickets.length === 1 ? '' : 's'} need resolution
                   </>
                 )}
-                {selectedRowKeys.length === 0 && (
-                  <Text type="secondary" style={{ fontStyle: 'italic', fontSize: 13 }}>
-                    Select tickets from the table below to take action
-                  </Text>
-                )}
-              </Space>
+              </div>
             </div>
-          </Card>
 
-          {/* Active Bulk Action Banner */}
-          {activeBulkAction && selectedRowKeys.length > 0 && (
-            <div 
-              style={{ 
-                marginBottom: 20, 
-                padding: '12px 20px', 
-                background: 'var(--bg-blue-50)', 
-                border: '1px solid var(--border-blue-200)', 
-                borderRadius: 12,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                animation: 'fadeIn 0.3s ease-out'
-              }}
-            >
-              <Space>
-                <RocketOutlined style={{ color: '#1890ff', fontSize: 16 }} />
-                <Text strong>Pending Action:</Text>
-                <Tag color={SprintCompletionService.getActionColor(activeBulkAction.action)} style={{ borderRadius: 4, margin: 0, fontWeight: 500 }}>
+            <div className="sc-toolbar-actions">
+              {hasSelection ? (
+                <>
+                  <Tooltip title="Move to Backlog">
+                    <Button
+                      icon={<ArrowLeftOutlined />}
+                      onClick={() => handleBulkAction('move_to_backlog')}
+                      className="sc-action-btn"
+                    >
+                      Backlog
+                    </Button>
+                  </Tooltip>
+
+                  <Select
+                    placeholder="Move to Sprint"
+                    style={{ width: 180 }}
+                    value={undefined}
+                    onChange={(value) => {
+                      if (value === '__create_new__') setShowSprintModal(true);
+                      else handleBulkAction('move_to_sprint', value);
+                    }}
+                    suffixIcon={<RocketOutlined />}
+                    options={[
+                      ...summary.availableDestinations.sprints.map((s) => ({
+                        label: s.version || s.name,
+                        value: s.id,
+                      })),
+                      {
+                        label: (
+                          <span style={{ color: 'var(--sc-brand)', fontWeight: 600 }}>
+                            <PlusOutlined style={{ marginRight: 6 }} />
+                            Create new sprint
+                          </span>
+                        ) as any,
+                        value: '__create_new__',
+                      },
+                    ]}
+                  />
+
+                  <Select
+                    placeholder="Move to Bucket"
+                    style={{ width: 180 }}
+                    value={undefined}
+                    onChange={(value) => {
+                      if (value === '__create_new__') setShowBucketModal(true);
+                      else handleBulkAction('move_to_bucket', value);
+                    }}
+                    suffixIcon={<FolderOutlined />}
+                    options={[
+                      ...summary.availableDestinations.buckets.map((b) => ({
+                        label: b.name,
+                        value: b.id,
+                      })),
+                      {
+                        label: (
+                          <span style={{ color: 'var(--sc-brand)', fontWeight: 600 }}>
+                            <PlusOutlined style={{ marginRight: 6 }} />
+                            Create new bucket
+                          </span>
+                        ) as any,
+                        value: '__create_new__',
+                      },
+                    ]}
+                  />
+
+                  <Tooltip title="Move to Trash">
+                    <Button
+                      icon={<DeleteOutlined />}
+                      onClick={() => handleBulkAction('move_to_trash')}
+                      className="sc-action-btn sc-action-btn-danger"
+                    />
+                  </Tooltip>
+
+                  {activeBulkAction && (
+                    <Button
+                      type="primary"
+                      icon={<SendOutlined />}
+                      onClick={handleSubmit}
+                      loading={bulkResolve.isPending}
+                      className="sc-resolve-btn"
+                    >
+                      Resolve {selectedRowKeys.length}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <span className="sc-toolbar-empty">Select tickets below to take action</span>
+              )}
+            </div>
+          </div>
+
+          {/* Active action banner */}
+          {activeBulkAction && hasSelection && (
+            <div className="sc-action-banner">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, color: 'var(--sc-text)' }}>
+                <RocketOutlined style={{ color: 'var(--sc-brand)', fontSize: 14 }} />
+                <span style={{ fontWeight: 700, fontSize: 13 }}>Pending action:</span>
+                <span className="sc-action-banner-tag">
                   {SprintCompletionService.getActionLabel(activeBulkAction.action)}
                   {activeBulkAction.destinationName && ` → ${activeBulkAction.destinationName}`}
-                </Tag>
-                <Text>for {selectedRowKeys.length} ticket(s)</Text>
-              </Space>
-              <Button 
-                type="text" 
-                size="small" 
-                onClick={() => setActiveBulkAction(null)}
-                style={{ color: '#1890ff' }}
-              >
-                Cancel Action
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--sc-text-muted)' }}>
+                  for {selectedRowKeys.length} ticket(s)
+                </span>
+              </span>
+              <Button type="text" size="small" onClick={() => setActiveBulkAction(null)} style={{ color: 'var(--sc-brand)' }}>
+                Cancel action
               </Button>
             </div>
           )}
 
-          {/* Tickets Table */}
-          <div style={{ background: 'var(--bg-pure-white)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)', border: '1px solid var(--border-color)' }}>
+          {/* Table */}
+          <div className="sc-table-shell">
             <Table
               columns={columns}
-              dataSource={summary.tickets.pending}
+              dataSource={pendingTickets}
               rowKey="id"
               pagination={{
                 pageSize: 10,
                 showSizeChanger: true,
-                showTotal: (total) => `Total ${total} pending tickets`,
+                showTotal: (total) => (
+                  <Text style={{ fontSize: 12, color: 'var(--sc-text-muted)' }}>
+                    Total <b style={{ color: 'var(--sc-text)' }}>{total}</b> pending
+                  </Text>
+                ),
               }}
               rowSelection={{
                 selectedRowKeys,
@@ -472,11 +467,9 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
               }}
               scroll={{ x: 1000 }}
               size="middle"
-              className="custom-premium-table"
             />
           </div>
 
-          {/* Sprint Creation Modal */}
           <Modal
             title="Create New Sprint"
             open={showSprintModal}
@@ -492,7 +485,6 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
             />
           </Modal>
 
-          {/* Bucket Creation Modal */}
           <Modal
             title="Create New Bucket"
             open={showBucketModal}

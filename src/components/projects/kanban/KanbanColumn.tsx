@@ -1,15 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Ticket } from '@/services/ticketService';
 import { KanbanCard } from './KanbanCard';
-import { Typography, Badge } from 'antd';
+import { InboxOutlined } from '@ant-design/icons';
 import { getStatusColor } from '@/utils/ticketUtils';
 
-const { Text } = Typography;
-
 interface KanbanColumnProps {
-  id: string; 
+  id: string;
   title: string;
   tickets: Ticket[];
   projects: Array<{ value: string; label: string; code: string }>;
@@ -18,106 +16,88 @@ interface KanbanColumnProps {
   activeSprint?: any;
   kanbanScope?: 'active' | 'backlog';
   onSprintAssignment?: (ticketId: string, action: 'add' | 'remove') => void;
+  onTicketClick?: (ticketId: string) => void;
 }
 
-export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, tickets, projects, members, onTicketUpdate, activeSprint, kanbanScope, onSprintAssignment }) => {
-  const { setNodeRef } = useDroppable({
-    id: id,
-  });
+const STATUS_ACCENT: Record<string, string> = {
+  not_started: 'var(--kb-st-not-started)',
+  in_progress: 'var(--kb-st-in-progress)',
+  dev_complete: 'var(--kb-st-dev-complete)',
+  dev_testing: 'var(--kb-st-dev-testing)',
+  in_review: 'var(--kb-st-in-review)',
+  live: 'var(--kb-st-live)',
+  live_testing: 'var(--kb-st-live-testing)',
+  completed: 'var(--kb-st-completed)',
+  pause: 'var(--kb-st-pause)',
+};
 
-  const getStatusBadgeColor = (statusId: string) => {
-       const color = getStatusColor(statusId);
-       if (color === 'success') return '#10b981';
-       if (color === 'processing') return 'var(--premium-blue)';
-       if (color === 'warning') return '#f59e0b';
-       if (color === 'purple') return '#8b5cf6';
-       if (color === 'cyan') return '#06b6d4';
-       if (color === 'geekblue') return '#4f46e5';
-       if (color === 'orange') return '#f59e0b';
-       return 'var(--text-slate-400)';
-  };
+const getAccent = (statusId: string) => {
+  if (STATUS_ACCENT[statusId]) return STATUS_ACCENT[statusId];
+  // Fallback by ant color
+  const c = getStatusColor(statusId);
+  if (c === 'success') return 'var(--kb-st-completed)';
+  if (c === 'processing') return 'var(--kb-st-in-progress)';
+  if (c === 'warning') return 'var(--kb-st-dev-testing)';
+  if (c === 'purple') return 'var(--kb-st-in-review)';
+  if (c === 'cyan') return 'var(--kb-st-dev-complete)';
+  if (c === 'geekblue') return 'var(--kb-st-live-testing)';
+  if (c === 'orange') return 'var(--kb-st-pause)';
+  if (c === 'blue') return 'var(--kb-st-live)';
+  return 'var(--kb-st-not-started)';
+};
+
+export const KanbanColumn: React.FC<KanbanColumnProps> = ({
+  id,
+  title,
+  tickets,
+  projects,
+  members,
+  onTicketUpdate,
+  activeSprint,
+  kanbanScope,
+  onSprintAssignment,
+  onTicketClick,
+}) => {
+  const { setNodeRef, isOver } = useDroppable({ id });
+
+  const accent = getAccent(id);
 
   return (
-    <div style={{ 
-        flex: 1, 
-        minWidth: 300, 
-        backgroundColor: 'var(--bg-secondary)', 
-        borderRadius: 12, 
-        padding: '16px 12px',
-        display: 'flex',
-        flexDirection: 'column',
-        maxHeight: '100%',
-        minHeight: '100%',
-        border: '1px solid var(--border-color)'
-    }}>
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        marginBottom: 16,
-        padding: '0 4px' 
-      }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ 
-              width: 10, 
-              height: 10, 
-              borderRadius: '50%', 
-              backgroundColor: getStatusBadgeColor(id),
-              boxShadow: `0 0 0 2px ${getStatusColor(id) === 'processing' ? 'rgba(59, 130, 246, 0.2)' : 'transparent'}`
-            }} />
-            <Text strong style={{ 
-              textTransform: 'uppercase', 
-              fontSize: 11, 
-              letterSpacing: '0.5px',
-              color: 'var(--text-primary)' 
-            }}>
-              {title}
-            </Text>
-            <Badge 
-              count={tickets.length} 
-              showZero 
-              style={{ 
-                backgroundColor: 'var(--bg-pure-white)', 
-                color: 'var(--text-secondary)',
-                border: '1px solid var(--border-color)',
-                fontSize: 10,
-                fontWeight: 600,
-                boxShadow: 'none'
-              }} 
-            />
-          </div>
+    <div
+      className={`kb-column ${isOver ? 'kb-col-over' : ''}`}
+      style={{ ['--kb-st-accent' as any]: accent }}
+    >
+      <div className="kb-column-header">
+        <div className="kb-col-title">
+          <span className="kb-col-dot" />
+          <span>{title}</span>
+        </div>
+        <span className="kb-col-count">{tickets.length}</span>
       </div>
 
-      <div 
-        ref={setNodeRef} 
-        style={{ 
-          flex: 1, 
-          overflowY: 'auto', 
-          minHeight: 150,
-          paddingRight: 4,
-          scrollbarWidth: 'thin',
-        }}
-        className="custom-scrollbar"
-      >
-        <SortableContext 
-            id={id} 
-            items={tickets.map(t => t.id)} 
-            strategy={verticalListSortingStrategy}
-        >
-          <div style={{ padding: '2px' }}>
-            {tickets.map((ticket) => (
-              <KanbanCard 
-                  key={ticket.id} 
-                  ticket={ticket}
-                  projects={projects}
-                  members={members}
-                  onUpdate={onTicketUpdate}
-                  activeSprint={activeSprint}
-                  kanbanScope={kanbanScope}
-                  onSprintAssignment={onSprintAssignment}
+      <div ref={setNodeRef} className="kb-col-body custom-scrollbar">
+        <SortableContext id={id} items={tickets.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+          {tickets.length === 0 ? (
+            <div className="kb-col-empty">
+              <InboxOutlined style={{ fontSize: 22, opacity: 0.6 }} />
+              <span>No tickets in {title.toLowerCase()}</span>
+              <span style={{ fontSize: 10, opacity: 0.7 }}>Drop a card here</span>
+            </div>
+          ) : (
+            tickets.map((ticket) => (
+              <KanbanCard
+                key={ticket.id}
+                ticket={ticket}
+                projects={projects}
+                members={members}
+                onUpdate={onTicketUpdate}
+                activeSprint={activeSprint}
+                kanbanScope={kanbanScope}
+                onSprintAssignment={onSprintAssignment}
+                onClick={onTicketClick ? () => onTicketClick(ticket.id) : undefined}
               />
-            ))}
-          </div>
+            ))
+          )}
         </SortableContext>
       </div>
     </div>

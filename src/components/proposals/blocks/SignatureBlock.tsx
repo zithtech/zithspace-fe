@@ -10,6 +10,7 @@ import {
 import TiptapEditor from '@/components/common/TiptapEditor';
 import TiptapViewer from '@/components/common/TiptapViewer';
 import { AIEnhanceButton } from '../AIEnhanceButton';
+import { BlockGhostHint, BlockGhostLine } from './BlockGhost';
 
 const { Title, Text } = Typography;
 
@@ -18,48 +19,49 @@ interface SignatureBlockProps {
 }
 
 export const SignatureBlock: React.FC<SignatureBlockProps> = ({ data }) => {
+  const isEmpty = !data.title && !data.ipClause && !data.revisionClause && !data.terminationClause && !data.ndaClause && !data.companyName && !data.clientName;
+
+  const clauses: { key: string; title: string; value: string }[] = [
+    { key: 'ipClause', title: 'Intellectual Property (IP)', value: data.ipClause },
+    { key: 'revisionClause', title: 'Revision Policy', value: data.revisionClause },
+    { key: 'terminationClause', title: 'Termination Clause', value: data.terminationClause },
+    { key: 'ndaClause', title: 'Confidentiality Agreement', value: data.ndaClause },
+  ];
+
   return (
     <div style={{ padding: '40px', pageBreakInside: 'avoid' }}>
-      {data.title && (
-        <Title level={2} style={{ marginBottom: '40px', color: 'var(--text-primary)' }}>
-          {data.title}
-        </Title>
-      )}
+      {isEmpty && <BlockGhostHint />}
 
-      {/* Legal Clauses */}
+      <Title
+        level={2}
+        style={{
+          marginBottom: '40px',
+          color: data.title ? 'var(--text-primary)' : 'var(--text-slate-400)',
+          fontStyle: data.title ? 'normal' : 'italic',
+        }}
+      >
+        {data.title || 'Terms & Conditions'}
+      </Title>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px', marginBottom: '48px', color: 'var(--text-secondary)' }}>
-        {data.ipClause && (
-          <div>
-            <Text strong style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '12px', fontSize: '1rem' }}>Intellectual Property (IP)</Text>
-            <div style={{ lineHeight: 1.6, fontSize: '0.95rem' }}>
-              <TiptapViewer content={data.ipClause} />
-            </div>
+        {clauses.map((c) => (
+          <div key={c.key}>
+            <Text strong style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '12px', fontSize: '1rem' }}>
+              {c.title}
+            </Text>
+            {c.value ? (
+              <div style={{ lineHeight: 1.6, fontSize: '0.95rem' }}>
+                <TiptapViewer content={c.value} />
+              </div>
+            ) : (
+              <div>
+                <BlockGhostLine width="92%" />
+                <BlockGhostLine width="84%" />
+                <BlockGhostLine width="60%" />
+              </div>
+            )}
           </div>
-        )}
-        {data.revisionClause && (
-          <div>
-            <Text strong style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '12px', fontSize: '1rem' }}>Revision Policy</Text>
-            <div style={{ lineHeight: 1.6, fontSize: '0.95rem' }}>
-              <TiptapViewer content={data.revisionClause} />
-            </div>
-          </div>
-        )}
-        {data.terminationClause && (
-          <div>
-            <Text strong style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '12px', fontSize: '1rem' }}>Termination Clause</Text>
-            <div style={{ lineHeight: 1.6, fontSize: '0.95rem' }}>
-              <TiptapViewer content={data.terminationClause} />
-            </div>
-          </div>
-        )}
-        {data.ndaClause && (
-          <div>
-            <Text strong style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '12px', fontSize: '1rem' }}>Confidentiality Agreement</Text>
-            <div style={{ lineHeight: 1.6, fontSize: '0.95rem' }}>
-              <TiptapViewer content={data.ndaClause} />
-            </div>
-          </div>
-        )}
+        ))}
       </div>
 
       <Divider style={{ borderColor: 'var(--border-color)', marginBottom: '48px' }} />
@@ -67,18 +69,26 @@ export const SignatureBlock: React.FC<SignatureBlockProps> = ({ data }) => {
       <Row gutter={[64, 48]}>
         <Col xs={24} md={12}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <Text strong style={{ fontSize: '1.1rem' }}>For: {data.companyName}</Text>
+            <Text strong style={{ fontSize: '1.1rem', color: data.companyName ? 'var(--text-primary)' : 'var(--text-slate-400)', fontStyle: data.companyName ? 'normal' : 'italic' }}>
+              For: {data.companyName || 'Your Company'}
+            </Text>
             <div style={{ height: '80px', borderBottom: '2px solid var(--border-color)', marginTop: '20px' }}></div>
-            <Text style={{ marginTop: '8px', color: 'var(--text-secondary)' }}>{data.companySigner}</Text>
+            <Text style={{ marginTop: '8px', color: 'var(--text-secondary)', fontStyle: data.companySigner ? 'normal' : 'italic' }}>
+              {data.companySigner || 'Authorized Signer'}
+            </Text>
             <Text style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Date</Text>
           </div>
         </Col>
 
         <Col xs={24} md={12}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <Text strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>For: {data.clientName}</Text>
+            <Text strong style={{ fontSize: '1.1rem', color: data.clientName ? 'var(--text-primary)' : 'var(--text-slate-400)', fontStyle: data.clientName ? 'normal' : 'italic' }}>
+              For: {data.clientName || 'Client Name'}
+            </Text>
             <div style={{ height: '80px', borderBottom: '2px solid var(--border-color)', marginTop: '20px' }}></div>
-            <Text style={{ marginTop: '8px', color: 'var(--text-secondary)' }}>{data.clientSigner}</Text>
+            <Text style={{ marginTop: '8px', color: 'var(--text-secondary)', fontStyle: data.clientSigner ? 'normal' : 'italic' }}>
+              {data.clientSigner || 'Authorized Signer'}
+            </Text>
             <Text style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Date</Text>
           </div>
         </Col>

@@ -1,10 +1,14 @@
-
-
 "use client";
 
 import React, { Suspense, useState, useEffect } from "react";
-import { Layout, Typography, Button, App as AntApp, Tag } from "antd";
-import { CalendarOutlined, GoogleOutlined, WindowsOutlined } from "@ant-design/icons";
+import { Layout, Typography, Button, App as AntApp, Spin } from "antd";
+import {
+    CalendarOutlined,
+    GoogleOutlined,
+    WindowsOutlined,
+    LoadingOutlined,
+    ArrowRightOutlined,
+} from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 import MainLayout from "@/components/layout/MainLayout";
@@ -51,12 +55,11 @@ function CalendarPageContent() {
         'Project Milestones'
     ]);
 
-    // NEW: State for connected provider
     const [connectedProvider, setConnectedProvider] = useState<CalendarProvider | null>(null);
+    const [providerLoading, setProviderLoading] = useState(true);
 
     const { message } = AntApp.useApp();
 
-    // Handle messages
     useEffect(() => {
         if (successMessage) {
             message.success(successMessage);
@@ -68,14 +71,12 @@ function CalendarPageContent() {
         }
     }, [successMessage, error, clearMessages, message]);
 
-    // Fetch events when date changes
     useEffect(() => {
         const start = currentDate.startOf('month').toISOString();
         const end = currentDate.endOf('month').toISOString();
         fetchEvents({ startDate: start, endDate: end });
     }, [currentDate, fetchEvents]);
 
-    // NEW: Fetch connected provider
     useEffect(() => {
         const fetchConnectedProvider = async () => {
             const providers: CalendarProvider[] = ['GOOGLE', 'ZOHO', 'MICROSOFT'];
@@ -90,38 +91,22 @@ function CalendarPageContent() {
                     console.error(`Failed to get ${provider} status:`, error);
                 }
             }
+            setProviderLoading(false);
         };
 
         fetchConnectedProvider();
     }, []);
 
-    // NEW: Get provider info for UI
     const getProviderInfo = (provider: CalendarProvider | null) => {
         switch (provider) {
             case 'GOOGLE':
-                return {
-                    name: 'Google Calendar',
-                    icon: <GoogleOutlined />,
-                    color: '#62bc77'
-                };
+                return { name: 'Google Calendar', icon: <GoogleOutlined />, color: '#EA4335' };
             case 'ZOHO':
-                return {
-                    name: 'Zoho Calendar',
-                    icon: <CalendarOutlined />,
-                    color: '#62bc77'
-                };
+                return { name: 'Zoho Calendar', icon: <CalendarOutlined />, color: '#E42527' };
             case 'MICROSOFT':
-                return {
-                    name: 'Microsoft Outlook',
-                    icon: <WindowsOutlined />,
-                    color: '#62bc77'
-                };
+                return { name: 'Microsoft Outlook', icon: <WindowsOutlined />, color: '#0078D4' };
             default:
-                return {
-                    name: 'No Calendar Connected',
-                    icon: <CalendarOutlined />,
-                    color: '#999'
-                };
+                return { name: 'Not connected', icon: <CalendarOutlined />, color: 'var(--cal-text-faint)' };
         }
     };
 
@@ -173,32 +158,15 @@ function CalendarPageContent() {
         }
     };
 
-    // const handleSaveEvent = async (data: any) => {
-    //     if (selectedEvent) {
-    //         await updateEvent(selectedEvent.id, data);
-    //     } else {
-    //         // NEW: Automatically add the connected provider to new events
-    //         await createEvent({ ...data, provider: connectedProvider });
-    //     }
-    //     setShowModal(false);
-    // };
-
-
     const handleSaveEvent = async (data: any) => {
-        console.log("🟢 CalendarPage received:", data);
-        console.log("🟢 GenerateMeeting received:", data.generateMeeting);
-
         try {
             if (selectedEvent) {
-                console.log("🟢 Updating existing event");
                 await updateEvent(selectedEvent.id, data);
             } else {
                 if (!connectedProvider) {
                     message.error("No calendar connected. Please connect a calendar first.");
                     return;
                 }
-
-                console.log("🟢 Connected provider:", connectedProvider);
 
                 const eventToCreate = {
                     title: data.title,
@@ -216,9 +184,6 @@ function CalendarPageContent() {
                     provider: connectedProvider
                 };
 
-                console.log("🟢 Event to create:", eventToCreate);
-                console.log("🟢 GenerateMeeting in create:", eventToCreate.generateMeeting);
-
                 await createEvent(eventToCreate);
             }
             setShowFormDrawer(false);
@@ -226,7 +191,6 @@ function CalendarPageContent() {
             console.error("Error saving event:", error);
         }
     };
-
 
     const handleDeleteEvent = async (action?: number, occurrenceDate?: string) => {
         if (selectedEvent) {
@@ -247,7 +211,6 @@ function CalendarPageContent() {
         return `${start.format('MMM D')} – ${end.format('MMM D, YYYY')}`;
     };
 
-    // NEW: Filter events to ONLY show the connected provider's events
     const filteredEvents = connectedProvider
         ? events.filter(e => e.provider === connectedProvider)
         : [];
@@ -255,23 +218,39 @@ function CalendarPageContent() {
     const providerInfo = getProviderInfo(connectedProvider);
 
     return (
-        <MainLayout noPadding={true}>
-            <div style={{ 
-                height: 'calc(100vh - 64px)', 
-                display: 'flex', 
-                flexDirection: 'column',
-                overflow: 'hidden'
-            }}>
-                <CalendarToolbar
-                    view={view}
-                    onViewChange={setView}
-                    onNavigate={handleNavigate}
-                    currentDateRange={formatRange()}
-                    provider={connectedProvider}
-                    providerInfo={providerInfo}
-                    onSync={() => syncAll(connectedProvider!)}
-                    syncing={syncing}
-                    onCreateEvent={() => {
+        <MainLayout>
+            <Layout
+                className="cal-scope"
+                style={{ height: 'calc(100vh - 64px)', background: 'var(--cal-canvas)' }}
+            >
+                <Sider
+                    width={288}
+                    theme="light"
+                    style={{
+                        background: 'var(--cal-surface)',
+                        borderRight: '1px solid var(--cal-border)',
+                        overflow: 'auto',
+                    }}
+                >
+                    <CalendarSidebar
+                        selectedDate={currentDate}
+                        onDateSelect={setCurrentDate}
+                        selectedCalendars={selectedCalendars}
+                        onCalendarChange={setSelectedCalendars}
+                        provider={connectedProvider}
+                        onSync={() => syncAll(connectedProvider!)}
+                        syncing={syncing}
+                        eventsForMonth={filteredEvents}
+                    />
+                </Sider>
+
+                <Layout style={{ background: 'var(--cal-canvas)' }}>
+                    <CalendarToolbar
+                        view={view}
+                        onViewChange={setView}
+                        onNavigate={handleNavigate}
+                        currentDateRange={formatRange()}
+                        onCreateEvent={() => {
                         if (!connectedProvider) {
                             message.warning('Please connect a calendar first');
                             return;
@@ -280,163 +259,85 @@ function CalendarPageContent() {
                         setInitialDateForModal(currentDate);
                         setShowFormDrawer(true);
                     }}
-                />
+                        provider={connectedProvider}
+                        providerName={providerInfo.name}
+                        providerIcon={providerInfo.icon}
+                        providerColor={providerInfo.color}
+                        eventCount={filteredEvents.length}
+                    />
+                    
 
-                <div style={{ 
-                    flex: 1, 
-                    display: 'flex', 
-                    overflow: 'hidden', 
-                    padding: '16px', 
-                    gap: '16px',
-                    minHeight: 0
-                }}>
-                    <Sider 
-                        width={240} 
-                        theme="light" 
-                        className="no-scrollbar"
-                        style={{ 
-                            background: 'transparent',
-                            height: '100%',
-                            border: 'none',
-                            boxShadow: 'none',
-                            overflowY: 'auto',
-                            flexShrink: 0
-                        }}
-                    >
-                        <CalendarSidebar
-                            selectedDate={currentDate}
-                            onDateSelect={setCurrentDate}
-                            selectedCalendars={selectedCalendars}
-                            onCalendarChange={setSelectedCalendars}
-                            provider={connectedProvider}
-                        />
-                    </Sider>
 
-                    <div style={{ 
-                        flex: 1,
-                        position: 'relative', 
-                        overflow: 'hidden', 
-                        display: 'flex', 
-                        flexDirection: 'column',
-                        background: '#fff',
-                        borderRadius: '16px',
-                        border: '1px solid #f1f5f9',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-                        minHeight: 0
-                    }}>
-                        {!connectedProvider ? (
-                            <div style={{
-                                flex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: 80,
-                                background: '#fff',
-                            }}>
+                    <Content style={{ position: 'relative', overflow: 'hidden', padding: '16px 24px 24px' }}>
+                        <div
+                            style={{
+                                height: '100%',
+                                background: 'var(--cal-surface)',
+                                borderRadius: 16,
+                                border: '1px solid var(--cal-border)',
+                                boxShadow: 'var(--cal-card-shadow)',
+                                overflow: 'hidden',
+                                position: 'relative',
+                            }}
+                        >
+                            {providerLoading ? (
                                 <div style={{
-                                    width: 80,
-                                    height: 80,
-                                    borderRadius: '24px',
-                                    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                                    height: '100%',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    marginBottom: 24,
-                                    border: '1px solid #e2e8f0',
-                                    boxShadow: '0 8px 16px rgba(0,0,0,0.04)'
                                 }}>
-                                    <CalendarOutlined style={{ fontSize: 36, color: '#3b82f6' }} />
+                                    <Spin indicator={<LoadingOutlined style={{ fontSize: 28, color: 'var(--cal-brand)' }} spin />} />
                                 </div>
-                                <Title level={3} style={{ 
-                                    marginTop: 0, 
-                                    marginBottom: 12, 
-                                    fontWeight: 700,
-                                    color: '#1e293b',
-                                    letterSpacing: '-0.02em'
-                                }}>
-                                    Connect Your Calendar
-                                </Title>
-                                <Text style={{ 
-                                    fontSize: 16, 
-                                    maxWidth: 420, 
-                                    textAlign: 'center', 
-                                    marginBottom: 32,
-                                    color: '#64748b',
-                                    lineHeight: 1.6
-                                }}>
-                                    Sync your Google, Zoho, or Outlook calendar to manage all your meetings and schedules in one premium interface.
-                                </Text>
-                                <Button 
-                                    type="primary" 
-                                    size="large" 
-                                    href="/integrations"
-                                    style={{ 
-                                        height: 52, 
-                                        padding: '0 40px', 
-                                        borderRadius: '14px',
-                                        fontSize: 16,
-                                        fontWeight: 700,
-                                        background: '#3b82f6',
-                                        border: 'none',
-                                        boxShadow: '0 10px 20px rgba(59, 130, 246, 0.25)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '12px'
-                                    }}
-                                >
-                                    Go to Integrations
-                                </Button>
-                            </div>
-                        ) : (
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                {view === 'month' && (
-                                    <MonthView
-                                        currentDate={currentDate}
-                                        events={filteredEvents.filter(e => selectedCalendars.includes(e.calendar || 'Personal Calendar'))}
-                                        onDayClick={handleDayClick}
-                                        onEventClick={handleEventClick}
-                                    />
-                                )}
-                                {view === 'week' && (
-                                    <WeekView
-                                        currentDate={currentDate}
-                                        events={filteredEvents.filter(e => selectedCalendars.includes(e.calendar || 'Personal Calendar'))}
-                                        onEventClick={handleEventClick}
-                                        onTimeSlotClick={handleDayClick}
-                                    />
-                                )}
-                                {view === 'day' && (
-                                    <DayView
-                                        currentDate={currentDate}
-                                        events={filteredEvents.filter(e => selectedCalendars.includes(e.calendar || 'Personal Calendar'))}
-                                        onEventClick={handleEventClick}
-                                        onTimeSlotClick={handleDayClick}
-                                    />
-                                )}
-                            </div>
-                        )}
+                            ) : !connectedProvider ? (
+                                <EmptyState />
+                            ) : (
+                                <>
+                                    {view === 'month' && (
+                                        <MonthView
+                                            currentDate={currentDate}
+                                            events={filteredEvents.filter(e => selectedCalendars.includes(e.calendar || 'Personal Calendar'))}
+                                            onDayClick={handleDayClick}
+                                            onEventClick={handleEventClick}
+                                        />
+                                    )}
+                                    {view === 'week' && (
+                                        <WeekView
+                                            currentDate={currentDate}
+                                            events={filteredEvents.filter(e => selectedCalendars.includes(e.calendar || 'Personal Calendar'))}
+                                            onEventClick={handleEventClick}
+                                            onTimeSlotClick={handleDayClick}
+                                        />
+                                    )}
+                                    {view === 'day' && (
+                                        <DayView
+                                            currentDate={currentDate}
+                                            events={filteredEvents.filter(e => selectedCalendars.includes(e.calendar || 'Personal Calendar'))}
+                                            onEventClick={handleEventClick}
+                                            onTimeSlotClick={handleDayClick}
+                                        />
+                                    )}
+                                </>
+                            )}
 
-                        {loading && !syncing && (
-                            <div style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                background: 'rgba(255,255,255,0.7)',
-                                backdropFilter: 'blur(4px)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                zIndex: 50
-                            }}>
-                                <div className="ant-spin-spinning" style={{ fontSize: 32 }} />
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
+                            {loading && !syncing && connectedProvider && (
+                                <div style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    background: 'var(--cal-loader-overlay)',
+                                    backdropFilter: 'blur(2px)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    zIndex: 10,
+                                }}>
+                                    <Spin indicator={<LoadingOutlined style={{ fontSize: 28, color: 'var(--cal-brand)' }} spin />} />
+                                </div>
+                            )}
+                        </div>
+                    </Content>
+                </Layout>
+            </Layout>
 
             <EventFormDrawer
                 open={showFormDrawer}
@@ -461,9 +362,83 @@ function CalendarPageContent() {
     );
 }
 
+function EmptyState() {
+    return (
+        <div style={{
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 48,
+            textAlign: 'center',
+            background: 'var(--cal-empty-grad)',
+        }}>
+            <div style={{
+                width: 96,
+                height: 96,
+                borderRadius: 24,
+                background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 24,
+                boxShadow: '0 12px 32px -8px rgba(79, 70, 229, 0.45), inset 0 1px 0 rgba(255,255,255,0.25)',
+            }}>
+                <CalendarOutlined style={{ fontSize: 44, color: '#FFFFFF' }} />
+            </div>
+            <Title level={3} style={{ margin: 0, fontWeight: 600, color: 'var(--cal-text-strong)' }}>
+                Connect a calendar to get started
+            </Title>
+            <Text style={{ color: 'var(--cal-text-muted)', fontSize: 15, marginTop: 8, maxWidth: 460 }}>
+                Bring your Google, Outlook or Zoho events into one beautiful, unified workspace — and let your team see what's planned at a glance.
+            </Text>
+            <div style={{ marginTop: 28, display: 'flex', gap: 12 }}>
+                <Button
+                    type="primary"
+                    size="large"
+                    href="/integrations"
+                    style={{
+                        height: 44,
+                        padding: '0 22px',
+                        borderRadius: 10,
+                        background: 'var(--cal-brand)',
+                        borderColor: 'var(--cal-brand)',
+                        boxShadow: '0 4px 12px -2px rgba(79, 70, 229, 0.45)',
+                        fontWeight: 600,
+                    }}
+                >
+                    Connect calendar <ArrowRightOutlined />
+                </Button>
+                <Button
+                    size="large"
+                    href="/integrations"
+                    style={{
+                        height: 44,
+                        padding: '0 18px',
+                        borderRadius: 10,
+                        fontWeight: 500,
+                    }}
+                >
+                    Learn more
+                </Button>
+            </div>
+            <div style={{ marginTop: 40, display: 'flex', gap: 28, color: 'var(--cal-text-faint)', fontSize: 12, fontWeight: 500 }}>
+                <span><GoogleOutlined style={{ marginRight: 6, color: '#EA4335' }} /> Google</span>
+                <span><WindowsOutlined style={{ marginRight: 6, color: '#0078D4' }} /> Outlook</span>
+                <span><CalendarOutlined style={{ marginRight: 6, color: '#E42527' }} /> Zoho</span>
+            </div>
+        </div>
+    );
+}
+
 export default function CalendarPage() {
     return (
-        <Suspense fallback={<div style={{ padding: 24, textAlign: 'center' }}>Loading Calendar...</div>}>
+        <Suspense fallback={
+            <div style={{ padding: 48, textAlign: 'center' }}>
+                <Spin indicator={<LoadingOutlined style={{ fontSize: 28, color: 'var(--cal-brand)' }} spin />} />
+            </div>
+        }>
             <CalendarPageContent />
         </Suspense>
     );

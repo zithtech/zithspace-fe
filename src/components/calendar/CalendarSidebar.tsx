@@ -1,23 +1,31 @@
 "use client";
 
-import React from 'react';
-import { Calendar, Badge, Checkbox, Typography, Divider, Button, Spin, Tag, Space } from 'antd';
-import type { CalendarMode } from 'antd/es/calendar/generateCalendar';
+import React, { useMemo } from 'react';
+import { Calendar, Button, Tooltip } from 'antd';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-import { SyncOutlined, SettingOutlined } from '@ant-design/icons';
+import { SyncOutlined, SettingOutlined, LeftOutlined, RightOutlined, CheckOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
-
-const { Title, Text } = Typography;
+import { CalendarEvent } from '@/services/calendarService';
 
 interface CalendarSidebarProps {
     onDateSelect: (date: Dayjs) => void;
     selectedDate: Dayjs;
     selectedCalendars: string[];
     onCalendarChange: (calendars: string[]) => void;
-    // Provider-specific props
     provider?: string | null;
+    onSync: () => Promise<void>;
+    syncing: boolean;
+    eventsForMonth?: CalendarEvent[];
 }
+
+const CALENDARS: Array<{ id: string; name: string; color: string }> = [
+    { id: '1', name: 'Personal Calendar', color: '#6366F1' },
+    { id: '2', name: 'Team Calendar', color: '#A855F7' },
+    { id: '3', name: 'Company Holidays', color: '#F87171' },
+    { id: '4', name: 'Approved Leaves', color: '#34D399' },
+    { id: '5', name: 'Project Milestones', color: '#38BDF8' },
+];
 
 export default function CalendarSidebar({
     onDateSelect,
@@ -25,29 +33,65 @@ export default function CalendarSidebar({
     selectedCalendars,
     onCalendarChange,
     provider,
+    onSync,
+    syncing,
+    eventsForMonth = [],
 }: CalendarSidebarProps) {
     const router = useRouter();
-    const calendars = [
-        { id: '1', name: 'Personal Calendar', color: '#1677ff' },
-        { id: '2', name: 'Team Calendar', color: '#722ed1' },
-        { id: '3', name: 'Company Holidays', color: '#f5222d' },
-        { id: '4', name: 'Approved Leaves', color: '#52c41a' },
-        { id: '5', name: 'Project Milestones', color: '#1890ff' },
-    ];
 
-    const handleToggleCalendar = (name: string, checked: boolean) => {
-        if (checked) {
-            onCalendarChange([...selectedCalendars, name]);
-        } else {
+    const eventDays = useMemo(() => {
+        const set = new Set<string>();
+        eventsForMonth.forEach(e => {
+            set.add(dayjs(e.startTime).format('YYYY-MM-DD'));
+        });
+        return set;
+    }, [eventsForMonth]);
+
+    const eventCountByCalendar = useMemo(() => {
+        const counts: Record<string, number> = {};
+        eventsForMonth.forEach(e => {
+            const key = e.calendar || 'Personal Calendar';
+            counts[key] = (counts[key] || 0) + 1;
+        });
+        return counts;
+    }, [eventsForMonth]);
+
+    const handleToggleCalendar = (name: string) => {
+        if (selectedCalendars.includes(name)) {
             onCalendarChange(selectedCalendars.filter(c => c !== name));
+        } else {
+            onCalendarChange([...selectedCalendars, name]);
         }
     };
 
+    const providerLabel = provider
+        ? provider === 'MICROSOFT'
+            ? 'Outlook'
+            : provider.charAt(0) + provider.slice(1).toLowerCase()
+        : 'All';
+
     return (
-        <div className="no-scrollbar" style={{ padding: '16px 12px', background: 'transparent', height: '100%', display: 'flex', flexDirection: 'column', gap: '32px', overflowY: 'auto' }}>
-            <div className="mini-calendar" style={{
-                padding: '4px',
-            }}>
+        <div
+            style={{
+                padding: '20px 18px',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 20,
+                background: 'var(--cal-surface)',
+            }}
+        >
+            {/* Mini calendar */}
+            <div
+                className="mini-calendar"
+                style={{
+                    border: '1px solid var(--cal-border)',
+                    borderRadius: 14,
+                    padding: 12,
+                    background: 'var(--cal-surface)',
+                    boxShadow: 'var(--cal-card-shadow)',
+                }}
+            >
                 <Calendar
                     fullscreen={false}
                     value={selectedDate}
@@ -56,26 +100,38 @@ export default function CalendarSidebar({
                         const month = value.format('MMMM');
                         const year = value.format('YYYY');
                         return (
-                            <div style={{ padding: '0 8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Text strong style={{ fontSize: '15px', color: '#1e293b' }}>{month} {year}</Text>
-                                <Space size={4}>
-                                    <Button
-                                        shape="circle"
-                                        icon={<span style={{ fontSize: '10px' }}>&lt;</span>}
-                                        size="small"
-                                        onClick={() => onChange(value.clone().subtract(1, 'month'))}
-                                        style={{ border: 'none', background: 'transparent', color: '#64748b' }}
-                                        className="hover-bg"
-                                    />
-                                    <Button
-                                        shape="circle"
-                                        icon={<span style={{ fontSize: '10px' }}>&gt;</span>}
-                                        size="small"
-                                        onClick={() => onChange(value.clone().add(1, 'month'))}
-                                        style={{ border: 'none', background: 'transparent', color: '#64748b' }}
-                                        className="hover-bg"
-                                    />
-                                </Space>
+                            <div style={{ padding: '2px 0 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Button
+                                    shape="circle"
+                                    icon={<LeftOutlined style={{ fontSize: 11 }} />}
+                                    size="small"
+                                    onClick={() => onChange(value.clone().subtract(1, 'month'))}
+                                    style={{
+                                        border: 'none',
+                                        background: 'var(--cal-segmented-bg)',
+                                        color: 'var(--cal-text-muted)',
+                                        width: 26,
+                                        height: 26,
+                                        minWidth: 26,
+                                    }}
+                                />
+                                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--cal-text-strong)' }}>
+                                    {month} {year}
+                                </span>
+                                <Button
+                                    shape="circle"
+                                    icon={<RightOutlined style={{ fontSize: 11 }} />}
+                                    size="small"
+                                    onClick={() => onChange(value.clone().add(1, 'month'))}
+                                    style={{
+                                        border: 'none',
+                                        background: 'var(--cal-segmented-bg)',
+                                        color: 'var(--cal-text-muted)',
+                                        width: 26,
+                                        height: 26,
+                                        minWidth: 26,
+                                    }}
+                                />
                             </div>
                         );
                     }}
@@ -83,7 +139,18 @@ export default function CalendarSidebar({
                         const isCurrentMonth = date.month() === selectedDate.month();
                         const isToday = date.isSame(dayjs(), 'day');
                         const isSelected = date.isSame(selectedDate, 'day');
-                        
+                        const hasEvents = eventDays.has(date.format('YYYY-MM-DD'));
+
+                        let background = 'transparent';
+                        let color = isCurrentMonth ? 'var(--cal-text-secondary)' : 'var(--cal-text-disabled)';
+                        if (isSelected) {
+                            background = 'var(--cal-brand)';
+                            color = '#FFFFFF';
+                        } else if (isToday) {
+                            background = 'var(--cal-brand-soft)';
+                            color = 'var(--cal-brand)';
+                        }
+
                         return (
                             <div
                                 onClick={(e) => {
@@ -91,19 +158,19 @@ export default function CalendarSidebar({
                                     onDateSelect(date);
                                 }}
                                 style={{
-                                    margin: '0 auto',
-                                    width: '32px',
-                                    height: '32px',
-                                    lineHeight: '32px',
+                                    margin: '2px auto',
+                                    width: 28,
+                                    height: 28,
+                                    lineHeight: '28px',
                                     textAlign: 'center',
-                                    borderRadius: '8px',
+                                    borderRadius: 8,
                                     cursor: 'pointer',
-                                    background: isSelected ? '#3b82f6' : 'transparent',
-                                    color: isSelected ? '#fff' : (isToday ? '#3b82f6' : (isCurrentMonth ? '#475569' : '#cbd5e1')),
-                                    fontWeight: isSelected || isToday ? 600 : 400,
-                                    fontSize: '13px',
-                                    transition: 'all 0.2s',
-                                    position: 'relative'
+                                    background,
+                                    color,
+                                    fontSize: 12,
+                                    fontWeight: isSelected || isToday ? 600 : 500,
+                                    position: 'relative',
+                                    transition: 'background 0.15s ease',
                                 }}
                                 className={!isSelected ? "calendar-day-hover" : ""}
                             >
@@ -120,6 +187,21 @@ export default function CalendarSidebar({
                                         background: '#3b82f6'
                                     }} />
                                 )}
+                                {hasEvents && isCurrentMonth && (
+                                    <span
+                                        style={{
+                                            position: 'absolute',
+                                            bottom: 2,
+                                            left: '50%',
+                                            transform: 'translateX(-50%)',
+                                            width: 4,
+                                            height: 4,
+                                            borderRadius: '50%',
+                                            background: isSelected ? '#FFFFFF' : 'var(--cal-brand)',
+                                            opacity: isSelected ? 0.9 : 0.85,
+                                        }}
+                                    />
+                                )}
                             </div>
                         );
                     }}
@@ -127,59 +209,145 @@ export default function CalendarSidebar({
                 />
             </div>
 
-            <style jsx global>{`
-                .mini-calendar .ant-picker-calendar-header {
-                    padding: 0;
-                }
-                .mini-calendar .ant-picker-content th {
-                    color: #94a3b8;
-                    font-weight: 600;
-                    font-size: 11px;
-                    padding-bottom: 12px !important;
-                }
-                .hover-bg:hover {
-                    background: #f1f5f9 !important;
-                }
-                .calendar-day-hover:hover {
-                    background: #f8fafc;
-                    color: #1e293b;
-                }
-                .ant-checkbox-checked .ant-checkbox-inner {
-                    background-color: #3b82f6;
-                    border-color: #3b82f6;
-                }
-                .no-scrollbar::-webkit-scrollbar {
-                    display: none;
-                }
-                .no-scrollbar {
-                    -ms-overflow-style: none;
-                    scrollbar-width: none;
-                }
-            `}</style>
+            {/* Sync actions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <Button
+                    block
+                    icon={<SyncOutlined spin={syncing} />}
+                    onClick={() => onSync()}
+                    loading={syncing}
+                    disabled={!provider}
+                    style={{
+                        height: 38,
+                        borderRadius: 9,
+                        background: 'var(--cal-brand-soft)',
+                        borderColor: 'var(--cal-brand-soft-border)',
+                        color: 'var(--cal-brand)',
+                        fontWeight: 600,
+                    }}
+                >
+                    Sync {providerLabel}
+                </Button>
+                <Button
+                    block
+                    icon={<SettingOutlined />}
+                    onClick={() => router.push('/integrations')}
+                    style={{
+                        height: 38,
+                        borderRadius: 9,
+                        fontWeight: 500,
+                    }}
+                >
+                    Manage integrations
+                </Button>
+            </div>
 
+            {/* My calendars */}
             <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <Title level={5} style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
-                        My Calendars
-                    </Title>
-                    <SettingOutlined style={{ color: '#94a3b8', cursor: 'pointer' }} />
+                <div
+                    style={{
+                        fontSize: 11,
+                        color: 'var(--cal-text-faint)',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                        marginBottom: 12,
+                        paddingLeft: 4,
+                    }}
+                >
+                    My Calendars
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {calendars.map(cal => (
-                        <div key={cal.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px 0' }}>
-                            <Checkbox
-                                checked={selectedCalendars.includes(cal.name)}
-                                onChange={(e) => handleToggleCalendar(cal.name, e.target.checked)}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {CALENDARS.map((cal) => {
+                        const checked = selectedCalendars.includes(cal.name);
+                        const count = eventCountByCalendar[cal.name] || 0;
+                        return (
+                            <button
+                                key={cal.id}
+                                type="button"
+                                onClick={() => handleToggleCalendar(cal.name)}
+                                className="cal-list-item"
                                 style={{
-                                    '--antd-wave-shadow-color': cal.color,
-                                } as any}
-                            />
-                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: cal.color, flexShrink: 0 }} />
-                            <Text style={{ fontSize: '14px', color: '#334155', fontWeight: 500 }}>{cal.name}</Text>
-                        </div>
-                    ))}
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    padding: '8px 10px',
+                                    borderRadius: 9,
+                                    background: 'transparent',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    width: '100%',
+                                    textAlign: 'left',
+                                    transition: 'background 0.12s ease',
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--cal-surface-hover)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                            >
+                                <span
+                                    style={{
+                                        width: 16,
+                                        height: 16,
+                                        borderRadius: 5,
+                                        background: checked ? cal.color : 'transparent',
+                                        border: `1.5px solid ${checked ? cal.color : 'var(--cal-text-disabled)'}`,
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        flexShrink: 0,
+                                        transition: 'all 0.15s ease',
+                                    }}
+                                >
+                                    {checked && <CheckOutlined style={{ color: '#FFFFFF', fontSize: 9 }} />}
+                                </span>
+                                <span
+                                    style={{
+                                        fontSize: 13,
+                                        color: checked ? 'var(--cal-text-strong)' : 'var(--cal-text-muted)',
+                                        fontWeight: 500,
+                                        flex: 1,
+                                    }}
+                                >
+                                    {cal.name}
+                                </span>
+                                {count > 0 && (
+                                    <span
+                                        style={{
+                                            fontSize: 11,
+                                            color: 'var(--cal-text-muted)',
+                                            background: 'var(--cal-segmented-bg)',
+                                            padding: '1px 7px',
+                                            borderRadius: 999,
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        {count}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
+
+            {/* Subtle tip card */}
+            <Tooltip title="Drag any time slot to create an event quickly">
+                <div
+                    style={{
+                        marginTop: 'auto',
+                        padding: 14,
+                        borderRadius: 12,
+                        background: 'var(--cal-tip-grad)',
+                        border: '1px solid var(--cal-brand-soft-border)',
+                    }}
+                >
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--cal-text-strong)', marginBottom: 4 }}>
+                        Pro tip
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--cal-text-muted)', lineHeight: 1.5 }}>
+                        Click any day to schedule an event in seconds.
+                    </div>
+                </div>
+            </Tooltip>
         </div>
     );
 }

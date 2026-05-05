@@ -29,11 +29,14 @@ import {
   UserOutlined,
   ReloadOutlined,
   FolderOutlined,
+  StarOutlined,
+  StarFilled,
 } from "@ant-design/icons";
 import ShareModal from "@/components/documenthub/ShareModal";
 import {
   Button,
   Col,
+  Dropdown,
   Form,
   Input,
   Modal,
@@ -49,12 +52,14 @@ import {
   Divider,
   Avatar,
 } from "antd";
+import type { MenuProps } from "antd";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ColumnsType } from "antd/es/table";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import dayjs from "dayjs";
 import TrashDrawer from "@/components/documenthub/TrashDrawer";
 import DocumentHubDashboard from "@/components/documenthub/DocumentHubDashboard";
+import AiCreateHubModal from "@/components/documenthub/AiCreateHubModal";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -287,8 +292,13 @@ const DocumentHubPage = (props: Props) => {
     [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
   >(null);
   const [filterTicketId, setFilterTicketId] = useState<string | undefined>(undefined);
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
+  // Optimistic star state — toggled instantly on click while the server call
+  // is in flight, so the gold star never lags behind the user's click.
+  const [optimisticStarred, setOptimisticStarred] = useState<Record<string, boolean>>({});
   const [isCreating, setIsCreating] = useState(false);
   const [trashVisible, setTrashVisible] = useState(false);
+  const [aiModalVisible, setAiModalVisible] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
 
@@ -322,9 +332,21 @@ const DocumentHubPage = (props: Props) => {
 
   const updateHub = async (id: string, data: any) => {
     try {
+      // Snapshot the previous ticket linkage so we can also refresh the
+      // ticket→hubs query for whichever side the link moved away from.
+      const prevHub = (documentHubs as any[])?.find((h) => h.id === id);
+      const prevTicketId = prevHub?.ticketId || prevHub?.ticket?.id;
       const response = await DocumentHubService.updateDocumentHub(id, data);
       console.log("UpdateHub Response:", response);
       messageApi.success("Hub updated successfully");
+      // Keep the bidirectional link fresh: invalidate the linked-hubs cache
+      // for both the ticket the hub is moving to and the one it's leaving.
+      const ticketIdsToRefresh = new Set<string>();
+      if (data?.ticketId) ticketIdsToRefresh.add(data.ticketId);
+      if (prevTicketId) ticketIdsToRefresh.add(prevTicketId);
+      ticketIdsToRefresh.forEach((tid) => {
+        queryClient.invalidateQueries({ queryKey: ["ticket", tid, "documentHubs"] });
+      });
       refetch();
     } catch (error) {
       console.error(error);
@@ -382,6 +404,39 @@ const DocumentHubPage = (props: Props) => {
     setShareModalOpen(true);
   };
 
+  // Resolve the star state for a hub — optimistic override beats the server value.
+  const isHubStarred = (hub: DocumentHub) => {
+    if (Object.prototype.hasOwnProperty.call(optimisticStarred, hub.id)) {
+      return optimisticStarred[hub.id];
+    }
+    return !!(hub as any).isStarred;
+  };
+
+  const handleToggleStar = async (e: React.MouseEvent, hub: DocumentHub) => {
+    e.stopPropagation();
+    const currentlyStarred = isHubStarred(hub);
+    setOptimisticStarred((prev) => ({ ...prev, [hub.id]: !currentlyStarred }));
+    try {
+      if (currentlyStarred) {
+        await DocumentHubService.unstarDocumentHub(hub.id);
+      } else {
+        await DocumentHubService.starDocumentHub(hub.id);
+      }
+      messageApi.success(currentlyStarred ? "Removed from starred" : "Starred");
+      // Invalidate so the server-side `isStarred` flag re-loads on next fetch.
+      queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
+    } catch (err) {
+      console.error("Failed to toggle star", err);
+      messageApi.error("Failed to update star");
+      // Roll back the optimistic state on failure.
+      setOptimisticStarred((prev) => {
+        const next = { ...prev };
+        delete next[hub.id];
+        return next;
+      });
+    }
+  };
+
   const filteredHubs = documentHubs.filter((hub) => {
     const matchesSearch = hub.name
       .toLowerCase()
@@ -393,6 +448,7 @@ const DocumentHubPage = (props: Props) => {
     const matchesTicket = filterTicketId
       ? (hub.ticketId === filterTicketId || hub.ticket?.id === filterTicketId)
       : true;
+    const matchesStar = showStarredOnly ? isHubStarred(hub) : true;
 
     let matchesDate = true;
     if (dateRange && dateRange[0] && dateRange[1]) {
@@ -407,7 +463,7 @@ const DocumentHubPage = (props: Props) => {
       matchesDate = createdInRange || updatedInRange;
     }
 
-    return matchesSearch && matchesUser && matchesProject && matchesTicket && matchesDate;
+    return matchesSearch && matchesUser && matchesProject && matchesTicket && matchesStar && matchesDate;
   });
 
   // Loading & permission check
@@ -435,15 +491,80 @@ const DocumentHubPage = (props: Props) => {
 
   const columns: ColumnsType<DocumentHub> = [
     {
+      title: "",
+      key: "star",
+      width: 44,
+      align: "center",
+      render: (_text, record) => {
+        const starred = isHubStarred(record);
+        return (
+          <Tooltip title={starred ? "Remove from starred" : "Add to starred"}>
+            <button
+              onClick={(e) => handleToggleStar(e, record)}
+              className="flex items-center justify-center transition-colors"
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                color: starred ? "#f59e0b" : "var(--text-slate-400)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = starred
+                  ? "rgba(245, 158, 11, 0.1)"
+                  : "var(--bg-slate-50)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+              aria-label={starred ? "Unstar" : "Star"}
+            >
+              {starred ? (
+                <StarFilled style={{ fontSize: 14 }} />
+              ) : (
+                <StarOutlined style={{ fontSize: 14 }} />
+              )}
+            </button>
+          </Tooltip>
+        );
+      },
+    },
+    {
       title: "Doc Name",
       dataIndex: "name",
       key: "name",
       width: 300,
-      render: (text) => (
-        <Space size={8}>
-          <FolderOutlined className="text-blue-500" />
-          <span className="font-semibold text-blue-600 hover:text-blue-700 cursor-pointer">{text}</span>
-        </Space>
+      render: (text, record) => (
+        <div className="flex items-center gap-2.5">
+          <div
+            className="flex items-center justify-center shrink-0 text-white"
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 8,
+              background: "linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)",
+              boxShadow: "0 2px 6px rgba(59, 130, 246, 0.22)",
+            }}
+          >
+            <FolderOutlined style={{ fontSize: 13 }} />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span
+              className="font-semibold text-[13px] truncate"
+              style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}
+            >
+              {text}
+            </span>
+            <span
+              className="text-[10.5px] truncate"
+              style={{ color: 'var(--text-slate-400)' }}
+            >
+              {(record as any).treeNodes?.filter((n: any) => n.type === 'file').length || 0} {(record as any).treeNodes?.filter((n: any) => n.type === 'file').length === 1 ? 'doc' : 'docs'}
+            </span>
+          </div>
+        </div>
       ),
       sorter: (a, b) => a.name.localeCompare(b.name),
     },
@@ -494,24 +615,52 @@ const DocumentHubPage = (props: Props) => {
       )
     },
     {
-      title: "Created At",
+      title: "Created",
       dataIndex: "createdAt",
       key: "createdAt",
+      width: 140,
       render: (date) => (
-        <span className="text-[11px] font-medium text-slate-500" style={{ color: 'var(--text-slate-600)' }}>
-          {format(new Date(date), "MMM d, yyyy h:mm a")}
-        </span>
+        <Tooltip title={format(new Date(date), "EEEE, MMM d, yyyy h:mm a")}>
+          <div className="flex flex-col">
+            <span
+              className="text-[12px] font-medium"
+              style={{ color: 'var(--text-slate-700)' }}
+            >
+              {format(new Date(date), "MMM d, yyyy")}
+            </span>
+            <span
+              className="text-[10.5px]"
+              style={{ color: 'var(--text-slate-400)' }}
+            >
+              {format(new Date(date), "h:mm a")}
+            </span>
+          </div>
+        </Tooltip>
       ),
       sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     },
     {
-      title: "Updated At",
+      title: "Updated",
       dataIndex: "updatedAt",
       key: "updatedAt",
+      width: 140,
       render: (date) => (
-        <span className="text-[11px] font-medium text-slate-500" style={{ color: 'var(--text-slate-600)' }}>
-          {format(new Date(date), "MMM d, yyyy h:mm a")}
-        </span>
+        <Tooltip title={format(new Date(date), "EEEE, MMM d, yyyy h:mm a")}>
+          <div className="flex flex-col">
+            <span
+              className="text-[12px] font-medium"
+              style={{ color: 'var(--text-slate-700)' }}
+            >
+              {format(new Date(date), "MMM d, yyyy")}
+            </span>
+            <span
+              className="text-[10.5px]"
+              style={{ color: 'var(--text-slate-400)' }}
+            >
+              {format(new Date(date), "h:mm a")}
+            </span>
+          </div>
+        </Tooltip>
       ),
       sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
     },
@@ -558,32 +707,38 @@ const DocumentHubPage = (props: Props) => {
     {
       title: "Action",
       key: "actions",
-      width: 80,
+      width: 110,
       render: (text, record) => (
-        <Space size={0} onClick={(e) => e.stopPropagation()}>
-          <Tooltip title="View Knowledge Base">
+        <Space size={2} onClick={(e) => e.stopPropagation()}>
+          <Tooltip title="Open hub">
             <Button
               type="text"
-              icon={<EyeOutlined style={{ fontSize: '14px' }} className="text-slate-400 hover:text-blue-500" />}
+              icon={<EyeOutlined style={{ fontSize: '14px', color: 'var(--text-slate-400)' }} />}
               onClick={() => router.push(`/documenthub/${record.id}`)}
-              className="flex items-center justify-center p-0 w-7 h-7 rounded-lg hover:bg-slate-50"
+              className="flex items-center justify-center p-0 w-8 h-8 rounded-lg"
+              style={{ transition: 'background 0.15s' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-blue-50)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             />
           </Tooltip>
-          <Tooltip title="Share Hub">
+          <Tooltip title="Share">
             <Button
               type="text"
-              icon={<ShareAltOutlined style={{ fontSize: '14px' }} className="text-slate-400 hover:text-blue-500" />}
+              icon={<ShareAltOutlined style={{ fontSize: '14px', color: 'var(--text-slate-400)' }} />}
               onClick={(e) => handleShareHub(e, record)}
-              className="flex items-center justify-center p-0 w-7 h-7 rounded-lg hover:bg-slate-50"
+              className="flex items-center justify-center p-0 w-8 h-8 rounded-lg"
+              style={{ transition: 'background 0.15s' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-blue-50)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             />
           </Tooltip>
-          <Tooltip title="Delete">
+          <Tooltip title="Move to trash">
             <Button
               type="text"
               danger
               icon={<DeleteOutlined style={{ fontSize: '14px' }} />}
               onClick={(e) => handleDeleteHub(e, record.id, record.name)}
-              className="flex items-center justify-center p-0 w-7 h-7 rounded-lg hover:bg-red-50"
+              className="flex items-center justify-center p-0 w-8 h-8 rounded-lg hover:bg-red-50"
             />
           </Tooltip>
         </Space>
@@ -606,44 +761,164 @@ const DocumentHubPage = (props: Props) => {
       {modalContextHolder}
       <div style={{
         margin: "0 -16px",
-        padding: "0 24px 16px 24px",
+        padding: "0 24px 24px 24px",
         background: "var(--bg-pure-white)",
         minHeight: "calc(100vh - 64px)",
         display: "flex",
         flexDirection: "column"
       }}>
-        <div className="flex flex-wrap justify-between items-center flex-shrink-0 py-3 gap-4" style={{
-          minHeight: '58px',
-          borderBottom: '1px solid var(--border-color)',
-          margin: '0 -24px 24px -24px',
-          padding: '0 24px'
-        }}>
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2 m-0" style={{ color: 'var(--text-slate-900)' }}>
-              <FileZipOutlined className="text-blue-500" />
+        {/* Premium Hero Header */}
+        <div
+          className="flex flex-wrap justify-between items-center gap-4 flex-shrink-0"
+          style={{
+            margin: '0 -24px 24px -24px',
+            padding: '8.5px 24px',
+            borderBottom: '1px solid var(--border-slate-200)',
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="flex items-center justify-center w-11 h-10 rounded-2xl shrink-0 text-white"
+              style={{
+                background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+              }}
+            >
+              <FileZipOutlined style={{ fontSize: 18 }} />
+            </div>
+            <h1
+              className="text-[17px] font-bold m-0 tracking-tight leading-tight"
+              style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}
+            >
               Document Hub
             </h1>
-            <Divider type="vertical" className="hidden sm:block" style={{ height: '20px', backgroundColor: 'var(--border-color)' }} />
-            <p className="text-slate-500 m-0 hidden sm:block" style={{ color: 'var(--text-slate-400)', fontSize: '13px' }}>
+            <Divider
+              type="vertical"
+              className="hidden sm:block"
+              style={{ height: 22, margin: '0 4px', backgroundColor: 'var(--border-slate-200)' }}
+            />
+            <p
+              className="m-0 text-[12.5px] hidden sm:block"
+              style={{ color: 'var(--text-slate-400)' }}
+            >
               Manage all your documentation in one place
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               icon={<RestOutlined />}
               onClick={() => setTrashVisible(true)}
-              className="border-none shadow-none hover:bg-slate-50"
+              className="trash-action-btn"
+              style={{
+                height: 38,
+                borderRadius: 10,
+                fontWeight: 500,
+                background: 'var(--bg-slate-50)',
+                border: '1px solid var(--border-slate-200)',
+                color: 'var(--text-slate-700)',
+              }}
             >
               Trash
             </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setModalVisible(true)}
-              className="shadow-sm font-medium"
+            <Dropdown
+              trigger={['hover', 'click']}
+              placement="bottomRight"
+              overlayClassName="create-document-menu"
+              menu={{
+                items: [
+                  {
+                    key: 'manual',
+                    label: (
+                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 260 }}>
+                        <div
+                          className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white"
+                          style={{
+                            background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                            boxShadow: '0 2px 6px rgba(59, 130, 246, 0.25)',
+                          }}
+                        >
+                          <FileTextOutlined style={{ fontSize: 15 }} />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span
+                            className="text-[13px] font-semibold leading-tight"
+                            style={{ color: 'var(--text-slate-900)' }}
+                          >
+                            Manual creation
+                          </span>
+                          <span
+                            className="text-[11.5px] leading-snug mt-0.5"
+                            style={{ color: 'var(--text-slate-400)' }}
+                          >
+                            Start from a blank document hub
+                          </span>
+                        </div>
+                      </div>
+                    ),
+                    onClick: () => setModalVisible(true),
+                  },
+                  {
+                    key: 'zai',
+                    label: (
+                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 260 }}>
+                        <div
+                          className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white relative"
+                          style={{
+                            background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
+                            boxShadow: '0 2px 6px rgba(139, 92, 246, 0.3)',
+                          }}
+                        >
+                          <span style={{ fontSize: 15, lineHeight: 1 }}>✨</span>
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="text-[13px] font-semibold leading-tight"
+                              style={{ color: 'var(--text-slate-900)' }}
+                            >
+                              Create with Zai
+                            </span>
+                            <span
+                              className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-[1px] rounded"
+                              style={{
+                                background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
+                                color: '#fff',
+                              }}
+                            >
+                              AI
+                            </span>
+                          </div>
+                          <span
+                            className="text-[11.5px] leading-snug mt-0.5"
+                            style={{ color: 'var(--text-slate-400)' }}
+                          >
+                            Generate a hub from a prompt
+                          </span>
+                        </div>
+                      </div>
+                    ),
+                    onClick: () => setAiModalVisible(true),
+                  },
+                ] as MenuProps['items'],
+              }}
             >
-              Create Document
-            </Button>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                className="create-document-btn"
+                style={{
+                  height: 38,
+                  borderRadius: 10,
+                  fontWeight: 600,
+                  paddingInline: 16,
+                  background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                  border: 'none',
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+                }}
+              >
+                Create Document
+              </Button>
+            </Dropdown>
           </div>
         </div>
 
@@ -663,20 +938,29 @@ const DocumentHubPage = (props: Props) => {
 
           {/* Filters Section - Sticky inside the card */}
           <div className="sticky top-0 z-20" style={{ background: 'var(--bg-pure-white)', zIndex: 100 }}>
-            <div className="px-4 py-3 flex flex-wrap items-center gap-4 justify-between">
-              <div className="flex flex-wrap items-center gap-4 flex-1">
-                <div className="relative w-full max-w-sm min-w-[200px]">
+            <div
+              className="flex flex-wrap items-center gap-3 justify-between rounded-2xl"
+              style={{
+                padding: '12px 16px',
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-slate-200)',
+                marginTop: 8,
+                marginBottom: 12,
+              }}
+            >
+              <div className="flex flex-wrap items-center gap-3 flex-1">
+                <div className="relative w-full max-w-sm min-w-[140px]">
                   <Input
                     placeholder="Search hubs..."
-                    prefix={<SearchOutlined className="text-slate-400" style={{ color: 'var(--text-blue-500)' }} />}
-                    className="premium-search-input h-10 rounded-xl border-slate-200 hover:border-blue-400 focus:border-blue-500 transition-all shadow-sm"
-                    style={{ background: 'var(--bg-pure-white)' }}
+                    prefix={<SearchOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
+                    className="premium-search-input h-10 rounded-xl transition-all"
+                    style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)' }}
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
                     allowClear
                   />
                 </div>
-                <div className="h-6 w-[1px] bg-slate-200 hidden md:block" />
+                <div className="h-6 w-[1px] hidden md:block" style={{ background: 'var(--border-slate-200)' }} />
                 <div className="flex flex-wrap items-center gap-3">
                   <Select
                     placeholder={<Space><ProjectOutlined style={{ fontSize: '10px' }} /> <span style={{ fontSize: '11px' }}>Project</span></Space>}
@@ -782,6 +1066,48 @@ const DocumentHubPage = (props: Props) => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {/* Starred-only toggle */}
+                <Tooltip title={showStarredOnly ? "Show all hubs" : "Show only starred hubs"}>
+                  <button
+                    type="button"
+                    onClick={() => setShowStarredOnly((v) => !v)}
+                    className="flex items-center gap-1.5 transition-all"
+                    style={{
+                      height: 40,
+                      padding: '0 12px',
+                      borderRadius: 12,
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      background: showStarredOnly
+                        ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.06) 100%)'
+                        : 'var(--bg-pure-white)',
+                      border: showStarredOnly
+                        ? '1px solid rgba(245, 158, 11, 0.4)'
+                        : '1px solid var(--border-slate-200)',
+                      color: showStarredOnly ? '#b45309' : 'var(--text-slate-600)',
+                    }}
+                  >
+                    {showStarredOnly ? (
+                      <StarFilled style={{ fontSize: 13, color: '#f59e0b' }} />
+                    ) : (
+                      <StarOutlined style={{ fontSize: 13 }} />
+                    )}
+                    Starred
+                    {showStarredOnly && (
+                      <span
+                        className="px-1.5 py-[1px] rounded-full text-[10px] font-bold"
+                        style={{
+                          background: '#f59e0b',
+                          color: '#fff',
+                          marginLeft: 2,
+                        }}
+                      >
+                        {documentHubs.filter((h) => isHubStarred(h)).length}
+                      </span>
+                    )}
+                  </button>
+                </Tooltip>
                 <Tooltip title="Reload Docs">
                   <Button
                     icon={<ReloadOutlined spin={hubsFetching} />}
@@ -794,7 +1120,14 @@ const DocumentHubPage = (props: Props) => {
           </div>
 
 
-          <div className="p-2 overflow-x-auto">
+          <div
+            className="overflow-hidden"
+            style={{
+              borderRadius: 16,
+              border: '1px solid var(--border-slate-200)',
+              background: 'var(--bg-pure-white)',
+            }}
+          >
             <Table
               columns={columns}
               dataSource={filteredHubs}
@@ -817,130 +1150,279 @@ const DocumentHubPage = (props: Props) => {
       </div>
 
       <Modal
-        title={
-          <div className="flex items-center gap-3 py-1">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center" style={{ backgroundColor: 'var(--bg-blue-50)' }}>
-              <FileZipOutlined className="text-blue-500 text-lg" />
-            </div>
-            <div>
-              <div className="text-lg font-semibold text-slate-900 leading-tight" style={{ color: 'var(--text-slate-900)' }}>Create New Hub</div>
-              <div className="text-sm font-normal text-slate-500" style={{ color: 'var(--text-slate-400)' }}>Organize your technical knowledge and project assets</div>
-            </div>
-          </div>
-        }
         open={modalVisible}
         onCancel={() => {
+          if (isCreating) return;
           setModalVisible(false);
+          setSelectedProjectId(undefined);
           form.resetFields();
         }}
+        title={null}
         footer={null}
-        width={500}
+        closable={false}
+        width={520}
         centered
-        className="premium-modal"
         styles={{
-          mask: { backdropFilter: 'blur(4px)', background: 'rgba(0, 0, 0, 0.4)' },
-          content: { borderRadius: '16px', padding: '24px' }
+          mask: { backdropFilter: 'blur(6px)', background: 'rgba(15, 23, 42, 0.45)' },
+          content: { borderRadius: 18, padding: 0, overflow: 'hidden' },
+          body: { padding: 0 },
         }}
       >
-        <Form form={form} layout="vertical" onFinish={handleAddDocument}>
-          <Row gutter={[16, 16]}>
-            <Col span={24}>
-              <Form.Item
-                name="name"
-                label={<span className="font-medium text-slate-700" style={{ color: 'var(--text-slate-700)' }}>Hub Name</span>}
-                rules={[
-                  { required: true, message: "Please enter hub name" },
-                  { min: 2, message: "Name must be at least 2 characters" },
-                ]}
+        {/* Hero header */}
+        <div
+          className="px-6 pt-5 pb-4"
+          style={{
+            background:
+              'linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(99, 102, 241, 0.04) 100%)',
+            borderBottom: '1px solid var(--border-slate-200)',
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="flex items-center justify-center shrink-0 text-white"
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                boxShadow:
+                  '0 4px 12px rgba(59, 130, 246, 0.32), inset 0 1px 0 rgba(255,255,255,0.18)',
+              }}
+            >
+              <FileZipOutlined style={{ fontSize: 18 }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2
+                className="text-[16px] font-bold tracking-tight m-0"
+                style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}
               >
-                <Input
-                  size="large"
-                  placeholder="e.g., API Documentation"
-                  prefix={<FileTextOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
-                  className="rounded-lg border-slate-200 hover:border-blue-400 focus:border-blue-500"
-                  style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-slate-200)', color: 'var(--text-slate-900)' }}
-                />
-              </Form.Item>
-            </Col>
-
-            <Col span={24}>
-              <Form.Item
-                name="projectId"
-                label={<span className="font-medium text-slate-700" style={{ color: 'var(--text-slate-700)' }}>Project <span className="text-slate-400 font-normal" style={{ color: 'var(--text-slate-400)' }}>(Optional)</span></span>}
+                Create new document hub
+              </h2>
+              <p
+                className="m-0 mt-0.5 text-[12.5px]"
+                style={{ color: 'var(--text-slate-400)' }}
               >
-                <Select
-                  size="large"
-                  placeholder="Select project"
-                  loading={projectsLoading}
-                  className="rounded-lg"
-                  suffixIcon={<ProjectOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
-                  onChange={(value) => {
-                    setSelectedProjectId(value);
-                    form.setFieldsValue({ projectId: value });
-                  }}
-                  allowClear
-                >
-                  {projects.map((project) => (
-                    <Option key={project.value} value={project.value}>
-                      {project.label} ({project.code})
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={24}>
-              <Form.Item
-                name="ticketId"
-                label={<span className="font-medium text-slate-700" style={{ color: 'var(--text-slate-700)' }}>Ticket <span className="text-slate-400 font-normal" style={{ color: 'var(--text-slate-400)' }}>(Optional)</span></span>}
-              >
-                <Select
-                  size="large"
-                  showSearch
-                  placeholder="Select ticket"
-                  loading={ticketsLoading}
-                  className="rounded-lg"
-                  suffixIcon={<TagOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
-                  allowClear
-                  disabled={!selectedProjectId}
-                  optionFilterProp="label"
-                  options={tickets.map((ticket: any) => ({
-                    value: ticket.id,
-                    label: `${ticket.ticketNumber} (${ticket.title})`,
-                  }))}
-                  filterOption={(input, option) =>
-                    String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                  }
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-          <div className="flex items-center justify-end gap-3 mt-8 pt-4 border-t border-slate-100" style={{ borderTopColor: 'var(--border-slate-100)' }}>
-            <Button
-              size="large"
-              className="px-6 rounded-lg font-medium text-slate-500 border-none hover:bg-slate-100"
-              style={{ color: 'var(--text-slate-600)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-slate-50)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                A hub is a workspace for grouping related documents — wiki, specs, runbooks.
+              </p>
+            </div>
+            <button
+              type="button"
               onClick={() => {
+                if (isCreating) return;
                 setModalVisible(false);
                 setSelectedProjectId(undefined);
                 form.resetFields();
               }}
+              disabled={isCreating}
+              className="shrink-0 flex items-center justify-center rounded-lg transition-colors"
+              style={{
+                width: 30,
+                height: 30,
+                color: 'var(--text-slate-400)',
+                background: 'transparent',
+                border: 'none',
+                cursor: isCreating ? 'not-allowed' : 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                if (isCreating) return;
+                e.currentTarget.style.background = 'var(--bg-slate-100)';
+                e.currentTarget.style.color = 'var(--text-slate-700)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--text-slate-400)';
+              }}
+              aria-label="Close"
             >
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              size="large"
-              htmlType="submit"
-              loading={isCreating}
-              className="px-8 rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-100 border-none outline-none"
-              style={{ display: 'flex', alignItems: 'center', height: '40px' }}
-            >
-              Create Hub
-            </Button>
+              <PlusOutlined style={{ fontSize: 13, transform: 'rotate(45deg)' }} />
+            </button>
           </div>
-        </Form>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 pt-5 pb-2">
+          <Form form={form} layout="vertical" onFinish={handleAddDocument}>
+            <Form.Item
+              name="name"
+              label={
+                <span
+                  className="text-[11.5px] font-semibold uppercase tracking-[0.06em]"
+                  style={{ color: 'var(--text-slate-400)' }}
+                >
+                  Hub name
+                </span>
+              }
+              rules={[
+                { required: true, message: 'Please enter a hub name' },
+                { min: 2, message: 'Name must be at least 2 characters' },
+                { max: 80, message: 'Up to 80 characters' },
+              ]}
+              className="mb-4"
+            >
+              <Input
+                size="large"
+                autoFocus
+                placeholder="e.g., Payments API documentation"
+                prefix={
+                  <FileTextOutlined
+                    style={{ color: 'var(--text-slate-400)', fontSize: 13 }}
+                  />
+                }
+                style={{
+                  borderRadius: 10,
+                  fontSize: 13.5,
+                  height: 42,
+                  background: 'var(--bg-pure-white)',
+                  borderColor: 'var(--border-slate-200)',
+                  color: 'var(--text-slate-900)',
+                }}
+              />
+            </Form.Item>
+
+            <div
+              className="text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-2 mt-2"
+              style={{ color: 'var(--text-slate-400)' }}
+            >
+              Link to work <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· optional</span>
+            </div>
+
+            <Row gutter={[12, 0]}>
+              <Col span={24}>
+                <Form.Item name="projectId" className="mb-3">
+                  <Select
+                    size="large"
+                    placeholder={
+                      <span
+                        className="inline-flex items-center gap-1.5"
+                        style={{ color: 'var(--text-slate-400)' }}
+                      >
+                        <ProjectOutlined style={{ fontSize: 12 }} />
+                        Select a project
+                      </span>
+                    }
+                    loading={projectsLoading}
+                    suffixIcon={
+                      <ProjectOutlined
+                        style={{ color: 'var(--text-slate-400)', fontSize: 11 }}
+                      />
+                    }
+                    onChange={(value) => {
+                      setSelectedProjectId(value);
+                      form.setFieldsValue({ projectId: value, ticketId: undefined });
+                    }}
+                    allowClear
+                    style={{ borderRadius: 10 }}
+                  >
+                    {projects.map((project) => (
+                      <Option key={project.value} value={project.value}>
+                        {project.label} ({project.code})
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={24}>
+                <Form.Item name="ticketId" className="mb-2">
+                  <Select
+                    size="large"
+                    showSearch
+                    placeholder={
+                      <span
+                        className="inline-flex items-center gap-1.5"
+                        style={{ color: 'var(--text-slate-400)' }}
+                      >
+                        <TagOutlined style={{ fontSize: 12 }} />
+                        {selectedProjectId
+                          ? 'Select a ticket'
+                          : 'Pick a project first to link a ticket'}
+                      </span>
+                    }
+                    loading={ticketsLoading}
+                    suffixIcon={
+                      <TagOutlined
+                        style={{ color: 'var(--text-slate-400)', fontSize: 11 }}
+                      />
+                    }
+                    allowClear
+                    disabled={!selectedProjectId}
+                    optionFilterProp="label"
+                    options={tickets.map((ticket: any) => ({
+                      value: ticket.id,
+                      label: `${ticket.ticketNumber} (${ticket.title})`,
+                    }))}
+                    filterOption={(input, option) =>
+                      String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                    }
+                    style={{ borderRadius: 10 }}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <div
+              className="flex items-start gap-2 px-3 py-2 rounded-lg mt-3"
+              style={{
+                background: 'var(--bg-blue-50)',
+                border: '1px solid var(--border-blue-200)',
+              }}
+            >
+              <ProjectOutlined
+                style={{
+                  color: 'var(--text-blue-700)',
+                  fontSize: 12,
+                  marginTop: 3,
+                }}
+              />
+              <span
+                className="text-[11.5px] leading-snug"
+                style={{ color: 'var(--text-slate-600)' }}
+              >
+                Linking a project or ticket attaches this hub's docs to that work item, so
+                they show up alongside it everywhere else in ZithSpace.
+              </span>
+            </div>
+          </Form>
+        </div>
+
+        {/* Sticky footer */}
+        <div
+          className="flex items-center justify-end gap-2 px-6 py-3 mt-2"
+          style={{
+            borderTop: '1px solid var(--border-slate-200)',
+            background: 'var(--bg-secondary)',
+          }}
+        >
+          <Button
+            onClick={() => {
+              if (isCreating) return;
+              setModalVisible(false);
+              setSelectedProjectId(undefined);
+              form.resetFields();
+            }}
+            disabled={isCreating}
+            style={{ borderRadius: 9, height: 36, fontWeight: 500 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="primary"
+            onClick={() => form.submit()}
+            loading={isCreating}
+            icon={!isCreating ? <PlusOutlined /> : undefined}
+            style={{
+              borderRadius: 9,
+              height: 36,
+              paddingInline: 18,
+              fontWeight: 600,
+              background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+              border: 'none',
+              boxShadow:
+                '0 4px 12px rgba(59, 130, 246, 0.32), inset 0 1px 0 rgba(255,255,255,0.18)',
+            }}
+          >
+            Create hub
+          </Button>
+        </div>
       </Modal>
 
       {selectedHubForShare && (
@@ -960,6 +1442,16 @@ const DocumentHubPage = (props: Props) => {
       )}
 
       <TrashDrawer open={trashVisible} onClose={() => setTrashVisible(false)} />
+
+      <AiCreateHubModal
+        open={aiModalVisible}
+        onClose={() => setAiModalVisible(false)}
+        onCreated={(hubId) => {
+          setAiModalVisible(false);
+          queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
+          router.push(`/documenthub/${hubId}`);
+        }}
+      />
       <style jsx global>{`
         .premium-table .ant-table-thead > tr > th {
           background: #f8fafc !important;
@@ -1006,6 +1498,25 @@ const DocumentHubPage = (props: Props) => {
         .premium-inline-select:hover .ant-select-selector {
           background: rgba(22, 119, 255, 0.05) !important;
           border-radius: 4px;
+        }
+        .create-document-menu .ant-dropdown-menu {
+          padding: 6px !important;
+          border-radius: 14px !important;
+          border: 1px solid var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important;
+          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
+          min-width: 290px !important;
+        }
+        .create-document-menu .ant-dropdown-menu-item {
+          border-radius: 10px !important;
+          padding: 8px 10px !important;
+          margin-bottom: 2px !important;
+        }
+        .create-document-menu .ant-dropdown-menu-item:last-child {
+          margin-bottom: 0 !important;
+        }
+        .create-document-menu .ant-dropdown-menu-item:hover {
+          background: var(--bg-slate-50) !important;
         }
       `}</style>
     </MainLayout>

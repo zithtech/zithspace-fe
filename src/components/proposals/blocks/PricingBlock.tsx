@@ -15,6 +15,7 @@ import {
 import { nanoid } from 'nanoid';
 import React from 'react';
 import { AIEnhanceButton } from '../AIEnhanceButton';
+import { BlockGhostHint } from './BlockGhost';
 
 const { Title, Text } = Typography;
 
@@ -73,28 +74,43 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
     }
   ];
 
+  const isEmpty = !data.title && items.length === 0;
+  const ghostItems = [
+    { id: 'g1', name: 'Service or product name', description: 'Brief description of the deliverable.', price: 0, quantity: 1, _ghost: true },
+    { id: 'g2', name: 'Additional line item', description: 'Another deliverable or scope of work.', price: 0, quantity: 1, _ghost: true },
+  ];
+  const itemsToRender = items.length > 0 ? items : ghostItems;
+
   return (
     <div style={{ padding: '40px' }}>
-      {data.title && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-          <Title level={2} style={{ margin: 0, color: 'var(--text-primary)' }}>
-            {data.title}
-          </Title>
-          {data.feeStructure && (
-            <Tag color="blue" style={{ fontSize: '0.85rem', padding: '4px 12px', borderRadius: '16px', fontWeight: 600 }}>
-              {data.feeStructure}
-            </Tag>
-          )}
-        </div>
-      )}
+      {isEmpty && <BlockGhostHint />}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
+        <Title
+          level={2}
+          style={{
+            margin: 0,
+            color: data.title ? 'var(--text-primary)' : 'var(--text-slate-400)',
+            fontStyle: data.title ? 'normal' : 'italic',
+          }}
+        >
+          {data.title || 'Investment'}
+        </Title>
+        {data.feeStructure && (
+          <Tag color="blue" style={{ fontSize: '0.85rem', padding: '4px 12px', borderRadius: '16px', fontWeight: 600 }}>
+            {data.feeStructure}
+          </Tag>
+        )}
+      </div>
 
       <Table
-        dataSource={items}
+        dataSource={itemsToRender}
         columns={columns}
         pagination={false}
         rowKey="id"
         bordered={false}
         size="middle"
+        rowClassName={(record: any) => record._ghost ? 'pricing-ghost-row' : ''}
       />
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>

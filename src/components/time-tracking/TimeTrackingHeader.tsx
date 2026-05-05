@@ -31,14 +31,14 @@ export function TimeTrackingHeader({
     <>
       <div className="saas-header-container" style={{
         backdropFilter: 'blur(12px)',
-        padding: '9.5px 32px',
+        padding: '8px 32px',
         flexShrink: 0,
         zIndex: 100,
-        marginBottom: 24,
+        marginBottom: 12,
         background: 'var(--bg-pure-white)',
         ...style,
       }}>
-        <Row justify="space-between" align="middle" gutter={[16, 16]}>
+        <Row justify="space-between" align="middle" gutter={[16, 8]}>
           <Col>
             <Space size={16}>
               <div className="bh-header-icon-box">
@@ -50,7 +50,7 @@ export function TimeTrackingHeader({
                     {title}
                   </Title>
                   {subTitle && (
-                    <div style={{ marginTop: 2 }}>
+                    <div style={{ marginTop: 0 }}>
                       {subTitle}
                     </div>
                   )}

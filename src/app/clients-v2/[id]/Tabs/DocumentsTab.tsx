@@ -27,6 +27,9 @@ import {
   Trash2,
   FileCheck,
   Search,
+  X,
+  Folder,
+  ShieldCheck,
 } from "lucide-react";
 import { api } from "@/lib/axios";
 
@@ -76,7 +79,7 @@ export default function DocumentsTab({
     const ext = fileName.split(".").pop()?.toLowerCase();
     if (ext === "pdf") return <FileText size={18} style={{ color: "#ef4444" }} />;
     if (["doc", "docx"].includes(ext || "")) return <FileText size={18} style={{ color: "#3b82f6" }} />;
-    return <FileCode size={18} style={{ color: "#64748b" }} />;
+    return <FileCode size={18} style={{ color: "var(--text-slate-500)" }} />;
   };
 
   const columns = [
@@ -87,12 +90,12 @@ export default function DocumentsTab({
       width: 300,
       render: (text: string, record: any) => (
         <Space size={12}>
-          <div style={{ background: "#f8fafc", padding: 8, borderRadius: 8, display: "flex" }}>
+          <div style={{ background: "var(--bg-slate-50)", padding: 8, borderRadius: 8, display: "flex" }}>
             {getFileIcon(text)}
           </div>
           <div>
-            <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>{text}</div>
-            <div style={{ fontSize: 11, color: "#94a3b8" }}>{record.documentType || "Unclassified"}</div>
+            <div style={{ fontWeight: 600, color: "var(--text-slate-900)", fontSize: 14 }}>{text}</div>
+            <div style={{ fontSize: 11, color: "var(--text-slate-400)" }}>{record.documentType || "Unclassified"}</div>
           </div>
         </Space>
       ),
@@ -102,8 +105,8 @@ export default function DocumentsTab({
       key: "classification",
       render: (_: any, record: any) => (
         <div>
-          <div style={{ fontSize: 13, fontWeight: 500, color: "#475569" }}>{record.category}</div>
-          <div style={{ fontSize: 11, color: "#94a3b8" }}>Group</div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-slate-700)" }}>{record.category}</div>
+          <div style={{ fontSize: 11, color: "var(--text-slate-400)" }}>Group</div>
         </div>
       ),
     },
@@ -112,7 +115,7 @@ export default function DocumentsTab({
       dataIndex: "version",
       key: "version",
       render: (v: number) => (
-        <Tag style={{ borderRadius: 6, fontWeight: 600, border: 0, background: "#f1f5f9", color: "#64748b" }}>
+        <Tag style={{ borderRadius: 6, fontWeight: 600, border: 0, background: "var(--bg-slate-50)", color: "var(--text-slate-500)" }}>
           REV {v || 1}
         </Tag>
       ),
@@ -122,7 +125,7 @@ export default function DocumentsTab({
       dataIndex: "createdAt",
       key: "createdAt",
       render: (date: string) => (
-        <div style={{ fontSize: 13, color: "#64748b" }}>
+        <div style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
           {new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </div>
       ),
@@ -150,7 +153,7 @@ export default function DocumentsTab({
                   });
                 }
               }}
-              style={{ color: "#64748b" }}
+              style={{ color: "var(--text-slate-500)" }}
             />
           </Tooltip>
           <Tooltip title="Download File">
@@ -159,7 +162,7 @@ export default function DocumentsTab({
               className="premium-action-btn"
               icon={<Download size={16} />}
               onClick={() => handleDownload(record)}
-              style={{ color: "#64748b" }}
+              style={{ color: "var(--text-slate-500)" }}
             />
           </Tooltip>
 
@@ -284,17 +287,17 @@ export default function DocumentsTab({
       <Card
         style={{
           borderRadius: 16,
-          border: "1px solid #f1f5f9",
-          background: "#fff"
+          border: "1px solid var(--border-slate-100)",
+          background: "var(--bg-pure-white)"
         }}
         bodyStyle={{ padding: "0" }}
       >
-        <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9" }}>
+        <div style={{ padding: "24px", borderBottom: "1px solid var(--border-slate-100)" }}>
           <Row justify="space-between" align="middle" gutter={[16, 16]}>
             <Col xs={24} md={18}>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Document Repository</div>
-                <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Centralized storage for all MSA, SOW, NDAs, and legal annexures</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>Document Repository</div>
+                <div style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 4 }}>Centralized storage for all MSA, SOW, NDAs, and legal annexures</div>
               </div>
             </Col>
             <Col xs={24} md={6} style={{ textAlign: "right" }}>
@@ -318,20 +321,12 @@ export default function DocumentsTab({
           pagination={{ pageSize: 8, hideOnSinglePage: true }}
           className="premium-table"
           scroll={{ x: "max-content" }}
-          locale={{ emptyText: <div style={{ padding: "40px 0", color: "#64748b" }}>No document archives available</div> }}
+          locale={{ emptyText: <div style={{ padding: "40px 0", color: "var(--text-slate-500)" }}>No document archives available</div> }}
         />
       </Card>
 
       {/* Upload Modal */}
       <Modal
-        title={
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ background: "#eff6ff", padding: 8, borderRadius: 8, color: "#3b82f6", display: "flex" }}>
-              <UploadIcon size={20} />
-            </div>
-            <span style={{ fontWeight: 700, fontSize: 18 }}>Archive New Document</span>
-          </div>
-        }
         open={isUploadModalVisible}
         onCancel={() => {
           setIsUploadModalVisible(false);
@@ -339,21 +334,43 @@ export default function DocumentsTab({
           setFileList([]);
         }}
         footer={null}
-        width={500}
+        title={null}
+        width={520}
         centered
-        className="premium-modal"
+        className="pmodal"
+        closeIcon={<X size={16} />}
       >
-        <div style={{ padding: "8px 0" }}>
-          <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical">
+          <div className="pmodal-hero blue">
+            <div className="pmodal-hero-mesh" />
+            <div className="pmodal-hero-blob" />
+            <div className="pmodal-hero-content">
+              <div className="pmodal-hero-icon">
+                <UploadIcon size={20} />
+              </div>
+              <div>
+                <div className="pmodal-hero-title">Archive New Document</div>
+                <div className="pmodal-hero-sub">
+                  Upload an MSA, SOW, NDA or any compliance document
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pmodal-body">
+            <div className="pmodal-section-label">
+              <Folder size={11} />
+              <span>Classification</span>
+            </div>
+
             <Form.Item
               name="category"
-              label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Primary Category</span>}
+              label="Primary category"
               rules={[{ required: true, message: "Selection required" }]}
             >
               <Select
-                placeholder="E.g. Legal, Sales"
+                placeholder="e.g. Legal, Sales"
                 onChange={handleCategoryChange}
-                style={{ borderRadius: 8, height: 40 }}
               >
                 {Object.keys(DOCUMENT_CATEGORIES).map((cat) => (
                   <Option key={cat} value={cat}>
@@ -365,13 +382,12 @@ export default function DocumentsTab({
 
             <Form.Item
               name="documentType"
-              label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Document Subtype</span>}
+              label="Document subtype"
               rules={[{ required: true, message: "Selection required" }]}
             >
               <Select
-                placeholder="Select specific type..."
+                placeholder={selectedCategory ? "Select specific type…" : "Choose a category first"}
                 disabled={!selectedCategory}
-                style={{ borderRadius: 8, height: 40 }}
               >
                 {selectedCategory &&
                   DOCUMENT_CATEGORIES[selectedCategory].map((type) => (
@@ -382,7 +398,12 @@ export default function DocumentsTab({
               </Select>
             </Form.Item>
 
-            <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Target Files</span>} required>
+            <div className="pmodal-section-label">
+              <UploadIcon size={11} />
+              <span>File</span>
+            </div>
+
+            <Form.Item required>
               <Upload.Dragger
                 fileList={fileList}
                 beforeUpload={(file) => {
@@ -391,36 +412,69 @@ export default function DocumentsTab({
                 }}
                 onRemove={() => setFileList([])}
                 maxCount={1}
-                style={{ borderRadius: 12, background: "#f8fafc", border: "1px dashed #cbd5e1" }}
               >
                 <div style={{ padding: "20px 0" }}>
-                  <p className="ant-upload-drag-icon" style={{ display: "flex", justifyContent: "center", color: "#3b82f6" }}>
-                    <FilePlus size={32} />
+                  <p
+                    className="ant-upload-drag-icon"
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      color: "#8b5cf6",
+                      marginBottom: 8,
+                    }}
+                  >
+                    <FilePlus size={36} />
                   </p>
-                  <p style={{ fontSize: 14, color: "#1e293b", fontWeight: 600 }}>Click or drag to upload</p>
-                  <p style={{ fontSize: 12, color: "#64748b" }}>Support for PDF, DOCX, and JPG formats</p>
+                  <p
+                    style={{
+                      fontSize: 14,
+                      color: "var(--text-slate-900)",
+                      fontWeight: 700,
+                      margin: 0,
+                    }}
+                  >
+                    Click or drag file to upload
+                  </p>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: "var(--text-slate-500)",
+                      marginTop: 4,
+                    }}
+                  >
+                    PDF, DOCX, JPG · max one file at a time
+                  </p>
                 </div>
               </Upload.Dragger>
             </Form.Item>
+          </div>
 
-            <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 12 }}>
-              <Button
-                onClick={() => setIsUploadModalVisible(false)}
-                style={{ borderRadius: 8, height: 40 }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                onClick={handleUpload}
-                loading={uploading}
-                style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
-              >
-                Start Ingestion
-              </Button>
-            </div>
-          </Form>
-        </div>
+          <div className="pmodal-footer">
+            <span className="pmodal-footer-hint">
+              <ShieldCheck size={12} />
+              Files are encrypted at rest
+            </span>
+            <Button
+              onClick={() => {
+                setIsUploadModalVisible(false);
+                form.resetFields();
+                setFileList([]);
+              }}
+              className="pmodal-btn-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleUpload}
+              loading={uploading}
+              icon={<UploadIcon size={15} />}
+              className="pmodal-btn-primary"
+            >
+              Start Ingestion
+            </Button>
+          </div>
+        </Form>
       </Modal>
 
       {/* Preview Modal */}
@@ -430,7 +484,7 @@ export default function DocumentsTab({
             <div style={{ background: "#f0fdf4", padding: 8, borderRadius: 8, color: "#16a34a", display: "flex" }}>
               <Eye size={20} />
             </div>
-            <span style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>Archive Preview: {viewingDocument?.fileName}</span>
+            <span style={{ fontWeight: 700, fontSize: 18, color: "var(--text-slate-900)" }}>Archive Preview: {viewingDocument?.fileName}</span>
           </div>
         }
         open={viewModalOpen}
@@ -470,17 +524,22 @@ export default function DocumentsTab({
 
       <style dangerouslySetInnerHTML={{
         __html: `
+        .premium-table .ant-table {
+          background: transparent !important;
+          color: var(--text-slate-700) !important;
+        }
         .premium-table .ant-table-thead > tr > th {
-          background: #f8fafc !important;
-          color: #64748b !important;
+          background: var(--bg-slate-50) !important;
+          color: var(--text-slate-500) !important;
           font-weight: 600 !important;
           font-size: 11px !important;
           text-transform: uppercase !important;
           letter-spacing: 0.05em !important;
           padding: 16px 24px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
           white-space: nowrap !important;
         }
+        .premium-table .ant-table-thead > tr > th::before { display: none !important; }
         @media (max-width: 576px) {
           .premium-table .ant-table-thead > tr > th,
           .premium-table .ant-table-tbody > tr > td {
@@ -489,15 +548,28 @@ export default function DocumentsTab({
         }
         .premium-table .ant-table-tbody > tr > td {
           padding: 16px 24px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+        }
+        .premium-table .ant-table-tbody > tr:hover > td {
+          background: var(--bg-slate-50) !important;
+        }
+        .premium-table .ant-table-placeholder > td {
+          background: transparent !important;
         }
         .premium-action-btn:hover {
-          background: #f1f5f9 !important;
-          color: #3b82f6 !important;
+          background: var(--bg-slate-50) !important;
+          color: #8b5cf6 !important;
         }
         .ant-modal-header {
-            border-bottom: 1px solid #f1f5f9 !important;
+            border-bottom: 1px solid var(--border-slate-100) !important;
             padding-bottom: 16px !important;
+        }
+        [data-theme="dark"] .premium-action-btn {
+          color: var(--text-slate-400) !important;
+        }
+        [data-theme="dark"] .premium-action-btn:hover {
+          background: rgba(139, 92, 246, 0.16) !important;
+          color: #a78bfa !important;
         }
       `}} />
     </div>

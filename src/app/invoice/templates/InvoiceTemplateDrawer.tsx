@@ -1,39 +1,32 @@
 import React, { useEffect } from 'react';
-import { 
-  Drawer, 
-  Form, 
-  Input, 
-  Button, 
-  Space, 
-  Select, 
-  Divider, 
-  Switch, 
-  Typography,
+import {
+  Drawer,
+  Form,
+  Input,
+  Button,
+  Select,
+  Switch,
   Popconfirm,
   Spin,
-  Badge
 } from 'antd';
-import { 
-  useCreateInvoiceTemplate, 
+import {
+  useCreateInvoiceTemplate,
   useUpdateInvoiceTemplate,
   useInvoiceTemplate,
-  useInvoiceTemplates
 } from '@/hooks/useInvoiceTemplates';
-import { InvoiceTemplate } from '@/services/invoiceTemplateService';
-import { 
-  Tag as TagIcon, 
-  Settings as SettingsIcon, 
-  FileText, 
-  Plus, 
-  Trash2, 
+import {
+  FileText,
+  Plus,
+  Trash2,
   Layers,
-  ChevronDown,
-  Layout
+  Layout,
+  Settings as SettingsIcon,
+  GripVertical,
+  X,
 } from 'lucide-react';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
-const { Title, Text, Paragraph } = Typography;
 
 interface Props {
   visible: boolean;
@@ -51,16 +44,24 @@ const FIELD_TYPES = [
   { label: 'Dropdown', value: 'dropdown' },
 ];
 
+const BILLING_TYPES: { value: string; label: string; description: string }[] = [
+  { value: 'fixed', label: 'Fixed price', description: 'One-off project amount' },
+  { value: 'hourly', label: 'Hourly rate', description: 'Time-based billing' },
+  { value: 'unit', label: 'Unit based', description: 'Per-unit pricing' },
+  { value: 'subscription', label: 'Subscription', description: 'Recurring charges' },
+];
+
 export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: Props) {
   const [form] = Form.useForm();
-  
-  // Fetch full details if we have an ID
-  const { data: fullTemplate, isLoading: isFetching } = useInvoiceTemplate(templateId as string, visible && !!templateId);
-  const { data: allTemplates = [] } = useInvoiceTemplates();
-  
+
+  const { data: fullTemplate, isLoading: isFetching } = useInvoiceTemplate(
+    templateId as string,
+    visible && !!templateId
+  );
+
   const createMutation = useCreateInvoiceTemplate();
   const updateMutation = useUpdateInvoiceTemplate();
-  
+
   const isEditing = !!templateId;
 
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
           { fieldKey: 'description', fieldLabel: 'Description', fieldType: 'text', fieldOrder: 2, isRequired: false, isSystem: true },
           { fieldKey: 'qty', fieldLabel: 'Quantity', fieldType: 'number', fieldOrder: 3, isRequired: true, isSystem: true },
           { fieldKey: 'price', fieldLabel: 'Price', fieldType: 'currency', fieldOrder: 4, isRequired: true, isSystem: true },
-        ]
+        ],
       });
     }
   }, [visible, isEditing, fullTemplate, form]);
@@ -94,62 +95,151 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
     };
 
     if (isEditing && templateId) {
-      updateMutation.mutate(
-        { id: templateId, data: payload },
-        { onSuccess: onClose }
-      );
+      updateMutation.mutate({ id: templateId, data: payload }, { onSuccess: onClose });
     } else {
       createMutation.mutate(payload, { onSuccess: onClose });
     }
   };
 
+  const SectionLabel = ({
+    icon: Icon,
+    label,
+    description,
+  }: {
+    icon: any;
+    label: string;
+    description?: string;
+  }) => (
+    <div className="flex items-center gap-2.5 mb-3">
+      <div
+        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+        style={{
+          background: 'var(--bg-blue-50)',
+          color: 'var(--text-blue-700)',
+          border: '1px solid var(--border-blue-200)',
+        }}
+      >
+        <Icon size={13} strokeWidth={2.25} />
+      </div>
+      <span
+        className="text-[14px] font-semibold"
+        style={{ color: 'var(--text-primary)' }}
+      >
+        {label}
+      </span>
+      {description && (
+        <>
+          <span
+            className="h-3.5 w-px"
+            style={{ background: 'var(--border-color)' }}
+          />
+          <span
+            className="text-[11px] uppercase tracking-[0.08em]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            {description}
+          </span>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <Drawer
-      title={
-        <Space size={12}>
-          <div style={{ background: 'var(--bg-blue-50)', padding: 8, borderRadius: 10, color: 'var(--text-sky-500)', display: 'flex' }}>
-            <Layout size={18} />
-          </div>
-          <div style={{ lineHeight: 1.1 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
-              {isEditing ? 'Edit Template' : 'Create New Template'}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 400 }}>
-              {isEditing ? 'Update your professional billing structure' : 'Design a new structure for your client invoices'}
-            </div>
-          </div>
-        </Space>
-      }
-      width={720}
+      title={null}
+      width={760}
       onClose={onClose}
       open={visible}
+      closable={false}
       styles={{
-        header: { borderBottom: '1px solid var(--border-slate-200)', padding: '20px 24px' },
-        body: { padding: '24px', paddingBottom: 100 },
-        footer: { borderTop: '1px solid var(--border-slate-200)', padding: '16px 24px' }
+        header: { display: 'none' },
+        body: { padding: 0, background: 'var(--customers-page-bg)' },
+        footer: { padding: 0, border: 'none' },
+        wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
+        mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
       }}
       footer={
-        <div className="flex justify-end gap-3">
-          <Button 
+        <div
+          className="px-6 py-3 flex items-center justify-end gap-2 border-t"
+          style={{
+            background: 'var(--bg-secondary)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <Button
             onClick={onClose}
-            style={{ borderRadius: 8, height: 40, fontWeight: 500 }}
+            style={{ borderRadius: 8, height: 36 }}
           >
             Discard
           </Button>
-          <Button 
-            type="primary" 
-            onClick={() => form.submit()} 
+          <Button
+            type="primary"
+            onClick={() => form.submit()}
             loading={createMutation.isPending || updateMutation.isPending}
             disabled={isFetching}
-            style={{ borderRadius: 8, height: 40, padding: "0 24px", fontWeight: 600, background: "var(--customers-header-icon-color)", border: "none" }}
+            style={{
+              borderRadius: 8,
+              height: 36,
+              padding: '0 18px',
+              fontWeight: 600,
+              background: '#2563eb',
+            }}
           >
-            {isEditing ? 'Update Template' : 'Save Template'}
+            {isEditing ? 'Update template' : 'Save template'}
           </Button>
         </div>
       }
     >
+      {/* HEADER */}
+      <div
+        className="sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+        style={{
+          background:
+            'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+          borderColor: 'var(--border-color)',
+        }}
+      >
+        <div className="flex items-start gap-3 min-w-0">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{
+              background: 'var(--bg-blue-50)',
+              color: 'var(--text-blue-700)',
+              border: '1px solid var(--border-blue-200)',
+            }}
+          >
+            <Layout size={18} strokeWidth={2.25} />
+          </div>
+          <div className="min-w-0">
+            <div
+              className="text-[15px] font-semibold leading-tight"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {isEditing ? 'Edit template' : 'Create new template'}
+            </div>
+            <div
+              className="text-[12px] mt-0.5"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {isEditing
+                ? 'Update your professional billing structure'
+                : 'Design a new structure for your client invoices'}
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          <X size={18} />
+        </button>
+      </div>
+
       {isFetching ? (
-        <div style={{ padding: '40px', textAlign: 'center' }}>
+        <div className="flex items-center justify-center py-20">
           <Spin tip="Loading template details..." />
         </div>
       ) : (
@@ -159,236 +249,527 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
           onFinish={onFinish}
           initialValues={{ isActive: true, isDefault: false }}
         >
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          <div style={{ background: 'var(--bg-slate-50)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-slate-100)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-              <Form.Item
-                name="name"
-                label={<Text style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Template Name</Text>}
-                rules={[{ required: true, message: 'Template name is required' }]}
-              >
-                <Input placeholder="e.g. Creative Services - Hourly" style={{ borderRadius: 8, height: 40 }} />
-              </Form.Item>
+          <div className="px-6 py-6 space-y-5 pb-24">
+            {/* GENERAL CARD */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              <div className="px-5 pt-4 pb-2">
+                <SectionLabel
+                  icon={FileText}
+                  label="General"
+                  description="Identify this template"
+                />
+              </div>
+              <div className="px-5 pb-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <Form.Item
+                    name="name"
+                    label={
+                      <span
+                        className="text-[11px] font-semibold uppercase tracking-[0.08em]"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        Template name
+                      </span>
+                    }
+                    rules={[{ required: true, message: 'Template name is required' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input
+                      placeholder="e.g. Creative services — hourly"
+                      style={{
+                        borderRadius: 8,
+                        height: 38,
+                        borderColor: 'var(--border-color)',
+                      }}
+                    />
+                  </Form.Item>
 
-              <Form.Item
-                name="billingType"
-                label={<Text style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Billing Type</Text>}
-                rules={[{ required: true, message: 'Please select billing type' }]}
-              >
-                <Select placeholder="Select billing type" style={{ height: 40 }} className="custom-select">
-                  <Option value="fixed">Fixed Price</Option>
-                  <Option value="hourly">Hourly Rate</Option>
-                  <Option value="unit">Unit Based</Option>
-                  <Option value="subscription">Subscription</Option>
-                </Select>
-              </Form.Item>
+                  <Form.Item
+                    name="billingType"
+                    label={
+                      <span
+                        className="text-[11px] font-semibold uppercase tracking-[0.08em]"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        Billing type
+                      </span>
+                    }
+                    rules={[{ required: true, message: 'Please select billing type' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Select
+                      placeholder="Select billing type"
+                      className="custom-select-template"
+                      style={{ height: 38 }}
+                      optionLabelProp="label"
+                    >
+                      {BILLING_TYPES.map((b) => (
+                        <Option key={b.value} value={b.value} label={b.label}>
+                          <div className="flex flex-col">
+                            <span
+                              className="text-[13px] font-medium"
+                              style={{ color: 'var(--text-primary)' }}
+                            >
+                              {b.label}
+                            </span>
+                            <span
+                              className="text-[11px]"
+                              style={{ color: 'var(--text-secondary)' }}
+                            >
+                              {b.description}
+                            </span>
+                          </div>
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </div>
+
+                <Form.Item
+                  name="description"
+                  label={
+                    <span
+                      className="text-[11px] font-semibold uppercase tracking-[0.08em] mt-3 block"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      Internal description
+                    </span>
+                  }
+                  style={{ marginBottom: 0, marginTop: 16 }}
+                >
+                  <Input.TextArea
+                    rows={2}
+                    placeholder="Optional notes about when to use this template..."
+                    style={{
+                      borderRadius: 8,
+                      borderColor: 'var(--border-color)',
+                      resize: 'none',
+                    }}
+                  />
+                </Form.Item>
+              </div>
             </div>
 
-            <Form.Item
-              name="description"
-              label={<Text style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Internal Description</Text>}
+            {/* STATUS CARD */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+              }}
             >
-              <Input.TextArea rows={2} placeholder="Optional notes about when to use this template..." style={{ borderRadius: 8 }} />
-            </Form.Item>
+              <div className="px-5 pt-4 pb-2">
+                <SectionLabel
+                  icon={SettingsIcon}
+                  label="Visibility"
+                  description="Where this template appears"
+                />
+              </div>
+              <div
+                className="mx-5 mb-5 rounded-xl overflow-hidden"
+                style={{ border: '1px solid var(--border-color)' }}
+              >
+                <div
+                  className="flex items-center justify-between px-4 py-3 border-b"
+                  style={{ borderColor: 'var(--border-color)' }}
+                >
+                  <div>
+                    <div
+                      className="text-[13px] font-semibold"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      Active
+                    </div>
+                    <div
+                      className="text-[11px]"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      Available when creating new invoices
+                    </div>
+                  </div>
+                  <Form.Item name="isActive" valuePropName="checked" noStyle>
+                    <Switch size="small" />
+                  </Form.Item>
+                </div>
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div>
+                    <div
+                      className="text-[13px] font-semibold"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      Set as default
+                    </div>
+                    <div
+                      className="text-[11px]"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      Auto-applied to every new invoice
+                    </div>
+                  </div>
+                  <Form.Item name="isDefault" valuePropName="checked" noStyle>
+                    <Switch size="small" />
+                  </Form.Item>
+                </div>
+              </div>
+            </div>
 
-            <div style={{ display: 'flex', gap: '32px', marginTop: 8 }}>
-              <div className="flex items-center gap-3">
-                <Form.Item name="isActive" valuePropName="checked" noStyle>
-                  <Switch 
-                    size="small"
-                  />
-                </Form.Item>
-                <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Active</Text>
+            {/* FIELDS CARD */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              <div className="px-5 pt-4 pb-2 flex items-center justify-between">
+                <SectionLabel
+                  icon={Layers}
+                  label="Invoice structure"
+                  description="Columns of the line items table"
+                />
               </div>
 
-              <div className="flex items-center gap-3">
-                <Form.Item name="isDefault" valuePropName="checked" noStyle>
-                  <Switch 
-                    size="small"
-                  />
-                </Form.Item>
-                <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Set as Primary</Text>
-              </div>
+              <Form.List name="fields">
+                {(fields, { add, remove }) => (
+                  <div className="px-5 pb-5">
+                    <div className="space-y-2.5">
+                      {fields.map(({ key, name, ...restField }) => {
+                        const isSystem = form.getFieldValue([
+                          'fields',
+                          name,
+                          'isSystem',
+                        ]);
+                        return (
+                          <div
+                            key={key}
+                            className="field-row rounded-xl"
+                            style={{
+                              background: isSystem
+                                ? 'var(--bg-slate-50)'
+                                : 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
+                            }}
+                          >
+                            <div className="px-3 pt-3 pb-3 grid items-end gap-2.5"
+                              style={{
+                                gridTemplateColumns:
+                                  '20px 1.2fr 1fr 1.1fr 78px 32px',
+                              }}
+                            >
+                              <div
+                                className="flex items-center justify-center pb-2"
+                                style={{ color: 'var(--text-secondary)' }}
+                              >
+                                <GripVertical size={14} />
+                              </div>
+
+                              <Form.Item
+                                {...restField}
+                                name={[name, 'fieldLabel']}
+                                label={
+                                  <span
+                                    className="text-[10px] font-semibold uppercase tracking-[0.08em]"
+                                    style={{ color: 'var(--text-secondary)' }}
+                                  >
+                                    Label
+                                  </span>
+                                }
+                                rules={[{ required: true, message: 'Required' }]}
+                                style={{ marginBottom: 0 }}
+                              >
+                                <Input
+                                  placeholder="e.g. Tax rate"
+                                  size="small"
+                                  style={{
+                                    borderRadius: 6,
+                                    height: 32,
+                                    borderColor: 'var(--border-color)',
+                                  }}
+                                />
+                              </Form.Item>
+
+                              <Form.Item
+                                {...restField}
+                                name={[name, 'fieldKey']}
+                                label={
+                                  <span
+                                    className="text-[10px] font-semibold uppercase tracking-[0.08em]"
+                                    style={{ color: 'var(--text-secondary)' }}
+                                  >
+                                    Key
+                                  </span>
+                                }
+                                rules={[{ required: true, message: 'Required' }]}
+                                style={{ marginBottom: 0 }}
+                              >
+                                <Input
+                                  placeholder="tax_rate"
+                                  size="small"
+                                  disabled={isSystem}
+                                  style={{
+                                    borderRadius: 6,
+                                    height: 32,
+                                    borderColor: 'var(--border-color)',
+                                    fontFamily:
+                                      'ui-monospace, SFMono-Regular, Menlo, monospace',
+                                    fontSize: 12,
+                                  }}
+                                />
+                              </Form.Item>
+
+                              <Form.Item
+                                {...restField}
+                                name={[name, 'fieldType']}
+                                label={
+                                  <span
+                                    className="text-[10px] font-semibold uppercase tracking-[0.08em]"
+                                    style={{ color: 'var(--text-secondary)' }}
+                                  >
+                                    Type
+                                  </span>
+                                }
+                                rules={[{ required: true, message: 'Required' }]}
+                                style={{ marginBottom: 0 }}
+                              >
+                                <Select
+                                  placeholder="Type"
+                                  size="small"
+                                  disabled={isSystem}
+                                  className="custom-select-template-sm"
+                                >
+                                  {FIELD_TYPES.map((t) => (
+                                    <Option key={t.value} value={t.value}>
+                                      {t.label}
+                                    </Option>
+                                  ))}
+                                </Select>
+                              </Form.Item>
+
+                              <Form.Item
+                                {...restField}
+                                name={[name, 'isRequired']}
+                                label={
+                                  <span
+                                    className="text-[10px] font-semibold uppercase tracking-[0.08em]"
+                                    style={{ color: 'var(--text-secondary)' }}
+                                  >
+                                    Required
+                                  </span>
+                                }
+                                valuePropName="checked"
+                                style={{ marginBottom: 0 }}
+                              >
+                                <div className="h-8 flex items-center">
+                                  <Switch size="small" />
+                                </div>
+                              </Form.Item>
+
+                              <div className="pb-1 flex items-center justify-end">
+                                {isSystem ? (
+                                  <span
+                                    className="text-[9.5px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                                    style={{
+                                      color: 'var(--text-secondary)',
+                                      background: 'var(--bg-secondary)',
+                                      border: '1px solid var(--border-color)',
+                                    }}
+                                  >
+                                    Sys
+                                  </span>
+                                ) : (
+                                  <Popconfirm
+                                    title="Remove field"
+                                    description="Are you sure you want to remove this column?"
+                                    onConfirm={() => remove(name)}
+                                    okText="Delete"
+                                    cancelText="Keep"
+                                    okButtonProps={{ danger: true }}
+                                  >
+                                    <Button
+                                      type="text"
+                                      danger
+                                      size="small"
+                                      icon={<Trash2 size={14} />}
+                                    />
+                                  </Popconfirm>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Dropdown Options */}
+                            <Form.Item
+                              noStyle
+                              shouldUpdate={(prev, cur) =>
+                                prev.fields?.[name]?.fieldType !==
+                                cur.fields?.[name]?.fieldType
+                              }
+                            >
+                              {({ getFieldValue }) => {
+                                const fieldType = getFieldValue([
+                                  'fields',
+                                  name,
+                                  'fieldType',
+                                ]);
+                                if (fieldType !== 'dropdown') return null;
+                                return (
+                                  <div
+                                    className="px-3 pb-3"
+                                    style={{ marginLeft: 28 }}
+                                  >
+                                    <div
+                                      className="rounded-lg p-3"
+                                      style={{
+                                        background: 'var(--bg-slate-50)',
+                                        border: '1px dashed var(--border-color)',
+                                      }}
+                                    >
+                                      <div
+                                        className="text-[10px] font-semibold uppercase tracking-[0.08em] mb-2"
+                                        style={{ color: 'var(--text-secondary)' }}
+                                      >
+                                        Dropdown options
+                                      </div>
+                                      <Form.List name={[name, 'options']}>
+                                        {(options, { add: addOpt, remove: rmOpt }) => (
+                                          <div className="space-y-1.5">
+                                            {options.map((option, index) => (
+                                              <div
+                                                key={option.key}
+                                                className="flex items-center gap-2"
+                                              >
+                                                <span
+                                                  className="w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-semibold flex-shrink-0"
+                                                  style={{
+                                                    background: 'var(--bg-secondary)',
+                                                    color: 'var(--text-secondary)',
+                                                    border:
+                                                      '1px solid var(--border-color)',
+                                                  }}
+                                                >
+                                                  {index + 1}
+                                                </span>
+                                                <Form.Item
+                                                  {...option}
+                                                  noStyle
+                                                  rules={[
+                                                    { required: true, message: 'Required' },
+                                                  ]}
+                                                >
+                                                  <Input
+                                                    placeholder={`Option ${index + 1}`}
+                                                    size="small"
+                                                    style={{
+                                                      borderRadius: 6,
+                                                      borderColor:
+                                                        'var(--border-color)',
+                                                    }}
+                                                  />
+                                                </Form.Item>
+                                                <Button
+                                                  type="text"
+                                                  danger
+                                                  icon={<DeleteOutlined />}
+                                                  size="small"
+                                                  onClick={() => rmOpt(index)}
+                                                  disabled={options.length <= 1}
+                                                />
+                                              </div>
+                                            ))}
+                                            <Button
+                                              type="dashed"
+                                              onClick={() => addOpt('New Option')}
+                                              icon={<PlusOutlined />}
+                                              size="small"
+                                              style={{
+                                                width: 'fit-content',
+                                                borderColor: 'var(--border-color)',
+                                                color: 'var(--text-blue-700)',
+                                              }}
+                                            >
+                                              Add option
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </Form.List>
+                                    </div>
+                                  </div>
+                                );
+                              }}
+                            </Form.Item>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <Button
+                      type="dashed"
+                      onClick={() =>
+                        add({
+                          fieldKey: '',
+                          fieldLabel: '',
+                          fieldType: 'text',
+                          isRequired: false,
+                          isSystem: false,
+                        })
+                      }
+                      block
+                      icon={<Plus size={14} />}
+                      style={{
+                        height: 40,
+                        marginTop: 12,
+                        borderRadius: 10,
+                        borderStyle: 'dashed',
+                        borderColor: 'var(--border-color)',
+                        color: 'var(--text-blue-700)',
+                        fontWeight: 600,
+                        fontSize: 13,
+                      }}
+                    >
+                      Add custom field
+                    </Button>
+                  </div>
+                )}
+              </Form.List>
             </div>
           </div>
-
-          <Divider orientation="left">
-            <Space size={8}>
-              <Layers size={14} style={{ color: 'var(--text-sky-500)' }} />
-              <Text style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>Invoice Structure Fields</Text>
-            </Space>
-          </Divider>
-
-            <Form.List name="fields">
-              {(fields, { add, remove }) => (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {fields.map(({ key, name, ...restField }) => (
-                    <div 
-                      key={key} 
-                      style={{ 
-                        padding: '20px', 
-                        background: 'var(--customers-card-bg)', 
-                        borderRadius: '16px',
-                        border: '1px solid var(--border-slate-100)',
-                        position: 'relative',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-                      }}
-                      className="field-item-card"
-                    >
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.2fr 80px 40px', gap: '12px', alignItems: 'end' }}>
-                        <Form.Item
-                          {...restField}
-                          name={[name, 'fieldLabel']}
-                          label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-500)', textTransform: 'uppercase' }}>Label</Text>}
-                          rules={[{ required: true, message: 'Required' }]}
-                          style={{ marginBottom: 0 }}
-                        >
-                          <Input placeholder="e.g. Tax Rate" style={{ borderRadius: 6 }} />
-                        </Form.Item>
-
-                        <Form.Item
-                          {...restField}
-                          name={[name, 'fieldKey']}
-                          label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-500)', textTransform: 'uppercase' }}>ID Key</Text>}
-                          rules={[{ required: true, message: 'Required' }]}
-                          style={{ marginBottom: 0 }}
-                        >
-                          <Input placeholder="tax_rate" disabled={form.getFieldValue(['fields', name, 'isSystem'])} style={{ borderRadius: 6 }} />
-                        </Form.Item>
-
-                        <Form.Item
-                          {...restField}
-                          name={[name, 'fieldType']}
-                          label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-500)', textTransform: 'uppercase' }}>Type</Text>}
-                          rules={[{ required: true, message: 'Required' }]}
-                          style={{ marginBottom: 0 }}
-                        >
-                          <Select placeholder="Type" disabled={form.getFieldValue(['fields', name, 'isSystem'])} style={{ borderRadius: 6 }}>
-                            {FIELD_TYPES.map(t => (
-                              <Option key={t.value} value={t.value}>{t.label}</Option>
-                            ))}
-                          </Select>
-                        </Form.Item>
-
-                        <Form.Item
-                          {...restField}
-                          name={[name, 'isRequired']}
-                          label={<Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-500)', textTransform: 'uppercase' }}>Req.</Text>}
-                          valuePropName="checked"
-                          style={{ marginBottom: 0, textAlign: 'center' }}
-                        >
-                          <Switch size="small" />
-                        </Form.Item>
-
-                        <div style={{ paddingBottom: 4 }}>
-                          <Popconfirm
-                            title="Remove Field"
-                            description="Are you sure you want to remove this column?"
-                            onConfirm={() => remove(name)}
-                            okText="Delete"
-                            cancelText="Keep"
-                            okButtonProps={{ danger: true }}
-                            disabled={form.getFieldValue(['fields', name, 'isSystem'])}
-                          >
-                            <Button 
-                              type="text" 
-                              danger 
-                              icon={<Trash2 size={16} />} 
-                              className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
-                              disabled={form.getFieldValue(['fields', name, 'isSystem'])}
-                            />
-                          </Popconfirm>
-                        </div>
-                      </div>
-
-                      {/* Dropdown Options section */}
-                      <Form.Item
-                        noStyle
-                        shouldUpdate={(prevValues, curValues) => 
-                          prevValues.fields?.[name]?.fieldType !== curValues.fields?.[name]?.fieldType
-                        }
-                      >
-                        {({ getFieldValue }) => {
-                          const fieldType = getFieldValue(['fields', name, 'fieldType']);
-                          if (fieldType !== 'dropdown') return null;
-
-                          return (
-                            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed #e8e8e8' }}>
-                              <Typography.Text strong style={{ fontSize: '11px', display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-                                Dropdown Options
-                              </Typography.Text>
-                              <Form.List name={[name, 'options']}>
-                                {(options, { add: addOption, remove: removeOption }) => (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {options.map((option, index) => (
-                                      <div key={option.key} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                        <Form.Item
-                                          {...option}
-                                          noStyle
-                                          rules={[{ required: true, message: 'Required' }]}
-                                        >
-                                          <Input placeholder={`Option ${index + 1}`} size="small" style={{ borderRadius: '4px', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
-                                        </Form.Item>
-                                        <Button 
-                                          type="text" 
-                                          danger 
-                                          icon={<DeleteOutlined />} 
-                                          size="small" 
-                                          onClick={() => removeOption(index)} 
-                                          disabled={options.length <= 1}
-                                        />
-                                      </div>
-                                    ))}
-                                    <Button 
-                                      type="dashed" 
-                                      onClick={() => addOption('New Option')} 
-                                      icon={<PlusOutlined />} 
-                                      size="small" 
-                                      style={{ width: 'fit-content' }}
-                                    >
-                                      Add Option
-                                    </Button>
-                                  </div>
-                                )}
-                              </Form.List>
-                            </div>
-                          );
-                        }}
-                      </Form.Item>
-                    </div>
-                  ))}
-                  
-                  <Button 
-                    type="dashed" 
-                    onClick={() => add({ fieldKey: '', fieldLabel: '', fieldType: 'text', isRequired: false, isSystem: false })} 
-                    block 
-                    icon={<Plus size={16} />}
-                    style={{ height: 48, borderRadius: 12, borderStyle: 'dashed', borderWidth: 2, background: 'var(--bg-blue-50/20)', color: 'var(--text-sky-600)', fontWeight: 600 }}
-                  >
-                    Add Custom Billing Field
-                  </Button>
-                </div>
-              )}
-            </Form.List>
-          </Space>
         </Form>
       )}
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        .field-item-card {
-          transition: all 0.3s ease;
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        .field-row { transition: border-color 0.15s, box-shadow 0.15s; }
+        .field-row:hover {
+          border-color: #93c5fd !important;
+          box-shadow: 0 0 0 3px rgba(96,165,250,0.10);
         }
-        .field-item-card:hover {
-          border-color: var(--text-sky-200) !important;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08) !important;
-        }
-        .custom-select .ant-select-selector {
+        .custom-select-template .ant-select-selector {
           border-radius: 8px !important;
+          height: 38px !important;
+          padding: 0 12px !important;
+          display: flex; align-items: center;
+          border-color: var(--border-color) !important;
         }
-        .ant-switch-checked {
-          background-color: var(--customers-header-icon-color) !important;
+        .custom-select-template-sm .ant-select-selector {
+          border-radius: 6px !important;
+          height: 32px !important;
+          padding: 0 10px !important;
+          display: flex; align-items: center;
+          border-color: var(--border-color) !important;
         }
-      `}} />
+        .custom-select-template-sm .ant-select-selection-item,
+        .custom-select-template .ant-select-selection-item {
+          color: var(--text-primary) !important;
+        }
+      `,
+        }}
+      />
     </Drawer>
   );
 }

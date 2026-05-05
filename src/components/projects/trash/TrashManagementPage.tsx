@@ -1,37 +1,37 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   Table,
   Button,
-  Space,
   Typography,
   Tag,
   Tooltip,
   Popconfirm,
   message,
-  Empty,
-  Alert,
   Input,
   Select,
-  Row,
-  Col,
   Avatar,
-  Divider,
+  Progress,
+  Badge,
+  Skeleton,
 } from "antd";
 import {
   DeleteOutlined,
   UndoOutlined,
   SearchOutlined,
   ClockCircleOutlined,
-  WarningOutlined,
   ClearOutlined,
   ProjectOutlined,
-  InfoCircleOutlined,
   ReloadOutlined,
   FireFilled,
   FilterOutlined,
+  SafetyCertificateFilled,
+  InboxOutlined,
+  ThunderboltFilled,
+  CloseOutlined,
 } from "@ant-design/icons";
 import {
   useTrashTickets,
@@ -40,6 +40,7 @@ import {
   useBulkRestoreFromTrash,
   useBulkPermanentlyDelete,
   useEmptyTrash,
+  trashKeys,
 } from "@/hooks/useTrash";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
@@ -50,19 +51,30 @@ dayjs.extend(relativeTime);
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+const RETENTION_DAYS = 7;
+
 const calculateDaysRemaining = (deletedAt: string) => {
   const deleteDate = dayjs(deletedAt);
-  const purgeDate = deleteDate.add(7, "days");
+  const purgeDate = deleteDate.add(RETENTION_DAYS, "days");
   const daysRemaining = purgeDate.diff(dayjs(), "days");
   return Math.max(0, daysRemaining);
 };
 
+const calculatePurgeProgress = (deletedAt: string) => {
+  const deleteDate = dayjs(deletedAt);
+  const elapsedHours = dayjs().diff(deleteDate, "hour");
+  const totalHours = RETENTION_DAYS * 24;
+  return Math.min(100, Math.max(0, (elapsedHours / totalHours) * 100));
+};
+
 export default function TrashManagementPage() {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState<string | undefined>(undefined);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     data: trashData,
@@ -86,14 +98,16 @@ export default function TrashManagementPage() {
 
   const stats = useMemo(() => {
     const tickets = trashData?.tickets || [];
-    const purgingSoon = tickets.filter(t => {
+    const purgingSoon = tickets.filter((t) => {
       const days = calculateDaysRemaining(t.deletedAt || t.createdAt);
       return days <= 2;
     }).length;
+    const recoverable = tickets.length - purgingSoon;
 
     return {
       total: trashData?.pagination.total || 0,
-      purgingSoon
+      purgingSoon,
+      recoverable,
     };
   }, [trashData]);
 
@@ -145,7 +159,7 @@ export default function TrashManagementPage() {
 
   const handleEmptyTrash = async () => {
     try {
-      await emptyTrash.mutateAsync(false);
+      await emptyTrash.mutateAsync({ projectId: projectFilter, force: true });
       setSelectedRowKeys([]);
       refetch();
     } catch (error) {
@@ -155,66 +169,39 @@ export default function TrashManagementPage() {
 
   const columns = [
     {
-      title: "ID",
-      dataIndex: "ticketNumber",
-      key: "ticketNumber",
-      width: 140,
-      render: (text: string, record: any) => {
+      title: "Ticket",
+      key: "ticket",
+      render: (_: any, record: any) => {
         const daysRemaining = calculateDaysRemaining(record.deletedAt || record.createdAt);
         const isUrgent = daysRemaining <= 2;
         return (
-          <div style={{ position: 'relative', paddingLeft: 12, whiteSpace: 'nowrap' }}>
-            <div style={{
-              position: 'absolute',
-              left: 0,
-              top: -16,
-              bottom: -16,
-              width: 3,
-              background: isUrgent ? '#ef4444' : 'transparent',
-              opacity: 0.8
-            }} />
-            <Text strong style={{
-              color: "var(--premium-blue)",
-              fontFamily: "JetBrains Mono, monospace",
-              fontSize: 12,
-              letterSpacing: '-0.02em',
-              background: 'var(--bg-slate-100)',
-              padding: '2px 6px',
-              borderRadius: 4,
-              border: '1px solid var(--border-slate-200)'
-            }}>
-              {text}
-            </Text>
+          <div className="tr-ticket-cell">
+            <span className={`tr-row-rail ${isUrgent ? "urgent" : ""}`} />
+            <div className="tr-ticket-meta">
+              <span className="tr-ticket-id">{record.ticketNumber}</span>
+              <Text className="tr-ticket-title">{record.title}</Text>
+            </div>
           </div>
         );
       },
     },
     {
-      title: "Title",
-      key: "title",
-      render: (_: any, record: any) => (
-        <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)', letterSpacing: '-0.01em', lineHeight: '1.2' }}>{record.title}</Text>
-      ),
-    },
-    {
       title: "Project",
       key: "project",
-      width: 160,
+      width: 170,
       render: (_: any, record: any) => (
         <div className="tr-project-chip">
-          <ProjectOutlined style={{ fontSize: 11, color: 'var(--text-slate-600)' }} />
-          <Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-600)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-            {record.project?.name || "Global"}
-          </Text>
+          <span className="tr-project-dot" />
+          <Text className="tr-project-text">{record.project?.name || "Global"}</Text>
         </div>
       ),
     },
     {
       title: "Status",
       key: "status",
-      width: 140,
-      render: (status: string, record: any) => (
-        <Tag className={`tr-status-tag ${record.status === 'completed' ? 'green' : 'slate'}`}>
+      width: 130,
+      render: (_: any, record: any) => (
+        <Tag className={`tr-status-tag ${record.status === "completed" ? "green" : "slate"}`}>
           {record.status?.replace("_", " ")}
         </Tag>
       ),
@@ -222,50 +209,68 @@ export default function TrashManagementPage() {
     {
       title: "Deleted By",
       key: "deletedBy",
-      width: 180,
+      width: 200,
       render: (_: any, record: any) => (
-        <Space>
+        <div className="tr-actor-cell">
           <Avatar
-            size="small"
+            size={28}
             src={record.deletedBy?.avatarUrl}
-            style={{ backgroundColor: "#87d068" }}
+            className="tr-actor-avatar"
           >
-            {record.deletedBy?.name?.charAt(0)}
+            {record.deletedBy?.name?.charAt(0) || "S"}
           </Avatar>
-          <div>
-            <Text strong style={{ fontSize: 12, display: "block", color: 'var(--text-slate-700)' }}>{record.deletedBy?.name || "System"}</Text>
-            <Text style={{ fontSize: 10, color: 'var(--text-slate-400)', fontWeight: 600 }}>{dayjs(record.deletedAt || record.createdAt).fromNow().toUpperCase()}</Text>
+          <div className="tr-actor-meta">
+            <Text className="tr-actor-name">{record.deletedBy?.name || "System"}</Text>
+            <Text className="tr-actor-time">
+              {dayjs(record.deletedAt || record.createdAt).fromNow()}
+            </Text>
           </div>
-        </Space>
+        </div>
       ),
     },
     {
-      title: "Auto-Purge In",
+      title: "Auto-Purge",
       key: "purge",
-      width: 150,
+      width: 200,
       render: (_: any, record: any) => {
         const daysRemaining = calculateDaysRemaining(record.deletedAt || record.createdAt);
+        const progress = calculatePurgeProgress(record.deletedAt || record.createdAt);
         const isUrgent = daysRemaining <= 2;
         return (
-          <Tooltip title={`Permanently purged in approx. ${daysRemaining} days`}>
-            <div className={`tr-purge-badge ${isUrgent ? 'urgent' : 'safe'}`}>
-              <ClockCircleOutlined style={{ color: isUrgent ? "#ef4444" : "#10b981", fontSize: 12 }} />
-              <Text strong style={{ color: isUrgent ? "#ef4444" : "#10b981", fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                {daysRemaining}d Left
-              </Text>
+          <Tooltip
+            title={`Permanently purged in approx. ${daysRemaining} ${daysRemaining === 1 ? "day" : "days"
+              }`}
+          >
+            <div className="tr-purge-cell">
+              <div className="tr-purge-row">
+                <ClockCircleOutlined
+                  className={`tr-purge-icon ${isUrgent ? "urgent" : "safe"}`}
+                />
+                <Text className={`tr-purge-text ${isUrgent ? "urgent" : "safe"}`}>
+                  {daysRemaining === 0 ? "Purging today" : `${daysRemaining}d remaining`}
+                </Text>
+              </div>
+              <Progress
+                percent={progress}
+                showInfo={false}
+                size="small"
+                strokeColor={isUrgent ? "#ef4444" : "#10b981"}
+                trailColor="var(--bg-slate-100)"
+                className="tr-purge-progress"
+              />
             </div>
           </Tooltip>
         );
       },
     },
     {
-      title: "Actions",
+      title: "",
       key: "actions",
-      width: 100,
-      align: "center" as const,
+      width: 96,
+      align: "right" as const,
       fixed: "right" as const,
       render: (_: any, record: any) => (
-        <Space size={4}>
+        <div className="tr-action-cell">
           <Popconfirm
             title="Restore Ticket"
             description="Move this ticket back to active status?"
@@ -277,9 +282,10 @@ export default function TrashManagementPage() {
               <Button
                 type="text"
                 shape="circle"
+                size="small"
                 icon={<UndoOutlined />}
                 loading={restoreTicket.isPending && restoreTicket.variables?.[0] === record.id}
-                style={{ color: "#52c41a" }}
+                className="tr-icon-btn restore"
               />
             </Tooltip>
           </Popconfirm>
@@ -295,113 +301,168 @@ export default function TrashManagementPage() {
               <Button
                 type="text"
                 shape="circle"
-                danger
+                size="small"
                 icon={<DeleteOutlined />}
-                loading={permanentlyDelete.isPending && permanentlyDelete.variables?.[0] === record.id}
+                loading={
+                  permanentlyDelete.isPending &&
+                  permanentlyDelete.variables?.[0] === record.id
+                }
+                className="tr-icon-btn purge"
               />
             </Tooltip>
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ];
 
+  const isFiltered = !!(projectFilter || searchQuery);
+  const hasItems = (trashData?.pagination.total || 0) > 0;
+
   return (
-    <div style={{ background: "var(--bg-pure-white)", minHeight: "100vh" }}>
-      {/* Workstation Header */}
-      <div className="saas-header-container" style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        backdropFilter: 'blur(12px)',
-        padding: '10.5px 48px',
-        margin: '0 -24px 24px',
-        marginBottom: 24
-      }}>
-        <Row justify="space-between" align="middle" gutter={[16, 16]}>
-          <Col>
-            <Space size={16}>
-              <div className="tr-header-icon-box">
-                <DeleteOutlined style={{ fontSize: 18, color: '#ef4444' }} />
-              </div>
-              <Space split={<Divider type="vertical" className="tr-header-divider" />} size={16}>
-                <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
-                  Trash Repository
-                </Title>
-                <Text style={{ fontSize: 12, color: 'var(--text-slate-600)', fontWeight: 600 }}>
-                  Manage deleted tickets and optimize workspace capacity
-                </Text>
-              </Space>
-            </Space>
-          </Col>
-          <Col>
-            <Space size={12}>
-              <Popconfirm
-                title="Empty Trash"
-                description="This action will permanently purge ALL items. Continue?"
-                onConfirm={handleEmptyTrash}
-                okText="Purge All"
-                cancelText="Keep"
-                okButtonProps={{ danger: true, style: { fontWeight: 700 } }}
-              >
-                <Button
-                  size="small"
-                  type="text"
-                  danger
-                  icon={<ClearOutlined />}
-                  loading={emptyTrash.isPending}
-                  disabled={!trashData?.tickets?.length}
-                  style={{ fontWeight: 800, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.02em' }}
-                >
-                  Empty Trash
-                </Button>
-              </Popconfirm>
-            </Space>
-          </Col>
-        </Row>
-      </div>
-
-      <div style={{ padding: "0 32px 32px" }}>
-        {/* Unified High-Density Trash Control Bar */}
-        <div className="tr-control-bar">
-          {/* 1. Technical Metrics Group */}
-          <div className="tr-metrics-group">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div className="tr-metric-icon slate">
-                <DeleteOutlined style={{ color: '#64748b', fontSize: 16 }} />
-              </div>
-              <div>
-                <Text style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-slate-900)', display: 'block', lineHeight: 1 }}>{stats.total}</Text>
-                <Text style={{ fontSize: 9, color: 'var(--text-slate-400)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>TOTAL DELETED</Text>
-              </div>
+    <div className="tr-page">
+      {/* Hero Header */}
+      <div className="tr-hero">
+        <div className="tr-hero-glow" />
+        <div className="tr-hero-inner">
+          <div className="tr-hero-left">
+            <div className="tr-hero-badge">
+              <DeleteOutlined />
             </div>
+            <div className="tr-hero-text">
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div className={`tr-metric-icon ${stats.purgingSoon > 0 ? 'red' : 'slate'}`}>
-                <FireFilled style={{ color: stats.purgingSoon > 0 ? '#ef4444' : '#94a3b8', fontSize: 16 }} />
-              </div>
-              <div>
-                <Text style={{ fontSize: 15, fontWeight: 800, color: stats.purgingSoon > 0 ? '#ef4444' : 'var(--text-slate-900)', display: 'block', lineHeight: 1 }}>{stats.purgingSoon}</Text>
-                <Text style={{ fontSize: 9, color: 'var(--text-slate-400)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>PURGING SOON</Text>
+              <Title level={3} className="tr-hero-title">
+                Trash Repository
+              </Title>
+              <Text className="tr-hero-sub">
+                Restore deleted tickets within {RETENTION_DAYS} days. After that, items are
+                permanently purged from the workspace.
+              </Text>
+            </div>
+          </div>
+
+          <div className="tr-hero-actions">
+            <Tooltip title="Refresh">
+              <Button
+                type="text"
+                icon={<ReloadOutlined spin={isRefreshing} />}
+                onClick={async () => {
+                  setIsRefreshing(true);
+                  await queryClient.invalidateQueries({ queryKey: trashKeys.all });
+                  setIsRefreshing(false);
+                  message.success("Trash refreshed");
+                }}
+                loading={isLoading}
+                className="tr-hero-ghost"
+              />
+            </Tooltip>
+            <Popconfirm
+              title="Empty Trash"
+              description="This will permanently purge ALL items. This action cannot be undone."
+              onConfirm={handleEmptyTrash}
+              okText="Purge All"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+              disabled={!hasItems}
+            >
+              <Button
+                danger
+                icon={<ClearOutlined />}
+                loading={emptyTrash.isPending}
+                disabled={!hasItems}
+                className="tr-hero-danger"
+              >
+                Empty Trash
+              </Button>
+            </Popconfirm>
+          </div>
+        </div>
+
+        {/* Stat Strip */}
+        <div className="tr-stat-strip">
+          <div className="tr-stat">
+            <div className="tr-stat-icon slate">
+              <InboxOutlined />
+            </div>
+            <div className="tr-stat-body">
+              <Text className="tr-stat-label">Total in Trash</Text>
+              <div className="tr-stat-value">
+                {stats.total}
+                <span className="tr-stat-unit">items</span>
               </div>
             </div>
           </div>
 
-          {/* Filter Cluster */}
+          <div className="tr-stat-divider" />
+
+          <div className="tr-stat">
+            <div className="tr-stat-icon green">
+              <SafetyCertificateFilled />
+            </div>
+            <div className="tr-stat-body">
+              <Text className="tr-stat-label">Recoverable</Text>
+              <div className="tr-stat-value">
+                {stats.recoverable}
+                <span className="tr-stat-unit">safe to restore</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="tr-stat-divider" />
+
+          <div className="tr-stat">
+            <div className={`tr-stat-icon ${stats.purgingSoon > 0 ? "red pulse" : "slate"}`}>
+              <FireFilled />
+            </div>
+            <div className="tr-stat-body">
+              <Text className="tr-stat-label">Purging Soon</Text>
+              <div
+                className={`tr-stat-value ${stats.purgingSoon > 0 ? "danger" : ""}`}
+              >
+                {stats.purgingSoon}
+                <span className="tr-stat-unit">≤ 2 days left</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="tr-stat-divider" />
+
+          <div className="tr-stat">
+            <div className="tr-stat-icon blue">
+              <ThunderboltFilled />
+            </div>
+            <div className="tr-stat-body">
+              <Text className="tr-stat-label">Retention Window</Text>
+              <div className="tr-stat-value">
+                {RETENTION_DAYS}
+                <span className="tr-stat-unit">days</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="tr-body">
+        {/* Filter / Search Bar */}
+        <div className="tr-control-bar">
           <div className="tr-filter-cluster">
             <div className="tr-filter-label">
-              <FilterOutlined style={{ fontSize: 11, color: 'var(--text-slate-500)' }} />
-              <Text className="tr-filter-label-text">Filters</Text>
-              {(projectFilter || searchQuery) && (
-                <span className="tr-filter-count">{(projectFilter ? 1 : 0) + (searchQuery ? 1 : 0)}</span>
+              <FilterOutlined />
+              <span>Filters</span>
+              {isFiltered && (
+                <Badge
+                  count={(projectFilter ? 1 : 0) + (searchQuery ? 1 : 0)}
+                  color="#3b82f6"
+                  size="small"
+                />
               )}
             </div>
 
-            {/* Project Selector */}
-            <div className={`tr-filter-field ${projectFilter ? 'active' : ''}`}>
-              <ProjectOutlined style={{ fontSize: 12, color: projectFilter ? '#3b82f6' : 'var(--text-slate-400)' }} />
+            <div className={`tr-filter-field ${projectFilter ? "active" : ""}`}>
+              <ProjectOutlined className="tr-filter-icon" />
               <Select
-                placeholder="All Sources"
+                placeholder="All projects"
                 variant="borderless"
                 className="tr-filter-select"
                 allowClear
@@ -411,8 +472,8 @@ export default function TrashManagementPage() {
               >
                 {projects?.map((project: any) => (
                   <Option key={project.value} value={project.value} label={project.label}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                      <Text style={{ fontSize: 12, fontWeight: 600 }}>{project.label}</Text>
+                    <div className="tr-project-option">
+                      <Text className="tr-project-option-label">{project.label}</Text>
                       <Tag className="tr-project-code-tag">{project.code}</Tag>
                     </div>
                   </Option>
@@ -420,9 +481,8 @@ export default function TrashManagementPage() {
               </Select>
             </div>
 
-            {/* Search */}
-            <div className={`tr-filter-field tr-filter-search ${searchQuery ? 'active' : ''}`}>
-              <SearchOutlined style={{ fontSize: 12, color: searchQuery ? '#3b82f6' : 'var(--text-slate-400)' }} />
+            <div className={`tr-filter-field tr-filter-search ${searchQuery ? "active" : ""}`}>
+              <SearchOutlined className="tr-filter-icon" />
               <Input
                 placeholder="Search deleted tickets…"
                 variant="borderless"
@@ -430,203 +490,514 @@ export default function TrashManagementPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 allowClear
               />
-              {!searchQuery && (
-                <kbd className="tr-search-kbd">⌘K</kbd>
-              )}
             </div>
 
-            {/* Reset */}
-            {(projectFilter || searchQuery) && (
+            {isFiltered && (
               <Button
                 size="small"
                 type="text"
                 className="tr-filter-reset"
-                icon={<ReloadOutlined style={{ fontSize: 11 }} />}
+                icon={<CloseOutlined />}
                 onClick={() => {
                   setSearchQuery("");
                   setProjectFilter(undefined);
                   refetch();
                 }}
               >
-                Reset
+                Clear
               </Button>
             )}
+          </div>
+
+          <div className="tr-result-count">
+            <Text className="tr-result-count-text">
+              <strong>{trashData?.pagination.total || 0}</strong>{" "}
+              {(trashData?.pagination.total || 0) === 1 ? "item" : "items"}
+            </Text>
           </div>
         </div>
 
         {/* Bulk Action Belt */}
         {selectedRowKeys.length > 0 && (
           <div className="tr-bulk-belt">
-            <Space size={16}>
-              <Text style={{ fontSize: 11, fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase' }}>{selectedRowKeys.length} NODES SELECTED FOR OPERATIONAL RECOVERY</Text>
-              <Divider type="vertical" style={{ height: 16, borderLeft: '1px solid #3b82f6' }} />
-              <Button size="small" type="primary" icon={<UndoOutlined />} onClick={handleBulkRestore} loading={bulkRestore.isPending} style={{ height: 28, fontSize: 11, fontWeight: 700, borderRadius: 4 }}>RESTORE NODES</Button>
-              <Popconfirm title="Purge Selected?" onConfirm={handleBulkDelete} okText="Purge" okButtonProps={{ danger: true }}>
-                <Button size="small" danger ghost icon={<DeleteOutlined />} loading={bulkDelete.isPending} style={{ height: 28, fontSize: 11, fontWeight: 700, borderRadius: 4 }}>PURGE SELECTED</Button>
+            <div className="tr-bulk-left">
+              <span className="tr-bulk-count-pill">{selectedRowKeys.length}</span>
+              <Text className="tr-bulk-label">
+                {selectedRowKeys.length === 1 ? "ticket" : "tickets"} selected
+              </Text>
+            </div>
+            <div className="tr-bulk-actions">
+              <Button
+                size="small"
+                type="primary"
+                icon={<UndoOutlined />}
+                onClick={handleBulkRestore}
+                loading={bulkRestore.isPending}
+                className="tr-bulk-btn restore"
+              >
+                Restore
+              </Button>
+              <Popconfirm
+                title="Purge Selected?"
+                description="This action is irreversible."
+                onConfirm={handleBulkDelete}
+                okText="Purge"
+                okButtonProps={{ danger: true }}
+              >
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  loading={bulkDelete.isPending}
+                  className="tr-bulk-btn purge"
+                >
+                  Purge
+                </Button>
               </Popconfirm>
-            </Space>
-            <Button type="text" size="small" onClick={() => setSelectedRowKeys([])} style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>CANCEL</Button>
+              <Button
+                type="text"
+                size="small"
+                icon={<CloseOutlined />}
+                onClick={() => setSelectedRowKeys([])}
+                className="tr-bulk-btn cancel"
+              />
+            </div>
           </div>
         )}
 
-        <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 8, overflow: "hidden", border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
+        <Card
+          styles={{ body: { padding: 0 } }}
+          className="tr-table-card"
+        >
           <Table
-            rowSelection={{ selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }}
-            columns={columns}
-            dataSource={trashData?.tickets || []}
-            rowKey="id"
-            loading={isLoading}
-            className="premium-table"
-            pagination={{
-              current: page,
-              pageSize: limit,
-              total: trashData?.pagination.total || 0,
-              onChange: (p) => setPage(p),
-              showTotal: (total) => <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>{total} TICKETS IN REPOSITORY</Text>,
-              style: { padding: "16px 24px" }
+            rowSelection={(isLoading || isRefreshing) ? undefined : { selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }}
+            columns={columns.map(col => ({
+              ...col,
+              render: (text: any, record: any, index: number) => {
+                if (isLoading || isRefreshing) {
+                  return <Skeleton.Input active size="small" block style={{ height: 24 }} />;
+                }
+                return col.render ? (col.render as any)(text, record, index) : text;
+              }
+            }))}
+            dataSource={(isLoading || isRefreshing) ? Array(5).fill({}) : (trashData?.tickets || [])}
+            rowKey={(record: any) => record.id || Math.random()}
+            loading={false}
+            className="tr-table"
+            locale={{
+              emptyText: isLoading ? null : (
+                <div className="tr-empty">
+                  <div className="tr-empty-icon">
+                    <InboxOutlined />
+                  </div>
+                  <Text className="tr-empty-title">
+                    {isFiltered ? "No matching tickets" : "Trash is empty"}
+                  </Text>
+                  <Text className="tr-empty-sub">
+                    {isFiltered
+                      ? "Try adjusting your filters or search query."
+                      : "Deleted tickets appear here for 7 days before permanent purge."}
+                  </Text>
+                  {isFiltered && (
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setProjectFilter(undefined);
+                      }}
+                      className="tr-empty-action"
+                    >
+                      Clear filters
+                    </Button>
+                  )}
+                </div>
+              ),
             }}
-            scroll={{ x: 1000 }}
+            pagination={
+              hasItems
+                ? {
+                  current: page,
+                  pageSize: limit,
+                  total: trashData?.pagination.total || 0,
+                  onChange: (p) => setPage(p),
+                  showTotal: (total, range) => (
+                    <Text className="tr-pagination-total">
+                      Showing {range[0]}–{range[1]} of {total}
+                    </Text>
+                  ),
+                  style: { padding: "16px 24px", margin: 0 },
+                }
+                : false
+            }
+            scroll={{ x: 1100 }}
           />
         </Card>
       </div>
 
       <style jsx global>{`
-        /* ── Header ─────────────────────────────────────────────── */
-        .tr-header-icon-box {
-          width: 36px; height: 36px;
-          background: var(--bg-red-50);
-          border-radius: 4px;
-          display: flex; align-items: center; justify-content: center;
-          border: 1px solid rgba(239,68,68,0.2);
-        }
-        [data-theme='dark'] .tr-header-icon-box {
-          background: rgba(239,68,68,0.15) !important;
-          border-color: rgba(239,68,68,0.25) !important;
-        }
-        .tr-header-divider {
-          height: 18px;
-          border-left: 1.5px solid var(--border-slate-200);
-          margin: 0;
+        /* ── Page ────────────────────────────────────────────────── */
+        .tr-page {
+          background: var(--bg-pure-white);
+          min-height: 100vh;
+          margin: 0 -8px;
         }
 
-        /* ── Control bar ────────────────────────────────────────── */
-        .tr-control-bar {
-          background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-200);
-          border-radius: 8px;
-          padding: 14px 20px;
+        /* ── Hero ────────────────────────────────────────────────── */
+        .tr-hero {
+          position: relative;
+          margin-bottom: 20px;
+          padding: 14px 32px 0;
+          background:
+            linear-gradient(180deg, rgba(239, 68, 68, 0.04) 0%, rgba(239, 68, 68, 0) 60%),
+            var(--bg-pure-white);
+          border-bottom: 1px solid var(--border-slate-200);
+          overflow: hidden;
+        }
+        [data-theme='dark'] .tr-hero {
+          background:
+            linear-gradient(180deg, rgba(239, 68, 68, 0.07) 0%, rgba(239, 68, 68, 0) 60%),
+            var(--bg-pure-white);
+          border-bottom-color: #1f2937;
+        }
+        .tr-hero-glow {
+          position: absolute;
+          top: -160px;
+          right: -80px;
+          width: 320px;
+          height: 320px;
+          background: radial-gradient(circle, rgba(239, 68, 68, 0.10) 0%, transparent 70%);
+          pointer-events: none;
+          z-index: 0;
+        }
+        [data-theme='dark'] .tr-hero-glow {
+          background: radial-gradient(circle, rgba(239, 68, 68, 0.16) 0%, transparent 70%);
+        }
+        .tr-hero-inner {
+          position: relative;
+          z-index: 1;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 28px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-          margin-bottom: 24px;
+          gap: 24px;
+          padding-bottom: 7px;
         }
-        [data-theme='dark'] .tr-control-bar {
-          background: #161b22 !important;
-          border-color: #1f2937 !important;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+        .tr-hero-left {
+          display: flex;
+          gap: 14px;
+          align-items: center;
         }
-
-        /* ── Metrics ─────────────────────────────────────────────── */
-        .tr-metrics-group {
-          display: flex; align-items: center; gap: 24px;
+        .tr-hero-badge {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.04));
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          color: #ef4444;
+          font-size: 16px;
+          box-shadow: 0 6px 16px -8px rgba(239, 68, 68, 0.3);
+          flex-shrink: 0;
         }
-        .tr-metric-icon {
-          width: 34px; height: 34px; border-radius: 6px;
-          display: flex; align-items: center; justify-content: center;
+        [data-theme='dark'] .tr-hero-badge {
+          background: linear-gradient(135deg, rgba(239, 68, 68, 0.20), rgba(239, 68, 68, 0.06));
+          border-color: rgba(239, 68, 68, 0.30);
+          box-shadow: 0 8px 24px -8px rgba(239, 68, 68, 0.5);
         }
-        .tr-metric-icon.slate {
+        .tr-hero-text {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .tr-hero-eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          color: var(--text-slate-500);
+          padding: 3px 8px;
           background: var(--bg-slate-50);
           border: 1px solid var(--border-slate-200);
+          border-radius: 4px;
         }
-        .tr-metric-icon.red {
-          background: var(--bg-red-50);
-          border: 1px solid rgba(239,68,68,0.2);
+        [data-theme='dark'] .tr-hero-eyebrow {
+          background: #1f2937;
+          border-color: #374151;
         }
-        [data-theme='dark'] .tr-metric-icon.slate {
-          background: #1f2937 !important;
-          border-color: #374151 !important;
+        .tr-hero-eyebrow-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #ef4444;
+          box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
         }
-        [data-theme='dark'] .tr-metric-icon.red {
-          background: rgba(239,68,68,0.15) !important;
-          border-color: rgba(239,68,68,0.25) !important;
+        .tr-hero-title {
+          margin: 0 !important;
+          font-weight: 700 !important;
+          color: var(--text-slate-900) !important;
+          letter-spacing: -0.02em !important;
+          font-size: 16px !important;
+          line-height: 1.2 !important;
         }
-
-        /* ── Filter cluster ─────────────────────────────────────── */
-        .tr-filter-cluster {
-          display: flex; align-items: center; gap: 8px;
-          padding: 4px;
-          background: var(--bg-slate-50);
-          border: 1px solid var(--border-slate-100);
-          border-radius: 8px;
+        .tr-hero-sub {
+          font-size: 12px;
+          color: var(--text-slate-500);
+          line-height: 1.4;
+          padding-left: 12px;
+          border-left: 1px solid var(--border-slate-200);
         }
-        [data-theme='dark'] .tr-filter-cluster {
-          background: #0f1620 !important;
+        [data-theme='dark'] .tr-hero-sub {
+          border-left-color: #1f2937;
+        }
+        .tr-hero-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .tr-hero-ghost {
+          height: 30px !important;
+          width: 30px !important;
+          border-radius: 6px !important;
+          color: var(--text-slate-500) !important;
+          border: 1px solid var(--border-slate-200) !important;
+        }
+        .tr-hero-ghost:hover {
+          color: var(--text-slate-900) !important;
+          background: var(--bg-slate-50) !important;
+        }
+        [data-theme='dark'] .tr-hero-ghost {
           border-color: #1f2937 !important;
         }
-        .tr-filter-label {
-          display: flex; align-items: center; gap: 6px;
-          padding: 0 10px 0 8px;
-          border-right: 1px solid var(--border-slate-200);
-          height: 24px;
+        [data-theme='dark'] .tr-hero-ghost:hover {
+          background: #1f2937 !important;
         }
-        [data-theme='dark'] .tr-filter-label {
-          border-right-color: #1f2937 !important;
+        .tr-hero-danger {
+          height: 30px !important;
+          font-weight: 600 !important;
+          font-size: 12px !important;
+          border-radius: 6px !important;
+          padding: 0 12px !important;
+          box-shadow: 0 1px 2px rgba(239, 68, 68, 0.05);
         }
-        .tr-filter-label-text {
+
+        /* ── Stat Strip ──────────────────────────────────────────── */
+        .tr-stat-strip {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+          align-items: center;
+          gap: 0;
+          padding: 10px 32px;
+          margin: 0 -32px;
+          border-top: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .tr-stat-strip {
+          border-top-color: #1f2937;
+        }
+        .tr-stat {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 0 16px;
+          min-width: 0;
+        }
+        .tr-stat:first-child {
+          padding-left: 0;
+        }
+        .tr-stat-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          flex-shrink: 0;
+        }
+        .tr-stat-icon.slate {
+          background: var(--bg-slate-50);
+          color: var(--text-slate-500);
+          border: 1px solid var(--border-slate-200);
+        }
+        .tr-stat-icon.green {
+          background: rgba(16, 185, 129, 0.08);
+          color: #10b981;
+          border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .tr-stat-icon.red {
+          background: rgba(239, 68, 68, 0.08);
+          color: #ef4444;
+          border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .tr-stat-icon.blue {
+          background: rgba(59, 130, 246, 0.08);
+          color: #3b82f6;
+          border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        .tr-stat-icon.pulse {
+          animation: trPulse 2s ease-in-out infinite;
+        }
+        [data-theme='dark'] .tr-stat-icon.slate {
+          background: #1f2937;
+          border-color: #374151;
+          color: #94a3b8;
+        }
+        [data-theme='dark'] .tr-stat-icon.green {
+          background: rgba(16, 185, 129, 0.15);
+          border-color: rgba(16, 185, 129, 0.25);
+        }
+        [data-theme='dark'] .tr-stat-icon.red {
+          background: rgba(239, 68, 68, 0.15);
+          border-color: rgba(239, 68, 68, 0.25);
+        }
+        [data-theme='dark'] .tr-stat-icon.blue {
+          background: rgba(59, 130, 246, 0.15);
+          border-color: rgba(59, 130, 246, 0.25);
+        }
+        @keyframes trPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+          50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+        }
+        .tr-stat-body {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        .tr-stat-label {
           font-size: 10px !important;
-          font-weight: 800 !important;
+          font-weight: 600 !important;
           color: var(--text-slate-500) !important;
           text-transform: uppercase;
           letter-spacing: 0.06em;
         }
-        .tr-filter-count {
-          display: inline-flex; align-items: center; justify-content: center;
-          min-width: 16px; height: 16px; padding: 0 5px;
-          background: #3b82f6; color: #fff;
-          font-size: 10px; font-weight: 800;
-          border-radius: 8px;
+        .tr-stat-value {
+          font-size: 17px;
+          font-weight: 700;
+          color: var(--text-slate-900);
+          letter-spacing: -0.02em;
+          line-height: 1.1;
+          display: flex;
+          align-items: baseline;
+          gap: 6px;
+          font-variant-numeric: tabular-nums;
+        }
+        .tr-stat-value.danger {
+          color: #ef4444;
+        }
+        .tr-stat-unit {
+          font-size: 10px;
+          font-weight: 500;
+          color: var(--text-slate-400);
+          text-transform: none;
+          letter-spacing: 0;
+        }
+        .tr-stat-divider {
+          width: 1px;
+          height: 28px;
+          background: var(--border-slate-200);
+        }
+        [data-theme='dark'] .tr-stat-divider {
+          background: #1f2937;
         }
 
-        /* Individual filter field */
+        /* ── Body ────────────────────────────────────────────────── */
+        .tr-body {
+          padding: 0 32px 32px;
+        }
+
+        /* ── Control bar ─────────────────────────────────────────── */
+        .tr-control-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+        .tr-filter-cluster {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 4px;
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-100);
+          border-radius: 10px;
+        }
+        [data-theme='dark'] .tr-filter-cluster {
+          background: #0f1620;
+          border-color: #1f2937;
+        }
+        .tr-filter-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 0 10px 0 8px;
+          height: 32px;
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          border-right: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .tr-filter-label {
+          border-right-color: #1f2937;
+        }
         .tr-filter-field {
-          display: flex; align-items: center; gap: 8px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
           height: 32px;
           padding: 0 10px;
-          background: var(--bg-pure-white);
+          background: transparent !important;
           border: 1px solid var(--border-slate-100);
-          border-radius: 6px;
-          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+          border-radius: 7px;
+          transition: all 0.15s ease;
         }
         .tr-filter-field:hover {
           border-color: var(--border-slate-200);
         }
         .tr-filter-field.active {
           border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
         }
         [data-theme='dark'] .tr-filter-field {
-          background: #161b22 !important;
-          border-color: #1f2937 !important;
+          background: transparent !important;
+          border-color: #1f2937;
         }
         [data-theme='dark'] .tr-filter-field:hover {
-          border-color: #374151 !important;
+          border-color: #374151;
         }
         [data-theme='dark'] .tr-filter-field.active {
-          border-color: #3b82f6 !important;
-          box-shadow: 0 0 0 3px rgba(59,130,246,0.12) !important;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
+        .tr-filter-icon {
+          font-size: 12px;
+          color: var(--text-slate-400);
+        }
+        .tr-filter-field.active .tr-filter-icon {
+          color: #3b82f6;
         }
         .tr-filter-search {
           width: 280px;
         }
-        .tr-filter-search .ant-input {
+        .tr-filter-search .ant-input,
+        .tr-filter-search .ant-input-affix-wrapper,
+        .tr-filter-search .ant-input-affix-wrapper-focused,
+        .tr-filter-search .ant-input-affix-wrapper:hover {
           font-size: 12px;
-          font-weight: 600;
+          font-weight: 500;
           padding: 0;
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
         }
-
-        /* Filter select */
         .tr-filter-select {
           width: 180px;
         }
@@ -640,98 +1011,297 @@ export default function TrashManagementPage() {
         .tr-filter-select .ant-select-selection-item,
         .tr-filter-select .ant-select-selection-placeholder {
           font-size: 12px !important;
-          font-weight: 600 !important;
+          font-weight: 500 !important;
           line-height: 30px !important;
         }
+        .tr-project-option {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+        }
+        .tr-project-option-label {
+          font-size: 12px !important;
+          font-weight: 600 !important;
+        }
         .tr-project-code-tag {
-          margin: 0; font-size: 10px; font-weight: 800;
-          background: var(--bg-slate-100); border: none; color: var(--text-slate-600);
+          margin: 0;
+          font-size: 10px;
+          font-weight: 700;
+          background: var(--bg-slate-100);
+          border: none;
+          color: var(--text-slate-600);
         }
         [data-theme='dark'] .tr-project-code-tag {
-          background: #374151 !important;
-          color: #94a3b8 !important;
+          background: #374151;
+          color: #94a3b8;
         }
-
-        /* Keyboard shortcut hint */
-        .tr-search-kbd {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 10px; font-weight: 700;
-          color: var(--text-slate-400);
-          background: var(--bg-slate-50);
-          border: 1px solid var(--border-slate-200);
-          padding: 1px 6px; border-radius: 4px;
-          line-height: 1.4;
-        }
-        [data-theme='dark'] .tr-search-kbd {
-          background: #0b0f1a !important;
-          border-color: #374151 !important;
-          color: #6b7280 !important;
-        }
-
-        /* Reset button */
         .tr-filter-reset {
           height: 32px !important;
           color: var(--text-slate-500) !important;
-          font-weight: 700 !important;
+          font-weight: 600 !important;
           font-size: 11px !important;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
           border-radius: 6px !important;
         }
         .tr-filter-reset:hover {
           color: #ef4444 !important;
-          background: var(--bg-red-50) !important;
+          background: rgba(239, 68, 68, 0.06) !important;
         }
-        [data-theme='dark'] .tr-filter-reset:hover {
-          background: rgba(239,68,68,0.1) !important;
+        .tr-result-count-text {
+          font-size: 12px !important;
+          color: var(--text-slate-500) !important;
+          font-weight: 500;
+        }
+        .tr-result-count-text strong {
+          color: var(--text-slate-900);
+          font-weight: 700;
         }
 
-        /* ── Bulk action belt ───────────────────────────────────── */
+        /* ── Bulk action belt ────────────────────────────────────── */
         .tr-bulk-belt {
-          margin-bottom: 16px;
-          display: flex; justify-content: space-between; align-items: center;
-          background: var(--bg-blue-50);
-          padding: 8px 16px;
-          border-radius: 6px;
-          border: 1px solid var(--border-blue-200);
+          margin-bottom: 12px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(59, 130, 246, 0.02));
+          padding: 8px 14px 8px 12px;
+          border-radius: 10px;
+          border: 1px solid rgba(59, 130, 246, 0.2);
+          animation: trSlideDown 0.2s ease-out;
         }
         [data-theme='dark'] .tr-bulk-belt {
-          background: rgba(59,130,246,0.1) !important;
-          border-color: rgba(59,130,246,0.2) !important;
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(59, 130, 246, 0.04));
+          border-color: rgba(59, 130, 246, 0.3);
+        }
+        @keyframes trSlideDown {
+          from { transform: translateY(-4px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .tr-bulk-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .tr-bulk-count-pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 26px;
+          height: 26px;
+          padding: 0 8px;
+          background: #3b82f6;
+          color: #fff;
+          font-size: 12px;
+          font-weight: 700;
+          border-radius: 7px;
+          font-variant-numeric: tabular-nums;
+          box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+        }
+        .tr-bulk-label {
+          font-size: 13px !important;
+          font-weight: 600 !important;
+          color: #1d4ed8 !important;
+        }
+        [data-theme='dark'] .tr-bulk-label {
+          color: #93c5fd !important;
+        }
+        .tr-bulk-actions {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+        }
+        .tr-bulk-btn.restore {
+          height: 30px !important;
+          font-weight: 600 !important;
+          font-size: 12px !important;
+          border-radius: 7px !important;
+          padding: 0 12px !important;
+        }
+        .tr-bulk-btn.purge {
+          height: 30px !important;
+          font-weight: 600 !important;
+          font-size: 12px !important;
+          border-radius: 7px !important;
+          padding: 0 12px !important;
+        }
+        .tr-bulk-btn.cancel {
+          height: 30px !important;
+          width: 30px !important;
+          border-radius: 7px !important;
+          color: var(--text-slate-500) !important;
+        }
+        .tr-bulk-btn.cancel:hover {
+          background: rgba(59, 130, 246, 0.1) !important;
         }
 
-        /* ── Project chip ───────────────────────────────────────── */
-        .tr-project-chip {
-          display: flex; align-items: center; gap: 6px;
+        /* ── Table Card ──────────────────────────────────────────── */
+        .tr-table-card {
+          border-radius: 12px !important;
+          overflow: hidden !important;
+          border: 1px solid var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+        }
+        [data-theme='dark'] .tr-table-card {
+          border-color: #1f2937 !important;
+          background: #161b22 !important;
+        }
+
+        /* ── Premium table ───────────────────────────────────────── */
+        .tr-table .ant-table {
+          background: var(--bg-pure-white);
+        }
+        [data-theme='dark'] .tr-table .ant-table {
+          background: #161b22;
+        }
+        .tr-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50);
-          padding: 4px 8px;
-          border-radius: 4px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .tr-table .ant-table-thead > tr > th {
+          background: #0f1620;
+          border-bottom-color: #1f2937;
+          color: #94a3b8;
+        }
+        .tr-table .ant-table-thead > tr > th::before {
+          display: none;
+        }
+        .tr-table .ant-table-tbody > tr > td {
+          padding: 14px 16px;
+          border-bottom: 1px solid var(--border-slate-100);
+          transition: background-color 0.15s ease;
+        }
+        [data-theme='dark'] .tr-table .ant-table-tbody > tr > td {
+          background: #161b22;
+          border-bottom-color: #1f2937;
+        }
+        .tr-table .ant-table-tbody > tr:hover > td {
+          background: var(--bg-slate-50) !important;
+        }
+        [data-theme='dark'] .tr-table .ant-table-tbody > tr:hover > td {
+          background: #1a2230 !important;
+        }
+        .tr-table .ant-table-tbody > tr.ant-table-row-selected > td {
+          background: rgba(59, 130, 246, 0.04) !important;
+        }
+        [data-theme='dark'] .tr-table .ant-table-tbody > tr.ant-table-row-selected > td {
+          background: rgba(59, 130, 246, 0.08) !important;
+        }
+
+        /* ── Ticket cell ─────────────────────────────────────────── */
+        .tr-ticket-cell {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          padding-left: 12px;
+        }
+        .tr-row-rail {
+          position: absolute;
+          left: 0;
+          top: -14px;
+          bottom: -14px;
+          width: 3px;
+          background: transparent;
+          border-radius: 0 2px 2px 0;
+        }
+        .tr-row-rail.urgent {
+          background: linear-gradient(180deg, #ef4444, #f87171);
+          box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+        }
+        .tr-ticket-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+        }
+        .tr-ticket-id {
+          display: inline-block;
+          font-family: 'JetBrains Mono', ui-monospace, monospace;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--premium-blue);
+          background: rgba(59, 130, 246, 0.06);
+          padding: 2px 7px;
+          border-radius: 5px;
+          border: 1px solid rgba(59, 130, 246, 0.15);
+          width: fit-content;
+          letter-spacing: -0.01em;
+        }
+        [data-theme='dark'] .tr-ticket-id {
+          background: rgba(59, 130, 246, 0.12);
+          border-color: rgba(59, 130, 246, 0.25);
+        }
+        .tr-ticket-title {
+          font-size: 13px !important;
+          font-weight: 600 !important;
+          color: var(--text-slate-900) !important;
+          letter-spacing: -0.01em !important;
+          line-height: 1.4 !important;
+        }
+
+        /* ── Project chip ────────────────────────────────────────── */
+        .tr-project-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: var(--bg-slate-50);
+          padding: 4px 10px;
+          border-radius: 6px;
           border: 1px solid var(--border-slate-200);
           width: fit-content;
         }
         [data-theme='dark'] .tr-project-chip {
-          background: #1f2937 !important;
-          border-color: #374151 !important;
+          background: #1f2937;
+          border-color: #374151;
+        }
+        .tr-project-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--text-slate-400);
+        }
+        .tr-project-text {
+          font-size: 11px !important;
+          font-weight: 600 !important;
+          color: var(--text-slate-700) !important;
+          letter-spacing: 0.01em;
+        }
+        [data-theme='dark'] .tr-project-text {
+          color: #cbd5e1 !important;
         }
 
-        /* ── Status tags ────────────────────────────────────────── */
+        /* ── Status tags ─────────────────────────────────────────── */
         .tr-status-tag {
-          font-size: 10px; font-weight: 800;
-          margin: 0; border-radius: 4;
-          padding: 2px 8px; text-transform: uppercase;
+          font-size: 10px !important;
+          font-weight: 700 !important;
+          margin: 0 !important;
+          border-radius: 5px !important;
+          padding: 3px 8px !important;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          line-height: 1.4;
         }
         .tr-status-tag.green {
-          background: var(--bg-green-50); color: #10b981;
-          border: 1px solid var(--border-green-200);
+          background: rgba(16, 185, 129, 0.08) !important;
+          color: #10b981 !important;
+          border: 1px solid rgba(16, 185, 129, 0.2) !important;
         }
         .tr-status-tag.slate {
-          background: var(--bg-slate-100); color: var(--text-slate-600);
-          border: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-100) !important;
+          color: var(--text-slate-600) !important;
+          border: 1px solid var(--border-slate-200) !important;
         }
         [data-theme='dark'] .tr-status-tag.green {
-          background: rgba(16,185,129,0.15) !important;
+          background: rgba(16, 185, 129, 0.15) !important;
           color: #34d399 !important;
-          border-color: rgba(16,185,129,0.2) !important;
+          border-color: rgba(16, 185, 129, 0.25) !important;
         }
         [data-theme='dark'] .tr-status-tag.slate {
           background: #1f2937 !important;
@@ -739,80 +1309,209 @@ export default function TrashManagementPage() {
           border-color: #374151 !important;
         }
 
-        /* ── Purge badge ────────────────────────────────────────── */
-        .tr-purge-badge {
-          padding: 4px 10px; border-radius: 4px;
-          display: inline-flex; align-items: center; gap: 6px;
+        /* ── Actor cell ──────────────────────────────────────────── */
+        .tr-actor-cell {
+          display: flex;
+          align-items: center;
+          gap: 10px;
         }
-        .tr-purge-badge.urgent {
-          background: var(--bg-red-50);
-          border: 1px solid rgba(239,68,68,0.2);
+        .tr-actor-avatar {
+          background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+          font-weight: 700 !important;
+          font-size: 11px !important;
+          color: #fff !important;
+          flex-shrink: 0;
         }
-        .tr-purge-badge.safe {
-          background: var(--bg-green-50);
-          border: 1px solid var(--border-green-200);
+        .tr-actor-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+          min-width: 0;
         }
-        [data-theme='dark'] .tr-purge-badge.urgent {
-          background: rgba(239,68,68,0.12) !important;
-          border-color: rgba(239,68,68,0.2) !important;
+        .tr-actor-name {
+          font-size: 12px !important;
+          font-weight: 600 !important;
+          color: var(--text-slate-700) !important;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
-        [data-theme='dark'] .tr-purge-badge.safe {
-          background: rgba(16,185,129,0.1) !important;
-          border-color: rgba(16,185,129,0.2) !important;
+        [data-theme='dark'] .tr-actor-name {
+          color: #cbd5e1 !important;
         }
-
-        /* ── Ticket number badge ─────────────────────────────────── */
-        /* handled via CSS var inline, but override background in dark */
-        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td:first-child .ant-typography {
-          background: #1f2937 !important;
-          border-color: #374151 !important;
-        }
-
-        /* ── Premium table ───────────────────────────────────────── */
-        .premium-table .ant-table-thead > tr > th {
-          background: var(--bg-pure-white);
-          font-weight: 600;
-          color: var(--text-secondary);
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          padding: 12px 16px;
-          border-bottom: 2px solid var(--border-slate-100);
-        }
-        [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
-          background: #161b22 !important;
-          border-bottom-color: #1f2937 !important;
-        }
-        .premium-table .ant-table-tbody > tr > td {
-          padding: 12px 16px;
-          border-bottom: 1px solid var(--border-slate-100);
-          transition: all 0.2s ease;
-        }
-        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td {
-          background: #161b22 !important;
-          border-bottom-color: #1f2937 !important;
-        }
-        .premium-table .ant-table-tbody > tr:hover > td {
-          background: var(--bg-slate-50) !important;
-        }
-        [data-theme='dark'] .premium-table .ant-table-tbody > tr:hover > td {
-          background: #1f2937 !important;
-        }
-        [data-theme='dark'] .premium-table .ant-table {
-          background: #161b22 !important;
-        }
-        [data-theme='dark'] .premium-table .ant-table-wrapper .ant-card {
-          background: #161b22 !important;
+        .tr-actor-time {
+          font-size: 11px !important;
+          color: var(--text-slate-400) !important;
+          font-weight: 500;
         }
 
-        /* ── Misc ───────────────────────────────────────────────── */
-        .saas-header-container .ant-typography {
-          margin-bottom: 0 !important;
+        /* ── Purge cell ──────────────────────────────────────────── */
+        .tr-purge-cell {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
         }
-        .saas-button-item {
+        .tr-purge-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .tr-purge-icon {
+          font-size: 12px;
+        }
+        .tr-purge-icon.urgent {
+          color: #ef4444;
+        }
+        .tr-purge-icon.safe {
+          color: #10b981;
+        }
+        .tr-purge-text {
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.02em;
+        }
+        .tr-purge-text.urgent {
+          color: #ef4444 !important;
+        }
+        .tr-purge-text.safe {
+          color: #10b981 !important;
+        }
+        .tr-purge-progress .ant-progress-inner {
+          background: var(--bg-slate-100) !important;
+          height: 4px !important;
           border-radius: 4px !important;
-          transition: all 0.2s ease;
-          border: 1px solid var(--border-color);
+        }
+        [data-theme='dark'] .tr-purge-progress .ant-progress-inner {
+          background: #1f2937 !important;
+        }
+        .tr-purge-progress .ant-progress-bg {
+          height: 4px !important;
+          border-radius: 4px !important;
+        }
+
+        /* ── Action cell ─────────────────────────────────────────── */
+        .tr-action-cell {
+          display: flex;
+          gap: 4px;
+          justify-content: flex-end;
+          align-items: center;
+        }
+        .tr-icon-btn {
+          width: 28px !important;
+          height: 28px !important;
+          min-width: 28px !important;
+          transition: all 0.15s ease;
+        }
+        .tr-icon-btn.restore {
+          color: #10b981 !important;
+        }
+        .tr-icon-btn.restore:hover {
+          background: rgba(16, 185, 129, 0.1) !important;
+          color: #059669 !important;
+        }
+        .tr-icon-btn.purge {
+          color: var(--text-slate-400) !important;
+        }
+        .tr-icon-btn.purge:hover {
+          background: rgba(239, 68, 68, 0.1) !important;
+          color: #ef4444 !important;
+        }
+
+        /* ── Empty state ─────────────────────────────────────────── */
+        .tr-empty {
+          padding: 64px 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          text-align: center;
+        }
+        .tr-empty-icon {
+          width: 64px;
+          height: 64px;
+          border-radius: 16px;
+          background: var(--bg-slate-50);
+          color: var(--text-slate-400);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 28px;
+          margin-bottom: 8px;
+          border: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .tr-empty-icon {
+          background: #1f2937;
+          border-color: #374151;
+        }
+        .tr-empty-title {
+          font-size: 15px !important;
+          font-weight: 700 !important;
+          color: var(--text-slate-700) !important;
+        }
+        [data-theme='dark'] .tr-empty-title {
+          color: #cbd5e1 !important;
+        }
+        .tr-empty-sub {
+          font-size: 13px !important;
+          color: var(--text-slate-500) !important;
+          max-width: 360px;
+          line-height: 1.5;
+        }
+        .tr-empty-action {
+          margin-top: 12px;
+          height: 32px !important;
+          font-size: 12px !important;
+          font-weight: 600 !important;
+          border-radius: 7px !important;
+        }
+
+        /* ── Pagination ──────────────────────────────────────────── */
+        .tr-pagination-total {
+          font-size: 12px !important;
+          color: var(--text-slate-500) !important;
+          font-weight: 500;
+        }
+        .tr-table .ant-pagination {
+          border-top: 1px solid var(--border-slate-100);
+        }
+        [data-theme='dark'] .tr-table .ant-pagination {
+          border-top-color: #1f2937;
+        }
+
+        /* ── Responsive ──────────────────────────────────────────── */
+        @media (max-width: 1100px) {
+          .tr-stat-strip {
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+          }
+          .tr-stat-divider {
+            display: none;
+          }
+          .tr-stat {
+            padding: 0;
+          }
+        }
+        @media (max-width: 768px) {
+          .tr-hero {
+            padding: 20px 24px 0;
+          }
+          .tr-hero-inner {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .tr-stat-strip {
+            grid-template-columns: 1fr;
+          }
+          .tr-control-bar {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .tr-filter-cluster {
+            flex-wrap: wrap;
+          }
+          .tr-filter-search {
+            width: 100%;
+          }
         }
       `}</style>
     </div>

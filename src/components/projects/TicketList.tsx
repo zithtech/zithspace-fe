@@ -16,7 +16,6 @@ import {
   Avatar,
   Table,
   Empty,
-  message,
   Modal,
   Popconfirm,
   Radio,
@@ -25,14 +24,13 @@ import {
   Divider,
   Collapse,
   notification,
-  Alert,
   Dropdown,
   MenuProps,
   Badge,
   Progress,
   Spin,
-  Switch,
   Segmented,
+  App,
   type TableProps,
 } from "antd";
 import {
@@ -45,8 +43,8 @@ import {
   AppstoreOutlined,
   BarsOutlined,
   FilterOutlined,
+  TagsOutlined,
   ExpandAltOutlined,
-  InboxOutlined,
   UserOutlined,
   PlusOutlined,
   MinusOutlined,
@@ -81,7 +79,7 @@ import {
   getStackColor
 } from "@/utils/ticketUtils";
 import { SettingsService } from "@/services/settingsService";
-import { useTickets, useKanbanTickets, useUpdateTicket, useDeleteTicket } from "@/hooks/useTickets";
+import { useTickets, useKanbanTickets, useUpdateTicket, useDeleteTicket, useAllTicketTags } from "@/hooks/useTickets";
 import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
 import { useAllProjects, useMembers } from "@/hooks/useGlobalData";
 import { InlineCreateTicket } from "./InlineCreateTicket";
@@ -102,8 +100,8 @@ interface FilterState {
   priority: string[];
   assignee: string[];
   type: string[];
+  tags: string[];
   search: string;
-  showArchived?: boolean;
 }
 
 interface TicketListProps {
@@ -115,7 +113,8 @@ interface TicketListProps {
 export default function TicketList({ projectId, projectName, projectCode }: TicketListProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [modal, contextHolder] = Modal.useModal();
+  const { message, modal, notification } = App.useApp();
+  // const [modal, contextHolder] = Modal.useModal();
 
   // Local state for filters only
   const [filters, setFilters] = useState<FilterState>({
@@ -123,8 +122,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     priority: [],
     assignee: [],
     type: [],
+    tags: [],
     search: "",
-    showArchived: false,
   });
 
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
@@ -255,8 +254,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     assigneeId:
       filters.assignee.length > 0 ? filters.assignee.join(",") : undefined,
     type: filters.type.length > 0 ? filters.type.join(",") : undefined,
+    tags: filters.tags.length > 0 ? filters.tags.join(",") : undefined,
     search: filters.search || undefined,
-    showArchived: filters.showArchived || undefined,
   };
 
   // Fetch Active Sprint to get ID for assignments (scoped to project)
@@ -344,12 +343,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const updateTicketMutation = useUpdateTicket();
   const deleteTicketMutation = useDeleteTicket();
+  const { data: tagSuggestions = [] } = useAllTicketTags();
 
   // Handle Add/Remove from Sprint
   // Handle Add/Remove from Sprint
-  const [notifyApi, notifyContextHolder] = notification.useNotification({
-    placement: 'top',
-  }); // Use notification hook
+  // const [notifyApi, notifyContextHolder] = notification.useNotification({
+  //   placement: 'top',
+  // }); // Use notification hook
 
   // Handle Add/Remove from Sprint
   // Handle Add/Remove from Sprint
@@ -357,47 +357,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     kind: 'added' | 'removed' | 'error',
     label?: string
   ) => {
-    const palette =
-      kind === 'added'
-        ? { dot: '#10b981', icon: '✓' }
-        : kind === 'removed'
-          ? { dot: '#ef4444', icon: '↺' }
-          : { dot: '#ef4444', icon: '!' };
-
-    notifyApi.open({
-      key: 'sprint-assignment-toast',
-      placement: 'top',
-      duration: 2,
-      className: 'tiny-toast',
-      message: (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <span
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
-              background: palette.dot,
-              color: '#fff',
-              fontSize: 11,
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            {palette.icon}
-          </span>
-          {kind === 'added' && (
-            <>
-              Added to <strong style={{ color: 'var(--text-slate-900)', fontWeight: 700 }}>{label}</strong>
-            </>
-          )}
-          {kind === 'removed' && <>Removed from sprint</>}
-          {kind === 'error' && <span style={{ color: '#ef4444' }}>Sprint update failed</span>}
-        </span>
-      ),
-    });
+    if (kind === 'added') {
+      message.success(`Ticket added to ${label} successfully`);
+    } else if (kind === 'removed') {
+      message.success(`Ticket removed from sprint successfully`);
+    } else if (kind === 'error') {
+      message.error(`Sprint update failed`);
+    }
   };
 
   const handleSprintAssignment = (ticketId: string, action: 'add' | 'remove') => {
@@ -437,14 +403,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const handleSprintCompletionSuccess = () => {
     setSprintCompletionModalOpen(false);
-    notifyApi.success({
-      message: 'Sprint Completed',
-      description: 'Sprint completed successfully',
-      placement: 'top',
-      style: {
-        borderLeft: '4px solid #52c41a',
-      }
-    });
+    message.success('Sprint completed successfully');
     // Refresh both ticket lists and active sprint query
     refetchActive();
     refetchBacklog();
@@ -476,19 +435,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
       // Show appropriate success message
       if (sprintStatus === 'active') {
-        notifyApi.success({
-          message: 'Active Sprint Created',
-          description: `${newSprint.version} is now your active sprint! Start adding tickets.`,
-          placement: 'top',
-          style: { borderLeft: '4px solid #52c41a' }
-        });
+        message.success(`${newSprint.version} is now your active sprint!`);
       } else {
-        notifyApi.success({
-          message: 'Planning Sprint Created',
-          description: `${newSprint.version} created as a draft. You can start it after completing the current sprint.`,
-          placement: 'top',
-          style: { borderLeft: '4px solid #1890ff' }
-        });
+        message.success(`${newSprint.version} created in planning`);
       }
 
       // Refresh data
@@ -571,7 +520,6 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
     if (key === 'search') return false;
-    if (key === 'showArchived') return value === true;
     return Array.isArray(value) && value.length > 0;
   }).length;
 
@@ -730,6 +678,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const handleTicketCreated = (ticket: Ticket) => {
     setRecentTicket(ticket);
     requestAnimationFrame(() => fireConfettiAtCard());
+    message.success(`1 ticket(s) created successfully`);
   };
 
   // Table columns generator
@@ -896,6 +845,73 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       },
     },
     {
+      title: "Assignee",
+      dataIndex: "assignee",
+      key: "assignee",
+      width: 180,
+      render: (assignee: any, record: Ticket) => {
+        const isEditing =
+          editingField?.ticketId === record.id &&
+          editingField?.field === "assignee";
+        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+        const assigneeId =
+          typeof assignee === "string" ? assignee : assignee?.id || "";
+        const name =
+          assignee && typeof assignee === "string"
+            ? assignee
+            : assignee
+              ? assignee?.name
+              : "Unassigned";
+
+        if (isEditing) {
+          return (
+            <Select
+              value={assigneeId}
+              style={{ width: "100%" }}
+              onChange={(value) =>
+                handleUpdateTicket(record.id, "assignee", value)
+              }
+              onBlur={() => setEditingField(null)}
+              autoFocus
+              loading={isUpdating}
+              showSearch
+              placeholder="Select assignee"
+              filterOption={(input, option) => {
+                const member = members.find((m) => m.value === option?.value);
+                return member
+                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
+                  (member.position?.toLowerCase() ?? "").includes(input.toLowerCase())
+                  : false;
+              }}
+              options={members.map((member) => ({
+                label: `${member.label} - ${member.position}`,
+                value: member.value,
+              }))}
+            />
+          );
+        }
+
+        return (
+          <Space
+            style={{ cursor: "pointer", transition: 'all 0.2s' }}
+            className="hover:translate-x-1"
+            onClick={() =>
+              setEditingField({ ticketId: record.id, field: "assignee" })
+            }
+          >
+            <Avatar
+              size="small"
+              style={{ backgroundColor: "#1677ff" }}
+              src={assignee?.avatarUrl}
+            >
+              {!assignee?.avatarUrl && name?.charAt(0)}
+            </Avatar>
+            <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-700)' }}>{name}</Text>
+          </Space>
+        );
+      },
+    },
+    {
       title: "Type",
       key: "type",
       width: 100,
@@ -990,73 +1006,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         );
       }
     },
-    {
-      title: "Assignee",
-      dataIndex: "assignee",
-      key: "assignee",
-      width: 180,
-      render: (assignee: any, record: Ticket) => {
-        const isEditing =
-          editingField?.ticketId === record.id &&
-          editingField?.field === "assignee";
-        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
-        const assigneeId =
-          typeof assignee === "string" ? assignee : assignee?.id || "";
-        const name =
-          assignee && typeof assignee === "string"
-            ? assignee
-            : assignee
-              ? assignee?.name
-              : "Unassigned";
 
-        if (isEditing) {
-          return (
-            <Select
-              value={assigneeId}
-              style={{ width: "100%" }}
-              onChange={(value) =>
-                handleUpdateTicket(record.id, "assignee", value)
-              }
-              onBlur={() => setEditingField(null)}
-              autoFocus
-              loading={isUpdating}
-              showSearch
-              placeholder="Select assignee"
-              filterOption={(input, option) => {
-                const member = members.find((m) => m.value === option?.value);
-                return member
-                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                  (member.position?.toLowerCase() ?? "").includes(input.toLowerCase())
-                  : false;
-              }}
-              options={members.map((member) => ({
-                label: `${member.label} - ${member.position}`,
-                value: member.value,
-              }))}
-            />
-          );
-        }
-
-        return (
-          <Space
-            style={{ cursor: "pointer", transition: 'all 0.2s' }}
-            className="hover:translate-x-1"
-            onClick={() =>
-              setEditingField({ ticketId: record.id, field: "assignee" })
-            }
-          >
-            <Avatar
-              size="small"
-              style={{ backgroundColor: "#1677ff" }}
-              src={assignee?.avatarUrl}
-            >
-              {!assignee?.avatarUrl && name?.charAt(0)}
-            </Avatar>
-            <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-700)' }}>{name}</Text>
-          </Space>
-        );
-      },
-    },
     {
       title: "Actions",
       key: "actions",
@@ -1166,9 +1116,6 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       padding: '0 24px 24px 24px',
       margin: '0 -24px'
     }}>
-      {contextHolder}
-      {notifyContextHolder}
-
       <style dangerouslySetInnerHTML={{
         __html: `
         .project-switch-trigger:hover {
@@ -1267,7 +1214,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             placeholder="Quick search tickets..."
             prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
             className="saas-input"
-            style={{ maxWidth: 280, borderRadius: 8, height: 36 }}
+            style={{ maxWidth: 280, borderRadius: 8, height: 36, background: 'transparent' }}
             value={localSearchValue}
             onChange={(e) => setLocalSearchValue(e.target.value)}
             allowClear
@@ -1280,8 +1227,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   filters={filters}
                   onFilterChange={handleFilterChange}
                   members={members}
-                  showArchivedToggle
-                  onReset={() => setFilters({ status: [], priority: [], assignee: [], type: [], search: filters.search, showArchived: false })}
+                  onReset={() => setFilters({ status: [], priority: [], assignee: [], type: [], tags: [], search: filters.search })}
                 />
               }
               trigger="click"
@@ -1499,36 +1445,42 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   const member = members.find((m) => m.value === option?.value);
                   return member
                     ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                        (member.position || '').toLowerCase().includes(input.toLowerCase())
+                    (member.position || '').toLowerCase().includes(input.toLowerCase())
                     : false;
                 }}
+                className="ticket-filter-row__select"
+              />
+            </div>
+
+            <div className="ticket-filter-row__field">
+              <label className="ticket-filter-row__label">
+                <TagsOutlined /> Tags
+              </label>
+              <Select
+                mode="multiple"
+                placeholder="Any tag"
+                value={filters.tags}
+                onChange={(val) => handleFilterChange('tags', val)}
+                options={tagSuggestions.map((t) => ({ label: t, value: t }))}
+                allowClear
+                showSearch
+                maxTagCount={1}
+                notFoundContent="No tags yet"
+                filterOption={(input, option) =>
+                  String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
+                }
                 className="ticket-filter-row__select"
               />
             </div>
           </div>
 
           <div className="ticket-filter-row__actions">
-            <button
-              type="button"
-              onClick={() => handleFilterChange('showArchived', !filters.showArchived)}
-              className={`ticket-filter-row__chip ${filters.showArchived ? 'is-active' : ''}`}
-              aria-pressed={!!filters.showArchived}
-            >
-              <InboxOutlined />
-              <span>Archived</span>
-              <Switch
-                size="small"
-                checked={!!filters.showArchived}
-                onChange={(checked) => handleFilterChange('showArchived', checked)}
-              />
-            </button>
-
             {activeFilterCount > 0 && (
               <Button
                 type="text"
                 size="small"
                 icon={<ReloadOutlined />}
-                onClick={() => setFilters({ status: [], priority: [], assignee: [], type: [], search: filters.search, showArchived: false })}
+                onClick={() => setFilters({ status: [], priority: [], assignee: [], type: [], tags: [], search: filters.search })}
                 className="ticket-filter-row__reset"
               >
                 Reset
@@ -1605,7 +1557,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                               minWidth: 90,
                               fontSize: 10,
                               fontWeight: 800,
-                               background: isDelayed ? 'rgba(239, 68, 68, 0.15)' : isToday ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                              background: isDelayed ? 'rgba(239, 68, 68, 0.15)' : isToday ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
                               color: isDelayed ? '#fb7185' : isToday ? '#fbbf24' : '#34d399',
                               borderRadius: 4,
                               border: `1px solid ${isDelayed ? 'rgba(239, 68, 68, 0.2)' : isToday ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`
@@ -1752,7 +1704,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       placeholder="Search backlog..."
                       prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
                       className="saas-input"
-                      style={{ width: 220, borderRadius: 6, height: 32, fontSize: 12 }}
+                      style={{ width: 220, borderRadius: 6, height: 32, fontSize: 12, background: 'transparent' }}
                       value={backlogSearchValue}
                       onChange={(e) => setBacklogSearchValue(e.target.value)}
                       allowClear
@@ -1811,10 +1763,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               onTicketUpdate={handleKanbanUpdate}
               activeSprint={activeSprint}
               kanbanScope={kanbanScope}
+              onScopeChange={setKanbanScope}
               onSprintAssignment={handleSprintAssignment}
               onCompleteSprint={handleCompleteSprint}
               filters={filters}
               onFilterChange={handleFilterChange}
+              onTicketClick={setSelectedTicketId}
             />
           ) : (
             <Card className="saas-card"><Empty description="No tickets found" /></Card>
@@ -1839,23 +1793,29 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       />
 
       <Modal
-        title={<Text strong style={{ fontSize: 16 }}>Create New Sprint</Text>}
         open={createSprintModalOpen}
         onCancel={() => setCreateSprintModalOpen(false)}
         footer={null}
-        width={480}
+        title={null}
+        closable={false}
+        width={580}
         centered
-        className="saas-modal"
+        destroyOnHidden
+        className="sprint-creation-modal"
+        styles={{
+          body: { padding: 0 },
+          content: {
+            padding: 0,
+            borderRadius: 18,
+            overflow: "hidden",
+            border: "1px solid var(--border-color)",
+            boxShadow: "0 24px 60px -20px rgba(15, 23, 42, 0.45)",
+          },
+        }}
       >
-        <Alert
-          message={activeSprint ? "Draft Sprint" : "Active Sprint"}
-          description={activeSprint ? "You already have a running sprint. This will be created as a draft." : "This will become your primary active sprint immediately."}
-          type={activeSprint ? "info" : "success"}
-          showIcon
-          style={{ marginBottom: 20, borderRadius: 8 }}
-        />
         <SprintCreationForm
           projectId={projectId}
+          isDraft={!!activeSprint}
           loading={creatingSprintLoading}
           onSubmit={handleCreateSprintFromBacklog}
           onCancel={() => setCreateSprintModalOpen(false)}

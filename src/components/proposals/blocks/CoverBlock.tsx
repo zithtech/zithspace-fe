@@ -17,6 +17,7 @@ import TiptapEditor from '@/components/common/TiptapEditor';
 import TiptapViewer from '@/components/common/TiptapViewer';
 import React from 'react';
 import { AIEnhanceButton } from '../AIEnhanceButton';
+import { BlockGhostHint } from './BlockGhost';
 
 const { Title, Text } = Typography;
 
@@ -27,6 +28,11 @@ interface CoverBlockProps {
 }
 
 export const CoverBlock: React.FC<CoverBlockProps> = ({ data }) => {
+  const isEmpty = !data.title && !data.projectSummary && !data.clientName && !data.clientCompany && !data.senderName && !data.senderCompany;
+  const ghost = (val: string | undefined, fallback: string) => val || fallback;
+  const ghostStyle = (val: any): React.CSSProperties =>
+    val ? {} : { color: 'var(--text-slate-400)', fontStyle: 'italic' };
+
   return (
     <div style={{
       display: 'flex',
@@ -36,63 +42,88 @@ export const CoverBlock: React.FC<CoverBlockProps> = ({ data }) => {
       borderRadius: '8px',
       border: '1px solid var(--border-color)',
     }}>
-      {/* Header: Identity & Logo */}
+      {isEmpty && <div style={{ marginBottom: 16 }}><BlockGhostHint /></div>}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
         <div>
-          {data.logoUrl && (
+          {data.logoUrl ? (
             <img
               src={data.logoUrl}
               alt="Logo"
               style={{ width: '64px', height: '64px', objectFit: 'contain', borderRadius: '8px' }}
             />
+          ) : (
+            <div style={{
+              width: 64, height: 64, borderRadius: 8,
+              border: '1.5px dashed var(--border-color)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--text-slate-400)', fontSize: 11, fontWeight: 600,
+              fontStyle: 'italic', background: 'var(--bg-slate-50)',
+            }}>Logo</div>
           )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right', alignItems: 'flex-end' }}>
-          <Text strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>{data.senderCompany}</Text>
-          <Text style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>{data.senderName}</Text>
+          <Text strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)', ...ghostStyle(data.senderCompany) }}>
+            {ghost(data.senderCompany, 'Your Agency LLC')}
+          </Text>
+          <Text style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px', ...ghostStyle(data.senderName) }}>
+            {ghost(data.senderName, 'Your Name')}
+          </Text>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-            <Text style={{ color: 'inherit' }}>{data.senderEmail}</Text>
+            <Text style={{ color: 'inherit', ...ghostStyle(data.senderEmail) }}>{ghost(data.senderEmail, 'contact@youragency.com')}</Text>
             <div style={{ width: '1px', height: '10px', background: 'var(--border-color)' }}></div>
-            <Text style={{ color: 'inherit' }}>{data.senderContact}</Text>
+            <Text style={{ color: 'inherit', ...ghostStyle(data.senderContact) }}>{ghost(data.senderContact, '(555) 000-0000')}</Text>
           </div>
-          <Text style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', whiteSpace: 'pre-wrap', marginTop: '4px' }}>{data.senderAddress}</Text>
+          <Text style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', whiteSpace: 'pre-wrap', marginTop: '4px', ...ghostStyle(data.senderAddress) }}>
+            {ghost(data.senderAddress, 'Your business address')}
+          </Text>
         </div>
       </div>
 
-      {/* Main Identity */}
       <div style={{ marginBottom: '24px' }}>
         <Text style={{ color: 'var(--premium-blue)', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Proposal For</Text>
-        <Title level={1} style={{ margin: '4px 0 8px 0', fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+        <Title level={1} style={{ margin: '4px 0 8px 0', fontSize: '2rem', fontWeight: 800, lineHeight: 1.2, color: data.title ? 'var(--text-primary)' : 'var(--text-slate-400)', fontStyle: data.title ? 'normal' : 'italic' }}>
           {data.title || 'Proposal Title'}
         </Title>
-        <div style={{ fontSize: '1rem', color: 'var(--text-primary)', maxWidth: '600px', display: 'block', lineHeight: 1.5 }}>
-          <TiptapViewer content={data.projectSummary || ''} />
+        <div style={{ fontSize: '1rem', maxWidth: '600px', display: 'block', lineHeight: 1.5, color: data.projectSummary ? 'var(--text-primary)' : 'var(--text-slate-400)', fontStyle: data.projectSummary ? 'normal' : 'italic' }}>
+          {data.projectSummary
+            ? <TiptapViewer content={data.projectSummary} />
+            : 'A short, persuasive summary of what this proposal delivers and why it matters.'}
         </div>
       </div>
 
-      {/* Client Informarion & Dates */}
       <div style={{ marginTop: 'auto' }}>
         <Divider style={{ margin: '0 0 20px 0' }} />
         <Row gutter={48}>
           <Col span={14}>
             <Text style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '4px', fontWeight: 600 }}>Prepared For</Text>
-            <Text strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: '1rem' }}>{data.clientCompany}</Text>
-            <Text style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>{data.clientName}</Text>
+            <Text strong style={{ display: 'block', fontSize: '1rem', color: data.clientCompany ? 'var(--text-primary)' : 'var(--text-slate-400)', fontStyle: data.clientCompany ? 'normal' : 'italic' }}>
+              {ghost(data.clientCompany, 'Client Company')}
+            </Text>
+            <Text style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px', ...ghostStyle(data.clientName) }}>
+              {ghost(data.clientName, 'Client contact name')}
+            </Text>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>
-              <Text style={{ color: 'inherit' }}>{data.clientEmail}</Text>
+              <Text style={{ color: 'inherit', ...ghostStyle(data.clientEmail) }}>{ghost(data.clientEmail, 'client@email.com')}</Text>
               <div style={{ width: '1px', height: '12px', background: 'var(--border-color)' }}></div>
-              <Text style={{ color: 'inherit' }}>{data.clientPhone}</Text>
+              <Text style={{ color: 'inherit', ...ghostStyle(data.clientPhone) }}>{ghost(data.clientPhone, '(555) 000-0000')}</Text>
             </div>
-            <Text style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem', whiteSpace: 'pre-wrap' }}>{data.clientAddress}</Text>
+            <Text style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem', whiteSpace: 'pre-wrap', ...ghostStyle(data.clientAddress) }}>
+              {ghost(data.clientAddress, 'Client business address')}
+            </Text>
           </Col>
           <Col span={10} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <Text style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '2px', fontWeight: 600 }}>Date</Text>
-              <Text strong style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>{data.date ? dayjs(data.date).format('MMMM D, YYYY') : '-'}</Text>
+              <Text strong style={{ fontSize: '0.9rem', color: data.date ? 'var(--text-primary)' : 'var(--text-slate-400)', fontStyle: data.date ? 'normal' : 'italic' }}>
+                {data.date ? dayjs(data.date).format('MMMM D, YYYY') : 'Pick a date'}
+              </Text>
             </div>
             <div>
               <Text style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '2px', fontWeight: 600 }}>Valid Until</Text>
-              <Text strong style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>{data.validUntil ? dayjs(data.validUntil).format('MMMM D, YYYY') : '-'}</Text>
+              <Text strong style={{ fontSize: '0.9rem', color: data.validUntil ? 'var(--text-primary)' : 'var(--text-slate-400)', fontStyle: data.validUntil ? 'normal' : 'italic' }}>
+                {data.validUntil ? dayjs(data.validUntil).format('MMMM D, YYYY') : 'Pick an expiry date'}
+              </Text>
             </div>
           </Col>
         </Row>

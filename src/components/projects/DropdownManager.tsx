@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Card,
   Table,
   Button,
-  Modal,
+  Drawer,
   Form,
   Input,
   Select,
@@ -14,25 +13,20 @@ import {
   Space,
   message,
   Popconfirm,
-  Tag,
   Tabs,
   Row,
   Col,
   Typography,
   InputNumber,
   Badge,
-  Tooltip,
-  Divider
+  Tooltip
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  EyeOutlined,
-  EyeInvisibleOutlined,
   UpOutlined,
   DownOutlined,
-  DatabaseOutlined,
   InfoCircleOutlined,
   ThunderboltOutlined,
   DeploymentUnitOutlined,
@@ -40,12 +34,18 @@ import {
   BlockOutlined,
   AppstoreOutlined,
   ControlOutlined,
-  MoreOutlined,
-  HolderOutlined
+  HolderOutlined,
+  SearchOutlined,
+  CheckCircleFilled,
+  EyeInvisibleFilled,
+  AppstoreFilled,
+  StarFilled,
+  ReloadOutlined,
+  FilterOutlined
 } from "@ant-design/icons";
 import { SettingsService, DropdownOption, CreateDropdownOptionData, UpdateDropdownOptionData } from '@/services/settingsService';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 interface DropdownManagerProps {
@@ -59,7 +59,9 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingOption, setEditingOption] = useState<DropdownOption | null>(null);
   const [activeTab, setActiveTab] = useState('platform');
-  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'hidden'>('all');
+
   // State for dropdown options grouped by type
   const [dropdownOptions, setDropdownOptions] = useState<Record<string, DropdownOption[]>>({});
 
@@ -81,13 +83,13 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
     try {
       setDataLoading(true);
       const options = await SettingsService.getDropdownOptions();
-      
+
       // Sort each category by order
       const sortedOptions: Record<string, DropdownOption[]> = {};
       Object.keys(options).forEach(type => {
         sortedOptions[type] = [...options[type]].sort((a, b) => (a.order || 0) - (b.order || 0));
       });
-      
+
       setDropdownOptions(sortedOptions);
     } catch (error) {
       console.error('Error loading dropdown options:', error);
@@ -148,7 +150,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   //     setLoading(true);
   //     const currentOptions = dropdownOptions[option.type] || [];
   //     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-      
+
   //     if (direction === 'up' && currentIndex > 0) {
   //       const newOrder = currentOptions[currentIndex - 1].order;
   //       await SettingsService.updateDropdownOption(option.id, { order: newOrder });
@@ -156,7 +158,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   //       const newOrder = currentOptions[currentIndex + 1].order;
   //       await SettingsService.updateDropdownOption(option.id, { order: newOrder });
   //     }
-      
+
   //     message.success('Sequence updated');
   //     await loadDropdownOptions();
   //     onDataChange?.();
@@ -172,264 +174,264 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
 
 
-// const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
-//   try {
-//     setLoading(true);
-//     const currentOptions = [...(dropdownOptions[option.type] || [])];
-//     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-    
-//     if (direction === 'up' && currentIndex > 0) {
-//       const prevOption = currentOptions[currentIndex - 1];
-      
-//       // ✅ Store the orders properly
-//       const currentOrder = option.order;
-//       const prevOrder = prevOption.order;
-      
-//       console.log('Swapping orders:', { currentOrder, prevOrder }); // Debug
-      
-//       // Swap orders - current gets prev's order, prev gets current's order
-//       await SettingsService.updateDropdownOption(option.id, { 
-//         order: prevOrder,  // Current item gets PREV item's order
-//         value: option.value,
-//         label: option.label,
-//         isActive: option.isActive,
-//         description: option.description,
-//         color: option.color
-//       });
-//      const result1 = await SettingsService.updateDropdownOption(option.id, { 
-//   order: prevOrder,
-//   value: option.value,
-//   label: option.label,
-//   isActive: option.isActive,
-//   description: option.description,
-//   color: option.color
-// });
-// console.log('RESULT 1 - New order:', result1.order); // 👈 ADD THIS
-      
-//       await SettingsService.updateDropdownOption(prevOption.id, { 
-//         order: currentOrder,  // PREV item gets CURRENT item's order
-//         value: prevOption.value,
-//         label: prevOption.label,
-//         isActive: prevOption.isActive,
-//         description: prevOption.description,
-//         color: prevOption.color
-//       });
-//       const result2 = await SettingsService.updateDropdownOption(prevOption.id, { 
-//   order: currentOrder,
-//   value: prevOption.value,
-//   label: prevOption.label,
-//   isActive: prevOption.isActive,
-//   description: prevOption.description,
-//   color: prevOption.color
-// });
-// console.log('RESULT 2 - New order:', result2.order); // 👈 ADD THIS
-      
-//     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
-//       const nextOption = currentOptions[currentIndex + 1];
-      
-//       // ✅ Store the orders properly
-//       const currentOrder = option.order;
-//       const nextOrder = nextOption.order;
-      
-//       console.log('Swapping orders:', { currentOrder, nextOrder }); // Debug
-      
-//       // Swap orders - current gets next's order, next gets current's order
-//       await SettingsService.updateDropdownOption(option.id, { 
-//         order: nextOrder,  // Current item gets NEXT item's order
-//         value: option.value,
-//         label: option.label,
-//         isActive: option.isActive,
-//         description: option.description,
-//         color: option.color
-//       });
-      
-//       await SettingsService.updateDropdownOption(nextOption.id, { 
-//         order: currentOrder,  // NEXT item gets CURRENT item's order
-//         value: nextOption.value,
-//         label: nextOption.label,
-//         isActive: nextOption.isActive,
-//         description: nextOption.description,
-//         color: nextOption.color
-//       });
-//     }
-    
-//     // ✅ Force refresh to see changes
-//     await loadDropdownOptions();
-//     message.success('Order updated successfully');
-    
-//   } catch (error) {
-//     console.error('Error:', error);
-//     message.error('Failed to update order');
-//   } finally {
-//     setLoading(false);
-//   }
-// };
+  // const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
+  //   try {
+  //     setLoading(true);
+  //     const currentOptions = [...(dropdownOptions[option.type] || [])];
+  //     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
+
+  //     if (direction === 'up' && currentIndex > 0) {
+  //       const prevOption = currentOptions[currentIndex - 1];
+
+  //       // ✅ Store the orders properly
+  //       const currentOrder = option.order;
+  //       const prevOrder = prevOption.order;
+
+  //       console.log('Swapping orders:', { currentOrder, prevOrder }); // Debug
+
+  //       // Swap orders - current gets prev's order, prev gets current's order
+  //       await SettingsService.updateDropdownOption(option.id, { 
+  //         order: prevOrder,  // Current item gets PREV item's order
+  //         value: option.value,
+  //         label: option.label,
+  //         isActive: option.isActive,
+  //         description: option.description,
+  //         color: option.color
+  //       });
+  //      const result1 = await SettingsService.updateDropdownOption(option.id, { 
+  //   order: prevOrder,
+  //   value: option.value,
+  //   label: option.label,
+  //   isActive: option.isActive,
+  //   description: option.description,
+  //   color: option.color
+  // });
+  // console.log('RESULT 1 - New order:', result1.order); // 👈 ADD THIS
+
+  //       await SettingsService.updateDropdownOption(prevOption.id, { 
+  //         order: currentOrder,  // PREV item gets CURRENT item's order
+  //         value: prevOption.value,
+  //         label: prevOption.label,
+  //         isActive: prevOption.isActive,
+  //         description: prevOption.description,
+  //         color: prevOption.color
+  //       });
+  //       const result2 = await SettingsService.updateDropdownOption(prevOption.id, { 
+  //   order: currentOrder,
+  //   value: prevOption.value,
+  //   label: prevOption.label,
+  //   isActive: prevOption.isActive,
+  //   description: prevOption.description,
+  //   color: prevOption.color
+  // });
+  // console.log('RESULT 2 - New order:', result2.order); // 👈 ADD THIS
+
+  //     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
+  //       const nextOption = currentOptions[currentIndex + 1];
+
+  //       // ✅ Store the orders properly
+  //       const currentOrder = option.order;
+  //       const nextOrder = nextOption.order;
+
+  //       console.log('Swapping orders:', { currentOrder, nextOrder }); // Debug
+
+  //       // Swap orders - current gets next's order, next gets current's order
+  //       await SettingsService.updateDropdownOption(option.id, { 
+  //         order: nextOrder,  // Current item gets NEXT item's order
+  //         value: option.value,
+  //         label: option.label,
+  //         isActive: option.isActive,
+  //         description: option.description,
+  //         color: option.color
+  //       });
+
+  //       await SettingsService.updateDropdownOption(nextOption.id, { 
+  //         order: currentOrder,  // NEXT item gets CURRENT item's order
+  //         value: nextOption.value,
+  //         label: nextOption.label,
+  //         isActive: nextOption.isActive,
+  //         description: nextOption.description,
+  //         color: nextOption.color
+  //       });
+  //     }
+
+  //     // ✅ Force refresh to see changes
+  //     await loadDropdownOptions();
+  //     message.success('Order updated successfully');
+
+  //   } catch (error) {
+  //     console.error('Error:', error);
+  //     message.error('Failed to update order');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
 
 
 
 
-// const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
-//   try {
-//     setLoading(true);
-//     const currentOptions = [...(dropdownOptions[option.type] || [])];
-//     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-    
-//     if (direction === 'up' && currentIndex > 0) {
-//       const prevOption = currentOptions[currentIndex - 1];
-      
-//       // Swap orders - Update BOTH items
-//       await SettingsService.updateDropdownOption(option.id, { 
-//         order: prevOption.order,
-//         value: option.value,
-//         label: option.label,
-//         isActive: option.isActive
-//       });
-      
-//       await SettingsService.updateDropdownOption(prevOption.id, { 
-//         order: option.order,
-//         value: prevOption.value,
-//         label: prevOption.label,
-//         isActive: prevOption.isActive
-//       });
-      
-//       // Update UI immediately
-//       const newOptions = [...currentOptions];
-//       newOptions[currentIndex - 1] = { ...newOptions[currentIndex - 1], order: option.order };
-//       newOptions[currentIndex] = { ...newOptions[currentIndex], order: prevOption.order };
-      
-//       setDropdownOptions({
-//         ...dropdownOptions,
-//         [option.type]: newOptions
-//       });
-      
-//       message.success('Order updated');
-      
-//     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
-//       const nextOption = currentOptions[currentIndex + 1];
-      
-//       await SettingsService.updateDropdownOption(option.id, { 
-//         order: nextOption.order,
-//         value: option.value,
-//         label: option.label,
-//         isActive: option.isActive
-//       });
-      
-//       await SettingsService.updateDropdownOption(nextOption.id, { 
-//         order: option.order,
-//         value: nextOption.value,
-//         label: nextOption.label,
-//         isActive: nextOption.isActive
-//       });
-      
-//       // Update UI immediately
-//       const newOptions = [...currentOptions];
-//       newOptions[currentIndex] = { ...newOptions[currentIndex], order: nextOption.order };
-//       newOptions[currentIndex + 1] = { ...newOptions[currentIndex + 1], order: option.order };
-      
-//       setDropdownOptions({
-//         ...dropdownOptions,
-//         [option.type]: newOptions
-//       });
-      
-//       message.success('Order updated');
-//     }
-    
-//     // Refresh from database in background
-//     setTimeout(async () => {
-//       await loadDropdownOptions();
-//     }, 500);
-    
-//   } catch (error) {
-//     console.error('Error:', error);
-//     message.error('Failed to update order');
-//   } finally {
-//     setLoading(false);
-//   }
-// };
+  // const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
+  //   try {
+  //     setLoading(true);
+  //     const currentOptions = [...(dropdownOptions[option.type] || [])];
+  //     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
+
+  //     if (direction === 'up' && currentIndex > 0) {
+  //       const prevOption = currentOptions[currentIndex - 1];
+
+  //       // Swap orders - Update BOTH items
+  //       await SettingsService.updateDropdownOption(option.id, { 
+  //         order: prevOption.order,
+  //         value: option.value,
+  //         label: option.label,
+  //         isActive: option.isActive
+  //       });
+
+  //       await SettingsService.updateDropdownOption(prevOption.id, { 
+  //         order: option.order,
+  //         value: prevOption.value,
+  //         label: prevOption.label,
+  //         isActive: prevOption.isActive
+  //       });
+
+  //       // Update UI immediately
+  //       const newOptions = [...currentOptions];
+  //       newOptions[currentIndex - 1] = { ...newOptions[currentIndex - 1], order: option.order };
+  //       newOptions[currentIndex] = { ...newOptions[currentIndex], order: prevOption.order };
+
+  //       setDropdownOptions({
+  //         ...dropdownOptions,
+  //         [option.type]: newOptions
+  //       });
+
+  //       message.success('Order updated');
+
+  //     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
+  //       const nextOption = currentOptions[currentIndex + 1];
+
+  //       await SettingsService.updateDropdownOption(option.id, { 
+  //         order: nextOption.order,
+  //         value: option.value,
+  //         label: option.label,
+  //         isActive: option.isActive
+  //       });
+
+  //       await SettingsService.updateDropdownOption(nextOption.id, { 
+  //         order: option.order,
+  //         value: nextOption.value,
+  //         label: nextOption.label,
+  //         isActive: nextOption.isActive
+  //       });
+
+  //       // Update UI immediately
+  //       const newOptions = [...currentOptions];
+  //       newOptions[currentIndex] = { ...newOptions[currentIndex], order: nextOption.order };
+  //       newOptions[currentIndex + 1] = { ...newOptions[currentIndex + 1], order: option.order };
+
+  //       setDropdownOptions({
+  //         ...dropdownOptions,
+  //         [option.type]: newOptions
+  //       });
+
+  //       message.success('Order updated');
+  //     }
+
+  //     // Refresh from database in background
+  //     setTimeout(async () => {
+  //       await loadDropdownOptions();
+  //     }, 500);
+
+  //   } catch (error) {
+  //     console.error('Error:', error);
+  //     message.error('Failed to update order');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
 
 
 
 
-const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
-  try {
-    setLoading(true);
-    const currentOptions = [...(dropdownOptions[option.type] || [])];
-    const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-    
-    if (direction === 'up' && currentIndex > 0) {
-      const prevOption = currentOptions[currentIndex - 1];
-      
-      // Swap the 'order' values
-      const currentOrder = option.order;
-      const prevOrder = prevOption.order;
+  const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
+    try {
+      setLoading(true);
+      const currentOptions = [...(dropdownOptions[option.type] || [])];
+      const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
 
-      // Update backend using the specialized reorder endpoint
-      await SettingsService.reorderDropdownOptions([
-        { id: option.id, order: prevOrder, value: option.value, label: option.label },
-        { id: prevOption.id, order: currentOrder, value: prevOption.value, label: prevOption.label }
-      ]);
-      
-      // Update local state - swap items in array AND update their order property
-      const newOptions = [...currentOptions];
-      const updatedCurrent = { ...option, order: prevOrder };
-      const updatedPrev = { ...prevOption, order: currentOrder };
-      
-      newOptions[currentIndex] = updatedPrev;
-      newOptions[currentIndex - 1] = updatedCurrent;
-      
-      // Ensure the final list is still sorted
-      const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
-      
-      setDropdownOptions(prev => ({
-        ...prev,
-        [option.type]: sorted
-      }));
-      
-      onDataChange?.();
-      message.success('Sequence updated');
-      
-    } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
-      const nextOption = currentOptions[currentIndex + 1];
-      
-      const currentOrder = option.order;
-      const nextOrder = nextOption.order;
+      if (direction === 'up' && currentIndex > 0) {
+        const prevOption = currentOptions[currentIndex - 1];
 
-      // Update backend
-      await SettingsService.reorderDropdownOptions([
-        { id: option.id, order: nextOrder, value: option.value, label: option.label },
-        { id: nextOption.id, order: currentOrder, value: nextOption.value, label: nextOption.label }
-      ]);
-      
-      // Update local state
-      const newOptions = [...currentOptions];
-      const updatedCurrent = { ...option, order: nextOrder };
-      const updatedNext = { ...nextOption, order: currentOrder };
-      
-      newOptions[currentIndex] = updatedNext;
-      newOptions[currentIndex + 1] = updatedCurrent;
-      
-      // Re-sort
-      const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
-      
-      setDropdownOptions(prev => ({
-        ...prev,
-        [option.type]: sorted
-      }));
-      
-      onDataChange?.();
-      message.success('Sequence updated');
+        // Swap the 'order' values
+        const currentOrder = option.order;
+        const prevOrder = prevOption.order;
+
+        // Update backend using the specialized reorder endpoint
+        await SettingsService.reorderDropdownOptions([
+          { id: option.id, order: prevOrder, value: option.value, label: option.label },
+          { id: prevOption.id, order: currentOrder, value: prevOption.value, label: prevOption.label }
+        ]);
+
+        // Update local state - swap items in array AND update their order property
+        const newOptions = [...currentOptions];
+        const updatedCurrent = { ...option, order: prevOrder };
+        const updatedPrev = { ...prevOption, order: currentOrder };
+
+        newOptions[currentIndex] = updatedPrev;
+        newOptions[currentIndex - 1] = updatedCurrent;
+
+        // Ensure the final list is still sorted
+        const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        setDropdownOptions(prev => ({
+          ...prev,
+          [option.type]: sorted
+        }));
+
+        onDataChange?.();
+        message.success('Sequence updated');
+
+      } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
+        const nextOption = currentOptions[currentIndex + 1];
+
+        const currentOrder = option.order;
+        const nextOrder = nextOption.order;
+
+        // Update backend
+        await SettingsService.reorderDropdownOptions([
+          { id: option.id, order: nextOrder, value: option.value, label: option.label },
+          { id: nextOption.id, order: currentOrder, value: nextOption.value, label: nextOption.label }
+        ]);
+
+        // Update local state
+        const newOptions = [...currentOptions];
+        const updatedCurrent = { ...option, order: nextOrder };
+        const updatedNext = { ...nextOption, order: currentOrder };
+
+        newOptions[currentIndex] = updatedNext;
+        newOptions[currentIndex + 1] = updatedCurrent;
+
+        // Re-sort
+        const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        setDropdownOptions(prev => ({
+          ...prev,
+          [option.type]: sorted
+        }));
+
+        onDataChange?.();
+        message.success('Sequence updated');
+      }
+    } catch (error) {
+      console.error('Error reordering:', error);
+      message.error('Failed to update sequence');
+      // Reload to original state if error
+      await loadDropdownOptions();
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Error reordering:', error);
-    message.error('Failed to update sequence');
-    // Reload to original state if error
-    await loadDropdownOptions();
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
 
@@ -448,7 +450,7 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
   const handleSubmit = async (values: any) => {
     try {
       setLoading(true);
-      
+
       const data: CreateDropdownOptionData | UpdateDropdownOptionData = {
         type: values.type,
         value: values.value,
@@ -482,7 +484,7 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
     try {
       setLoading(true);
       message.loading({ content: 'Synchronizing system lifecycles...', key: 'status-sync' });
-      
+
       const currentStatusList = dropdownOptions.status || [];
       const newStatusOrder = [
         { label: "Not Started", value: "not_started", color: "#8c8c8c" },
@@ -500,7 +502,7 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
       for (let i = 0; i < newStatusOrder.length; i++) {
         const target = newStatusOrder[i];
         const existing = currentStatusList.find(s => s.value === target.value);
-        
+
         const data = {
           label: target.label,
           value: target.value,
@@ -579,9 +581,25 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
       dataIndex: 'label',
       key: 'label',
       render: (label: string, record: DropdownOption) => (
-        <div>
-          <Text strong style={{ fontSize: 13, display: 'block', color: 'var(--text-slate-900)' }}>{label}</Text>
-          <Text style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>{record.value}</Text>
+        <div className="dm-identity-cell">
+          <div
+            className="dm-color-swatch"
+            style={{
+              background: record.color
+                ? `linear-gradient(135deg, ${record.color} 0%, ${record.color}cc 100%)`
+                : 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)',
+              boxShadow: record.color ? `0 4px 12px ${record.color}40, inset 0 1px 0 rgba(255,255,255,0.3)` : 'none',
+            }}
+          >
+            {!record.color && <span style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>?</span>}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <Text strong style={{ fontSize: 13, display: 'block', color: 'var(--text-slate-900)', lineHeight: 1.3 }}>{label}</Text>
+            <div className="dm-value-pill">
+              <span className="dm-value-dot" />
+              <span style={{ fontFamily: 'JetBrains Mono, Menlo, monospace' }}>{record.value}</span>
+            </div>
+          </div>
         </div>
       )
     },
@@ -605,19 +623,13 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
       width: 100,
       align: 'center' as const,
       render: (isActive: boolean, record: DropdownOption) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <Switch 
-            size="small" 
-            checked={isActive} 
-            onChange={() => handleToggleStatus(record)} 
-            loading={loading}
-            className="premium-switch"
-          />
-          <Badge 
-            status={isActive ? 'success' : 'default'} 
-            text={<span style={{ fontSize: 10, color: isActive ? '#52c41a' : '#bfbfbf', fontWeight: 600 }}>{isActive ? 'ACTIVE' : 'HIDDEN'}</span>} 
-          />
-        </div>
+        <Switch
+          size="small"
+          checked={isActive}
+          onChange={() => handleToggleStatus(record)}
+          loading={loading}
+          className="premium-switch"
+        />
       )
     },
     {
@@ -659,278 +671,543 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
 
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          tabPosition="left"
-          className="manager-tabs"
-          style={{ flex: 1, height: '100%' }}
-          items={dropdownTypes.map(type => ({
-            key: type.key,
-            label: (
-              <div className="tab-label-container">
-                <Space size={12}>
-                  <div className={`tab-icon-box ${activeTab === type.key ? 'active' : ''}`} style={{ color: type.color }}>
-                    {type.icon}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        tabPosition="left"
+        className="manager-tabs"
+        style={{ flex: 1, height: '100%' }}
+        items={dropdownTypes.map(type => ({
+          key: type.key,
+          label: (
+            <div className="tab-label-container">
+              <Space size={12}>
+                <div className={`tab-icon-box ${activeTab === type.key ? 'active' : ''}`} style={{ color: type.color }}>
+                  {type.icon}
+                </div>
+                <div>
+                  <div className="tab-title">{type.label}</div>
+                  <div className="tab-subtitle-count">
+                    <Badge
+                      count={dropdownOptions[type.key]?.length || 0}
+                      size="small"
+                      style={{
+                        backgroundColor: activeTab === type.key ? type.color : 'rgba(0,0,0,0.06)',
+                        color: activeTab === type.key ? '#fff' : 'var(--text-secondary)',
+                        fontSize: 10,
+                        boxShadow: 'none',
+                        border: 'none'
+                      }}
+                    />
+                    <span style={{ marginLeft: 6 }}>Definitions</span>
                   </div>
-                  <div>
-                    <div className="tab-title">{type.label}</div>
-                    <div className="tab-subtitle-count">
-                      <Badge 
-                        count={dropdownOptions[type.key]?.length || 0} 
-                        size="small"
-                        style={{ 
-                          backgroundColor: activeTab === type.key ? type.color : 'rgba(0,0,0,0.06)', 
-                          color: activeTab === type.key ? '#fff' : 'var(--text-secondary)',
-                          fontSize: 10,
-                          boxShadow: 'none',
-                          border: 'none'
-                        }} 
-                      />
-                      <span style={{ marginLeft: 6 }}>Definitions</span>
-                    </div>
-                  </div>
-                </Space>
-              </div>
-            ),
-            children: (
-              <div className="tab-content-area no-scrollbar">
-                <div className="category-header">
-                  <Row justify="space-between" align="middle">
-                    <Col>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 4, height: 24, background: type.color, borderRadius: 2, flexShrink: 0 }} />
-                        <Space split={<Divider type="vertical" style={{ height: 18, borderLeft: '1.5px solid #cbd5e1', margin: '0 4px' }} />} size={16}>
-                          <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
+                </div>
+              </Space>
+            </div>
+          ),
+          children: (() => {
+            const allItems = dropdownOptions[type.key] || [];
+            const activeCount = allItems.filter(o => o.isActive).length;
+            const hiddenCount = allItems.length - activeCount;
+            const colorCount = allItems.filter(o => !!o.color).length;
+            const filteredItems = allItems
+              .filter(o => {
+                if (filterStatus === 'active') return o.isActive;
+                if (filterStatus === 'hidden') return !o.isActive;
+                return true;
+              })
+              .filter(o => {
+                if (!searchQuery.trim()) return true;
+                const q = searchQuery.toLowerCase();
+                return (
+                  o.label.toLowerCase().includes(q) ||
+                  o.value.toLowerCase().includes(q) ||
+                  (o.description || '').toLowerCase().includes(q)
+                );
+              });
+
+            return (
+              <div className="tab-content-area">
+                {/* Premium Hero Header */}
+                <div
+                  className="dm-hero"
+                  style={{
+                    background: `linear-gradient(135deg, ${type.color}14 0%, ${type.color}05 60%, transparent 100%)`,
+                    borderColor: `${type.color}26`,
+                  }}
+                >
+                  <div
+                    className="dm-hero-glow"
+                    style={{ background: `radial-gradient(circle at 80% 20%, ${type.color}40 0%, transparent 60%)` }}
+                  />
+                  <div className="dm-hero-content">
+                    <div className="dm-hero-left">
+                      <div
+                        className="dm-hero-icon"
+                        style={{
+                          background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}cc 100%)`,
+                          boxShadow: `0 12px 32px ${type.color}40, inset 0 1px 0 rgba(255,255,255,0.3)`,
+                        }}
+                      >
+                        {React.cloneElement(type.icon as React.ReactElement, {
+                          style: { fontSize: 18, color: '#fff' },
+                        })}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                        <div className="dm-hero-eyebrow">
+                          <span style={{ color: type.color }}>●</span>
+                          CONFIGURATION · {type.key.toUpperCase()}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+                          <Title level={3} className="dm-hero-title">
                             {type.label}
                           </Title>
-                          <Text style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
-                            {type.description}
-                          </Text>
-                        </Space>
+                          <Text className="dm-hero-desc">{type.description}</Text>
+                        </div>
                       </div>
-                    </Col>
-                    <Col>
-                      <Space size={12}>
+                    </div>
+                    <div className="dm-stats-grid">
+                      <div className="dm-stat-card" title="Total Definitions">
+                        <div className="dm-stat-icon" style={{ background: `${type.color}1a`, color: type.color }}>
+                          <AppstoreFilled />
+                        </div>
+                        <span className="dm-stat-value">{allItems.length}</span>
+                        <span className="dm-stat-label">Total</span>
+                      </div>
+                      <div className="dm-stat-card" title="Active & Visible">
+                        <div className="dm-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+                          <CheckCircleFilled />
+                        </div>
+                        <span className="dm-stat-value">{activeCount}</span>
+                        <span className="dm-stat-label">Active</span>
+                      </div>
+                      <div className="dm-stat-card" title="Hidden / Archived">
+                        <div className="dm-stat-icon" style={{ background: 'rgba(148, 163, 184, 0.15)', color: '#64748b' }}>
+                          <EyeInvisibleFilled />
+                        </div>
+                        <span className="dm-stat-value">{hiddenCount}</span>
+                        <span className="dm-stat-label">Hidden</span>
+                      </div>
+                      <div className="dm-stat-card" title="With Visual Identity">
+                        <div className="dm-stat-icon" style={{ background: 'rgba(168, 85, 247, 0.12)', color: '#a855f7' }}>
+                          <StarFilled />
+                        </div>
+                        <span className="dm-stat-value">{colorCount}</span>
+                        <span className="dm-stat-label">Themed</span>
+                      </div>
+                    </div>
+                    <div className="dm-hero-right">
+                      <Space size={8}>
                         {type.key === 'status' && (
                           <Button
-                            size="small"
                             icon={<ThunderboltOutlined />}
                             onClick={handleStandardizeLifecycles}
                             loading={loading}
-                            style={{ borderRadius: 6, fontWeight: 700, border: '1px solid #faad14', color: '#faad14', height: 32 }}
+                            className="dm-sync-btn"
                           >
                             Synchronize
                           </Button>
                         )}
                         <Button
                           type="primary"
-                          size="small"
                           icon={<PlusOutlined />}
                           onClick={handleCreate}
-                          style={{ borderRadius: 6, fontWeight: 700, height: 32, padding: '0 16px' }}
+                          className="dm-primary-btn"
+                          style={{
+                            background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}d9 100%)`,
+                            boxShadow: `0 6px 14px ${type.color}40`,
+                          }}
                         >
                           New Definition
                         </Button>
                       </Space>
-                    </Col>
-                  </Row>
-                  <Divider style={{ margin: '16px 0 0' }} />
+                    </div>
+                  </div>
                 </div>
-                
-                <div style={{ flex: 1, marginTop: 16 }}>
+
+                {/* Toolbar: search + filter chips */}
+                <div className="dm-toolbar">
+                  <div className="dm-search-box">
+                    <SearchOutlined className="dm-search-icon" />
+                    <input
+                      className="dm-search-input"
+                      placeholder={`Search ${type.label.toLowerCase()} by label, key, or context…`}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                      <button className="dm-search-clear" onClick={() => setSearchQuery('')}>
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <div className="dm-filter-chips">
+                    <button
+                      className={`dm-chip ${filterStatus === 'all' ? 'active' : ''}`}
+                      onClick={() => setFilterStatus('all')}
+                    >
+                      <FilterOutlined />
+                      All
+                      <span className="dm-chip-count">{allItems.length}</span>
+                    </button>
+                    <button
+                      className={`dm-chip ${filterStatus === 'active' ? 'active' : ''}`}
+                      onClick={() => setFilterStatus('active')}
+                    >
+                      <CheckCircleFilled style={{ color: '#10b981' }} />
+                      Active
+                      <span className="dm-chip-count">{activeCount}</span>
+                    </button>
+                    <button
+                      className={`dm-chip ${filterStatus === 'hidden' ? 'active' : ''}`}
+                      onClick={() => setFilterStatus('hidden')}
+                    >
+                      <EyeInvisibleFilled style={{ color: '#94a3b8' }} />
+                      Hidden
+                      <span className="dm-chip-count">{hiddenCount}</span>
+                    </button>
+                    <Tooltip title="Reload from server">
+                      <button className="dm-chip dm-chip-icon" onClick={loadDropdownOptions}>
+                        <ReloadOutlined spin={dataLoading} />
+                      </button>
+                    </Tooltip>
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="dm-table-wrapper">
                   <Table
                     columns={columns}
-                    dataSource={dropdownOptions[type.key] || []}
+                    dataSource={filteredItems}
                     rowKey="id"
                     loading={dataLoading}
                     pagination={false}
                     size="middle"
                     className="premium-table workstation-grid"
+                    scroll={{ y: 'calc(100vh - 420px)' }}
+                    locale={{
+                      emptyText: (
+                        <div className="dm-empty-state">
+                          <div className="dm-empty-icon" style={{ background: `${type.color}14`, color: type.color }}>
+                            {React.cloneElement(type.icon as React.ReactElement, { style: { fontSize: 28 } })}
+                          </div>
+                          <div className="dm-empty-title">
+                            {searchQuery || filterStatus !== 'all'
+                              ? 'No matching definitions'
+                              : `No ${type.label.toLowerCase()} configured yet`}
+                          </div>
+                          <div className="dm-empty-desc">
+                            {searchQuery || filterStatus !== 'all'
+                              ? 'Try a different search term or clear your filters.'
+                              : `Create your first ${type.label.toLowerCase().replace(/s$/, '')} definition to get started.`}
+                          </div>
+                          {!(searchQuery || filterStatus !== 'all') && (
+                            <Button
+                              type="primary"
+                              icon={<PlusOutlined />}
+                              onClick={handleCreate}
+                              style={{
+                                marginTop: 16,
+                                borderRadius: 8,
+                                height: 38,
+                                fontWeight: 700,
+                                background: type.color,
+                                borderColor: type.color,
+                              }}
+                            >
+                              Create Definition
+                            </Button>
+                          )}
+                        </div>
+                      ),
+                    }}
                   />
                 </div>
               </div>
-            )
-          }))}
-        />
+            );
+          })()
+        }))}
+      />
 
-      <Modal
+      <Drawer
+        open={modalVisible}
+        onClose={() => setModalVisible(false)}
+        width={560}
+        placement="right"
+        closable={false}
+        className="dm-drawer"
+        rootClassName="dm-drawer-root"
+        maskClosable={!loading}
         title={
-          <div style={{ padding: '8px 4px' }}>
-            <Space size={12}>
-              <div style={{ 
-                width: 40, 
-                height: 40, 
-                background: 'rgba(59, 130, 246, 0.1)', 
-                borderRadius: 12, 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                border: '1px solid rgba(59, 130, 246, 0.1)'
-              }}>
-                {editingOption ? <EditOutlined style={{ color: '#3B82F6', fontSize: 20 }} /> : <PlusOutlined style={{ color: '#3B82F6', fontSize: 20 }} />}
-              </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
-                  {editingOption ? 'Edit Mapping Definition' : 'New Mapping Definition'}
+          (() => {
+            const drawerType =
+              dropdownTypes.find(t => t.key === (editingOption?.type || activeTab)) ||
+              dropdownTypes[0];
+            return (
+              <div
+                className="dm-drawer-header"
+                style={{
+                  background: `linear-gradient(135deg, ${drawerType.color}1f 0%, ${drawerType.color}08 60%, transparent 100%)`,
+                  borderBottom: `1px solid ${drawerType.color}26`,
+                }}
+              >
+                <div
+                  className="dm-drawer-header-glow"
+                  style={{ background: `radial-gradient(circle at 90% 0%, ${drawerType.color}40 0%, transparent 60%)` }}
+                />
+                <div className="dm-drawer-header-row">
+                  <div
+                    className="dm-drawer-icon"
+                    style={{
+                      background: `linear-gradient(135deg, ${drawerType.color} 0%, ${drawerType.color}cc 100%)`,
+                      boxShadow: `0 10px 24px ${drawerType.color}45, inset 0 1px 0 rgba(255,255,255,0.3)`,
+                    }}
+                  >
+                    {editingOption ? <EditOutlined style={{ color: '#fff', fontSize: 18 }} /> : <PlusOutlined style={{ color: '#fff', fontSize: 18 }} />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="dm-drawer-eyebrow">
+                      <span style={{ color: drawerType.color }}>●</span>
+                      {editingOption ? 'EDITING' : 'NEW'} · {drawerType.label.toUpperCase()}
+                    </div>
+                    <div className="dm-drawer-title">
+                      {editingOption ? 'Edit Mapping Definition' : 'New Mapping Definition'}
+                    </div>
+                    <div className="dm-drawer-sub">
+                      Configure synchronization parameters for ticket taxonomies.
+                    </div>
+                  </div>
+                  <button className="dm-drawer-close" onClick={() => setModalVisible(false)} aria-label="Close">
+                    ×
+                  </button>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 400 }}>
-                  Configure synchronization parameters for ticket taxonomies.
-                </div>
               </div>
+            );
+          })()
+        }
+        styles={{
+          header: { padding: 0, border: 'none' },
+          body: { padding: 0, background: 'var(--bg-pure-white)' },
+          wrapper: { boxShadow: '-24px 0 60px rgba(15, 23, 42, 0.2)' },
+        }}
+        footer={
+          <div className="dm-drawer-footer">
+            <div className="dm-drawer-footer-hint">
+              <InfoCircleOutlined />
+              {editingOption ? 'Changes apply across all projects after save.' : 'New definitions are activated immediately.'}
+            </div>
+            <Space size={10}>
+              <Button
+                onClick={() => setModalVisible(false)}
+                className="dm-drawer-cancel"
+              >
+                Discard
+              </Button>
+              <Button
+                type="primary"
+                onClick={() => form.submit()}
+                loading={loading}
+                icon={editingOption ? <EditOutlined /> : <PlusOutlined />}
+                className="dm-drawer-submit"
+              >
+                {editingOption ? 'Update Definition' : 'Deploy Definition'}
+              </Button>
             </Space>
           </div>
         }
-        open={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        onOk={() => form.submit()}
-        confirmLoading={loading}
-        width={680}
-        centered
-        okText={editingOption ? "Update Definition" : "Deploy Definition"}
-        cancelText="Discard"
-        okButtonProps={{ style: { borderRadius: 10, height: 44, fontWeight: 700, padding: '0 24px' } }}
-        cancelButtonProps={{ style: { borderRadius: 10, height: 44, padding: '0 24px' } }}
-        styles={{ body: { padding: '24px 8px' } }}
       >
-        <div style={{ padding: '16px 0' }}>
+        <div className="dm-drawer-body">
           <Form
             form={form}
             layout="vertical"
             onFinish={handleSubmit}
             requiredMark="optional"
           >
-            <Row gutter={24}>
-              <Col span={14}>
-                <Form.Item
-                  name="type"
-                  label={<Text strong>Classification Type</Text>}
-                  rules={[{ required: true }]}
-                >
-                  <Select disabled={!!editingOption} size="large" style={{ borderRadius: 8 }}>
-                    {dropdownTypes.map(type => (
-                      <Select.Option key={type.key} value={type.key}>
-                        {type.label}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={10}>
-                <Form.Item
-                  name="order"
-                  label={<Text strong>Display Priority</Text>}
-                  rules={[{ required: true }]}
-                  tooltip="Lower numbers appear first in dropdowns"
-                >
-                  <InputNumber min={1} style={{ width: '100%', borderRadius: 8 }} size="large" />
-                </Form.Item>
-              </Col>
-            </Row>
+            <DefinitionPreview form={form} dropdownTypes={dropdownTypes} />
+            {/* ── Section: Taxonomy ─────────────────────────────── */}
+            <div className="dm-form-section">
+              <div className="dm-form-section-title">
+                <span className="dm-form-section-num">01</span>
+                Taxonomy
+              </div>
+              <Row gutter={20}>
+                <Col span={14}>
+                  <Form.Item
+                    name="type"
+                    label={<span className="dm-form-label"><AppstoreOutlined /> Classification Type</span>}
+                    rules={[{ required: true }]}
+                  >
+                    <Select disabled={!!editingOption} size="large" className="dm-input">
+                      {dropdownTypes.map(type => (
+                        <Select.Option key={type.key} value={type.key}>
+                          <Space size={8}>
+                            <span className="dm-select-dot" style={{ background: type.color }} />
+                            {type.label}
+                          </Space>
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={10}>
+                  <Form.Item
+                    name="order"
+                    label={<span className="dm-form-label"><HolderOutlined /> Display Priority</span>}
+                    rules={[{ required: true }]}
+                    tooltip="Lower numbers appear first in dropdowns"
+                  >
+                    <InputNumber min={1} style={{ width: '100%' }} size="large" className="dm-input" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
 
-            <Divider dashed style={{ margin: '12px 0 24px' }} />
+            {/* ── Section: Identity ─────────────────────────────── */}
+            <div className="dm-form-section">
+              <div className="dm-form-section-title">
+                <span className="dm-form-section-num">02</span>
+                Identity
+              </div>
+              <Row gutter={20}>
+                <Col span={12}>
+                  <Form.Item
+                    name="label"
+                    label={<span className="dm-form-label"><EditOutlined /> Display Label</span>}
+                    rules={[{ required: true, message: 'Label is required' }]}
+                  >
+                    <Input placeholder="e.g. High Priority" size="large" className="dm-input" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="value"
+                    label={<span className="dm-form-label"><CodeOutlined /> System Key (Value)</span>}
+                    rules={[{ required: true, message: 'Key is required' }]}
+                    tooltip="Internal identifier (usually uppercase/lowercase without spaces)"
+                  >
+                    <Input placeholder="e.g. HIGH" size="large" className="dm-input dm-input-mono" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
 
-            <Row gutter={24}>
-              <Col span={12}>
-                <Form.Item
-                  name="label"
-                  label={<Text strong>Display Label</Text>}
-                  rules={[{ required: true, message: 'Label is required' }]}
-                >
-                  <Input placeholder="e.g. High Priority" size="large" style={{ borderRadius: 8 }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="value"
-                  label={<Text strong>System Key (Value)</Text>}
-                  rules={[{ required: true, message: 'Key is required' }]}
-                  tooltip="Internal identifier (usually uppercase/lowercase without spaces)"
-                >
-                  <Input placeholder="e.g. HIGH" size="large" style={{ borderRadius: 8 }} />
-                </Form.Item>
-              </Col>
-            </Row>
+            {/* ── Section: Appearance & Visibility ──────────────── */}
+            <div className="dm-form-section">
+              <div className="dm-form-section-title">
+                <span className="dm-form-section-num">03</span>
+                Appearance &amp; Visibility
+              </div>
+              <Row gutter={20} align="top">
+                <Col span={12}>
+                  <Form.Item
+                    name="color"
+                    label={<span className="dm-form-label"><StarFilled style={{ color: '#a855f7' }} /> Visual Identity</span>}
+                  >
+                    <div className="dm-color-picker-row">
+                      <ColorPicker showText />
+                      <Text type="secondary" style={{ fontSize: 12 }}>Pick representative color</Text>
+                    </div>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="isActive"
+                    label={<span className="dm-form-label"><CheckCircleFilled style={{ color: '#10b981' }} /> Availability</span>}
+                    valuePropName="checked"
+                  >
+                    <div className="dm-availability-toggle">
+                      <Space size={8}>
+                        <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
+                        <Text style={{ fontSize: 13 }}>Enable for all projects</Text>
+                      </Space>
+                      <Switch checkedChildren="ON" unCheckedChildren="OFF" />
+                    </div>
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
 
-            <Row gutter={24} align="middle">
-              <Col span={12}>
-                <Form.Item
-                  name="color"
-                  label={<Text strong>Visual Identity (Color)</Text>}
-                >
-                  <div className="dm-color-picker-row">
-                    <ColorPicker showText />
-                    <Text type="secondary" style={{ fontSize: 12 }}>Pick representative color</Text>
-                  </div>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="isActive"
-                  label={<Text strong>Availability Status</Text>}
-                  valuePropName="checked"
-                >
-                  <div className="dm-availability-toggle">
-                    <Space size="small">
-                      <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-                      <Text style={{ fontSize: 13 }}>Enable for all projects</Text>
-                    </Space>
-                    <Switch checkedChildren="ON" unCheckedChildren="OFF" />
-                  </div>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item
-              name="description"
-              label={<Text strong>Usage Instructions</Text>}
-            >
-              <TextArea
-                rows={4}
-                placeholder="Explain when to use this specific classification..."
-                style={{ borderRadius: 8 }}
-              />
-            </Form.Item>
+            {/* ── Section: Context ──────────────────────────────── */}
+            <div className="dm-form-section dm-form-section-last">
+              <div className="dm-form-section-title">
+                <span className="dm-form-section-num">04</span>
+                Context
+              </div>
+              <Form.Item
+                name="description"
+                label={<span className="dm-form-label"><InfoCircleOutlined /> Usage Instructions</span>}
+              >
+                <TextArea
+                  rows={3}
+                  placeholder="Explain when to use this specific classification…"
+                  className="dm-input"
+                  showCount
+                  maxLength={280}
+                />
+              </Form.Item>
+            </div>
           </Form>
         </div>
-      </Modal>
+      </Drawer>
 
       <style jsx global>{`
+        /* ── Tabs structural fix ──────────────────────────────────── */
+        .manager-tabs, 
+        .manager-tabs .ant-tabs-content, 
+        .manager-tabs .ant-tabs-content-holder,
+        .manager-tabs .ant-tabs-tabpane {
+          height: 100% !important;
+        }
+
         /* ── Left sidebar nav ─────────────────────────────────────── */
         .manager-tabs .ant-tabs-nav {
-          width: 240px;
-          background: var(--bg-pure-white);
+          width: 264px;
+          background: linear-gradient(180deg, #fafbff 0%, var(--bg-pure-white) 100%);
           margin-bottom: 0 !important;
           border-right: 1px solid var(--border-slate-100);
-          padding: 16px 0;
+          padding: 20px 10px;
         }
         [data-theme='dark'] .manager-tabs .ant-tabs-nav {
-          background: #0d1117 !important;
+          background: linear-gradient(180deg, #0a0e17 0%, #0d1117 100%) !important;
           border-right-color: #1f2937 !important;
         }
 
         .manager-tabs .ant-tabs-tab {
-          margin: 2px 8px !important;
-          padding: 8px 12px !important;
-          border-radius: 8px !important;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          margin: 4px 0 !important;
+          padding: 10px 12px !important;
+          border-radius: 12px !important;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
           border: 1px solid transparent !important;
+          position: relative;
         }
         .manager-tabs .ant-tabs-tab:hover {
-          background: rgba(0, 0, 0, 0.02) !important;
+          background: rgba(15, 23, 42, 0.03) !important;
+          transform: translateX(2px);
         }
         [data-theme='dark'] .manager-tabs .ant-tabs-tab:hover {
           background: rgba(255, 255, 255, 0.04) !important;
         }
         .manager-tabs .ant-tabs-tab-active {
-          background: #f8faff !important;
-          border-color: #dbeafe !important;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.05) !important;
+          background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%) !important;
+          border-color: rgba(59, 130, 246, 0.18) !important;
+          box-shadow: 0 6px 20px rgba(59, 130, 246, 0.08), 0 1px 0 rgba(255,255,255,0.6) inset !important;
+        }
+        .manager-tabs .ant-tabs-tab-active::before {
+          content: '';
+          position: absolute;
+          left: -10px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 3px;
+          height: 24px;
+          background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
+          border-radius: 2px;
+          box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
         }
         [data-theme='dark'] .manager-tabs .ant-tabs-tab-active {
-          background: rgba(59, 130, 246, 0.1) !important;
-          border-color: rgba(59, 130, 246, 0.2) !important;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%) !important;
+          border-color: rgba(59, 130, 246, 0.25) !important;
+          box-shadow: 0 6px 20px rgba(59, 130, 246, 0.18) !important;
         }
         .manager-tabs .ant-tabs-ink-bar {
           display: none;
@@ -942,53 +1219,487 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
           text-align: left;
         }
         .tab-icon-box {
-          width: 32px;
-          height: 32px;
-          background: rgba(255, 255, 255, 0.8);
-          border-radius: 6px;
+          width: 36px;
+          height: 36px;
+          background: rgba(255, 255, 255, 0.9);
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 16px;
-          transition: all 0.3s;
-          border: 1px solid transparent;
+          font-size: 17px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          border: 1px solid var(--border-slate-100);
         }
         [data-theme='dark'] .tab-icon-box {
-          background: rgba(255, 255, 255, 0.05) !important;
+          background: rgba(255, 255, 255, 0.04) !important;
+          border-color: rgba(255, 255, 255, 0.05) !important;
         }
         .tab-icon-box.active {
           background: var(--bg-pure-white);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255,255,255,0.8);
+          transform: scale(1.05);
         }
         [data-theme='dark'] .tab-icon-box.active {
-          background: #161b22 !important;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+          background: #1a2035 !important;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
         }
         .tab-title {
           font-weight: 700;
           font-size: 14px;
           color: var(--text-primary);
           line-height: 1.2;
+          letter-spacing: -0.01em;
         }
         .tab-subtitle-count {
           font-size: 11px;
           color: var(--text-secondary);
-          margin-top: 2px;
+          margin-top: 3px;
           display: flex;
           align-items: center;
+          font-weight: 500;
+        }
+
+        /* ── Premium Hero Header ──────────────────────────────────── */
+        .dm-hero {
+          position: relative;
+          border-radius: 14px;
+          padding: 14px 18px;
+          border: 1px solid;
+          overflow: hidden;
+          margin-bottom: 12px;
+          backdrop-filter: blur(8px);
+        }
+        [data-theme='dark'] .dm-hero {
+          background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%) !important;
+        }
+        .dm-hero-glow {
+          position: absolute;
+          inset: 0;
+          opacity: 0.6;
+          pointer-events: none;
+        }
+        .dm-hero-content {
+          position: relative;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+        .dm-hero-left {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          flex: 1;
+          min-width: 280px;
+        }
+        .dm-hero-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .dm-hero-icon .anticon {
+          font-size: 18px !important;
+        }
+        .dm-hero-eyebrow {
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 1.2px;
+          color: var(--text-slate-600);
+          text-transform: uppercase;
+          margin-bottom: 1px;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          line-height: 1.1;
+        }
+        [data-theme='dark'] .dm-hero-eyebrow {
+          color: #94a3b8 !important;
+        }
+        .dm-hero-title {
+          margin: 0 !important;
+          font-weight: 800 !important;
+          color: var(--text-slate-900) !important;
+          letter-spacing: -0.02em !important;
+          font-size: 16px !important;
+          line-height: 1.2 !important;
+          display: inline-block;
+          margin-right: 10px !important;
+        }
+        .dm-hero-desc {
+          font-size: 12px;
+          color: var(--text-slate-600);
+          font-weight: 500;
+          line-height: 1.4;
+        }
+        .dm-hero-right {
+          position: relative;
+        }
+        .dm-primary-btn {
+          height: 34px !important;
+          border-radius: 8px !important;
+          font-weight: 700 !important;
+          font-size: 12px !important;
+          padding: 0 14px !important;
+          border: none !important;
+          color: #fff !important;
+          letter-spacing: -0.01em;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        .dm-primary-btn:hover {
+          transform: translateY(-1px);
+          filter: brightness(1.08);
+        }
+        .dm-sync-btn {
+          height: 34px !important;
+          border-radius: 8px !important;
+          font-weight: 700 !important;
+          font-size: 12px !important;
+          padding: 0 12px !important;
+          border: 1px solid #fcd34d !important;
+          background: rgba(251, 191, 36, 0.08) !important;
+          color: #d97706 !important;
+        }
+        .dm-sync-btn:hover {
+          background: rgba(251, 191, 36, 0.15) !important;
+          border-color: #f59e0b !important;
+        }
+        [data-theme='dark'] .dm-sync-btn {
+          background: rgba(251, 191, 36, 0.08) !important;
+          color: #fbbf24 !important;
+          border-color: rgba(251, 191, 36, 0.3) !important;
+        }
+
+        /* ── Stats Grid (inline pills) ────────────────────────────── */
+        .dm-stats-grid {
+          position: relative;
+          display: inline-flex;
+          gap: 6px;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        .dm-stat-card {
+          background: rgba(255, 255, 255, 0.6);
+          border: 1px solid var(--border-slate-100);
+          border-radius: 8px;
+          padding: 4px 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          backdrop-filter: blur(12px);
+          transition: all 0.15s ease;
+          height: 28px;
+        }
+        .dm-stat-card:hover {
+          background: rgba(255, 255, 255, 0.9);
+          border-color: var(--border-slate-200);
+        }
+        [data-theme='dark'] .dm-stat-card {
+          background: rgba(22, 27, 34, 0.6) !important;
+          border-color: #1f2937 !important;
+        }
+        [data-theme='dark'] .dm-stat-card:hover {
+          background: rgba(31, 41, 55, 0.7) !important;
+          border-color: #374151 !important;
+        }
+        .dm-stat-icon {
+          width: 18px;
+          height: 18px;
+          border-radius: 5px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          flex-shrink: 0;
+        }
+        .dm-stat-value {
+          font-size: 13px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          line-height: 1;
+          letter-spacing: -0.01em;
+        }
+        [data-theme='dark'] .dm-stat-value {
+          color: #f1f5f9 !important;
+        }
+        .dm-stat-label {
+          font-size: 10px;
+          font-weight: 600;
+          color: var(--text-slate-600);
+          letter-spacing: 0;
+          text-transform: none;
+          margin: 0;
+        }
+        [data-theme='dark'] .dm-stat-label {
+          color: #94a3b8 !important;
+        }
+
+        /* ── Toolbar (search + filter chips) ──────────────────────── */
+        .dm-toolbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 16px;
+          flex-wrap: wrap;
+        }
+        .dm-search-box {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 0 14px;
+          height: 40px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 10px;
+          flex: 1;
+          max-width: 420px;
+          transition: all 0.2s ease;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+        }
+        .dm-search-box:focus-within {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        [data-theme='dark'] .dm-search-box {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+        }
+        [data-theme='dark'] .dm-search-box:focus-within {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+        }
+        .dm-search-icon {
+          color: #94a3b8;
+          font-size: 15px;
+        }
+        .dm-search-input {
+          flex: 1;
+          border: none;
+          outline: none;
+          background: transparent;
+          font-size: 13px;
+          color: var(--text-slate-900);
+          font-weight: 500;
+        }
+        .dm-search-input::placeholder {
+          color: #94a3b8;
+          font-weight: 400;
+        }
+        [data-theme='dark'] .dm-search-input {
+          color: #f1f5f9 !important;
+        }
+        .dm-search-clear {
+          background: var(--bg-slate-50);
+          border: none;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-slate-600);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .dm-search-clear:hover {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+        [data-theme='dark'] .dm-search-clear {
+          background: #1f2937 !important;
+          color: #94a3b8 !important;
+        }
+        [data-theme='dark'] .dm-search-clear:hover {
+          background: rgba(220, 38, 38, 0.15) !important;
+          color: #f87171 !important;
+        }
+
+        .dm-filter-chips {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+        .dm-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          padding: 0 12px;
+          height: 36px;
+          border-radius: 10px;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-slate-600);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          letter-spacing: -0.01em;
+        }
+        .dm-chip:hover {
+          background: var(--bg-slate-50);
+          border-color: #cbd5e1;
+        }
+        .dm-chip.active {
+          background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+          border-color: #1e293b;
+          color: #fff;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+        }
+        [data-theme='dark'] .dm-chip {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+          color: #94a3b8 !important;
+        }
+        [data-theme='dark'] .dm-chip:hover {
+          background: #1f2937 !important;
+          border-color: #374151 !important;
+        }
+        [data-theme='dark'] .dm-chip.active {
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+          border-color: #3b82f6 !important;
+          color: #fff !important;
+        }
+        .dm-chip-count {
+          background: rgba(0, 0, 0, 0.06);
+          padding: 1px 7px;
+          border-radius: 10px;
+          font-size: 10px;
+          font-weight: 800;
+          margin-left: 2px;
+        }
+        .dm-chip.active .dm-chip-count {
+          background: rgba(255, 255, 255, 0.2);
+          color: #fff;
+        }
+        [data-theme='dark'] .dm-chip-count {
+          background: rgba(255, 255, 255, 0.06);
+        }
+        .dm-chip-icon {
+          padding: 0 10px;
+        }
+
+        /* ── Table wrapper ────────────────────────────────────────── */
+        .dm-table-wrapper {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+        [data-theme='dark'] .dm-table-wrapper {
+          background: #0d1117 !important;
+          border-color: #1f2937 !important;
+        }
+
+        /* ── Identity cell with color swatch ──────────────────────── */
+        .dm-identity-cell {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .dm-color-swatch {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          flex-shrink: 0;
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+        }
+        .dm-color-swatch::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          border: 1px solid rgba(15, 23, 42, 0.06);
+          pointer-events: none;
+        }
+        .dm-value-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          margin-top: 3px;
+          padding: 1px 7px;
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-100);
+          border-radius: 5px;
+          font-size: 10.5px;
+          color: #64748b;
+          font-weight: 600;
+        }
+        [data-theme='dark'] .dm-value-pill {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+          color: #94a3b8 !important;
+        }
+        .dm-value-dot {
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: #cbd5e1;
+        }
+
+        /* ── Empty State ──────────────────────────────────────────── */
+        .dm-empty-state {
+          padding: 48px 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+        .dm-empty-icon {
+          width: 72px;
+          height: 72px;
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 18px;
+        }
+        .dm-empty-title {
+          font-size: 16px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.01em;
+          margin-bottom: 6px;
+        }
+        [data-theme='dark'] .dm-empty-title {
+          color: #f1f5f9 !important;
+        }
+        .dm-empty-desc {
+          font-size: 13px;
+          color: var(--text-slate-600);
+          max-width: 380px;
+          text-align: center;
+          line-height: 1.5;
+        }
+        [data-theme='dark'] .dm-empty-desc {
+          color: #94a3b8 !important;
         }
 
         /* ── Content area ─────────────────────────────────────────── */
         .tab-content-area {
-          padding: 20px 32px;
+          padding: 24px 32px 32px;
           height: 100%;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          background: var(--bg-pure-white);
+          background:
+            radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.04) 0%, transparent 35%),
+            radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.03) 0%, transparent 35%),
+            var(--bg-pure-white);
         }
         [data-theme='dark'] .tab-content-area {
-          background: #0b0f1a !important;
+          background:
+            radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.06) 0%, transparent 35%),
+            radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.05) 0%, transparent 35%),
+            #0b0f1a !important;
         }
 
         /* ── Category header ──────────────────────────────────────── */
@@ -1030,42 +1741,46 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
 
         /* ── Workstation grid (table) ─────────────────────────────── */
         .workstation-grid .ant-table-thead > tr > th {
-          background: var(--bg-pure-white) !important;
+          background: linear-gradient(180deg, #fafbfd 0%, #f5f7fb 100%) !important;
           font-weight: 800;
           color: var(--text-slate-600) !important;
           text-transform: uppercase;
           font-size: 10px;
           letter-spacing: 1.2px;
-          padding: 12px 12px;
+          padding: 14px 16px !important;
           border-bottom: 1px solid var(--border-slate-100) !important;
         }
         [data-theme='dark'] .workstation-grid .ant-table-thead > tr > th {
-          background: #0b0f1a !important;
+          background: linear-gradient(180deg, #0e1320 0%, #0b0f1a 100%) !important;
           border-bottom-color: #1f2937 !important;
+          color: #94a3b8 !important;
         }
         .workstation-grid .ant-table {
           background: var(--bg-pure-white) !important;
         }
         [data-theme='dark'] .workstation-grid .ant-table {
-          background: #0b0f1a !important;
+          background: #0d1117 !important;
         }
         .workstation-grid .ant-table-row {
           transition: all 0.2s ease;
         }
         .workstation-grid .ant-table-row:hover > td {
-          background: var(--bg-slate-50) !important;
+          background: linear-gradient(90deg, rgba(59, 130, 246, 0.04) 0%, rgba(168, 85, 247, 0.02) 100%) !important;
         }
         [data-theme='dark'] .workstation-grid .ant-table-row:hover > td {
-          background: #1f2937 !important;
+          background: rgba(59, 130, 246, 0.06) !important;
         }
         .workstation-grid .ant-table-cell {
-          padding: 10px 12px !important;
+          padding: 14px 16px !important;
           border-bottom: 1px solid var(--border-slate-100) !important;
           background: var(--bg-pure-white) !important;
         }
         [data-theme='dark'] .workstation-grid .ant-table-cell {
           border-bottom-color: #1f2937 !important;
-          background: #0b0f1a !important;
+          background: #0d1117 !important;
+        }
+        .workstation-grid .ant-table-row:last-child .ant-table-cell {
+          border-bottom: none !important;
         }
 
         /* ── Header divider in category header ────────────────────── */
@@ -1160,7 +1875,449 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
         [data-theme='dark'] .drag-handle .anticon {
           color: #4b5563 !important;
         }
+
+        /* ── Drawer polish ────────────────────────────────────────── */
+        .dm-drawer .ant-drawer-content {
+          background: var(--bg-pure-white) !important;
+          border-radius: 20px 0 0 20px;
+          overflow: hidden;
+        }
+        [data-theme='dark'] .dm-drawer .ant-drawer-content {
+          background: #0d1117 !important;
+        }
+        .dm-drawer .ant-drawer-header {
+          padding: 0 !important;
+          border-bottom: none !important;
+        }
+        .dm-drawer .ant-drawer-body {
+          padding: 0 !important;
+          overflow-y: auto;
+        }
+        .dm-drawer .ant-drawer-footer {
+          padding: 0 !important;
+          border-top: none !important;
+        }
+        .dm-drawer-root .ant-drawer-mask {
+          background: rgba(15, 23, 42, 0.45) !important;
+          backdrop-filter: blur(2px);
+        }
+
+        .dm-drawer-header {
+          position: relative;
+          padding: 22px 24px;
+          overflow: hidden;
+        }
+        .dm-drawer-header-glow {
+          position: absolute;
+          inset: 0;
+          opacity: 0.7;
+          pointer-events: none;
+        }
+        .dm-drawer-header-row {
+          position: relative;
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+        }
+        .dm-drawer-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .dm-drawer-eyebrow {
+          font-size: 9.5px;
+          font-weight: 800;
+          letter-spacing: 1.4px;
+          color: var(--text-slate-600);
+          text-transform: uppercase;
+          margin-bottom: 4px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          line-height: 1;
+        }
+        [data-theme='dark'] .dm-drawer-eyebrow {
+          color: #94a3b8 !important;
+        }
+        .dm-drawer-title {
+          font-size: 18px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.5px;
+          line-height: 1.25;
+        }
+        [data-theme='dark'] .dm-drawer-title {
+          color: #f1f5f9 !important;
+        }
+        .dm-drawer-sub {
+          font-size: 12px;
+          color: var(--text-slate-600);
+          font-weight: 500;
+          margin-top: 4px;
+          line-height: 1.5;
+        }
+        [data-theme='dark'] .dm-drawer-sub {
+          color: #94a3b8 !important;
+        }
+        .dm-drawer-close {
+          width: 32px;
+          height: 32px;
+          border-radius: 10px;
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid var(--border-slate-100);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 22px;
+          font-weight: 400;
+          color: var(--text-slate-600);
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: all 0.15s ease;
+          line-height: 1;
+        }
+        .dm-drawer-close:hover {
+          background: #fff;
+          color: #ef4444;
+          border-color: #fecaca;
+          transform: rotate(90deg);
+        }
+        [data-theme='dark'] .dm-drawer-close {
+          background: rgba(22, 27, 34, 0.7) !important;
+          border-color: #1f2937 !important;
+          color: #94a3b8 !important;
+        }
+        [data-theme='dark'] .dm-drawer-close:hover {
+          background: rgba(239, 68, 68, 0.15) !important;
+          border-color: rgba(239, 68, 68, 0.3) !important;
+          color: #f87171 !important;
+        }
+
+        .dm-drawer-body {
+          padding: 22px 24px 28px;
+        }
+
+        /* ── Drawer footer (sticky action bar) ────────────────────── */
+        .dm-drawer-footer {
+          padding: 14px 24px;
+          background: linear-gradient(180deg, rgba(255,255,255,0.6) 0%, var(--bg-pure-white) 50%);
+          border-top: 1px solid var(--border-slate-100);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          backdrop-filter: blur(8px);
+        }
+        [data-theme='dark'] .dm-drawer-footer {
+          background: linear-gradient(180deg, rgba(13, 17, 23, 0.6) 0%, #0d1117 50%) !important;
+          border-top-color: #1f2937 !important;
+        }
+        .dm-drawer-footer-hint {
+          font-size: 11.5px;
+          color: var(--text-slate-600);
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-weight: 500;
+        }
+        .dm-drawer-footer-hint .anticon {
+          color: #94a3b8;
+        }
+        [data-theme='dark'] .dm-drawer-footer-hint {
+          color: #94a3b8 !important;
+        }
+        .dm-drawer-cancel {
+          border-radius: 10px !important;
+          height: 40px !important;
+          padding: 0 18px !important;
+          font-weight: 700 !important;
+          font-size: 13px !important;
+        }
+        .dm-drawer-submit {
+          border-radius: 10px !important;
+          height: 40px !important;
+          padding: 0 22px !important;
+          font-weight: 700 !important;
+          font-size: 13px !important;
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+          border: none !important;
+          box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35) !important;
+        }
+        .dm-drawer-submit:hover {
+          filter: brightness(1.08);
+          transform: translateY(-1px);
+        }
+
+        /* Scope existing dm-modal input styles to the drawer too */
+        .dm-drawer .dm-input,
+        .dm-drawer .dm-input.ant-input,
+        .dm-drawer .dm-input .ant-select-selector,
+        .dm-drawer .dm-input .ant-input-number,
+        .dm-drawer .ant-input,
+        .dm-drawer .ant-input-number,
+        .dm-drawer .ant-select-selector {
+          border-radius: 10px !important;
+          transition: all 0.2s ease !important;
+        }
+        .dm-drawer .ant-input:hover,
+        .dm-drawer .ant-input-number:hover,
+        .dm-drawer .ant-select:hover .ant-select-selector {
+          border-color: #93c5fd !important;
+        }
+        .dm-drawer .ant-input:focus,
+        .dm-drawer .ant-input-focused,
+        .dm-drawer .ant-input-number-focused,
+        .dm-drawer .ant-select-focused .ant-select-selector {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+        }
+        .dm-drawer .dm-input-mono input,
+        .dm-drawer .dm-input-mono.ant-input {
+          font-family: 'JetBrains Mono', Menlo, monospace !important;
+          letter-spacing: -0.01em;
+          font-size: 13px !important;
+        }
+
+        /* ── Form sections in modal ───────────────────────────────── */
+        .dm-form-section {
+          margin-bottom: 18px;
+          padding-bottom: 16px;
+          border-bottom: 1px dashed var(--border-slate-100);
+        }
+        .dm-form-section-last {
+          margin-bottom: 0;
+          padding-bottom: 0;
+          border-bottom: none;
+        }
+        [data-theme='dark'] .dm-form-section {
+          border-bottom-color: #1f2937 !important;
+        }
+        .dm-form-section-title {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--text-slate-600);
+          text-transform: uppercase;
+          letter-spacing: 1.2px;
+          margin-bottom: 12px;
+        }
+        [data-theme='dark'] .dm-form-section-title {
+          color: #94a3b8 !important;
+        }
+        .dm-form-section-num {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 22px;
+          height: 22px;
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(168, 85, 247, 0.12) 100%);
+          color: #3b82f6;
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0;
+          border: 1px solid rgba(59, 130, 246, 0.18);
+        }
+        [data-theme='dark'] .dm-form-section-num {
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(168, 85, 247, 0.16) 100%) !important;
+          color: #60a5fa !important;
+          border-color: rgba(59, 130, 246, 0.3) !important;
+        }
+        .dm-form-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12.5px;
+          font-weight: 700;
+          color: var(--text-slate-900);
+          letter-spacing: -0.01em;
+        }
+        [data-theme='dark'] .dm-form-label {
+          color: #e2e8f0 !important;
+        }
+        .dm-form-label .anticon {
+          font-size: 12px;
+          color: #94a3b8;
+        }
+
+        /* ── Inputs (consistent shape) ────────────────────────────── */
+        .dm-modal .dm-input,
+        .dm-modal .dm-input.ant-input,
+        .dm-modal .dm-input .ant-select-selector,
+        .dm-modal .dm-input .ant-input-number-input-wrap,
+        .dm-modal .dm-input .ant-input-number {
+          border-radius: 10px !important;
+        }
+        .dm-modal .ant-input,
+        .dm-modal .ant-input-number,
+        .dm-modal .ant-select-selector {
+          border-radius: 10px !important;
+          transition: all 0.2s ease !important;
+        }
+        .dm-modal .ant-input:hover,
+        .dm-modal .ant-input-number:hover,
+        .dm-modal .ant-select:hover .ant-select-selector {
+          border-color: #93c5fd !important;
+        }
+        .dm-modal .ant-input:focus,
+        .dm-modal .ant-input-focused,
+        .dm-modal .ant-input-number-focused,
+        .dm-modal .ant-select-focused .ant-select-selector {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+        }
+        .dm-input-mono input,
+        .dm-input-mono.ant-input {
+          font-family: 'JetBrains Mono', Menlo, monospace !important;
+          letter-spacing: -0.01em;
+          font-size: 13px !important;
+        }
+        .dm-select-dot {
+          display: inline-block;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+        }
+
+        /* ── Live preview card in modal ───────────────────────────── */
+        .dm-preview-card {
+          margin: 4px 0 20px;
+          padding: 16px 18px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, #fafbff 0%, #f4f7ff 100%);
+          border: 1px solid var(--border-slate-100);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+        [data-theme='dark'] .dm-preview-card {
+          background: linear-gradient(135deg, #0e1320 0%, #0a0e17 100%) !important;
+          border-color: #1f2937 !important;
+        }
+        .dm-preview-eyebrow {
+          font-size: 9.5px;
+          font-weight: 800;
+          letter-spacing: 1.5px;
+          color: var(--text-slate-600);
+          text-transform: uppercase;
+          margin-bottom: 8px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        [data-theme='dark'] .dm-preview-eyebrow {
+          color: #94a3b8 !important;
+        }
+        .dm-preview-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: var(--bg-pure-white);
+          border-radius: 10px;
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+        }
+        [data-theme='dark'] .dm-preview-chip {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+        }
+        .dm-preview-swatch {
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          flex-shrink: 0;
+          border: 1px solid rgba(15, 23, 42, 0.06);
+        }
+        .dm-preview-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 700;
+          padding: 4px 10px;
+          border-radius: 999px;
+        }
+        .dm-preview-status.on {
+          background: rgba(16, 185, 129, 0.12);
+          color: #059669;
+        }
+        .dm-preview-status.off {
+          background: rgba(148, 163, 184, 0.15);
+          color: #64748b;
+        }
+        [data-theme='dark'] .dm-preview-status.on {
+          background: rgba(16, 185, 129, 0.18) !important;
+          color: #34d399 !important;
+        }
+        [data-theme='dark'] .dm-preview-status.off {
+          background: rgba(148, 163, 184, 0.15) !important;
+          color: #94a3b8 !important;
+        }
       `}</style>
+    </div>
+  );
+}
+
+/* ── Live preview component (uses Form.useWatch) ───────────────── */
+function DefinitionPreview({
+  form,
+  dropdownTypes,
+}: {
+  form: any;
+  dropdownTypes: { key: string; label: string; color: string }[];
+}) {
+  const label = Form.useWatch('label', form);
+  const value = Form.useWatch('value', form);
+  const colorRaw = Form.useWatch('color', form);
+  const isActive = Form.useWatch('isActive', form);
+  const type = Form.useWatch('type', form);
+
+  const color =
+    typeof colorRaw === 'string'
+      ? colorRaw
+      : colorRaw?.toHexString?.() || '#cbd5e1';
+
+  const typeMeta = dropdownTypes.find((t) => t.key === type);
+
+  return (
+    <div className="dm-preview-card">
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="dm-preview-eyebrow">
+          <span style={{ color: typeMeta?.color || '#3b82f6' }}>●</span>
+          LIVE PREVIEW · {typeMeta?.label || 'Definition'}
+        </div>
+        <div className="dm-preview-chip">
+          <span className="dm-preview-swatch" style={{ background: color }} />
+          <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-slate-900)' }}>
+            {label?.trim() || 'Untitled definition'}
+          </span>
+          <span
+            style={{
+              fontFamily: 'JetBrains Mono, Menlo, monospace',
+              fontSize: 11,
+              color: '#94a3b8',
+              padding: '1px 6px',
+              background: 'rgba(148, 163, 184, 0.1)',
+              borderRadius: 4,
+            }}
+          >
+            {value?.trim() || 'system_key'}
+          </span>
+        </div>
+      </div>
+      <div className={`dm-preview-status ${isActive ? 'on' : 'off'}`}>
+        {isActive ? <CheckCircleFilled /> : <EyeInvisibleFilled />}
+        {isActive ? 'Visible to users' : 'Hidden / Archived'}
+      </div>
     </div>
   );
 }

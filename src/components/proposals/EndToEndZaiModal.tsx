@@ -1,0 +1,648 @@
+'use client';
+
+import React, { useState } from 'react';
+import { Button, Modal, Input, message, Typography, Progress } from 'antd';
+import { Sparkles, Wand2, Zap } from 'lucide-react';
+import { ProposalService } from '@/services/proposalService';
+import { useProposalStore, BlockType } from '@/store/proposalStore';
+import { nanoid } from 'nanoid';
+
+const { Text } = Typography;
+
+const QUICK_TEMPLATES = [
+  {
+    title: 'Driver Booking App',
+    icon: '🚗',
+    body:
+      'Create proposal for driver booking app with start date 01/05/2026 and end with 23/07/2026 with 5 phases and 3 lakhs budget with 3 terms. Include rider & driver mobile apps, real-time tracking, payments, ratings, and an admin dashboard.',
+  },
+  {
+    title: 'E-commerce Redesign',
+    icon: '🛒',
+    body:
+      'Create proposal for e-commerce redesign over 8 weeks with 4 phases and $25,000 budget covering UI/UX research, design system, Next.js frontend, Stripe & shipping integrations, performance optimization and QA before launch.',
+  },
+];
+
+const DEFAULT_TERMS_HINT = 'Add infra cost like server, DB, third party integration and all other services and integrations based on the project will be handled by the client side.';
+
+interface ParsedBrief {
+  phaseCount?: number;
+  termsCount?: number;
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string;   // YYYY-MM-DD
+  budgetText?: string;
+  budgetAmount?: number;
+  currency?: string;
+  projectName?: string;
+}
+
+const toIsoDate = (d: Date) => d.toISOString().split('T')[0];
+
+const tryParseDate = (raw: string): string | undefined => {
+  // Accept dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd
+  const slash = raw.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/);
+  if (slash) {
+    let [, d, m, y] = slash;
+    if (y.length === 2) y = '20' + y;
+    const dt = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00Z`);
+    if (!isNaN(dt.getTime())) return toIsoDate(dt);
+  }
+  const iso = raw.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (iso) {
+    const dt = new Date(`${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}T00:00:00Z`);
+    if (!isNaN(dt.getTime())) return toIsoDate(dt);
+  }
+  return undefined;
+};
+
+const parseBrief = (text: string): ParsedBrief => {
+  const lower = text.toLowerCase();
+  const out: ParsedBrief = {};
+
+  const phaseMatch = lower.match(/(\d+)\s*phases?/);
+  if (phaseMatch) out.phaseCount = Math.min(20, Math.max(1, parseInt(phaseMatch[1], 10)));
+
+  const termsMatch = lower.match(/(\d+)\s*terms?/);
+  if (termsMatch) out.termsCount = Math.min(10, Math.max(1, parseInt(termsMatch[1], 10)));
+
+  const dateMatches = text.match(/\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}-\d{1,2}-\d{1,2}/g) || [];
+  if (dateMatches[0]) out.startDate = tryParseDate(dateMatches[0]);
+  if (dateMatches[1]) out.endDate = tryParseDate(dateMatches[1]);
+
+  // Budget — look for "X lakh", "X crore", "$X", "Xk", "X,000"
+  const lakhMatch = lower.match(/(\d+(?:\.\d+)?)\s*lakhs?/);
+  const croreMatch = lower.match(/(\d+(?:\.\d+)?)\s*crores?/);
+  const dollarMatch = text.match(/\$\s*([\d,]+(?:\.\d+)?)\s*([kKmM])?/);
+  const inrMatch = text.match(/(?:rs\.?|inr|₹)\s*([\d,]+)/i);
+  const plainK = lower.match(/(\d+(?:\.\d+)?)\s*k\b/);
+
+  if (lakhMatch) {
+    const amt = parseFloat(lakhMatch[1]) * 100000;
+    out.budgetAmount = amt;
+    out.currency = 'INR';
+    out.budgetText = `${lakhMatch[1]} lakh INR`;
+  } else if (croreMatch) {
+    const amt = parseFloat(croreMatch[1]) * 10000000;
+    out.budgetAmount = amt;
+    out.currency = 'INR';
+    out.budgetText = `${croreMatch[1]} crore INR`;
+  } else if (dollarMatch) {
+    let amt = parseFloat(dollarMatch[1].replace(/,/g, ''));
+    if (dollarMatch[2] && /k/i.test(dollarMatch[2])) amt *= 1000;
+    if (dollarMatch[2] && /m/i.test(dollarMatch[2])) amt *= 1_000_000;
+    out.budgetAmount = amt;
+    out.currency = 'USD';
+    out.budgetText = `$${amt.toLocaleString()}`;
+  } else if (inrMatch) {
+    out.budgetAmount = parseFloat(inrMatch[1].replace(/,/g, ''));
+    out.currency = 'INR';
+    out.budgetText = `INR ${out.budgetAmount.toLocaleString()}`;
+  } else if (plainK) {
+    out.budgetAmount = parseFloat(plainK[1]) * 1000;
+    out.currency = 'USD';
+    out.budgetText = `$${out.budgetAmount.toLocaleString()}`;
+  }
+
+  // Project name — naive extraction: "for X with/start/over/and"
+  const nameMatch = text.match(/for\s+([^,.]+?)(?:\s+(?:with|over|and|covering|including|starting|from)\b|$)/i);
+  if (nameMatch) out.projectName = nameMatch[1].trim();
+
+  return out;
+};
+
+const padPhases = <T extends { id?: string; title?: string }>(arr: T[], target: number, factory: (idx: number) => T): T[] => {
+  const out = [...arr];
+  while (out.length < target) {
+    out.push(factory(out.length));
+  }
+  return out.slice(0, target);
+};
+
+const stripHtml = (s: string) => s.replace(/<[^>]+>/g, '').trim();
+
+const distributeDeadlines = (start?: string, end?: string, count = 4): string[] => {
+  if (!start || !end) return new Array(count).fill('');
+  const startMs = new Date(start).getTime();
+  const endMs = new Date(end).getTime();
+  if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) return new Array(count).fill('');
+  const span = endMs - startMs;
+  const dates: string[] = [];
+  for (let i = 1; i <= count; i++) {
+    const t = startMs + (span * i) / count;
+    dates.push(toIsoDate(new Date(t)));
+  }
+  return dates;
+};
+
+const normaliseBlockData = (type: BlockType, raw: any, brief: ParsedBrief): any => {
+  const data = raw && typeof raw === 'object' ? { ...raw } : {};
+
+  if (type === 'cover') {
+    if (!data.title) data.title = brief.projectName ? `${brief.projectName} — Project Proposal` : 'Project Proposal';
+    if (!data.projectSummary || (typeof data.projectSummary === 'string' && stripHtml(data.projectSummary).length === 0)) {
+      data.projectSummary = `<p>A comprehensive proposal${brief.projectName ? ` for ${brief.projectName}` : ''}${brief.startDate && brief.endDate ? ` running from ${brief.startDate} to ${brief.endDate}` : ''}${brief.budgetText ? ` with a total investment of ${brief.budgetText}` : ''}.</p>`;
+    }
+    if (!data.date && brief.startDate) data.date = brief.startDate;
+    if (!data.validUntil && brief.endDate) data.validUntil = brief.endDate;
+    return data;
+  }
+
+  if (type === 'text') {
+    if (!data.heading || stripHtml(String(data.heading)).length === 0) {
+      data.heading = 'Executive Summary';
+    }
+    if (!data.content || stripHtml(String(data.content)).length === 0) {
+      data.content = `<p>This proposal outlines our recommended approach${brief.projectName ? ` for ${brief.projectName}` : ''}, the milestones we will deliver, and the investment required.</p>`;
+    }
+    return data;
+  }
+
+  if (type === 'scope') {
+    if (!data.title) data.title = 'Scope of Work';
+    const targetPhases = brief.phaseCount || (Array.isArray(data.milestones) ? data.milestones.length : 0) || 4;
+    data.milestones = padPhases(
+      Array.isArray(data.milestones) ? data.milestones : [],
+      targetPhases,
+      (i) => ({
+        id: nanoid(),
+        title: `Phase ${i + 1}`,
+        deliverables: 'Define deliverables for this phase.',
+        tasks: 'Task to be defined\nTask to be defined\nTask to be defined',
+      }),
+    ).map((m: any) => ({
+      id: m.id || nanoid(),
+      title: m.title || `Phase`,
+      deliverables: m.deliverables || '',
+      tasks: m.tasks || '',
+    }));
+
+    const targetTerms = brief.termsCount || (Array.isArray(data.terms) ? data.terms.length : 0) || 2;
+    data.terms = padPhases(
+      Array.isArray(data.terms) ? data.terms : [],
+      targetTerms,
+      (i) => ({
+        id: nanoid(),
+        title: i === 0 ? 'Exclusions' : i === 1 ? 'Revision Policy' : `Term ${i + 1}`,
+        description: '<p>To be defined.</p>',
+        color: i === 0 ? '#ef4444' : '#3b82f6',
+      }),
+    ).map((t: any) => ({
+      id: t.id || nanoid(),
+      title: t.title || 'Term',
+      description: t.description || '<p></p>',
+      color: t.color || '#3b82f6',
+    }));
+    return data;
+  }
+
+  if (type === 'timeline') {
+    if (!data.title) data.title = 'Timeline & Schedule';
+    if (!data.startDate && brief.startDate) data.startDate = brief.startDate;
+    if (!data.finalDate && brief.endDate) data.finalDate = brief.endDate;
+    const targetPhases = brief.phaseCount || (Array.isArray(data.phases) ? data.phases.length : 0) || 4;
+    const distributed = distributeDeadlines(data.startDate, data.finalDate, targetPhases);
+    data.phases = padPhases(
+      Array.isArray(data.phases) ? data.phases : [],
+      targetPhases,
+      (i) => ({
+        id: nanoid(),
+        title: `Phase ${i + 1}`,
+        deadline: distributed[i] || '',
+        reviewPeriod: '3 Days',
+        description: 'Phase milestone description.',
+      }),
+    ).map((p: any, i: number) => ({
+      id: p.id || nanoid(),
+      title: p.title || `Phase ${i + 1}`,
+      deadline: p.deadline || distributed[i] || '',
+      reviewPeriod: p.reviewPeriod || '3 Days',
+      description: p.description || '',
+    }));
+    if (!data.dependencyNotes || stripHtml(String(data.dependencyNotes)).length === 0) {
+      data.dependencyNotes = '<p>All deadlines depend on timely client feedback. Review SLAs apply at each milestone.</p>';
+    }
+    return data;
+  }
+
+  if (type === 'pricing') {
+    if (!data.title) data.title = 'Investment';
+    data.currency = data.currency || brief.currency || 'USD';
+    const targetItems = brief.phaseCount || (Array.isArray(data.items) ? data.items.length : 0) || 4;
+    let items: any[] = Array.isArray(data.items) ? data.items : [];
+    items = padPhases(items, targetItems, (i) => ({
+      id: nanoid(),
+      name: `Phase ${i + 1}`,
+      description: 'Phase deliverables',
+      price: 0,
+      quantity: 1,
+    })).map((it: any) => ({
+      id: it.id || nanoid(),
+      name: it.name || 'Line item',
+      description: it.description || '',
+      price: Number(it.price) || 0,
+      quantity: Number(it.quantity) || 1,
+    }));
+
+    if (brief.budgetAmount && brief.budgetAmount > 0) {
+      const currentTotal = items.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
+      if (currentTotal === 0) {
+        const split = Math.round(brief.budgetAmount / items.length);
+        let assigned = 0;
+        items = items.map((it, idx) => {
+          const isLast = idx === items.length - 1;
+          const price = isLast ? brief.budgetAmount! - assigned : split;
+          assigned += price;
+          return { ...it, price, quantity: 1 };
+        });
+      }
+    }
+
+    data.items = items;
+    data.taxRate = Number(data.taxRate) || 0;
+    return data;
+  }
+
+  if (type === 'signature') {
+    if (!data.title) data.title = 'Terms & Conditions';
+    if (!data.ipClause) data.ipClause = '<p>Final deliverables transfer to the client upon full payment.</p>';
+    if (!data.revisionClause) data.revisionClause = '<p>Includes 2 rounds of revisions per milestone. Major scope changes require a change order.</p>';
+    if (!data.terminationClause) data.terminationClause = '<p>Either party may terminate with 7 days written notice. Work completed up to that date will be invoiced.</p>';
+    if (!data.ndaClause) data.ndaClause = '<p>Both parties agree to keep proprietary information confidential.</p>';
+    if (!data.companyName) data.companyName = 'Your Agency LLC';
+    if (!data.clientName) data.clientName = brief.projectName ? `${brief.projectName} (Client)` : 'Client Company';
+    if (!data.companySigner) data.companySigner = 'Authorized Signer';
+    if (!data.clientSigner) data.clientSigner = 'Authorized Signer';
+    return data;
+  }
+
+  return data;
+};
+
+const buildPhasesOrder = (brief: ParsedBrief, userPrompt: string, extraTerms: string): { type: BlockType; label: string; hint: string }[] => {
+  const briefSummary = [
+    brief.projectName ? `Project: ${brief.projectName}` : null,
+    brief.phaseCount ? `Phase count: ${brief.phaseCount}` : null,
+    brief.termsCount ? `Terms count: ${brief.termsCount}` : null,
+    brief.startDate ? `Start date: ${brief.startDate}` : null,
+    brief.endDate ? `End date: ${brief.endDate}` : null,
+    brief.budgetText ? `Budget: ${brief.budgetText}` : null,
+    brief.currency ? `Currency: ${brief.currency}` : null,
+  ].filter(Boolean).join(' | ');
+
+  const baseContext = `User brief: "${userPrompt}"\n\nParsed brief: ${briefSummary || 'none'}`;
+
+  return [
+    {
+      type: 'cover',
+      label: 'Drafting cover page…',
+      hint: `${baseContext}
+
+Return JSON for a "cover" block with EXACTLY these fields, all required and non-empty:
+{
+  "title": "<concise project title — max 8 words>",
+  "projectSummary": "<1-2 short paragraphs (HTML <p> tags) — describe goal, scope, expected outcome>",
+  "clientName": "<best-guess client contact name>",
+  "clientCompany": "<best-guess client company>",
+  "clientEmail": "<plausible email>",
+  "clientPhone": "<plausible phone>",
+  "clientAddress": "<plausible single-line address>",
+  "senderName": "<your contact name>",
+  "senderCompany": "<your agency name>",
+  "senderContact": "<your phone>",
+  "senderEmail": "<your email>",
+  "senderAddress": "<your address>",
+  "date": "${brief.startDate || ''}",
+  "validUntil": "${brief.endDate || ''}"
+}
+projectSummary is mandatory and must be filled.`,
+    },
+    {
+      type: 'text',
+      label: 'Writing executive summary…',
+      hint: `${baseContext}
+
+Return JSON for a "text" block with EXACTLY:
+{
+  "heading": "Executive Summary",
+  "content": "<2-3 short HTML paragraphs that frame the problem, the approach, the outcome>"
+}
+heading is mandatory — always set it to "Executive Summary".
+content must be HTML (<p>...</p>).`,
+    },
+    {
+      type: 'scope',
+      label: 'Structuring scope of work…',
+      hint: `${baseContext}
+
+Return JSON for a "scope" block with EXACTLY this shape:
+{
+  "title": "Scope of Work",
+  "milestones": [ /* EXACTLY ${brief.phaseCount || 4} entries */
+    { "id": "<unique>", "title": "Phase N: <name>", "deliverables": "<comma-separated artefacts>", "tasks": "<task line 1>\\n<task line 2>\\n<task line 3>" }
+  ],
+  "terms": [ /* ${brief.termsCount || 2} entries */
+    { "id": "<unique>", "title": "<term name>", "description": "<1 short HTML paragraph>", "color": "#3b82f6" }
+  ]
+}
+The milestones array MUST contain exactly ${brief.phaseCount || 4} phases — no fewer, no more. Each phase must have a distinct title, concrete deliverables, and at least 3 detailed tasks separated by \\n.`,
+    },
+    {
+      type: 'timeline',
+      label: 'Building timeline…',
+      hint: `${baseContext}
+
+Return JSON for a "timeline" block with EXACTLY:
+{
+  "title": "Timeline & Schedule",
+  "startDate": "${brief.startDate || ''}",
+  "finalDate": "${brief.endDate || ''}",
+  "dependencyNotes": "<short HTML paragraph about review SLAs and dependencies>",
+  "phases": [ /* EXACTLY ${brief.phaseCount || 4} entries — distribute deadlines evenly between startDate and finalDate */
+    { "id": "<unique>", "title": "Phase N: <name>", "deadline": "<YYYY-MM-DD>", "reviewPeriod": "3 Days", "description": "<one short sentence>" }
+  ]
+}
+The phases array MUST contain exactly ${brief.phaseCount || 4} entries.`,
+    },
+    {
+      type: 'pricing',
+      label: 'Pricing the engagement…',
+      hint: `${baseContext}
+
+Return JSON for a "pricing" block with EXACTLY:
+{
+  "title": "Investment",
+  "currency": "${brief.currency || 'USD'}",
+  "items": [ /* one item per phase, ${brief.phaseCount || 4} items, prices summing to the total budget */
+    { "id": "<unique>", "name": "<phase name>", "description": "<short>", "price": <number>, "quantity": 1 }
+  ],
+  "taxRate": 0
+}
+Total of all (price * quantity) must equal ${brief.budgetAmount ?? 'the total budget mentioned'}.`,
+    },
+    {
+      type: 'signature',
+      label: 'Composing terms…',
+      hint: `${baseContext}
+
+Clause directive (must be reflected in clauses): "${extraTerms || DEFAULT_TERMS_HINT}"
+
+Return JSON for a "signature" block with EXACTLY:
+{
+  "title": "Terms & Conditions",
+  "ipClause": "<HTML paragraph on IP transfer>",
+  "revisionClause": "<HTML paragraph on revisions>",
+  "terminationClause": "<HTML paragraph on termination>",
+  "ndaClause": "<HTML paragraph on confidentiality>",
+  "companyName": "<your agency>",
+  "clientName": "<client company>",
+  "companySigner": "<your signer>",
+  "clientSigner": "<client signer>"
+}
+Each clause must be a non-empty HTML paragraph. The infra/integrations directive above must be incorporated into the most relevant clause.`,
+    },
+  ];
+};
+
+interface EndToEndZaiModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onComplete?: () => void;
+}
+
+export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onClose, onComplete }) => {
+  const [prompt, setPrompt] = useState('');
+  const [extraTerms, setExtraTerms] = useState(DEFAULT_TERMS_HINT);
+  const [generating, setGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [stepLabel, setStepLabel] = useState('');
+
+  const { setBlocks } = useProposalStore();
+
+  const callRefineSafely = async (blockType: string, userPrompt: string) => {
+    try {
+      const res = (await ProposalService.refineBlock({
+        blockType,
+        currentData: {},
+        userPrompt,
+      })) as any;
+
+      if (res && (res.success === true || res?.data?.success === true)) {
+        return res.data?.data || res.data;
+      }
+      if (res && typeof res === 'object') {
+        return res;
+      }
+      return null;
+    } catch (err) {
+      console.error('Zai refine failed for', blockType, err);
+      return null;
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) {
+      message.warning('Tell Zai what proposal to create');
+      return;
+    }
+
+    setGenerating(true);
+    setProgress(0);
+
+    const brief = parseBrief(prompt);
+    const phases = buildPhasesOrder(brief, prompt, extraTerms);
+
+    const stepIncrement = 100 / phases.length;
+    let runningProgress = 0;
+
+    const generated: { type: BlockType; data: any }[] = [];
+
+    for (let i = 0; i < phases.length; i++) {
+      const phase = phases[i];
+      setStepLabel(phase.label);
+
+      const data = await callRefineSafely(phase.type, phase.hint);
+      const normalised = normaliseBlockData(phase.type, data || {}, brief);
+      generated.push({ type: phase.type, data: normalised });
+
+      runningProgress += stepIncrement;
+      setProgress(Math.min(99, Math.round(runningProgress)));
+    }
+
+    if (generated.length === 0) {
+      setGenerating(false);
+      message.error('Zai could not generate the proposal. Please try a different prompt.');
+      return;
+    }
+
+    const newBlocks = generated.map((g) => ({
+      id: nanoid(),
+      type: g.type,
+      data: g.data,
+    }));
+
+    setBlocks(newBlocks);
+    setProgress(100);
+    setStepLabel('Proposal ready!');
+
+    setTimeout(() => {
+      setGenerating(false);
+      setProgress(0);
+      setStepLabel('');
+      setPrompt('');
+      onComplete?.();
+      onClose();
+      message.success('Zai composed your proposal — review and refine each section');
+    }, 700);
+  };
+
+  return (
+    <Modal
+      open={visible}
+      onCancel={() => !generating && onClose()}
+      width={920}
+      footer={null}
+      destroyOnHidden
+      centered
+      closable={false}
+      title={null}
+      styles={{
+        mask: { backdropFilter: 'blur(8px)', background: 'rgba(8, 12, 24, 0.55)' },
+        content: { padding: 0, borderRadius: 22, overflow: 'hidden', background: 'transparent', boxShadow: '0 30px 80px rgba(8,12,24,0.45)' },
+        body: { padding: 0 },
+      }}
+      wrapClassName="zai-modal-wrap"
+    >
+      <div className="zai-modal">
+        <div className="zai-hero">
+          <div className="zai-hero__bg" />
+          <div className="zai-hero__content">
+            <div className="zai-hero__brand">
+              <div className="zai-orb">
+                <Sparkles size={20} />
+              </div>
+              <div className="zai-hero__title-wrap">
+                <div className="zai-hero__eyebrow">
+                  <span className="zai-pill"><Zap size={10} strokeWidth={2.5} />ZAI · END-TO-END BUILDER</span>
+                </div>
+                <h2 className="zai-hero__title">
+                  Create an entire proposal with <span className="zai-grad">Zai</span>
+                </h2>
+                <p className="zai-hero__sub">
+                  Describe the project — scope, dates, budget, terms — and Zai will assemble cover, summary, scope, timeline, pricing and T&Cs in one go.
+                </p>
+              </div>
+            </div>
+            <button className="zai-close" onClick={() => !generating && onClose()} aria-label="Close">×</button>
+          </div>
+        </div>
+
+        <div className="zai-body">
+          {generating ? (
+            <div style={{ padding: '12px 4px 8px 4px' }}>
+              <div className="zai-loading" style={{ height: 220 }}>
+                <div className="zai-loading__orb">
+                  <Sparkles size={24} />
+                </div>
+                <div className="zai-loading__bars">
+                  <span /><span /><span />
+                </div>
+                <Text className="zai-loading__text">{stepLabel}</Text>
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <Progress
+                  percent={progress}
+                  showInfo={false}
+                  strokeColor={{ '0%': '#3b82f6', '50%': '#8b5cf6', '100%': '#ec4899' }}
+                  strokeWidth={10}
+                  trailColor="rgba(99,102,241,0.10)"
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                  <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Zai is composing your proposal end-to-end…</Text>
+                  <Text style={{ fontSize: 12, color: 'var(--premium-blue)', fontWeight: 700 }}>{progress}%</Text>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="zai-prompt">
+                <div className="zai-prompt__label">
+                  <Wand2 size={14} />
+                  <span>Project Brief</span>
+                </div>
+                <div className="zai-prompt__row">
+                  <Input.TextArea
+                    rows={4}
+                    placeholder='e.g. "Create proposal for driver booking app with start date 01/05/2026 and end 23/07/2026 with 5 phases and 3 lakhs budget"'
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    className="zai-textarea"
+                    bordered={false}
+                  />
+                  <Button
+                    type="primary"
+                    onClick={handleGenerate}
+                    className="zai-cta"
+                    icon={<Sparkles size={14} />}
+                  >
+                    Build with Zai
+                  </Button>
+                </div>
+
+                <div className="zai-template-list">
+                  <div className="zai-template-list__heading">
+                    <span className="zai-suggestions__label">Try one of these</span>
+                  </div>
+                  <div className="zai-template-grid">
+                    {QUICK_TEMPLATES.map((t) => {
+                      const active = prompt === t.body;
+                      return (
+                        <button
+                          key={t.title}
+                          type="button"
+                          className={`zai-template-card ${active ? 'zai-template-card--active' : ''}`}
+                          onClick={() => setPrompt(t.body)}
+                        >
+                          <div className="zai-template-card__head">
+                            <span className="zai-template-card__icon">{t.icon}</span>
+                            <span className="zai-template-card__title">{t.title}</span>
+                            <span className="zai-template-card__use">{active ? 'Selected' : 'Use this'}</span>
+                          </div>
+                          <p className="zai-template-card__body">{t.body}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="zai-prompt" style={{ marginTop: 14 }}>
+                <div className="zai-prompt__label">
+                  <Wand2 size={14} />
+                  <span>Terms & Conditions Directive</span>
+                </div>
+                <Input.TextArea
+                  rows={3}
+                  placeholder="Tell Zai any specific clause guidance for terms & conditions"
+                  value={extraTerms}
+                  onChange={(e) => setExtraTerms(e.target.value)}
+                  className="zai-textarea"
+                  bordered={false}
+                />
+              </div>
+
+              <div className="zai-footer">
+                <div className="zai-footer__hint">
+                  Zai will generate Cover · Summary · Scope · Timeline · Pricing · T&Cs in sequence.
+                </div>
+                <div className="zai-footer__actions">
+                  <Button onClick={onClose} className="zai-btn-ghost">Cancel</Button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+};

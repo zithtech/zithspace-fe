@@ -18,6 +18,20 @@ export const BlockProperties = () => {
   const otherBlocks = blocks.filter((b) => b.id !== selectedBlockId);
   const coverBlock = blocks.find((b) => b.type === 'cover');
 
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const activeRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!selectedBlockId) return;
+    requestAnimationFrame(() => {
+      if (activeRef.current && containerRef.current) {
+        activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (containerRef.current) {
+        containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  }, [selectedBlockId]);
+
   const handleUpdateBranding = (data: any) => {
     if (coverBlock) {
       updateBlock(coverBlock.id, data);
@@ -25,11 +39,12 @@ export const BlockProperties = () => {
   };
 
   return (
-    <div className="no-scrollbar" style={{ padding: '20px', background: 'var(--bg-secondary)', height: '100%', borderLeft: '1px solid var(--border-color)', overflowY: 'auto' }}>
+    <div ref={containerRef} className="no-scrollbar" style={{ padding: '20px', background: 'var(--bg-secondary)', height: '100%', borderLeft: '1px solid var(--border-color)', overflowY: 'auto' }}>
       {/* 1. Selected Block Settings (if any) */}
       {selectedBlock && (
         <div
           key={selectedBlock.id}
+          ref={activeRef}
           className="active-block-properties"
           style={{
             marginBottom: '32px',
@@ -37,7 +52,8 @@ export const BlockProperties = () => {
             border: '2px solid var(--premium-blue)',
             borderRadius: '16px',
             background: 'rgba(59, 130, 246, 0.05)',
-            boxShadow: '0 4px 15px rgba(59, 130, 246, 0.1)'
+            boxShadow: '0 4px 15px rgba(59, 130, 246, 0.1)',
+            scrollMarginTop: 12,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>

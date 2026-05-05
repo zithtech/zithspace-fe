@@ -19,6 +19,7 @@ import {
   Collapse,
   Input,
   notification,
+  App,
 } from "antd";
 import {
   CloseOutlined,
@@ -162,6 +163,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const router = useRouter();
 
   // Data Hooks - Use currentTicketId instead of ticketId prop
+  const { message, notification: notifyApi } = App.useApp();
   const { data: ticket, isLoading: ticketLoading } = useTicket(currentTicketId || "");
   const { data: tagSuggestions = [] } = useAllTicketTags();
   const { activeEntry } = useTimeTrackerStore();
@@ -269,61 +271,23 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const isInActiveSprint = !!activeSprint && ticketSprintId === activeSprint.id;
   const isInBacklog = !ticketSprintId;
 
-  const [sprintToastApi, sprintToastHolder] = notification.useNotification({
-    placement: "top",
-    top: 12,
-    duration: 2,
-  });
+  // const [sprintToastApi, sprintToastHolder] = notification.useNotification({
+  //   placement: "top",
+  //   top: 12,
+  //   duration: 2,
+  // });
 
   const showSprintToast = (
     kind: "added" | "removed" | "error",
     label?: string
   ) => {
-    const palette =
-      kind === "added"
-        ? { dot: "#10b981", icon: "✓" }
-        : kind === "removed"
-          ? { dot: "#ef4444", icon: "↺" }
-          : { dot: "#ef4444", icon: "!" };
-
-    sprintToastApi.open({
-      key: "sprint-assignment-toast",
-      className: "tiny-toast",
-      message: (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <span
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: "50%",
-              background: palette.dot,
-              color: "#fff",
-              fontSize: 11,
-              fontWeight: 800,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            {palette.icon}
-          </span>
-          {kind === "added" && (
-            <>
-              Added to <strong style={{ color: "var(--text-slate-900)", fontWeight: 700 }}>{label}</strong>
-            </>
-          )}
-          {kind === "removed" && (
-            <>
-              Removed from sprint
-            </>
-          )}
-          {kind === "error" && (
-            <span style={{ color: "#ef4444" }}>Sprint update failed</span>
-          )}
-        </span>
-      ),
-    });
+    if (kind === "added") {
+      message.success(`Ticket added to ${label} successfully`);
+    } else if (kind === "removed") {
+      message.success(`Ticket removed from sprint successfully`);
+    } else if (kind === "error") {
+      message.error(`Sprint update failed`);
+    }
   };
 
   // Mirror TicketList's handleSprintAssignment so behavior is identical
@@ -538,7 +502,6 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
   return (
     <>
-      {sprintToastHolder}
     <Drawer
       title={
         <div style={{

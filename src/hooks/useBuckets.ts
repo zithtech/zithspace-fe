@@ -351,11 +351,8 @@ export const useUnassignTicketsFromBucket = () => {
       queryClient.invalidateQueries({ queryKey: bucketKeys.detail(variables.bucketId) });
       queryClient.invalidateQueries({ queryKey: bucketKeys.tickets(variables.bucketId, 1) });
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
-
-      message.success(`${result.unassignedCount} ticket(s) removed from bucket`);
     },
     onError: () => {
-      message.error("Failed to unassign tickets");
     },
   });
 };
@@ -369,16 +366,11 @@ export const useMoveBucketToSprint = () => {
   return useMutation({
     mutationFn: ({ bucketId, sprintId }: { bucketId: string; sprintId: string }) =>
       BucketService.moveBucketToSprint(bucketId, sprintId),
-    onSuccess: (result, variables) => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: bucketKeys.all });
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
-      message.success(result.movedCount > 0 
-        ? `${result.movedCount} ticket(s) moved to sprint`
-        : "No tickets found to move"
-      );
     },
     onError: (error: any) => {
-      message.error(error.message || "Failed to move bucket to sprint");
     },
   });
 };
@@ -394,13 +386,8 @@ export const useMoveBucketToBacklog = () => {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: bucketKeys.all });
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
-      message.success(result.movedCount > 0 
-        ? `${result.movedCount} ticket(s) moved to backlog`
-        : "No tickets found to move"
-      );
     },
     onError: (error: any) => {
-      message.error(error.message || "Failed to move bucket to backlog");
     },
   });
 };

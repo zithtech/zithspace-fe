@@ -83,13 +83,13 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
     try {
       setDataLoading(true);
       const options = await SettingsService.getDropdownOptions();
-      
+
       // Sort each category by order
       const sortedOptions: Record<string, DropdownOption[]> = {};
       Object.keys(options).forEach(type => {
         sortedOptions[type] = [...options[type]].sort((a, b) => (a.order || 0) - (b.order || 0));
       });
-      
+
       setDropdownOptions(sortedOptions);
     } catch (error) {
       console.error('Error loading dropdown options:', error);
@@ -150,7 +150,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   //     setLoading(true);
   //     const currentOptions = dropdownOptions[option.type] || [];
   //     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-      
+
   //     if (direction === 'up' && currentIndex > 0) {
   //       const newOrder = currentOptions[currentIndex - 1].order;
   //       await SettingsService.updateDropdownOption(option.id, { order: newOrder });
@@ -158,7 +158,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   //       const newOrder = currentOptions[currentIndex + 1].order;
   //       await SettingsService.updateDropdownOption(option.id, { order: newOrder });
   //     }
-      
+
   //     message.success('Sequence updated');
   //     await loadDropdownOptions();
   //     onDataChange?.();
@@ -174,264 +174,264 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
 
 
-// const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
-//   try {
-//     setLoading(true);
-//     const currentOptions = [...(dropdownOptions[option.type] || [])];
-//     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-    
-//     if (direction === 'up' && currentIndex > 0) {
-//       const prevOption = currentOptions[currentIndex - 1];
-      
-//       // ✅ Store the orders properly
-//       const currentOrder = option.order;
-//       const prevOrder = prevOption.order;
-      
-//       console.log('Swapping orders:', { currentOrder, prevOrder }); // Debug
-      
-//       // Swap orders - current gets prev's order, prev gets current's order
-//       await SettingsService.updateDropdownOption(option.id, { 
-//         order: prevOrder,  // Current item gets PREV item's order
-//         value: option.value,
-//         label: option.label,
-//         isActive: option.isActive,
-//         description: option.description,
-//         color: option.color
-//       });
-//      const result1 = await SettingsService.updateDropdownOption(option.id, { 
-//   order: prevOrder,
-//   value: option.value,
-//   label: option.label,
-//   isActive: option.isActive,
-//   description: option.description,
-//   color: option.color
-// });
-// console.log('RESULT 1 - New order:', result1.order); // 👈 ADD THIS
-      
-//       await SettingsService.updateDropdownOption(prevOption.id, { 
-//         order: currentOrder,  // PREV item gets CURRENT item's order
-//         value: prevOption.value,
-//         label: prevOption.label,
-//         isActive: prevOption.isActive,
-//         description: prevOption.description,
-//         color: prevOption.color
-//       });
-//       const result2 = await SettingsService.updateDropdownOption(prevOption.id, { 
-//   order: currentOrder,
-//   value: prevOption.value,
-//   label: prevOption.label,
-//   isActive: prevOption.isActive,
-//   description: prevOption.description,
-//   color: prevOption.color
-// });
-// console.log('RESULT 2 - New order:', result2.order); // 👈 ADD THIS
-      
-//     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
-//       const nextOption = currentOptions[currentIndex + 1];
-      
-//       // ✅ Store the orders properly
-//       const currentOrder = option.order;
-//       const nextOrder = nextOption.order;
-      
-//       console.log('Swapping orders:', { currentOrder, nextOrder }); // Debug
-      
-//       // Swap orders - current gets next's order, next gets current's order
-//       await SettingsService.updateDropdownOption(option.id, { 
-//         order: nextOrder,  // Current item gets NEXT item's order
-//         value: option.value,
-//         label: option.label,
-//         isActive: option.isActive,
-//         description: option.description,
-//         color: option.color
-//       });
-      
-//       await SettingsService.updateDropdownOption(nextOption.id, { 
-//         order: currentOrder,  // NEXT item gets CURRENT item's order
-//         value: nextOption.value,
-//         label: nextOption.label,
-//         isActive: nextOption.isActive,
-//         description: nextOption.description,
-//         color: nextOption.color
-//       });
-//     }
-    
-//     // ✅ Force refresh to see changes
-//     await loadDropdownOptions();
-//     message.success('Order updated successfully');
-    
-//   } catch (error) {
-//     console.error('Error:', error);
-//     message.error('Failed to update order');
-//   } finally {
-//     setLoading(false);
-//   }
-// };
+  // const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
+  //   try {
+  //     setLoading(true);
+  //     const currentOptions = [...(dropdownOptions[option.type] || [])];
+  //     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
+
+  //     if (direction === 'up' && currentIndex > 0) {
+  //       const prevOption = currentOptions[currentIndex - 1];
+
+  //       // ✅ Store the orders properly
+  //       const currentOrder = option.order;
+  //       const prevOrder = prevOption.order;
+
+  //       console.log('Swapping orders:', { currentOrder, prevOrder }); // Debug
+
+  //       // Swap orders - current gets prev's order, prev gets current's order
+  //       await SettingsService.updateDropdownOption(option.id, { 
+  //         order: prevOrder,  // Current item gets PREV item's order
+  //         value: option.value,
+  //         label: option.label,
+  //         isActive: option.isActive,
+  //         description: option.description,
+  //         color: option.color
+  //       });
+  //      const result1 = await SettingsService.updateDropdownOption(option.id, { 
+  //   order: prevOrder,
+  //   value: option.value,
+  //   label: option.label,
+  //   isActive: option.isActive,
+  //   description: option.description,
+  //   color: option.color
+  // });
+  // console.log('RESULT 1 - New order:', result1.order); // 👈 ADD THIS
+
+  //       await SettingsService.updateDropdownOption(prevOption.id, { 
+  //         order: currentOrder,  // PREV item gets CURRENT item's order
+  //         value: prevOption.value,
+  //         label: prevOption.label,
+  //         isActive: prevOption.isActive,
+  //         description: prevOption.description,
+  //         color: prevOption.color
+  //       });
+  //       const result2 = await SettingsService.updateDropdownOption(prevOption.id, { 
+  //   order: currentOrder,
+  //   value: prevOption.value,
+  //   label: prevOption.label,
+  //   isActive: prevOption.isActive,
+  //   description: prevOption.description,
+  //   color: prevOption.color
+  // });
+  // console.log('RESULT 2 - New order:', result2.order); // 👈 ADD THIS
+
+  //     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
+  //       const nextOption = currentOptions[currentIndex + 1];
+
+  //       // ✅ Store the orders properly
+  //       const currentOrder = option.order;
+  //       const nextOrder = nextOption.order;
+
+  //       console.log('Swapping orders:', { currentOrder, nextOrder }); // Debug
+
+  //       // Swap orders - current gets next's order, next gets current's order
+  //       await SettingsService.updateDropdownOption(option.id, { 
+  //         order: nextOrder,  // Current item gets NEXT item's order
+  //         value: option.value,
+  //         label: option.label,
+  //         isActive: option.isActive,
+  //         description: option.description,
+  //         color: option.color
+  //       });
+
+  //       await SettingsService.updateDropdownOption(nextOption.id, { 
+  //         order: currentOrder,  // NEXT item gets CURRENT item's order
+  //         value: nextOption.value,
+  //         label: nextOption.label,
+  //         isActive: nextOption.isActive,
+  //         description: nextOption.description,
+  //         color: nextOption.color
+  //       });
+  //     }
+
+  //     // ✅ Force refresh to see changes
+  //     await loadDropdownOptions();
+  //     message.success('Order updated successfully');
+
+  //   } catch (error) {
+  //     console.error('Error:', error);
+  //     message.error('Failed to update order');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
 
 
 
 
-// const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
-//   try {
-//     setLoading(true);
-//     const currentOptions = [...(dropdownOptions[option.type] || [])];
-//     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-    
-//     if (direction === 'up' && currentIndex > 0) {
-//       const prevOption = currentOptions[currentIndex - 1];
-      
-//       // Swap orders - Update BOTH items
-//       await SettingsService.updateDropdownOption(option.id, { 
-//         order: prevOption.order,
-//         value: option.value,
-//         label: option.label,
-//         isActive: option.isActive
-//       });
-      
-//       await SettingsService.updateDropdownOption(prevOption.id, { 
-//         order: option.order,
-//         value: prevOption.value,
-//         label: prevOption.label,
-//         isActive: prevOption.isActive
-//       });
-      
-//       // Update UI immediately
-//       const newOptions = [...currentOptions];
-//       newOptions[currentIndex - 1] = { ...newOptions[currentIndex - 1], order: option.order };
-//       newOptions[currentIndex] = { ...newOptions[currentIndex], order: prevOption.order };
-      
-//       setDropdownOptions({
-//         ...dropdownOptions,
-//         [option.type]: newOptions
-//       });
-      
-//       message.success('Order updated');
-      
-//     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
-//       const nextOption = currentOptions[currentIndex + 1];
-      
-//       await SettingsService.updateDropdownOption(option.id, { 
-//         order: nextOption.order,
-//         value: option.value,
-//         label: option.label,
-//         isActive: option.isActive
-//       });
-      
-//       await SettingsService.updateDropdownOption(nextOption.id, { 
-//         order: option.order,
-//         value: nextOption.value,
-//         label: nextOption.label,
-//         isActive: nextOption.isActive
-//       });
-      
-//       // Update UI immediately
-//       const newOptions = [...currentOptions];
-//       newOptions[currentIndex] = { ...newOptions[currentIndex], order: nextOption.order };
-//       newOptions[currentIndex + 1] = { ...newOptions[currentIndex + 1], order: option.order };
-      
-//       setDropdownOptions({
-//         ...dropdownOptions,
-//         [option.type]: newOptions
-//       });
-      
-//       message.success('Order updated');
-//     }
-    
-//     // Refresh from database in background
-//     setTimeout(async () => {
-//       await loadDropdownOptions();
-//     }, 500);
-    
-//   } catch (error) {
-//     console.error('Error:', error);
-//     message.error('Failed to update order');
-//   } finally {
-//     setLoading(false);
-//   }
-// };
+  // const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
+  //   try {
+  //     setLoading(true);
+  //     const currentOptions = [...(dropdownOptions[option.type] || [])];
+  //     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
+
+  //     if (direction === 'up' && currentIndex > 0) {
+  //       const prevOption = currentOptions[currentIndex - 1];
+
+  //       // Swap orders - Update BOTH items
+  //       await SettingsService.updateDropdownOption(option.id, { 
+  //         order: prevOption.order,
+  //         value: option.value,
+  //         label: option.label,
+  //         isActive: option.isActive
+  //       });
+
+  //       await SettingsService.updateDropdownOption(prevOption.id, { 
+  //         order: option.order,
+  //         value: prevOption.value,
+  //         label: prevOption.label,
+  //         isActive: prevOption.isActive
+  //       });
+
+  //       // Update UI immediately
+  //       const newOptions = [...currentOptions];
+  //       newOptions[currentIndex - 1] = { ...newOptions[currentIndex - 1], order: option.order };
+  //       newOptions[currentIndex] = { ...newOptions[currentIndex], order: prevOption.order };
+
+  //       setDropdownOptions({
+  //         ...dropdownOptions,
+  //         [option.type]: newOptions
+  //       });
+
+  //       message.success('Order updated');
+
+  //     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
+  //       const nextOption = currentOptions[currentIndex + 1];
+
+  //       await SettingsService.updateDropdownOption(option.id, { 
+  //         order: nextOption.order,
+  //         value: option.value,
+  //         label: option.label,
+  //         isActive: option.isActive
+  //       });
+
+  //       await SettingsService.updateDropdownOption(nextOption.id, { 
+  //         order: option.order,
+  //         value: nextOption.value,
+  //         label: nextOption.label,
+  //         isActive: nextOption.isActive
+  //       });
+
+  //       // Update UI immediately
+  //       const newOptions = [...currentOptions];
+  //       newOptions[currentIndex] = { ...newOptions[currentIndex], order: nextOption.order };
+  //       newOptions[currentIndex + 1] = { ...newOptions[currentIndex + 1], order: option.order };
+
+  //       setDropdownOptions({
+  //         ...dropdownOptions,
+  //         [option.type]: newOptions
+  //       });
+
+  //       message.success('Order updated');
+  //     }
+
+  //     // Refresh from database in background
+  //     setTimeout(async () => {
+  //       await loadDropdownOptions();
+  //     }, 500);
+
+  //   } catch (error) {
+  //     console.error('Error:', error);
+  //     message.error('Failed to update order');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
 
 
 
 
-const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
-  try {
-    setLoading(true);
-    const currentOptions = [...(dropdownOptions[option.type] || [])];
-    const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-    
-    if (direction === 'up' && currentIndex > 0) {
-      const prevOption = currentOptions[currentIndex - 1];
-      
-      // Swap the 'order' values
-      const currentOrder = option.order;
-      const prevOrder = prevOption.order;
+  const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
+    try {
+      setLoading(true);
+      const currentOptions = [...(dropdownOptions[option.type] || [])];
+      const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
 
-      // Update backend using the specialized reorder endpoint
-      await SettingsService.reorderDropdownOptions([
-        { id: option.id, order: prevOrder, value: option.value, label: option.label },
-        { id: prevOption.id, order: currentOrder, value: prevOption.value, label: prevOption.label }
-      ]);
-      
-      // Update local state - swap items in array AND update their order property
-      const newOptions = [...currentOptions];
-      const updatedCurrent = { ...option, order: prevOrder };
-      const updatedPrev = { ...prevOption, order: currentOrder };
-      
-      newOptions[currentIndex] = updatedPrev;
-      newOptions[currentIndex - 1] = updatedCurrent;
-      
-      // Ensure the final list is still sorted
-      const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
-      
-      setDropdownOptions(prev => ({
-        ...prev,
-        [option.type]: sorted
-      }));
-      
-      onDataChange?.();
-      message.success('Sequence updated');
-      
-    } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
-      const nextOption = currentOptions[currentIndex + 1];
-      
-      const currentOrder = option.order;
-      const nextOrder = nextOption.order;
+      if (direction === 'up' && currentIndex > 0) {
+        const prevOption = currentOptions[currentIndex - 1];
 
-      // Update backend
-      await SettingsService.reorderDropdownOptions([
-        { id: option.id, order: nextOrder, value: option.value, label: option.label },
-        { id: nextOption.id, order: currentOrder, value: nextOption.value, label: nextOption.label }
-      ]);
-      
-      // Update local state
-      const newOptions = [...currentOptions];
-      const updatedCurrent = { ...option, order: nextOrder };
-      const updatedNext = { ...nextOption, order: currentOrder };
-      
-      newOptions[currentIndex] = updatedNext;
-      newOptions[currentIndex + 1] = updatedCurrent;
-      
-      // Re-sort
-      const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
-      
-      setDropdownOptions(prev => ({
-        ...prev,
-        [option.type]: sorted
-      }));
-      
-      onDataChange?.();
-      message.success('Sequence updated');
+        // Swap the 'order' values
+        const currentOrder = option.order;
+        const prevOrder = prevOption.order;
+
+        // Update backend using the specialized reorder endpoint
+        await SettingsService.reorderDropdownOptions([
+          { id: option.id, order: prevOrder, value: option.value, label: option.label },
+          { id: prevOption.id, order: currentOrder, value: prevOption.value, label: prevOption.label }
+        ]);
+
+        // Update local state - swap items in array AND update their order property
+        const newOptions = [...currentOptions];
+        const updatedCurrent = { ...option, order: prevOrder };
+        const updatedPrev = { ...prevOption, order: currentOrder };
+
+        newOptions[currentIndex] = updatedPrev;
+        newOptions[currentIndex - 1] = updatedCurrent;
+
+        // Ensure the final list is still sorted
+        const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        setDropdownOptions(prev => ({
+          ...prev,
+          [option.type]: sorted
+        }));
+
+        onDataChange?.();
+        message.success('Sequence updated');
+
+      } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
+        const nextOption = currentOptions[currentIndex + 1];
+
+        const currentOrder = option.order;
+        const nextOrder = nextOption.order;
+
+        // Update backend
+        await SettingsService.reorderDropdownOptions([
+          { id: option.id, order: nextOrder, value: option.value, label: option.label },
+          { id: nextOption.id, order: currentOrder, value: nextOption.value, label: nextOption.label }
+        ]);
+
+        // Update local state
+        const newOptions = [...currentOptions];
+        const updatedCurrent = { ...option, order: nextOrder };
+        const updatedNext = { ...nextOption, order: currentOrder };
+
+        newOptions[currentIndex] = updatedNext;
+        newOptions[currentIndex + 1] = updatedCurrent;
+
+        // Re-sort
+        const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        setDropdownOptions(prev => ({
+          ...prev,
+          [option.type]: sorted
+        }));
+
+        onDataChange?.();
+        message.success('Sequence updated');
+      }
+    } catch (error) {
+      console.error('Error reordering:', error);
+      message.error('Failed to update sequence');
+      // Reload to original state if error
+      await loadDropdownOptions();
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Error reordering:', error);
-    message.error('Failed to update sequence');
-    // Reload to original state if error
-    await loadDropdownOptions();
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
 
@@ -450,7 +450,7 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
   const handleSubmit = async (values: any) => {
     try {
       setLoading(true);
-      
+
       const data: CreateDropdownOptionData | UpdateDropdownOptionData = {
         type: values.type,
         value: values.value,
@@ -484,7 +484,7 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
     try {
       setLoading(true);
       message.loading({ content: 'Synchronizing system lifecycles...', key: 'status-sync' });
-      
+
       const currentStatusList = dropdownOptions.status || [];
       const newStatusOrder = [
         { label: "Not Started", value: "not_started", color: "#8c8c8c" },
@@ -502,7 +502,7 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
       for (let i = 0; i < newStatusOrder.length; i++) {
         const target = newStatusOrder[i];
         const existing = currentStatusList.find(s => s.value === target.value);
-        
+
         const data = {
           label: target.label,
           value: target.value,
@@ -623,19 +623,13 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
       width: 100,
       align: 'center' as const,
       render: (isActive: boolean, record: DropdownOption) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <Switch 
-            size="small" 
-            checked={isActive} 
-            onChange={() => handleToggleStatus(record)} 
-            loading={loading}
-            className="premium-switch"
-          />
-          <Badge 
-            status={isActive ? 'success' : 'default'} 
-            text={<span style={{ fontSize: 10, color: isActive ? '#52c41a' : '#bfbfbf', fontWeight: 600 }}>{isActive ? 'ACTIVE' : 'HIDDEN'}</span>} 
-          />
-        </div>
+        <Switch
+          size="small"
+          checked={isActive}
+          onChange={() => handleToggleStatus(record)}
+          loading={loading}
+          className="premium-switch"
+        />
       )
     },
     {
@@ -677,262 +671,263 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
 
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          tabPosition="left"
-          className="manager-tabs"
-          style={{ flex: 1, height: '100%' }}
-          items={dropdownTypes.map(type => ({
-            key: type.key,
-            label: (
-              <div className="tab-label-container">
-                <Space size={12}>
-                  <div className={`tab-icon-box ${activeTab === type.key ? 'active' : ''}`} style={{ color: type.color }}>
-                    {type.icon}
-                  </div>
-                  <div>
-                    <div className="tab-title">{type.label}</div>
-                    <div className="tab-subtitle-count">
-                      <Badge 
-                        count={dropdownOptions[type.key]?.length || 0} 
-                        size="small"
-                        style={{ 
-                          backgroundColor: activeTab === type.key ? type.color : 'rgba(0,0,0,0.06)', 
-                          color: activeTab === type.key ? '#fff' : 'var(--text-secondary)',
-                          fontSize: 10,
-                          boxShadow: 'none',
-                          border: 'none'
-                        }} 
-                      />
-                      <span style={{ marginLeft: 6 }}>Definitions</span>
-                    </div>
-                  </div>
-                </Space>
-              </div>
-            ),
-            children: (() => {
-              const allItems = dropdownOptions[type.key] || [];
-              const activeCount = allItems.filter(o => o.isActive).length;
-              const hiddenCount = allItems.length - activeCount;
-              const colorCount = allItems.filter(o => !!o.color).length;
-              const filteredItems = allItems
-                .filter(o => {
-                  if (filterStatus === 'active') return o.isActive;
-                  if (filterStatus === 'hidden') return !o.isActive;
-                  return true;
-                })
-                .filter(o => {
-                  if (!searchQuery.trim()) return true;
-                  const q = searchQuery.toLowerCase();
-                  return (
-                    o.label.toLowerCase().includes(q) ||
-                    o.value.toLowerCase().includes(q) ||
-                    (o.description || '').toLowerCase().includes(q)
-                  );
-                });
-
-              return (
-                <div className="tab-content-area no-scrollbar">
-                  {/* Premium Hero Header */}
-                  <div
-                    className="dm-hero"
-                    style={{
-                      background: `linear-gradient(135deg, ${type.color}14 0%, ${type.color}05 60%, transparent 100%)`,
-                      borderColor: `${type.color}26`,
-                    }}
-                  >
-                    <div
-                      className="dm-hero-glow"
-                      style={{ background: `radial-gradient(circle at 80% 20%, ${type.color}40 0%, transparent 60%)` }}
-                    />
-                    <div className="dm-hero-content">
-                      <div className="dm-hero-left">
-                        <div
-                          className="dm-hero-icon"
-                          style={{
-                            background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}cc 100%)`,
-                            boxShadow: `0 12px 32px ${type.color}40, inset 0 1px 0 rgba(255,255,255,0.3)`,
-                          }}
-                        >
-                          {React.cloneElement(type.icon as React.ReactElement, {
-                            style: { fontSize: 18, color: '#fff' },
-                          })}
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                          <div className="dm-hero-eyebrow">
-                            <span style={{ color: type.color }}>●</span>
-                            CONFIGURATION · {type.key.toUpperCase()}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
-                            <Title level={3} className="dm-hero-title">
-                              {type.label}
-                            </Title>
-                            <Text className="dm-hero-desc">{type.description}</Text>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="dm-stats-grid">
-                        <div className="dm-stat-card" title="Total Definitions">
-                          <div className="dm-stat-icon" style={{ background: `${type.color}1a`, color: type.color }}>
-                            <AppstoreFilled />
-                          </div>
-                          <span className="dm-stat-value">{allItems.length}</span>
-                          <span className="dm-stat-label">Total</span>
-                        </div>
-                        <div className="dm-stat-card" title="Active & Visible">
-                          <div className="dm-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
-                            <CheckCircleFilled />
-                          </div>
-                          <span className="dm-stat-value">{activeCount}</span>
-                          <span className="dm-stat-label">Active</span>
-                        </div>
-                        <div className="dm-stat-card" title="Hidden / Archived">
-                          <div className="dm-stat-icon" style={{ background: 'rgba(148, 163, 184, 0.15)', color: '#64748b' }}>
-                            <EyeInvisibleFilled />
-                          </div>
-                          <span className="dm-stat-value">{hiddenCount}</span>
-                          <span className="dm-stat-label">Hidden</span>
-                        </div>
-                        <div className="dm-stat-card" title="With Visual Identity">
-                          <div className="dm-stat-icon" style={{ background: 'rgba(168, 85, 247, 0.12)', color: '#a855f7' }}>
-                            <StarFilled />
-                          </div>
-                          <span className="dm-stat-value">{colorCount}</span>
-                          <span className="dm-stat-label">Themed</span>
-                        </div>
-                      </div>
-                      <div className="dm-hero-right">
-                        <Space size={8}>
-                          {type.key === 'status' && (
-                            <Button
-                              icon={<ThunderboltOutlined />}
-                              onClick={handleStandardizeLifecycles}
-                              loading={loading}
-                              className="dm-sync-btn"
-                            >
-                              Synchronize
-                            </Button>
-                          )}
-                          <Button
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            onClick={handleCreate}
-                            className="dm-primary-btn"
-                            style={{
-                              background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}d9 100%)`,
-                              boxShadow: `0 6px 14px ${type.color}40`,
-                            }}
-                          >
-                            New Definition
-                          </Button>
-                        </Space>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Toolbar: search + filter chips */}
-                  <div className="dm-toolbar">
-                    <div className="dm-search-box">
-                      <SearchOutlined className="dm-search-icon" />
-                      <input
-                        className="dm-search-input"
-                        placeholder={`Search ${type.label.toLowerCase()} by label, key, or context…`}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                      {searchQuery && (
-                        <button className="dm-search-clear" onClick={() => setSearchQuery('')}>
-                          Clear
-                        </button>
-                      )}
-                    </div>
-                    <div className="dm-filter-chips">
-                      <button
-                        className={`dm-chip ${filterStatus === 'all' ? 'active' : ''}`}
-                        onClick={() => setFilterStatus('all')}
-                      >
-                        <FilterOutlined />
-                        All
-                        <span className="dm-chip-count">{allItems.length}</span>
-                      </button>
-                      <button
-                        className={`dm-chip ${filterStatus === 'active' ? 'active' : ''}`}
-                        onClick={() => setFilterStatus('active')}
-                      >
-                        <CheckCircleFilled style={{ color: '#10b981' }} />
-                        Active
-                        <span className="dm-chip-count">{activeCount}</span>
-                      </button>
-                      <button
-                        className={`dm-chip ${filterStatus === 'hidden' ? 'active' : ''}`}
-                        onClick={() => setFilterStatus('hidden')}
-                      >
-                        <EyeInvisibleFilled style={{ color: '#94a3b8' }} />
-                        Hidden
-                        <span className="dm-chip-count">{hiddenCount}</span>
-                      </button>
-                      <Tooltip title="Reload from server">
-                        <button className="dm-chip dm-chip-icon" onClick={loadDropdownOptions}>
-                          <ReloadOutlined spin={dataLoading} />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  </div>
-
-                  {/* Table */}
-                  <div className="dm-table-wrapper">
-                    <Table
-                      columns={columns}
-                      dataSource={filteredItems}
-                      rowKey="id"
-                      loading={dataLoading}
-                      pagination={false}
-                      size="middle"
-                      className="premium-table workstation-grid"
-                      locale={{
-                        emptyText: (
-                          <div className="dm-empty-state">
-                            <div className="dm-empty-icon" style={{ background: `${type.color}14`, color: type.color }}>
-                              {React.cloneElement(type.icon as React.ReactElement, { style: { fontSize: 28 } })}
-                            </div>
-                            <div className="dm-empty-title">
-                              {searchQuery || filterStatus !== 'all'
-                                ? 'No matching definitions'
-                                : `No ${type.label.toLowerCase()} configured yet`}
-                            </div>
-                            <div className="dm-empty-desc">
-                              {searchQuery || filterStatus !== 'all'
-                                ? 'Try a different search term or clear your filters.'
-                                : `Create your first ${type.label.toLowerCase().replace(/s$/, '')} definition to get started.`}
-                            </div>
-                            {!(searchQuery || filterStatus !== 'all') && (
-                              <Button
-                                type="primary"
-                                icon={<PlusOutlined />}
-                                onClick={handleCreate}
-                                style={{
-                                  marginTop: 16,
-                                  borderRadius: 8,
-                                  height: 38,
-                                  fontWeight: 700,
-                                  background: type.color,
-                                  borderColor: type.color,
-                                }}
-                              >
-                                Create Definition
-                              </Button>
-                            )}
-                          </div>
-                        ),
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        tabPosition="left"
+        className="manager-tabs"
+        style={{ flex: 1, height: '100%' }}
+        items={dropdownTypes.map(type => ({
+          key: type.key,
+          label: (
+            <div className="tab-label-container">
+              <Space size={12}>
+                <div className={`tab-icon-box ${activeTab === type.key ? 'active' : ''}`} style={{ color: type.color }}>
+                  {type.icon}
+                </div>
+                <div>
+                  <div className="tab-title">{type.label}</div>
+                  <div className="tab-subtitle-count">
+                    <Badge
+                      count={dropdownOptions[type.key]?.length || 0}
+                      size="small"
+                      style={{
+                        backgroundColor: activeTab === type.key ? type.color : 'rgba(0,0,0,0.06)',
+                        color: activeTab === type.key ? '#fff' : 'var(--text-secondary)',
+                        fontSize: 10,
+                        boxShadow: 'none',
+                        border: 'none'
                       }}
                     />
+                    <span style={{ marginLeft: 6 }}>Definitions</span>
                   </div>
                 </div>
-              );
-            })()
-          }))}
-        />
+              </Space>
+            </div>
+          ),
+          children: (() => {
+            const allItems = dropdownOptions[type.key] || [];
+            const activeCount = allItems.filter(o => o.isActive).length;
+            const hiddenCount = allItems.length - activeCount;
+            const colorCount = allItems.filter(o => !!o.color).length;
+            const filteredItems = allItems
+              .filter(o => {
+                if (filterStatus === 'active') return o.isActive;
+                if (filterStatus === 'hidden') return !o.isActive;
+                return true;
+              })
+              .filter(o => {
+                if (!searchQuery.trim()) return true;
+                const q = searchQuery.toLowerCase();
+                return (
+                  o.label.toLowerCase().includes(q) ||
+                  o.value.toLowerCase().includes(q) ||
+                  (o.description || '').toLowerCase().includes(q)
+                );
+              });
+
+            return (
+              <div className="tab-content-area">
+                {/* Premium Hero Header */}
+                <div
+                  className="dm-hero"
+                  style={{
+                    background: `linear-gradient(135deg, ${type.color}14 0%, ${type.color}05 60%, transparent 100%)`,
+                    borderColor: `${type.color}26`,
+                  }}
+                >
+                  <div
+                    className="dm-hero-glow"
+                    style={{ background: `radial-gradient(circle at 80% 20%, ${type.color}40 0%, transparent 60%)` }}
+                  />
+                  <div className="dm-hero-content">
+                    <div className="dm-hero-left">
+                      <div
+                        className="dm-hero-icon"
+                        style={{
+                          background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}cc 100%)`,
+                          boxShadow: `0 12px 32px ${type.color}40, inset 0 1px 0 rgba(255,255,255,0.3)`,
+                        }}
+                      >
+                        {React.cloneElement(type.icon as React.ReactElement, {
+                          style: { fontSize: 18, color: '#fff' },
+                        })}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                        <div className="dm-hero-eyebrow">
+                          <span style={{ color: type.color }}>●</span>
+                          CONFIGURATION · {type.key.toUpperCase()}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+                          <Title level={3} className="dm-hero-title">
+                            {type.label}
+                          </Title>
+                          <Text className="dm-hero-desc">{type.description}</Text>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="dm-stats-grid">
+                      <div className="dm-stat-card" title="Total Definitions">
+                        <div className="dm-stat-icon" style={{ background: `${type.color}1a`, color: type.color }}>
+                          <AppstoreFilled />
+                        </div>
+                        <span className="dm-stat-value">{allItems.length}</span>
+                        <span className="dm-stat-label">Total</span>
+                      </div>
+                      <div className="dm-stat-card" title="Active & Visible">
+                        <div className="dm-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+                          <CheckCircleFilled />
+                        </div>
+                        <span className="dm-stat-value">{activeCount}</span>
+                        <span className="dm-stat-label">Active</span>
+                      </div>
+                      <div className="dm-stat-card" title="Hidden / Archived">
+                        <div className="dm-stat-icon" style={{ background: 'rgba(148, 163, 184, 0.15)', color: '#64748b' }}>
+                          <EyeInvisibleFilled />
+                        </div>
+                        <span className="dm-stat-value">{hiddenCount}</span>
+                        <span className="dm-stat-label">Hidden</span>
+                      </div>
+                      <div className="dm-stat-card" title="With Visual Identity">
+                        <div className="dm-stat-icon" style={{ background: 'rgba(168, 85, 247, 0.12)', color: '#a855f7' }}>
+                          <StarFilled />
+                        </div>
+                        <span className="dm-stat-value">{colorCount}</span>
+                        <span className="dm-stat-label">Themed</span>
+                      </div>
+                    </div>
+                    <div className="dm-hero-right">
+                      <Space size={8}>
+                        {type.key === 'status' && (
+                          <Button
+                            icon={<ThunderboltOutlined />}
+                            onClick={handleStandardizeLifecycles}
+                            loading={loading}
+                            className="dm-sync-btn"
+                          >
+                            Synchronize
+                          </Button>
+                        )}
+                        <Button
+                          type="primary"
+                          icon={<PlusOutlined />}
+                          onClick={handleCreate}
+                          className="dm-primary-btn"
+                          style={{
+                            background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}d9 100%)`,
+                            boxShadow: `0 6px 14px ${type.color}40`,
+                          }}
+                        >
+                          New Definition
+                        </Button>
+                      </Space>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Toolbar: search + filter chips */}
+                <div className="dm-toolbar">
+                  <div className="dm-search-box">
+                    <SearchOutlined className="dm-search-icon" />
+                    <input
+                      className="dm-search-input"
+                      placeholder={`Search ${type.label.toLowerCase()} by label, key, or context…`}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                      <button className="dm-search-clear" onClick={() => setSearchQuery('')}>
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <div className="dm-filter-chips">
+                    <button
+                      className={`dm-chip ${filterStatus === 'all' ? 'active' : ''}`}
+                      onClick={() => setFilterStatus('all')}
+                    >
+                      <FilterOutlined />
+                      All
+                      <span className="dm-chip-count">{allItems.length}</span>
+                    </button>
+                    <button
+                      className={`dm-chip ${filterStatus === 'active' ? 'active' : ''}`}
+                      onClick={() => setFilterStatus('active')}
+                    >
+                      <CheckCircleFilled style={{ color: '#10b981' }} />
+                      Active
+                      <span className="dm-chip-count">{activeCount}</span>
+                    </button>
+                    <button
+                      className={`dm-chip ${filterStatus === 'hidden' ? 'active' : ''}`}
+                      onClick={() => setFilterStatus('hidden')}
+                    >
+                      <EyeInvisibleFilled style={{ color: '#94a3b8' }} />
+                      Hidden
+                      <span className="dm-chip-count">{hiddenCount}</span>
+                    </button>
+                    <Tooltip title="Reload from server">
+                      <button className="dm-chip dm-chip-icon" onClick={loadDropdownOptions}>
+                        <ReloadOutlined spin={dataLoading} />
+                      </button>
+                    </Tooltip>
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="dm-table-wrapper">
+                  <Table
+                    columns={columns}
+                    dataSource={filteredItems}
+                    rowKey="id"
+                    loading={dataLoading}
+                    pagination={false}
+                    size="middle"
+                    className="premium-table workstation-grid"
+                    scroll={{ y: 'calc(100vh - 420px)' }}
+                    locale={{
+                      emptyText: (
+                        <div className="dm-empty-state">
+                          <div className="dm-empty-icon" style={{ background: `${type.color}14`, color: type.color }}>
+                            {React.cloneElement(type.icon as React.ReactElement, { style: { fontSize: 28 } })}
+                          </div>
+                          <div className="dm-empty-title">
+                            {searchQuery || filterStatus !== 'all'
+                              ? 'No matching definitions'
+                              : `No ${type.label.toLowerCase()} configured yet`}
+                          </div>
+                          <div className="dm-empty-desc">
+                            {searchQuery || filterStatus !== 'all'
+                              ? 'Try a different search term or clear your filters.'
+                              : `Create your first ${type.label.toLowerCase().replace(/s$/, '')} definition to get started.`}
+                          </div>
+                          {!(searchQuery || filterStatus !== 'all') && (
+                            <Button
+                              type="primary"
+                              icon={<PlusOutlined />}
+                              onClick={handleCreate}
+                              style={{
+                                marginTop: 16,
+                                borderRadius: 8,
+                                height: 38,
+                                fontWeight: 700,
+                                background: type.color,
+                                borderColor: type.color,
+                              }}
+                            >
+                              Create Definition
+                            </Button>
+                          )}
+                        </div>
+                      ),
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })()
+        }))}
+      />
 
       <Drawer
         open={modalVisible}
@@ -1156,6 +1151,14 @@ const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down')
       </Drawer>
 
       <style jsx global>{`
+        /* ── Tabs structural fix ──────────────────────────────────── */
+        .manager-tabs, 
+        .manager-tabs .ant-tabs-content, 
+        .manager-tabs .ant-tabs-content-holder,
+        .manager-tabs .ant-tabs-tabpane {
+          height: 100% !important;
+        }
+
         /* ── Left sidebar nav ─────────────────────────────────────── */
         .manager-tabs .ant-tabs-nav {
           width: 264px;

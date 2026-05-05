@@ -108,16 +108,54 @@ export const useLeads = () => {
         setLoading(false);
       }
     }, []),
-    analyzeLead: useCallback(async (id: string) => {
+    fetchTrashLeads: useCallback(async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await LeadService.analyze(id);
-        return res;
+        const data = await LeadService.getTrash();
+        setLeads(data);
       } catch (err: any) {
-        const msg = err.response?.data?.error || "Failed to analyze lead";
-        setError(msg);
-        throw new Error(msg);
+        setError(err.response?.data?.error || "Failed to fetch trash leads");
+        console.error("Fetch trash leads error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }, []),
+    emptyTrash: useCallback(async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        await LeadService.emptyTrash();
+        setLeads([]);
+      } catch (err: any) {
+        setError(err.response?.data?.error || "Failed to empty trash");
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    }, []),
+    bulkRestoreLeads: useCallback(async (ids: string[]) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await LeadService.bulkRestore(ids);
+        setLeads((prev) => prev.filter((item) => !ids.includes(item.id)));
+      } catch (err: any) {
+        setError(err.response?.data?.error || "Failed to restore leads");
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    }, []),
+    bulkDeleteLeads: useCallback(async (ids: string[]) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await LeadService.bulkPermanentDelete(ids);
+        setLeads((prev) => prev.filter((item) => !ids.includes(item.id)));
+      } catch (err: any) {
+        setError(err.response?.data?.error || "Failed to delete leads");
+        throw err;
       } finally {
         setLoading(false);
       }

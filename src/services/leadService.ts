@@ -179,6 +179,79 @@ export class LeadService {
       throw error;
     }
   }
+
+  /**
+   * Fetch all trashed leads
+   */
+  static async getTrash(): Promise<Lead[]> {
+    try {
+      const response = await api.get<any>('/api/leads/trash');
+      return response.data || response;
+    } catch (error) {
+      console.error('Failed to fetch trash leads:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Restore a lead from trash
+   */
+  static async restore(id: string): Promise<void> {
+    try {
+      await api.post(`/api/leads/${id}/restore`);
+    } catch (error) {
+      console.error('Failed to restore lead:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Permanently delete a lead
+   */
+  static async permanentDelete(id: string): Promise<void> {
+    try {
+      await api.delete(`/api/leads/${id}/permanent`);
+    } catch (error) {
+      console.error('Failed to permanently delete lead:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Empty trash
+   */
+  static async emptyTrash(): Promise<void> {
+    try {
+      await api.delete('/api/leads/trash/empty');
+    } catch (error) {
+      console.error('Failed to empty lead trash:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk restore leads
+   */
+  static async bulkRestore(ids: string[]): Promise<void> {
+    try {
+      await api.post('/api/leads/trash/bulk-restore', { ids });
+    } catch (error) {
+      console.error('Failed to restore leads:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk permanent delete leads
+   */
+  static async bulkPermanentDelete(ids: string[]): Promise<void> {
+    try {
+      await api.post('/api/leads/trash/bulk-permanent-delete', { ids });
+    } catch (error) {
+      console.error('Failed to bulk delete leads:', error);
+      throw error;
+    }
+  }
 }
 
 export default LeadService;

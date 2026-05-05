@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import {
     ChevronRight,
     ChevronDown,
@@ -450,7 +450,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             setIsResizing(false);
             try {
                 window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(sidebarWidth));
-            } catch {}
+            } catch { }
         };
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
@@ -523,7 +523,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     reader.onload = () => resolve(reader.result as string);
                     reader.onerror = (error) => reject(error);
                 });
-                
+
                 // Use the API client to upload
                 const { api } = await import('@/lib/axios');
                 const res = await api.post("/api/tickets/upload-image", {
@@ -611,9 +611,17 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [saveStatus]);
 
+    // Track the last loaded document/version ID so we can distinguish between
+    // "switching docs" and "server content updated".
+    const lastLoadedIdRef = useRef<string | null>(null);
+
     // Update editor content when document changes or preview version changes
     useEffect(() => {
         if (!editor) return;
+
+        const currentId = previewVersion ? `v-${previewVersion.id}` : selectedDoc;
+        const isSwitchingDoc = lastLoadedIdRef.current !== currentId;
+        lastLoadedIdRef.current = currentId;
 
         let contentToLoad: any[] = [];
         let isProgrammaticLoad = false;
@@ -634,17 +642,36 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             return;
         }
 
-        // If the editor's current content is already identical to what we'd
-        // load (e.g. the React Query cache just got updated by our own
-        // post-save setQueryData, so documentContent has a new reference but
-        // the same content), skip replaceBlocks entirely. This stops the
-        // gratuitous onChange that would otherwise mark the doc dirty + write
-        // a stale localStorage draft.
+        // --- Selection preservation logic ---
+        // BlockNote's replaceBlocks always resets the text cursor to the end.
+        // To prevent this during autosave (where documentContent updates after
+        // every save), we only run replaceBlocks if:
+        // 1. We are switching to a DIFFERENT document or version.
+        // 2. The server content is actually different from what we have.
+        // 3. We are NOT currently dirty or saving (if we are, our local state is
+        //    newer than the server's last-known state, so overwriting would
+        //    cause both cursor jumps AND data loss).
+
         try {
             const blocksToLoad =
                 contentToLoad.length > 0 ? contentToLoad : [{ type: 'paragraph', content: [] }];
+
+            // 1. If we aren't switching docs, and we have unsaved changes, 
+            //    NEVER overwrite the editor. The autosave hook will eventually 
+            //    sync our changes to the server.
+            if (!isSwitchingDoc && !previewVersion && (isDirty || isSaving)) {
+                // Still need to resync the version if it changed (post-save)
+                const v = typeof (documentContent as any)?.version === 'number'
+                    ? (documentContent as any).version
+                    : null;
+                resync(v, false);
+                return;
+            }
+
+            // 2. Deep compare to skip if identical.
             const sameContent =
                 JSON.stringify(editor.document) === JSON.stringify(blocksToLoad);
+
             if (sameContent) {
                 if (isProgrammaticLoad) {
                     const v =
@@ -655,6 +682,11 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 }
                 return;
             }
+
+            // 3. If we aren't switching docs, and we ARENT dirty, but the 
+            //    JSON.stringify failed (maybe metadata changed?), we should
+            //    still be very careful. For now, we'll allow the replace if 
+            //    not dirty, as it might be an external update.
         } catch {
             // Fall through to a normal replace if the comparison fails.
         }
@@ -663,10 +695,28 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         // BlockNote fires synchronously inside replaceBlocks is dropped.
         beginProgrammaticUpdate();
 
+        // Save current selection to restore after replaceBlocks
+        const selection = editor.getTextCursorPosition();
+
         if (contentToLoad.length > 0) {
             editor.replaceBlocks(editor.document, contentToLoad);
         } else {
             editor.replaceBlocks(editor.document, [{ type: "paragraph", content: [] }]);
+        }
+
+        // Restore selection if we aren't switching documents
+        if (selection && !isSwitchingDoc) {
+            try {
+                // We try to restore the cursor to the same block. If the block 
+                // still exists with the same ID, this will work perfectly.
+                // Restore to the exact character index if available
+                const sel = selection as any;
+                if (sel && sel.block) {
+                    editor.setTextCursorPosition(sel.block, sel.index);
+                }
+            } catch (e) {
+                // If the block is gone (rare during autosave), just let it go.
+            }
         }
 
         // Re-snapshot the autosave baseline immediately after the load. resync
@@ -679,7 +729,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     : null;
             resync(v);
         }
-    }, [documentContent, editor, previewVersion, resync, beginProgrammaticUpdate]);
+    }, [documentContent, editor, previewVersion, resync, beginProgrammaticUpdate, isDirty, isSaving, selectedDoc]);
 
     useEffect(() => {
         const handleFullScreenChange = () => {
@@ -868,10 +918,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     const firstText =
                         firstBlock?.type === 'heading' && Array.isArray(firstBlock.content)
                             ? firstBlock.content
-                                  .map((n: any) => (typeof n === 'string' ? n : n?.text ?? ''))
-                                  .join('')
-                                  .trim()
-                                  .toLowerCase()
+                                .map((n: any) => (typeof n === 'string' ? n : n?.text ?? ''))
+                                .join('')
+                                .trim()
+                                .toLowerCase()
                             : typeof firstBlock?.content === 'string'
                                 ? firstBlock.content.trim().toLowerCase()
                                 : '';
@@ -2115,12 +2165,12 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                             paddingInline: 14,
                             ...(useAiInAddModal
                                 ? {
-                                      background:
-                                          'linear-gradient(135deg, #722ed1 0%, #391085 100%)',
-                                      border: 'none',
-                                      boxShadow:
-                                          '0 4px 12px rgba(114, 46, 209, 0.32), inset 0 1px 0 rgba(255,255,255,0.18)',
-                                  }
+                                    background:
+                                        'linear-gradient(135deg, #722ed1 0%, #391085 100%)',
+                                    border: 'none',
+                                    boxShadow:
+                                        '0 4px 12px rgba(114, 46, 209, 0.32), inset 0 1px 0 rgba(255,255,255,0.18)',
+                                }
                                 : {}),
                         }}
                     >

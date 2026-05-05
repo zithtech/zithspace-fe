@@ -67,6 +67,7 @@ import {
   Tabs,
   Dropdown,
   Modal,
+  App,
   type MenuProps
 } from "antd";
 import dayjs from "dayjs";
@@ -97,8 +98,7 @@ export default function LeadsPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [form] = Form.useForm();
-  const [api, contextHolder] = notification.useNotification();
-  const [modal, modalContextHolder] = Modal.useModal();
+  const { message: messageApi, modal } = App.useApp();
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -128,28 +128,25 @@ export default function LeadsPage() {
   // Handle errors from the hook
   useEffect(() => {
     if (error) {
-      api.error({
-        message: "API Error",
-        description: error,
-      });
+      messageApi.error(error);
     }
-  }, [error, api]);
+  }, [error, messageApi]);
 
   const handleStatusChange = async (leadId: string, newStatus: string) => {
     try {
       await updateLead(leadId, { status: newStatus });
-      api.success({ message: 'Status Updated', placement: 'topRight' });
+      messageApi.success('Status Updated');
     } catch (error) {
-      api.error({ message: 'Failed to update status', placement: 'topRight' });
+      messageApi.error('Failed to update status');
     }
   };
 
   const handleActionChange = async (leadId: string, newAction: string) => {
     try {
       await updateLead(leadId, { actions: newAction });
-      api.success({ message: 'Action Updated', placement: 'topRight' });
+      messageApi.success('Action Updated');
     } catch (error) {
-      api.error({ message: 'Failed to update action', placement: 'topRight' });
+      messageApi.error('Failed to update action');
     }
   };
 
@@ -619,10 +616,7 @@ export default function LeadsPage() {
   const handleDelete = async (id: string) => {
     try {
       await deleteLead(id);
-      api.success({
-        message: "Success",
-        description: "Lead deleted successfully",
-      });
+      messageApi.success("Lead moved to Trash");
     } catch (err) {
       // Error handled by useEffect
     }
@@ -639,16 +633,10 @@ export default function LeadsPage() {
 
       if (editingKey) {
         await updateLead(editingKey, finalValues);
-        api.success({
-          message: "Lead Updated",
-          description: "Details have been synchronized with the server.",
-        });
+        messageApi.success("Lead Updated");
       } else {
         await createLead(finalValues);
-        api.success({
-          message: "Lead Created",
-          description: "New project lead added to the system.",
-        });
+        messageApi.success("Lead Created");
       }
       setIsDrawerVisible(false);
       form.resetFields();
@@ -851,8 +839,6 @@ export default function LeadsPage() {
           background: "var(--bg-pure-white)",
           minHeight: "calc(100vh - 64px)"
         }}>
-          {contextHolder}
-          {modalContextHolder}
 
           {/* Header Section */}
           <div style={{ marginBottom: 0, paddingBottom: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>

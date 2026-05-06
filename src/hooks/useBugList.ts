@@ -75,6 +75,13 @@ export const useBugSheets = (folderId: string | null) =>
     staleTime: 60 * 1000,
   });
 
+export const useArchivedSheets = () =>
+  useQuery({
+    queryKey: [...bugKeys.all, "archived-sheets"] as const,
+    queryFn: () => BugListService.getArchivedSheets(),
+    staleTime: 60 * 1000,
+  });
+
 export const useCreateBugSheet = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -109,6 +116,16 @@ export const useUpdateBugSheetStatus = () => {
     onSuccess: (sheet) => {
       qc.invalidateQueries({ queryKey: bugKeys.sheets(sheet.folderId) });
       qc.invalidateQueries({ queryKey: bugKeys.folders() });
+      // Also invalidate archived sheets query when archiving/unarchiving
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "archived-sheets"] });
+      const statusMessages = {
+        active: "Sheet reopened",
+        current: "Sheet marked as current", 
+        completed: "Sheet marked as completed",
+        archived: "Sheet moved to archive",
+      };
+      const statusKey = status as keyof typeof statusMessages;
+      message.success(statusMessages[statusKey] || "Sheet updated");
     },
     onError: (err: Error) => message.error(err.message),
   });
@@ -270,7 +287,7 @@ export const useBulkMoveBugs = () => {
 export const useBugStats = (params: {
   folderId?: string;
   sheetId?: string;
-  scope?: "all" | "mine";
+  scope?: "all" | "mine" | "trash" | "archived";
 }) =>
   useQuery({
     queryKey: [...bugKeys.all, "stats", params] as const,

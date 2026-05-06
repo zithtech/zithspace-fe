@@ -23,9 +23,11 @@ import {
   Bug as BugIcon,
   Ticket as TicketIcon,
   Activity,
+  Archive,
 } from "lucide-react";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
 import HivebugTable from "./HivebugTable";
+import ArchivedSheetsView from "./ArchivedSheetsView";
 import CreateBugDrawer from "./CreateBugDrawer";
 import { FolderModal, SheetModal } from "./FolderSheetModals";
 import AiReviewModal from "./AiReviewModal";
@@ -46,6 +48,7 @@ import {
   useReopenBug,
   useUpdateBug,
   useVerifyBug,
+  useArchivedSheets,
 } from "@/hooks/useBugList";
 import type {
   BugFolder,
@@ -106,14 +109,31 @@ export default function BugListPage() {
   const searchRef = useRef<HTMLInputElement>(null);
 
   const { data: folders } = useBugFolders();
-  const { data: filterSheets } = useBugSheets(selectedFolderId);
-  const { users: members } = useMembersSelect();
-  const showWorkspaceStats = !selectedSheetId;
-  const { data: workspaceStats } = useBugStats({
+  const { data: sheets } = useBugSheets(selectedFolderId);
+  const { data: archivedSheets } = useArchivedSheets();
+  const { data: stats } = useBugStats({
     folderId: selectedFolderId || undefined,
-    sheetId: undefined,
+    sheetId: selectedSheetId || undefined,
     scope,
   });
+
+  const prefilledProjectId = useMemo(() => {
+    if (!selectedFolderId) return undefined;
+    const folder = folders?.find((f) => f.id === selectedFolderId);
+    return folder?.projectId || undefined;
+  }, [selectedFolderId, folders]);
+
+  // Add missing variables to fix TypeScript errors
+  const members: { value: string; label: string }[] = [];
+  const workspaceStats = {
+    totalFolders: folders?.length || 0,
+    totalSheets: sheets?.length || 0,
+    total: stats?.total || 0,
+    verified: stats?.verified || 0,
+    linked: stats?.linked || 0,
+  };
+  const filterSheets = sheets?.filter(s => s.name.toLowerCase().includes(filters.search.toLowerCase())) || [];
+  const showWorkspaceStats = scope !== "archived" && !selectedSheetId;
 
   const queryFilters = useMemo(
     () => ({
@@ -126,7 +146,7 @@ export default function BugListPage() {
       bugType: filters.bugType,
       module: filters.module,
       assigneeId: filters.assigneeId,
-      createdById: filters.createdById,
+      createdById: filters.createdById || undefined,
       createdFrom: filters.createdRange?.[0]?.toISOString(),
       createdTo: filters.createdRange?.[1]?.toISOString(),
       updatedFrom: filters.updatedRange?.[0]?.toISOString(),
@@ -180,7 +200,7 @@ export default function BugListPage() {
   }, [bugs]);
 
   const memberOptions = useMemo(
-    () => (members || []).map((m) => ({ value: m.value, label: m.label })),
+    () => members.map((m: { value: string; label: string }) => ({ value: m.value, label: m.label })),
     [members]
   );
 
@@ -209,6 +229,7 @@ export default function BugListPage() {
       return folder?.name || "Bugs";
     }
     if (scope === "trash") return "Trash";
+    if (scope === "archived") return "Archived";
     return "All Bugs";
   }, [scope, folders, selectedFolderId, selectedSheetId]);
 
@@ -315,13 +336,53 @@ export default function BugListPage() {
 
       <main className="hb-main">
         <header className="hb-header">
-          <div className="hb-breadcrumb">
-            <span className="hb-bc-strong">Buglist</span>
-            <span className="hb-bc-sep">/</span>
-            <span className="hb-bc-soft">{breadcrumbScope}</span>
-            <span className="hb-bc-count">
-              {shown} of {total} bugs
-            </span>
+          <div className="hb-breadcrumb" style={{ paddingLeft: 0 }}>
+            <span className="hb-bc-strong">Bug List</span>
+            {scope === "archived" && !selectedSheetId && (
+              <>
+                <span className="hb-bc-sep">›</span>
+                <span className="hb-bc-soft">Archived Sheets</span>
+              </>
+            )}
+            {scope === "archived" && selectedSheetId && (
+              <>
+                <span className="hb-bc-sep">›</span>
+                <button 
+                  className="hb-btn hb-btn-ghost" 
+                  onClick={() => setSelectedSheetId(null)}
+                  style={{ padding: "2px 8px", fontSize: 12 }}
+                >
+                  ← Back to Archived Sheets
+                </button>
+                <span className="hb-bc-sep">›</span>
+                <span className="hb-bc-soft">
+                  {archivedSheets?.find((s) => s.id === selectedSheetId)?.name || "Loading..."}
+                </span>
+              </>
+            )}
+            {selectedFolderId || (selectedSheetId && scope !== "archived") ? (
+              <>
+                <span className="hb-bc-sep">›</span>
+                {selectedFolderId && (
+                  <>
+                    <span className="hb-bc-soft">
+                      {folders?.find((f) => f.id === selectedFolderId)?.name || "Loading..."}
+                    </span>
+                    {selectedSheetId && <span className="hb-bc-sep">›</span>}
+                  </>
+                )}
+                {selectedSheetId && (
+                  <span className="hb-bc-soft">
+                    {sheets?.find((s) => s.id === selectedSheetId)?.name || "Loading..."}
+                  </span>
+                )}
+              </>
+            ) : null}
+            {total > 0 && (
+              <span className="hb-bc-count">
+                {total} {total === 1 ? "bug" : "bugs"}
+              </span>
+            )}
           </div>
 
           <div className="hb-header-tools">
@@ -362,6 +423,19 @@ export default function BugListPage() {
                 }}
               >
                 <Trash2 size={14} />
+              </button>
+            </Tooltip>
+
+            <Tooltip title="Archive Bin">
+              <button
+                className={`hb-btn hb-btn-ghost ${scope === "archived" ? "active" : ""}`}
+                onClick={() => {
+                  setScope("archived");
+                  setSelectedFolderId(null);
+                  setSelectedSheetId(null);
+                }}
+              >
+                <Archive size={14} />
               </button>
             </Tooltip>
 
@@ -649,85 +723,99 @@ export default function BugListPage() {
         )}
 
         <div className="hb-content">
-          <HivebugTable
-            bugs={bugs}
-            loading={isLoading || isFetching}
-            selectedIds={selectedIds}
-            onToggleAll={toggleAll}
-            onToggle={toggleOne}
-            onEdit={(bug) => {
-              setEditingBug(bug);
-              setBugDrawerOpen(true);
-            }}
-            onCreateTicket={(bug) => {
-              setSelectedIds(new Set([bug.id]));
-              setBulkTicketOpen(true);
-            }}
-            onVerify={(bug) => verifyBug.mutate(bug.id)}
-            onReopen={(bug) => reopenBug.mutate(bug.id)}
-            onIgnore={(bug) =>
-              bulkUpdateStatus.mutate({ bugIds: [bug.id], status: "ignored" })
-            }
-            onDelete={(bug) =>
-              scope === "trash"
-                ? permanentDeleteBug.mutate(bug.id)
-                : deleteBug.mutate(bug.id)
-            }
-            onRestore={(bug) => restoreBug.mutate(bug.id)}
-            isTrashView={scope === "trash"}
-          />
-          {bugsResponse?.pagination && total > 0 && (
-            <div className="hb-pagination">
-              <div className="hb-pagination-info">
-                Showing
-                <strong>
-                  {" "}
-                  {(page - 1) * limit + 1}
-                  –{(page - 1) * limit + shown}{" "}
-                </strong>
-                of <strong>{total}</strong>
-              </div>
-              <div className="hb-pagination-controls">
-                <label className="hb-pagination-pagesize">
-                  Rows
-                  <select
-                    value={limit}
-                    onChange={(e) => {
-                      setLimit(Number(e.target.value));
-                      setPage(1);
-                    }}
-                  >
-                    {[10, 25, 50, 100].map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="hb-pagination-pager">
-                  <button
-                    className="hb-pagination-btn"
-                    disabled={!bugsResponse.pagination.hasPrev}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    aria-label="Previous page"
-                  >
-                    ‹ Prev
-                  </button>
-                  <span className="hb-pagination-page">
-                    Page <strong>{page}</strong> of{" "}
-                    <strong>{bugsResponse.pagination.pages}</strong>
-                  </span>
-                  <button
-                    className="hb-pagination-btn"
-                    disabled={!bugsResponse.pagination.hasNext}
-                    onClick={() => setPage((p) => p + 1)}
-                    aria-label="Next page"
-                  >
-                    Next ›
-                  </button>
+          {scope === "archived" && !selectedSheetId && (
+            <ArchivedSheetsView
+              selectedSheetId={selectedSheetId}
+              onSelectSheet={setSelectedSheetId}
+            />
+          )}
+          {(scope !== "archived" || (scope === "archived" && selectedSheetId)) && (
+            <>
+              <HivebugTable
+                bugs={bugs}
+                loading={isLoading || isFetching}
+                selectedIds={selectedIds}
+                onToggleAll={toggleAll}
+                onToggle={toggleOne}
+                onEdit={(bug) => {
+                  setEditingBug(bug);
+                  setBugDrawerOpen(true);
+                }}
+                onCreateTicket={(bug) => {
+                  setSelectedIds(new Set([bug.id]));
+                  setBulkTicketOpen(true);
+                }}
+                onVerify={(bug) => verifyBug.mutate(bug.id)}
+                onReopen={(bug) => reopenBug.mutate(bug.id)}
+                onIgnore={(bug) =>
+                  bulkUpdateStatus.mutate({ bugIds: [bug.id], status: "ignored" })
+                }
+                onDelete={(bug) =>
+                  scope === "trash"
+                    ? permanentDeleteBug.mutate(bug.id)
+                    : deleteBug.mutate(bug.id)
+                }
+                onRestore={(bug) => restoreBug.mutate(bug.id)}
+                onArchive={(bug) =>
+                  bulkUpdateStatus.mutate({ bugIds: [bug.id], status: "archived" })
+                }
+                isTrashView={scope === "trash"}
+                isArchiveView={scope === "archived"}
+              />
+              {bugsResponse?.pagination && total > 0 && (
+                <div className="hb-pagination">
+                  <div className="hb-pagination-info">
+                    Showing
+                    <strong>
+                      {" "}
+                      {(page - 1) * limit + 1}
+                      –{(page - 1) * limit + shown}{" "}
+                    </strong>
+                    of <strong>{total}</strong>
+                  </div>
+                  <div className="hb-pagination-controls">
+                    <label className="hb-pagination-pagesize">
+                      Rows
+                      <select
+                        value={limit}
+                        onChange={(e) => {
+                          setLimit(Number(e.target.value));
+                          setPage(1);
+                        }}
+                      >
+                        {[10, 25, 50, 100].map((n) => (
+                          <option key={n} value={n}>
+                            {n}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="hb-pagination-pager">
+                      <button
+                        className="hb-pagination-btn"
+                        disabled={!bugsResponse.pagination.hasPrev}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        aria-label="Previous page"
+                      >
+                        ‹ Prev
+                      </button>
+                      <span className="hb-pagination-page">
+                        Page <strong>{page}</strong> of{" "}
+                        <strong>{bugsResponse.pagination.pages}</strong>
+                      </span>
+                      <button
+                        className="hb-pagination-btn"
+                        disabled={!bugsResponse.pagination.hasNext}
+                        onClick={() => setPage((p) => p + 1)}
+                        aria-label="Next page"
+                      >
+                        Next ›
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              )}
+            </>
           )}
         </div>
       </main>
@@ -774,6 +862,7 @@ export default function BugListPage() {
       <BulkTicketModal
         open={bulkTicketOpen}
         bugs={selectedBugs}
+        prefilledProjectId={prefilledProjectId}
         onClose={() => setBulkTicketOpen(false)}
         onPickAi={() => {
           setBulkTicketOpen(false);

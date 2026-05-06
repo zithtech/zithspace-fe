@@ -5,7 +5,7 @@ import { apiClient } from "@/lib/axios";
 // values while accepting plain strings.
 export type BugSeverity = "blocker" | "critical" | "major" | "minor" | (string & {});
 export type BugType = "ui" | "functional" | "api" | (string & {});
-export type BugStatus = "new" | "converted" | "ignored" | "verified" | "reopened" | "trash";
+export type BugStatus = "new" | "converted" | "ignored" | "verified" | "reopened" | "trash" | "archived";
 
 export interface BugAttachment {
   id?: string;
@@ -36,7 +36,7 @@ export interface BugFolder {
   _count?: { sheets: number; completedSheets?: number; bugs: number };
 }
 
-export type BugSheetStatus = "active" | "current" | "completed";
+export type BugSheetStatus = "active" | "current" | "completed" | "archived";
 
 export interface BugSheet {
   id: string;
@@ -126,7 +126,7 @@ export interface BugListFilters {
   bugType?: BugType;
   createdById?: string;
   assigneeId?: string;
-  scope?: "all" | "mine" | "trash";
+  scope?: "all" | "mine" | "trash" | "archived";
   createdFrom?: string;
   createdTo?: string;
   updatedFrom?: string;
@@ -242,6 +242,13 @@ class BugListService {
   static async getSheets(folderId: string): Promise<BugSheet[]> {
     const res = await apiClient.get<{ success: boolean; data: BugSheet[] }>(
       `/api/bug-list/folders/${folderId}/sheets`
+    );
+    return res.data.data;
+  }
+
+  static async getArchivedSheets(): Promise<BugSheet[]> {
+    const res = await apiClient.get<{ success: boolean; data: BugSheet[] }>(
+      `/api/bug-list/sheets/archived`
     );
     return res.data.data;
   }
@@ -381,7 +388,7 @@ class BugListService {
   static async getStats(params: {
     folderId?: string;
     sheetId?: string;
-    scope?: "all" | "mine";
+    scope?: "all" | "mine" | "trash" | "archived";
   }): Promise<{
     total: number;
     open: number;

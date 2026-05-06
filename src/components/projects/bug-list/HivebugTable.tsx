@@ -6,6 +6,7 @@ import {
   MoreHorizontal,
   Link as LinkIcon,
   Plus,
+  Archive,
 } from "lucide-react";
 import type {
   BugListItem,
@@ -99,7 +100,9 @@ interface HivebugTableProps {
   onIgnore: (bug: BugListItem) => void;
   onDelete: (bug: BugListItem) => void;
   onRestore: (bug: BugListItem) => void;
+  onArchive: (bug: BugListItem) => void;
   isTrashView?: boolean;
+  isArchiveView?: boolean;
 }
 
 export default function HivebugTable({
@@ -115,7 +118,9 @@ export default function HivebugTable({
   onIgnore,
   onDelete,
   onRestore,
+  onArchive,
   isTrashView,
+  isArchiveView,
 }: HivebugTableProps) {
   const selectableBugs = bugs.filter((b) => !b.ticketId);
   const allChecked =
@@ -177,7 +182,9 @@ export default function HivebugTable({
               onIgnore={() => onIgnore(bug)}
               onDelete={() => onDelete(bug)}
               onRestore={() => onRestore(bug)}
+              onArchive={() => onArchive(bug)}
               isTrashView={isTrashView}
+              isArchiveView={isArchiveView}
             />
           ))}
         </tbody>
@@ -197,7 +204,9 @@ interface BugRowProps {
   onIgnore: () => void;
   onDelete: () => void;
   onRestore: () => void;
+  onArchive: () => void;
   isTrashView?: boolean;
+  isArchiveView?: boolean;
 }
 
 function BugRow({
@@ -211,7 +220,9 @@ function BugRow({
   onIgnore,
   onDelete,
   onRestore,
+  onArchive,
   isTrashView,
+  isArchiveView,
 }: BugRowProps) {
   const { open: openTicketDrawer } = useTicketDrawer();
   const severity = bug.severity;
@@ -347,6 +358,12 @@ function BugRow({
                   { type: "divider" as const },
                   { key: "delete", label: "Delete Permanently", danger: true },
                 ]
+              : isArchiveView
+              ? [
+                  { key: "restore", label: "Restore from Archive" },
+                  { type: "divider" as const },
+                  { key: "delete", label: "Delete", danger: true },
+                ]
               : [
                   { key: "edit", label: "Edit" },
                   ...(bug.status === "converted" || bug.status === "reopened"
@@ -360,6 +377,7 @@ function BugRow({
                     label: "Ignore",
                     disabled: bug.status === "ignored",
                   },
+                  { key: "archive", label: "Archive" },
                   { type: "divider" as const },
                   { key: "delete", label: "Delete", danger: true },
                 ],
@@ -370,6 +388,7 @@ function BugRow({
               if (key === "ignore") onIgnore();
               if (key === "delete") onDelete();
               if (key === "restore") onRestore();
+              if (key === "archive") onArchive();
             },
           }}
         >

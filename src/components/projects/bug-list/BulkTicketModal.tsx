@@ -34,6 +34,7 @@ interface Props {
   bugs: BugListItem[];
   onClose: () => void;
   onPickAi: () => void;
+  prefilledProjectId?: string;
 }
 
 const SEVERITY_RANK: Record<string, number> = {
@@ -43,7 +44,7 @@ const SEVERITY_RANK: Record<string, number> = {
   minor: 3,
 };
 
-export default function BulkTicketModal({ open, bugs, onClose, onPickAi }: Props) {
+export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefilledProjectId }: Props) {
   const { theme } = useTheme();
   const convert = useBulkConvertBugsToTickets();
   const { data: projects } = useUserProjects();
@@ -76,10 +77,10 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi }: Props
     setSearch("");
     setCollapsed(new Set());
     setTitle("");
-    setProjectId(undefined);
+    setProjectId(prefilledProjectId);
     setAssigneeId(undefined);
     setCreatedCount(0);
-  }, [open]);
+  }, [open, prefilledProjectId]);
 
   const stagedBugs = useMemo(
     () => pool.filter((b) => staged.has(b.id)),

@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Star,
   Trash2,
+  Archive,
 } from "lucide-react";
 import { Dropdown, Skeleton, Tooltip } from "antd";
 import {
@@ -33,7 +34,7 @@ import type {
   BugSheetStatus,
 } from "@/services/bugListService";
 
-export type BugScope = "all" | "mine" | "trash";
+export type BugScope = "all" | "mine" | "trash" | "archived";
 
 interface HivebugSidebarProps {
   scope: BugScope;
@@ -131,8 +132,22 @@ export default function HivebugSidebar({
             {stats.data && scope === "trash" ? stats.data.total : ""}
           </span>
         </button>
+        <button
+          className={`hb-row ${scope === "archived" ? "active" : ""}`}
+          onClick={() => {
+            onScopeChange("archived");
+            onSelect(null, null);
+          }}
+        >
+          <Archive size={15} />
+          <span className="hb-row-label">Archived</span>
+          <span className="hb-row-count">
+            {stats.data && scope === "archived" ? stats.data.total : ""}
+          </span>
+        </button>
       </div>
 
+      
       <div className="hb-section hb-section-grow">
         <div className="hb-section-title">
           <span className="hb-section-title-text">
@@ -325,14 +340,16 @@ function FolderNode({
               const status: BugSheetStatus = s.status ?? "active";
               const isCurrent = status === "current";
               const isCompleted = status === "completed";
+              const isArchived = status === "archived";
               return (
                 <div
                   key={s.id}
                   className={`hb-row hb-row-sub ${
                     selectedSheetId === s.id ? "active" : ""
-                  } ${isCompleted ? "hb-row-completed" : ""}`}
-                  onClick={() => onSelectSheet(s.id)}
+                  } ${isCompleted ? "hb-row-completed" : ""} ${isArchived ? "hb-row-archived" : ""}`}
+                  onClick={() => !isArchived && onSelectSheet(s.id)}
                   role="button"
+                  style={{ opacity: isArchived ? 0.6 : 1 }}
                 >
                   <SheetStatusIcon status={status} />
                   <span className="hb-row-label">{s.name}</span>
@@ -341,16 +358,25 @@ function FolderNode({
                     trigger={["click"]}
                     menu={{
                       items: [
-                        {
-                          key: "toggle-current",
-                          label: isCurrent ? "Unmark as current" : "Mark as current",
-                        },
-                        {
-                          key: "toggle-completed",
-                          label: isCompleted ? "Reopen sheet" : "Mark as completed",
-                        },
+                        ...(isArchived ? [{
+                          key: "toggle-archived",
+                          label: "Restore from archive",
+                        }] : [
+                          {
+                            key: "toggle-current",
+                            label: isCurrent ? "Unmark as current" : "Mark as current",
+                          },
+                          {
+                            key: "toggle-completed",
+                            label: isCompleted ? "Reopen sheet" : "Mark as completed",
+                          },
+                          ...(isCompleted ? [{
+                            key: "toggle-archived",
+                            label: "Move to archive",
+                          }] : []),
+                        ]),
                         { type: "divider" },
-                        { key: "edit", label: "Edit" },
+                        { key: "edit", label: "Edit", disabled: isArchived },
                         { type: "divider" },
                         { key: "delete", label: "Delete", danger: true },
                       ],
@@ -366,6 +392,12 @@ function FolderNode({
                           updateSheetStatus.mutate({
                             id: s.id,
                             status: isCompleted ? "active" : "completed",
+                          });
+                        }
+                        if (key === "toggle-archived") {
+                          updateSheetStatus.mutate({
+                            id: s.id,
+                            status: isArchived ? "active" : "archived",
                           });
                         }
                         if (key === "edit") onEditSheet(s);
@@ -415,5 +447,17 @@ function SheetStatusIcon({ status }: { status: BugSheetStatus }) {
       </Tooltip>
     );
   }
+  if (status === "archived") {
+    return (
+      <Tooltip title="Archived">
+        <Archive
+          size={12}
+          className="hb-row-status-icon hb-row-status-archived"
+          aria-label="Archived sheet"
+        />
+      </Tooltip>
+    );
+  }
   return <FileText size={12} style={{ color: "#9aa1ac" }} />;
 }
+

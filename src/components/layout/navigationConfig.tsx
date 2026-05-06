@@ -297,20 +297,21 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "time-tracking",
         label: "Time Tracking",
         icon: I(Timer),
+        requiredPermission: Permissions.TIME_TRACKING_READ,
         children: [
           {
             key: "/time-tracking/my",
             label: "My Tracking",
             icon: I(UserCog),
             path: "/time-tracking/my",
-            requiredPermission: Permissions.TIMESHEET_READ,
+            requiredPermission: Permissions.TIME_TRACKING_READ,
           },
           {
             key: "/time-tracking/team",
             label: "Team Tracking",
             icon: I(UsersRound2),
             path: "/time-tracking/team",
-            requiredPermission: Permissions.TIMESHEET_APPROVE,
+            requiredPermission: Permissions.TIME_TRACKING_MANAGE,
           },
         ],
       },
@@ -522,7 +523,18 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/opening-management",
     ],
     defaultPath: "/members",
-    requiredPermission: Permissions.USER_READ,
+    requiredAnyPermission: [
+      Permissions.USER_READ,
+      Permissions.PROFILE_READ,
+      Permissions.ATTENDANCE_READ,
+      Permissions.LEAVE_READ,
+      Permissions.ORG_READ,
+      Permissions.PERFORMANCE_READ,
+      Permissions.OPENING_READ,
+      Permissions.EXIT_READ,
+      Permissions.ONBOARDING_READ,
+    ],
+
     items: [
       {
         key: "/members",

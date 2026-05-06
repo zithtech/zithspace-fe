@@ -79,10 +79,16 @@ const RESOURCE_LABELS: Record<string, string> = {
   vendor: "Vendors",
   escalation: "Escalations",
   exit: "Employee Exit",
-  performance: "Performance Management",
-  opening: "Job Openings / Recruitment",
-  profile: "User Profile Management",
-  system: "System Features (Mail, Chat, etc.)",
+  performance: "Performance",
+  opening: "Opening Management",
+  profile: "User Profile",
+  mail: "Mail / Email Settings",
+  calendar: "Calendar / Scheduling",
+  chat: "Internal Chat / Channels",
+  skills: "Skills & Competencies",
+  notification: "System Notifications",
+  bookmark: "Bookmarks",
+  time_tracking: "Time Tracking (Real-time)",
 };
 
 /** Logical grouping for permissions drawer */
@@ -90,7 +96,7 @@ const PERMISSION_MODULES = [
   {
     title: "Home",
     icon: <PlusOutlined />, // Placeholder or appropriate icon
-    resources: ["dashboard", "integration", "system"]
+    resources: ["dashboard", "integration", "mail", "calendar", "chat", "skills", "notification", "bookmark", "time_tracking"]
   },
   {
     title: "Work",

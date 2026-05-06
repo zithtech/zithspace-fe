@@ -623,7 +623,7 @@ export default function TopNav({
         {!isCustomBreakpoint ? (
           <>
             <ThemeToggle />
-            <TimeTrackerPopover />
+            {hasPermission(Permissions.TIME_TRACKING_READ) && <TimeTrackerPopover />}
 
 
             {hasPermission(Permissions.MAIL_READ) && (
@@ -788,11 +788,11 @@ export default function TopNav({
             <Dropdown
               menu={{
                 items: [
-                  {
+                  ...(hasPermission(Permissions.TIME_TRACKING_READ) ? [{
                     key: 'timer',
                     label: <TimeTrackerPopover isMenuItem />,
                     onClick: () => setPopoverOpen(true)
-                  },
+                  }] : []),
                   ...(hasPermission(Permissions.MAIL_READ) ? [{
                     key: 'mail',
                     label: 'Mail',

@@ -216,6 +216,13 @@ export const Permissions = {
 
   NOTIFICATION_READ: 'notification.read',
   BOOKMARK_READ:     'bookmark.read',
+
+  // Time Tracking
+  TIME_TRACKING_CREATE: 'time_tracking.create',
+  TIME_TRACKING_READ:   'time_tracking.read',
+  TIME_TRACKING_UPDATE: 'time_tracking.update',
+  TIME_TRACKING_DELETE: 'time_tracking.delete',
+  TIME_TRACKING_MANAGE: 'time_tracking.manage',
 } as const;
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions];

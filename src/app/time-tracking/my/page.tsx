@@ -12,6 +12,10 @@ import { ClockCircleOutlined, PlusOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
+import { Result } from "antd";
+import { useRouter } from "next/navigation";
 
 export default function MyTimePage() {
   const { setPopoverOpen } = useTimeTrackerStore();
@@ -19,6 +23,10 @@ export default function MyTimePage() {
   const [totalSeconds, setTotalSeconds] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
   const [manageModalOpen, setManageModalOpen] = useState(false);
+
+  const { canReadTimeTracking } = usePermission();
+  const { isLoading } = useAuth();
+  const router = useRouter();
 
   const handleTotalChange = useCallback((total: number) => {
     setTotalSeconds(total);
@@ -29,6 +37,23 @@ export default function MyTimePage() {
     const m = Math.floor((total % 3600) / 60);
     return `${h}h ${m}m`;
   };
+
+  if (isLoading) return null;
+
+  if (!canReadTimeTracking) {
+    return (
+      <MainLayout>
+        <div style={{ padding: "100px 0", background: "var(--bg-pure-white)", minHeight: "calc(100vh - 64px)" }}>
+          <Result
+            status="403"
+            title="403"
+            subTitle="Sorry, you are not authorized to access this page."
+            extra={<Button type="primary" onClick={() => router.push("/dashboard")}>Back to Dashboard</Button>}
+          />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>

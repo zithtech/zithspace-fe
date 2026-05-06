@@ -233,6 +233,12 @@ export const usePermission = () => {
     canReadNotification: hasPermission(Permissions.NOTIFICATION_READ),
     canReadBookmark:     hasPermission(Permissions.BOOKMARK_READ),
 
+    canCreateTimeTracking: hasPermission(Permissions.TIME_TRACKING_CREATE),
+    canReadTimeTracking:   hasPermission(Permissions.TIME_TRACKING_READ),
+    canUpdateTimeTracking: hasPermission(Permissions.TIME_TRACKING_UPDATE),
+    canDeleteTimeTracking: hasPermission(Permissions.TIME_TRACKING_DELETE),
+    canManageTimeTracking: hasPermission(Permissions.TIME_TRACKING_MANAGE),
+
     // ─── Raw helpers ─────────────────────────────────────────────────
     /** Check a single permission string */
     can:    hasPermission,

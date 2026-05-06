@@ -697,7 +697,7 @@ function DashboardContent() {
   return (
     <MainLayout>
       <div style={{ background: "var(--bg-pure-white)", minHeight: "100vh" }}>
-        <div style={{ padding: 20 }}>
+        <div style={{ padding: "10px 20px 20px 20px" }}>
           {/* ✅ UPDATED HEADER WITH SEGMENT SWITCHER */}
           <Row
             justify="space-between"
@@ -1075,7 +1075,7 @@ function DashboardContent() {
                               </Button>
                             </div>
                           ) : todaysMeetings.length > 0 ? (
-                            <div style={{ height: 220, overflowY: 'auto' }}>
+                            <div style={{ height: 210, overflowY: 'auto' }}>
                               <List
                                 size="small"
                                 dataSource={todaysMeetings}

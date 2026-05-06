@@ -56,7 +56,7 @@ export default function ExcelDocumentPage() {
 
     {
       name: "Sheet1",
-      celldata: [{ r: 0, c: 0, v: { v: "Welcome to VDrive", ct: { fa: "General", t: "g" }, m: "Welcome to VDrive", bg: "#f1f5f9" } }],
+      celldata: [{ r: 0, c: 0, v: { v: "Welcome to VDrive", ct: { fa: "General", t: "g" }, m: "Welcome to VDrive", bg: "#ffffff", cl: "#000000" } }],
     },
   ]);
 
@@ -453,7 +453,7 @@ export default function ExcelDocumentPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    background: selectedFile?.id === item.id ? (isDark ? '#1d39c4' : '#f1f5f9') : 'transparent',
+                    background: selectedFile?.id === item.id ? (isDark ? '#303030' : '#f1f5f9') : 'transparent',
                     borderLeft: selectedFile?.id === item.id ? '4px solid #107c41' : '4px solid transparent',
                     transition: 'all 0.2s'
                   }}
@@ -581,7 +581,7 @@ export default function ExcelDocumentPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.7)',
+                background: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.7)',
                 zIndex: 10
               }}>
                 {/* <Space direction="vertical" align="center">
@@ -646,59 +646,63 @@ export default function ExcelDocumentPage() {
         /* GLOBAL "ZERO-WHITE" DARK MODE OVERRIDES */
         ${isDark ? `
           body { background-color: #000 !important; }
-          .fortune-container *, .luckysheet-container * {
-            border-color: #333333 !important;
-          }
           
-          /* The Grid Layout */
-          .fortune-sheet-area { background: #000 !important; }
-          .fortune-sheet-columnheader, .fortune-sheet-rowheader { 
-            background: #1a1a1a !important; 
-            color: #8c8c8c !important; 
-            border: 1px solid #333333 !important;
+          /* Toolbar and Sidebar (Stay Dark, No Inversion) */
+          .fortune-toolbar, .fortune-fx-editor, .fortune-fx-input-container { 
+            background: #141414 !important; 
+            border-bottom: 1px solid #333 !important; 
+            color: #d9d9d9 !important;
           }
-
-          /* The Grid Canvas (Cells) */
-          .fortune-grid-canvas, .luckysheet-grid-canvas { 
-            filter: invert(0.9) hue-rotate(180deg) brightness(1.2) contrast(0.9);
-            background-color: #1a1a1a !important;
+          .fortune-toolbar *, .fortune-fx-editor *, .fortune-fx-input-container * {
+            border-color: #333 !important;
           }
-
-          /* Inputs & Editors */
-          .fortune-input-box, .fortune-rich-text-editor, div[contenteditable="true"], .fortune-formula-input-inner {
-            background-color: #1a1a1a !important;
-            color: #ffffff !important;
-            caret-color: #ffffff !important;
-          }
-
-          /* Sidebar & Toolbar Navigation */
-          .fortune-toolbar { background: #141414 !important; border-bottom: 1px solid #333333 !important; }
-          .fortune-toolbar * { color: #d9d9d9 !important; border-color: #333333 !important; }
           .fortune-toolbar-button:hover { background: #262626 !important; }
           
-          /* Sheet Tabs (Bottom) */
-          .fortune-sheet-tab-container { background: #141414 !important; border-top: 1px solid #333333 !important; color: #fff !important; }
-          .fortune-sheet-tab-item { background: #141414 !important; color: #8c8c8c !important; border-right: 1px solid #333333 !important; }
-          .fortune-sheet-tab-item-active { background: #1a1a1a !important; color: #ffffff !important; border-bottom: 2px solid #1d39c4 !important; }
+          .fortune-fx-icon { background: #1a1a1a !important; color: #8c8c8c !important; border-right: 1px solid #333 !important; }
+          .fortune-fx-input { background: #1a1a1a !important; color: #fff !important; }
+
+          /* THE CORE FIX: Invert the entire grid area including headers */
+          /* We invert the container that holds the grid and headers */
+          .fortune-sheet-container, .luckysheet-container {
+            filter: invert(0.9) hue-rotate(180deg) brightness(1.1) contrast(0.9) !important;
+            background: #fff !important; /* Becomes black after inversion */
+          }
+
+          /* Elements that should NOT be inverted inside the container (if any) */
+          /* Usually everything in the grid should be inverted */
+
+          /* Tabs area (at the bottom) */
+          .fortune-sheet-tab-container {
+            /* If it's outside the container, style it dark. If inside, let it be inverted. */
+            background: #fff !important; /* Becomes dark */
+            color: #000 !important; /* Becomes light */
+            border-top: 1px solid #ddd !important;
+          }
+          
+          /* Popups, Menus & Dialogs (Style them dark manually as they are often portals) */
+          .fortune-context-menu, .fortune-dialog, .fortune-select-container { 
+            filter: none !important; /* Don't invert these if they are already dark */
+            background: #1a1a1a !important; 
+            color: #ffffff !important; 
+            border: 1px solid #333333 !important; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.9) !important; 
+          }
+          .fortune-context-menu-item:hover, .fortune-select-item:hover { background: #262626 !important; }
+          .fortune-dialog-title, .fortune-dialog-footer { background: #141414 !important; border-color: #333 !important; }
+
+          /* Selection Border (make it pop after inversion) */
+          .fortune-cell-main-active { border: 2px solid #fff !important; } /* Becomes dark blue/black after inversion */
 
           /* Scrollbars - Force them Dark */
           ::-webkit-scrollbar { width: 10px; height: 10px; }
           ::-webkit-scrollbar-track { background: #141414; }
           ::-webkit-scrollbar-thumb { background: #333; border-radius: 5px; }
           ::-webkit-scrollbar-thumb:hover { background: #444; }
-
-          /* Selection & Focus */
-          .fortune-sheet-selection-base { background: rgba(29, 57, 196, 0.2) !important; border: 1px solid #1d39c4 !important; }
-          .fortune-cell-main-active { border: 2px solid #1d39c4 !important; }
-
-          /* Popups & Menus */
-          .fortune-context-menu { background: #1a1a1a !important; color: #ffffff !important; border: 1px solid #333333 !important; box-shadow: 0 4px 12px rgba(0,0,0,0.8) !important; }
-          .fortune-context-menu-item:hover { background: #262626 !important; }
           
         ` : ''}
 
         .fortune-container { height: 100% !important; width: 100% !important; border:none !important; }
-        .list-item-hover:hover { background: ${isDark ? '#303030' : '#f8fafc'} !important; }
+        .list-item-hover:hover { background: ${isDark ? '#262626' : '#f8fafc'} !important; }
       `}</style>
 
 

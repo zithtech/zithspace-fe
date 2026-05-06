@@ -14,6 +14,8 @@ import { DailyUpdateService } from "@/services/dailyUpdateService";
 import TicketService from "@/services/ticketService";
 import { AttendanceService } from "@/services/attendanceService";
 import Organization from "@/components/organaization/Organization";
+import LeadService from "@/services/leadService";
+import InvoiceService from "@/services/invoiceService";
 
 import {
   Card,
@@ -52,6 +54,9 @@ import {
   PlusCircleOutlined,
   FolderOpenOutlined,
   AppstoreOutlined,
+  SolutionOutlined,
+  RocketOutlined,
+  AuditOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -86,11 +91,13 @@ function DashboardContent() {
   const [averageWorkHours, setAverageWorkHours] = useState("00:00:00");
 
   // ✅ SEGMENT STATE
-  const [activeSegment, setActiveSegment] = useState<"me" | "organization">(
+  const [activeSegment, setActiveSegment] = useState<"me" | "organization" | "freelancer">(
     "me",
   );
   const [isClocking, setIsClocking] = useState(false);
   const [recentTickets, setRecentTickets] = useState<any[]>([]);
+  const [recentLeads, setRecentLeads] = useState<any[]>([]);
+  const [createdInvoices, setCreatedInvoices] = useState<any[]>([]);
 
   const [todayAttendance, setTodayAttendance] = useState<any>(null);
 
@@ -385,6 +392,25 @@ function DashboardContent() {
       fetchRecentTickets();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user && activeSegment === "freelancer") {
+      const fetchFreelancerData = async () => {
+        try {
+          const [leads, invoices] = await Promise.all([
+            LeadService.getAll(),
+            InvoiceService.getInvoices({ limit: 5 })
+          ]);
+          setRecentLeads((leads as any).data || leads);
+          setCreatedInvoices(invoices.data);
+        } catch (error) {
+          console.error("Failed to fetch freelancer data", error);
+        }
+      };
+
+      fetchFreelancerData();
+    }
+  }, [user, activeSegment]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -777,6 +803,7 @@ function DashboardContent() {
             size="large"
             options={[
               { label: "Me", value: "me", icon: <UserOutlined /> },
+              { label: "Freelancer", value: "freelancer", icon: <SolutionOutlined /> },
               {
                 label: "Organization",
                 value: "organization",
@@ -785,7 +812,7 @@ function DashboardContent() {
             ]}
             value={activeSegment}
             onChange={(value) =>
-              setActiveSegment(value as "me" | "organization")
+              setActiveSegment(value as "me" | "organization" | "freelancer")
             }
             style={{
               padding: 4,
@@ -2577,6 +2604,290 @@ function DashboardContent() {
                 </Row>
               </>
             ) : null}
+          </>
+        )}
+
+        {/* ─── FREELANCER SEGMENT ─────────────────────────────── */}
+        {activeSegment === "freelancer" && (
+          <>
+            {loading ? (
+              <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <Col xs={24} sm={12} lg={6} key={i}>
+                    <Card size="small" style={{ ...cardBase }} styles={{ body: { padding: 18 } }}>
+                      <Skeleton active paragraph={{ rows: 1 }} />
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            ) : (
+              <>
+                {/* ─── KPI Strip ──────────────────────────────────── */}
+                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                  <Col xs={24} sm={12} lg={6}>
+                    <KpiCard
+                      eyebrow="Tickets · Closed / Total"
+                      value={`${myTicketsStats.closed} / ${myTicketsStats.total}`}
+                      trend={dashboardData?.trends.ticketCompletionRate || "—"}
+                      trendTone="positive"
+                      icon={<TrophyOutlined />}
+                      accent="#7C3AED"
+                    />
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <KpiCard
+                      eyebrow="Recent Leads"
+                      value={recentLeads.length}
+                      trend="Total Active"
+                      trendTone="neutral"
+                      icon={<RocketOutlined />}
+                      accent="#F59E0B"
+                    />
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <KpiCard
+                      eyebrow="Invoices"
+                      value={createdInvoices.length}
+                      trend="Last 5 Generated"
+                      trendTone="neutral"
+                      icon={<AuditOutlined />}
+                      accent="#10B981"
+                    />
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <KpiCard
+                      eyebrow="Active Projects"
+                      value={dashboardData?.stats.activeProjects || 0}
+                      trend={`${dashboardData?.trends.projectGrowth || "0%"}`}
+                      trendTone="positive"
+                      icon={<AppstoreOutlined />}
+                      accent="#0EA5E9"
+                    />
+                  </Col>
+                </Row>
+
+                {/* ─── Main Grid ──────────────────────────────────── */}
+                <Row gutter={[16, 16]}>
+                  {/* My Tickets Stats */}
+                  <Col xs={24} lg={8}>
+                    {(() => {
+                      const pendingTickets = Math.max(0, totalTickets - completedTickets - inProgressTickets - blockedTickets);
+                      const segments = [
+                        { key: "done", label: "Done", value: completedTickets, color: "#10B981" },
+                        { key: "active", label: "Active", value: inProgressTickets, color: "#0EA5E9" },
+                        { key: "blocked", label: "Blocked", value: blockedTickets, color: "#EF4444" },
+                        { key: "pending", label: "Pending", value: pendingTickets, color: "#F59E0B" },
+                      ];
+                      const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
+                      return (
+                        <Card
+                          style={{ ...cardBase, height: 340, overflow: "hidden" }}
+                          styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
+                          title={sectionTitle(<TrophyOutlined />, "My Tickets", "#7C3AED")}
+                          extra={<Button type="link" size="small" onClick={() => router.push("/tickets")} style={{ fontSize: 11 }}>View all</Button>}
+                        >
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "12px 16px 14px" }}>
+                            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+                              <div>
+                                <Text style={{ fontSize: 10, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "0.6px", textTransform: "uppercase", display: "block" }}>Completion</Text>
+                                <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 2 }}>
+                                  <span style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: token.colorText, letterSpacing: "-0.8px", fontVariantNumeric: "tabular-nums", background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #7C3AED 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                                    {completionRate}%
+                                  </span>
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "right", paddingBottom: 4 }}>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: token.colorText, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                                  {completedTickets}
+                                  <span style={{ color: token.colorTextTertiary, fontWeight: 500 }}> / {totalTickets}</span>
+                                </div>
+                                <Text style={{ fontSize: 10, color: token.colorTextSecondary, fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Closed · Total</Text>
+                              </div>
+                            </div>
+                            <div style={{ display: "flex", width: "100%", height: 6, borderRadius: 999, overflow: "hidden", background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, gap: 2, padding: 1, marginBottom: 10 }}>
+                              {segments.filter((s) => s.value > 0).map((s) => (
+                                <Tooltip key={s.key} title={`${s.label}: ${s.value} (${pct(s.value)}%)`}>
+                                  <div style={{ flex: s.value, background: s.color, borderRadius: 999, minWidth: 4 }} />
+                                </Tooltip>
+                              ))}
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                              {segments.map((s) => (
+                                <div key={s.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 10px", borderRadius: 8, background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}` }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: s.color, boxShadow: `0 0 0 3px ${s.color}1F` }} />
+                                    <Text style={{ fontSize: 12, fontWeight: 600, color: token.colorText }}>{s.label}</Text>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{s.value}</span>
+                                    <span style={{ fontSize: 10, color: token.colorTextTertiary, fontWeight: 600, fontVariantNumeric: "tabular-nums", minWidth: 28, textAlign: "right" }}>{pct(s.value)}%</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })()}
+                  </Col>
+
+                  {/* Today's Meetings */}
+                  <Col xs={24} lg={8}>
+                    <Card
+                      style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column" }}
+                      styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
+                      title={sectionTitle(<VideoCameraOutlined />, "Today's Meetings", "#7C3AED")}
+                      extra={
+                        connectedProvider ? (
+                          <Button type="text" size="small" onClick={() => syncCalendar(connectedProvider)} loading={calendarLoading} style={{ fontSize: 11 }}>Sync</Button>
+                        ) : (
+                          <Button type="link" size="small" onClick={() => router.push("/integrations")} style={{ fontSize: 11 }}>Connect</Button>
+                        )
+                      }
+                    >
+                      <div style={{ flex: 1, overflowY: "auto", padding: 12 }} className="no-scrollbar">
+                        {todaysMeetings.length > 0 ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {todaysMeetings.slice(0, 5).map((event: any, idx: number) => (
+                              <div key={idx} style={{ padding: "10px 12px", borderRadius: 12, background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}` }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                                  <Text strong style={{ fontSize: 13, color: token.colorText }}>{event.title}</Text>
+                                  <Tag color="blue" style={{ fontSize: 10, borderRadius: 6, margin: 0 }}>{dayjs(event.startTime).format("h:mm A")}</Tag>
+                                </div>
+                                <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(event.startTime).format("MMM D, YYYY")}</Text>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ textAlign: "center", padding: 40 }}>
+                            <CalendarOutlined style={{ fontSize: 32, color: token.colorTextTertiary, marginBottom: 12 }} />
+                            <Text type="secondary" style={{ display: "block", fontSize: 12 }}>No meetings scheduled for today</Text>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  </Col>
+
+                  {/* Recent Tickets List */}
+                  <Col xs={24} lg={8}>
+                    <Card
+                      style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column" }}
+                      styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
+                      title={sectionTitle(<FileTextOutlined />, "Recent Tickets", "#0EA5E9")}
+                      extra={<Button type="link" size="small" onClick={() => router.push("/tickets")} style={{ fontSize: 11 }}>View all</Button>}
+                    >
+                      <div style={{ flex: 1, overflowY: "auto", padding: 12 }} className="no-scrollbar">
+                        {recentTickets.length > 0 ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {recentTickets.slice(0, 5).map((ticket: any) => (
+                              <div key={ticket.id} onClick={() => router.push(`/tickets/${ticket.id}`)} style={{ padding: "10px 12px", borderRadius: 12, background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, cursor: "pointer" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                                  <Text strong style={{ fontSize: 13, color: token.colorText, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>{ticket.title}</Text>
+                                  <Tag style={{ fontSize: 10, borderRadius: 6, margin: 0, marginLeft: 8 }}>{ticket.status}</Tag>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                  <Text type="secondary" style={{ fontSize: 11 }}>{ticket.ticketId}</Text>
+                                  <Text type="secondary" style={{ fontSize: 10 }}>{formatTimeAgo(ticket.createdAt)}</Text>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No tickets found" />
+                        )}
+                      </div>
+                    </Card>
+                  </Col>
+
+                  {/* Recent Leads */}
+                  <Col xs={24} lg={12}>
+                    <Card
+                      style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column" }}
+                      styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
+                      title={sectionTitle(<RocketOutlined />, "Recent Leads", "#F59E0B")}
+                      extra={<Button type="link" size="small" onClick={() => router.push("/leads")} style={{ fontSize: 11 }}>View all</Button>}
+                    >
+                      <div style={{ flex: 1, overflowY: "auto", padding: 12 }} className="no-scrollbar">
+                        {recentLeads.length > 0 ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                            {recentLeads.slice(0, 5).map((lead: any) => (
+                              <div key={lead.id} style={{ padding: "12px 14px", borderRadius: 14, background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}` }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <Text strong style={{ fontSize: 14, color: token.colorText, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.title}</Text>
+                                    <Text type="secondary" style={{ fontSize: 12 }}>{lead.client_name}</Text>
+                                  </div>
+                                  <Tag color={lead.status === "won" ? "success" : lead.status === "lost" ? "error" : "processing"} style={{ fontSize: 10, borderRadius: 6, margin: 0 }}>
+                                    {(lead.status || "Open").toUpperCase()}
+                                  </Tag>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                  <Space size={4}>
+                                    {lead.skills?.slice(0, 3).map((skill: string) => (
+                                      <Tag key={skill} style={{ fontSize: 9, margin: 0, borderRadius: 4 }}>{skill}</Tag>
+                                    ))}
+                                  </Space>
+                                  <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(lead.created_at).format("MMM D")}</Text>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ textAlign: "center", padding: 40 }}>
+                            <RocketOutlined style={{ fontSize: 32, color: token.colorTextTertiary, marginBottom: 12 }} />
+                            <Text type="secondary" style={{ display: "block", fontSize: 12 }}>No leads found</Text>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  </Col>
+
+                  {/* Created Invoices */}
+                  <Col xs={24} lg={12}>
+                    <Card
+                      style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column" }}
+                      styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
+                      title={sectionTitle(<AuditOutlined />, "Created Invoices", "#10B981")}
+                      extra={<Button type="link" size="small" onClick={() => router.push("/invoice")} style={{ fontSize: 11 }}>View all</Button>}
+                    >
+                      <div style={{ flex: 1, overflowY: "auto", padding: 12 }} className="no-scrollbar">
+                        {createdInvoices.length > 0 ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                            {createdInvoices.slice(0, 5).map((invoice: any) => (
+                              <div key={invoice.id} style={{ padding: "12px 14px", borderRadius: 14, background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}` }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                                  <div>
+                                    <Text strong style={{ fontSize: 14, color: token.colorText, display: "block" }}>{invoice.invoiceNumber}</Text>
+                                    <Text type="secondary" style={{ fontSize: 12 }}>{invoice.customer?.companyName || "Client"}</Text>
+                                  </div>
+                                  <div style={{ textAlign: "right" }}>
+                                    <Text strong style={{ fontSize: 15, color: token.colorText }}>{invoice.currency} {invoice.grandTotal?.toLocaleString()}</Text>
+                                    <div style={{ marginTop: 2 }}>
+                                      <Tag color={invoice.status === "PAID" ? "success" : "warning"} style={{ fontSize: 10, borderRadius: 6, margin: 0 }}>
+                                        {invoice.status}
+                                      </Tag>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                                  <Text type="secondary" style={{ fontSize: 11 }}>Due: {dayjs(invoice.dueDate).format("MMM D, YYYY")}</Text>
+                                  <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(invoice.createdAt).format("MMM D")}</Text>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ textAlign: "center", padding: 40 }}>
+                            <AuditOutlined style={{ fontSize: 32, color: token.colorTextTertiary, marginBottom: 12 }} />
+                            <Text type="secondary" style={{ display: "block", fontSize: 12 }}>No invoices found</Text>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  </Col>
+                </Row>
+              </>
+            )}
           </>
         )}
 

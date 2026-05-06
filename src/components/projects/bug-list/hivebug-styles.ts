@@ -28,6 +28,7 @@ export const hivebugStyles = `
   letter-spacing: -0.01em;
   padding-left: 12px;
   gap: 12px;
+  overflow-x: hidden;
 }
 
 .hb-light {
@@ -192,15 +193,18 @@ export const hivebugStyles = `
   flex: 1;
   display: flex; flex-direction: column;
   overflow: hidden;
+  overflow-x: hidden;
+  min-width: 0;
   background: var(--hb-bg);
 }
 .hb-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 14px 12px;
+  padding: 14px 14px 12px 0;
   gap: 16px;
   border-bottom: 1px solid var(--hb-border);
+  min-width: 0;
 }
-.hb-breadcrumb { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hb-breadcrumb { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
 .hb-bc-strong { font-size: 18px; font-weight: 600; }
 .hb-bc-sep { color: var(--hb-text-muted); }
 .hb-bc-soft { color: var(--hb-text-soft); font-size: 14px; }
@@ -294,7 +298,7 @@ export const hivebugStyles = `
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  margin: 10px 14px 0;
+  margin: 10px 14px 0 0;
 }
 .hb-stat-card {
   display: flex; align-items: center; gap: 10px;
@@ -339,8 +343,8 @@ export const hivebugStyles = `
 /* ============ Filter bar (inline) ============ */
 .hb-filterbar {
   display: flex; align-items: center; gap: 8px;
-  margin: 10px 14px 0;
-  padding: 8px 10px 8px 14px;
+  margin: 10px 14px 0 0;
+  padding: 8px 10px 8px 8px;
   background: var(--hb-bg-elev);
   border: 1px solid var(--hb-border);
   border-radius: 10px;
@@ -405,10 +409,27 @@ export const hivebugStyles = `
   color: var(--hb-text);
 }
 
+.hb-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--hb-bg-soft);
+  padding: 2px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--hb-border);
+}
+.hb-filter-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--hb-text-muted);
+  letter-spacing: 0.05em;
+}
+
 /* ============ Quick add ============ */
 .hb-quickadd {
   display: flex; align-items: center; gap: 10px;
-  margin: 10px 14px 0;
+  margin: 10px 14px 0 0;
   padding: 10px 14px;
   background: var(--hb-bg-elev);
   border: 1px dashed var(--hb-border-strong);
@@ -425,7 +446,7 @@ export const hivebugStyles = `
 /* ============ Bulk bar ============ */
 .hb-bulkbar {
   display: flex; align-items: center; justify-content: space-between;
-  margin: 10px 14px 0;
+  margin: 10px 14px 0 0;
   padding: 10px 14px;
   background: var(--hb-bg-elev);
   border: 1px solid var(--hb-border);
@@ -438,13 +459,14 @@ export const hivebugStyles = `
 .hb-content {
   flex: 1;
   overflow: auto;
-  padding: 10px 14px 14px;
+  padding: 10px 14px 14px 0;
 }
 .hb-table-wrapper {
   background: var(--hb-bg-elev);
   border: 1px solid var(--hb-border);
   border-radius: 12px;
   overflow: hidden;
+  overflow-x: auto;
 }
 
 /* ============ Pagination footer ============ */

@@ -174,7 +174,31 @@ export const useDeleteBug = () => {
     mutationFn: (id: string) => BugListService.deleteBug(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: bugKeys.bugLists() });
-      message.success("Bug deleted");
+      message.success("Bug moved to trash");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const usePermanentDeleteBug = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => BugListService.permanentDeleteBug(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: bugKeys.bugLists() });
+      message.success("Bug permanently deleted");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const useRestoreBug = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => BugListService.restoreBug(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: bugKeys.bugLists() });
+      message.success("Bug restored");
     },
     onError: (err: Error) => message.error(err.message),
   });
@@ -197,9 +221,33 @@ export const useBulkDeleteBugs = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (bugIds: string[]) => BugListService.bulkDelete(bugIds),
+    onSuccess: ({ movedToTrash }) => {
+      qc.invalidateQueries({ queryKey: bugKeys.bugLists() });
+      message.success(`${movedToTrash} bug(s) moved to trash`);
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const useBulkPermanentDeleteBugs = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (bugIds: string[]) => BugListService.bulkPermanentDelete(bugIds),
     onSuccess: ({ deleted }) => {
       qc.invalidateQueries({ queryKey: bugKeys.bugLists() });
-      message.success(`${deleted} bug(s) deleted`);
+      message.success(`${deleted} bug(s) permanently deleted`);
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const useBulkRestoreBugs = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (bugIds: string[]) => BugListService.bulkRestore(bugIds),
+    onSuccess: ({ restored }) => {
+      qc.invalidateQueries({ queryKey: bugKeys.bugLists() });
+      message.success(`${restored} bug(s) restored`);
     },
     onError: (err: Error) => message.error(err.message),
   });

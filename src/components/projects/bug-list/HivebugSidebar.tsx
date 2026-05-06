@@ -16,6 +16,7 @@ import {
   Library,
   CheckCircle2,
   Star,
+  Trash2,
 } from "lucide-react";
 import { Dropdown, Skeleton, Tooltip } from "antd";
 import {
@@ -32,7 +33,7 @@ import type {
   BugSheetStatus,
 } from "@/services/bugListService";
 
-export type BugScope = "all" | "mine";
+export type BugScope = "all" | "mine" | "trash";
 
 interface HivebugSidebarProps {
   scope: BugScope;
@@ -106,12 +107,28 @@ export default function HivebugSidebar({
         </button>
         <button
           className={`hb-row ${scope === "mine" ? "active" : ""}`}
-          onClick={() => onScopeChange("mine")}
+          onClick={() => {
+            onScopeChange("mine");
+            onSelect(null, null);
+          }}
         >
           <User size={15} />
           <span className="hb-row-label">My Bugs</span>
           <span className="hb-row-count">
             {stats.data && scope === "mine" ? stats.data.total : ""}
+          </span>
+        </button>
+        <button
+          className={`hb-row ${scope === "trash" ? "active" : ""}`}
+          onClick={() => {
+            onScopeChange("trash");
+            onSelect(null, null);
+          }}
+        >
+          <Trash2 size={15} />
+          <span className="hb-row-label">Trash</span>
+          <span className="hb-row-count">
+            {stats.data && scope === "trash" ? stats.data.total : ""}
           </span>
         </button>
       </div>

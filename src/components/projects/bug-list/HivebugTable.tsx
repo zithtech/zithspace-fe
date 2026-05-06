@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Avatar, Dropdown, Tooltip } from "antd";
+import { Avatar, Dropdown, Tooltip, message } from "antd";
 import {
   MoreHorizontal,
   Link as LinkIcon,
@@ -98,6 +98,8 @@ interface HivebugTableProps {
   onReopen: (bug: BugListItem) => void;
   onIgnore: (bug: BugListItem) => void;
   onDelete: (bug: BugListItem) => void;
+  onRestore: (bug: BugListItem) => void;
+  isTrashView?: boolean;
 }
 
 export default function HivebugTable({
@@ -112,6 +114,8 @@ export default function HivebugTable({
   onReopen,
   onIgnore,
   onDelete,
+  onRestore,
+  isTrashView,
 }: HivebugTableProps) {
   const selectableBugs = bugs.filter((b) => !b.ticketId);
   const allChecked =
@@ -168,10 +172,12 @@ export default function HivebugTable({
               onToggle={(c) => onToggle(bug.id, c)}
               onEdit={() => onEdit(bug)}
               onCreateTicket={() => onCreateTicket(bug)}
-              onVerify={() => onVerify(bug)}
+               onVerify={() => onVerify(bug)}
               onReopen={() => onReopen(bug)}
               onIgnore={() => onIgnore(bug)}
               onDelete={() => onDelete(bug)}
+              onRestore={() => onRestore(bug)}
+              isTrashView={isTrashView}
             />
           ))}
         </tbody>
@@ -190,6 +196,8 @@ interface BugRowProps {
   onReopen: () => void;
   onIgnore: () => void;
   onDelete: () => void;
+  onRestore: () => void;
+  isTrashView?: boolean;
 }
 
 function BugRow({
@@ -202,6 +210,8 @@ function BugRow({
   onReopen,
   onIgnore,
   onDelete,
+  onRestore,
+  isTrashView,
 }: BugRowProps) {
   const { open: openTicketDrawer } = useTicketDrawer();
   const severity = bug.severity;
@@ -219,8 +229,13 @@ function BugRow({
           <input
             type="checkbox"
             checked={checked}
-            disabled={ticketLinked}
-            onChange={(e) => onToggle(e.target.checked)}
+            onChange={(e) => {
+              if (ticketLinked) {
+                message.info("Ticket already created");
+              } else {
+                onToggle(e.target.checked);
+              }
+            }}
           />
         </Tooltip>
       </td>
@@ -326,28 +341,35 @@ function BugRow({
         <Dropdown
           trigger={["click"]}
           menu={{
-            items: [
-              { key: "edit", label: "Edit" },
-              ...(bug.status === "converted" || bug.status === "reopened"
-                ? [
-                    { key: "verify", label: "Mark verified" },
-                    { key: "reopen", label: "Reopen" },
-                  ]
-                : []),
-              {
-                key: "ignore",
-                label: "Ignore",
-                disabled: bug.status === "ignored",
-              },
-              { type: "divider" as const },
-              { key: "delete", label: "Delete", danger: true },
-            ],
+            items: isTrashView
+              ? [
+                  { key: "restore", label: "Restore" },
+                  { type: "divider" as const },
+                  { key: "delete", label: "Delete Permanently", danger: true },
+                ]
+              : [
+                  { key: "edit", label: "Edit" },
+                  ...(bug.status === "converted" || bug.status === "reopened"
+                    ? [
+                        { key: "verify", label: "Mark verified" },
+                        { key: "reopen", label: "Reopen" },
+                      ]
+                    : []),
+                  {
+                    key: "ignore",
+                    label: "Ignore",
+                    disabled: bug.status === "ignored",
+                  },
+                  { type: "divider" as const },
+                  { key: "delete", label: "Delete", danger: true },
+                ],
             onClick: ({ key }) => {
               if (key === "edit") onEdit();
               if (key === "verify") onVerify();
               if (key === "reopen") onReopen();
               if (key === "ignore") onIgnore();
               if (key === "delete") onDelete();
+              if (key === "restore") onRestore();
             },
           }}
         >

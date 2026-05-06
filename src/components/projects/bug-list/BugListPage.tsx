@@ -6,11 +6,12 @@ import {
   Select,
   Tooltip,
   message,
+  DatePicker,
 } from "antd";
+
+const { RangePicker } = DatePicker;
 import {
   Search,
-  Table as TableIcon,
-  LayoutGrid as BoardIcon,
   Plus,
   Sparkles,
   Trash2,
@@ -35,9 +36,13 @@ import {
   useBugs,
   useBugStats,
   useBulkDeleteBugs,
+  useBulkPermanentDeleteBugs,
+  useBulkRestoreBugs,
   useBulkUpdateBugStatus,
   useCreateBug,
   useDeleteBug,
+  usePermanentDeleteBug,
+  useRestoreBug,
   useReopenBug,
   useUpdateBug,
   useVerifyBug,
@@ -68,6 +73,8 @@ interface FilterState {
   module?: string;
   assigneeId?: string;
   createdById?: string;
+  createdRange?: [any, any] | null;
+  updatedRange?: [any, any] | null;
 }
 
 const DEFAULT_FILTERS: FilterState = { search: "" };
@@ -81,7 +88,6 @@ export default function BugListPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [view, setView] = useState<"table" | "board">("table");
   const { theme } = useTheme();
 
   const [folderModalOpen, setFolderModalOpen] = useState(false);
@@ -121,6 +127,10 @@ export default function BugListPage() {
       module: filters.module,
       assigneeId: filters.assigneeId,
       createdById: filters.createdById,
+      createdFrom: filters.createdRange?.[0]?.toISOString(),
+      createdTo: filters.createdRange?.[1]?.toISOString(),
+      updatedFrom: filters.updatedRange?.[0]?.toISOString(),
+      updatedTo: filters.updatedRange?.[1]?.toISOString(),
       page,
       limit,
     }),
@@ -134,8 +144,13 @@ export default function BugListPage() {
   const deleteBug = useDeleteBug();
   const bulkUpdateStatus = useBulkUpdateBugStatus();
   const bulkDelete = useBulkDeleteBugs();
+  const bulkPermanentDelete = useBulkPermanentDeleteBugs();
+  const bulkRestore = useBulkRestoreBugs();
+  
   const verifyBug = useVerifyBug();
   const reopenBug = useReopenBug();
+  const restoreBug = useRestoreBug();
+  const permanentDeleteBug = usePermanentDeleteBug();
 
   useEffect(() => {
     setSelectedIds(new Set());
@@ -178,6 +193,8 @@ export default function BugListPage() {
     if (filters.module) n++;
     if (filters.assigneeId) n++;
     if (filters.createdById) n++;
+    if (filters.createdRange) n++;
+    if (filters.updatedRange) n++;
     return n;
   }, [filters]);
 
@@ -191,6 +208,7 @@ export default function BugListPage() {
       const folder = folders?.find((f) => f.id === selectedFolderId);
       return folder?.name || "Bugs";
     }
+    if (scope === "trash") return "Trash";
     return "All Bugs";
   }, [scope, folders, selectedFolderId, selectedSheetId]);
 
@@ -334,22 +352,18 @@ export default function BugListPage() {
               )}
             </button>
 
-            <div className="hb-segmented">
+            <Tooltip title="Trash Bin">
               <button
-                className={view === "table" ? "active" : ""}
-                onClick={() => setView("table")}
+                className={`hb-btn hb-btn-ghost ${scope === "trash" ? "active" : ""}`}
+                onClick={() => {
+                  setScope("trash");
+                  setSelectedFolderId(null);
+                  setSelectedSheetId(null);
+                }}
               >
-                <TableIcon size={13} />
-                Table
+                <Trash2 size={14} />
               </button>
-              <button
-                className={view === "board" ? "active" : ""}
-                onClick={() => setView("board")}
-              >
-                <BoardIcon size={13} />
-                Board
-              </button>
-            </div>
+            </Tooltip>
 
             {selectedSheetId && (
               <button
@@ -510,23 +524,28 @@ export default function BugListPage() {
                 options={moduleOptions.map((m) => ({ value: m, label: m }))}
                 style={{ width: 150 }}
               />
-              <Select
-                allowClear
-                showSearch
-                placeholder="Assignee"
-                size="small"
-                value={filters.assigneeId}
-                onChange={(v) => setFilters((f) => ({ ...f, assigneeId: v }))}
-                options={memberOptions}
-                filterOption={(input, option) =>
-                  (option?.label as string)
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                style={{ width: 180 }}
-              />
             </>
           )}
+          
+          <div className="hb-filter-group">
+            <span className="hb-filter-label">Created</span>
+            <RangePicker
+              size="small"
+              value={filters.createdRange}
+              onChange={(v) => setFilters((f) => ({ ...f, createdRange: v as any }))}
+              style={{ width: 220 }}
+            />
+          </div>
+
+          <div className="hb-filter-group">
+            <span className="hb-filter-label">Updated</span>
+            <RangePicker
+              size="small"
+              value={filters.updatedRange}
+              onChange={(v) => setFilters((f) => ({ ...f, updatedRange: v as any }))}
+              style={{ width: 220 }}
+            />
+          </div>
           {activeFilterCount > 0 && (
             <button
               className="hb-btn hb-btn-ghost hb-filter-reset"
@@ -550,142 +569,165 @@ export default function BugListPage() {
         </div>
         )}
 
-        <div className="hb-quickadd">
-          <Plus size={14} />
-          <input
-            value={quickTitle}
-            onChange={(e) => setQuickTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleQuickAdd();
-            }}
-            placeholder={
-              selectedSheetId
-                ? "Type bug title and press Enter to add…"
-                : "Select a sheet first to enable quick capture"
-            }
-            disabled={!selectedSheetId || createBug.isPending}
-          />
-          <span className="hb-kbd hb-kbd-soft">Quick</span>
-        </div>
+        {selectedSheetId && (
+          <div className="hb-quickadd">
+            <Plus size={14} />
+            <input
+              value={quickTitle}
+              onChange={(e) => setQuickTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleQuickAdd();
+              }}
+              placeholder="Type bug title and press Enter to add…"
+              disabled={createBug.isPending}
+            />
+            <span className="hb-kbd hb-kbd-soft">Quick</span>
+          </div>
+        )}
 
         {selectedIds.size > 0 && (
           <div className="hb-bulkbar">
             <span>{selectedIds.size} selected</span>
             <div className="hb-bulkbar-actions">
-              <button
-                className="hb-btn hb-btn-primary"
-                onClick={() => setBulkTicketOpen(true)}
-              >
-                <Sparkles size={13} />
-                Create ticket{selectedIds.size === 1 ? "" : "s"}
-              </button>
-              <button
-                className="hb-btn hb-btn-ghost"
-                onClick={() =>
-                  bulkUpdateStatus.mutate({
-                    bugIds: Array.from(selectedIds),
-                    status: "ignored",
-                  })
-                }
-              >
-                <Ban size={13} />
-                Ignore
-              </button>
-              <Popconfirm
-                title="Delete selected bugs?"
-                okText="Delete"
-                okButtonProps={{ danger: true }}
-                onConfirm={() => bulkDelete.mutate(Array.from(selectedIds))}
-              >
-                <button className="hb-btn hb-btn-danger">
-                  <Trash2 size={13} />
-                  Delete
-                </button>
-              </Popconfirm>
+              {scope === "trash" ? (
+                <>
+                  <button
+                    className="hb-btn hb-btn-primary"
+                    onClick={() => bulkRestore.mutate(Array.from(selectedIds))}
+                  >
+                    <RotateCcw size={13} />
+                    Restore
+                  </button>
+                  <Popconfirm
+                    title="Permanently delete selected bugs? This cannot be undone."
+                    okText="Delete Permanently"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={() => bulkPermanentDelete.mutate(Array.from(selectedIds))}
+                  >
+                    <button className="hb-btn hb-btn-danger">
+                      <Trash2 size={13} />
+                      Delete Permanently
+                    </button>
+                  </Popconfirm>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="hb-btn hb-btn-primary"
+                    onClick={() => setBulkTicketOpen(true)}
+                  >
+                    <Sparkles size={13} />
+                    Create ticket{selectedIds.size === 1 ? "" : "s"}
+                  </button>
+                  <button
+                    className="hb-btn hb-btn-ghost"
+                    onClick={() =>
+                      bulkUpdateStatus.mutate({
+                        bugIds: Array.from(selectedIds),
+                        status: "ignored",
+                      })
+                    }
+                  >
+                    <Ban size={13} />
+                    Ignore
+                  </button>
+                  <Popconfirm
+                    title="Move selected bugs to trash?"
+                    okText="Delete"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={() => bulkDelete.mutate(Array.from(selectedIds))}
+                  >
+                    <button className="hb-btn hb-btn-danger">
+                      <Trash2 size={13} />
+                      Delete
+                    </button>
+                  </Popconfirm>
+                </>
+              )}
             </div>
           </div>
         )}
 
         <div className="hb-content">
-          {view === "board" ? (
-            <div className="hb-empty hb-board-empty">Board view — coming soon</div>
-          ) : (
-            <>
-              <HivebugTable
-                bugs={bugs}
-                loading={isLoading || isFetching}
-                selectedIds={selectedIds}
-                onToggleAll={toggleAll}
-                onToggle={toggleOne}
-                onEdit={(bug) => {
-                  setEditingBug(bug);
-                  setBugDrawerOpen(true);
-                }}
-                onCreateTicket={(bug) => {
-                  setSelectedIds(new Set([bug.id]));
-                  setBulkTicketOpen(true);
-                }}
-                onVerify={(bug) => verifyBug.mutate(bug.id)}
-                onReopen={(bug) => reopenBug.mutate(bug.id)}
-                onIgnore={(bug) =>
-                  bulkUpdateStatus.mutate({ bugIds: [bug.id], status: "ignored" })
-                }
-                onDelete={(bug) => deleteBug.mutate(bug.id)}
-              />
-              {bugsResponse?.pagination && total > 0 && (
-                <div className="hb-pagination">
-                  <div className="hb-pagination-info">
-                    Showing
-                    <strong>
-                      {" "}
-                      {(page - 1) * limit + 1}
-                      –{(page - 1) * limit + shown}{" "}
-                    </strong>
-                    of <strong>{total}</strong>
-                  </div>
-                  <div className="hb-pagination-controls">
-                    <label className="hb-pagination-pagesize">
-                      Rows
-                      <select
-                        value={limit}
-                        onChange={(e) => {
-                          setLimit(Number(e.target.value));
-                          setPage(1);
-                        }}
-                      >
-                        {[10, 25, 50, 100].map((n) => (
-                          <option key={n} value={n}>
-                            {n}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <div className="hb-pagination-pager">
-                      <button
-                        className="hb-pagination-btn"
-                        disabled={!bugsResponse.pagination.hasPrev}
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        aria-label="Previous page"
-                      >
-                        ‹ Prev
-                      </button>
-                      <span className="hb-pagination-page">
-                        Page <strong>{page}</strong> of{" "}
-                        <strong>{bugsResponse.pagination.pages}</strong>
-                      </span>
-                      <button
-                        className="hb-pagination-btn"
-                        disabled={!bugsResponse.pagination.hasNext}
-                        onClick={() => setPage((p) => p + 1)}
-                        aria-label="Next page"
-                      >
-                        Next ›
-                      </button>
-                    </div>
-                  </div>
+          <HivebugTable
+            bugs={bugs}
+            loading={isLoading || isFetching}
+            selectedIds={selectedIds}
+            onToggleAll={toggleAll}
+            onToggle={toggleOne}
+            onEdit={(bug) => {
+              setEditingBug(bug);
+              setBugDrawerOpen(true);
+            }}
+            onCreateTicket={(bug) => {
+              setSelectedIds(new Set([bug.id]));
+              setBulkTicketOpen(true);
+            }}
+            onVerify={(bug) => verifyBug.mutate(bug.id)}
+            onReopen={(bug) => reopenBug.mutate(bug.id)}
+            onIgnore={(bug) =>
+              bulkUpdateStatus.mutate({ bugIds: [bug.id], status: "ignored" })
+            }
+            onDelete={(bug) =>
+              scope === "trash"
+                ? permanentDeleteBug.mutate(bug.id)
+                : deleteBug.mutate(bug.id)
+            }
+            onRestore={(bug) => restoreBug.mutate(bug.id)}
+            isTrashView={scope === "trash"}
+          />
+          {bugsResponse?.pagination && total > 0 && (
+            <div className="hb-pagination">
+              <div className="hb-pagination-info">
+                Showing
+                <strong>
+                  {" "}
+                  {(page - 1) * limit + 1}
+                  –{(page - 1) * limit + shown}{" "}
+                </strong>
+                of <strong>{total}</strong>
+              </div>
+              <div className="hb-pagination-controls">
+                <label className="hb-pagination-pagesize">
+                  Rows
+                  <select
+                    value={limit}
+                    onChange={(e) => {
+                      setLimit(Number(e.target.value));
+                      setPage(1);
+                    }}
+                  >
+                    {[10, 25, 50, 100].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="hb-pagination-pager">
+                  <button
+                    className="hb-pagination-btn"
+                    disabled={!bugsResponse.pagination.hasPrev}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    aria-label="Previous page"
+                  >
+                    ‹ Prev
+                  </button>
+                  <span className="hb-pagination-page">
+                    Page <strong>{page}</strong> of{" "}
+                    <strong>{bugsResponse.pagination.pages}</strong>
+                  </span>
+                  <button
+                    className="hb-pagination-btn"
+                    disabled={!bugsResponse.pagination.hasNext}
+                    onClick={() => setPage((p) => p + 1)}
+                    aria-label="Next page"
+                  >
+                    Next ›
+                  </button>
                 </div>
-              )}
-            </>
+              </div>
+            </div>
           )}
         </div>
       </main>

@@ -255,7 +255,10 @@ export default function CreateBugDrawer({
   };
 
   // ─── Submit ────────────────────────────────────────────────────────────
-  const isValid = description.trim().length > 0;
+  const isValid =
+    description.trim().length > 0 &&
+    !!severity &&
+    !!bugType;
 
   const handleSubmit = async () => {
     setDescriptionTouched(true);
@@ -418,7 +421,7 @@ export default function CreateBugDrawer({
           {/* Severity + Type */}
           <div className="hb-cbd-row">
             <div className="hb-cbd-fieldgroup hb-cbd-half">
-              <Label icon={<AlertOctagon size={11} />}>Severity</Label>
+              <Label icon={<AlertOctagon size={11} />} required>Severity</Label>
               <Select
                 allowClear
                 placeholder="Select severity"
@@ -456,7 +459,7 @@ export default function CreateBugDrawer({
               />
             </div>
             <div className="hb-cbd-fieldgroup hb-cbd-half">
-              <Label icon={<Layers size={11} />}>Type</Label>
+              <Label icon={<Layers size={11} />} required>Type</Label>
               <Select
                 allowClear
                 placeholder="Select type"

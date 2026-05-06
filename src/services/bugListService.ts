@@ -5,7 +5,7 @@ import { apiClient } from "@/lib/axios";
 // values while accepting plain strings.
 export type BugSeverity = "blocker" | "critical" | "major" | "minor" | (string & {});
 export type BugType = "ui" | "functional" | "api" | (string & {});
-export type BugStatus = "new" | "converted" | "ignored" | "verified" | "reopened";
+export type BugStatus = "new" | "converted" | "ignored" | "verified" | "reopened" | "trash";
 
 export interface BugAttachment {
   id?: string;
@@ -126,7 +126,11 @@ export interface BugListFilters {
   bugType?: BugType;
   createdById?: string;
   assigneeId?: string;
-  scope?: "all" | "mine";
+  scope?: "all" | "mine" | "trash";
+  createdFrom?: string;
+  createdTo?: string;
+  updatedFrom?: string;
+  updatedTo?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }
@@ -319,6 +323,14 @@ class BugListService {
     await apiClient.delete(`/api/bug-list/bugs/${id}`);
   }
 
+  static async permanentDeleteBug(id: string): Promise<void> {
+    await apiClient.delete(`/api/bug-list/bugs/${id}/permanent`);
+  }
+
+  static async restoreBug(id: string): Promise<void> {
+    await apiClient.post(`/api/bug-list/bugs/${id}/restore`);
+  }
+
   static async bulkUpdateStatus(
     bugIds: string[],
     status: BugStatus
@@ -330,9 +342,25 @@ class BugListService {
     return res.data.data;
   }
 
-  static async bulkDelete(bugIds: string[]): Promise<{ deleted: number }> {
-    const res = await apiClient.post<{ success: boolean; data: { deleted: number } }>(
+  static async bulkDelete(bugIds: string[]): Promise<{ movedToTrash: number }> {
+    const res = await apiClient.post<{ success: boolean; data: { movedToTrash: number } }>(
       `/api/bug-list/bugs/bulk-delete`,
+      { bugIds }
+    );
+    return res.data.data;
+  }
+
+  static async bulkPermanentDelete(bugIds: string[]): Promise<{ deleted: number }> {
+    const res = await apiClient.post<{ success: boolean; data: { deleted: number } }>(
+      `/api/bug-list/bugs/bulk-permanent-delete`,
+      { bugIds }
+    );
+    return res.data.data;
+  }
+
+  static async bulkRestore(bugIds: string[]): Promise<{ restored: number }> {
+    const res = await apiClient.post<{ success: boolean; data: { restored: number } }>(
+      `/api/bug-list/bugs/bulk-restore`,
       { bugIds }
     );
     return res.data.data;

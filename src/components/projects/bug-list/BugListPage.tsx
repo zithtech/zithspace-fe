@@ -1,0 +1,771 @@
+"use client";
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Popconfirm,
+  Select,
+  Tooltip,
+  message,
+} from "antd";
+import {
+  Search,
+  Table as TableIcon,
+  LayoutGrid as BoardIcon,
+  Plus,
+  Sparkles,
+  Trash2,
+  Ban,
+  SlidersHorizontal,
+  X,
+  RotateCcw,
+  FolderTree,
+  Bug as BugIcon,
+  Ticket as TicketIcon,
+  Activity,
+} from "lucide-react";
+import HivebugSidebar, { BugScope } from "./HivebugSidebar";
+import HivebugTable from "./HivebugTable";
+import CreateBugDrawer from "./CreateBugDrawer";
+import { FolderModal, SheetModal } from "./FolderSheetModals";
+import AiReviewModal from "./AiReviewModal";
+import BulkTicketModal from "./BulkTicketModal";
+import {
+  useBugFolders,
+  useBugSheets,
+  useBugs,
+  useBugStats,
+  useBulkDeleteBugs,
+  useBulkUpdateBugStatus,
+  useCreateBug,
+  useDeleteBug,
+  useReopenBug,
+  useUpdateBug,
+  useVerifyBug,
+} from "@/hooks/useBugList";
+import type {
+  BugFolder,
+  BugListItem,
+  BugSeverity,
+  BugSheet,
+  BugStatus,
+  BugType,
+  CreateBugInput,
+  UpdateBugInput,
+} from "@/services/bugListService";
+import { useMembersSelect } from "@/hooks/useMembersSelect";
+import { useTheme } from "@/context/ThemeContext";
+import { hivebugStyles } from "./hivebug-styles";
+
+const SEVERITY_OPTS: BugSeverity[] = ["blocker", "critical", "major", "minor"];
+const STATUS_OPTS: BugStatus[] = ["new", "converted", "ignored", "verified", "reopened"];
+const TYPE_OPTS: BugType[] = ["ui", "functional", "api"];
+
+interface FilterState {
+  search: string;
+  severity?: BugSeverity;
+  status?: BugStatus;
+  bugType?: BugType;
+  module?: string;
+  assigneeId?: string;
+  createdById?: string;
+}
+
+const DEFAULT_FILTERS: FilterState = { search: "" };
+
+export default function BugListPage() {
+  const [scope, setScope] = useState<BugScope>("all");
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedSheetId, setSelectedSheetId] = useState<string | null>(null);
+
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [view, setView] = useState<"table" | "board">("table");
+  const { theme } = useTheme();
+
+  const [folderModalOpen, setFolderModalOpen] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<BugFolder | null>(null);
+  const [sheetModalOpen, setSheetModalOpen] = useState(false);
+  const [editingSheet, setEditingSheet] = useState<BugSheet | null>(null);
+  const [sheetParentFolderId, setSheetParentFolderId] = useState<string | null>(null);
+
+  const [bugDrawerOpen, setBugDrawerOpen] = useState(false);
+  const [editingBug, setEditingBug] = useState<BugListItem | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
+  const [filtersVisible, setFiltersVisible] = useState(true);
+
+  const [quickTitle, setQuickTitle] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const { data: folders } = useBugFolders();
+  const { data: filterSheets } = useBugSheets(selectedFolderId);
+  const { users: members } = useMembersSelect();
+  const showWorkspaceStats = !selectedSheetId;
+  const { data: workspaceStats } = useBugStats({
+    folderId: selectedFolderId || undefined,
+    sheetId: undefined,
+    scope,
+  });
+
+  const queryFilters = useMemo(
+    () => ({
+      folderId: selectedFolderId || undefined,
+      sheetId: selectedSheetId || undefined,
+      scope,
+      search: filters.search || undefined,
+      severity: filters.severity,
+      status: filters.status,
+      bugType: filters.bugType,
+      module: filters.module,
+      assigneeId: filters.assigneeId,
+      createdById: filters.createdById,
+      page,
+      limit,
+    }),
+    [scope, selectedFolderId, selectedSheetId, filters, page, limit]
+  );
+
+  const { data: bugsResponse, isLoading, isFetching } = useBugs(queryFilters);
+
+  const createBug = useCreateBug();
+  const updateBug = useUpdateBug();
+  const deleteBug = useDeleteBug();
+  const bulkUpdateStatus = useBulkUpdateBugStatus();
+  const bulkDelete = useBulkDeleteBugs();
+  const verifyBug = useVerifyBug();
+  const reopenBug = useReopenBug();
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+    setPage(1);
+  }, [scope, selectedFolderId, selectedSheetId, filters]);
+
+  // Global "/" focuses search like the screenshot
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "/" && document.activeElement?.tagName !== "INPUT") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  const bugs = bugsResponse?.bugs || [];
+  const total = bugsResponse?.pagination.total || 0;
+  const shown = bugs.length;
+
+  const moduleOptions = useMemo(() => {
+    const set = new Set<string>();
+    bugs.forEach((b) => b.module && set.add(b.module));
+    return Array.from(set).sort();
+  }, [bugs]);
+
+  const memberOptions = useMemo(
+    () => (members || []).map((m) => ({ value: m.value, label: m.label })),
+    [members]
+  );
+
+  const activeFilterCount = useMemo(() => {
+    let n = 0;
+    if (filters.search) n++;
+    if (filters.severity) n++;
+    if (filters.status) n++;
+    if (filters.bugType) n++;
+    if (filters.module) n++;
+    if (filters.assigneeId) n++;
+    if (filters.createdById) n++;
+    return n;
+  }, [filters]);
+
+  const breadcrumbScope = useMemo(() => {
+    if (scope === "mine") return "My Bugs";
+    if (selectedSheetId) {
+      const folder = folders?.find((f) => f.id === selectedFolderId);
+      return folder ? folder.name : "Bugs";
+    }
+    if (selectedFolderId) {
+      const folder = folders?.find((f) => f.id === selectedFolderId);
+      return folder?.name || "Bugs";
+    }
+    return "All Bugs";
+  }, [scope, folders, selectedFolderId, selectedSheetId]);
+
+  const handleSelectFromSidebar = (
+    folderId: string | null,
+    sheetId: string | null
+  ) => {
+    setSelectedFolderId(folderId);
+    setSelectedSheetId(sheetId);
+  };
+
+  const openCreateBug = () => {
+    if (!selectedFolderId || !selectedSheetId) {
+      message.info("Select a sheet first to capture bugs");
+      return;
+    }
+    setEditingBug(null);
+    setBugDrawerOpen(true);
+  };
+
+  const handleQuickAdd = async () => {
+    const title = quickTitle.trim();
+    if (!title) return;
+    if (!selectedFolderId || !selectedSheetId) {
+      message.info("Select a sheet first to capture bugs");
+      return;
+    }
+    try {
+      await createBug.mutateAsync({
+        folderId: selectedFolderId,
+        sheetId: selectedSheetId,
+        title,
+        description: title,
+      });
+      setQuickTitle("");
+    } catch {
+      // hook handles error toast
+    }
+  };
+
+  const handleSubmitBug = async (
+    payload: CreateBugInput | (UpdateBugInput & { id: string })
+  ) => {
+    if ("id" in payload) {
+      const { id, ...rest } = payload;
+      await updateBug.mutateAsync({ id, input: rest });
+    } else {
+      await createBug.mutateAsync(payload);
+    }
+    setBugDrawerOpen(false);
+    setEditingBug(null);
+  };
+
+  const toggleAll = (checked: boolean) => {
+    if (checked)
+      setSelectedIds(new Set(bugs.filter((b) => !b.ticketId).map((b) => b.id)));
+    else setSelectedIds(new Set());
+  };
+  const toggleOne = (id: string, checked: boolean) => {
+    const target = bugs.find((b) => b.id === id);
+    if (target?.ticketId) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const selectedBugs = useMemo(
+    () => bugs.filter((b) => selectedIds.has(b.id)),
+    [bugs, selectedIds]
+  );
+
+  return (
+    <div className={`hb-root ${theme === "dark" ? "hb-dark" : "hb-light"}`}>
+      <style>{hivebugStyles}</style>
+
+      <HivebugSidebar
+        scope={scope}
+        onScopeChange={setScope}
+        selectedFolderId={selectedFolderId}
+        selectedSheetId={selectedSheetId}
+        onSelect={handleSelectFromSidebar}
+        onCreateFolder={() => {
+          setEditingFolder(null);
+          setFolderModalOpen(true);
+        }}
+        onEditFolder={(f) => {
+          setEditingFolder(f);
+          setFolderModalOpen(true);
+        }}
+        onCreateSheet={(folderId) => {
+          setSheetParentFolderId(folderId);
+          setEditingSheet(null);
+          setSheetModalOpen(true);
+        }}
+        onEditSheet={(s) => {
+          setSheetParentFolderId(s.folderId);
+          setEditingSheet(s);
+          setSheetModalOpen(true);
+        }}
+      />
+
+      <main className="hb-main">
+        <header className="hb-header">
+          <div className="hb-breadcrumb">
+            <span className="hb-bc-strong">Buglist</span>
+            <span className="hb-bc-sep">/</span>
+            <span className="hb-bc-soft">{breadcrumbScope}</span>
+            <span className="hb-bc-count">
+              {shown} of {total} bugs
+            </span>
+          </div>
+
+          <div className="hb-header-tools">
+            <div className="hb-search">
+              <Search size={14} />
+              <input
+                ref={searchRef}
+                placeholder="Search title, tags, assignee…"
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters((f) => ({ ...f, search: e.target.value }))
+                }
+              />
+              <span className="hb-kbd">/</span>
+            </div>
+
+            <button
+              className={`hb-btn hb-btn-ghost hb-filter-toggle ${
+                filtersVisible ? "active" : ""
+              }`}
+              onClick={() => setFiltersVisible((v) => !v)}
+              aria-pressed={filtersVisible}
+            >
+              <SlidersHorizontal size={14} />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="hb-filter-badge">{activeFilterCount}</span>
+              )}
+            </button>
+
+            <div className="hb-segmented">
+              <button
+                className={view === "table" ? "active" : ""}
+                onClick={() => setView("table")}
+              >
+                <TableIcon size={13} />
+                Table
+              </button>
+              <button
+                className={view === "board" ? "active" : ""}
+                onClick={() => setView("board")}
+              >
+                <BoardIcon size={13} />
+                Board
+              </button>
+            </div>
+
+            {selectedSheetId && (
+              <button
+                className="hb-btn hb-btn-primary"
+                onClick={openCreateBug}
+              >
+                <Plus size={14} />
+                New Bug
+              </button>
+            )}
+          </div>
+        </header>
+
+        {showWorkspaceStats && (
+          <div className="hb-stats-row">
+            <StatCard
+              icon={<FolderTree size={14} />}
+              label="Folders / Sheets"
+              value={
+                <>
+                  {workspaceStats?.totalFolders ?? "—"}
+                  <span className="hb-stat-sep">/</span>
+                  {workspaceStats?.totalSheets ?? "—"}
+                </>
+              }
+            />
+            <StatCard
+              icon={<BugIcon size={14} />}
+              label="Total bugs"
+              value={workspaceStats?.total ?? "—"}
+            />
+            <StatCard
+              icon={<TicketIcon size={14} />}
+              label="Tickets created"
+              value={
+                <>
+                  {workspaceStats?.linked ?? "—"}
+                  <span className="hb-stat-sep">/</span>
+                  {workspaceStats?.total ?? "—"}
+                </>
+              }
+            />
+            <StatCard
+              icon={<Activity size={14} />}
+              label="Health"
+              value={
+                workspaceStats && workspaceStats.total > 0
+                  ? `${Math.round(
+                      (workspaceStats.verified / workspaceStats.total) * 100,
+                    )}%`
+                  : "—"
+              }
+              tone="success"
+            />
+          </div>
+        )}
+
+        {filtersVisible && (
+        <div className="hb-filterbar">
+          <div className="hb-filterbar-lead">
+            <SlidersHorizontal size={13} />
+            <span>Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="hb-filter-badge hb-filter-badge-inline">
+                {activeFilterCount}
+              </span>
+            )}
+          </div>
+          <div className="hb-filterbar-divider" />
+          {!selectedSheetId && (
+            <>
+              <Select
+                allowClear
+                showSearch
+                placeholder="Folder"
+                size="small"
+                value={selectedFolderId || undefined}
+                onChange={(v) => {
+                  setSelectedFolderId(v || null);
+                  setSelectedSheetId(null);
+                }}
+                options={(folders || []).map((f) => ({
+                  value: f.id,
+                  label: f.name,
+                }))}
+                style={{ width: 180 }}
+              />
+              <Select
+                allowClear
+                showSearch
+                placeholder="Sheet"
+                size="small"
+                value={selectedSheetId || undefined}
+                onChange={(v) => setSelectedSheetId(v || null)}
+                options={(filterSheets || []).map((s) => ({
+                  value: s.id,
+                  label: s.name,
+                }))}
+                disabled={!selectedFolderId}
+                style={{ width: 180 }}
+              />
+            </>
+          )}
+          <Select
+            allowClear
+            showSearch
+            placeholder="Created by"
+            size="small"
+            value={filters.createdById}
+            onChange={(v) => setFilters((f) => ({ ...f, createdById: v }))}
+            options={memberOptions}
+            filterOption={(input, option) =>
+              (option?.label as string)
+                .toLowerCase()
+                .includes(input.toLowerCase())
+            }
+            style={{ width: 180 }}
+          />
+          <Select
+            allowClear
+            placeholder="Status"
+            size="small"
+            value={filters.status}
+            onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
+            options={STATUS_OPTS.map((s) => ({ value: s, label: cap(s) }))}
+            style={{ width: 150 }}
+          />
+          <Select
+            allowClear
+            placeholder="Severity"
+            size="small"
+            value={filters.severity}
+            onChange={(v) => setFilters((f) => ({ ...f, severity: v }))}
+            options={SEVERITY_OPTS.map((s) => ({ value: s, label: cap(s) }))}
+            style={{ width: 150 }}
+          />
+          {selectedSheetId && (
+            <>
+              <Select
+                allowClear
+                placeholder="Type"
+                size="small"
+                value={filters.bugType}
+                onChange={(v) => setFilters((f) => ({ ...f, bugType: v }))}
+                options={TYPE_OPTS.map((s) => ({
+                  value: s,
+                  label: s.toUpperCase(),
+                }))}
+                style={{ width: 130 }}
+              />
+              <Select
+                allowClear
+                showSearch
+                placeholder="Module"
+                size="small"
+                value={filters.module}
+                onChange={(v) => setFilters((f) => ({ ...f, module: v }))}
+                options={moduleOptions.map((m) => ({ value: m, label: m }))}
+                style={{ width: 150 }}
+              />
+              <Select
+                allowClear
+                showSearch
+                placeholder="Assignee"
+                size="small"
+                value={filters.assigneeId}
+                onChange={(v) => setFilters((f) => ({ ...f, assigneeId: v }))}
+                options={memberOptions}
+                filterOption={(input, option) =>
+                  (option?.label as string)
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                style={{ width: 180 }}
+              />
+            </>
+          )}
+          {activeFilterCount > 0 && (
+            <button
+              className="hb-btn hb-btn-ghost hb-filter-reset"
+              onClick={() => setFilters(DEFAULT_FILTERS)}
+              title="Reset filters"
+            >
+              <RotateCcw size={13} />
+              Reset
+            </button>
+          )}
+          <div className="hb-filterbar-spacer" />
+          <Tooltip title="Hide filters">
+            <button
+              className="hb-icon-btn hb-filterbar-close"
+              onClick={() => setFiltersVisible(false)}
+              aria-label="Hide filters"
+            >
+              <X size={14} />
+            </button>
+          </Tooltip>
+        </div>
+        )}
+
+        <div className="hb-quickadd">
+          <Plus size={14} />
+          <input
+            value={quickTitle}
+            onChange={(e) => setQuickTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleQuickAdd();
+            }}
+            placeholder={
+              selectedSheetId
+                ? "Type bug title and press Enter to add…"
+                : "Select a sheet first to enable quick capture"
+            }
+            disabled={!selectedSheetId || createBug.isPending}
+          />
+          <span className="hb-kbd hb-kbd-soft">Quick</span>
+        </div>
+
+        {selectedIds.size > 0 && (
+          <div className="hb-bulkbar">
+            <span>{selectedIds.size} selected</span>
+            <div className="hb-bulkbar-actions">
+              <button
+                className="hb-btn hb-btn-primary"
+                onClick={() => setBulkTicketOpen(true)}
+              >
+                <Sparkles size={13} />
+                Create ticket{selectedIds.size === 1 ? "" : "s"}
+              </button>
+              <button
+                className="hb-btn hb-btn-ghost"
+                onClick={() =>
+                  bulkUpdateStatus.mutate({
+                    bugIds: Array.from(selectedIds),
+                    status: "ignored",
+                  })
+                }
+              >
+                <Ban size={13} />
+                Ignore
+              </button>
+              <Popconfirm
+                title="Delete selected bugs?"
+                okText="Delete"
+                okButtonProps={{ danger: true }}
+                onConfirm={() => bulkDelete.mutate(Array.from(selectedIds))}
+              >
+                <button className="hb-btn hb-btn-danger">
+                  <Trash2 size={13} />
+                  Delete
+                </button>
+              </Popconfirm>
+            </div>
+          </div>
+        )}
+
+        <div className="hb-content">
+          {view === "board" ? (
+            <div className="hb-empty hb-board-empty">Board view — coming soon</div>
+          ) : (
+            <>
+              <HivebugTable
+                bugs={bugs}
+                loading={isLoading || isFetching}
+                selectedIds={selectedIds}
+                onToggleAll={toggleAll}
+                onToggle={toggleOne}
+                onEdit={(bug) => {
+                  setEditingBug(bug);
+                  setBugDrawerOpen(true);
+                }}
+                onCreateTicket={(bug) => {
+                  setSelectedIds(new Set([bug.id]));
+                  setBulkTicketOpen(true);
+                }}
+                onVerify={(bug) => verifyBug.mutate(bug.id)}
+                onReopen={(bug) => reopenBug.mutate(bug.id)}
+                onIgnore={(bug) =>
+                  bulkUpdateStatus.mutate({ bugIds: [bug.id], status: "ignored" })
+                }
+                onDelete={(bug) => deleteBug.mutate(bug.id)}
+              />
+              {bugsResponse?.pagination && total > 0 && (
+                <div className="hb-pagination">
+                  <div className="hb-pagination-info">
+                    Showing
+                    <strong>
+                      {" "}
+                      {(page - 1) * limit + 1}
+                      –{(page - 1) * limit + shown}{" "}
+                    </strong>
+                    of <strong>{total}</strong>
+                  </div>
+                  <div className="hb-pagination-controls">
+                    <label className="hb-pagination-pagesize">
+                      Rows
+                      <select
+                        value={limit}
+                        onChange={(e) => {
+                          setLimit(Number(e.target.value));
+                          setPage(1);
+                        }}
+                      >
+                        {[10, 25, 50, 100].map((n) => (
+                          <option key={n} value={n}>
+                            {n}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="hb-pagination-pager">
+                      <button
+                        className="hb-pagination-btn"
+                        disabled={!bugsResponse.pagination.hasPrev}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        aria-label="Previous page"
+                      >
+                        ‹ Prev
+                      </button>
+                      <span className="hb-pagination-page">
+                        Page <strong>{page}</strong> of{" "}
+                        <strong>{bugsResponse.pagination.pages}</strong>
+                      </span>
+                      <button
+                        className="hb-pagination-btn"
+                        disabled={!bugsResponse.pagination.hasNext}
+                        onClick={() => setPage((p) => p + 1)}
+                        aria-label="Next page"
+                      >
+                        Next ›
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </main>
+
+      <CreateBugDrawer
+        open={bugDrawerOpen}
+        onClose={() => {
+          setBugDrawerOpen(false);
+          setEditingBug(null);
+        }}
+        folderId={selectedFolderId}
+        sheetId={selectedSheetId}
+        editingBug={editingBug}
+        modules={moduleOptions}
+        onSubmit={handleSubmitBug}
+        submitting={createBug.isPending || updateBug.isPending}
+      />
+
+      <FolderModal
+        open={folderModalOpen}
+        editing={editingFolder}
+        onClose={() => {
+          setFolderModalOpen(false);
+          setEditingFolder(null);
+        }}
+      />
+
+      <SheetModal
+        open={sheetModalOpen}
+        folderId={sheetParentFolderId}
+        editing={editingSheet}
+        onClose={() => {
+          setSheetModalOpen(false);
+          setEditingSheet(null);
+        }}
+      />
+
+      <AiReviewModal
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        bugs={selectedBugs}
+      />
+
+      <BulkTicketModal
+        open={bulkTicketOpen}
+        bugs={selectedBugs}
+        onClose={() => setBulkTicketOpen(false)}
+        onPickAi={() => {
+          setBulkTicketOpen(false);
+          setAiOpen(true);
+        }}
+      />
+    </div>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  tone?: "default" | "success" | "danger";
+}) {
+  const toneClass =
+    tone === "success" ? "hb-stat-success" : tone === "danger" ? "hb-stat-danger" : "";
+  return (
+    <div className={`hb-stat-card ${toneClass}`}>
+      <div className="hb-stat-icon">{icon}</div>
+      <div className="hb-stat-body">
+        <div className="hb-stat-label">{label}</div>
+        <div className="hb-stat-value">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+function cap(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

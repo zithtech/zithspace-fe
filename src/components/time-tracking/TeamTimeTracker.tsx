@@ -18,6 +18,7 @@ import { useMembers, useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { calculateNetDuration } from "@/utils/timeTrackingUtils";
+import { useTicketDrawer } from "@/context/TicketDrawerContext";
 
 const { Title, Text } = Typography;
 
@@ -229,6 +230,7 @@ interface TeamTimeTrackerProps {
 }
 
 export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) => {
+  const { open: openTicketDrawer } = useTicketDrawer();
   const [entries, setEntries] = useState<TimeTrackingEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
@@ -662,16 +664,20 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
                     <div style={{ marginBottom: 0 }}>
                       {session.ticket?.title ? (
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <Link href={`/tickets/${session.ticketId}`}>
-                            <div style={{ display: 'flex', gap: 6, cursor: 'pointer' }}>
-                              {session.ticket.ticketNumber && (
-                                <Text strong style={{ fontSize: 13, color: 'var(--premium-blue)', whiteSpace: 'nowrap' }}>
-                                  [{session.ticket.ticketNumber}]
-                                </Text>
-                              )}
-                              <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{session.ticket.title}</Text>
-                            </div>
-                          </Link>
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (session.ticketId) openTicketDrawer(session.ticketId);
+                            }}
+                            style={{ display: 'flex', gap: 6, cursor: 'pointer' }}
+                          >
+                            {session.ticket.ticketNumber && (
+                              <Text strong style={{ fontSize: 13, color: 'var(--premium-blue)', whiteSpace: 'nowrap' }}>
+                                [{session.ticket.ticketNumber}]
+                              </Text>
+                            )}
+                            <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{session.ticket.title}</Text>
+                          </div>
                           {session.ticket.estimateHours !== undefined ? (
                             <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
                               EST: {(() => {

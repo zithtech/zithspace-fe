@@ -1,0 +1,842 @@
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
+import { Modal, Input, Select, Skeleton, Tooltip, message } from "antd";
+import {
+  Sparkles,
+  Wand2,
+  Layers,
+  CheckCircle2,
+  X,
+  Bug as BugIcon,
+  ExternalLink,
+  ArrowRight,
+  ArrowLeft,
+  Trash2,
+  Plus,
+  AlertCircle,
+} from "lucide-react";
+import {
+  useAiReviewBugs,
+  useAiSuggestGroups,
+  useBulkConvertBugsToTickets,
+} from "@/hooks/useBugList";
+import { useUserProjects } from "@/hooks/useGlobalData";
+import { useMembersSelect } from "@/hooks/useMembersSelect";
+import { useTheme } from "@/context/ThemeContext";
+import { useTicketDrawer } from "@/context/TicketDrawerContext";
+import type {
+  AiGroupSuggestion,
+  AiReviewResult,
+  BugListItem,
+  ConvertedTicket,
+} from "@/services/bugListService";
+
+type Step = "review" | "group" | "done";
+
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  bugs: BugListItem[];
+}
+
+interface EditableGroup {
+  groupKey: string;
+  title: string;
+  module?: string;
+  reason: string;
+  bugIds: string[];
+  description: string;
+  acceptanceCriteria: string;
+  projectId?: string;
+  assigneeId?: string;
+}
+
+export default function AiReviewModal({ open, onClose, bugs }: Props) {
+  const { theme } = useTheme();
+  const [step, setStep] = useState<Step>("review");
+  const [reviewResults, setReviewResults] = useState<AiReviewResult[]>([]);
+  const [reviewStarted, setReviewStarted] = useState(false);
+  const [groups, setGroups] = useState<EditableGroup[]>([]);
+  const [createdTickets, setCreatedTickets] = useState<ConvertedTicket[]>([]);
+
+  const review = useAiReviewBugs();
+  const suggest = useAiSuggestGroups();
+  const convert = useBulkConvertBugsToTickets();
+
+  const { data: projects } = useUserProjects();
+  const { users: members } = useMembersSelect();
+
+  const bugsById = useMemo(() => {
+    const m = new Map<string, BugListItem>();
+    bugs.forEach((b) => m.set(b.id, b));
+    return m;
+  }, [bugs]);
+
+  const reviewByBugId = useMemo(() => {
+    const m = new Map<string, AiReviewResult>();
+    reviewResults.forEach((r) => m.set(r.bugId, r));
+    return m;
+  }, [reviewResults]);
+
+  useEffect(() => {
+    if (!open) {
+      setStep("review");
+      setReviewStarted(false);
+      setReviewResults([]);
+      setGroups([]);
+      setCreatedTickets([]);
+    }
+  }, [open]);
+
+  const startReview = async () => {
+    if (bugs.length === 0) return;
+    setReviewStarted(true);
+    try {
+      const data = await review.mutateAsync(bugs.map((b) => b.id));
+      setReviewResults(data);
+    } catch {
+      // hook surfaces the error toast
+    }
+  };
+
+  const goToGrouping = async () => {
+    try {
+      const result = await suggest.mutateAsync(bugs.map((b) => b.id));
+      const seeded: EditableGroup[] = result.map((g) =>
+        seedGroup(g, bugsById, reviewByBugId),
+      );
+      setGroups(seeded);
+      setStep("group");
+    } catch {
+      // hook surfaces the error toast
+    }
+  };
+
+  const handleConvert = async () => {
+    if (groups.length === 0) {
+      message.warning("Nothing to convert");
+      return;
+    }
+    try {
+      const created = await convert.mutateAsync(
+        groups.map((g) => ({
+          title: g.title,
+          description: g.description,
+          acceptanceCriteria: g.acceptanceCriteria || undefined,
+          bugIds: g.bugIds,
+          projectId: g.projectId,
+          assigneeId: g.assigneeId,
+        })),
+      );
+      setCreatedTickets(created);
+      setStep("done");
+    } catch {
+      // hook surfaces the error toast
+    }
+  };
+
+  const updateGroup = (idx: number, patch: Partial<EditableGroup>) =>
+    setGroups((prev) => prev.map((g, i) => (i === idx ? { ...g, ...patch } : g)));
+
+  const removeGroup = (idx: number) =>
+    setGroups((prev) => prev.filter((_, i) => i !== idx));
+
+  const reviewing = review.isPending;
+  const grouping = suggest.isPending;
+  const converting = convert.isPending;
+
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      width={960}
+      destroyOnHidden
+      closable={false}
+      className={`hb-aimodal ${theme === "dark" ? "hb-aimodal-dark" : "hb-aimodal-light"}`}
+      maskClosable={false}
+    >
+      <div className="hb-aim">
+        <ModalHeader
+          step={step}
+          bugCount={bugs.length}
+          ticketCount={createdTickets.length}
+          onClose={onClose}
+        />
+
+        <Stepper step={step} />
+
+        <div className="hb-aim-body">
+          {step === "review" && (
+            <ReviewStep
+              bugs={bugs}
+              loading={reviewing}
+              started={reviewStarted}
+              results={reviewResults}
+              onStart={startReview}
+            />
+          )}
+          {step === "group" && (
+            <GroupStep
+              groups={groups}
+              bugsById={bugsById}
+              reviewByBugId={reviewByBugId}
+              projects={projects}
+              members={members}
+              onUpdate={updateGroup}
+              onRemove={removeGroup}
+            />
+          )}
+          {step === "done" && (
+            <DoneStep tickets={createdTickets} bugs={bugs} onClose={onClose} />
+          )}
+        </div>
+
+        <ModalFooter
+          step={step}
+          bugCount={bugs.length}
+          groupCount={groups.length}
+          reviewing={reviewing}
+          grouping={grouping}
+          converting={converting}
+          reviewReady={reviewResults.length > 0}
+          onBack={() => setStep("review")}
+          onContinueToGroup={goToGrouping}
+          onConvert={handleConvert}
+          onClose={onClose}
+        />
+      </div>
+    </Modal>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Header + Stepper
+// ───────────────────────────────────────────────────────────────────────────
+
+function ModalHeader({
+  step,
+  bugCount,
+  ticketCount,
+  onClose,
+}: {
+  step: Step;
+  bugCount: number;
+  ticketCount: number;
+  onClose: () => void;
+}) {
+  const titleByStep: Record<Step, { title: string; sub: string }> = {
+    review: {
+      title: "AI Review",
+      sub: `Polish ${bugCount} captured bug${bugCount === 1 ? "" : "s"} into developer-ready data.`,
+    },
+    group: {
+      title: "Smart Grouping",
+      sub: "Bugs grouped by module and context. Edit, reassign, then ship as tickets.",
+    },
+    done: {
+      title: "All set",
+      sub: `${ticketCount} ticket${ticketCount === 1 ? "" : "s"} created and linked back to bugs.`,
+    },
+  };
+  const meta = titleByStep[step];
+  return (
+    <div className="hb-aim-header">
+      <div className="hb-aim-titleblock">
+        <div className="hb-aim-eyebrow">
+          <Sparkles size={12} />
+          Hivebug AI
+        </div>
+        <div className="hb-aim-title">{meta.title}</div>
+        <div className="hb-aim-sub">{meta.sub}</div>
+      </div>
+      <button className="hb-aim-close" aria-label="Close" onClick={onClose}>
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
+
+function Stepper({ step }: { step: Step }) {
+  const steps: { id: Step; label: string; icon: React.ReactNode }[] = [
+    { id: "review", label: "Review", icon: <Wand2 size={13} /> },
+    { id: "group", label: "Group & refine", icon: <Layers size={13} /> },
+    { id: "done", label: "Done", icon: <CheckCircle2 size={13} /> },
+  ];
+  const order = steps.findIndex((s) => s.id === step);
+  return (
+    <div className="hb-aim-stepper">
+      {steps.map((s, i) => {
+        const state = i < order ? "done" : i === order ? "active" : "todo";
+        return (
+          <React.Fragment key={s.id}>
+            <div className={`hb-aim-step hb-aim-step-${state}`}>
+              <div className="hb-aim-step-icon">{s.icon}</div>
+              <span>{s.label}</span>
+            </div>
+            {i < steps.length - 1 && (
+              <div
+                className={`hb-aim-step-rail ${
+                  i < order ? "hb-aim-step-rail-done" : ""
+                }`}
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Step 1: Review
+// ───────────────────────────────────────────────────────────────────────────
+
+function ReviewStep({
+  bugs,
+  loading,
+  started,
+  results,
+  onStart,
+}: {
+  bugs: BugListItem[];
+  loading: boolean;
+  started: boolean;
+  results: AiReviewResult[];
+  onStart: () => void;
+}) {
+  const resultByBugId = useMemo(() => {
+    const m = new Map<string, AiReviewResult>();
+    results.forEach((r) => m.set(r.bugId, r));
+    return m;
+  }, [results]);
+
+  if (bugs.length === 0) {
+    return (
+      <div className="hb-aim-empty">
+        <BugIcon size={28} />
+        <div>Select bugs to review.</div>
+      </div>
+    );
+  }
+
+  if (!started) {
+    return (
+      <div className="hb-aim-hero">
+        <div className="hb-aim-hero-icon">
+          <Wand2 size={22} />
+        </div>
+        <div className="hb-aim-hero-title">
+          Run AI review on {bugs.length} bug{bugs.length === 1 ? "" : "s"}
+        </div>
+        <div className="hb-aim-hero-sub">
+          Each bug will be cleaned, structured into steps + expected/actual
+          behaviour, and gaps will be flagged. You can review each before grouping.
+        </div>
+        <ul className="hb-aim-checklist">
+          <li><CheckCircle2 size={13} /> Polished title and description</li>
+          <li><CheckCircle2 size={13} /> Steps to reproduce</li>
+          <li><CheckCircle2 size={13} /> Expected vs actual behaviour</li>
+          <li><CheckCircle2 size={13} /> Missing-detail callouts</li>
+        </ul>
+        <button className="hb-aim-primary" onClick={onStart}>
+          <Sparkles size={14} />
+          Start review
+        </button>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="hb-aim-cards">
+        {bugs.slice(0, 3).map((b) => (
+          <div className="hb-aim-card" key={b.id}>
+            <Skeleton active title paragraph={{ rows: 4 }} />
+          </div>
+        ))}
+        <div className="hb-aim-running">
+          <Sparkles size={14} className="hb-aim-spin" />
+          Reviewing {bugs.length} bug{bugs.length === 1 ? "" : "s"}…
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="hb-aim-cards">
+      {bugs.map((bug) => {
+        const r = resultByBugId.get(bug.id);
+        return (
+          <div className="hb-aim-card" key={bug.id}>
+            <div className="hb-aim-card-head">
+              <span className="hb-aim-bugnum">
+                {bug.bugNumber || bug.id.slice(-6).toUpperCase()}
+              </span>
+              <span className="hb-aim-card-title">
+                {r?.suggestedTitle || bug.title || bug.description}
+              </span>
+              {bug.severity && (
+                <span className={`hb-aim-pill hb-aim-pill-${bug.severity}`}>
+                  {bug.severity}
+                </span>
+              )}
+            </div>
+            {r ? (
+              <div className="hb-aim-card-grid">
+                <Section label="Description">{r.cleanedDescription}</Section>
+                {r.stepsToReproduce?.length > 0 && (
+                  <Section label="Steps to reproduce">
+                    <ol className="hb-aim-steps">
+                      {r.stepsToReproduce.map((s, i) => (
+                        <li key={i}>{s}</li>
+                      ))}
+                    </ol>
+                  </Section>
+                )}
+                <div className="hb-aim-twocol">
+                  <Section label="Expected">{r.expectedBehavior || "—"}</Section>
+                  <Section label="Actual">{r.actualBehavior || "—"}</Section>
+                </div>
+                {r.missingDetails?.length > 0 && (
+                  <div className="hb-aim-missing">
+                    <AlertCircle size={13} />
+                    <div>
+                      <div className="hb-aim-missing-title">
+                        Could be sharper
+                      </div>
+                      <ul>
+                        {r.missingDetails.map((m, i) => (
+                          <li key={i}>{m}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="hb-aim-skip">
+                <span>Original</span>
+                <p>{bug.description}</p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Step 2: Group & refine
+// ───────────────────────────────────────────────────────────────────────────
+
+function GroupStep({
+  groups,
+  bugsById,
+  reviewByBugId,
+  projects,
+  members,
+  onUpdate,
+  onRemove,
+}: {
+  groups: EditableGroup[];
+  bugsById: Map<string, BugListItem>;
+  reviewByBugId: Map<string, AiReviewResult>;
+  projects: { value: string; label: string; code?: string }[] | undefined;
+  members: { value: string; label: string }[];
+  onUpdate: (idx: number, patch: Partial<EditableGroup>) => void;
+  onRemove: (idx: number) => void;
+}) {
+  if (groups.length === 0) {
+    return (
+      <div className="hb-aim-empty">
+        <Layers size={28} />
+        <div>No groups suggested.</div>
+      </div>
+    );
+  }
+  return (
+    <div className="hb-aim-groups">
+      {groups.map((g, idx) => (
+        <GroupCard
+          key={g.groupKey}
+          index={idx}
+          group={g}
+          bugs={g.bugIds
+            .map((id) => bugsById.get(id))
+            .filter((b): b is BugListItem => !!b)}
+          reviewByBugId={reviewByBugId}
+          projects={projects || []}
+          members={members}
+          onUpdate={(patch) => onUpdate(idx, patch)}
+          onRemove={() => onRemove(idx)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function GroupCard({
+  index,
+  group,
+  bugs,
+  reviewByBugId,
+  projects,
+  members,
+  onUpdate,
+  onRemove,
+}: {
+  index: number;
+  group: EditableGroup;
+  bugs: BugListItem[];
+  reviewByBugId: Map<string, AiReviewResult>;
+  projects: { value: string; label: string; code?: string }[];
+  members: { value: string; label: string }[];
+  onUpdate: (patch: Partial<EditableGroup>) => void;
+  onRemove: () => void;
+}) {
+  const [expanded, setExpanded] = useState(index === 0);
+  return (
+    <div className="hb-aim-group">
+      <div className="hb-aim-group-head" onClick={() => setExpanded((e) => !e)}>
+        <div className="hb-aim-group-bullet">{index + 1}</div>
+        <div className="hb-aim-group-meta">
+          <div className="hb-aim-group-title-row">
+            <span className="hb-aim-group-title">{group.title}</span>
+            {group.module && (
+              <span className="hb-aim-tag">{group.module}</span>
+            )}
+            <span className="hb-aim-bugcount">
+              {bugs.length} bug{bugs.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <div className="hb-aim-group-reason">{group.reason}</div>
+        </div>
+        <button
+          className="hb-aim-icon-btn hb-aim-danger"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          aria-label="Remove group"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="hb-aim-group-body">
+          <Field label="Title">
+            <Input
+              value={group.title}
+              onChange={(e) => onUpdate({ title: e.target.value })}
+            />
+          </Field>
+          <Field label="Description">
+            <Input.TextArea
+              autoSize={{ minRows: 3, maxRows: 8 }}
+              value={group.description}
+              onChange={(e) => onUpdate({ description: e.target.value })}
+            />
+          </Field>
+          <Field label="Acceptance criteria">
+            <Input.TextArea
+              autoSize={{ minRows: 2, maxRows: 6 }}
+              placeholder="Optional"
+              value={group.acceptanceCriteria}
+              onChange={(e) => onUpdate({ acceptanceCriteria: e.target.value })}
+            />
+          </Field>
+          <div className="hb-aim-twocol">
+            <Field label="Project">
+              <Select
+                allowClear
+                showSearch
+                placeholder="Inherit from folder"
+                value={group.projectId}
+                onChange={(v) => onUpdate({ projectId: v })}
+                options={projects.map((p) => ({
+                  value: p.value,
+                  label: p.code ? `${p.code} · ${p.label}` : p.label,
+                }))}
+                filterOption={(input, option) =>
+                  (option?.label as string)
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                style={{ width: "100%" }}
+              />
+            </Field>
+            <Field label="Assignee">
+              <Select
+                allowClear
+                showSearch
+                placeholder="Unassigned"
+                value={group.assigneeId}
+                onChange={(v) => onUpdate({ assigneeId: v })}
+                options={members}
+                filterOption={(input, option) =>
+                  (option?.label as string)
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                style={{ width: "100%" }}
+              />
+            </Field>
+          </div>
+
+          <div className="hb-aim-buglist">
+            <div className="hb-aim-buglist-title">Bugs in this ticket</div>
+            {bugs.map((b) => {
+              const r = reviewByBugId.get(b.id);
+              return (
+                <div key={b.id} className="hb-aim-bugrow">
+                  <span className="hb-aim-bugnum">
+                    {b.bugNumber || b.id.slice(-6).toUpperCase()}
+                  </span>
+                  <span className="hb-aim-bugrow-title">
+                    {r?.suggestedTitle || b.title || b.description}
+                  </span>
+                  {b.severity && (
+                    <span className={`hb-aim-pill hb-aim-pill-${b.severity}`}>
+                      {b.severity}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Step 3: Done
+// ───────────────────────────────────────────────────────────────────────────
+
+function DoneStep({
+  tickets,
+  bugs,
+  onClose,
+}: {
+  tickets: ConvertedTicket[];
+  bugs: BugListItem[];
+  onClose: () => void;
+}) {
+  const { open: openTicketDrawer } = useTicketDrawer();
+  const totalBugsLinked = tickets.reduce((acc, t) => acc + t.bugIds.length, 0);
+  return (
+    <div className="hb-aim-done">
+      <div className="hb-aim-done-icon">
+        <CheckCircle2 size={26} />
+      </div>
+      <div className="hb-aim-done-title">
+        {tickets.length} ticket{tickets.length === 1 ? "" : "s"} created
+      </div>
+      <div className="hb-aim-done-sub">
+        {totalBugsLinked} bug{totalBugsLinked === 1 ? "" : "s"} from your selection
+        {bugs.length > totalBugsLinked
+          ? ` (${bugs.length - totalBugsLinked} skipped)`
+          : ""}
+        {" "}
+        are now linked.
+      </div>
+
+      <div className="hb-aim-tickets">
+        {tickets.map((t) => (
+          <button
+            key={t.ticketId}
+            type="button"
+            className="hb-aim-ticket"
+            onClick={() => {
+              onClose();
+              openTicketDrawer(t.ticketId);
+            }}
+          >
+            <div>
+              <div className="hb-aim-ticket-num">{t.ticketNumber}</div>
+              <div className="hb-aim-ticket-meta">
+                {t.bugIds.length} bug{t.bugIds.length === 1 ? "" : "s"} linked
+              </div>
+            </div>
+            <ExternalLink size={14} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Footer
+// ───────────────────────────────────────────────────────────────────────────
+
+function ModalFooter({
+  step,
+  bugCount,
+  groupCount,
+  reviewing,
+  grouping,
+  converting,
+  reviewReady,
+  onBack,
+  onContinueToGroup,
+  onConvert,
+  onClose,
+}: {
+  step: Step;
+  bugCount: number;
+  groupCount: number;
+  reviewing: boolean;
+  grouping: boolean;
+  converting: boolean;
+  reviewReady: boolean;
+  onBack: () => void;
+  onContinueToGroup: () => void;
+  onConvert: () => void;
+  onClose: () => void;
+}) {
+  if (step === "review") {
+    return (
+      <div className="hb-aim-footer">
+        <button className="hb-aim-secondary" onClick={onClose}>
+          Cancel
+        </button>
+        <Tooltip
+          title={
+            !reviewReady
+              ? "Run AI review first to continue"
+              : ""
+          }
+        >
+          <button
+            className="hb-aim-primary"
+            disabled={!reviewReady || reviewing || grouping}
+            onClick={onContinueToGroup}
+          >
+            {grouping ? (
+              <>
+                <Sparkles size={14} className="hb-aim-spin" />
+                Grouping…
+              </>
+            ) : (
+              <>
+                Continue to grouping
+                <ArrowRight size={14} />
+              </>
+            )}
+          </button>
+        </Tooltip>
+      </div>
+    );
+  }
+
+  if (step === "group") {
+    return (
+      <div className="hb-aim-footer">
+        <button className="hb-aim-secondary" onClick={onBack}>
+          <ArrowLeft size={14} />
+          Back
+        </button>
+        <div className="hb-aim-footer-meta">
+          {groupCount} group{groupCount === 1 ? "" : "s"} ·{" "}
+          {bugCount} bug{bugCount === 1 ? "" : "s"} selected
+        </div>
+        <button
+          className="hb-aim-primary"
+          disabled={converting || groupCount === 0}
+          onClick={onConvert}
+        >
+          {converting ? (
+            <>
+              <Sparkles size={14} className="hb-aim-spin" />
+              Creating…
+            </>
+          ) : (
+            <>
+              <Plus size={14} />
+              Create {groupCount} ticket{groupCount === 1 ? "" : "s"}
+            </>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="hb-aim-footer">
+      <span className="hb-aim-footer-meta">Done.</span>
+      <button className="hb-aim-primary" onClick={onClose}>
+        Close
+      </button>
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Small primitives + helpers
+// ───────────────────────────────────────────────────────────────────────────
+
+function Section({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="hb-aim-section">
+      <div className="hb-aim-section-label">{label}</div>
+      <div className="hb-aim-section-body">{children}</div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="hb-aim-field">
+      <label>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function seedGroup(
+  g: AiGroupSuggestion,
+  bugsById: Map<string, BugListItem>,
+  reviewByBugId: Map<string, AiReviewResult>,
+): EditableGroup {
+  const lines = g.bugIds
+    .map((id) => {
+      const bug = bugsById.get(id);
+      const review = reviewByBugId.get(id);
+      if (!bug) return null;
+      return review?.cleanedDescription || bug.description || "";
+    })
+    .filter((s): s is string => !!s && s.trim().length > 0);
+
+  const assignees = g.bugIds
+    .map((id) => bugsById.get(id)?.assigneeId)
+    .filter((v): v is string => !!v);
+  const sharedAssignee =
+    assignees.length > 0 && assignees.every((a) => a === assignees[0])
+      ? assignees[0]
+      : undefined;
+
+  return {
+    ...g,
+    description: lines.join("\n\n"),
+    acceptanceCriteria: "",
+    assigneeId: sharedAssignee,
+  };
+}

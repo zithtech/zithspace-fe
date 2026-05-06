@@ -21,6 +21,7 @@ import {
   Trash2,
   Archive,
   FolderKanban,
+  Bug,
   // Timesheet / Time tracking
   CalendarClock,
   Gauge,
@@ -201,6 +202,16 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             icon: I(LayoutGrid),
             path: "/projects/buckets",
             requiredPermission: Permissions.PROJECT_READ,
+          },
+          {
+            key: "/projects/bug-list",
+            label: "Bug List",
+            icon: I(Bug),
+            path: "/projects/bug-list",
+            requiredAnyPermission: [
+              Permissions.BUG_READ,
+              Permissions.TICKET_READ,
+            ],
           },
           {
             key: "/projects/settings",

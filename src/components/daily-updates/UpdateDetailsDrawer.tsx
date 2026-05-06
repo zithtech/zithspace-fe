@@ -31,6 +31,7 @@ import {
   WorkStatus,
   formatHours,
 } from "@/types/dailyUpdate";
+import { useTicketDrawer } from "@/context/TicketDrawerContext";
 
 const { Text, Title } = Typography;
 const { Panel } = Collapse;
@@ -46,6 +47,7 @@ export default function UpdateDetailsDrawer({
   open,
   onClose,
 }: UpdateDetailsDrawerProps) {
+  const { open: openTicketDrawer } = useTicketDrawer();
   if (!update) return null;
 
   const projectUpdates = (update.projectUpdates || []) as ProjectUpdate[];
@@ -262,9 +264,22 @@ export default function UpdateDetailsDrawer({
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             {task.type === "ticket" ? <Zap size={13} color="#3b82f6" /> : <ChevronRight size={13} color="#94a3b8" />}
-                            <Text strong style={{ fontSize: 13, color: "#334155" }}>
-                              {task.type === "ticket" ? task.ticketNumber : `Task ${tIdx + 1}`}
-                            </Text>
+                            {task.type === "ticket" && task.ticketId ? (
+                              <Text
+                                strong
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openTicketDrawer(task.ticketId!);
+                                }}
+                                style={{ fontSize: 13, color: "#3b82f6", cursor: "pointer" }}
+                              >
+                                {task.ticketNumber}
+                              </Text>
+                            ) : (
+                              <Text strong style={{ fontSize: 13, color: "#334155" }}>
+                                {task.type === "ticket" ? task.ticketNumber : `Task ${tIdx + 1}`}
+                              </Text>
+                            )}
                           </div>
                           <Tag style={{ borderRadius: 4, margin: 0, fontSize: 10, border: "none", background: "#fff", color: "#64748b", fontWeight: 600 }}>
                             {status.icon} {status.label}

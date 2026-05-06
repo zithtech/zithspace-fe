@@ -28,7 +28,11 @@ import {
   ProjectOutlined,
   CloudDownloadOutlined,
   DeleteOutlined,
-  EditOutlined
+  EditOutlined,
+  AppstoreOutlined,
+  FolderOutlined,
+  StarOutlined,
+  BarsOutlined
 } from '@ant-design/icons';
 
 import MainLayout from '@/components/layout/MainLayout';
@@ -410,25 +414,69 @@ export default function ExcelDocumentPage() {
         overflow: 'hidden' // Prevents overall page scrollbar jumps
       }}>
         {/* Sidebar Space */}
-        <Sider width={300} theme={isDark ? "dark" : "light"} style={{
-          borderRight: `1px solid ${token.colorBorderSecondary}`,
+        <Sider width={280} theme={isDark ? "dark" : "light"} style={{
+          borderRight: `1px solid ${isDark ? '#1e293b' : token.colorBorderSecondary}`,
           overflowY: 'auto',
-          padding: '24px 0',
-          background: token.colorBgContainer,
-          flexShrink: 0 // Prevent sidebar from being squeezed
+          background: isDark ? '#0f111a' : token.colorBgContainer,
+          flexShrink: 0
         }}>
 
-          <div style={{ padding: '0 24px 20px 24px' }}>
-            <Title level={4}>Excel Documents</Title>
-            <Button
-              type="primary"
-              block
-              icon={<PlusOutlined />}
-              onClick={() => setIsModalVisible(true)}
-              style={{ height: 40, borderRadius: 8, fontWeight: 500 }}
-            >
-              New Spreadsheet
-            </Button>
+          <div style={{ padding: '24px 16px 20px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                background: '#f97316',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: isDark ? '0 4px 12px rgba(249, 115, 22, 0.3)' : 'none'
+              }}>
+                <FileExcelOutlined style={{ color: '#fff', fontSize: '20px' }} />
+              </div>
+              <div style={{ lineHeight: 1.2 }}>
+                <Text strong style={{ color: isDark ? '#fff' : token.colorText, display: 'block', fontSize: '15px' }}>Excel Hub</Text>
+                <Text style={{ color: isDark ? '#6b7280' : token.colorTextSecondary, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>DOCUMENT WORKSPACE</Text>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '28px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <Text style={{ color: isDark ? '#4b5563' : token.colorTextSecondary, fontSize: '10px', fontWeight: 800, letterSpacing: '0.08em' }}>WORKSPACE</Text>
+                <PlusOutlined style={{ color: isDark ? '#6b7280' : token.colorTextSecondary, fontSize: '12px', cursor: 'pointer' }} onClick={() => setIsModalVisible(true)} />
+              </div>
+              
+              <div
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: !selectedFile ? (isDark ? '#1e293b' : token.colorBgTextActive) : 'transparent',
+                  marginBottom: '4px',
+                  transition: 'all 0.2s'
+                }}
+                className="sidebar-item-hover"
+                onClick={() => setSelectedFile(null)}
+              >
+                <Space>
+                  <AppstoreOutlined style={{ fontSize: '16px', color: !selectedFile ? (isDark ? '#fff' : token.colorPrimary) : (isDark ? '#94a3b8' : token.colorTextSecondary) }} />
+                  <Text style={{ color: !selectedFile ? (isDark ? '#fff' : token.colorText) : (isDark ? '#94a3b8' : token.colorTextSecondary), fontSize: '13px', fontWeight: !selectedFile ? 600 : 400 }}>All Documents</Text>
+                </Space>
+                <Text style={{ color: isDark ? '#6b7280' : token.colorTextSecondary, fontSize: '12px' }}>{spreadsheets.length}</Text>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', marginTop: '12px' }}>
+              <Space size={8}>
+                <BarsOutlined style={{ color: isDark ? '#4b5563' : token.colorTextQuaternary, fontSize: '12px' }} />
+                <Text style={{ color: isDark ? '#4b5563' : token.colorTextSecondary, fontSize: '10px', fontWeight: 800, letterSpacing: '0.12em' }}>COLLECTIONS</Text>
+              </Space>
+              <PlusOutlined style={{ color: isDark ? '#6b7280' : token.colorTextSecondary, fontSize: '12px', cursor: 'pointer' }} onClick={() => setIsModalVisible(true)} />
+            </div>
           </div>
 
           {loading && spreadsheets.length === 0 && (
@@ -442,72 +490,88 @@ export default function ExcelDocumentPage() {
           ) : (
             <List
               dataSource={spreadsheets}
-              split={false} // Cleaner look
-              renderItem={(item) => (
+              split={false}
+              renderItem={(item, index) => {
+                // Map Excel/star icons and colors based on design patterns
+                let icon = <FileExcelOutlined style={{ fontSize: '18px', color: '#3b82f6' }} />;
+                
+                const name = item.name.toLowerCase();
+                if (name.includes('v1') || name.includes('test')) {
+                  icon = <StarOutlined style={{ fontSize: '18px', color: '#f59e0b' }} />;
+                } else if (name.includes('proposal')) {
+                  icon = <FileExcelOutlined style={{ fontSize: '18px', color: '#ec4899' }} />;
+                } else if (name.includes('hub')) {
+                  icon = <FileExcelOutlined style={{ fontSize: '18px', color: '#10b981' }} />;
+                } else if (name.includes('ticket')) {
+                  icon = <FileExcelOutlined style={{ fontSize: '18px', color: '#3b82f6' }} />;
+                }
 
-                <div
-                  onClick={() => openSpreadsheet(item)}
-                  style={{
-                    padding: '12px 24px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: selectedFile?.id === item.id ? (isDark ? '#303030' : '#f1f5f9') : 'transparent',
-                    borderLeft: selectedFile?.id === item.id ? '4px solid #107c41' : '4px solid transparent',
-                    transition: 'all 0.2s'
-                  }}
-                  className="list-item-hover"
-                >
-                  <Space>
-                    <FileExcelOutlined style={{ fontSize: 20, color: '#107c41' }} />
-                    <div style={{ overflow: 'hidden' }}>
-                      <Text strong style={{ display: 'block' }} ellipsis>{item.name}</Text>
-                      <Text type="secondary" style={{ fontSize: 11 }}>
-                        Last updated: {new Date(item.updated_at).toLocaleDateString()}
+                return (
+                  <div
+                    onClick={() => openSpreadsheet(item)}
+                    style={{
+                      padding: '10px 12px',
+                      margin: '2px 8px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: selectedFile?.id === item.id ? (isDark ? '#1e293b' : token.colorBgTextActive) : 'transparent',
+                      transition: 'all 0.2s',
+                      position: 'relative'
+                    }}
+                    className="sidebar-item-hover"
+                  >
+                    <Space size={14} style={{ width: '100%' }}>
+                      {icon}
+                      <Text style={{ 
+                        color: selectedFile?.id === item.id ? (isDark ? '#fff' : token.colorText) : (isDark ? '#94a3b8' : token.colorTextSecondary), 
+                        fontSize: '14px',
+                        fontWeight: selectedFile?.id === item.id ? 500 : 400,
+                        flex: 1,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {item.name}
                       </Text>
-                    </div>
-                  </Space>
-
-
-                  <Space>
-                    <Tooltip title="Open & Edit Data">
-                      <Button
-                        type="text"
-                        icon={<EditOutlined />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openSpreadsheet(item);
-                        }}
-                        style={{ color: '#107c41' }}
+                      <Text style={{ color: isDark ? '#4b5563' : token.colorTextQuaternary, fontSize: '12px', marginLeft: 'auto' }}>
+                        {Math.floor(Math.random() * 10) + 1}
+                      </Text>
+                    </Space>
+                    
+                    <div className="item-actions" style={{ 
+                      display: 'flex', 
+                      opacity: selectedFile?.id === item.id ? 1 : 0, 
+                      gap: '4px',
+                      position: 'absolute',
+                      right: '8px',
+                      background: isDark ? '#1e293b' : token.colorBgTextActive,
+                      paddingLeft: '8px'
+                    }}>
+                      <Button 
+                        type="text" 
+                        size="small" 
+                        icon={<EditOutlined style={{ color: isDark ? '#6b7280' : token.colorTextSecondary, fontSize: '12px' }} />} 
+                        onClick={(e) => { e.stopPropagation(); openSpreadsheet(item); }}
                       />
-                    </Tooltip>
-
-
-
-                    <Popconfirm
-                      title="Delete Spreadsheet"
-                      description="Are you sure you want to delete this document?"
-                      onConfirm={(e: any) => handleDelete(item.id, e)}
-                      onCancel={(e: any) => e.stopPropagation()}
-                      okText="Yes"
-                      cancelText="No"
-                    >
-                      <Tooltip title="Delete Folder">
-                        <Button
-                          type="text"
-                          danger
-                          icon={<DeleteOutlined />}
+                      <Popconfirm
+                        title="Delete document"
+                        onConfirm={(e: any) => handleDelete(item.id, e)}
+                        onCancel={(e: any) => e.stopPropagation()}
+                      >
+                        <Button 
+                          type="text" 
+                          size="small" 
+                          icon={<DeleteOutlined style={{ color: '#ef4444', fontSize: '12px' }} />} 
                           onClick={(e) => e.stopPropagation()}
                         />
-                      </Tooltip>
-                    </Popconfirm>
-                  </Space>
-
-
-                </div>
-
-              )}
+                      </Popconfirm>
+                    </div>
+                  </div>
+                );
+              }}
             />
           )}
         </Sider>
@@ -702,7 +766,8 @@ export default function ExcelDocumentPage() {
         ` : ''}
 
         .fortune-container { height: 100% !important; width: 100% !important; border:none !important; }
-        .list-item-hover:hover { background: ${isDark ? '#262626' : '#f8fafc'} !important; }
+        .sidebar-item-hover:hover { background: ${isDark ? '#1e293b' : token.colorBgTextHover} !important; }
+        .sidebar-item-hover:hover .item-actions { opacity: 1 !important; }
       `}</style>
 
 

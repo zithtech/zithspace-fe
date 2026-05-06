@@ -84,6 +84,27 @@ export const useLeads = () => {
     }
   }, []);
 
+  const analyzeLead = useCallback(async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await LeadService.analyze(id);
+      if (lead?.id === id) {
+        setLead(result);
+      }
+      setLeads((prev) =>
+        prev.map((item) => (item.id === id ? result : item))
+      );
+      return result;
+    } catch (err: any) {
+      const msg = err.response?.data?.error || "Failed to analyze lead";
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [lead]);
+
   return {
     leads,
     lead,
@@ -94,6 +115,7 @@ export const useLeads = () => {
     createLead,
     updateLead,
     deleteLead,
+    analyzeLead,
     onboardLead: useCallback(async (id: string, data?: any) => {
       setLoading(true);
       setError(null);

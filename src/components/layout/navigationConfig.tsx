@@ -96,6 +96,7 @@ import {
   PieChart,
   BarChart3,
 } from "lucide-react";
+import { FileExcelOutlined, ProjectOutlined } from "@ant-design/icons";
 
 const I = (Comp: React.ComponentType<any>) => (
   <Comp size={16} strokeWidth={1.75} className="nav-lucide-icon" />
@@ -154,8 +155,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
   {
     key: "WORK",
     label: "WORK",
-    icon: I(Briefcase),
-    pathPrefixes: ["/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations"],
+    icon: <ProjectOutlined />,
+    pathPrefixes: ["/projects", "/documenthub", "/timesheet", "/daily-updates", "/escalations", "/excel-document"],
+
     defaultPath: "/projects/select",
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
@@ -379,6 +381,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
       {
+        key: "/excel-document",
+        label: "Excel Document",
+        icon: <FileExcelOutlined />,
+        path: "/excel-document",
+      },
+{
         key: "leads-group",
         label: "Lead Management",
         icon: I(Megaphone),

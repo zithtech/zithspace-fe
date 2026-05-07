@@ -1277,9 +1277,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                 setSelectedDoc('api-ref');
                             }
                         }
-                    } catch (error) {
+                    } catch (error: any) {
                         console.error(error);
-                        messageApi.error('Failed to delete document');
+                        const errorMessage = error.response?.data?.error || error.message || 'Failed to delete document';
+                        messageApi.error(errorMessage);
                     }
                 }
             });
@@ -1301,9 +1302,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                         queryClient.refetchQueries({ queryKey: ticketsKey });
                         queryClient.invalidateQueries({ queryKey: hubKey });
                         queryClient.refetchQueries({ queryKey: hubKey });
-                    } catch (error) {
+                    } catch (error: any) {
                         console.error(error);
-                        messageApi.error(`Failed to delete ${type}`);
+                        const errorMessage = error.response?.data?.error || error.message || `Failed to delete ${type}`;
+                        messageApi.error(errorMessage);
                     }
                 }
             });
@@ -1661,7 +1663,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             onClick={() => window.open(`/document/${selectedDoc}`, '_blank')}
                                         />
                                     </Tooltip>
-                                    <Tooltip title="Share Document">
+                                    <Tooltip title="Share Hub">
                                         <Button
                                             type="text"
                                             icon={<Share2 className="w-4 h-4" />}
@@ -1878,12 +1880,15 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
 
             <ShareModal
                 open={isShareOpen}
-                onClose={() => setIsShareOpen(false)}
-                entityId={selectedDoc}
-                entityTitle={docData?.title || ''}
-                entityType="document"
-                currentVisibility={docData?.visibility || 'private'}
-                currentShareToken={docData?.shareToken || null}
+                onClose={() => {
+                    setIsShareOpen(false);
+                    refetchHub();
+                }}
+                entityId={documentId}
+                entityTitle={documentHub?.name || ''}
+                entityType="hub"
+                currentVisibility={documentHub?.visibility || 'private'}
+                currentShareToken={documentHub?.shareToken || null}
             />
 
             {editor && (

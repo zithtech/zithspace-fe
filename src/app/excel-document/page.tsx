@@ -258,10 +258,6 @@ export default function ExcelDocumentPage() {
         messageApi.success('Spreadsheet synced to cloud!');
         fetchSpreadsheets(); // Refresh sidebar
       }
-
-
-      messageApi.success('Workbook synced successfully');
-      fetchSpreadsheets();
     } catch (err) {
       messageApi.error('Failed to save workbook');
     } finally {

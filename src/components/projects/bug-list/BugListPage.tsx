@@ -7,6 +7,7 @@ import {
   Tooltip,
   message,
   DatePicker,
+  Segmented,
 } from "antd";
 
 const { RangePicker } = DatePicker;
@@ -25,10 +26,19 @@ import {
   Activity,
   Archive,
   ChevronLeft,
+  Folder,
+  Layers,
+  User,
+  CircleDot,
+  AlertTriangle,
+  Tag,
+  Box,
+  Calendar,
 } from "lucide-react";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
 import HivebugTable from "./HivebugTable";
-import ArchivedSheetsView from "./ArchivedSheetsView";
+import ArchiveView from "./ArchiveView";
+import TrashView from "./TrashView";
 import CreateBugDrawer from "./CreateBugDrawer";
 import { FolderModal, SheetModal } from "./FolderSheetModals";
 import AiReviewModal from "./AiReviewModal";
@@ -50,7 +60,9 @@ import {
   useUpdateBug,
   useVerifyBug,
   useArchivedSheets,
+  useTrashedSheets,
 } from "@/hooks/useBugList";
+import { useMembersSelect } from "@/hooks/useMembersSelect";
 import type {
   BugFolder,
   BugListItem,
@@ -61,7 +73,6 @@ import type {
   CreateBugInput,
   UpdateBugInput,
 } from "@/services/bugListService";
-import { useMembersSelect } from "@/hooks/useMembersSelect";
 import { useTheme } from "@/context/ThemeContext";
 import { hivebugStyles } from "./hivebug-styles";
 
@@ -87,6 +98,7 @@ export default function BugListPage() {
   const [scope, setScope] = useState<BugScope>("all");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedSheetId, setSelectedSheetId] = useState<string | null>(null);
+  const [subScope, setSubScope] = useState<"bugs" | "sheets" | "folders">("sheets");
 
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
@@ -112,6 +124,7 @@ export default function BugListPage() {
   const { data: folders } = useBugFolders();
   const { data: sheets } = useBugSheets(selectedFolderId);
   const { data: archivedSheets } = useArchivedSheets();
+  const { data: trashedSheets } = useTrashedSheets();
   const { data: stats } = useBugStats({
     folderId: selectedFolderId || undefined,
     sheetId: selectedSheetId || undefined,
@@ -125,7 +138,8 @@ export default function BugListPage() {
   }, [selectedFolderId, folders]);
 
   // Add missing variables to fix TypeScript errors
-  const members: { value: string; label: string }[] = [];
+  const { users } = useMembersSelect();
+  const members = users.map(u => ({ value: u.value, label: u.label }));
   const workspaceStats = {
     totalFolders: folders?.length || 0,
     totalSheets: sheets?.length || 0,
@@ -135,7 +149,8 @@ export default function BugListPage() {
     linked: stats?.linked || 0,
   };
   const filterSheets = sheets?.filter(s => s.name.toLowerCase().includes(filters.search.toLowerCase())) || [];
-  const showWorkspaceStats = scope !== "archived" && !selectedSheetId;
+  const showWorkspaceStats = scope !== "archived" && scope !== "trash" && !selectedSheetId;
+  const isViewingBugs = selectedSheetId || (scope !== "archived" && scope !== "trash") || (subScope === "bugs");
 
   const queryFilters = useMemo(
     () => ({
@@ -177,6 +192,9 @@ export default function BugListPage() {
   useEffect(() => {
     setSelectedIds(new Set());
     setPage(1);
+    if (scope === "trash" || scope === "archived") {
+      setSubScope("folders");
+    }
   }, [scope, selectedFolderId, selectedSheetId, filters]);
 
   // Global "/" focuses search like the screenshot
@@ -367,6 +385,12 @@ export default function BugListPage() {
                 </span>
               </>
             )}
+            {scope === "trash" && !selectedSheetId && (
+              <>
+                <span className="hb-bc-sep">›</span>
+                <span className="hb-bc-soft">Trash</span>
+              </>
+            )}
             {selectedFolderId || (selectedSheetId && scope !== "archived") ? (
               <>
                 <span className="hb-bc-sep">›</span>
@@ -487,149 +511,193 @@ export default function BugListPage() {
                 </>
               }
             />
-            <StatCard
-              icon={<Activity size={14} />}
-              label="Health"
-              value={
-                workspaceStats && workspaceStats.total > 0
-                  ? `${Math.round(
-                      (workspaceStats.completed / workspaceStats.total) * 100,
-                    )}%`
-                  : "—"
+            {(() => {
+              const percentage = workspaceStats && workspaceStats.total > 0
+                ? Math.round((workspaceStats.completed / workspaceStats.total) * 100)
+                : 0;
+              
+              let tone: "default" | "success" | "danger" | "warning" | "info" = "default";
+              if (workspaceStats && workspaceStats.total > 0) {
+                if (percentage < 30) tone = "danger";
+                else if (percentage < 60) tone = "warning";
+                else if (percentage < 80) tone = "info";
+                else tone = "success";
               }
-              tone="success"
-            />
+
+              return (
+                <StatCard
+                  icon={<Activity size={14} />}
+                  label="Health"
+                  value={workspaceStats && workspaceStats.total > 0 ? `${percentage}%` : "—"}
+                  tone={tone}
+                />
+              );
+            })()}
           </div>
         )}
 
         {filtersVisible && (
         <div className="hb-filterbar">
           <div className="hb-filterbar-lead">
-            <SlidersHorizontal size={13} />
+            <SlidersHorizontal size={14} strokeWidth={2.5} />
             <span>Filters</span>
             {activeFilterCount > 0 && (
-              <span className="hb-filter-badge hb-filter-badge-inline">
+              <span className="hb-filter-badge">
                 {activeFilterCount}
               </span>
             )}
           </div>
           <div className="hb-filterbar-divider" />
+          
+          
           {!selectedSheetId && (
             <>
-              <Select
-                allowClear
-                showSearch
-                placeholder="Folder"
-                size="small"
-                value={selectedFolderId || undefined}
-                onChange={(v) => {
-                  setSelectedFolderId(v || null);
-                  setSelectedSheetId(null);
-                }}
-                options={(folders || []).map((f) => ({
-                  value: f.id,
-                  label: f.name,
-                }))}
-                style={{ width: 180 }}
-              />
-              <Select
-                allowClear
-                showSearch
-                placeholder="Sheet"
-                size="small"
-                value={selectedSheetId || undefined}
-                onChange={(v) => setSelectedSheetId(v || null)}
-                options={(filterSheets || []).map((s) => ({
-                  value: s.id,
-                  label: s.name,
-                }))}
-                disabled={!selectedFolderId}
-                style={{ width: 180 }}
-              />
-            </>
-          )}
-          <Select
-            allowClear
-            showSearch
-            placeholder="Created by"
-            size="small"
-            value={filters.createdById}
-            onChange={(v) => setFilters((f) => ({ ...f, createdById: v }))}
-            options={memberOptions}
-            filterOption={(input, option) =>
-              (option?.label as string)
-                .toLowerCase()
-                .includes(input.toLowerCase())
-            }
-            style={{ width: 180 }}
-          />
-          <Select
-            allowClear
-            placeholder="Status"
-            size="small"
-            value={filters.status}
-            onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
-            options={STATUS_OPTS.map((s) => ({ value: s, label: cap(s) }))}
-            style={{ width: 150 }}
-          />
-          <Select
-            allowClear
-            placeholder="Severity"
-            size="small"
-            value={filters.severity}
-            onChange={(v) => setFilters((f) => ({ ...f, severity: v }))}
-            options={SEVERITY_OPTS.map((s) => ({ value: s, label: cap(s) }))}
-            style={{ width: 150 }}
-          />
-          {selectedSheetId && (
-            <>
-              <Select
-                allowClear
-                placeholder="Type"
-                size="small"
-                value={filters.bugType}
-                onChange={(v) => setFilters((f) => ({ ...f, bugType: v }))}
-                options={TYPE_OPTS.map((s) => ({
-                  value: s,
-                  label: s.toUpperCase(),
-                }))}
-                style={{ width: 130 }}
-              />
-              <Select
-                allowClear
-                showSearch
-                placeholder="Module"
-                size="small"
-                value={filters.module}
-                onChange={(v) => setFilters((f) => ({ ...f, module: v }))}
-                options={moduleOptions.map((m) => ({ value: m, label: m }))}
-                style={{ width: 150 }}
-              />
+              <div className={`hb-filter-group ${selectedFolderId ? "active" : ""}`}>
+                <span className="hb-filter-label"><Folder size={12} /></span>
+                <Select
+                  allowClear
+                  showSearch
+                  placeholder="Folder"
+                  size="small"
+                  variant="borderless"
+                  value={selectedFolderId || undefined}
+                  onChange={(v) => {
+                    setSelectedFolderId(v || null);
+                    setSelectedSheetId(null);
+                  }}
+                  options={(folders || []).map((f) => ({
+                    value: f.id,
+                    label: f.name,
+                  }))}
+                  style={{ width: 140 }}
+                />
+              </div>
+              <div className={`hb-filter-group ${selectedSheetId ? "active" : ""}`}>
+                <span className="hb-filter-label"><Layers size={12} /></span>
+                <Select
+                  allowClear
+                  showSearch
+                  placeholder="Sheet"
+                  size="small"
+                  variant="borderless"
+                  value={selectedSheetId || undefined}
+                  onChange={(v) => setSelectedSheetId(v || null)}
+                  options={(filterSheets || []).map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                  }))}
+                  disabled={!selectedFolderId}
+                  style={{ width: 140 }}
+                />
+              </div>
             </>
           )}
           
-          <div className="hb-filter-group">
-            <span className="hb-filter-label">Created</span>
+            <>
+          <div className={`hb-filter-group ${filters.createdById ? "active" : ""}`}>
+            <span className="hb-filter-label"><User size={12} /></span>
+            <Select
+              allowClear
+              showSearch
+              placeholder="Created by"
+              size="small"
+              variant="borderless"
+              value={filters.createdById}
+              onChange={(v) => setFilters((f) => ({ ...f, createdById: v }))}
+              options={memberOptions}
+              filterOption={(input, option) =>
+                (option?.label as string)
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              style={{ width: 140 }}
+            />
+          </div>
+          <div className={`hb-filter-group ${filters.status ? "active" : ""}`}>
+            <span className="hb-filter-label"><CircleDot size={12} /></span>
+            <Select
+              allowClear
+              placeholder="Status"
+              size="small"
+              variant="borderless"
+              value={filters.status}
+              onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
+              options={STATUS_OPTS.map((s) => ({ value: s, label: cap(s) }))}
+              style={{ width: 110 }}
+            />
+          </div>
+          <div className={`hb-filter-group ${filters.severity ? "active" : ""}`}>
+            <span className="hb-filter-label"><AlertTriangle size={12} /></span>
+            <Select
+              allowClear
+              placeholder="Severity"
+              size="small"
+              variant="borderless"
+              value={filters.severity}
+              onChange={(v) => setFilters((f) => ({ ...f, severity: v }))}
+              options={SEVERITY_OPTS.map((s) => ({ value: s, label: cap(s) }))}
+              style={{ width: 110 }}
+            />
+          </div>
+            <>
+              <div className={`hb-filter-group ${filters.bugType ? "active" : ""}`}>
+                <span className="hb-filter-label"><Tag size={12} /></span>
+                <Select
+                  allowClear
+                  placeholder="Type"
+                  size="small"
+                  variant="borderless"
+                  value={filters.bugType}
+                  onChange={(v) => setFilters((f) => ({ ...f, bugType: v }))}
+                  options={TYPE_OPTS.map((s) => ({
+                    value: s,
+                    label: s.toUpperCase(),
+                  }))}
+                  style={{ width: 100 }}
+                />
+              </div>
+              <div className={`hb-filter-group ${filters.module ? "active" : ""}`}>
+                <span className="hb-filter-label"><Box size={12} /></span>
+                <Select
+                  allowClear
+                  showSearch
+                  placeholder="Module"
+                  size="small"
+                  variant="borderless"
+                  value={filters.module}
+                  onChange={(v) => setFilters((f) => ({ ...f, module: v }))}
+                  options={moduleOptions.map((m) => ({ value: m, label: m }))}
+                  style={{ width: 120 }}
+                />
+              </div>
+            </>
+          
+          <div className={`hb-filter-group ${filters.createdRange ? "active" : ""}`}>
+            <span className="hb-filter-label"><Calendar size={12} /> Created</span>
             <RangePicker
               size="small"
+              variant="borderless"
               value={filters.createdRange}
               onChange={(v) => setFilters((f) => ({ ...f, createdRange: v as any }))}
-              style={{ width: 220 }}
+              style={{ width: 200 }}
             />
           </div>
 
-          <div className="hb-filter-group">
-            <span className="hb-filter-label">Updated</span>
+          <div className={`hb-filter-group ${filters.updatedRange ? "active" : ""}`}>
+            <span className="hb-filter-label"><Calendar size={12} /> Updated</span>
             <RangePicker
               size="small"
+              variant="borderless"
               value={filters.updatedRange}
               onChange={(v) => setFilters((f) => ({ ...f, updatedRange: v as any }))}
-              style={{ width: 220 }}
+              style={{ width: 200 }}
             />
           </div>
-          {activeFilterCount > 0 && (
+
+        </>
+        {activeFilterCount > 0 && (
             <button
-              className="hb-btn hb-btn-ghost hb-filter-reset"
+              className="hb-filter-reset"
               onClick={() => setFilters(DEFAULT_FILTERS)}
               title="Reset filters"
             >
@@ -644,7 +712,7 @@ export default function BugListPage() {
               onClick={() => setFiltersVisible(false)}
               aria-label="Hide filters"
             >
-              <X size={14} />
+              <X size={16} />
             </button>
           </Tooltip>
         </div>
@@ -714,13 +782,13 @@ export default function BugListPage() {
                   </button>
                   <Popconfirm
                     title="Move selected bugs to trash?"
-                    okText="Delete"
+                    okText="Move to Trash"
                     okButtonProps={{ danger: true }}
                     onConfirm={() => bulkDelete.mutate(Array.from(selectedIds))}
                   >
                     <button className="hb-btn hb-btn-danger">
                       <Trash2 size={13} />
-                      Delete
+                      Move to Trash
                     </button>
                   </Popconfirm>
                 </>
@@ -731,9 +799,31 @@ export default function BugListPage() {
 
         <div className="hb-content">
           {scope === "archived" && !selectedSheetId && (
-            <ArchivedSheetsView
+            <ArchiveView
               selectedSheetId={selectedSheetId}
+              selectedFolderId={selectedFolderId}
+              onSelectFolder={setSelectedFolderId}
+              activeTab={subScope === "folders" || subScope === "sheets" ? subScope : "folders"}
+              onTabChange={(v) => setSubScope(v as any)}
               onSelectSheet={setSelectedSheetId}
+              onSelectBug={(bug) => {
+                setEditingBug(bug);
+                setBugDrawerOpen(true);
+              }}
+            />
+          )}
+          {scope === "trash" && !selectedSheetId && (
+            <TrashView
+              selectedSheetId={selectedSheetId}
+              selectedFolderId={selectedFolderId}
+              onSelectFolder={setSelectedFolderId}
+              activeTab={subScope as any}
+              onTabChange={(v) => setSubScope(v as any)}
+              onSelectSheet={setSelectedSheetId}
+              onSelectBug={(bug) => {
+                setEditingBug(bug);
+                setBugDrawerOpen(true);
+              }}
             />
           )}
 
@@ -764,7 +854,35 @@ export default function BugListPage() {
               </button>
             </div>
           )}
-          {(scope !== "archived" || (scope === "archived" && selectedSheetId)) && (
+
+          {/* ── trash sheet context banner ── */}
+          {scope === "trash" && selectedSheetId && (
+            <div className="hb-archive-banner">
+              <div className="hb-archive-banner-icon">
+                <Trash2 size={14} />
+              </div>
+              <div className="hb-archive-banner-text">
+                <div className="hb-archive-banner-title">
+                  Trashed Sheet — Read Only
+                </div>
+                <div className="hb-archive-banner-sub">
+                  You're viewing bugs from{" "}
+                  <strong>
+                    {trashedSheets?.find((s) => s.id === selectedSheetId)?.name || "this trashed sheet"}
+                  </strong>.
+                  Trashed sheets can be restored or permanently deleted.
+                </div>
+              </div>
+              <button
+                className="hb-archive-banner-back"
+                onClick={() => setSelectedSheetId(null)}
+              >
+                <ChevronLeft size={13} />
+                Back to Trash
+              </button>
+            </div>
+          )}
+          {(scope !== "archived" || (scope === "archived" && selectedSheetId)) && (scope !== "trash" || (scope === "trash" && selectedSheetId)) && (
             <>
               <HivebugTable
                 bugs={bugs}
@@ -797,6 +915,8 @@ export default function BugListPage() {
                 onBugStatusUpdate={handleBugStatusUpdate}
                 isTrashView={scope === "trash"}
                 isArchiveView={scope === "archived"}
+                isNestedInSheet={!!selectedSheetId}
+                isNestedInFolder={!!selectedFolderId}
               />
               {bugsResponse?.pagination && total > 0 && (
                 <div className="hb-pagination">
@@ -918,10 +1038,18 @@ function StatCard({
   icon: React.ReactNode;
   label: string;
   value: React.ReactNode;
-  tone?: "default" | "success" | "danger";
+  tone?: "default" | "success" | "danger" | "warning" | "info";
 }) {
   const toneClass =
-    tone === "success" ? "hb-stat-success" : tone === "danger" ? "hb-stat-danger" : "";
+    tone === "success" 
+      ? "hb-stat-success" 
+      : tone === "danger" 
+      ? "hb-stat-danger" 
+      : tone === "warning"
+      ? "hb-stat-warning"
+      : tone === "info"
+      ? "hb-stat-info"
+      : "";
   return (
     <div className={`hb-stat-card ${toneClass}`}>
       <div className="hb-stat-icon">{icon}</div>

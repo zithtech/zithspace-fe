@@ -242,6 +242,32 @@ class BugListService {
     await apiClient.delete(`/api/bug-list/folders/${id}`);
   }
 
+  static async getArchivedFolders(): Promise<BugFolder[]> {
+    const res = await apiClient.get<{ success: boolean; data: BugFolder[] }>(
+      "/api/bug-list/folders/archived"
+    );
+    return res.data.data;
+  }
+
+  static async getTrashedFolders(): Promise<BugFolder[]> {
+    const res = await apiClient.get<{ success: boolean; data: BugFolder[] }>(
+      "/api/bug-list/folders/trashed"
+    );
+    return res.data.data;
+  }
+
+  static async archiveFolder(id: string): Promise<void> {
+    await apiClient.patch(`/api/bug-list/folders/${id}/archive`);
+  }
+
+  static async restoreFolder(id: string): Promise<void> {
+    await apiClient.post(`/api/bug-list/folders/${id}/restore`);
+  }
+
+  static async permanentDeleteFolder(id: string): Promise<void> {
+    await apiClient.delete(`/api/bug-list/folders/${id}/permanent`);
+  }
+
   // ==================== Sheets ====================
   static async getSheets(folderId: string): Promise<BugSheet[]> {
     const res = await apiClient.get<{ success: boolean; data: BugSheet[] }>(
@@ -250,9 +276,9 @@ class BugListService {
     return res.data.data;
   }
 
-  static async getArchivedSheets(): Promise<BugSheet[]> {
+  static async getArchivedSheets(folderId?: string): Promise<BugSheet[]> {
     const res = await apiClient.get<{ success: boolean; data: BugSheet[] }>(
-      `/api/bug-list/sheets/archived`
+      `/api/bug-list/sheets/archived${folderId ? `?folderId=${folderId}` : ""}`
     );
     return res.data.data;
   }
@@ -293,6 +319,21 @@ class BugListService {
 
   static async deleteSheet(id: string): Promise<void> {
     await apiClient.delete(`/api/bug-list/sheets/${id}`);
+  }
+
+  static async getTrashedSheets(folderId?: string): Promise<any[]> {
+    const res = await apiClient.get<{ success: boolean; data: any[] }>(
+      `/api/bug-list/sheets/trashed${folderId ? `?folderId=${folderId}` : ""}`
+    );
+    return res.data.data;
+  }
+
+  static async restoreSheet(id: string): Promise<void> {
+    await apiClient.post(`/api/bug-list/sheets/${id}/restore`);
+  }
+
+  static async permanentDeleteSheet(id: string): Promise<void> {
+    await apiClient.delete(`/api/bug-list/sheets/${id}/permanent`);
   }
 
   // ==================== Bugs ====================

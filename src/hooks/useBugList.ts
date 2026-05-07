@@ -60,7 +60,79 @@ export const useDeleteBugFolder = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: bugKeys.folders() });
       qc.invalidateQueries({ queryKey: bugKeys.bugLists() });
-      message.success("Folder deleted");
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "trashed-folders"] });
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "trashed-sheets"] });
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "archived-folders"] });
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "archived-sheets"] });
+      qc.invalidateQueries({ queryKey: bugKeys.all }); 
+      message.success("Folder moved to trash");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const useArchivedFolders = () =>
+  useQuery({
+    queryKey: [...bugKeys.all, "archived-folders"] as const,
+    queryFn: () => BugListService.getArchivedFolders(),
+    staleTime: 60 * 1000,
+  });
+
+export const useTrashedFolders = () =>
+  useQuery({
+    queryKey: [...bugKeys.all, "trashed-folders"] as const,
+    queryFn: () => BugListService.getTrashedFolders(),
+    staleTime: 30 * 1000,
+  });
+
+export const useTrashedSheets = (folderId?: string) =>
+  useQuery({
+    queryKey: [...bugKeys.all, "trashed-sheets", folderId || "all"] as const,
+    queryFn: () => BugListService.getTrashedSheets(folderId),
+    staleTime: 60 * 1000,
+  });
+
+export const useArchiveFolder = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => BugListService.archiveFolder(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: bugKeys.folders() });
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "archived-folders"] });
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "archived-sheets"] });
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "trashed-folders"] });
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "trashed-sheets"] });
+      qc.invalidateQueries({ queryKey: bugKeys.all });
+      message.success("Folder archived");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const useRestoreFolder = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => BugListService.restoreFolder(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: bugKeys.folders() });
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "trashed-folders"] });
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "trashed-sheets"] });
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "archived-folders"] });
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "archived-sheets"] });
+      qc.invalidateQueries({ queryKey: bugKeys.all });
+      message.success("Folder restored");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const usePermanentDeleteFolder = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => BugListService.permanentDeleteFolder(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "trashed-folders"] });
+      message.success("Folder permanently deleted");
     },
     onError: (err: Error) => message.error(err.message),
   });
@@ -75,10 +147,10 @@ export const useBugSheets = (folderId: string | null) =>
     staleTime: 60 * 1000,
   });
 
-export const useArchivedSheets = () =>
+export const useArchivedSheets = (folderId?: string) =>
   useQuery({
-    queryKey: [...bugKeys.all, "archived-sheets"] as const,
-    queryFn: () => BugListService.getArchivedSheets(),
+    queryKey: [...bugKeys.all, "archived-sheets", folderId || "all"] as const,
+    queryFn: () => BugListService.getArchivedSheets(folderId),
     staleTime: 60 * 1000,
   });
 
@@ -116,8 +188,9 @@ export const useUpdateBugSheetStatus = () => {
     onSuccess: (sheet) => {
       qc.invalidateQueries({ queryKey: bugKeys.sheets(sheet.folderId) });
       qc.invalidateQueries({ queryKey: bugKeys.folders() });
-      // Also invalidate archived sheets query when archiving/unarchiving
       qc.invalidateQueries({ queryKey: [...bugKeys.all, "archived-sheets"] });
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "trashed-sheets"] });
+      qc.invalidateQueries({ queryKey: bugKeys.all });
       const statusMessages = {
         active: "Sheet reopened",
         current: "Sheet marked as current", 
@@ -137,7 +210,33 @@ export const useDeleteBugSheet = () => {
     mutationFn: (id: string) => BugListService.deleteSheet(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: bugKeys.all });
-      message.success("Sheet deleted");
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "trashed-sheets"] });
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "archived-sheets"] });
+      message.success("Sheet moved to trash");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const useRestoreSheet = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => BugListService.restoreSheet(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: bugKeys.all });
+      message.success("Sheet restored");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const usePermanentDeleteSheet = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => BugListService.permanentDeleteSheet(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: bugKeys.all });
+      message.success("Sheet permanently deleted");
     },
     onError: (err: Error) => message.error(err.message),
   });

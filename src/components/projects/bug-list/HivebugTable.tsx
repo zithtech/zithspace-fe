@@ -116,6 +116,8 @@ interface HivebugTableProps {
   onBugStatusUpdate?: (bugId: string, bugStatus: "not started" | "pending" | "completed") => void;
   isTrashView?: boolean;
   isArchiveView?: boolean;
+  isNestedInSheet?: boolean;
+  isNestedInFolder?: boolean;
 }
 
 export default function HivebugTable({
@@ -135,6 +137,8 @@ export default function HivebugTable({
   onBugStatusUpdate,
   isTrashView,
   isArchiveView,
+  isNestedInSheet,
+  isNestedInFolder,
 }: HivebugTableProps) {
   const selectableBugs = bugs.filter((b) => !b.ticketId);
   const allChecked =
@@ -201,6 +205,8 @@ export default function HivebugTable({
               onBugStatusUpdate={onBugStatusUpdate}
               isTrashView={isTrashView}
               isArchiveView={isArchiveView}
+              isNestedInSheet={isNestedInSheet}
+              isNestedInFolder={isNestedInFolder}
             />
           ))}
         </tbody>
@@ -224,6 +230,8 @@ interface BugRowProps {
   onBugStatusUpdate?: (bugId: string, bugStatus: "not started" | "pending" | "completed") => void;
   isTrashView?: boolean;
   isArchiveView?: boolean;
+  isNestedInSheet?: boolean;
+  isNestedInFolder?: boolean;
 }
 
 function BugRow({
@@ -241,6 +249,8 @@ function BugRow({
   onBugStatusUpdate,
   isTrashView,
   isArchiveView,
+  isNestedInSheet,
+  isNestedInFolder,
 }: BugRowProps) {
   const { open: openTicketDrawer } = useTicketDrawer();
   const severity = bug.severity;
@@ -379,13 +389,29 @@ function BugRow({
           menu={{
             items: isTrashView
               ? [
-                  { key: "restore", label: "Restore" },
+                  { 
+                    key: "restore", 
+                    label: (
+                      <Tooltip title={isNestedInFolder ? "First restore folder" : isNestedInSheet ? "First restore sheet" : ""}>
+                        <span>Restore</span>
+                      </Tooltip>
+                    ),
+                    disabled: isNestedInFolder || isNestedInSheet
+                  },
                   { type: "divider" as const },
                   { key: "delete", label: "Delete Permanently", danger: true },
                 ]
               : isArchiveView
               ? [
-                  { key: "restore", label: "Restore from Archive" },
+                  { 
+                    key: "restore", 
+                    label: (
+                      <Tooltip title={isNestedInFolder ? "First restore folder" : isNestedInSheet ? "First restore sheet" : ""}>
+                        <span>Restore from Archive</span>
+                      </Tooltip>
+                    ),
+                    disabled: isNestedInFolder || isNestedInSheet
+                  },
                   { type: "divider" as const },
                   { key: "delete", label: "Delete", danger: true },
                 ]
@@ -404,7 +430,7 @@ function BugRow({
                   },
                   { key: "archive", label: "Archive" },
                   { type: "divider" as const },
-                  { key: "delete", label: "Delete", danger: true },
+                  { key: "delete", label: "Move to Trash", danger: true },
                 ],
             onClick: ({ key }) => {
               if (key === "edit") onEdit();

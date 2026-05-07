@@ -3,9 +3,8 @@
 import React from "react";
 import { Skeleton, Avatar, Popconfirm, Tooltip } from "antd";
 import {
-  Archive,
-  RotateCcw,
   Trash2,
+  RotateCcw,
   FolderOpen,
   Bug,
   Clock,
@@ -13,9 +12,10 @@ import {
   Eye,
 } from "lucide-react";
 import {
-  useArchivedSheets,
+  useTrashedSheets,
+  useRestoreSheet,
+  usePermanentDeleteSheet,
   useUpdateBugSheetStatus,
-  useDeleteBugSheet,
 } from "@/hooks/useBugList";
 import type { BugSheet } from "@/services/bugListService";
 import { hivebugStyles } from "./hivebug-styles";
@@ -62,7 +62,7 @@ const formatDate = (date: string) =>
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
-interface ArchivedSheetsViewProps {
+interface TrashedSheetsViewProps {
   selectedSheetId: string | null;
   onSelectSheet: (sheetId: string | null) => void;
 }
@@ -79,13 +79,14 @@ type SheetWithMeta = BugSheet & {
 
 // ─── main component ──────────────────────────────────────────────────────────
 
-export default function ArchivedSheetsView({
+export default function TrashedSheetsView({
   selectedSheetId,
   onSelectSheet,
-}: ArchivedSheetsViewProps) {
-  const { data: archivedSheets, isLoading } = useArchivedSheets();
+}: TrashedSheetsViewProps) {
+  const { data: trashedSheets, isLoading } = useTrashedSheets();
+  const restoreSheet = useRestoreSheet();
+  const permanentDeleteSheet = usePermanentDeleteSheet();
   const updateSheetStatus = useUpdateBugSheetStatus();
-  const deleteSheet = useDeleteBugSheet();
 
   if (isLoading) {
     return (
@@ -93,10 +94,10 @@ export default function ArchivedSheetsView({
         <style>{hivebugStyles}</style>
         <div className="arc-header">
           <div className="arc-header-icon">
-            <Archive size={16} />
+            <Trash2 size={16} />
           </div>
           <div>
-            <div className="arc-header-title">Archived Sheets</div>
+            <div className="arc-header-title">Trash</div>
             <div className="arc-header-sub">Loading…</div>
           </div>
         </div>
@@ -111,17 +112,17 @@ export default function ArchivedSheetsView({
     );
   }
 
-  if (!archivedSheets || archivedSheets.length === 0) {
+  if (!trashedSheets || trashedSheets.length === 0) {
     return (
       <>
         <style>{hivebugStyles}</style>
         <div className="arc-empty-wrap">
           <div className="arc-empty-icon">
-            <Archive size={36} />
+            <Trash2 size={36} />
           </div>
-          <div className="arc-empty-title">No archived sheets</div>
+          <div className="arc-empty-title">No sheets in trash</div>
           <div className="arc-empty-sub">
-            When you archive a sheet it will appear here — safe and out of the way.
+            Sheets you move to trash will appear here — safe and recoverable.
           </div>
         </div>
       </>
@@ -135,28 +136,26 @@ export default function ArchivedSheetsView({
       {/* ── section header ── */}
       <div className="arc-header">
         <div className="arc-header-icon">
-          <Archive size={16} />
+          <Trash2 size={16} />
         </div>
         <div>
-          <div className="arc-header-title">Archived Sheets</div>
+          <div className="arc-header-title">Trash</div>
           <div className="arc-header-sub">
-            {archivedSheets.length} sheet{archivedSheets.length !== 1 ? "s" : ""} archived
+            {trashedSheets.length} sheet{trashedSheets.length !== 1 ? "s" : ""} in trash
           </div>
         </div>
       </div>
 
       {/* ── card grid ── */}
       <div className="arc-grid">
-        {archivedSheets.map((sheet) => (
-          <ArchivedSheetCard
+        {trashedSheets.map((sheet) => (
+          <TrashedSheetCard
             key={sheet.id}
             sheet={sheet as SheetWithMeta}
             isSelected={selectedSheetId === sheet.id}
             onView={() => onSelectSheet(sheet.id)}
-            onRestore={() =>
-              updateSheetStatus.mutate({ id: sheet.id, status: "active" })
-            }
-            onDelete={() => deleteSheet.mutate(sheet.id)}
+            onRestore={() => restoreSheet.mutate(sheet.id)}
+            onDelete={() => permanentDeleteSheet.mutate(sheet.id)}
           />
         ))}
       </div>
@@ -174,7 +173,7 @@ interface CardProps {
   onDelete: () => void;
 }
 
-function ArchivedSheetCard({
+function TrashedSheetCard({
   sheet,
   isSelected,
   onView,
@@ -192,13 +191,13 @@ function ArchivedSheetCard({
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onView()}
-      aria-label={`View archived sheet ${sheet.name}`}
+      aria-label={`View trashed sheet ${sheet.name}`}
     >
-      {/* ── top row: archive badge + bug count ── */}
+      {/* ── top row: trash badge + bug count ── */}
       <div className="arc-card-toprow">
-        <span className="arc-badge-archived">
-          <Archive size={10} />
-          Archived
+        <span className="arc-badge-trashed">
+          <Trash2 size={10} />
+          Trashed
         </span>
         <span className="arc-badge-bugs">
           <Bug size={10} />
@@ -251,7 +250,7 @@ function ArchivedSheetCard({
               {formatRelative(sheet.createdAt)}
             </span>
           </Tooltip>
-          <Tooltip title={`Archived: ${formatDate(sheet.updatedAt)}`}>
+          <Tooltip title={`Trashed: ${formatDate(sheet.updatedAt)}`}>
             <span className="arc-card-date">
               <Clock size={10} />
               {formatRelative(sheet.updatedAt)}
@@ -266,20 +265,20 @@ function ArchivedSheetCard({
           <Eye size={13} />
           View Bugs
         </button>
-        <Tooltip title="Restore sheet to active">
+        <Tooltip title="Restore sheet">
           <button className="arc-action-btn arc-action-restore" onClick={onRestore}>
             <RotateCcw size={13} />
             Restore
           </button>
         </Tooltip>
         <Popconfirm
-          title="Move to Trash"
+          title="Delete Permanently"
           description="This action cannot be undone."
-          okText="Move to Trash"
+          okText="Delete Permanently"
           okButtonProps={{ danger: true }}
           onConfirm={onDelete}
         >
-          <Tooltip title="Move to Trash">
+          <Tooltip title="Delete Permanently">
             <button className="arc-action-btn arc-action-delete">
               <Trash2 size={13} />
             </button>

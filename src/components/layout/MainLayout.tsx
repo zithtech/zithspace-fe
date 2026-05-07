@@ -14,9 +14,10 @@ const { Content } = Layout;
 
 interface MainLayoutProps {
   children: React.ReactNode;
+  noPadding?: boolean;
 }
 
-export default function MainLayout({ children }: MainLayoutProps) {
+export default function MainLayout({ children, noPadding }: MainLayoutProps) {
   const { token } = theme.useToken();
   const { user, logout, isLoading: authLoading } = useAuth();
   const { notification } = AntApp.useApp();
@@ -112,8 +113,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
           className="fade-in"
           style={{
             margin: 0,
-            paddingLeft: "8px",
-            paddingRight: "8px",
+            paddingLeft: noPadding ? 0 : "8px",
+            paddingRight: noPadding ? 0 : "8px",
             // background: "#f5f5f5",
             background: 'var(--bg-pure-white)',
             marginLeft: collapsed ? 65 : 200,

@@ -25,6 +25,7 @@ import {
   useBugSheets,
   useBugStats,
   useDeleteBugFolder,
+  useArchiveFolder,
   useDeleteBugSheet,
   useUpdateBugSheetStatus,
 } from "@/hooks/useBugList";
@@ -251,6 +252,7 @@ function FolderNode({
 }: FolderNodeProps) {
   const { data: sheets, isLoading } = useBugSheets(isOpen ? folder.id : null);
   const deleteFolder = useDeleteBugFolder();
+  const archiveFolder = useArchiveFolder();
   const deleteSheet = useDeleteBugSheet();
   const updateSheetStatus = useUpdateBugSheetStatus();
 
@@ -304,12 +306,14 @@ function FolderNode({
               { key: "add-sheet", label: "Add sheet" },
               { key: "edit", label: "Edit" },
               { type: "divider" },
-              { key: "delete", label: "Delete", danger: true },
+              { key: "archive", label: "Move to Archive" },
+              { key: "delete", label: "Move to Trash", danger: true },
             ],
             onClick: ({ key, domEvent }) => {
               domEvent.stopPropagation();
               if (key === "add-sheet") onAddSheet();
               if (key === "edit") onEdit();
+              if (key === "archive") archiveFolder.mutate(folder.id);
               if (key === "delete") deleteFolder.mutate(folder.id);
             },
           }}
@@ -378,7 +382,7 @@ function FolderNode({
                         { type: "divider" },
                         { key: "edit", label: "Edit", disabled: isArchived },
                         { type: "divider" },
-                        { key: "delete", label: "Delete", danger: true },
+                        { key: "delete", label: "Move to Trash", danger: true },
                       ],
                       onClick: ({ key, domEvent }) => {
                         domEvent.stopPropagation();

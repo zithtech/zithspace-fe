@@ -21,7 +21,7 @@ export default function BugListRoute() {
 
   if (authLoading) {
     return (
-      <MainLayout>
+      <MainLayout noPadding>
         <div
           style={{
             margin: 0,
@@ -45,7 +45,7 @@ export default function BugListRoute() {
   if (!canReadTicket) return null;
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <div
         style={{
           margin: 0,

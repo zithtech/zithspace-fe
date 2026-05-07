@@ -53,6 +53,7 @@ interface ExtendedAttendance extends Attendance {
     id: string;
     name: string;
     position: string;
+    avatarUrl?: string;
   };
   effectiveWorkMinutes?: number;
 }
@@ -165,7 +166,7 @@ export default function ManageAttendancePage() {
   const handleUpdate = async (values: any, isEdit: boolean) => {
     try {
       setActionLoading(true);
-      
+
       const selectedDate = dayjs(values.date);
       const clockInTime = values.clockIn ? dayjs(values.clockIn) : null;
       const clockOutTime = values.clockOut ? dayjs(values.clockOut) : null;
@@ -251,8 +252,12 @@ export default function ManageAttendancePage() {
         const member: any = record.member;
         return (
           <Space>
-            <Avatar size={40} style={{ backgroundColor: '#1677ff', borderRadius: '10px' }}>
-              {member?.name?.charAt(0).toUpperCase()}
+            <Avatar
+              size={40}
+              src={record.member?.avatarUrl}
+              style={{ backgroundColor: '#1677ff', borderRadius: '10px' }}
+            >
+              {record.member?.name?.charAt(0)}
             </Avatar>
             <div>
               <Text strong style={{ fontSize: '15px' }}>{member?.name}</Text>
@@ -329,7 +334,12 @@ export default function ManageAttendancePage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '24px', background: 'var(--bg-secondary)', minHeight: '100vh' }}>
+      <div style={{
+        margin: "0 -24px",
+        padding: "24px 32px",
+        background: "var(--bg-pure-white)",
+        minHeight: "calc(100vh - 64px)"
+      }}>
         {/* Header */}
         <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Space align="center" size={16}>
@@ -519,19 +529,23 @@ export default function ManageAttendancePage() {
                   String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
                 }
               >
-                {members.map(m => (
+                {members.map(member => (
                   <Option
-                    key={m.id}
-                    value={m.id}
-                    label={m.name || ""}
+                    key={member.id}
+                    value={member.id}
+                    label={member.name || ""}
                   >
                     <Space>
-                      <Avatar size="small" style={{ backgroundColor: '#1677ff' }}>
-                        {(m.name || "").charAt(0).toUpperCase()}
+                      <Avatar
+                        size="small"
+                        src={member?.avatarUrl}
+                        style={{ backgroundColor: '#1677ff' }}
+                      >
+                        {member.name?.charAt(0)}
                       </Avatar>
-                      <Text>{m.name}</Text>
+                      <Text>{member.name}</Text>
                       <Text type="secondary" style={{ fontSize: '12px' }}>
-                        • {m.position?.title || 'Team Member'}
+                        • {member.position?.title || 'Team Member'}
                       </Text>
                     </Space>
                   </Option>

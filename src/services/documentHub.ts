@@ -40,8 +40,13 @@ export interface DocumentHub {
     name: string;
     workEmail: string;
     position?: string;
+    avatarUrl?: string;
   };
+  visibility: string;
+  shareToken?: string;
   treeNodes?: DocumentTreeNode[];
+  /** True when the requesting user has starred this hub. */
+  isStarred?: boolean;
 }
 
 export interface CreateDocumentHubData {
@@ -85,12 +90,105 @@ class DocumentHubService {
     }
   }
 
+  /**
+   * Generate a documentation draft (hub name + first file title + HTML body)
+   * from a free-form prompt. Server returns the draft; client persists it.
+   */
+  static async generateAiDocumentDraft(input: {
+    prompt: string;
+  }): Promise<{
+    hubName: string;
+    fileTitle: string;
+    contentHtml: string;
+    source: "gemini" | "mock";
+    fallbackReason?: string;
+  }> {
+    try {
+      const response = await apiClient.post(
+        "/api/documenthub/ai-generate",
+        input,
+        { timeout: 120_000 },
+      );
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error generating AI document draft:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to generate document draft";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Rewrite a selected excerpt of a document according to a user instruction.
+   * Used by the inline Zai menu when a user selects text in the editor.
+   */
+  static async rewriteAiSelection(input: {
+    text: string;
+    instruction: string;
+  }): Promise<{
+    rewrittenHtml: string;
+    source: "gemini" | "mock";
+    fallbackReason?: string;
+  }> {
+    try {
+      const response = await apiClient.post(
+        "/api/documenthub/ai-rewrite",
+        input,
+        { timeout: 120_000 },
+      );
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error rewriting AI selection:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to rewrite selection";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /** Star (favourite) a document hub for the current user. */
+  static async starDocumentHub(hubId: string): Promise<void> {
+    try {
+      await apiClient.post(`/api/documenthub/${hubId}/star`);
+    } catch (error: any) {
+      console.error("Error starring hub:", error);
+      throw error;
+    }
+  }
+
+  /** Remove the current user's star from a document hub. */
+  static async unstarDocumentHub(hubId: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/documenthub/${hubId}/star`);
+    } catch (error: any) {
+      console.error("Error unstarring hub:", error);
+      throw error;
+    }
+  }
+
   static async getAllDocumentHubs(): Promise<DocumentHub[]> {
     try {
       const response = await apiClient.get("/api/documenthub");
       return response.data.data;
     } catch (error: any) {
       console.error("Error getting all document hubs:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * List document hubs linked to a specific ticket. Backed by the same
+   * `/api/documenthub` endpoint with a `ticketId` query filter.
+   */
+  static async getDocumentHubsByTicket(
+    ticketId: string,
+  ): Promise<DocumentHub[]> {
+    try {
+      const response = await apiClient.get("/api/documenthub", {
+        params: { ticketId },
+      });
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error getting document hubs for ticket:", error);
       throw error;
     }
   }
@@ -111,7 +209,7 @@ class DocumentHubService {
 
   static async updateDocumentHub(
     id: string,
-    data: { name: string }
+    data: UpdateDocumentHubData
   ): Promise<DocumentHub> {
     try {
       const response = await apiClient.patch(`/api/documenthub/${id}`, data);
@@ -141,7 +239,7 @@ class DocumentHubService {
 
   static async updateTreeNode(
     nodeId: string,
-    data: { title: string }
+    data: { title?: string; parentId?: string | null }
   ): Promise<DocumentTreeNode> {
     try {
       const response = await apiClient.put(`/api/documenthub/node/${nodeId}`, data);
@@ -166,7 +264,7 @@ class DocumentHubService {
 
   static async updateDocument(
     documentId: string,
-    data: { content?: any; title?: string },
+    data: { content?: any; title?: string; expectedVersion?: number },
   ): Promise<any> {
     try {
       const response = await apiClient.put(
@@ -176,6 +274,20 @@ class DocumentHubService {
       return response.data.data;
     } catch (error: any) {
       console.error("Error updating document:", error);
+      throw error;
+    }
+  }
+
+  static async deleteDocumentHistoryEntry(
+    documentId: string,
+    historyId: string,
+  ): Promise<void> {
+    try {
+      await apiClient.delete(
+        `/api/documenthub/document/${documentId}/history/${historyId}`,
+      );
+    } catch (error: any) {
+      console.error("Error deleting history entry:", error);
       throw error;
     }
   }
@@ -262,7 +374,7 @@ class DocumentHubService {
     }
   }
 
-  static async shareDocument(id: string, visibility: 'private' | 'internal' | 'public'): Promise<any> {
+  static async shareDocument(id: string, visibility: 'private' | 'public'): Promise<any> {
     try {
       const response = await apiClient.put(`/api/documenthub/document/${id}/share`, { visibility });
       return response.data.data;
@@ -287,6 +399,45 @@ class DocumentHubService {
       return response.data.data;
     } catch (error: any) {
       console.error("Error getting public document:", error);
+      throw error;
+    }
+  }
+
+  static async shareDocumentHub(id: string, visibility: 'private' | 'public'): Promise<any> {
+    try {
+      const response = await apiClient.put(`/api/documenthub/${id}/share`, { visibility });
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error sharing document hub:", error);
+      throw error;
+    }
+  }
+
+  static async revokeHubShare(id: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/documenthub/${id}/share`);
+    } catch (error: any) {
+      console.error("Error revoking hub share:", error);
+      throw error;
+    }
+  }
+
+  static async getPublicDocumentHub(token: string): Promise<any> {
+    try {
+      const response = await apiClient.get(`/api/public/document/hub/${token}`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error getting public document hub:", error);
+      throw error;
+    }
+  }
+
+  static async getPublicHubDocumentContent(token: string, documentId: string): Promise<any> {
+    try {
+      const response = await apiClient.get(`/api/public/document/hub/${token}/document/${documentId}`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error getting public hub document content:", error);
       throw error;
     }
   }

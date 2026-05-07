@@ -46,6 +46,7 @@ import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useTimesheets, useTimesheetById } from "@/hooks/useTimesheet";
 import { reviewTimesheet } from "@/services/timesheetService";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 interface TimesheetRowUI {
   id?: string;
@@ -188,7 +189,11 @@ export default function TeamsTab({
       title: "Employee",
       render: (_: any, r: any) => (
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Avatar size={36} style={{ backgroundColor: "var(--bg-sky-50)", color: "var(--text-sky-500)", fontWeight: 600 }}>
+          <Avatar 
+            size={36} 
+            src={r.user?.avatarUrl}
+            style={{ backgroundColor: "var(--bg-sky-50)", color: "var(--text-sky-500)", fontWeight: 600 }}
+          >
             {r.user?.name?.charAt(0).toUpperCase()}
           </Avatar>
           <div>
@@ -311,65 +316,47 @@ export default function TeamsTab({
   return (
     <div style={{
       margin: "0 -24px",
-      padding: "0 32px 24px 32px",
       background: "var(--bg-pure-white)",
-      height: "calc(100vh - 72px)",
+      height: "calc(100vh - 64px)",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden"
     }}>
-      {/* Header Section */}
-      <div style={{
-        marginBottom: 16,
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-end",
-        gap: 24,
-        position: "sticky",
-        top: 0,
-        background: "var(--bg-pure-white)",
-        zIndex: 10,
-        padding: "24px 0 12px 0"
-      }}>
-        <div style={{ flex: 1 }}>
-          <Space size={14} align="center">
-            <div style={{ background: "var(--bg-sky-50)", padding: 12, borderRadius: 14, color: "var(--text-sky-500)", display: "flex" }}>
-              <Users size={28} />
-            </div>
-            <div>
-              <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Team Timesheets</Title>
-              <Text style={{ color: "var(--text-slate-600)", fontSize: 15 }}>Review and manage timesheet submissions from your team members.</Text>
-            </div>
-          </Space>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Select
-            mode="multiple"
-            showSearch
-            filterOption={(input, option) =>
-              String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-            }
-            placeholder="Search members..."
-            style={{ width: 220, height: 44 }}
-            className="custom-select-44"
-            value={selectedMembers}
-            onChange={setSelectedMembers}
-            options={members.map((m) => ({ label: m.name, value: m.id }))}
-            maxTagCount="responsive"
-          />
-          <Select
-            placeholder="Filter by week"
-            style={{ width: 200, height: 44 }}
-            value={selectedWeek}
-            onChange={setSelectedWeek}
-            options={weekOptions}
-            allowClear
-            suffixIcon={<Calendar size={16} color="#94a3b8" />}
-          />
-        </div>
-      </div>
+      <TimeTrackingHeader
+        style={{ padding: '9.5px 32px' }}
+        icon={<Users size={20} color="#0ea5e9" />}
+        title="Team Timesheets"
+        description="Review and manage timesheet submissions from your team members."
+        extra={
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Select
+              mode="multiple"
+              showSearch
+              filterOption={(input, option) =>
+                String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+              }
+              placeholder="Search members..."
+              style={{ width: 220, height: 38 }}
+              className="custom-select-38"
+              value={selectedMembers}
+              onChange={setSelectedMembers}
+              options={members.map((m) => ({ label: m.name, value: m.id }))}
+              maxTagCount="responsive"
+            />
+            <Select
+              placeholder="Filter by week"
+              style={{ width: 200, height: 38 }}
+              value={selectedWeek}
+              onChange={setSelectedWeek}
+              options={weekOptions}
+              allowClear
+              suffixIcon={<Calendar size={16} color="#94a3b8" />}
+            />
+          </div>
+        }
+      />
 
-      <div style={{ flex: 1, overflowY: "auto", paddingRight: 4, scrollbarWidth: "none" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 32px 32px 32px", scrollbarWidth: "none" }}>
         {/* Stats Row */}
         <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
           {stats.map(stat => (
@@ -413,7 +400,11 @@ export default function TeamsTab({
           <div style={{ padding: "16px 0", borderBottom: "1px solid var(--border-slate-100)", marginBottom: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <Avatar size={40} style={{ backgroundColor: "var(--text-sky-500)", fontWeight: 700, fontSize: 16 }}>
+                <Avatar 
+                  size={40} 
+                  src={selectedTimesheet?.user?.avatarUrl}
+                  style={{ backgroundColor: "var(--text-sky-500)", fontWeight: 700, fontSize: 16 }}
+                >
                   {selectedTimesheet?.user?.name?.charAt(0).toUpperCase()}
                 </Avatar>
                 <div>
@@ -541,6 +532,7 @@ export default function TeamsTab({
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <Avatar
                 size={48}
+                src={selectedTimesheet?.user?.avatarUrl}
                 style={{ backgroundColor: "var(--text-sky-500)", fontWeight: 700 }}
               >
                 {selectedTimesheet.user?.name?.charAt(0).toUpperCase()}
@@ -773,9 +765,9 @@ export default function TeamsTab({
           background-color: var(--bg-pure-white) !important;
           color: var(--text-slate-600) !important;
         }
-        .custom-select-44 .ant-select-selector {
-          height: 44px !important;
-          padding: 4px 11px !important;
+        .custom-select-38 .ant-select-selector {
+          height: 38px !important;
+          padding: 2px 11px !important;
           border-radius: 12px !important;
           background-color: var(--bg-pure-white) !important;
           border: 1px solid var(--border-slate-200) !important;

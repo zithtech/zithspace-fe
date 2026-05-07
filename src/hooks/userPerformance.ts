@@ -764,7 +764,8 @@ import TicketService from "@/services/ticketService";
 import DailyUpdateService from "@/services/dailyUpdateService";
 import { TimeTrackingService } from "@/services/timeTracking.service";
 import { ProjectService } from "@/services/projectService";
-import { EscalationService, Escalation } from "@/services/escalationService";
+import { EscalationServiceV2 as EscalationService } from "@/services/escalationServiceV2";
+type Escalation = any;
 import dayjs from "dayjs";
 
 interface PerformanceFilters {
@@ -865,7 +866,7 @@ export const usePerformance = (filters: PerformanceFilters) => {
         return { data: [] };
       }),
 
-      EscalationService.getEscalations({
+      (EscalationService as any).getAllEscalations({
         userId: userId,
         startDate,
         endDate,
@@ -1114,11 +1115,11 @@ export const usePerformance = (filters: PerformanceFilters) => {
       escalations: {
         summary: {
           total: totalEscalations,
-          open: (escalationsRes?.data || []).filter(e => e.status === 'OPEN').length,
-          resolved: (escalationsRes?.data || []).filter(e => e.status === 'RESOLVED' || e.status === 'CLOSED').length,
+          open: (escalationsRes?.data || []).filter((e: any) => e.status === 'OPEN').length,
+          resolved: (escalationsRes?.data || []).filter((e: any) => e.status === 'RESOLVED' || e.status === 'CLOSED').length,
           penalty: round(escalationPenalty),
         },
-        details: (escalationsRes?.data || []).map(e => ({
+        details: (escalationsRes?.data || []).map((e: any) => ({
           id: e.id,
           subject: e.subject,
           status: e.status,

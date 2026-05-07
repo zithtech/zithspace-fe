@@ -116,8 +116,8 @@ export function useEmptyTrash() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (force: boolean = false) =>
-      TrashService.emptyTrash(undefined, force),
+    mutationFn: ({ projectId, force = false }: { projectId?: string; force?: boolean } = {}) =>
+      TrashService.emptyTrash(projectId, force),
     onSuccess: (data) => {
       // Invalidate all trash queries
       queryClient.invalidateQueries({ queryKey: trashKeys.all });

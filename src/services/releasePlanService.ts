@@ -110,8 +110,8 @@ class ReleasePlanService {
       return response?.data?.data;
     } catch (error: any) {
       console.error('Error creating Plans:', error);
-      const errorMessage = error?.response?.data?.error || 'Failed to create Plans';
-      throw new Error(error);
+      const errorMessage = error?.message || error?.response?.data?.error || 'Failed to create Plans';
+      throw new Error(errorMessage);
     }
   }
 
@@ -121,7 +121,7 @@ class ReleasePlanService {
   static async getReleasePlans(params: {
     page?: number;
     limit?: number;
-    project?: string;
+    projectId?: string;
     status?: string;
     priority?: string;
     search?: string;
@@ -167,8 +167,8 @@ class ReleasePlanService {
       return response?.data?.data;
     } catch (error: any) {
       console.error('Error updating Plans:', error);
-      const errorMessage = error?.response?.data?.error || 'Failed to update Plans';
-      throw new Error(error);
+      const errorMessage = error?.message || error?.response?.data?.error || 'Failed to update Plans';
+      throw new Error(errorMessage);
     }
   }
 
@@ -180,8 +180,8 @@ class ReleasePlanService {
       await apiClient.delete(`/api/release-plans/${id}`);
     } catch (error: any) {
       console.error('Error deleting Plans:', error);
-      const errorMessage = error?.response?.data?.error || 'Failed to delete Plans';
-      throw new Error(error);
+      const errorMessage = error?.message || error?.response?.data?.error || 'Failed to delete Plans';
+      throw new Error(errorMessage);
     }
   }
 

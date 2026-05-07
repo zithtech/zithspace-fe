@@ -78,11 +78,13 @@ export default function TiptapViewer({
           padding: 0;
           outline: none;
           cursor: default;
+          color: var(--text-primary);
         }
 
         .tiptap-viewer-content p {
           margin: 0 0 8px 0;
           line-height: 1.6;
+          color: inherit;
         }
 
         .tiptap-viewer-content p:last-child {
@@ -94,6 +96,7 @@ export default function TiptapViewer({
           font-weight: bold;
           margin: 16px 0 8px 0;
           line-height: 1.3;
+          color: var(--text-primary);
         }
 
         .tiptap-viewer-content h2 {
@@ -101,6 +104,7 @@ export default function TiptapViewer({
           font-weight: bold;
           margin: 14px 0 8px 0;
           line-height: 1.3;
+          color: var(--text-primary);
         }
 
         .tiptap-viewer-content h3 {
@@ -108,6 +112,7 @@ export default function TiptapViewer({
           font-weight: bold;
           margin: 12px 0 8px 0;
           line-height: 1.3;
+          color: var(--text-primary);
         }
 
         .tiptap-viewer-content h1:first-child,
@@ -128,17 +133,18 @@ export default function TiptapViewer({
         }
 
         .tiptap-viewer-content a {
-          color: #1890ff;
+          color: #3b82f6;
           text-decoration: underline;
           cursor: pointer;
         }
 
         .tiptap-viewer-content a:hover {
-          color: #40a9ff;
+          color: #60a5fa;
         }
 
         .tiptap-viewer-content code {
-          background-color: #f5f5f5;
+          background-color: var(--bg-slate-100);
+          color: var(--text-primary);
           padding: 2px 6px;
           border-radius: 3px;
           font-family: "Courier New", monospace;
@@ -146,11 +152,23 @@ export default function TiptapViewer({
         }
 
         .tiptap-viewer-content pre {
-          background-color: #f5f5f5;
+          background-color: var(--bg-slate-100);
+          color: var(--text-primary);
           padding: 12px;
           border-radius: 6px;
           overflow-x: auto;
           margin: 8px 0;
+        }
+
+        /* Dark theme fixes */
+        [data-theme='dark'] .tiptap-viewer-content code {
+          background-color: var(--bg-slate-800);
+          color: var(--text-primary);
+        }
+
+        [data-theme='dark'] .tiptap-viewer-content pre {
+          background-color: var(--bg-slate-800);
+          color: var(--text-primary);
         }
 
         .tiptap-viewer-content pre code {
@@ -163,6 +181,12 @@ export default function TiptapViewer({
           padding: 2px 0;
         }
 
+        /* Dark theme fixes for highlights */
+        [data-theme='dark'] .tiptap-viewer-content mark {
+          background-color: #713f12;
+          color: #fef3c7;
+        }
+
         .tiptap-viewer-content .tiptap-image {
           max-width: 100%;
           height: auto;
@@ -173,27 +197,46 @@ export default function TiptapViewer({
         }
 
         .tiptap-viewer-content blockquote {
-          border-left: 3px solid #d9d9d9;
+          border-left: 3px solid var(--border-color);
           padding-left: 12px;
           margin: 8px 0;
-          color: #595959;
+          color: var(--text-secondary);
           font-style: italic;
         }
 
         .tiptap-viewer-content strong {
           font-weight: 600;
+          color: var(--text-primary);
         }
 
         .tiptap-viewer-content em {
           font-style: italic;
+          color: var(--text-primary);
         }
 
         .tiptap-viewer-content u {
           text-decoration: underline;
+          color: var(--text-primary);
         }
 
         .tiptap-viewer-content s {
           text-decoration: line-through;
+          color: var(--text-primary);
+        }
+
+        /* Ensure all text elements inherit proper colors in dark theme */
+        [data-theme='dark'] .tiptap-viewer-content p,
+        [data-theme='dark'] .tiptap-viewer-content li,
+        [data-theme='dark'] .tiptap-viewer-content span,
+        [data-theme='dark'] .tiptap-viewer-content div {
+          color: var(--text-primary);
+        }
+
+        [data-theme='dark'] .tiptap-viewer-content strong,
+        [data-theme='dark'] .tiptap-viewer-content em,
+        [data-theme='dark'] .tiptap-viewer-content u,
+        [data-theme='dark'] .tiptap-viewer-content s {
+          color: var(--text-primary);
         }
       `}</style>
     </div>

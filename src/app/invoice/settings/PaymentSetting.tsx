@@ -1,9 +1,13 @@
-
-
 "use client";
 import { FC, useEffect } from "react";
-import { Card, Form, Input, Row, Col, Upload, Button } from "antd";
-import { CreditCard, QrCode, UploadCloud, Building, Info, Landmark } from "lucide-react";
+import { Form, Input, Upload, Button, Tooltip } from "antd";
+import {
+  QrCode,
+  UploadCloud,
+  Info,
+  Landmark,
+  Trash2,
+} from "lucide-react";
 import { Draft } from "@/types/invoice";
 
 interface BankPaymentSettingsProps {
@@ -11,16 +15,79 @@ interface BankPaymentSettingsProps {
   onSave: (data: Draft["payment"]) => void;
 }
 
-const SectionTitle = ({ icon: Icon, title }: any) => (
-  <div className="flex items-center gap-3 mb-4">
-    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-      <Icon size={18} />
+const SectionHeader = ({
+  icon: Icon,
+  title,
+  subtitle,
+}: {
+  icon: any;
+  title: string;
+  subtitle?: string;
+}) => (
+  <div
+    className="px-5 py-3 flex items-center gap-2.5 border-b"
+    style={{ borderColor: "var(--border-color)" }}
+  >
+    <div
+      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+      style={{
+        background: "var(--bg-blue-50)",
+        color: "var(--text-blue-700)",
+        border: "1px solid var(--border-blue-200)",
+      }}
+    >
+      <Icon size={13} strokeWidth={2.25} />
     </div>
-    <h3 className="text-sm font-bold text-slate-800 m-0 uppercase tracking-wider">{title}</h3>
+    <span
+      className="text-[13px] font-semibold"
+      style={{ color: "var(--text-primary)" }}
+    >
+      {title}
+    </span>
+    {subtitle && (
+      <>
+        <span
+          className="h-3.5 w-px"
+          style={{ background: "var(--border-color)" }}
+        />
+        <span
+          className="text-[11px] uppercase tracking-[0.08em]"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          {subtitle}
+        </span>
+      </>
+    )}
   </div>
 );
 
-const BankPaymentSettings: FC<BankPaymentSettingsProps> = ({ initialValues, onSave }) => {
+const FieldLabel = ({ children }: { children: React.ReactNode }) => (
+  <span
+    className="text-[11px] font-semibold uppercase tracking-[0.08em]"
+    style={{ color: "var(--text-secondary)" }}
+  >
+    {children}
+  </span>
+);
+
+const inputBase: React.CSSProperties = {
+  height: 38,
+  borderRadius: 8,
+  background: "var(--bg-secondary)",
+  borderColor: "var(--border-color)",
+  color: "var(--text-primary)",
+};
+
+const monoInput: React.CSSProperties = {
+  ...inputBase,
+  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+  fontSize: 13,
+};
+
+const BankPaymentSettings: FC<BankPaymentSettingsProps> = ({
+  initialValues,
+  onSave,
+}) => {
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -41,121 +108,246 @@ const BankPaymentSettings: FC<BankPaymentSettingsProps> = ({ initialValues, onSa
   const qrCode = Form.useWatch("qrCode", form);
 
   return (
-    <div className="bg-white">
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={initialValues}
-        onValuesChange={(_, values) => {
-          onSave({
-            ...initialValues,
-            ...values,
-            qrCode: form.getFieldValue("qrCode") ?? initialValues.qrCode,
-          });
+    <Form
+      form={form}
+      layout="vertical"
+      initialValues={initialValues}
+      onValuesChange={(_, values) => {
+        onSave({
+          ...initialValues,
+          ...values,
+          qrCode: form.getFieldValue("qrCode") ?? initialValues.qrCode,
+        });
+      }}
+      requiredMark={false}
+      className="grid grid-cols-1 lg:grid-cols-2 gap-5"
+    >
+      <Form.Item name="qrCode" hidden>
+        <Input />
+      </Form.Item>
+
+      {/* BANK ACCOUNT */}
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: "var(--bg-secondary)",
+          border: "1px solid var(--border-color)",
         }}
-        requiredMark={false}
       >
-        <Form.Item name="qrCode" hidden>
-          <Input />
-        </Form.Item>
+        <SectionHeader
+          icon={Landmark}
+          title="Bank account"
+          subtitle="Wire & ACH details"
+        />
+        <div className="px-5 py-5 space-y-4">
+          <Form.Item
+            label={<FieldLabel>Bank name</FieldLabel>}
+            name="bankName"
+            style={{ marginBottom: 0 }}
+          >
+            <Input placeholder="e.g. HDFC Bank" style={inputBase} />
+          </Form.Item>
 
-        <Row gutter={[32, 24]}>
-          {/* BANK DETAILS */}
-          <Col xs={24} lg={12}>
-            <SectionTitle icon={Landmark} title="Bank Account" />
-            
-            <Form.Item label={<span className="text-slate-500 font-medium">Bank Name</span>} name="bankName">
-              <Input size="large" placeholder="e.g. HDFC Bank" className="rounded-xl border-slate-200" />
+          <Form.Item
+            label={<FieldLabel>Account number</FieldLabel>}
+            name="accountNumber"
+            rules={[
+              {
+                pattern: /^[0-9]{9,18}$/,
+                message: "9–18 digits required",
+              },
+            ]}
+            style={{ marginBottom: 0 }}
+          >
+            <Input
+              placeholder="—"
+              style={monoInput}
+              maxLength={18}
+              onInput={(e: any) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, "");
+              }}
+            />
+          </Form.Item>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item
+              label={<FieldLabel>IFSC code</FieldLabel>}
+              name="ifscCode"
+              rules={[
+                {
+                  pattern: /^[A-Z]{4}0[A-Z0-9]{6}$/,
+                  message: "Format: ABCD0123456",
+                },
+              ]}
+              style={{ marginBottom: 0 }}
+            >
+              <Input
+                placeholder="ABCD0123456"
+                style={{ ...monoInput, textTransform: "uppercase" }}
+                maxLength={11}
+                onInput={(e: any) => {
+                  e.target.value = e.target.value.toUpperCase();
+                }}
+              />
             </Form.Item>
-
-            <Form.Item label={<span className="text-slate-500 font-medium">Account Number</span>} name="accountNumber">
-              <Input size="large" placeholder="XXXXXXXXXXXX" className="rounded-xl border-slate-200 font-mono" />
+            <Form.Item
+              label={<FieldLabel>Branch</FieldLabel>}
+              name="branchName"
+              style={{ marginBottom: 0 }}
+            >
+              <Input placeholder="Branch location" style={inputBase} />
             </Form.Item>
+          </div>
 
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item label={<span className="text-slate-500 font-medium">IFSC Code</span>} name="ifscCode">
-                  <Input size="large" placeholder="IFSC0001234" className="rounded-xl border-slate-200 font-mono" />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item label={<span className="text-slate-500 font-medium">Branch</span>} name="branchName">
-                  <Input size="large" placeholder="Branch location" className="rounded-xl border-slate-200" />
-                </Form.Item>
-              </Col>
-            </Row>
+          <div
+            className="rounded-lg p-3 flex items-start gap-2"
+            style={{
+              background: "var(--bg-blue-50)",
+              border: "1px solid var(--border-blue-200)",
+            }}
+          >
+            <Info
+              size={13}
+              className="mt-0.5 flex-shrink-0"
+              style={{ color: "var(--text-blue-700)" }}
+            />
+            <span
+              className="text-[11.5px] leading-relaxed"
+              style={{ color: "var(--text-blue-700)" }}
+            >
+              These details print on the invoice for bank-transfer payments.
+            </span>
+          </div>
+        </div>
+      </div>
 
-            <div className="mt-6 p-3 bg-slate-50 rounded-2xl border border-slate-100 flex gap-3">
-              <div className="text-blue-500 mt-1"><Info size={16} /></div>
-              <p className="text-xs text-slate-500 leading-relaxed m-0 italic">
-                These details will be printed on the invoice for bank transfer payments.
-              </p>
-            </div>
-          </Col>
-
-          {/* QR CODE */}
-          <Col xs={24} lg={12}>
-            <SectionTitle icon={QrCode} title="Payment QR" />
-            
-            <div className="p-6 bg-slate-50 rounded-3xl border border-dashed border-slate-200 flex flex-col items-center">
-              {qrCode ? (
-                <div className="relative group">
-                  <img src={qrCode} alt="QR Code" className="w-48 h-48 rounded-2xl border border-white shadow-lg pointer-events-none" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
-                    <Button 
-                      danger 
-                      type="text" 
-                      className="bg-white hover:bg-red-50" 
-                      onClick={() => {
-                        form.setFieldValue("qrCode", undefined);
-                        onSave({ ...form.getFieldsValue(), qrCode: undefined });
-                      }}
-                    >
-                      Remove
-                    </Button>
+      {/* PAYMENT QR */}
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: "var(--bg-secondary)",
+          border: "1px solid var(--border-color)",
+        }}
+      >
+        <SectionHeader
+          icon={QrCode}
+          title="Payment QR"
+          subtitle="UPI / mobile-app pay"
+        />
+        <div className="px-5 py-5 space-y-4">
+          <div
+            className="rounded-xl p-5 flex flex-col items-center justify-center"
+            style={{
+              background: "var(--bg-slate-50)",
+              border: "1px dashed var(--border-color)",
+              minHeight: 240,
+            }}
+          >
+            {qrCode ? (
+              <div className="flex flex-col items-center gap-3">
+                <div
+                  className="w-44 h-44 rounded-xl p-2 flex items-center justify-center"
+                  style={{
+                    background: "var(--bg-secondary)",
+                    border: "1px solid var(--border-color)",
+                  }}
+                >
+                  <img
+                    src={qrCode}
+                    alt="QR Code"
+                    className="w-full h-full object-contain rounded-md"
+                  />
+                </div>
+                <Tooltip title="Remove QR code">
+                  <Button
+                    danger
+                    icon={<Trash2 size={13} />}
+                    onClick={() => {
+                      form.setFieldValue("qrCode", undefined);
+                      onSave({ ...form.getFieldsValue(), qrCode: undefined });
+                    }}
+                    style={{
+                      borderRadius: 8,
+                      height: 32,
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Remove
+                  </Button>
+                </Tooltip>
+              </div>
+            ) : (
+              <Upload
+                maxCount={1}
+                showUploadList={false}
+                beforeUpload={(file) => {
+                  handleQRUpload(file);
+                  return false;
+                }}
+                className="w-full"
+              >
+                <div className="flex flex-col items-center cursor-pointer w-full py-3">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
+                    style={{
+                      background: "var(--bg-blue-50)",
+                      color: "var(--text-blue-700)",
+                      border: "1px solid var(--border-blue-200)",
+                    }}
+                  >
+                    <UploadCloud size={20} strokeWidth={2.25} />
+                  </div>
+                  <div
+                    className="text-[14px] font-semibold"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Upload QR image
+                  </div>
+                  <div
+                    className="text-[11.5px] mt-1"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    PNG, JPG or SVG · up to 2MB
                   </div>
                 </div>
-              ) : (
-                <Upload
-                  maxCount={1}
-                  showUploadList={false}
-                  beforeUpload={(file) => {
-                    handleQRUpload(file);
-                    return false;
-                  }}
-                  className="w-full"
-                >
-                  <div className="flex flex-col items-center py-4 px-8 cursor-pointer hover:bg-slate-100/50 transition-colors w-full rounded-2xl">
-                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mb-4 text-slate-400">
-                      <UploadCloud size={32} />
-                    </div>
-                    <p className="font-bold text-slate-700 m-0">Upload QR Image</p>
-                    <p className="text-slate-400 text-xs mt-1">PNG, JPG or SVG up to 2MB</p>
-                  </div>
-                </Upload>
-              )}
-            </div>
+              </Upload>
+            )}
+          </div>
 
-            <div className="mt-6 p-3 bg-blue-50/50 rounded-2xl border border-blue-100 flex gap-3">
-              <div className="text-blue-500 mt-1"><QrCode size={16} /></div>
-              <p className="text-xs text-blue-600 font-medium leading-relaxed m-0">
-                A QR code makes it easier for customers to pay via UPI or mobile apps instantly.
-              </p>
-            </div>
-          </Col>
-        </Row>
-      </Form>
-      <style dangerouslySetInnerHTML={{ __html: `
+          <div
+            className="rounded-lg p-3 flex items-start gap-2"
+            style={{
+              background: "var(--bg-blue-50)",
+              border: "1px solid var(--border-blue-200)",
+            }}
+          >
+            <QrCode
+              size={13}
+              className="mt-0.5 flex-shrink-0"
+              style={{ color: "var(--text-blue-700)" }}
+            />
+            <span
+              className="text-[11.5px] leading-relaxed"
+              style={{ color: "var(--text-blue-700)" }}
+            >
+              A QR code lets customers pay instantly via UPI or mobile apps.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .ant-form-item-label {
-          padding-bottom: 4px !important;
+          padding-bottom: 6px !important;
         }
-        .ant-form-item {
-          margin-bottom: 16px !important;
-        }
-      `}} />
-    </div>
+      `,
+        }}
+      />
+    </Form>
   );
 };
 
 export default BankPaymentSettings;
-

@@ -69,6 +69,7 @@ import {
   formatHours,
 } from "@/types/dailyUpdate";
 import dayjs, { Dayjs } from "dayjs";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -785,81 +786,69 @@ function SubmitDailyUpdateContent() {
         }
       `}} />
 
-      {/* Premium Header */}
-      <div style={{
-        padding: "16px 32px",
-        background: "var(--bg-pure-white)",
-        borderBottom: "1px solid var(--border-slate-200)",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        zIndex: 50,
-        flexShrink: 0
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ background: "var(--bg-sky-50)", padding: 12, borderRadius: 14, color: "var(--text-sky-500)", display: "flex" }}>
-            <FileText size={28} />
+      <TimeTrackingHeader
+        style={{ padding: '4px 32px' }}
+        icon={<FileText size={20} color="#8b5cf6" />}
+        title={alreadySubmitted ? "Edit Status Update" : "Submit Daily Update"}
+        subTitle={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Text style={{ fontSize: 12, color: "var(--text-slate-600)", fontWeight: 500 }}>
+              {dayjs().format("dddd, MMMM D, YYYY")}
+            </Text>
+            {alreadySubmitted && (
+              <Tag color="success" style={{
+                margin: 0,
+                borderRadius: 6,
+                fontSize: 10,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                padding: "0 8px"
+              }}>
+                Submitted
+              </Tag>
+            )}
           </div>
-          <div>
-            <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
-              {alreadySubmitted ? "Edit Status Update" : "Submit Daily Update"}
-            </Title>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Text style={{ fontSize: 12, color: "var(--text-slate-600)", fontWeight: 500 }}>
-                {dayjs().format("dddd, MMMM D, YYYY")}
-              </Text>
-              {alreadySubmitted && (
-                <Tag color="success" style={{
-                  margin: 0,
-                  borderRadius: 6,
-                  fontSize: 10,
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  padding: "0 8px"
-                }}>
-                  Submitted
-                </Tag>
-              )}
+        }
+        description="Document your daily progress, accomplishments, and blockers."
+        extra={
+          <Space size="middle">
+            <div style={{ textAlign: "right", marginRight: 16 }}>
+              <Text style={{ fontSize: 11, color: "var(--text-slate-600)", display: "block" }}>Project Entries</Text>
+              <Text strong style={{ fontSize: 18, color: "var(--text-slate-900)" }}>{projectUpdates.length}</Text>
             </div>
-          </div>
-        </div>
-
-        <Space size="middle">
-          <div style={{ textAlign: "right", marginRight: 16 }}>
-            <Text style={{ fontSize: 11, color: "var(--text-slate-600)", display: "block" }}>Project Entries</Text>
-            <Text strong style={{ fontSize: 18, color: "var(--text-slate-900)" }}>{projectUpdates.length}</Text>
-          </div>
-          <div style={{ textAlign: "right", marginRight: 16 }}>
-            <Text style={{ fontSize: 11, color: "var(--text-slate-600)", display: "block" }}>Total Hours</Text>
-            <Text strong style={{ fontSize: 18, color: "var(--text-sky-500)" }}>{formatHours(totalHours)}</Text>
-          </div>
-          <Button
-            type="primary"
-            icon={alreadySubmitted ? <Save size={16} /> : <Send size={16} />}
-            onClick={handleSubmit}
-            loading={loading}
-            disabled={alreadySubmitted && !isEditAllowed}
-            style={{
-              height: 40,
-              padding: "0 20px",
-              borderRadius: 10,
-              fontWeight: 600,
-              background: "#1677ff",
-              display: "flex",
-              alignItems: "center",
-              gap: 8
-            }}
-          >
-            {alreadySubmitted ? "Update Status" : "Submit Update"}
-          </Button>
-        </Space>
-      </div>
+            <div style={{ textAlign: "right", marginRight: 16 }}>
+              <Text style={{ fontSize: 11, color: "var(--text-slate-600)", display: "block" }}>Total Hours</Text>
+              <Text strong style={{ fontSize: 18, color: "var(--text-sky-500)" }}>{formatHours(totalHours)}</Text>
+            </div>
+            <Button
+              type="primary"
+              icon={alreadySubmitted ? <Save size={16} /> : <Send size={16} />}
+              onClick={handleSubmit}
+              loading={loading}
+              disabled={alreadySubmitted && !isEditAllowed}
+              style={{
+                height: 38,
+                padding: "0 20px",
+                borderRadius: 10,
+                fontWeight: 600,
+                background: "#1677ff",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                border: 'none'
+              }}
+            >
+              {alreadySubmitted ? "Update Status" : "Submit Update"}
+            </Button>
+          </Space>
+        }
+      />
 
       {/* Internal Scroll Area */}
       <div className="daily-update-scroll-area" style={{
         flex: 1,
         overflowY: "auto",
-        padding: "24px 32px"
+        padding: "0 32px 32px"
       }}>
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           <Form form={form} layout="vertical" className="premium-form-item">

@@ -119,38 +119,38 @@ const TimeEntryEditModal: React.FC<TimeEntryEditModalProps> = ({ open, onClose, 
             </div>
             <div style={{ flex: 1 }}>
               <Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 6 }}>New End Time</Text>
-                <TimePicker
-                  value={endTime}
-                  onChange={(time) => {
-                    if (!time) {
-                      setEndTime(null);
-                      return;
+              <TimePicker
+                value={endTime}
+                onChange={(time) => {
+                  if (!time) {
+                    setEndTime(null);
+                    return;
+                  }
+                  if (entry && entry.start) {
+                    // Change the date safely using ISO string format
+                    const isoDate = dayjs(entry.start).format('YYYY-MM-DD');
+                    const isoTime = time.format('HH:mm:ss');
+
+                    // Combine into a standard local ISO format
+                    let correctedTime = dayjs(`${isoDate}T${isoTime}`);
+
+                    // If the selected time is earlier than the start time, 
+                    // assume the session continued past midnight into the next day.
+                    if (correctedTime.isBefore(dayjs(entry.start))) {
+                      correctedTime = correctedTime.add(1, 'day');
                     }
-                    if (entry && entry.start) {
-                      // Change the date safely using ISO string format
-                      const isoDate = dayjs(entry.start).format('YYYY-MM-DD');
-                      const isoTime = time.format('HH:mm:ss');
 
-                      // Combine into a standard local ISO format
-                      let correctedTime = dayjs(`${isoDate}T${isoTime}`);
-
-                      // If the selected time is earlier than the start time, 
-                      // assume the session continued past midnight into the next day.
-                      if (correctedTime.isBefore(dayjs(entry.start))) {
-                        correctedTime = correctedTime.add(1, 'day');
-                      }
-
-                      setEndTime(correctedTime);
-                    } else {
-                      setEndTime(time);
-                    }
-                  }}
-                  format="HH:mm:ss"
-                  style={{ width: '100%', height: 40, borderRadius: 8 }}
-                  allowClear={false}
-                  placeholder="Select end time"
-                  needConfirm={false}
-                />
+                    setEndTime(correctedTime);
+                  } else {
+                    setEndTime(time);
+                  }
+                }}
+                format="HH:mm:ss"
+                style={{ width: '100%', height: 40, borderRadius: 8 }}
+                allowClear={false}
+                placeholder="Select end time"
+                needConfirm={false}
+              />
             </div>
           </div>
 
@@ -286,19 +286,8 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       result = result.filter(e => e.projectId === filters.projectId);
     }
 
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      result = result.filter(e =>
-        (e.description?.toLowerCase() || "").includes(searchLower) ||
-        (e.ticket?.title?.toLowerCase() || "").includes(searchLower) ||
-        (e.ticket?.ticketNumber?.toLowerCase() || "").includes(searchLower) ||
-        (e.user?.name?.toLowerCase() || "").includes(searchLower) ||
-        (e.project?.name?.toLowerCase() || "").includes(searchLower)
-      );
-    }
-
     return result;
-  }, [entries, filters.userId, filters.projectId, filters.search]);
+  }, [entries, filters.userId, filters.projectId]);
 
   // Group entries by user and date
   const groupedData = useMemo(() => {
@@ -408,8 +397,8 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       key: "user",
       render: (_: any, record: any) => (
         <Space>
-          <Avatar icon={<UserOutlined />} style={{ backgroundColor: 'var(--bg-holiday)', color: 'var(--text-holiday)' }}>
-            {record.user.name[0]}
+          <Avatar src={record.user?.avatarUrl} style={{ backgroundColor: 'var(--bg-holiday)', color: 'var(--text-holiday)' }}>
+            {record.user.name?.[0]}
           </Avatar>
           <div>
             <div style={{ fontWeight: 600, color: 'var(--text-slate-900)' }}>{record.user.name}</div>
@@ -835,18 +824,8 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           </div>
         </div>
 
-        {/* Right Side: Search, Filters, Clear & Refresh */}
+        {/* Right Side: Filters, Clear & Refresh */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <Input
-            placeholder="Search..."
-            prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 14 }} />}
-            style={{ width: 220, height: 38, borderRadius: 10, fontSize: 13, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)' }}
-            size="middle"
-            allowClear
-            value={filters.search}
-            onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
-          />
-
           <Select
             allowClear
             showSearch

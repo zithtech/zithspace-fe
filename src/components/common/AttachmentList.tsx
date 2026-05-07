@@ -150,8 +150,8 @@ export default function AttachmentList({
         borderRadius: "12px",
         border: "1px dashed var(--border-color)"
       }}>
-        <FileOutlined style={{ fontSize: "40px", marginBottom: "12px", color: "#bfbfbf" }} />
-        <div style={{ color: "#8c8c8c", fontSize: "14px" }}>No attachments attached to this ticket</div>
+        <FileOutlined style={{ fontSize: "40px", marginBottom: "12px", color: "var(--text-secondary)" }} />
+        <div style={{ color: "var(--text-secondary)", fontSize: "14px" }}>No attachments attached to this ticket</div>
       </div>
     );
   }
@@ -230,18 +230,18 @@ export default function AttachmentList({
                         whiteSpace: "nowrap",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
-                        color: "#262626"
+                        color: "var(--text-primary)"
                       }}>
                         {attachment.fileName}
                       </Text>
                     </Tooltip>
                   )}
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <Text type="secondary" style={{ fontSize: "11px" }}>
+                    <Text type="secondary" style={{ fontSize: "11px", color: 'var(--text-secondary)' }}>
                       {formatFileSize(attachment.fileSize)}
                     </Text>
-                    <span style={{ color: "#d9d9d9" }}>•</span>
-                    <Text type="secondary" style={{ fontSize: "11px" }}>
+                    <span style={{ color: "var(--border-color)" }}>•</span>
+                    <Text type="secondary" style={{ fontSize: "11px", color: 'var(--text-secondary)' }}>
                       {dayjs(attachment.uploadedAt).format("MMM DD")}
                     </Text>
                   </div>

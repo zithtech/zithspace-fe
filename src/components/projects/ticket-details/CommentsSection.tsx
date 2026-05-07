@@ -58,8 +58,8 @@ export default function CommentsSection({
   return (
     <div style={{ marginTop: 16 }}>
       <Typography.Title level={5} style={{ fontSize: 13, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Text strong style={{ fontSize: 13, color: '#595959' }}>Conversation</Text>
-        <span style={{ fontSize: 12, color: '#bfbfbf', fontWeight: 400 }}>• {comments.length} messages</span>
+        <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>Conversation</Text>
+        <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 400 }}>• {comments.length} messages</span>
       </Typography.Title>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -76,12 +76,16 @@ export default function CommentsSection({
 
               return (
                 <div key={comment.id} className="comment-bubble-wrapper" style={{ display: 'flex', gap: 10 }}>
-                  <Avatar size={28} style={{ 
-                    backgroundColor: (comment as any).user?.name ? "#1890ff" : "#bfbfbf", 
-                    fontSize: 12,
-                    marginTop: 4,
-                    flexShrink: 0
-                  }}>
+                  <Avatar 
+                    size={28} 
+                    src={(comment as any).user?.avatarUrl}
+                    style={{ 
+                      backgroundColor: (comment as any).user?.name ? "#1890ff" : "#bfbfbf", 
+                      fontSize: 12,
+                      marginTop: 4,
+                      flexShrink: 0
+                    }}
+                  >
                     {userName.charAt(0).toUpperCase()}
                   </Avatar>
                   
@@ -129,10 +133,10 @@ export default function CommentsSection({
                             transition: 'all 0.2s'
                           }}>
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
-                              <Text strong style={{ fontSize: 13, color: '#262626' }}>{userName}</Text>
-                              <Text type="secondary" style={{ fontSize: 11, color: '#8c8c8c' }}>{dayjs(comment?.timestamp).fromNow()}</Text>
+                              <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>{userName}</Text>
+                              <Text type="secondary" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{dayjs(comment?.timestamp).fromNow()}</Text>
                             </div>
-                            <Paragraph style={{ margin: 0, fontSize: 13, color: '#595959', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                            <Paragraph style={{ margin: 0, fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                               {comment?.comment}
                             </Paragraph>
                           </div>

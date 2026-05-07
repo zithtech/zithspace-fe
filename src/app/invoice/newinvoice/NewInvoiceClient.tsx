@@ -13,6 +13,7 @@ import {
   Form,
   Select,
   Input,
+  InputNumber,
   Button,
   Row,
   Col,
@@ -31,6 +32,7 @@ import {
   EyeOutlined,
   EyeInvisibleOutlined,
 } from "@ant-design/icons";
+import { RefreshCw, FileText, ChevronRight, ChevronLeft, User, Receipt, Building2, UserSquare2, ScrollText, Calculator, StickyNote } from "lucide-react";
 import { currencyOptions } from "@/utils/currencyOptions";
 import {
   useInvoices,
@@ -43,7 +45,7 @@ import { useInvoiceTemplates } from "@/hooks/useInvoiceTemplates";
 import { useMemo } from "react";
 
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
@@ -279,12 +281,18 @@ export default function InvoiceNewinvoicePage() {
         columnLabels: invoiceDetail.metadata?.columnLabels || null,
       };
 
-      console.log('🚀 HYDRATING FORM WITH VALUES:', fv.invoiceNumber);
+      console.log('HYDRATING FORM WITH VALUES:', fv.invoiceNumber);
 
-      // Only set fields if the form isn't ready or if the underlying data changed significantly (like invoice number)
-      // This prevents overwriting the user's active typing during background refetches
-      if (!isFormReady || form.getFieldValue("invoiceNumber") === "") {
-        console.log('💧 First time hydration or empty form, setting values.');
+      // For edit mode, always ensure line items are properly set
+      // Check if line items are missing or empty in the form
+      const currentLineItems = form.getFieldValue("lineItems");
+      const needsLineItemsUpdate = !currentLineItems ||
+        currentLineItems.length === 0 ||
+        (currentLineItems.length === 1 && !currentLineItems[0].itemName);
+
+      // Update form if it's not ready, if invoice number is empty, or if line items need to be populated
+      if (!isFormReady || form.getFieldValue("invoiceNumber") === "" || needsLineItemsUpdate) {
+        console.log('Setting form values - Form ready:', !isFormReady, 'Empty invoice:', form.getFieldValue("invoiceNumber") === "", 'Needs line items:', needsLineItemsUpdate);
         form.setFieldsValue(fv);
 
         if (invoiceDetail.templateId) {
@@ -294,7 +302,12 @@ export default function InvoiceNewinvoicePage() {
         form.validateFields();
         setIsFormReady(true);
       } else {
-        console.log('💧 Form already ready, skipping overwrite to prevent data loss.');
+        console.log('Form already ready and line items exist, skipping overwrite to prevent data loss.');
+        // Still ensure line items are properly set if they exist
+        if (mappedItems.length > 0 && needsLineItemsUpdate) {
+          console.log('Updating line items only');
+          form.setFieldValue("lineItems", mappedItems);
+        }
       }
 
       setIsTaxInclusive(invoiceDetail.taxInclusive || false);
@@ -668,532 +681,942 @@ export default function InvoiceNewinvoicePage() {
 
   return (
     <MainLayout>
-      <div className="bg-gray-50 min-h-screen">
-        {/* FIXED HEADER */}
-        <div className="sticky top-0 bg-white z-40 border-b shadow-sm">
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <SnippetsOutlined style={{ fontSize: 28, color: "#2563eb" }} />
-                <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
-                  {editInvoiceId ? "Edit Invoice" : "New Invoice"}
-                </Title>
-
-                {/* VIEW ICON BESIDE NEW INVOICE - Blue icon with smaller circle blink */}
-                {/* VIEW ICON BESIDE NEW INVOICE - Blue icon with smaller circle blink */}
-                {isLeftPanelCollapsed && (
-                  <div className="relative ml-2">
-                    <Tooltip title="Show invoice details">
-                      <Button
-                        type="text"
-                        icon={<EyeOutlined style={{ color: '#1677ff' }} />}
-                        onClick={toggleLeftPanel}
-                        size="large"
-                        className="relative"
-                      />
-                    </Tooltip>
-                    {/* Clickable blinking circle */}
-                    <span
-                      className="absolute -inset-0 rounded-full border-2 border-blue-500 animate-ping opacity-75 cursor-pointer"
-                      onClick={toggleLeftPanel}
-                    ></span>
-                    {/* Clickable static circle */}
-                    <span
-                      className="absolute -inset-0 rounded-full border-2 border-blue-500 cursor-pointer"
-                      onClick={toggleLeftPanel}
-                    ></span>
-                  </div>
+      <div
+        style={{
+          margin: "0 -24px",
+          background: "var(--customers-page-bg)",
+          minHeight: "calc(100vh - 64px)",
+        }}
+      >
+        {/* TOP BAR — refined breadcrumb + actions */}
+        <div
+          className="sticky top-0 z-40 backdrop-blur-md border-b"
+          style={{
+            background:
+              "color-mix(in oklab, var(--customers-page-bg) 85%, transparent)",
+            borderColor: "var(--border-color)",
+          }}
+        >
+          <div className="px-8 h-14 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                type="button"
+                onClick={() => router.push("/invoice/invoices")}
+                className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+                aria-label="Back to invoices"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <div
+                className="flex items-center gap-2 text-[13px]"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                <span
+                  className="cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                  onClick={() => router.push("/invoice/invoices")}
+                >
+                  Invoices
+                </span>
+                <ChevronRight size={12} />
+                <span
+                  className="font-semibold"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {editInvoiceId ? "Edit invoice" : "New invoice"}
+                </span>
+                {watchedInvoiceNumber && (
+                  <span
+                    className="ml-1 inline-flex items-center px-2 py-[3px] rounded-md text-[12px] font-mono font-semibold tabular-nums"
+                    style={{
+                      background: "var(--bg-blue-50)",
+                      color: "var(--text-blue-700)",
+                      border: "1px solid var(--border-blue-200)",
+                    }}
+                  >
+                    {watchedInvoiceNumber}
+                  </span>
                 )}
+                <span
+                  className="ml-2 inline-flex items-center px-2 py-[3px] rounded-md text-[10px] font-semibold uppercase tracking-[0.08em]"
+                  style={{
+                    background: "var(--bg-slate-50)",
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--border-color)",
+                  }}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full mr-1.5"
+                    style={{ background: "#94a3b8" }}
+                  />
+                  Draft
+                </span>
               </div>
+            </div>
 
-              <div className="flex gap-2 items-center">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Apply Template:</span>
+            <div className="flex items-center gap-2">
+              <div
+                className="template-pill flex items-center pl-2.5 pr-2 h-9 rounded-lg mr-1 transition-colors cursor-pointer"
+                style={{
+                  background: "var(--bg-slate-50)",
+                  border: "1px solid var(--border-color)",
+                }}
+              >
+                <div
+                  className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: "var(--bg-blue-50)",
+                    color: "var(--text-blue-700)",
+                    border: "1px solid var(--border-blue-200)",
+                  }}
+                >
+                  <FileText size={12} strokeWidth={2.25} />
+                </div>
+                <span
+                  className="ml-2 mr-1 text-[10px] font-semibold uppercase tracking-[0.1em]"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Template
+                </span>
                 <Select
-                  placeholder="Select..."
-                  style={{ width: 180 }}
+                  placeholder="None"
+                  variant="borderless"
+                  className="template-select-inline"
+                  popupMatchSelectWidth={220}
+                  style={{ width: 140 }}
                   loading={loadingTemplates}
                   value={templateId || undefined}
                   onChange={(val) => {
                     setTemplateId(val);
-                    form.setFieldValue('templateId', val);
+                    form.setFieldValue("templateId", val);
                   }}
-                  className="rounded-lg h-9"
-                  dropdownStyle={{ borderRadius: '12px' }}
+                  allowClear
+                  suffixIcon={
+                    <ChevronRight
+                      size={13}
+                      style={{
+                        color: "var(--text-secondary)",
+                        transform: "rotate(90deg)",
+                      }}
+                    />
+                  }
                 >
-                  {templates.map(t => (
-                    <Select.Option key={t.id} value={t.id}>{t.name}</Select.Option>
+                  {templates.map((t) => (
+                    <Select.Option key={t.id} value={t.id}>
+                      {t.name}
+                    </Select.Option>
                   ))}
                 </Select>
-                <div className="h-6 w-[1px] bg-gray-200 mx-1" />
-                <Button
-                  type="primary"
-                  loading={actionLoading === "PENDING"}
-                  onClick={() => {
-                    setSubmitStatus("PENDING");
-                    setActionLoading("PENDING");
-                    form.setFieldValue("status", "PENDING");
-                    form.submit();
-                  }}
-                  size="large"
-                  style={{ borderRadius: 10, background: "#2563eb", fontWeight: 600, height: 40 }}
-                >
-                  Submit for Approval
-                </Button>
-                <Button
-                  loading={actionLoading === "DRAFT"}
-                  onClick={() => {
-                    setSubmitStatus("DRAFT");
-                    setActionLoading("DRAFT");
-                    form.setFieldValue("status", "DRAFT");
-                    form.submit();
-                  }}
-                  size="large"
-                  style={{ borderRadius: 10, height: 40 }}
-                >
-                  Save as Draft
-                </Button>
-                <Button
-                  icon={<EyeOutlined />}
-                  onClick={() => setIsPreviewVisible(true)}
-                  style={{ borderRadius: 10, height: 40 }}
-                  size="large"
-                >
-                  Preview
-                </Button>
-                <Button
-                  danger
-                  onClick={() => {
-                    form.resetFields();
-                    router.push("/invoice/invoices");
-                  }}
-                  style={{ borderRadius: 10, height: 40 }}
-                  size="large"
-                >
-                  Cancel
-                </Button>
               </div>
+              <div
+                className="h-6 w-px"
+                style={{ background: "var(--border-color)" }}
+              />
+              <Button
+                icon={<EyeOutlined />}
+                onClick={() => setIsPreviewVisible(true)}
+                style={{ borderRadius: 8, height: 36 }}
+              >
+                Preview
+              </Button>
+              <Button
+                loading={actionLoading === "DRAFT"}
+                onClick={() => {
+                  setSubmitStatus("DRAFT");
+                  setActionLoading("DRAFT");
+                  form.setFieldValue("status", "DRAFT");
+                  form.submit();
+                }}
+                style={{ borderRadius: 8, height: 36 }}
+              >
+                Save draft
+              </Button>
+              <Button
+                type="primary"
+                loading={actionLoading === "PENDING"}
+                onClick={() => {
+                  setSubmitStatus("PENDING");
+                  setActionLoading("PENDING");
+                  form.setFieldValue("status", "PENDING");
+                  form.submit();
+                }}
+                style={{
+                  borderRadius: 8,
+                  height: 36,
+                  fontWeight: 600,
+                  background: "#2563eb",
+                }}
+              >
+                Submit for approval
+              </Button>
+              <Button
+                type="text"
+                onClick={() => {
+                  form.resetFields();
+                  router.push("/invoice/invoices");
+                }}
+                style={{
+                  borderRadius: 8,
+                  height: 36,
+                  color: "var(--text-secondary)",
+                }}
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         </div>
 
-        <div className="p-0">
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={onFinish}
-            onFinishFailed={(errorInfo) => {
-              setActionLoading(null);
-              console.log("Failed:", errorInfo);
-              message.error("Please fill in all required fields");
-            }}
-            initialValues={{
-              lineItems: [{
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onFinish}
+          onFinishFailed={(errorInfo) => {
+            setActionLoading(null);
+            console.log("Failed:", errorInfo);
+            message.error("Please fill in all required fields");
+          }}
+          initialValues={{
+            lineItems: [
+              {
                 itemName: "",
                 description: "",
                 quantity: 1,
                 rate: 0,
                 taxRate: 0,
-              }],
-              invoice_type: "standard",
-              currency: "USD",
-              tax_inclusive: false,
-              discount: 0,
-            }}
-          >
-            <Form.Item name="customer_snapshot" hidden />
-            <Form.Item name="status" hidden />
-            <Form.Item name="columnOrder" hidden />
-            <Form.Item name="columnLabels" hidden />
-            <Form.Item name="tax_inclusive" hidden initialValue={false}>
-              <Input type="hidden" />
-            </Form.Item>
+              },
+            ],
+            invoice_type: "standard",
+            currency: "USD",
+            tax_inclusive: false,
+            discount: 0,
+          }}
+        >
+          <Form.Item name="customer_snapshot" hidden />
+          <Form.Item name="status" hidden />
+          <Form.Item name="columnOrder" hidden />
+          <Form.Item name="columnLabels" hidden />
+          <Form.Item name="templateId" hidden />
+          <Form.Item name="tax_inclusive" hidden initialValue={false}>
+            <Input type="hidden" />
+          </Form.Item>
 
-            {/* MAIN CONTENT - SPLIT LAYOUT WITH ANIMATION */}
-            <div className="flex h-[calc(100vh-80px)] overflow-hidden relative">
-              {/* LEFT COLUMN - Collapsible with smooth animation */}
-              <div
-                className={`
-                  transition-all duration-500 ease-in-out flex-shrink-0
-                  ${isLeftPanelCollapsed
-                    ? 'w-0 opacity-0 overflow-hidden'
-                    : 'w-[27%] opacity-100 border-r border-gray-200'
-                  }
-                `}
-              >
-                <div className={`
-                  h-full flex flex-col
-                  ${isLeftPanelCollapsed ? 'invisible' : 'visible'}
-                  transition-opacity duration-300
-                `}>
-                  <div className="flex-1 overflow-y-auto px-2 pt-2 pb-6 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
-                    {/* SINGLE COMMON CARD - NO COLORS */}
-                    <Card
-                      className="border-none shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] mb-4 rounded-xl transition-all duration-300 hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)]"
-                      bodyStyle={{ padding: 0, borderRadius: 12, overflow: 'hidden' }}
-                    >
-                      {/* Card Header - Modern White Style */}
-                      <div className="px-5 py-4 border-b border-slate-100 bg-white">
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col gap-0.5">
-                            <Title level={5} style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 700 }}>
-                              Invoice Information
-                            </Title>
-                            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Configure your invoice setup</span>
-                          </div>
-
-                          {/* TOGGLE BUTTON INSIDE INVOICE INFORMATION CARD - Eye icon to hide */}
-                          {!isLeftPanelCollapsed && (
-                            <Tooltip title="Hide invoice details">
-                              <Button
-                                type="text"
-                                icon={<EyeInvisibleOutlined style={{ fontSize: 20 }} />}
-                                onClick={toggleLeftPanel}
-                                size="middle"
-                                className="hover:bg-gray-200"
-                                style={{ color: "#1677ff" }}
-                              />
-                            </Tooltip>
-                          )}
-                        </div>
+          <div className="px-8 pt-6 pb-12">
+            <div className="mx-auto max-w-[1600px] grid grid-cols-12 gap-6">
+              {/* LEFT — meta panel */}
+              <aside className="col-span-12 lg:col-span-3">
+                <div
+                  className="rounded-2xl overflow-hidden"
+                  style={{
+                    background: "var(--bg-secondary)",
+                    border: "1px solid var(--border-color)",
+                  }}
+                >
+                  {/* From */}
+                  <div
+                    className="px-6 pt-5 pb-5 border-b"
+                    style={{ borderColor: "var(--border-color)" }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-md"
+                        style={{
+                          background: "var(--bg-blue-50)",
+                          color: "var(--text-blue-700)",
+                          border: "1px solid var(--border-blue-200)",
+                        }}
+                      >
+                        <Building2 size={12} strokeWidth={2.25} />
+                      </span>
+                      <div
+                        className="text-[11px] font-semibold uppercase tracking-[0.1em]"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        From
                       </div>
-
-                      {/* Card Body with 3 sections - NO COLORS */}
-                      <div className="p-4 space-y-4">
-                        {/* INVOICE PROFILE SECTION - NO COLORS */}
-                        <div className="bg-white rounded-xl border border-slate-50 p-4 hover:bg-slate-50/30 transition-colors duration-200">
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Invoice Profile</span>
-                          </div>
-                          <Form.Item
-                            name="settingsProfileId"
-                            rules={[{ required: true, message: "Please select a profile" }]}
-                            style={{ marginBottom: 12 }}
+                    </div>
+                    <Form.Item
+                      name="settingsProfileId"
+                      rules={[{ required: true, message: "Please select a profile" }]}
+                      style={{ marginBottom: 12, marginTop: 10 }}
+                    >
+                      <Select
+                        placeholder="Select issuer profile"
+                        loading={isLoading}
+                        className="w-full custom-select-premium"
+                      >
+                        {activeProfiles.map((profile) => (
+                          <Select.Option key={profile.id} value={profile.id}>
+                            {profile.name}
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                    {selectedProfile && (
+                      <div className="flex items-start gap-3 pt-1">
+                        {selectedProfile.general?.companyLogo ? (
+                          <div
+                            className="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden"
+                            style={{
+                              background: "var(--bg-slate-50)",
+                              border: "1px solid var(--border-color)",
+                            }}
                           >
-                            <Select
-                              placeholder="Select profile"
-                              loading={isLoading}
-                              size="middle"
-                              className="w-full custom-select-premium"
+                            <img
+                              src={selectedProfile.general.companyLogo}
+                              alt="logo"
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            className="w-10 h-10 flex-shrink-0 rounded-lg flex items-center justify-center text-sm font-bold"
+                            style={{
+                              background: "var(--bg-blue-50)",
+                              color: "var(--text-blue-700)",
+                              border: "1px solid var(--border-blue-200)",
+                            }}
+                          >
+                            {(
+                              selectedProfile.general?.companyName ||
+                              selectedProfile.name ||
+                              "Z"
+                            ).charAt(0)}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div
+                            className="text-sm font-semibold truncate"
+                            style={{ color: "var(--text-primary)" }}
+                          >
+                            {selectedProfile.general?.companyName ||
+                              selectedProfile.name}
+                          </div>
+                          {selectedProfile.general?.address && (
+                            <div
+                              className="text-[12px] mt-0.5 line-clamp-2"
+                              style={{ color: "var(--text-secondary)" }}
                             >
-                              {activeProfiles.map((profile) => (
-                                <Select.Option key={profile.id} value={profile.id}>
-                                  {profile.name}
-                                </Select.Option>
-                              ))}
-                            </Select>
-                          </Form.Item>
-
-                          {selectedProfile && (
-                            <div className="flex items-start gap-3 rounded-xl bg-[#fcfdfe] p-4 border border-slate-100 shadow-sm hover:border-blue-200 hover:bg-white transition-all duration-300">
-                              {selectedProfile.general?.companyLogo && (
-                                <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-white border border-slate-100 flex items-center justify-center overflow-hidden shadow-sm">
-                                  <img
-                                    src={selectedProfile.general.companyLogo}
-                                    alt="logo"
-                                    className="w-full h-full object-contain"
-                                  />
-                                </div>
-                              )}
-
-                              <div className="leading-snug flex-1 min-w-0">
-                                <div className="text-base font-semibold text-gray-900 truncate">
-                                  {selectedProfile.general?.companyName ||
-                                    selectedProfile.name}
-                                </div>
-
-                                {selectedProfile.general?.address && (
-                                  <div className="text-sm text-gray-600 mt-1 line-clamp-2">
-                                    {formatAddress(selectedProfile.general.address)}
-                                  </div>
-                                )}
-                              </div>
+                              {formatAddress(selectedProfile.general.address)}
                             </div>
                           )}
                         </div>
+                      </div>
+                    )}
+                  </div>
 
-                        {/* CUSTOMER SECTION - NO COLORS */}
-                        <div className="bg-white rounded-xl border border-slate-50 p-4 hover:bg-slate-50/30 transition-colors duration-200">
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</span>
-                          </div>
-                          <Form.Item
-                            name="customer_id"
-                            rules={[{ required: true, message: "Please select a customer" }]}
-                            style={{ marginBottom: 12 }}
+                  {/* Bill to */}
+                  <div
+                    className="px-6 pt-5 pb-5 border-b"
+                    style={{ borderColor: "var(--border-color)" }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-md"
+                        style={{
+                          background: "rgba(16, 185, 129, 0.1)",
+                          color: "#059669",
+                          border: "1px solid rgba(16, 185, 129, 0.25)",
+                        }}
+                      >
+                        <UserSquare2 size={12} strokeWidth={2.25} />
+                      </span>
+                      <div
+                        className="text-[11px] font-semibold uppercase tracking-[0.1em]"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        Bill to
+                      </div>
+                    </div>
+                    <Form.Item
+                      name="customer_id"
+                      rules={[{ required: true, message: "Please select a customer" }]}
+                      style={{ marginBottom: 12, marginTop: 10 }}
+                    >
+                      <Select
+                        placeholder="Select customer"
+                        loading={loadingCustomers}
+                        showSearch
+                        className="w-full custom-select-premium"
+                        filterOption={(input, option) =>
+                          String(option?.children ?? "")
+                            .toLowerCase()
+                            .includes(input.toLowerCase())
+                        }
+                        onSelect={(id) => {
+                          const c = customers.find((x) => x.id === id);
+                          if (c) {
+                            form.setFieldsValue({
+                              customer_snapshot: {
+                                id: c.id,
+                                companyName: c.companyName,
+                                email: c.email,
+                                phone: c.phone,
+                                address: c.address,
+                                city: c.city,
+                                country: c.country,
+                                taxId: c.taxId,
+                                gstin: c.gstin,
+                                pan: c.pan,
+                              },
+                            });
+                          }
+                        }}
+                      >
+                        {customers
+                          .filter((c) => c.isActive)
+                          .map((c) => (
+                            <Select.Option key={c.id} value={c.id}>
+                              {c.companyName}
+                            </Select.Option>
+                          ))}
+                      </Select>
+                    </Form.Item>
+                    {selectedCustomer && (
+                      <Tooltip title="Click to edit customer details">
+                        <div
+                          onClick={() => setEditingCustomer(selectedCustomer)}
+                          className="cursor-pointer group flex items-start gap-3 pt-1"
+                        >
+                          <div
+                            className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
+                            style={{
+                              background: "var(--bg-blue-50)",
+                              color: "var(--text-blue-700)",
+                              border: "1px solid var(--border-blue-200)",
+                            }}
                           >
-                            <Select
-                              placeholder="Select customer"
-                              loading={loadingCustomers}
-                              showSearch
-                              size="middle"
-                              className="w-full"
-                              filterOption={(input, option) =>
-                                String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
-                              }
-                              onSelect={(id) => {
-                                const c = customers.find((x) => x.id === id);
-                                if (c) {
-                                  form.setFieldsValue({
-                                    customer_snapshot: {
-                                      id: c.id,
-                                      companyName: c.companyName,
-                                      email: c.email,
-                                      phone: c.phone,
-                                      address: c.address,
-                                      city: c.city,
-                                      country: c.country,
-                                      taxId: c.taxId,
-                                      gstin: c.gstin,
-                                      pan: c.pan,
-                                    },
-                                  });
-                                }
-                              }}
+                            {(selectedCustomer.companyName || "U").charAt(0)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div
+                              className="text-sm font-semibold truncate group-hover:underline"
+                              style={{ color: "var(--text-primary)" }}
                             >
-                              {customers.map((c) => (
-                                <Select.Option key={c.id} value={c.id}>
-                                  {c.companyName}
-                                </Select.Option>
-                              ))}
-                            </Select>
-                          </Form.Item>
-
-                          {selectedCustomer && (
-                            <Tooltip title="Click to edit customer">
+                              {selectedCustomer.companyName}
+                            </div>
+                            <div
+                              className="text-[12px] mt-0.5 line-clamp-2"
+                              style={{ color: "var(--text-secondary)" }}
+                            >
+                              {[
+                                selectedCustomer.address,
+                                selectedCustomer.city,
+                                selectedCustomer.country,
+                              ]
+                                .filter(Boolean)
+                                .join(", ") || "Click to add address"}
+                            </div>
+                            {selectedCustomer.taxId && (
                               <div
-                                onClick={() => setEditingCustomer(selectedCustomer)}
-                                className="rounded-xl bg-[#fcfdfe] p-4 border border-slate-100 shadow-sm cursor-pointer hover:border-blue-200 hover:bg-white transition-all duration-300 group"
+                                className="text-[11px] mt-1"
+                                style={{ color: "var(--text-secondary)" }}
                               >
-                                <div className="flex items-center gap-3 mb-3 min-w-0">
-                                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 text-sm font-bold border border-blue-100 group-hover:scale-105 transition-transform duration-300">
-                                    {(selectedCustomer.companyName || "U").charAt(0)}
-                                  </div>
-                                  <div className="min-w-0 overflow-hidden">
-                                    <div className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
-                                      {selectedCustomer.companyName}
-                                    </div>
-                                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Verified Client</div>
-                                  </div>
-                                </div>
-
-                                {selectedCustomer.taxId && (
-                                  <div className="text-sm text-gray-600 mb-1">
-                                    <span className="font-medium">Tax ID:</span> {selectedCustomer.taxId}
-                                  </div>
-                                )}
-
-                                {selectedCustomer.address && (
-                                  <div className="text-sm text-gray-600 mb-1">
-                                    {selectedCustomer.address}
-                                  </div>
-                                )}
-
-                                {selectedCustomer.city && (
-                                  <div className="text-sm text-gray-600">
-                                    {selectedCustomer.city}
-                                    {selectedCustomer.country && `, ${selectedCustomer.country}`}
-                                  </div>
-                                )}
+                                Tax ID ·{" "}
+                                <span style={{ color: "var(--text-primary)" }}>
+                                  {selectedCustomer.taxId}
+                                </span>
                               </div>
-                            </Tooltip>
-                          )}
-                        </div>
-
-                        {/* INVOICE DETAILS SECTION - NO COLORS */}
-                        <div className="bg-white rounded-xl border border-slate-50 p-4">
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Invoice Details</span>
+                            )}
                           </div>
-                          <Row gutter={[12, 12]}>
-                            <Col span={12}>
-                              <Form.Item
-                                label="Invoice No"
-                                name="invoiceNumber"
-                                rules={[{ required: true }]}
-                                style={{ marginBottom: 0 }}
-                              >
-                                <Input
-                                  readOnly
-                                  size="middle"
-                                  className="bg-[#f8fafc] text-sm font-bold border-slate-200 rounded-lg h-9 text-slate-600 shadow-sm shadow-black/[0.01]"
-                                />
-                              </Form.Item>
-                            </Col>
-
-                            <Col span={12}>
-                              <Form.Item
-                                label="Type"
-                                name="invoice_type"
-                                rules={[{ required: true }]}
-                                style={{ marginBottom: 0 }}
-                              >
-                                <Select size="middle" className="w-full custom-select-premium">
-                                  <Select.Option value="standard">Standard</Select.Option>
-                                  <Select.Option value="proforma">Proforma</Select.Option>
-                                  <Select.Option value="credit_note">Credit</Select.Option>
-                                  <Select.Option value="debit_note">Debit</Select.Option>
-                                  <Select.Option value="recurring">Recurring</Select.Option>
-                                </Select>
-                              </Form.Item>
-                            </Col>
-
-                            <Col span={12}>
-                              <Form.Item
-                                label="Invoice Date"
-                                name="invoice_date"
-                                rules={[{ required: true }]}
-                                style={{ marginBottom: 0 }}
-                              >
-                                <DatePicker 
-                                  className="w-full rounded-lg h-9 border-slate-200 hover:border-blue-300 focus:border-blue-400 shadow-sm shadow-black/[0.01]" 
-                                  size="middle" 
-                                  onChange={() => {
-                                    // Trigger re-validation of due_date when invoice_date changes
-                                    if (form.getFieldValue("due_date")) {
-                                      form.validateFields(["due_date"]);
-                                    }
-                                  }}
-                                />
-                              </Form.Item>
-                            </Col>
-
-                            <Col span={12}>
-                              <Form.Item
-                                label="Due Date"
-                                name="due_date"
-                                rules={[
-                                  { required: true, message: "Please select a due date" },
-                                  ({ getFieldValue }) => ({
-                                    validator(_, value) {
-                                      const invoiceDate = getFieldValue("invoice_date");
-                                      if (!value || !invoiceDate || value.isAfter(invoiceDate, 'day')) {
-                                        return Promise.resolve();
-                                      }
-                                      return Promise.reject(new Error("Due date must be after the invoice date"));
-                                    },
-                                  }),
-                                ]}
-                                style={{ marginBottom: 0 }}
-                              >
-                                <DatePicker 
-                                  className="w-full rounded-lg h-9 border-slate-200 hover:border-blue-300 focus:border-blue-400 shadow-sm shadow-black/[0.01]" 
-                                  size="middle" 
-                                  disabledDate={(current) => {
-                                    const invoiceDate = form.getFieldValue("invoice_date");
-                                    // Disable dates on or before invoice_date
-                                    return invoiceDate && current && current.isSameOrBefore(invoiceDate, 'day');
-                                  }}
-                                />
-                              </Form.Item>
-                            </Col>
-
-                            <Col span={12}>
-                              <Form.Item
-                                label="Currency"
-                                name="currency"
-                                rules={[{ required: true }]}
-                                style={{ marginBottom: 0 }}
-                              >
-                                <Select size="middle" className="w-full custom-select-premium">
-                                  {currencyOptions.map((c) => (
-                                    <Select.Option key={c.value} value={c.value}>
-                                      {c.symbol} {c.label}
-                                    </Select.Option>
-                                  ))}
-                                </Select>
-                              </Form.Item>
-                            </Col>
-                          </Row>
                         </div>
-                      </div>
-                    </Card>
+                      </Tooltip>
+                    )}
                   </div>
-                </div>
-              </div>
 
-              {/* RIGHT COLUMN - Expand when left is collapsed */}
-              <div className={`
-                transition-all duration-500 ease-in-out min-w-0
-                ${isLeftPanelCollapsed ? 'flex-1 ml-0' : 'flex-1'}
-              `}>
-                <div className="h-full flex flex-col overflow-hidden">
-                  <div className="flex-1 overflow-y-auto px-2 pt-2 pb-6 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
-                    {/* LINE ITEMS CARD - NO COLORS */}
-                    <Card
-                      className="border-none shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] mb-4 rounded-xl transition-all duration-300 hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)]"
-                      bodyStyle={{ padding: 0, borderRadius: 12, overflow: 'hidden' }}
-                    >
-                      {isFormReady ? (
-                        <DynamicLineItems
-                          form={form}
-                          currencySymbol={currencySymbol}
-                          isTaxInclusive={isTaxInclusive}
-                          calculateLineTotal={calculateLineTotal}
-                          templateId={templateId}
-                          templates={templates}
-                          loadingTemplates={loadingTemplates}
-                          activeColumns={activeColumns}
-                          setActiveColumns={setActiveColumns}
+                  {/* Details grid */}
+                  <div className="px-6 pt-5 pb-5">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-md"
+                        style={{
+                          background: "rgba(168, 85, 247, 0.1)",
+                          color: "#9333ea",
+                          border: "1px solid rgba(168, 85, 247, 0.25)",
+                        }}
+                      >
+                        <ScrollText size={12} strokeWidth={2.25} />
+                      </span>
+                      <div
+                        className="text-[11px] font-semibold uppercase tracking-[0.1em]"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        Details
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+                      <Form.Item
+                        label={
+                          <span
+                            className="text-[11px] font-medium uppercase tracking-wider"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            Invoice no
+                          </span>
+                        }
+                        name="invoiceNumber"
+                        rules={[{ required: true }]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Input
+                          readOnly
+                          className="rounded-lg h-9 text-sm font-semibold"
+                          style={{
+                            background: "var(--bg-slate-50)",
+                            color: "var(--text-primary)",
+                            borderColor: "var(--border-color)",
+                          }}
                         />
-                      ) : (
-                        <div className="flex justify-center p-8">
-                          <Spin size="large" />
-                        </div>
-                      )}
-                    </Card>
+                      </Form.Item>
+                      <Form.Item
+                        label={
+                          <span
+                            className="text-[11px] font-medium uppercase tracking-wider"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            Type
+                          </span>
+                        }
+                        name="invoice_type"
+                        rules={[{ required: true }]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Select className="w-full custom-select-premium">
+                          <Select.Option value="standard">Standard</Select.Option>
+                          <Select.Option value="proforma">Proforma</Select.Option>
+                          <Select.Option value="credit_note">Credit</Select.Option>
+                          <Select.Option value="debit_note">Debit</Select.Option>
+                          <Select.Option value="recurring">Recurring</Select.Option>
+                        </Select>
+                      </Form.Item>
+                      <Form.Item
+                        label={
+                          <span
+                            className="text-[11px] font-medium uppercase tracking-wider"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            Issue date
+                          </span>
+                        }
+                        name="invoice_date"
+                        rules={[{ required: true }]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <DatePicker
+                          className="w-full rounded-lg h-9"
+                          onChange={() => {
+                            if (form.getFieldValue("due_date")) {
+                              form.validateFields(["due_date"]);
+                            }
+                          }}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        label={
+                          <span
+                            className="text-[11px] font-medium uppercase tracking-wider"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            Due date
+                          </span>
+                        }
+                        name="due_date"
+                        rules={[
+                          { required: true, message: "Please select a due date" },
+                          ({ getFieldValue }) => ({
+                            validator(_, value) {
+                              const invoiceDate = getFieldValue("invoice_date");
+                              if (
+                                !value ||
+                                !invoiceDate ||
+                                value.isAfter(invoiceDate, "day")
+                              ) {
+                                return Promise.resolve();
+                              }
+                              return Promise.reject(
+                                new Error("Due date must be after the invoice date")
+                              );
+                            },
+                          }),
+                        ]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <DatePicker
+                          className="w-full rounded-lg h-9"
+                          disabledDate={(current) => {
+                            const invoiceDate = form.getFieldValue("invoice_date");
+                            return (
+                              invoiceDate &&
+                              current &&
+                              current.isSameOrBefore(invoiceDate, "day")
+                            );
+                          }}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        label={
+                          <span
+                            className="text-[11px] font-medium uppercase tracking-wider"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            Currency
+                          </span>
+                        }
+                        name="currency"
+                        rules={[{ required: true }]}
+                        className="col-span-2"
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Select
+                          className="w-full custom-select-premium"
+                          optionLabelProp="label"
+                        >
+                          {currencyOptions.map((c) => (
+                            <Select.Option
+                              key={c.value}
+                              value={c.value}
+                              label={
+                                <span className="flex items-center gap-2">
+                                  <span
+                                    className="inline-flex items-center justify-center w-5 h-5 rounded-md text-[11px] font-semibold tabular-nums"
+                                    style={{
+                                      background: 'var(--bg-blue-50)',
+                                      color: 'var(--text-blue-700)',
+                                    }}
+                                  >
+                                    {c.symbol}
+                                  </span>
+                                  <span className="font-semibold tabular-nums">{c.value}</span>
+                                  <span style={{ color: 'var(--text-secondary)' }}>· {c.label}</span>
+                                </span>
+                              }
+                            >
+                              <div className="flex items-center gap-2 py-0.5">
+                                <span
+                                  className="inline-flex items-center justify-center w-6 h-6 rounded-md text-[12px] font-semibold tabular-nums"
+                                  style={{
+                                    background: 'var(--bg-slate-50)',
+                                    color: 'var(--text-primary)',
+                                    border: '1px solid var(--border-color)',
+                                  }}
+                                >
+                                  {c.symbol}
+                                </span>
+                                <span className="font-semibold tabular-nums">{c.value}</span>
+                                <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                                  {c.label}
+                                </span>
+                              </div>
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </div>
+                  </div>
 
-                    {/* NOTES & TERMS CARD - SIDE BY SIDE LAYOUT */}
-                    <Card
-                      className="border-none shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] mb-4 rounded-xl transition-all duration-300 hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)]"
-                      bodyStyle={{ padding: 0, borderRadius: 12, overflow: 'hidden' }}
+                </div>
+              </aside>
+
+              {/* RIGHT — line items, summary, notes */}
+              <section className="col-span-12 lg:col-span-9 space-y-4">
+                {/* Line items */}
+                <div
+                  className="rounded-2xl overflow-hidden"
+                  style={{
+                    background: "var(--bg-secondary)",
+                    border: "1px solid var(--border-color)",
+                  }}
+                >
+                  {isFormReady ? (
+                    <DynamicLineItems
+                      form={form}
+                      currencySymbol={currencySymbol}
+                      isTaxInclusive={isTaxInclusive}
+                      calculateLineTotal={calculateLineTotal}
+                      templateId={templateId}
+                      templates={templates}
+                      loadingTemplates={loadingTemplates}
+                      activeColumns={activeColumns}
+                      setActiveColumns={setActiveColumns}
+                    />
+                  ) : (
+                    <div className="flex justify-center p-12">
+                      <Spin size="large" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Summary — running totals */}
+                <div
+                  className="rounded-2xl overflow-hidden"
+                  style={{
+                    background: "var(--bg-secondary)",
+                    border: "1px solid var(--border-color)",
+                  }}
+                >
+                  <div
+                    className="px-6 py-3 flex items-center justify-between border-b"
+                    style={{ borderColor: "var(--border-color)" }}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-md"
+                        style={{
+                          background: "rgba(245, 158, 11, 0.1)",
+                          color: "#d97706",
+                          border: "1px solid rgba(245, 158, 11, 0.25)",
+                        }}
+                      >
+                        <Calculator size={12} strokeWidth={2.25} />
+                      </span>
+                      <span
+                        className="text-[14px] font-semibold"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Summary
+                      </span>
+                      <span
+                        className="h-4 w-px"
+                        style={{ background: "var(--border-color)" }}
+                      />
+                      <span
+                        className="text-[11px] uppercase tracking-[0.08em]"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        Calculated from line items
+                      </span>
+                    </div>
+                    <Tooltip title="When on, line rates are treated as inclusive of tax">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="text-[12px] font-medium"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          Tax inclusive
+                        </span>
+                        <Switch
+                          checked={isTaxInclusive}
+                          onChange={(checked) => {
+                            setIsTaxInclusive(checked);
+                            form.setFieldValue("tax_inclusive", checked);
+                          }}
+                          size="small"
+                        />
+                      </div>
+                    </Tooltip>
+                  </div>
+                  <div className="px-6 py-5 grid grid-cols-12 gap-6">
+                    <div className="col-span-12 sm:col-span-7 space-y-3">
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span style={{ color: "var(--text-secondary)" }}>
+                          Subtotal
+                        </span>
+                        <span
+                          className="font-medium tabular-nums"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          {currencySymbol}
+                          {subtotal.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span style={{ color: "var(--text-secondary)" }}>Tax</span>
+                        <span
+                          className="font-medium tabular-nums"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          {currencySymbol}
+                          {totalTax.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span
+                          className="text-[13px]"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          Discount
+                        </span>
+                        <Form.Item name="discount" style={{ marginBottom: 0 }}>
+                          <InputNumber
+                            min={0}
+                            prefix={currencySymbol}
+                            style={{ width: 160, borderRadius: 8 }}
+                            controls={false}
+                            onChange={(val) =>
+                              setDiscountValue(Number(val) || 0)
+                            }
+                          />
+                        </Form.Item>
+                      </div>
+                      <div
+                        className="h-px"
+                        style={{ background: "var(--border-color)" }}
+                      />
+                      <div className="flex items-center justify-between">
+                        <span
+                          className="text-[13px] font-semibold"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          Total
+                        </span>
+                        <span
+                          className="text-xl font-bold tabular-nums"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          {currencySymbol}
+                          {finalTotal.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                    <div
+                      className="col-span-12 sm:col-span-5 relative rounded-xl p-5 flex flex-col justify-center overflow-hidden"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, var(--bg-blue-50) 0%, var(--bg-slate-50) 100%)",
+                        border: "1px solid var(--border-blue-200)",
+                      }}
                     >
-                      {/* Card Header - Modern White Style */}
-                      <div className="px-5 py-4 border-b border-slate-100 bg-white">
-                        <div className="flex flex-col gap-0.5">
-                          <Title level={5} style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 700 }}>
-                            Notes & Terms
-                          </Title>
-                          <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Additional details for your customer</span>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <Receipt
+                            size={13}
+                            style={{ color: "var(--text-blue-700)" }}
+                          />
+                          <span
+                            className="text-[10.5px] uppercase tracking-[0.1em] font-semibold"
+                            style={{ color: "var(--text-blue-700)" }}
+                          >
+                            Amount due
+                          </span>
                         </div>
+                        <span
+                          className="text-[10px] font-mono font-semibold tabular-nums px-1.5 py-0.5 rounded"
+                          style={{
+                            background: "var(--bg-secondary)",
+                            color: "var(--text-secondary)",
+                            border: "1px solid var(--border-color)",
+                          }}
+                        >
+                          {currency || "USD"}
+                        </span>
                       </div>
-
-                      <div className="p-5">
-                        <Row gutter={[24, 0]}>
-                          <Col span={12}>
-                            <div>
-                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Customer Notes</div>
-                              <Form.Item name="notes" style={{ marginBottom: 0 }}>
-                                <Input.TextArea
-                                  rows={4}
-                                  placeholder="Add any notes for the customer..."
-                                  className="text-sm resize-none rounded-xl border-slate-200 hover:border-blue-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 bg-white shadow-sm shadow-black/[0.01]"
-                                  size="middle"
-                                />
-                              </Form.Item>
-                            </div>
-                          </Col>
-                          <Col span={12}>
-                            <div>
-                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Terms & Conditions</div>
-                              <Form.Item name="terms" style={{ marginBottom: 0 }}>
-                                <Input.TextArea
-                                  rows={4}
-                                  placeholder="Add terms and conditions..."
-                                  className="text-sm resize-none rounded-xl border-slate-200 hover:border-blue-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 bg-white shadow-sm shadow-black/[0.01]"
-                                  size="middle"
-                                />
-                              </Form.Item>
-                            </div>
-                          </Col>
-                        </Row>
+                      <div
+                        className="text-[32px] font-bold tabular-nums leading-none tracking-tight"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        {currencySymbol}
+                        {finalTotal.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </div>
-                    </Card>
+                      <div
+                        className="text-[12px] mt-2.5 flex items-center gap-1.5"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {watchedDueDate ? (
+                          <>
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ background: "#10b981" }}
+                            />
+                            <span>
+                              Due{" "}
+                              <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>
+                                {dayjs(watchedDueDate).format("MMM D, YYYY")}
+                              </span>
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ background: "#cbd5e1" }}
+                            />
+                            <span style={{ opacity: 0.75 }}>Awaiting due date</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+
+                {/* Notes & terms */}
+                <div
+                  className="rounded-2xl overflow-hidden"
+                  style={{
+                    background: "var(--bg-secondary)",
+                    border: "1px solid var(--border-color)",
+                  }}
+                >
+                  <div
+                    className="px-6 py-3 flex items-center gap-2.5 border-b"
+                    style={{ borderColor: "var(--border-color)" }}
+                  >
+                    <span
+                      className="inline-flex items-center justify-center w-6 h-6 rounded-md"
+                      style={{
+                        background: "rgba(244, 114, 182, 0.1)",
+                        color: "#db2777",
+                        border: "1px solid rgba(244, 114, 182, 0.25)",
+                      }}
+                    >
+                      <StickyNote size={12} strokeWidth={2.25} />
+                    </span>
+                    <span
+                      className="text-[14px] font-semibold"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Notes & terms
+                    </span>
+                    <span
+                      className="h-4 w-px"
+                      style={{ background: "var(--border-color)" }}
+                    />
+                    <span
+                      className="text-[11px] uppercase tracking-[0.08em]"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      Visible to your customer on the printed invoice
+                    </span>
+                  </div>
+                  <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <div
+                        className="text-[11px] font-medium uppercase tracking-wider mb-2"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        Customer notes
+                      </div>
+                      <Form.Item name="notes" style={{ marginBottom: 0 }}>
+                        <Input.TextArea
+                          rows={4}
+                          placeholder="Add any notes for the customer..."
+                          className="text-sm rounded-lg resize-none"
+                        />
+                      </Form.Item>
+                    </div>
+                    <div>
+                      <div
+                        className="text-[11px] font-medium uppercase tracking-wider mb-2"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        Terms & conditions
+                      </div>
+                      <Form.Item name="terms" style={{ marginBottom: 0 }}>
+                        <Input.TextArea
+                          rows={4}
+                          placeholder="Payment terms, late fees, etc..."
+                          className="text-sm rounded-lg resize-none"
+                        />
+                      </Form.Item>
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
-          </Form>
-        </div>
+          </div>
+        </Form>
 
         {/* CUSTOMER MODAL */}
         <CustomerModal
@@ -1216,86 +1639,276 @@ export default function InvoiceNewinvoicePage() {
             });
 
             setShowApplyModal(true);
+            setEditingCustomer(null);
           }}
         />
 
         {/* APPLY CHANGES MODAL */}
         <Modal
           open={showApplyModal}
-          title="Apply changes to customer?"
           onCancel={() => {
             setShowApplyModal(false);
             setPendingCustomer(null);
           }}
-          footer={[
-            <Button
-              key="invoice"
-              onClick={() => {
-                if (!pendingCustomer) return;
-                applyToInvoiceOnly(pendingCustomer);
-                setShowApplyModal(false);
-                setPendingCustomer(null);
-              }}
-              size="large"
-            >
-              Invoice only
-            </Button>,
-
-            <Button
-              key="both"
-              type="primary"
-              onClick={async () => {
-                if (!pendingCustomer) return;
-                await applyToCustomerAndInvoice(pendingCustomer);
-                setShowApplyModal(false);
-                setPendingCustomer(null);
-                setEditingCustomer(null);
-              }}
-              size="large"
-            >
-              Apply to customer
-            </Button>
-          ]}
+          footer={null}
+          width={480}
+          styles={{
+            mask: { backdropFilter: "blur(4px)", background: "rgba(15, 23, 42, 0.4)" },
+            content: { padding: 0, borderRadius: 20, overflow: "hidden" },
+          }}
         >
-          <p>Apply these changes to customer record?</p>
+          <div
+            className="p-6 border-b"
+            style={{
+              background: "var(--bg-slate-50)",
+              borderColor: "var(--border-color)",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="p-2.5 rounded-xl"
+                style={{
+                  background: "var(--bg-blue-50)",
+                  color: "var(--text-blue-700)",
+                  border: "1px solid var(--border-blue-200)",
+                }}
+              >
+                <RefreshCw size={20} />
+              </div>
+              <div>
+                <Title
+                  level={4}
+                  style={{ margin: 0, fontSize: 16, color: "var(--text-primary)" }}
+                >
+                  Apply information changes
+                </Title>
+                <Text
+                  type="secondary"
+                  style={{ fontSize: 12, color: "var(--text-secondary)" }}
+                >
+                  You modified the customer details. Where should these apply?
+                </Text>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <div className="grid grid-cols-1 gap-3">
+              <div
+                onClick={() => {
+                  if (!pendingCustomer) return;
+                  applyToInvoiceOnly(pendingCustomer);
+                  setShowApplyModal(false);
+                  setPendingCustomer(null);
+                }}
+                className="group cursor-pointer p-4 rounded-xl transition-all duration-200 hover:border-blue-200"
+                style={{
+                  background: "var(--bg-secondary)",
+                  border: "1px solid var(--border-color)",
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="p-2 rounded-lg"
+                    style={{
+                      background: "var(--bg-slate-50)",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    <FileText size={18} />
+                  </div>
+                  <div className="flex-1">
+                    <div
+                      className="text-sm font-semibold"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Apply to this invoice only
+                    </div>
+                    <div
+                      className="text-[11px] mt-0.5"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      Saved with this invoice. The main client record stays unchanged.
+                    </div>
+                  </div>
+                  <ChevronRight
+                    size={16}
+                    className="group-hover:translate-x-1 transition-transform"
+                    style={{ color: "var(--text-secondary)" }}
+                  />
+                </div>
+              </div>
+
+              <div
+                onClick={async () => {
+                  if (!pendingCustomer) return;
+                  await applyToCustomerAndInvoice(pendingCustomer);
+                  setShowApplyModal(false);
+                  setPendingCustomer(null);
+                  setEditingCustomer(null);
+                }}
+                className="group cursor-pointer p-4 rounded-xl transition-all duration-200"
+                style={{
+                  background: "var(--bg-blue-50)",
+                  border: "1px solid var(--border-blue-200)",
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="p-2 rounded-lg"
+                    style={{ background: "#2563eb", color: "white" }}
+                  >
+                    <User size={18} />
+                  </div>
+                  <div className="flex-1">
+                    <div
+                      className="text-sm font-semibold line-clamp-1"
+                      style={{ color: "var(--text-blue-700)" }}
+                    >
+                      Apply to customer record (global)
+                    </div>
+                    <div
+                      className="text-[11px] mt-0.5"
+                      style={{ color: "var(--text-blue-700)", opacity: 0.7 }}
+                    >
+                      Update the master record. Future invoices will use these details.
+                    </div>
+                  </div>
+                  <ChevronRight
+                    size={16}
+                    className="group-hover:translate-x-1 transition-transform"
+                    style={{ color: "var(--text-blue-700)" }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <Button
+                type="text"
+                onClick={() => {
+                  setShowApplyModal(false);
+                  setPendingCustomer(null);
+                }}
+                style={{ color: "var(--text-secondary)" }}
+              >
+                Discard changes
+              </Button>
+            </div>
+          </div>
         </Modal>
 
-        {/* Add custom CSS for animations */}
+        {/* CUSTOM SELECT STYLES */}
         <style jsx>{`
-          @keyframes ping {
-            75%, 100% {
-              transform: scale(1.5);
-              opacity: 0;
-            }
-          }
-          .animate-ping {
-            animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
-          }
           :global(.custom-select-premium .ant-select-selector) {
             border-radius: 8px !important;
-            border-color: #e2e8f0 !important;
+            border-color: var(--border-color) !important;
             height: 36px !important;
             padding: 0 12px !important;
             display: flex !important;
             align-items: center !important;
-            background-color: #ffffff !important;
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
-            transition: all 0.2s !important;
+            transition: all 0.15s !important;
+          }
+          :global(.custom-select-premium .ant-select-selection-item) {
+            color: var(--text-primary) !important;
+          }
+          :global(.custom-select-premium .ant-select-arrow) {
+            color: var(--text-secondary) !important;
           }
           :global(.custom-select-premium .ant-select-selector:hover) {
             border-color: #93c5fd !important;
           }
           :global(.custom-select-premium.ant-select-focused .ant-select-selector) {
             border-color: #60a5fa !important;
-            box-shadow: 0 0 0 4px rgba(239, 246, 255, 0.5) !important;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15) !important;
+          }
+
+          /* Soften required-field asterisk — premium feel */
+          :global(.ant-form-item-required::before) {
+            color: var(--text-secondary) !important;
+            opacity: 0.5 !important;
+            font-size: 10px !important;
+            margin-inline-end: 3px !important;
+            position: relative;
+            top: -1px;
+          }
+
+          /* Refine date picker height to match selects */
+          :global(.ant-picker) {
+            border-color: var(--border-color) !important;
+            background: var(--bg-secondary) !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
+            transition: all 0.15s !important;
+          }
+          :global(.ant-picker:hover) {
+            border-color: #93c5fd !important;
+          }
+          :global(.ant-picker-focused) {
+            border-color: #60a5fa !important;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15) !important;
+          }
+
+          /* Discount input refinement */
+          :global(.ant-input-number) {
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
+          }
+
+          /* Template pill — fully unified Select inside container */
+          :global(.template-pill) {
+            transition: background 0.15s, border-color 0.15s !important;
+          }
+          :global(.template-pill:hover) {
+            background: var(--bg-secondary) !important;
+            border-color: #93c5fd !important;
+          }
+          :global(.template-select-inline .ant-select-selector) {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            height: 28px !important;
+            display: flex !important;
+            align-items: center !important;
+          }
+          :global(.template-select-inline .ant-select-selection-item),
+          :global(.template-select-inline .ant-select-selection-placeholder) {
+            color: var(--text-primary) !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            line-height: 28px !important;
+            padding-inline-end: 18px !important;
+          }
+          :global(.template-select-inline .ant-select-selection-placeholder) {
+            color: var(--text-secondary) !important;
+            font-weight: 500 !important;
+          }
+          :global(.template-select-inline .ant-select-arrow) {
+            inset-inline-end: 2px !important;
+          }
+          :global(.template-select-inline .ant-select-clear) {
+            background: transparent !important;
+            inset-inline-end: 2px !important;
+          }
+          :global(.template-select-inline.ant-select-focused .ant-select-selector) {
+            box-shadow: none !important;
           }
         `}</style>
 
         <Drawer
           title={
             <div className="flex justify-between items-center pr-8">
-              <Typography.Text strong className="text-lg">Live Invoice Preview</Typography.Text>
-              <Typography.Text type="secondary" className="text-xs font-normal italic">Real-time update as you type</Typography.Text>
+              <Typography.Text strong className="text-lg">
+                Live invoice preview
+              </Typography.Text>
+              <Typography.Text
+                type="secondary"
+                className="text-xs font-normal italic"
+              >
+                Real-time update as you type
+              </Typography.Text>
             </div>
           }
           placement="right"
@@ -1303,12 +1916,22 @@ export default function InvoiceNewinvoicePage() {
           onClose={() => setIsPreviewVisible(false)}
           open={isPreviewVisible}
           className="invoice-preview-drawer"
-          styles={{ body: { padding: 0, backgroundColor: '#f9fafb' } }}
+          styles={{ body: { padding: 0, backgroundColor: "var(--bg-primary)" } }}
         >
           <InvoicePreview
             data={form.getFieldsValue(true)}
-            settings={activeProfiles.find(p => p.id === form.getFieldValue('settingsProfileId')) || activeProfiles[0]}
-            totals={{ subtotal, totalTax, totalBeforeDiscount, finalTotal, discountAmount }}
+            settings={
+              activeProfiles.find(
+                (p) => p.id === form.getFieldValue("settingsProfileId")
+              ) || activeProfiles[0]
+            }
+            totals={{
+              subtotal,
+              totalTax,
+              totalBeforeDiscount,
+              finalTotal,
+              discountAmount,
+            }}
             currencySymbol={currencySymbol}
             activeColumns={activeColumns}
           />

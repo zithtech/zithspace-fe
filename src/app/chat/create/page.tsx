@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Typography, Input, Button, Switch, message } from 'antd';
+import { Typography, Input, Button, Switch, message, theme } from 'antd';
 import { useRouter } from 'next/navigation';
 import { channelService } from '@/services/channelService';
 import { useChatStore } from '@/store/chatStore';
@@ -11,6 +11,7 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 export default function CreateChannelPage() {
+    const { token } = theme.useToken();
     const router = useRouter();
     const { setChannels, channels } = useChatStore();
     const [name, setName] = useState('');
@@ -47,14 +48,14 @@ export default function CreateChannelPage() {
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
-            background: '#fff'
+            background: token.colorBgContainer
         }}>
             {/* Header */}
             <div style={{
                 padding: '16px 20px',
-                borderBottom: '1px solid #f0f0f0'
+                borderBottom: `1px solid ${token.colorBorderSecondary}`
             }}>
-                <Title level={5} style={{ margin: 0 }}>Create Channel</Title>
+                <Title level={5} style={{ margin: 0, color: token.colorText }}>Create Channel</Title>
             </div>
 
             {/* Form */}
@@ -67,7 +68,7 @@ export default function CreateChannelPage() {
                 <div style={{ marginBottom: 20 }}>
                     <Text strong style={{ display: 'block', marginBottom: 8 }}>Name</Text>
                     <Input
-                        prefix={isPrivate ? <LockOutlined style={{ color: '#8c8c8c' }} /> : <NumberOutlined style={{ color: '#8c8c8c' }} />}
+                        prefix={isPrivate ? <LockOutlined style={{ color: token.colorTextSecondary }} /> : <NumberOutlined style={{ color: token.colorTextSecondary }} />}
                         placeholder="e.g. general"
                         value={name}
                         onChange={(e) => setName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
@@ -95,9 +96,9 @@ export default function CreateChannelPage() {
                     alignItems: 'flex-start',
                     marginBottom: 24,
                     padding: '16px',
-                    background: '#fafafa',
+                    background: token.colorBgLayout,
                     borderRadius: 8,
-                    border: '1px solid #f0f0f0'
+                    border: `1px solid ${token.colorBorderSecondary}`
                 }}>
                     <div>
                         <Text strong style={{ display: 'block' }}>Make private</Text>

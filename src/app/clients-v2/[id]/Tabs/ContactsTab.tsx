@@ -158,13 +158,13 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       render: (_: any, record: any) => (
         <Space size={12}>
           <Avatar
-            style={{ backgroundColor: record.isPrimary ? "#3b82f6" : "#f1f5f9", color: record.isPrimary ? "#fff" : "#64748b" }}
+            style={{ backgroundColor: record.isPrimary ? "#3b82f6" : "var(--bg-slate-50)", color: record.isPrimary ? "#fff" : "var(--text-slate-500)" }}
             icon={<User size={16} />}
           >
             {record.firstName?.[0]}{record.lastName?.[0]}
           </Avatar>
           <div>
-            <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>
+            <div style={{ fontWeight: 600, color: "var(--text-slate-900)", fontSize: 14 }}>
               {record.firstName} {record.lastName}
               {record.isPrimary && (
                 <Tooltip title="Primary Contact">
@@ -172,7 +172,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                 </Tooltip>
               )}
             </div>
-            <div style={{ fontSize: 12, color: "#64748b" }}>{record.designation || "No Title"}</div>
+            <div style={{ fontSize: 12, color: "var(--text-slate-500)" }}>{record.designation || "No Title"}</div>
           </div>
         </Space>
       ),
@@ -182,13 +182,13 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       key: "communication",
       render: (_: any, record: any) => (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <Space size={6} style={{ fontSize: 13, color: "#475569" }}>
-            <Mail size={14} style={{ color: "#94a3b8" }} />
+          <Space size={6} style={{ fontSize: 13, color: "var(--text-slate-700)" }}>
+            <Mail size={14} style={{ color: "var(--text-slate-400)" }} />
             {record.officialEmail}
           </Space>
           {record.mobileNumber && (
-            <Space size={6} style={{ fontSize: 12, color: "#64748b" }}>
-              <Phone size={14} style={{ color: "#94a3b8" }} />
+            <Space size={6} style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
+              <Phone size={14} style={{ color: "var(--text-slate-400)" }} />
               {record.mobileNumber}
             </Space>
           )}
@@ -203,7 +203,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         isPrimary ? (
           <Tag color="processing" style={{ borderRadius: 6, fontWeight: 500, border: 0 }}>PRIMARY</Tag>
         ) : (
-          <Tag style={{ borderRadius: 6, fontWeight: 500, border: 0, background: "#f1f5f9", color: "#64748b" }}>SECONDARY</Tag>
+          <Tag style={{ borderRadius: 6, fontWeight: 500, border: 0, background: "var(--bg-slate-50)", color: "var(--text-slate-500)" }}>SECONDARY</Tag>
         )
       ),
     },
@@ -220,7 +220,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                 size="small"
                 checked={isActive}
                 onChange={(checked) => handleStatusChange(record.id, checked)}
-                style={{ backgroundColor: isActive ? "#10b981" : "#cbd5e1" }}
+                style={{ backgroundColor: isActive ? "#10b981" : "var(--border-slate-200)" }}
               />
             </Tooltip>
             <Tag
@@ -244,7 +244,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
             className="premium-action-btn"
             icon={<Edit2 size={16} />}
             onClick={() => openEditModal(record)}
-            style={{ color: "#64748b" }}
+            style={{ color: "var(--text-slate-500)" }}
           />
         </Space>
       ),
@@ -264,17 +264,17 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       <Card
         style={{
           borderRadius: 16,
-          border: "1px solid #f1f5f9",
-          background: "#fff"
+          border: "1px solid var(--border-slate-100)",
+          background: "var(--bg-pure-white)"
         }}
         bodyStyle={{ padding: "0" }}
       >
-        <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9" }}>
+        <div style={{ padding: "24px", borderBottom: "1px solid var(--border-slate-100)" }}>
           <Row justify="space-between" align="middle" gutter={[16, 16]}>
             <Col xs={24} md={12}>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Points of Contact</div>
-                <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Manage multiple client representatives and communication details</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>Points of Contact</div>
+                <div style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 4 }}>Manage multiple client representatives and communication details</div>
               </div>
             </Col>
             <Col xs={24} md={12}>
@@ -282,7 +282,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                 <Col xs={24} sm={16} md={12} lg={14}>
                   <Input
                     placeholder="Filter by name..."
-                    prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+                    prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     style={{ borderRadius: 10, width: "100%", height: 40 }}
                   />
@@ -310,127 +310,163 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
           pagination={false}
           className="premium-table"
           scroll={{ x: "max-content" }}
-          locale={{ emptyText: <div style={{ padding: "40px 0", color: "#64748b" }}>No contacts found matching your criteria</div> }}
+          locale={{ emptyText: <div style={{ padding: "40px 0", color: "var(--text-slate-500)" }}>No contacts found matching your criteria</div> }}
         />
       </Card>
 
       {/* Add Modal */}
       <Modal
-        title={
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ background: "#eff6ff", padding: 8, borderRadius: 8, color: "#3b82f6", display: "flex" }}>
-              <User size={20} />
-            </div>
-            <span style={{ fontWeight: 700, fontSize: 18 }}>Add New Contact</span>
-          </div>
-        }
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={null}
+        title={null}
         width={560}
         centered
         destroyOnClose
-        className="premium-modal"
+        className="pmodal"
+        closeIcon={<X size={16} />}
       >
-        <div style={{ padding: "8px 0" }}>
-          <Form form={form} layout="vertical" onFinish={handleAdd}>
+        <Form form={form} layout="vertical" onFinish={handleAdd}>
+          <div className="pmodal-hero">
+            <div className="pmodal-hero-mesh" />
+            <div className="pmodal-hero-blob" />
+            <div className="pmodal-hero-content">
+              <div className="pmodal-hero-icon">
+                <User size={20} />
+              </div>
+              <div>
+                <div className="pmodal-hero-title">Add New Contact</div>
+                <div className="pmodal-hero-sub">Add a new representative for this client account</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pmodal-body">
+            <div className="pmodal-section-label">
+              <User size={11} />
+              <span>Identity</span>
+            </div>
             <Row gutter={16}>
               <Col xs={24} sm={12}>
                 <Form.Item
                   name="firstName"
-                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>First Name</span>}
+                  label="First name"
                   rules={[{ required: true, message: "Required" }]}
                 >
-                  <Input placeholder="e.g. John" onKeyDown={(e) => {
-                    if (
-                      !/^[A-Za-z\s-]$/.test(e.key) &&
-                      e.key !== "Backspace" &&
-                      e.key !== "ArrowLeft" &&
-                      e.key !== "ArrowRight" &&
-                      e.key !== "Tab"
-                    ) {
-                      e.preventDefault();
-                    }
-                  }} style={{ borderRadius: 8, height: 40 }} />
+                  <Input
+                    placeholder="e.g. John"
+                    onKeyDown={(e) => {
+                      if (
+                        !/^[A-Za-z\s-]$/.test(e.key) &&
+                        e.key !== "Backspace" &&
+                        e.key !== "ArrowLeft" &&
+                        e.key !== "ArrowRight" &&
+                        e.key !== "Tab"
+                      ) {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item
                   name="lastName"
-                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Last Name</span>}
+                  label="Last name"
                   rules={[{ required: true, message: "Required" }]}
                 >
-                  <Input placeholder="e.g. Smith" onKeyDown={(e) => {
-                    if (
-                      !/^[A-Za-z\s-]$/.test(e.key) &&
-                      e.key !== "Backspace" &&
-                      e.key !== "ArrowLeft" &&
-                      e.key !== "ArrowRight" &&
-                      e.key !== "Tab"
-                    ) {
-                      e.preventDefault();
-                    }
-                  }} style={{ borderRadius: 8, height: 40 }} />
+                  <Input
+                    placeholder="e.g. Smith"
+                    onKeyDown={(e) => {
+                      if (
+                        !/^[A-Za-z\s-]$/.test(e.key) &&
+                        e.key !== "Backspace" &&
+                        e.key !== "ArrowLeft" &&
+                        e.key !== "ArrowRight" &&
+                        e.key !== "Tab"
+                      ) {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
                 </Form.Item>
               </Col>
             </Row>
 
+            <Form.Item
+              name="designation"
+              label="Job designation"
+            >
+              <Input placeholder="e.g. CTO, Hiring Manager" />
+            </Form.Item>
+
+            <div className="pmodal-section-label">
+              <Mail size={11} />
+              <span>Communication</span>
+            </div>
             <Form.Item
               name="officialEmail"
-              label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Official Email Address</span>}
+              label="Official email address"
               rules={[{ required: true, type: "email", message: "Valid email required" }]}
             >
-              <Input placeholder="john.smith@company.com" prefix={<Mail size={16} style={{ color: "#94a3b8" }} />} style={{ borderRadius: 8, height: 40 }} />
+              <Input
+                placeholder="john.smith@company.com"
+                prefix={<Mail size={15} style={{ color: "var(--text-slate-400)" }} />}
+              />
             </Form.Item>
-
-            <Row gutter={16}>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="mobileNumber"
-                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Contact Number</span>}
-                >
-                  <Input placeholder="+1 (555) 000-0000" type="number" prefix={<Phone size={16} style={{ color: "#94a3b8" }} />} style={{ borderRadius: 8, height: 40 }} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="designation"
-                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Job Designation</span>}
-                >
-                  <Input placeholder="e.g. CTO, Hiring Manager" style={{ borderRadius: 8, height: 40 }} />
-                </Form.Item>
-              </Col>
-            </Row>
 
             <Form.Item
-              name="isPrimary"
-              label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Primary Contact Designation</span>}
-              initialValue={false}
+              name="mobileNumber"
+              label="Contact number"
             >
-              <Select style={{ borderRadius: 8, height: 40 }}>
-                <Option value={true}>Yes, this is a Primary Contact</Option>
-                <Option value={false}>No, this is a Secondary Contact</Option>
-              </Select>
+              <Input
+                placeholder="+1 (555) 000-0000"
+                type="number"
+                prefix={<Phone size={15} style={{ color: "var(--text-slate-400)" }} />}
+              />
             </Form.Item>
 
-            <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 12 }}>
-              <Button
-                onClick={() => setIsModalOpen(false)}
-                style={{ borderRadius: 8, height: 40, fontWeight: 500 }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
-              >
-                Create Contact
-              </Button>
+            <div className="pmodal-section-label">
+              <ShieldCheck size={11} />
+              <span>Designation</span>
             </div>
-          </Form>
-        </div>
+            <Form.Item
+              name="isPrimary"
+              label="Primary contact"
+              initialValue={false}
+            >
+              <Select
+                placeholder="Select designation"
+                options={[
+                  { value: true, label: "Yes — this is a primary contact" },
+                  { value: false, label: "No — secondary contact" },
+                ]}
+              />
+            </Form.Item>
+          </div>
+
+          <div className="pmodal-footer">
+            <span className="pmodal-footer-hint">
+              <ShieldCheck size={12} />
+              Required fields are marked
+            </span>
+            <Button
+              onClick={() => setIsModalOpen(false)}
+              className="pmodal-btn-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
+              icon={<Plus size={15} />}
+              className="pmodal-btn-primary"
+            >
+              Create Contact
+            </Button>
+          </div>
+        </Form>
       </Modal>
 
       {/* Edit Modal */}
@@ -459,7 +495,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
               <Col xs={24} sm={12}>
                 <Form.Item
                   name="firstName"
-                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>First Name</span>}
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>First Name</span>}
                   rules={[{ required: true }]}
                 >
                   <Input style={{ borderRadius: 8, height: 40 }} />
@@ -468,7 +504,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
               <Col xs={24} sm={12}>
                 <Form.Item
                   name="lastName"
-                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Last Name</span>}
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>Last Name</span>}
                   rules={[{ required: true }]}
                 >
                   <Input style={{ borderRadius: 8, height: 40 }} />
@@ -478,26 +514,26 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
 
             <Form.Item
               name="officialEmail"
-              label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Official Email</span>}
+              label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>Official Email</span>}
               rules={[{ required: true, type: "email" }]}
             >
-              <Input prefix={<Mail size={16} style={{ color: "#94a3b8" }} />} style={{ borderRadius: 8, height: 40 }} />
+              <Input prefix={<Mail size={16} style={{ color: "var(--text-slate-400)" }} />} style={{ borderRadius: 8, height: 40 }} />
             </Form.Item>
 
             <Row gutter={16}>
               <Col xs={24} sm={12}>
-                <Form.Item name="mobileNumber" label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Mobile Number</span>}>
-                  <Input prefix={<Phone size={16} style={{ color: "#94a3b8" }} />} style={{ borderRadius: 8, height: 40 }} />
+                <Form.Item name="mobileNumber" label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>Mobile Number</span>}>
+                  <Input prefix={<Phone size={16} style={{ color: "var(--text-slate-400)" }} />} style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item name="designation" label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Designation</span>}>
+                <Form.Item name="designation" label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>Designation</span>}>
                   <Input style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
             </Row>
 
-            <Form.Item name="isPrimary" label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Primary Designation</span>}>
+            <Form.Item name="isPrimary" label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>Primary Designation</span>}>
               <Select style={{ borderRadius: 8, height: 40 }}>
                 <Option value={true}>Yes</Option>
                 <Option value={false}>No</Option>
@@ -526,17 +562,22 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
 
       <style dangerouslySetInnerHTML={{
         __html: `
+        .premium-table .ant-table {
+          background: transparent !important;
+          color: var(--text-slate-700) !important;
+        }
         .premium-table .ant-table-thead > tr > th {
-          background: #f8fafc !important;
-          color: #64748b !important;
+          background: var(--bg-slate-50) !important;
+          color: var(--text-slate-500) !important;
           font-weight: 600 !important;
           font-size: 12px !important;
           text-transform: uppercase !important;
           letter-spacing: 0.025em !important;
           padding: 16px 24px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
           white-space: nowrap !important;
         }
+        .premium-table .ant-table-thead > tr > th::before { display: none !important; }
         @media (max-width: 576px) {
           .premium-table .ant-table-thead > tr > th,
           .premium-table .ant-table-tbody > tr > td {
@@ -548,14 +589,27 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         }
         .premium-table .ant-table-tbody > tr > td {
           padding: 16px 24px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+        }
+        .premium-table .ant-table-tbody > tr:hover > td {
+          background: var(--bg-slate-50) !important;
+        }
+        .premium-table .ant-table-placeholder > td {
+          background: transparent !important;
         }
         .premium-action-btn:hover {
-          background: #f1f5f9 !important;
-          color: #3b82f6 !important;
+          background: var(--bg-slate-50) !important;
+          color: #8b5cf6 !important;
         }
         .ant-form-item-label {
             padding-bottom: 6px !important;
+        }
+        [data-theme="dark"] .premium-action-btn {
+          color: var(--text-slate-400) !important;
+        }
+        [data-theme="dark"] .premium-action-btn:hover {
+          background: rgba(139, 92, 246, 0.16) !important;
+          color: #a78bfa !important;
         }
       `}} />
     </div>

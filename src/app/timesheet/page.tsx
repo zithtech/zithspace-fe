@@ -35,7 +35,13 @@ export default function MyTimesheetsPage() {
   // Loading state
   if (authLoading) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "24px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)",
+        textAlign: 'center' 
+      }}>
         <Spin size="large" tip="Loading..." />
       </div>
     );

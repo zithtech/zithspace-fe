@@ -21,6 +21,7 @@ export interface TicketFormData {
   endDate?: string;
   releasePlan?: string;
   selectedWorkflowSteps?: string[];
+  tags?: string[];
 }
 
 export interface TicketConfiguration {
@@ -49,6 +50,7 @@ export interface TicketConfiguration {
     label: string;
     email: string;
     position: string;
+    avatarUrl?: string | null;
   }>;
   projects: Array<{
     value: string;
@@ -81,6 +83,7 @@ export interface RelatedLink {
     id: string;
     name: string;
     email: string;
+    avatarUrl?: string | null;
   };
   addedAt: string;
 }
@@ -108,18 +111,21 @@ export interface Ticket {
     id: string;
     name: string;
     email: string;
+    avatarUrl?: string | null;
   };
   reportTo:
   | {
     id: string;
     name: string;
     email: string;
+    avatarUrl?: string | null;
   }
   | string;
   createdBy: {
     id: string;
     name: string;
     email: string;
+    avatarUrl?: string | null;
   };
   createdAt: string;
   updatedAt: string;
@@ -133,6 +139,7 @@ export interface Ticket {
   bucketId?: string;
   isArchived?: boolean;
   parentId?: string; // Hierarchy support (Subtask)
+  tags?: string[];
   metadata?: {
     platform?: string;
     stack?: string;
@@ -151,6 +158,7 @@ export interface Ticket {
       id: string;
       name: string;
       email: string;
+      avatarUrl?: string | null;
     };
     comment: string;
     timestamp: string;
@@ -163,6 +171,7 @@ export interface Ticket {
     timestamp: string;
     performedBy: {
       name: string;
+      avatarUrl?: string | null;
     };
   }>;
   attachments?: Array<{
@@ -172,6 +181,7 @@ export interface Ticket {
     fileType: string;
     uploadedBy: {
       name: string;
+      avatarUrl?: string | null;
     };
     uploadedAt: string;
   }>;
@@ -216,6 +226,7 @@ export interface DashboardStats {
     user: {
       name: string;
       email: string;
+      avatarUrl?: string | null;
     };
     statuses: Array<{
       status: string;
@@ -269,6 +280,68 @@ class TicketService {
   }
 
   /**
+   * Generate a structured ticket draft from a free-form description using AI.
+   * Returns a draft only — caller is responsible for persisting via createTicket().
+   */
+  static async generateAiTicketDraft(input: {
+    description: string;
+    title?: string;
+  }): Promise<{
+    title: string;
+    description: string;
+    priority: "Low" | "Medium" | "High";
+    subtasks: { title: string; hours: number }[];
+    totalHours: number;
+    source: "gemini" | "mock";
+    fallbackReason?: string;
+  }> {
+    try {
+      // AI generation can legitimately take 30s+ when Gemini retries on 429s
+      // (the backend retries up to 3 times with ~4s delay each). Override the
+      // client's default 30s timeout so we wait for the real response.
+      const response = await apiClient.post("/api/tickets/ai-generate", input, {
+        timeout: 120000, // 2 min, comfortably longer than backend's worst case
+      });
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error generating AI ticket draft:", error);
+      if (error?.code === "ECONNABORTED") {
+        throw new Error("AI generation took too long. Please try again.");
+      }
+      const errorMessage =
+        error.response?.data?.error || "Failed to generate ticket draft";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Regenerate just the subtask list for a Zai draft, with a caller-specified
+   * shape (count + hours-each). Useful when the user wants e.g. 8 subtasks of
+   * 6h each instead of Zai's default breakdown.
+   */
+  static async generateAiSubtasks(input: {
+    description: string;
+    count?: number;
+    hoursEach?: number;
+  }): Promise<{
+    subtasks: { title: string; hours: number }[];
+    source: "gemini" | "mock";
+  }> {
+    try {
+      const response = await apiClient.post("/api/tickets/ai-generate-subtasks", input, {
+        timeout: 120000,
+      });
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error regenerating AI subtasks:", error);
+      if (error?.code === "ECONNABORTED") {
+        throw new Error("Subtask generation took too long. Please try again.");
+      }
+      throw new Error(error.response?.data?.error || "Failed to regenerate subtasks");
+    }
+  }
+
+  /**
    * Create a new ticket
    */
   static async createTicket(ticketData: TicketFormData): Promise<Ticket> {
@@ -291,6 +364,7 @@ class TicketService {
     projectId?: string;
     assigneeId?: string;
     priority?: string;
+    type?: string;
     search?: string;
     limitPerColumn?: number;
   }): Promise<{
@@ -335,6 +409,7 @@ class TicketService {
     limit?: number;
     status?: string;
     priority?: string;
+    type?: string;
     projectId?: string;
     assigneeId?: string;
     createdById?: string;
@@ -486,6 +561,19 @@ class TicketService {
   }
 
   /**
+   * Get distinct tags used across all tickets in the tenant.
+   */
+  static async getAllTags(): Promise<string[]> {
+    try {
+      const response = await apiClient.get(`/api/tickets/tags`);
+      return response.data.data || [];
+    } catch (error: any) {
+      console.error("Error fetching ticket tags:", error);
+      return [];
+    }
+  }
+
+  /**
    * Delete ticket
    */
   static async deleteTicket(id: string): Promise<void> {
@@ -534,6 +622,7 @@ class TicketService {
         name: string;
         workEmail: string;
         position?: string;
+        avatarUrl?: string | null;
       };
     }>
   > {
@@ -562,6 +651,7 @@ class TicketService {
         name: string;
         workEmail: string;
         position?: string;
+        avatarUrl?: string | null;
       };
     }>
   > {
@@ -665,6 +755,7 @@ class TicketService {
       email: string;
       position: string;
       role: string;
+      avatarUrl?: string | null;
     }>
   > {
     try {

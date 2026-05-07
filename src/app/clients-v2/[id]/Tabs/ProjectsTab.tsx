@@ -35,6 +35,10 @@ import {
   Clock,
   AlertCircle,
   FileText,
+  X,
+  Wallet,
+  Briefcase,
+  Hash,
 } from "lucide-react";
 import { api } from "@/lib/axios";
 import dayjs from "dayjs";
@@ -338,7 +342,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           <Space size={12}>
             <Input
               placeholder="Search by name or project code..."
-              prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+              prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ borderRadius: 10, width: 300, height: 40 }}
             />
@@ -362,66 +366,83 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           pagination={{ pageSize: 8, hideOnSinglePage: true }}
           className="premium-table"
           scroll={{ x: "max-content" }}
-          locale={{ emptyText: <div style={{ padding: "40px 0", color: "#64748b" }}>No project initiatives recorded</div> }}
+          locale={{ emptyText: <div style={{ padding: "40px 0", color: "var(--text-slate-500)" }}>No project initiatives recorded</div> }}
         />
       </Card>
 
       {/* Create Modal */}
       <Modal
-        title={
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ background: "#eff6ff", padding: 8, borderRadius: 8, color: "#3b82f6", display: "flex" }}>
-              <Layers size={20} />
-            </div>
-            <span style={{ fontWeight: 700, fontSize: 18 }}>Initiate New Project</span>
-          </div>
-        }
         open={isModalVisible}
         onCancel={() => {
           setIsModalVisible(false);
           form.resetFields();
         }}
         footer={null}
+        title={null}
         width={680}
         centered
         destroyOnClose
-        className="premium-modal"
+        className="pmodal"
+        closeIcon={<X size={16} />}
       >
-        <div style={{ padding: "8px 0" }}>
-          <Form form={form} layout="vertical" onFinish={handleCreateProject}>
+        <Form form={form} layout="vertical" onFinish={handleCreateProject}>
+          <div className="pmodal-hero amber">
+            <div className="pmodal-hero-mesh" />
+            <div className="pmodal-hero-blob" />
+            <div className="pmodal-hero-content">
+              <div className="pmodal-hero-icon">
+                <Layers size={20} />
+              </div>
+              <div>
+                <div className="pmodal-hero-title">Initiate New Project</div>
+                <div className="pmodal-hero-sub">
+                  Set up a project scope, leadership, and budget envelope
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pmodal-body">
+            <div className="pmodal-section-label">
+              <Hash size={11} />
+              <span>Identity</span>
+            </div>
             <Row gutter={20}>
               <Col xs={24} sm={14}>
                 <Form.Item
-                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Name</span>}
+                  label="Project name"
                   name="name"
                   rules={[{ required: true, message: "Required" }]}
                 >
-                  <Input placeholder="e.g. Q3 Infrastructure Modernization" style={{ borderRadius: 8, height: 40 }} />
+                  <Input placeholder="e.g. Q3 Infrastructure Modernization" />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={10}>
                 <Form.Item
-                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>System Identification Code</span>}
+                  label="Project code"
                   name="code"
                   rules={[{ required: true, message: "Required" }]}
                 >
-                  <Input placeholder="e.g. PRJ-2024-001" style={{ borderRadius: 8, height: 40 }} />
+                  <Input placeholder="e.g. PRJ-2024-001" />
                 </Form.Item>
               </Col>
             </Row>
 
+            <div className="pmodal-section-label">
+              <User size={11} />
+              <span>Leadership &amp; Status</span>
+            </div>
             <Row gutter={20}>
               <Col xs={24} sm={12}>
                 <Form.Item
-                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Leadership</span>}
+                  label="Project manager"
                   name="projectManagerId"
                   rules={[{ required: true, message: "Assignment required" }]}
                 >
                   <Select
-                    placeholder="Assign a Project Manager"
+                    placeholder="Assign a project manager"
                     showSearch
                     optionFilterProp="children"
-                    style={{ borderRadius: 8, height: 40 }}
                   >
                     {employees.map((emp) => (
                       <Select.Option key={emp.id} value={emp.id}>
@@ -433,44 +454,48 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item
-                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Initial Lifecycle Status</span>}
+                  label="Initial lifecycle status"
                   name="status"
                   initialValue="Draft"
                   rules={[{ required: true }]}
                 >
-                  <Select style={{ borderRadius: 8, height: 40 }}>
-                    <Select.Option value="Draft">Drafting Phase</Select.Option>
+                  <Select>
+                    <Select.Option value="Draft">Drafting phase</Select.Option>
                     <Select.Option value="Active">Operational / Active</Select.Option>
-                    <Select.Option value="On Hold">Delayed / On Hold</Select.Option>
-                    <Select.Option value="Completed">Project Completed</Select.Option>
-                    <Select.Option value="Closed">System Closed</Select.Option>
+                    <Select.Option value="On Hold">Delayed / On hold</Select.Option>
+                    <Select.Option value="Completed">Project completed</Select.Option>
+                    <Select.Option value="Closed">System closed</Select.Option>
                   </Select>
                 </Form.Item>
               </Col>
             </Row>
 
+            <div className="pmodal-section-label">
+              <Wallet size={11} />
+              <span>Billing &amp; Budget</span>
+            </div>
             <Row gutter={20}>
               <Col xs={24} sm={12}>
                 <Form.Item
-                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
+                  label="Billing model"
                   name="billingType"
                   rules={[{ required: true }]}
                 >
-                  <Select placeholder="Select Model" style={{ borderRadius: 8, height: 40 }}>
+                  <Select placeholder="Select model">
                     <Select.Option value="Hourly">Hourly rate</Select.Option>
                     <Select.Option value="Monthly">Monthly subscription</Select.Option>
                     <Select.Option value="Daily">Daily allowance</Select.Option>
                     <Select.Option value="Fixed">Fixed project cost</Select.Option>
-                    <Select.Option value="Non-Billable">Internal / Non-Billable</Select.Option>
+                    <Select.Option value="Non-Billable">Internal / Non-billable</Select.Option>
                   </Select>
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Allocated Budget</span>} name="budget">
+                <Form.Item label="Allocated budget" name="budget">
                   <InputNumber
                     type="number"
                     addonBefore={currencySelector}
-                    style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }}
+                    style={{ width: "100%" }}
                     placeholder="0.00"
                     formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
                     parser={(value) => value?.replace(/\$\s?|(,*)/g, "") as unknown as number}
@@ -479,41 +504,50 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
               </Col>
             </Row>
 
+            <div className="pmodal-section-label">
+              <Calendar size={11} />
+              <span>Timeline</span>
+            </div>
             <Row gutter={20}>
               <Col xs={24} sm={12}>
                 <Form.Item
-                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Commencement</span>}
+                  label="Start date"
                   name="startDate"
                   rules={[{ required: true, message: "Required" }]}
                 >
-                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                  <DatePicker style={{ width: "100%" }} placeholder="Project commencement" />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Estimated Completion</span>} name="endDate">
-                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                <Form.Item label="End date" name="endDate">
+                  <DatePicker style={{ width: "100%" }} placeholder="Estimated completion" />
                 </Form.Item>
               </Col>
             </Row>
+          </div>
 
-            <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 12 }}>
-              <Button
-                onClick={() => setIsModalVisible(false)}
-                style={{ borderRadius: 8, height: 40 }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={submitting}
-                style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
-              >
-                Initialize Project
-              </Button>
-            </div>
-          </Form>
-        </div>
+          <div className="pmodal-footer">
+            <span className="pmodal-footer-hint">
+              <Briefcase size={12} />
+              Project will be created under this client
+            </span>
+            <Button
+              onClick={() => setIsModalVisible(false)}
+              className="pmodal-btn-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={submitting}
+              icon={<Plus size={15} />}
+              className="pmodal-btn-primary"
+            >
+              Initialize Project
+            </Button>
+          </div>
+        </Form>
       </Modal>
 
       {/* Edit Modal */}
@@ -541,12 +575,12 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           <Form form={editForm} layout="vertical" onFinish={handleEditProject}>
             <Row gutter={20}>
               <Col xs={24} sm={14}>
-                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Name</span>} name="name" rules={[{ required: true }]}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>Project Name</span>} name="name" rules={[{ required: true }]}>
                   <Input style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={10}>
-                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Code</span>} name="code">
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>Project Code</span>} name="code">
                   <Input disabled style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
@@ -554,7 +588,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
 
             <Row gutter={20}>
               <Col xs={24} sm={12}>
-                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Manager</span>} name="projectManagerId" rules={[{ required: true }]}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>Project Manager</span>} name="projectManagerId" rules={[{ required: true }]}>
                   <Select showSearch optionFilterProp="children" style={{ borderRadius: 8, height: 40 }}>
                     {employees.map((emp) => (
                       <Select.Option key={emp.id} value={emp.id}>
@@ -565,7 +599,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Status</span>} name="status" rules={[{ required: true }]}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>Project Status</span>} name="status" rules={[{ required: true }]}>
                   <Select style={{ borderRadius: 8, height: 40 }}>
                     <Select.Option value="Draft">Draft</Select.Option>
                     <Select.Option value="Active">Active</Select.Option>
@@ -579,7 +613,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
 
             <Row gutter={20}>
               <Col xs={24} sm={12}>
-                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Type</span>} name="billingType" rules={[{ required: true }]}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>Billing Type</span>} name="billingType" rules={[{ required: true }]}>
                   <Select style={{ borderRadius: 8, height: 40 }}>
                     <Select.Option value="Hourly">Hourly</Select.Option>
                     <Select.Option value="Monthly">Monthly</Select.Option>
@@ -590,7 +624,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Total Budget</span>} name="budget">
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>Total Budget</span>} name="budget">
                   <InputNumber
                     addonBefore={currencySelector}
                     style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }}
@@ -603,12 +637,12 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
 
             <Row gutter={20}>
               <Col xs={24} sm={12}>
-                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Start Date</span>} name="startDate" rules={[{ required: true }]}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>Start Date</span>} name="startDate" rules={[{ required: true }]}>
                   <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date</span>} name="endDate">
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-slate-700)" }}>End Date</span>} name="endDate">
                   <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
@@ -626,6 +660,10 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
 
       <style dangerouslySetInnerHTML={{
         __html: `
+        .premium-table .ant-table {
+          background: transparent !important;
+          color: var(--text-slate-700) !important;
+        }
         .premium-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50) !important;
           color: var(--text-slate-500) !important;
@@ -636,13 +674,27 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           padding: 16px 24px !important;
           border-bottom: 1px solid var(--border-slate-100) !important;
         }
+        .premium-table .ant-table-thead > tr > th::before { display: none !important; }
         .premium-table .ant-table-tbody > tr > td {
           padding: 16px 24px !important;
           border-bottom: 1px solid var(--border-slate-100) !important;
         }
+        .premium-table .ant-table-tbody > tr:hover > td {
+          background: var(--bg-slate-50) !important;
+        }
+        .premium-table .ant-table-placeholder > td {
+          background: transparent !important;
+        }
         .premium-action-btn:hover {
           background: var(--bg-slate-50) !important;
-          color: var(--premium-blue) !important;
+          color: #8b5cf6 !important;
+        }
+        [data-theme="dark"] .premium-action-btn {
+          color: var(--text-slate-400) !important;
+        }
+        [data-theme="dark"] .premium-action-btn:hover {
+          background: rgba(139, 92, 246, 0.16) !important;
+          color: #a78bfa !important;
         }
       `}} />
     </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, Typography, Tag, Tooltip, Empty, Skeleton } from 'antd';
+import { Tag, Tooltip, Empty, Skeleton } from 'antd';
 import {
     FileTextOutlined,
     FolderOutlined,
@@ -10,85 +10,96 @@ import {
     ProjectOutlined,
     UserOutlined,
     ArrowRightOutlined,
+    DeleteOutlined,
 } from '@ant-design/icons';
 import { DocumentHub } from '@/services/documentHub';
 import { format, formatDistanceToNow } from 'date-fns';
-
-const { Text, Title } = Typography;
 
 interface DocumentHubDashboardProps {
     documentHubs: DocumentHub[];
     isLoading: boolean;
     onHubClick: (hubId: string) => void;
+    onShareHub: (e: React.MouseEvent, hub: DocumentHub) => void;
 }
 
 const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
     documentHubs,
     isLoading,
     onHubClick,
+    onShareHub,
 }) => {
-    // Compute stats from the data
     const totalHubs = documentHubs.length;
     const totalDocuments = documentHubs.reduce(
         (acc, hub) => acc + (hub.treeNodes?.filter((n) => n.type === 'file').length || 0),
         0
     );
     const projectLinked = documentHubs.filter((h) => h.projectId).length;
+    const uniqueCreators = new Set(documentHubs.map((h) => h.createdById)).size;
 
-    // Recent hubs (last 5, sorted by updatedAt)
     const recentHubs = [...documentHubs]
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-        .slice(0, 6);
-
-    // Unique contributors
-    const uniqueCreators = new Set(documentHubs.map((h) => h.createdById)).size;
+        .slice(0, 4);
 
     const statCards = [
         {
             title: 'Document Hubs',
             value: totalHubs,
             icon: <FolderOutlined />,
-            color: 'var(--text-sky-500)',
-            bg: 'var(--bg-blue-50)',
+            gradient: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+            shadow: 'rgba(59, 130, 246, 0.25)',
         },
         {
             title: 'Total Documents',
             value: totalDocuments,
             icon: <FileTextOutlined />,
-            color: 'var(--text-holiday)',
-            bg: 'var(--bg-green-50)',
+            gradient: 'linear-gradient(135deg, #10B981 0%, #14B8A6 100%)',
+            shadow: 'rgba(16, 185, 129, 0.25)',
         },
         {
             title: 'Project Linked',
             value: projectLinked,
             icon: <ProjectOutlined />,
-            color: '#722ed1',
-            bg: 'var(--bg-purple-50)',
+            gradient: 'linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%)',
+            shadow: 'rgba(139, 92, 246, 0.25)',
         },
         {
             title: 'Contributors',
             value: uniqueCreators,
             icon: <UserOutlined />,
-            color: '#fa8c16',
-            bg: 'var(--bg-orange-50)',
+            gradient: 'linear-gradient(135deg, #F97316 0%, #F59E0B 100%)',
+            shadow: 'rgba(249, 115, 22, 0.25)',
         },
     ];
 
     if (isLoading) {
         return (
-            <div style={{ marginBottom: 24 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+            <div className="flex flex-col gap-5 mb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[1, 2, 3, 4].map((i) => (
-                        <Card key={i} size="small">
+                        <div
+                            key={i}
+                            className="rounded-2xl p-5"
+                            style={{
+                                border: '1px solid var(--border-slate-200)',
+                                background: 'var(--bg-pure-white)',
+                            }}
+                        >
                             <Skeleton active paragraph={{ rows: 1 }} />
-                        </Card>
+                        </div>
                     ))}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-                    {[1, 2, 3].map((i) => (
-                        <Card key={i} size="small">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {[1, 2, 3, 4].map((i) => (
+                        <div
+                            key={i}
+                            className="rounded-2xl p-4"
+                            style={{
+                                border: '1px solid var(--border-slate-200)',
+                                background: 'var(--bg-pure-white)',
+                            }}
+                        >
                             <Skeleton active paragraph={{ rows: 2 }} />
-                        </Card>
+                        </div>
                     ))}
                 </div>
             </div>
@@ -96,139 +107,63 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
     }
 
     return (
-        <div>
+        <div className="flex flex-col gap-6">
             {/* Stats Grid */}
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(4, 1fr)',
-                    gap: 16,
-                    marginBottom: 16,
-                }}
-            >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {statCards.map((stat) => (
-                    <Card
+                    <div
                         key={stat.title}
-                        size="small"
+                        className="group relative rounded-2xl px-5 py-4 transition-all duration-200 overflow-hidden"
                         style={{
-                            borderRadius: 12,
                             border: '1px solid var(--border-slate-200)',
-                            cursor: 'default',
-                            background: 'var(--bg-pure-white)'
+                            background: 'var(--bg-pure-white)',
                         }}
-                        styles={{ body: { padding: '16px 20px' } }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = `0 8px 24px ${stat.shadow}`;
+                            e.currentTarget.style.borderColor = 'transparent';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = 'none';
+                            e.currentTarget.style.borderColor = 'var(--border-slate-200)';
+                        }}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div>
-                                <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>
+                        {/* Decorative gradient blob */}
+                        <div
+                            className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-[0.08] group-hover:opacity-[0.14] transition-opacity"
+                            style={{ background: stat.gradient }}
+                        />
+
+                        <div className="relative flex items-center justify-between gap-3">
+                            <div className="flex flex-col gap-1.5 min-w-0">
+                                <span
+                                    className="text-[11px] font-semibold uppercase tracking-[0.08em]"
+                                    style={{ color: 'var(--text-slate-400)' }}
+                                >
                                     {stat.title}
-                                </Text>
-                                <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1 }}>
+                                </span>
+                                <span
+                                    className="text-[28px] font-bold leading-none tracking-tight"
+                                    style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}
+                                >
                                     {stat.value}
                                 </span>
                             </div>
                             <div
+                                className="flex items-center justify-center w-11 h-11 rounded-xl shrink-0 text-white text-[18px]"
                                 style={{
-                                    width: 44,
-                                    height: 44,
-                                    borderRadius: 12,
-                                    background: stat.bg,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: 20,
-                                    color: stat.color,
+                                    background: stat.gradient,
+                                    boxShadow: `0 4px 12px ${stat.shadow}, inset 0 1px 0 rgba(255,255,255,0.18)`,
                                 }}
                             >
                                 {stat.icon}
                             </div>
                         </div>
-                    </Card>
+                    </div>
                 ))}
             </div>
 
-            {/* Recent Document Hubs */}
-            <div style={{ marginBottom: 6 }}>
-                <Text strong style={{ fontSize: 15 }}>
-                    <ClockCircleOutlined style={{ marginRight: 6 }} />
-                    Recently Updated
-                </Text>
-            </div>
-
-            {recentHubs.length === 0 ? (
-                <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="No document hubs yet. Create one to get started!"
-                    style={{ padding: '24px 0' }}
-                />
-            ) : (
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: 12,
-                    }}
-                >
-                    {recentHubs.map((hub) => {
-                        const fileCount = hub.treeNodes?.filter((n) => n.type === 'file').length || 0;
-                        const folderCount = hub.treeNodes?.filter((n) => n.type === 'folder').length || 0;
-
-                        return (
-                            <Card
-                                key={hub.id}
-                                size="small"
-                                hoverable
-                                onClick={() => onHubClick(hub.id)}
-                                style={{
-                                    borderRadius: 12,
-                                    border: '1px solid var(--border-slate-200)',
-                                    transition: 'all 0.2s',
-                                    background: 'var(--bg-pure-white)'
-                                }}
-                                styles={{ body: { padding: '14px 18px' } }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-                                        <FolderOutlined style={{ color: '#1677ff', fontSize: 16, flexShrink: 0 }} />
-                                        <Text
-                                            strong
-                                            ellipsis
-                                            style={{ fontSize: 14 }}
-                                        >
-                                            {hub.name}
-                                        </Text>
-                                    </div>
-                                    <ArrowRightOutlined style={{ color: '#bfbfbf', fontSize: 12, marginTop: 4 }} />
-                                </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                                    <div style={{ display: 'flex', gap: 10, fontSize: 12, color: '#8c8c8c', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                                        {hub.project && (
-                                            <Text ellipsis style={{ fontSize: 12, color: '#1677ff', fontWeight: 500, maxWidth: '80px' }}>
-                                                {hub.project.name}
-                                            </Text>
-                                        )}
-                                        {hub.ticket && (
-                                            <Tag color="orange" style={{ margin: 0, fontSize: 10, borderRadius: 4, padding: '0 4px', lineHeight: '16px' }}>
-                                                {hub.ticket.ticketNumber}
-                                            </Tag>
-                                        )}
-                                        <span style={{ flexShrink: 0 }}>
-                                            <FileTextOutlined style={{ marginRight: 3 }} />
-                                            {fileCount}
-                                        </span>
-                                    </div>
-                                    <Tooltip title={format(new Date(hub.updatedAt), 'PPp')}>
-                                        <Text type="secondary" style={{ fontSize: 11, flexShrink: 0, marginLeft: 8 }}>
-                                            {formatDistanceToNow(new Date(hub.updatedAt), { addSuffix: true })}
-                                        </Text>
-                                    </Tooltip>
-                                </div>
-                            </Card>
-                        );
-                    })}
-                </div>
-            )}
         </div>
     );
 };

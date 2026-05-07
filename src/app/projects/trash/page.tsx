@@ -10,7 +10,7 @@ import TrashManagementPage from "@/components/projects/trash/TrashManagementPage
 
 export default function TrashPage() {
   const { isLoading: authLoading } = useAuth();
-  const { canReadTicket, canUpdateTicket, canDeleteTicket } = usePermission();
+  const { canReadTicket } = usePermission();
   const router = useRouter();
 
   // Route guard
@@ -24,12 +24,16 @@ export default function TrashPage() {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ backgroundColor: 'var(--bg-pure-white)', minHeight: 'calc(100vh - 64px)', padding: 24, textAlign: 'center' }}>
-        <div style={{ padding: 100, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading trash">
-            <div style={{ padding: 20 }} />
-          </Spin>
-        </div>
+        <div style={{ 
+          margin: "0 -24px",
+          padding: "24px 32px",
+          background: "var(--bg-pure-white)",
+          minHeight: "calc(100vh - 64px)",
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <Spin size="large" tip="Loading trash repository..." />
         </div>
       </MainLayout>
     );
@@ -42,9 +46,7 @@ export default function TrashPage() {
 
   return (
     <MainLayout>
-      <div style={{ backgroundColor: 'var(--bg-pure-white)', minHeight: 'calc(100vh - 64px)', padding: '20px' }}>
-        <TrashManagementPage />
-      </div>
+      <TrashManagementPage />
     </MainLayout>
   );
 }

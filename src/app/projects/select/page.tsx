@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Typography, Tag, Input, Empty, Space, Avatar, Tooltip, Progress, Badge, Spin } from 'antd';
+import { Card, Row, Col, Typography, Tag, Input, Empty, Space, Avatar, Tooltip, Progress, Badge, Spin, Modal, message, Button } from 'antd';
 import {
   SearchOutlined,
   ProjectOutlined,
@@ -11,10 +11,12 @@ import {
   SyncOutlined,
   ClockCircleOutlined,
   LayoutOutlined,
-  ArrowRightOutlined
+  ArrowRightOutlined,
+  DeleteOutlined,
+  ExclamationCircleFilled
 } from '@ant-design/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Suspense } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProjectService } from '@/services/projectService';
@@ -26,7 +28,7 @@ const { Title, Text, Paragraph } = Typography;
 
 // Professional blue color palette constants
 const BLUE_PRIMARY = '#2563eb';
-const BLUE_LIGHT = '#ffffff'; // Modernized to Pure White
+const BLUE_LIGHT = 'var(--bg-pure-white)'; // Modernized to Theme-aware White
 const BLUE_BG_SUBTLE = 'var(--bg-pure-white)';
 const BLUE_BORDER = '#dbeafe';
 const BLUE_TEXT = '#1e3a8a';
@@ -36,9 +38,10 @@ function ProjectSelectContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
-  const { canReadProject } = usePermission();
+  const { canReadProject, canDeleteProject } = usePermission();
   const [search, setSearch] = useState('');
   const [isRedirecting, setIsRedirecting] = useState(true);
+  const queryClient = useQueryClient();
 
   // Route guard
   useEffect(() => {
@@ -55,6 +58,35 @@ function ProjectSelectContent() {
     staleTime: 5 * 60 * 1000,
     enabled: !!user,
   });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => ProjectService.deleteProject(id),
+    onSuccess: () => {
+      message.success('Project moved to trash');
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+    onError: (err: any) => {
+      message.error(err.message || 'Failed to delete project');
+    }
+  });
+
+  const handleDelete = (e: React.MouseEvent, id: string, name: string) => {
+    e.stopPropagation(); // Don't trigger card click
+    
+    Modal.confirm({
+      title: 'Are you sure you want to delete this project?',
+      icon: <ExclamationCircleFilled style={{ color: '#ef4444' }} />,
+      content: `The project "${name}" will be moved to trash.`,
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      centered: true,
+      onOk: () => {
+        return deleteMutation.mutateAsync(id);
+      },
+    });
+  };
 
   const projects = Array.isArray(response) ? response : (response?.data || []);
   const isLoading = authLoading || projectsLoading;
@@ -110,8 +142,9 @@ function ProjectSelectContent() {
   return (
     <MainLayout>
       <div style={{
+        margin: '0 -40px',
         padding: '32px 40px 48px 40px',
-        minHeight: '100vh',
+        minHeight: 'calc(100vh - 64px)',
         background: 'var(--bg-pure-white)',
         fontFamily: "'Inter', sans-serif"
       }}>
@@ -133,14 +166,14 @@ function ProjectSelectContent() {
                 fontWeight: 800,
                 letterSpacing: '-0.025em',
                 fontSize: '2rem',
-                color: '#0f172a'
+                color: 'var(--text-primary)'
               }}>
                 My Projects
               </Title>
             </div>
             <Paragraph style={{
               fontSize: 15,
-              color: '#64748b',
+              color: 'var(--text-secondary)',
               maxWidth: 500,
               margin: 0,
               lineHeight: 1.5
@@ -162,7 +195,7 @@ function ProjectSelectContent() {
                 height: 48,
                 fontSize: 14,
                 border: '1px solid var(--border-color)',
-                background: 'var(--bg-pure-white)',
+                background: 'transparent',
                 boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                 padding: '0 16px'
               }}
@@ -192,8 +225,8 @@ function ProjectSelectContent() {
                 image={<div style={{ fontSize: 64, marginBottom: 16 }}>📁</div>}
                 description={
                   <Space direction="vertical" size={4}>
-                    <Text strong style={{ fontSize: 20, color: '#1e293b' }}>No Projects Found</Text>
-                    <Text style={{ color: '#64748b', fontSize: 16 }}>
+                    <Text strong style={{ fontSize: 20, color: 'var(--text-primary)' }}>No Projects Found</Text>
+                    <Text style={{ color: 'var(--text-secondary)', fontSize: 16 }}>
                       {search ? `We couldn't find any projects matching "${search}"` : "You haven't been assigned to any projects yet."}
                     </Text>
                   </Space>
@@ -250,7 +283,7 @@ function ProjectSelectContent() {
                               margin: 0,
                               fontWeight: 700,
                               fontSize: 17,
-                              color: '#0f172a'
+                              color: 'var(--text-primary)'
                             }} ellipsis={{ tooltip: project?.name }}>
                               {project?.name || 'Untitled Project'}
                             </Title>
@@ -266,22 +299,40 @@ function ProjectSelectContent() {
                               textTransform: 'capitalize',
                               fontSize: 11,
                               border: 'none',
-                              background: project?.status === 'active' ? 'var(--bg-pure-white)' : 'var(--bg-pure-white)',
-                              color: project?.status === 'active' ? BLUE_PRIMARY : '#64748b',
+                              background: 'var(--bg-secondary)',
+                              color: project?.status === 'active' ? BLUE_PRIMARY : 'var(--text-secondary)',
                               marginLeft: 12
                             }}
                           >
                             {project?.status || 'Active'}
                           </Tag>
+
+                          {canDeleteProject && searchParams.get('select') !== 'true' && (
+                            <Tooltip title="Delete Project">
+                              <Button
+                                type="text"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={(e) => project?.id && handleDelete(e, project.id, project.name || 'Untitled Project')}
+                                style={{ 
+                                  marginLeft: 8, 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center',
+                                  borderRadius: 8
+                                }}
+                              />
+                            </Tooltip>
+                          )}
                         </div>
 
                         {/* Tag/Code Badge & Description */}
                         <div style={{ marginBottom: 20 }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500, display: 'block', marginBottom: 8 }}>
+                          <Text style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500, display: 'block', marginBottom: 8 }}>
                             #{project?.code || 'N/A'}
                           </Text>
                           <Paragraph
-                            style={{ color: '#64748b', fontSize: 14, margin: 0, lineHeight: 1.6 }}
+                            style={{ color: 'var(--text-secondary)', fontSize: 14, margin: 0, lineHeight: 1.6 }}
                             ellipsis={{ rows: 2 }}
                           >
                             {project?.description || "Empowering teams to achieve project milestones with efficiency and transparency."}
@@ -291,14 +342,14 @@ function ProjectSelectContent() {
                         {/* Progress */}
                         <div style={{ marginBottom: 28 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                            <Text style={{ fontSize: 13, color: '#475569', fontWeight: 600 }}>Task Progress</Text>
-                            <Text style={{ fontSize: 13, color: '#0f172a', fontWeight: 700 }}>{progressPercent}%</Text>
+                            <Text style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>Task Progress</Text>
+                            <Text style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 700 }}>{progressPercent}%</Text>
                           </div>
                           <Progress
                             percent={progressPercent}
                             showInfo={false}
                             strokeColor={BLUE_PRIMARY}
-                            trailColor="#f1f5f9"
+                            trailColor="var(--bg-secondary)"
                             strokeWidth={8}
                             style={{ margin: 0 }}
                           />

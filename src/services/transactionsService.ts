@@ -8,11 +8,13 @@ export interface Transaction {
     id: string;
     name: string;
     position: string;
+    avatarUrl?: string | null;
   } | string;
   category: 'salary' | 'expense' | 'client_payment' | 'office_expense' | 'bonus' | 'refund' | 'other';
   description: string;
   notes?: string;
   date: string;
+  metadata?: any;
   createdAt: string;
   updatedAt: string;
 }

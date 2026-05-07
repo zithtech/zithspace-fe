@@ -12,14 +12,16 @@ import {
   Select,
   Space,
   Typography,
-  Tag,
   Modal,
+  Drawer,
   Form,
   Alert,
   Dropdown,
-  Checkbox,
   Row,
   Col,
+  Tooltip,
+  Avatar,
+  Badge,
 } from "antd";
 import {
   PlusOutlined,
@@ -29,6 +31,15 @@ import {
   MoreOutlined,
   TeamOutlined,
   ReloadOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  UserOutlined,
+  CrownOutlined,
+  SafetyCertificateOutlined,
+  IdcardOutlined,
+  FilterOutlined,
+  CloseOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import {
@@ -42,26 +53,581 @@ import { ApiError } from "@/lib/axios";
 import type { ColumnsType } from "antd/es/table";
 import { usePermission } from "@/hooks/usePermission";
 import { usePositions } from "@/hooks/usePositions";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-interface MemberFormData {
-  name: string;
-  phone: string;
-  personalEmail: string;
-  workEmail: string;
-  role: "super_admin" | "admin" | "user";
-  position:
-  | "Developer"
-  | "CEO"
-  | "DevOps"
-  | "Project Manager"
-  | "Product Manager"
-  | "UI/UX"
-  | "Business Management";
-  reportsTo: string;
+const ROLE_META: Record<
+  string,
+  { label: string; bg: string; color: string; dot: string }
+> = {
+  super_admin: { label: "Super Admin", bg: "rgba(225,29,72,0.10)", color: "#e11d48", dot: "#e11d48" },
+  admin: { label: "Admin", bg: "rgba(245,158,11,0.12)", color: "#d97706", dot: "#f59e0b" },
+  user: { label: "User", bg: "rgba(16,185,129,0.10)", color: "#059669", dot: "#10b981" },
+};
+
+const AVATAR_PALETTE = [
+  ["#6366f1", "#8b5cf6"],
+  ["#0ea5e9", "#06b6d4"],
+  ["#10b981", "#14b8a6"],
+  ["#f59e0b", "#f97316"],
+  ["#ec4899", "#f43f5e"],
+  ["#8b5cf6", "#d946ef"],
+];
+
+const gradientFor = (seed: string) => {
+  const idx = Math.abs(
+    seed.split("").reduce((a, c) => a + c.charCodeAt(0), 0),
+  ) % AVATAR_PALETTE.length;
+  const [a, b] = AVATAR_PALETTE[idx];
+  return `linear-gradient(135deg, ${a} 0%, ${b} 100%)`;
+};
+
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <div
+    style={{
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "var(--text-slate-500)",
+      textTransform: "uppercase",
+      letterSpacing: "0.08em",
+      margin: "4px 0 12px",
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+    }}
+  >
+    <span>{children}</span>
+    <div style={{ flex: 1, height: 1, background: "var(--border-slate-100)" }} />
+  </div>
+);
+
+const DAYS = [
+  { value: 1, short: "M", label: "Mon" },
+  { value: 2, short: "T", label: "Tue" },
+  { value: 3, short: "W", label: "Wed" },
+  { value: 4, short: "T", label: "Thu" },
+  { value: 5, short: "F", label: "Fri" },
+  { value: 6, short: "S", label: "Sat" },
+  { value: 0, short: "S", label: "Sun" },
+];
+
+const DayPills = ({
+  value = [],
+  onChange,
+}: {
+  value?: number[];
+  onChange?: (v: number[]) => void;
+}) => {
+  const toggle = (d: number) => {
+    if (!onChange) return;
+    const next = value.includes(d)
+      ? value.filter((x) => x !== d)
+      : [...value, d];
+    onChange(next.sort());
+  };
+  return (
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+      {DAYS.map((d) => {
+        const active = value.includes(d.value);
+        return (
+          <Tooltip key={d.value} title={d.label}>
+            <button
+              type="button"
+              onClick={() => toggle(d.value)}
+              className={`mm-day-pill${active ? " active" : ""}`}
+            >
+              {d.short}
+            </button>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+};
+
+interface MemberDrawerContentProps {
+  mode: "add" | "edit";
+  selectedMember: Member | null;
+  form: any;
+  formLoading: boolean;
+  onClose: () => void;
+  onSubmit: (values: any) => void;
+  positions: any[];
+  positionsLoading: boolean;
+  managers: Member[];
+  shifts: Shift[];
 }
+
+const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
+  mode,
+  selectedMember,
+  form,
+  formLoading,
+  onClose,
+  onSubmit,
+  positions,
+  positionsLoading,
+  managers,
+  shifts,
+}) => {
+  const watchedRole =
+    Form.useWatch("role", form) || selectedMember?.role || "user";
+
+  const ROLE_OPTIONS = [
+    {
+      value: "user",
+      icon: <IdcardOutlined />,
+      title: "User",
+      desc: "Read & contribute to assigned work",
+      color: "#10b981",
+    },
+    {
+      value: "admin",
+      icon: <SafetyCertificateOutlined />,
+      title: "Admin",
+      desc: "Manage team & projects",
+      color: "#f59e0b",
+    },
+    {
+      value: "super_admin",
+      icon: <CrownOutlined />,
+      title: "Super Admin",
+      desc: "Full org-wide control",
+      color: "#e11d48",
+    },
+  ];
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        background: "var(--bg-pure-white)",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: "18px 24px",
+          borderBottom: "1px solid var(--border-slate-100)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          background: "var(--bg-pure-white)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 9,
+              background: "rgba(139,92,246,0.10)",
+              color: "#8b5cf6",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 16,
+              flexShrink: 0,
+            }}
+          >
+            {mode === "add" ? <PlusOutlined /> : <EditOutlined />}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 700,
+                color: "var(--text-slate-900)",
+                letterSpacing: "-0.01em",
+                lineHeight: 1.2,
+              }}
+            >
+              {mode === "add" ? "New Member" : "Edit Member"}
+            </div>
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--text-slate-500)",
+                marginTop: 2,
+              }}
+            >
+              {mode === "add"
+                ? "Invite a new member to your workspace"
+                : `Updating ${selectedMember?.name || ""}`}
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="mm-drawer-close"
+        >
+          <CloseOutlined />
+        </button>
+      </div>
+
+      {/* Scrollable form body */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "20px 24px 28px",
+        }}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onSubmit}
+          size="middle"
+          requiredMark={false}
+        >
+          <SectionLabel>Profile</SectionLabel>
+
+          <Form.Item
+            name="name"
+            label="Full name"
+            rules={[{ required: true, message: "Please enter full name" }]}
+          >
+            <Input placeholder="e.g. Jane Doe" />
+          </Form.Item>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 14,
+            }}
+          >
+            <Form.Item
+              name="workEmail"
+              label="Work email"
+              rules={[
+                { required: true, message: "Please enter work email" },
+                { type: "email", message: "Please enter valid email" },
+              ]}
+            >
+              <Input placeholder="jane@company.com" />
+            </Form.Item>
+
+            <Form.Item
+              name="personalEmail"
+              label="Personal email"
+              rules={[
+                { required: true, message: "Please enter personal email" },
+                { type: "email", message: "Please enter valid email" },
+              ]}
+            >
+              <Input placeholder="jane@personal.com" />
+            </Form.Item>
+          </div>
+
+          <Form.Item
+            name="phone"
+            label="Phone number"
+            rules={[{ required: true, message: "Please enter phone number" }]}
+          >
+            <Input placeholder="+1 555 123 4567" />
+          </Form.Item>
+
+          <div style={{ height: 8 }} />
+          <SectionLabel>Access</SectionLabel>
+
+          <Form.Item
+            name="role"
+            label="Role"
+            rules={[{ required: true, message: "Please select role" }]}
+            initialValue="user"
+          >
+            <RoleCardGroup options={ROLE_OPTIONS} />
+          </Form.Item>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 14,
+            }}
+          >
+            <Form.Item
+              name="position"
+              label="Position"
+              rules={[{ required: true, message: "Please select position" }]}
+            >
+              <Select
+                placeholder="Select position"
+                loading={positionsLoading}
+                showSearch
+                optionFilterProp="children"
+              >
+                {positions.map((position) => (
+                  <Option key={position.id} value={position.id}>
+                    {position.title}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="reportsTo" label="Reports to">
+              <Select
+                placeholder="Select manager"
+                showSearch
+                allowClear
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.children ?? "")
+                    .toString()
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              >
+                {managers
+                  .filter((m) => m.id !== selectedMember?.id)
+                  .map((manager) => (
+                    <Option key={manager.id} value={manager.id}>
+                      {manager.name}
+                    </Option>
+                  ))}
+              </Select>
+            </Form.Item>
+          </div>
+
+          <div style={{ height: 8 }} />
+          <SectionLabel>Schedule</SectionLabel>
+
+          <Form.Item name="assignedShift" label="Assigned shift">
+            <Select placeholder="Select shift (optional)" allowClear>
+              {shifts.map((shift) => (
+                <Option key={shift.id} value={shift.id}>
+                  {shift.name} · {shift.startTime}–{shift.endTime}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="workDays"
+            label="Work days"
+            initialValue={[1, 2, 3, 4, 5]}
+          >
+            <DayPills />
+          </Form.Item>
+
+          {mode === "add" && (
+            <div
+              style={{
+                marginTop: 16,
+                padding: "12px 14px",
+                background: "var(--bg-slate-50)",
+                border: "1px solid var(--border-slate-100)",
+                borderRadius: 10,
+                display: "flex",
+                gap: 10,
+                alignItems: "flex-start",
+              }}
+            >
+              <InfoCircleOutlined
+                style={{ color: "var(--text-slate-400)", marginTop: 2, fontSize: 13 }}
+              />
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-slate-600)",
+                  lineHeight: 1.55,
+                }}
+              >
+                A temporary password will be generated. The member will be
+                prompted to set a new password on first login.
+              </div>
+            </div>
+          )}
+        </Form>
+      </div>
+
+      {/* Sticky footer */}
+      <div
+        style={{
+          padding: "14px 24px",
+          borderTop: "1px solid var(--border-slate-100)",
+          background: "var(--bg-pure-white)",
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <Button
+          onClick={onClose}
+          style={{ borderRadius: 8, height: 38, fontWeight: 500, padding: "0 16px" }}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="primary"
+          loading={formLoading}
+          onClick={() => form.submit()}
+          style={{
+            borderRadius: 8,
+            height: 38,
+            padding: "0 20px",
+            fontWeight: 600,
+            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+            border: "none",
+            boxShadow: "0 4px 12px rgba(139,92,246,0.25)",
+          }}
+        >
+          {mode === "add" ? "Add Member" : "Save Changes"}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+const RoleCardGroup = ({
+  value,
+  onChange,
+  options,
+}: {
+  value?: string;
+  onChange?: (v: string) => void;
+  options: { value: string; icon: React.ReactNode; title: string; desc: string; color: string }[];
+}) => (
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(3, 1fr)",
+      gap: 10,
+    }}
+  >
+    {options.map((opt) => {
+      const active = value === opt.value;
+      return (
+        <button
+          type="button"
+          key={opt.value}
+          onClick={() => onChange?.(opt.value)}
+          className={`mm-role-card${active ? " active" : ""}`}
+          style={{
+            ["--role-color" as any]: opt.color,
+          }}
+        >
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 7,
+              background: `${opt.color}14`,
+              color: opt.color,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 13,
+              marginBottom: 8,
+            }}
+          >
+            {opt.icon}
+          </div>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--text-slate-900)",
+              lineHeight: 1.2,
+            }}
+          >
+            {opt.title}
+          </div>
+          <div
+            style={{
+              fontSize: 11,
+              color: "var(--text-slate-500)",
+              marginTop: 2,
+              lineHeight: 1.35,
+            }}
+          >
+            {opt.desc}
+          </div>
+        </button>
+      );
+    })}
+  </div>
+);
+
+const StatCard = ({
+  label,
+  value,
+  icon,
+  color,
+  loading,
+}: {
+  label: string;
+  value: number | string;
+  icon: React.ReactNode;
+  color: string;
+  loading?: boolean;
+}) => (
+  <Card
+    bordered={false}
+    className="mm-stat-card"
+    styles={{ body: { padding: "18px 20px" } }}
+    style={{
+      borderRadius: 14,
+      border: "1px solid var(--border-slate-100)",
+      background: "var(--bg-pure-white)",
+      boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+    }}
+  >
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <Text
+          style={{
+            fontSize: 11,
+            color: "var(--text-slate-500)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            fontWeight: 600,
+          }}
+        >
+          {label}
+        </Text>
+        <Title
+          level={3}
+          style={{
+            margin: 0,
+            fontWeight: 700,
+            fontSize: 26,
+            color: "var(--text-slate-900)",
+            letterSpacing: "-0.02em",
+            opacity: loading ? 0.4 : 1,
+          }}
+        >
+          {value}
+        </Title>
+      </div>
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          background: `${color}14`,
+          color,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 18,
+          border: `1px solid ${color}1f`,
+        }}
+      >
+        {icon}
+      </div>
+    </div>
+  </Card>
+);
 
 export default function MembersPage() {
   const { user, isLoading } = useAuth();
@@ -72,17 +638,15 @@ export default function MembersPage() {
     canCreateUser,
     canUpdateUser,
     canDeleteUser,
-    canManageUsers
+    canManageUsers,
   } = usePermission();
   const { dataSource: positions, loading: positionsLoading } = usePositions();
 
-  // State management
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Pagination and filtering
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -94,29 +658,23 @@ export default function MembersPage() {
     undefined,
   );
 
-  // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalType, setModalType] = useState<"add" | "edit" | "delete">("add");
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [formLoading, setFormLoading] = useState(false);
 
-  // Available managers for dropdown
   const [managers, setManagers] = useState<Member[]>([]);
-
-  // Available shifts for dropdown
   const [shifts, setShifts] = useState<Shift[]>([]);
 
-  // Calculate member stats - MOVED ABOVE EARLY RETURNS
   const memberStats = React.useMemo(() => {
     return {
       total: pagination.total,
-      superAdmin: members.filter(m => m.role === 'super_admin').length,
-      admin: members.filter(m => m.role === 'admin').length,
-      user: members.filter(m => m.role === 'user').length
+      superAdmin: members.filter((m) => m.role === "super_admin").length,
+      admin: members.filter((m) => m.role === "admin").length,
+      user: members.filter((m) => m.role === "user").length,
     };
   }, [members, pagination.total]);
 
-  // Fetch functions
   const fetchMembers = async () => {
     try {
       setLoading(true);
@@ -146,7 +704,6 @@ export default function MembersPage() {
     }
   };
 
-  // Fetch managers for dropdown
   const fetchManagers = async () => {
     try {
       const managers = await MembersService.getMembersForSelect();
@@ -165,18 +722,16 @@ export default function MembersPage() {
     }
   };
 
-  // Fetch shifts for dropdown
   const fetchShifts = async () => {
     try {
       const shifts = await SettingsService.getAllShifts();
       setShifts(shifts || []);
     } catch (error) {
       console.error("Failed to fetch shifts:", error);
-      setShifts([]); // Set empty array on error
+      setShifts([]);
     }
   };
 
-  // Protect route - requires user.read permission
   useEffect(() => {
     if (!isLoading && !canReadUser) {
       router.push("/dashboard");
@@ -198,7 +753,6 @@ export default function MembersPage() {
     positionFilter,
   ]);
 
-  // Handle form submission
   const handleSubmit = async (values: any) => {
     try {
       setFormLoading(true);
@@ -214,8 +768,8 @@ export default function MembersPage() {
           positionId: values.position,
           reportsToId: values.reportsTo || null,
           isActive: values.isActive !== undefined ? values.isActive : true,
-          workDays: values.workDays || [1, 2, 3, 4, 5], // FIXED: Include workDays
-          assignedShiftId: values.assignedShift || null, // FIXED: Include shift assignment
+          workDays: values.workDays || [1, 2, 3, 4, 5],
+          assignedShiftId: values.assignedShift || null,
         };
         await MembersService.updateMember(selectedMember.id, updatePayload);
         setSuccess("Member updated successfully");
@@ -227,11 +781,11 @@ export default function MembersPage() {
           workEmail: values.workEmail,
           role: values.role,
           positionId: values.position,
-          password: "temp123", // Default password - should be changed on first login
+          password: "temp123",
           reportsToId: values.reportsTo || null,
-          workDays: values.workDays || [1, 2, 3, 4, 5], // FIXED: Include workDays
-          assignedShiftId: values.assignedShift || null, // FIXED: Include shift assignment
-          isActive: true, // FIXED: Set default active status
+          workDays: values.workDays || [1, 2, 3, 4, 5],
+          assignedShiftId: values.assignedShift || null,
+          isActive: true,
         };
         await MembersService.createMember(createPayload);
         setSuccess("Member created successfully");
@@ -253,7 +807,6 @@ export default function MembersPage() {
     }
   };
 
-  // Handle delete
   const handleDelete = async () => {
     if (!selectedMember) return;
 
@@ -276,7 +829,6 @@ export default function MembersPage() {
     }
   };
 
-  // Modal handlers
   const showAddModal = () => {
     setModalType("add");
     form.resetFields();
@@ -301,9 +853,9 @@ export default function MembersPage() {
       assignedShift:
         (member as any)?.assignedShift?.id ||
         (member as any)?.assignedShiftId ||
-        null, // FIXED: Populate shift
-      workDays: (member as any)?.workDays || [1, 2, 3, 4, 5], // FIXED: Populate work days
-      isActive: member?.isActive !== undefined ? member?.isActive : true, // FIXED: Populate isActive
+        null,
+      workDays: (member as any)?.workDays || [1, 2, 3, 4, 5],
+      isActive: member?.isActive !== undefined ? member?.isActive : true,
     });
     setIsModalVisible(true);
   };
@@ -320,111 +872,182 @@ export default function MembersPage() {
     setPositionFilter(undefined);
   };
 
-  // Table columns
+  const hasActiveFilters = !!(searchTerm || roleFilter || positionFilter);
+
   const columns: ColumnsType<Member> = [
     {
-      title: "Name",
+      title: "Member",
       dataIndex: "name",
       key: "name",
-      width: 180,
+      width: 240,
       render: (text: string, record: Member) => (
-        <Space>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              background:
-                record.role === "super_admin"
-                  ? "#ff4d4f"
-                  : record.role === "admin"
-                    ? "#faad14"
-                    : "#52c41a",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: 12,
-              fontWeight: 600,
-            }}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Badge
+            dot
+            offset={[-4, 32]}
+            color={record.isActive === false ? "#94a3b8" : "#10b981"}
           >
-            {text.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>
+            <Avatar
+              size={38}
+              src={record.avatarUrl}
+              style={{
+                background: gradientFor(record.id || text || "x"),
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: 700,
+                boxShadow: "0 2px 6px rgba(15,23,42,0.10)",
+              }}
+            >
+              {text?.charAt(0)?.toUpperCase()}
+            </Avatar>
+          </Badge>
+          <div style={{ minWidth: 0 }}>
+            <Text
+              strong
+              style={{
+                fontSize: 13.5,
+                color: "var(--text-slate-900)",
+                display: "block",
+                lineHeight: 1.2,
+              }}
+            >
               {text}
             </Text>
-            <br />
-            <Text style={{ fontSize: 11, color: 'var(--text-slate-500)' }}>
-              {record?.position?.title}
+            <Text
+              style={{
+                fontSize: 11.5,
+                color: "var(--text-slate-500)",
+                display: "block",
+                marginTop: 2,
+              }}
+            >
+              {record?.position?.title || "—"}
             </Text>
           </div>
-        </Space>
+        </div>
       ),
     },
     {
       title: "Contact",
       key: "contact",
-      width: 200,
+      width: 240,
       render: (_, record: Member) => (
-        <div>
-          <Text style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>{record.workEmail}</Text>
-          <br />
-          <Text style={{ fontSize: 11, color: 'var(--text-slate-500)' }}>
-            {record?.phone}
-          </Text>
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <Tooltip title="Work Email">
+            <Text
+              style={{
+                fontSize: 12.5,
+                color: "var(--text-slate-900)",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <MailOutlined style={{ fontSize: 11, color: "var(--text-slate-400)" }} />
+              {record.workEmail || "—"}
+            </Text>
+          </Tooltip>
+          {record?.phone && (
+            <Text
+              style={{
+                fontSize: 11.5,
+                color: "var(--text-slate-500)",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <PhoneOutlined style={{ fontSize: 10, color: "var(--text-slate-400)" }} />
+              {record.phone}
+            </Text>
+          )}
         </div>
       ),
     },
     {
       title: "Position",
       key: "position",
-      width: 200,
+      width: 180,
       render: (_, record: Member) => (
-        <div>
-          <Text style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>{record?.position?.title}</Text>
-        </div>
-      ),
-    },
-    {
-      title: "User Role",
-      dataIndex: "role",
-      key: "role",
-      width: 100,
-      render: (role: string) => (
-        <Tag
-          color={
-            role === "super_admin"
-              ? "red"
-              : role === "admin"
-                ? "orange"
-                : "green"
-          }
-          style={{ fontSize: 11, fontWeight: 500 }}
-        >
-          {role?.toUpperCase()}
-        </Tag>
-      ),
-    },
-    {
-      title: "Reports To",
-      key: "reportsTo",
-      width: 120,
-      render: (_, record: Member) => (
-        <Text style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>
-          {record?.reportsTo
-            ? typeof record?.reportsTo === "object"
-              ? record?.reportsTo?.name
-              : "-"
-            : "-"}
+        <Text style={{ fontSize: 12.5, color: "var(--text-slate-700, #475569)", fontWeight: 500 }}>
+          {record?.position?.title || "—"}
         </Text>
       ),
     },
     {
-      title: "Actions",
+      title: "Role",
+      dataIndex: "role",
+      key: "role",
+      width: 140,
+      render: (role: string) => {
+        const meta = ROLE_META[role] || ROLE_META.user;
+        return (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "4px 10px",
+              borderRadius: 999,
+              background: meta.bg,
+              color: meta.color,
+              fontSize: 11.5,
+              fontWeight: 600,
+              letterSpacing: "0.02em",
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: meta.dot,
+                boxShadow: `0 0 0 2px ${meta.bg}`,
+              }}
+            />
+            {meta.label}
+          </span>
+        );
+      },
+    },
+    {
+      title: "Reports To",
+      key: "reportsTo",
+      width: 160,
+      render: (_, record: Member) => {
+        const reportsTo =
+          record?.reportsTo && typeof record.reportsTo === "object"
+            ? record.reportsTo.name
+            : null;
+        if (!reportsTo) {
+          return <Text style={{ fontSize: 12.5, color: "var(--text-slate-400)" }}>—</Text>;
+        }
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Avatar
+              size={22}
+              style={{
+                background: gradientFor(reportsTo),
+                color: "#fff",
+                fontSize: 10,
+                fontWeight: 600,
+              }}
+            >
+              {reportsTo.charAt(0).toUpperCase()}
+            </Avatar>
+            <Text style={{ fontSize: 12.5, color: "var(--text-slate-900)" }}>
+              {reportsTo}
+            </Text>
+          </div>
+        );
+      },
+    },
+    {
+      title: "",
       key: "actions",
-      width: 80,
+      width: 64,
       align: "center",
+      fixed: "right",
       render: (_, record: Member) => {
         if (!canUpdateUser && !canDeleteUser && !canManageUsers) return null;
 
@@ -433,7 +1056,7 @@ export default function MembersPage() {
           menuItems.push({
             key: "edit",
             icon: <EditOutlined />,
-            label: "Edit",
+            label: "Edit member",
             onClick: () => showEditModal(record),
           });
         }
@@ -441,7 +1064,7 @@ export default function MembersPage() {
           menuItems.push({
             key: "delete",
             icon: <DeleteOutlined />,
-            label: "Delete",
+            label: "Delete member",
             danger: true,
             onClick: () => showDeleteModal(record),
           });
@@ -457,9 +1080,10 @@ export default function MembersPage() {
           >
             <Button
               type="text"
-              icon={<MoreOutlined />}
+              icon={<MoreOutlined style={{ fontSize: 16 }} />}
               size="small"
-              style={{ width: 24, height: 24 }}
+              className="mm-action-btn"
+              style={{ width: 28, height: 28 }}
             />
           </Dropdown>
         );
@@ -467,7 +1091,6 @@ export default function MembersPage() {
     },
   ];
 
-  // Clear messages
   useEffect(() => {
     if (success || error) {
       const timer = setTimeout(() => {
@@ -478,17 +1101,14 @@ export default function MembersPage() {
     }
   }, [success, error]);
 
-  // Show loading spinner while authentication is being checked
   if (isLoading) {
     return <LoadingSpinner message="Loading members..." />;
   }
 
-  // Don't render if no read permission
   if (!canReadUser) {
     return null;
   }
 
-  // Don't render if no user
   if (!user || isLoading || !canReadUser) {
     if (isLoading) return <LoadingSpinner message="Loading members..." />;
     return null;
@@ -496,127 +1116,175 @@ export default function MembersPage() {
 
   return (
     <MainLayout>
-      <div style={{ backgroundColor: 'var(--bg-pure-white)', minHeight: 'calc(100vh - 64px)', padding: '24px' }}>
-        {/* Header */}
-        <div style={{ marginBottom: 24 }}>
-          <Space
-            align="center"
-            style={{ width: "100%", justifyContent: "space-between" }}
-          >
-            <Space align="start" size={16}>
-              <TeamOutlined style={{ fontSize: 28, color: "var(--premium-blue)", marginTop: 4 }} />
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.5px', color: 'var(--text-slate-900)' }}>
-                  Members Management
-                </Title>
-                <Text style={{ fontSize: 13, marginTop: 2, color: 'var(--text-slate-500)' }}>
-                  Directory and access control for all organization members
-                </Text>
-              </div>
-            </Space>
-            {(canCreateUser || canManageUsers) && (
+      <div
+        style={{
+          margin: "0 -24px",
+          background: "var(--bg-pure-white)",
+          minHeight: "calc(100vh - 64px)",
+        }}
+      >
+        <TimeTrackingHeader
+          style={{ padding: "8.5px 32px" }}
+          icon={<TeamOutlined style={{ fontSize: 20, color: "#8b5cf6" }} />}
+          title="Members Management"
+          description="Directory and access control for all organization members"
+          extra={
+            (canCreateUser || canManageUsers) ? (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={showAddModal}
                 size="large"
-                style={{ borderRadius: 8 }}
+                style={{
+                  borderRadius: 10,
+                  height: 40,
+                  fontWeight: 600,
+                  padding: "0 18px",
+                  background:
+                    "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                  border: "none",
+                  boxShadow: "0 4px 12px rgba(139,92,246,0.25)",
+                }}
               >
                 Add Member
               </Button>
-            )}
-          </Space>
-        </div>
+            ) : null
+          }
+        />
 
-        {/* Stats Cards */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
-              <Space direction="vertical" size={4}>
-                <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Total Members</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-slate-900)' }}>{memberStats.total}</Title>
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
-              <Space direction="vertical" size={4}>
-                <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Super Admins</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-leave)' }}>{memberStats.superAdmin}</Title>
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
-              <Space direction="vertical" size={4}>
-                <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Team Admins</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--warning-yellow, #faad14)' }}>{memberStats.admin}</Title>
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
-              <Space direction="vertical" size={4}>
-                <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Regular Users</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-holiday)' }}>{memberStats.user}</Title>
-              </Space>
-            </Card>
-          </Col>
-        </Row>
+        <div style={{ padding: "8px 32px 32px 32px" }}>
+          {/* Stats */}
+          <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                label="Total Members"
+                value={memberStats.total}
+                icon={<TeamOutlined />}
+                color="#6366f1"
+                loading={loading}
+              />
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                label="Super Admins"
+                value={memberStats.superAdmin}
+                icon={<CrownOutlined />}
+                color="#e11d48"
+                loading={loading}
+              />
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                label="Team Admins"
+                value={memberStats.admin}
+                icon={<SafetyCertificateOutlined />}
+                color="#f59e0b"
+                loading={loading}
+              />
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                label="Regular Users"
+                value={memberStats.user}
+                icon={<IdcardOutlined />}
+                color="#10b981"
+                loading={loading}
+              />
+            </Col>
+          </Row>
 
-        {/* Alerts */}
-        {error && (
-          <Alert
-            message={error}
-            type="error"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
-            onClose={() => setError("")}
-          />
-        )}
-        {success && (
-          <Alert
-            message={success}
-            type="success"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
-            onClose={() => setSuccess("")}
-          />
-        )}
+          {/* Alerts */}
+          {error && (
+            <Alert
+              message={error}
+              type="error"
+              showIcon
+              closable
+              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
+              onClose={() => setError("")}
+            />
+          )}
+          {success && (
+            <Alert
+              message={success}
+              type="success"
+              showIcon
+              closable
+              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
+              onClose={() => setSuccess("")}
+            />
+          )}
 
-        {/* Filters and Table Container */}
-        <Card
-          bordered={false}
-          style={{
-            marginBottom: 16,
-            borderRadius: 12,
-            border: '1px solid var(--border-slate-100)',
-            boxShadow: 'none',
-            background: 'var(--bg-pure-white)'
-          }}
-          styles={{ body: { padding: 0 } }}
-        >
-          {/* Filters Bar */}
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-slate-100)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, flex: 1 }}>
+          {/* Filters + Table */}
+          <Card
+            bordered={false}
+            className="mm-table-card"
+            style={{
+              borderRadius: 14,
+              border: "1px solid var(--border-slate-100)",
+              boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
+              background: "var(--bg-pure-white)",
+              overflow: "hidden",
+            }}
+            styles={{ body: { padding: 0 } }}
+          >
+            {/* Toolbar */}
+            <div
+              className="mm-toolbar"
+              style={{
+                padding: "16px 20px",
+                borderBottom: "1px solid var(--border-slate-100)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 12,
+                background: "var(--bg-pure-white)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <FilterOutlined style={{ color: "var(--text-slate-400)", fontSize: 14 }} />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: "var(--text-slate-500)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    fontWeight: 600,
+                  }}
+                >
+                  {pagination.total} {pagination.total === 1 ? "member" : "members"}
+                </Text>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 10,
+                  alignItems: "center",
+                }}
+              >
                 <Input
-                  placeholder="Search members..."
-                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                  placeholder="Search by name, email…"
+                  prefix={
+                    <SearchOutlined style={{ color: "var(--text-slate-400)" }} />
+                  }
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ width: 280, borderRadius: 8, height: 40, background: 'var(--bg-secondary)', color: 'var(--text-slate-900)' }}
+                  className="mm-search"
+                  style={{ width: 280, height: 38 }}
                   allowClear
                 />
 
                 <Select
-                  placeholder="Filter by role"
+                  placeholder="All roles"
                   value={roleFilter}
                   onChange={setRoleFilter}
-                  style={{ width: 180, height: 40 }}
+                  className="mm-select"
+                  style={{ width: 160, height: 38 }}
                   allowClear
+                  suffixIcon={<UserOutlined style={{ color: "var(--text-slate-400)" }} />}
                 >
                   <Option value="super_admin">Super Admin</Option>
                   <Option value="admin">Admin</Option>
@@ -624,12 +1292,15 @@ export default function MembersPage() {
                 </Select>
 
                 <Select
-                  placeholder="Filter by position"
+                  placeholder="All positions"
                   value={positionFilter}
                   onChange={setPositionFilter}
-                  style={{ width: 220, height: 40 }}
+                  className="mm-select"
+                  style={{ width: 200, height: 38 }}
                   allowClear
                   loading={positionsLoading}
+                  showSearch
+                  optionFilterProp="children"
                 >
                   {positions.map((position) => (
                     <Option key={position.id} value={position.title}>
@@ -637,326 +1308,361 @@ export default function MembersPage() {
                     </Option>
                   ))}
                 </Select>
-              </div>
 
-              <div style={{ display: 'flex', gap: 12 }}>
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={handleClearFilters}
-                  style={{
-                    height: 40,
-                    borderRadius: 8,
-                    fontWeight: 500,
-                    color: 'var(--text-slate-600)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-slate-200)'
-                  }}
-                >
-                  Clear
-                </Button>
+                {hasActiveFilters && (
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={handleClearFilters}
+                    className="mm-clear-btn"
+                    style={{
+                      height: 38,
+                      borderRadius: 8,
+                      fontWeight: 500,
+                    }}
+                  >
+                    Reset
+                  </Button>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Members Table */}
-          <Table
-            columns={columns}
-            dataSource={members}
-            rowKey="id"
-            loading={loading}
-            pagination={{
-              current: pagination.current,
-              pageSize: pagination.pageSize,
-              total: pagination.total,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total} members`,
-              onChange: (page, pageSize) => {
-                setPagination((prev) => ({
-                  ...prev,
-                  current: page,
-                  pageSize: pageSize || 10,
-                }));
-              },
-              style: { padding: '16px 24px' }
-            }}
-            scroll={{ x: 1000 }}
-          />
-        </Card>
+            {/* Table */}
+            <Table
+              className="mm-table"
+              columns={columns}
+              dataSource={members}
+              rowKey="id"
+              loading={loading}
+              pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: pagination.total,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) =>
+                  `${range[0]}–${range[1]} of ${total}`,
+                onChange: (page, pageSize) => {
+                  setPagination((prev) => ({
+                    ...prev,
+                    current: page,
+                    pageSize: pageSize || 10,
+                  }));
+                },
+                style: { padding: "16px 20px" },
+              }}
+              scroll={{ x: 1024 }}
+            />
+          </Card>
+        </div>
 
-        {/* Modal */}
+        {/* Delete confirmation modal */}
         <Modal
+          className="mm-modal"
           title={
-            modalType === "add"
-              ? "Add New Member"
-              : modalType === "edit"
-                ? "Edit Member"
-                : "Delete Member"
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: "rgba(225,29,72,0.10)",
+                  color: "#e11d48",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 16,
+                }}
+              >
+                <DeleteOutlined />
+              </div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                  Delete Member
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
+                  This action will deactivate the account
+                </div>
+              </div>
+            </div>
           }
-          open={isModalVisible}
+          open={isModalVisible && modalType === "delete"}
           onCancel={() => {
+            setIsModalVisible(false);
+            setSelectedMember(null);
+          }}
+          footer={null}
+          width={440}
+          destroyOnClose
+        >
+          <Text style={{ color: "var(--text-slate-600)", fontSize: 13.5 }}>
+            Are you sure you want to delete{" "}
+            <strong style={{ color: "var(--text-slate-900)" }}>
+              {selectedMember?.name}
+            </strong>
+            ? This action will deactivate the member account and revoke their
+            access.
+          </Text>
+          <div style={{ marginTop: 24, textAlign: "right" }}>
+            <Space>
+              <Button onClick={() => setIsModalVisible(false)} style={{ borderRadius: 8 }}>
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                danger
+                loading={formLoading}
+                onClick={handleDelete}
+                style={{ borderRadius: 8, fontWeight: 600 }}
+              >
+                Delete Member
+              </Button>
+            </Space>
+          </div>
+        </Modal>
+
+        {/* Add / Edit Drawer */}
+        <Drawer
+          className="mm-drawer"
+          width={560}
+          open={isModalVisible && modalType !== "delete"}
+          onClose={() => {
             setIsModalVisible(false);
             form.resetFields();
             setSelectedMember(null);
           }}
+          closable={false}
+          destroyOnClose
+          styles={{
+            body: { padding: 0, background: "var(--bg-pure-white)" },
+            header: { display: "none" },
+            content: { background: "var(--bg-pure-white)" },
+          }}
           footer={null}
-          width={modalType === "delete" ? 400 : 600}
         >
-          {modalType === "delete" ? (
-            <div>
-              <Text>
-                Are you sure you want to delete{" "}
-                <strong>{selectedMember?.name}</strong>? This action will
-                deactivate the member account.
-              </Text>
-              <div style={{ marginTop: 20, textAlign: "right" }}>
-                <Space>
-                  <Button onClick={() => setIsModalVisible(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    type="primary"
-                    danger
-                    loading={formLoading}
-                    onClick={handleDelete}
-                  >
-                    Delete
-                  </Button>
-                </Space>
-              </div>
-            </div>
-          ) : (
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleSubmit}
-              size="middle"
-            >
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                }}
-              >
-                <Form.Item
-                  name="name"
-                  label="Full Name"
-                  rules={[
-                    { required: true, message: "Please enter full name" },
-                  ]}
-                >
-                  <Input placeholder="Enter full name" />
-                </Form.Item>
+          <MemberDrawerContent
+            mode={modalType as "add" | "edit"}
+            selectedMember={selectedMember}
+            form={form}
+            formLoading={formLoading}
+            onClose={() => {
+              setIsModalVisible(false);
+              form.resetFields();
+              setSelectedMember(null);
+            }}
+            onSubmit={handleSubmit}
+            positions={positions}
+            positionsLoading={positionsLoading}
+            managers={managers}
+            shifts={shifts}
+          />
+        </Drawer>
 
-                <Form.Item
-                  name="phone"
-                  label="Phone Number"
-                  rules={[
-                    { required: true, message: "Please enter phone number" },
-                  ]}
-                >
-                  <Input placeholder="Enter phone number" />
-                </Form.Item>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                }}
-              >
-                <Form.Item
-                  name="personalEmail"
-                  label="Personal Email"
-                  rules={[
-                    { required: true, message: "Please enter personal email" },
-                    { type: "email", message: "Please enter valid email" },
-                  ]}
-                >
-                  <Input placeholder="Enter personal email" />
-                </Form.Item>
-
-                <Form.Item
-                  name="workEmail"
-                  label="Work Email"
-                  rules={[
-                    { required: true, message: "Please enter work email" },
-                    { type: "email", message: "Please enter valid email" },
-                  ]}
-                >
-                  <Input placeholder="Enter work email" />
-                </Form.Item>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                }}
-              >
-                <Form.Item
-                  name="role"
-                  label="Role"
-                  rules={[{ required: true, message: "Please select role" }]}
-                >
-                  <Select placeholder="Select role">
-                    <Option value="user">User</Option>
-                    <Option value="admin">Admin</Option>
-                    <Option value="super_admin">Super Admin</Option>
-                  </Select>
-                </Form.Item>
-
-                <Form.Item
-                  name="position"
-                  label="Position"
-                  rules={[
-                    { required: true, message: "Please select position" },
-                  ]}
-                >
-                  <Select
-                    placeholder="Select position"
-                    loading={positionsLoading}
-                  >
-                    {positions.map((position) => (
-                      <Option key={position.id} value={position.id}>
-                        {position.title}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </div>
-
-              <Form.Item name="reportsTo" label="Reports To">
-                {/* <Select placeholder="Select manager (optional)" showSearch allowClear>
-                  {managers
-                    .filter((m) => m.id !== selectedMember?.id)
-                    .map((manager) => (
-                      <Option key={manager.id} value={manager.id}>{`${manager.name
-                        } - ${manager.id.substring(0, 8)}`}</Option>
-                    ))}
-                </Select> */}
-                <Select
-                  placeholder="Select manager (optional)"
-                  showSearch
-                  allowClear
-                  optionFilterProp="children"
-                  filterOption={(input, option) =>
-                    (option?.children ?? "")
-                      .toString()
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                >
-                  {managers
-                    .filter((m) => m.id !== selectedMember?.id)
-                    .map((manager) => (
-                      <Option key={manager.id} value={manager.id}>
-                        {`${manager.name} - ${manager.id.substring(0, 8)}`}
-                      </Option>
-                    ))}
-                </Select>
-              </Form.Item>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                }}
-              >
-                <Form.Item name="assignedShift" label="Assigned Shift">
-                  <Select placeholder="Select shift (optional)" allowClear>
-                    {/* <Option value="flexible">Flexible Shift (Default)</Option> */}
-                    {shifts.map((shift) => (
-                      <Option key={shift.id} value={shift.id}>
-                        {shift.name} ({shift.startTime} - {shift.endTime})
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-
-                <Form.Item
-                  name="workDays"
-                  label="Work Days"
-                  initialValue={[1, 2, 3, 4, 5]}
-                >
-                  <Checkbox.Group>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(4, 1fr)",
-                        gap: 8,
-                      }}
-                    >
-                      <Checkbox value={1}>Mon</Checkbox>
-                      <Checkbox value={2}>Tue</Checkbox>
-                      <Checkbox value={3}>Wed</Checkbox>
-                      <Checkbox value={4}>Thu</Checkbox>
-                      <Checkbox value={5}>Fri</Checkbox>
-                      <Checkbox value={6}>Sat</Checkbox>
-                      <Checkbox value={0}>Sun</Checkbox>
-                    </div>
-                  </Checkbox.Group>
-                </Form.Item>
-              </div>
-
-              <div style={{ textAlign: "right", marginTop: 20 }}>
-                <Space>
-                  <Button onClick={() => setIsModalVisible(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={formLoading}
-                  >
-                    {modalType === "add" ? "Add Member" : "Update Member"}
-                  </Button>
-                </Space>
-              </div>
-            </Form>
-          )}
-        </Modal>
         <style jsx global>{`
-          .ant-form-item-label > label {
-            font-weight: 500;
-            color: var(--text-slate-600) !important;
-            font-size: 13px;
+          .mm-stat-card {
+            transition: transform 0.18s ease, box-shadow 0.18s ease,
+              border-color 0.18s ease;
           }
-          .ant-input, .ant-input-number, .ant-select-selector, .ant-picker, .ant-input-affix-wrapper {
+          .mm-stat-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06) !important;
+            border-color: var(--border-slate-200) !important;
+          }
+          .mm-search.ant-input-affix-wrapper,
+          .mm-select .ant-select-selector {
+            border-radius: 10px !important;
+            background: var(--bg-secondary) !important;
+            border-color: var(--border-slate-200) !important;
+            transition: all 0.15s ease;
+          }
+          .mm-search.ant-input-affix-wrapper:hover,
+          .mm-select:hover .ant-select-selector {
+            border-color: #c4b5fd !important;
+          }
+          .mm-search.ant-input-affix-wrapper-focused,
+          .mm-select.ant-select-focused .ant-select-selector {
+            border-color: #8b5cf6 !important;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12) !important;
+          }
+          .mm-clear-btn {
+            background: var(--bg-secondary) !important;
+            border: 1px solid var(--border-slate-200) !important;
+            color: var(--text-slate-600) !important;
+          }
+          .mm-clear-btn:hover {
+            border-color: #8b5cf6 !important;
+            color: #8b5cf6 !important;
+          }
+          .mm-action-btn:hover {
+            background: var(--bg-slate-50) !important;
+            color: #8b5cf6 !important;
+          }
+          .mm-table .ant-table-thead > tr > th {
+            background: var(--bg-table-header) !important;
+            color: var(--text-slate-500) !important;
+            font-weight: 600 !important;
+            font-size: 11px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.06em !important;
+            border-bottom: 1px solid var(--border-slate-100) !important;
+            padding: 12px 16px !important;
+          }
+          .mm-table .ant-table-tbody > tr > td {
+            padding: 14px 16px !important;
+            border-bottom: 1px solid var(--border-slate-100) !important;
+          }
+          .mm-table .ant-table-tbody > tr:hover > td {
+            background: var(--bg-slate-50) !important;
+          }
+          .mm-table .ant-pagination .ant-pagination-item-active {
+            border-color: #8b5cf6 !important;
+          }
+          .mm-table .ant-pagination .ant-pagination-item-active a {
+            color: #8b5cf6 !important;
+          }
+          .mm-modal .ant-modal-content {
+            background-color: var(--bg-pure-white) !important;
+            border-radius: 14px !important;
+            padding: 20px 24px !important;
+          }
+          .mm-modal .ant-modal-header {
+            background-color: var(--bg-pure-white) !important;
+            border-bottom: 1px solid var(--border-slate-100) !important;
+            padding-bottom: 16px !important;
+            margin-bottom: 20px !important;
+          }
+          .mm-modal .ant-modal-close {
+            top: 22px !important;
+            right: 22px !important;
+          }
+          .mm-modal .ant-form-item-label > label {
+            font-weight: 600 !important;
+            color: var(--text-slate-700, var(--text-slate-600)) !important;
+            font-size: 12.5px !important;
+          }
+          .mm-modal .ant-input,
+          .mm-modal .ant-select-selector,
+          .mm-modal .ant-input-affix-wrapper {
             border-radius: 8px !important;
             border-color: var(--border-slate-200) !important;
             background: var(--bg-secondary) !important;
-            color: var(--text-slate-900) !important;
           }
-          .ant-input:focus, .ant-input-number:focus, .ant-select-selector:focus {
-            border-color: var(--premium-blue) !important;
-            outline: none;
+          .mm-modal .ant-input:focus,
+          .mm-modal .ant-input-focused,
+          .mm-modal .ant-select-focused .ant-select-selector,
+          .mm-modal .ant-input-affix-wrapper-focused {
+            border-color: #8b5cf6 !important;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12) !important;
           }
-          .ant-table-thead > tr > th {
-            background: var(--bg-table-header) !important;
-            border-bottom: 2px solid var(--border-slate-100) !important;
-            color: var(--text-slate-900) !important;
+          .mm-drawer .ant-drawer-content {
+            background: var(--bg-pure-white) !important;
+            border-radius: 0 !important;
           }
-          .ant-table-row:hover > td {
-            background: var(--bg-slate-50) !important;
+          .mm-drawer .ant-drawer-body { padding: 0 !important; }
+          .mm-drawer-close {
+            position: absolute;
+            top: 16px; right: 16px;
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.7);
+            border: 1px solid var(--border-slate-200);
+            color: var(--text-slate-500);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            backdrop-filter: blur(8px);
           }
-          .ant-modal-content {
-            background-color: var(--bg-pure-white) !important;
+          .mm-drawer-close:hover {
+            background: var(--bg-pure-white);
+            color: #ef4444;
+            border-color: #fca5a5;
           }
-          .ant-modal-header {
-            background-color: var(--bg-pure-white) !important;
-            border-bottom: 1px solid var(--border-slate-100) !important;
-            margin-bottom: 16px !important;
+          [data-theme='dark'] .mm-drawer-close {
+            background: rgba(31,41,55,0.7);
           }
-          .ant-modal-title {
-            color: var(--text-slate-900) !important;
+          .mm-drawer .ant-form-item-label > label {
+            font-weight: 600 !important;
+            color: var(--text-slate-700, var(--text-slate-600)) !important;
+            font-size: 12px !important;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+          }
+          .mm-drawer .ant-input,
+          .mm-drawer .ant-select-selector,
+          .mm-drawer .ant-input-affix-wrapper {
+            border-radius: 9px !important;
+            border-color: var(--border-slate-200) !important;
+            background: var(--bg-secondary) !important;
+            min-height: 40px;
+          }
+          .mm-drawer .ant-select-single .ant-select-selector {
+            height: 40px !important;
+            display: flex; align-items: center;
+          }
+          .mm-drawer .ant-input:focus,
+          .mm-drawer .ant-input-focused,
+          .mm-drawer .ant-select-focused .ant-select-selector,
+          .mm-drawer .ant-input-affix-wrapper-focused,
+          .mm-drawer .ant-input-affix-wrapper:focus-within {
+            border-color: #8b5cf6 !important;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12) !important;
+          }
+          .mm-role-card {
+            text-align: left;
+            padding: 12px 12px 12px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-slate-200);
+            background: var(--bg-pure-white);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+          }
+          .mm-role-card:hover {
+            border-color: var(--role-color, #8b5cf6);
+            background: var(--bg-slate-50);
+          }
+          .mm-role-card.active {
+            border-color: var(--role-color, #8b5cf6);
+            background: color-mix(in srgb, var(--role-color, #8b5cf6) 6%, var(--bg-pure-white));
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--role-color, #8b5cf6) 12%, transparent);
+          }
+          .mm-role-card.active::after {
+            content: "";
+            position: absolute;
+            top: 10px; right: 10px;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--role-color, #8b5cf6);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--role-color, #8b5cf6) 22%, transparent);
+          }
+          .mm-day-pill {
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            border: 1px solid var(--border-slate-200);
+            background: var(--bg-secondary);
+            color: var(--text-slate-500);
+            font-size: 13px; font-weight: 700;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s ease;
+          }
+          .mm-day-pill:hover {
+            border-color: #c4b5fd;
+            color: #8b5cf6;
+          }
+          .mm-day-pill.active {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 3px 8px rgba(139,92,246,0.30);
+          }
+          @media (max-width: 768px) {
+            .mm-toolbar > div:last-child {
+              width: 100%;
+            }
+            .mm-search,
+            .mm-select {
+              width: 100% !important;
+            }
           }
         `}</style>
       </div>

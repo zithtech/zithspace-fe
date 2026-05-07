@@ -9,6 +9,8 @@ import TopNav from "./TopNav";
 import SideNav from "./SideNav";
 import { NAVIGATION_CONFIG, ModuleType } from "./navigationConfig";
 import { useLayout } from "@/context/LayoutContext";
+import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
+import { useDocumentSocketEvents } from "@/hooks/useDocumentSocketEvents";
 
 const { Content } = Layout;
 
@@ -25,6 +27,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
   const { collapsed, toggleCollapsed } = useLayout();
   const [activeModule, setActiveModule] = useState<ModuleType>("WORK");
+
+  // Global socket event listeners
+  useTicketSocketEvents();
+  useDocumentSocketEvents();
 
   // Determine active module based on current path
   useEffect(() => {
@@ -112,9 +118,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
           className="fade-in"
           style={{
             margin: 0,
-            // padding: "10px",
-            paddingLeft: "16px",
-            paddingRight: "16px",
+            paddingLeft: "8px",
+            paddingRight: "8px",
             // background: "#f5f5f5",
             background: 'var(--bg-pure-white)',
             marginLeft: collapsed ? 65 : 200,

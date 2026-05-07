@@ -56,10 +56,16 @@ const LogoCropper: React.FC<LogoCropperProps> = ({
         reject(new Error('Failed to load image for cropping. Check CORS settings.'));
       });
       image.setAttribute('crossOrigin', 'anonymous');
-      // Use backend proxy to bypass CORS issues for canvas operations
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-      const proxyUrl = `${apiUrl}/api/proxy-logo?url=${encodeURIComponent(url)}`;
-      image.src = proxyUrl;
+      
+      // If it's already a data URL (from background removal), don't use the proxy
+      if (url.startsWith('data:')) {
+        image.src = url;
+      } else {
+        // Use backend proxy to bypass CORS issues for remote URLs
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+        const proxyUrl = `${apiUrl}/api/proxy-logo?url=${encodeURIComponent(url)}`;
+        image.src = proxyUrl;
+      }
     });
 
   const getCroppedImg = async (
@@ -106,7 +112,7 @@ const LogoCropper: React.FC<LogoCropperProps> = ({
       ctx.putImageData(data, 0, 0);
 
       console.log('Canvas operations complete, exporting to data URL...');
-      return canvas.toDataURL('image/jpeg');
+      return canvas.toDataURL('image/png');
     } catch (err) {
       console.error('Error in getCroppedImg:', err);
       throw err;

@@ -51,6 +51,7 @@ interface DashboardSummary {
 interface PresentEmployee {
   id: string;
   name: string;
+  avatarUrl?: string;
   position: string | { id: string; title: string; code: string; } | null;
   status: string;
   clockInTime: string;
@@ -135,7 +136,12 @@ export default function AttendanceDashboardPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '24px', background: 'var(--bg-secondary)', minHeight: '100vh' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "24px 32px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         {/* Header */}
         <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Space align="center" size={16}>
@@ -243,6 +249,7 @@ export default function AttendanceDashboardPage() {
                       avatar={
                         <Avatar
                           size={48}
+                          src={employee.avatarUrl}
                           style={{
                             backgroundColor: getStatusColor(employee.status),
                             fontSize: '18px',

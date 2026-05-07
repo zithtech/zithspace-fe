@@ -109,9 +109,9 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
       if (col.key === 'itemName') {
         baseCol.render = (text: string, record: any) => (
           <div>
-            <Text strong>{text}</Text>
+            <Text strong style={{ color: 'var(--text-primary)' }}>{text}</Text>
             {record.description && (
-              <div style={{ fontSize: "12px", color: "gray" }}>{record.description}</div>
+              <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{record.description}</div>
             )}
           </div>
         );
@@ -169,15 +169,16 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
   const QTY_COL_IDX = columns.findIndex(c => c.key === 'quantity');
 
   return (
-    <div style={{ padding: "24px 16px", backgroundColor: "#f9fafb", minHeight: "100%" }}>
+    <div style={{ padding: "24px 16px", backgroundColor: "var(--bg-primary)", minHeight: "100%" }}>
       <Card
         id="invoice-preview-content"
         style={{
-          border: "1px solid #e8e8e8",
+          border: "1px solid var(--border-color)",
           borderRadius: 8,
           boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           maxWidth: "800px",
           margin: "0 auto",
+          background: "var(--bg-secondary)"
         }}
       >
 {/* Header with Invoice Title and Logo */}
@@ -193,18 +194,18 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
     {/* Invoice Number and Dates - All together */}
     <div>
       <div style={{ display: "flex", marginBottom: 2, lineHeight: 1.5 }}>
-        <Text strong style={{ width: 90, fontSize: "13px" }}>Invoice No:</Text>
-        <Text style={{ fontSize: "13px" }}>#{data.invoiceNumber || "---"}</Text>
+        <Text strong style={{ width: 90, fontSize: "13px", color: "var(--text-primary)" }}>Invoice No:</Text>
+        <Text style={{ fontSize: "13px", color: "var(--text-secondary)" }}>#{data.invoiceNumber || "---"}</Text>
       </div>
       <div style={{ display: "flex", marginBottom: 2, lineHeight: 1.5 }}>
-        <Text strong style={{ width: 90, fontSize: "13px" }}>Invoice Date:</Text>
-        <Text style={{ fontSize: "13px" }}>
+        <Text strong style={{ width: 90, fontSize: "13px", color: "var(--text-primary)" }}>Invoice Date:</Text>
+        <Text style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
           {data.invoice_date ? dayjs(data.invoice_date).format(settings?.general?.dateFormat || 'MMM DD, YYYY') : "---"}
         </Text>
       </div>
       <div style={{ display: "flex", marginBottom: 2, lineHeight: 1.5 }}>
-        <Text strong style={{ width: 90, fontSize: "13px" }}>Due Date:</Text>
-        <Text style={{ fontSize: "13px" }}>
+        <Text strong style={{ width: 90, fontSize: "13px", color: "var(--text-primary)" }}>Due Date:</Text>
+        <Text style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
           {data.due_date ? dayjs(data.due_date).format(settings?.general?.dateFormat || 'MMM DD, YYYY') : "---"}
         </Text>
       </div>
@@ -236,18 +237,18 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
               size="small" 
               style={{ 
                 width: "100%", 
-                backgroundColor: "#f9f9f9",
-                border: "1px solid #e8e8e8",
+                backgroundColor: "var(--bg-slate-50)",
+                border: "1px solid var(--border-color)",
                 borderRadius: 8
               }}
               bodyStyle={{ padding: "12px" }}
             >
               <Title level={5} style={{ marginBottom: 8, color: primaryColor, fontSize: "14px" }}>BILLED BY</Title>
               <div>
-                <div style={{ fontWeight: "bold", fontSize: "14px", marginBottom: 4 }}>
+                <div style={{ fontWeight: "bold", fontSize: "14px", marginBottom: 4, color: "var(--text-primary)" }}>
                   {settings?.general?.companyName || "Your Company"}
                 </div>
-                <div style={{ fontSize: "12px", color: "#555", marginBottom: 4, lineHeight: 1.5 }}>
+                <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: 4, lineHeight: 1.5 }}>
                   {settings?.general?.address ? [
                     settings.general.address.plot_no,
                     settings.general.address.floor_no,
@@ -262,21 +263,21 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                 
                 {/* Tax related fields with labels */}
                 {settings?.general?.taxId && (
-                  <div style={{ marginTop: 6, fontSize: "11px", color: "#666" }}>
-                    <Text type="secondary" style={{ fontSize: "11px" }}>Tax ID: </Text>
-                    <Text style={{ fontSize: "11px" }}>{settings.general.taxId}</Text>
+                  <div style={{ marginTop: 6, fontSize: "11px", color: "var(--text-secondary)" }}>
+                    <Text type="secondary" style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Tax ID: </Text>
+                    <Text style={{ fontSize: "11px", color: "var(--text-primary)" }}>{settings.general.taxId}</Text>
                   </div>
                 )}
                 {settings?.general?.gstin && (
-                  <div style={{ fontSize: "11px", color: "#666" }}>
-                    <Text type="secondary" style={{ fontSize: "11px" }}>GSTIN: </Text>
-                    <Text style={{ fontSize: "11px" }}>{settings.general.gstin}</Text>
+                  <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
+                    <Text type="secondary" style={{ fontSize: "11px", color: "var(--text-secondary)" }}>GSTIN: </Text>
+                    <Text style={{ fontSize: "11px", color: "var(--text-primary)" }}>{settings.general.gstin}</Text>
                   </div>
                 )}
                 {settings?.general?.pan && (
-                  <div style={{ fontSize: "11px", color: "#666" }}>
-                    <Text type="secondary" style={{ fontSize: "11px" }}>PAN: </Text>
-                    <Text style={{ fontSize: "11px" }}>{settings.general.pan}</Text>
+                  <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
+                    <Text type="secondary" style={{ fontSize: "11px", color: "var(--text-secondary)" }}>PAN: </Text>
+                    <Text style={{ fontSize: "11px", color: "var(--text-primary)" }}>{settings.general.pan}</Text>
                   </div>
                 )}
               </div>
@@ -290,45 +291,45 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
     size="small" 
     style={{ 
       width: "100%", 
-      backgroundColor: "#f9f9f9",
-      border: "1px solid #e8e8e8",
+      backgroundColor: "var(--bg-slate-50)",
+      border: "1px solid var(--border-color)",
       borderRadius: 8
     }}
     bodyStyle={{ padding: "12px" }}
   >
     <Title level={5} style={{ marginBottom: 8, color: primaryColor, fontSize: "14px" }}>BILLED TO</Title>
     <div>
-      <div style={{ fontWeight: "bold", fontSize: "14px", marginBottom: 4 }}>
+      <div style={{ fontWeight: "bold", fontSize: "14px", marginBottom: 4, color: "var(--text-primary)" }}>
         {customer.companyName || "Customer Name"}
       </div>
-      <div style={{ fontSize: "12px", color: "#555", marginBottom: 4, lineHeight: 1.5 }}>
+      <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: 4, lineHeight: 1.5 }}>
         {[
           customer.address,
           customer.city,
           customer.country
         ].filter(Boolean).join(", ") || "---"}
       </div>
-      <div style={{ fontSize: "12px", color: "#555", marginBottom: 4 }}>
+      <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: 4 }}>
         {customer.email || ""}
       </div>
       
       {/* Tax related fields with labels */}
       {customer.gstin && (
-        <div style={{ marginTop: 6, fontSize: "11px", color: "#666" }}>
-          <Text type="secondary" style={{ fontSize: "11px" }}>GSTIN: </Text>
-          <Text style={{ fontSize: "11px" }}>{customer.gstin}</Text>
+        <div style={{ marginTop: 6, fontSize: "11px", color: "var(--text-secondary)" }}>
+          <Text type="secondary" style={{ fontSize: "11px", color: "var(--text-secondary)" }}>GSTIN: </Text>
+          <Text style={{ fontSize: "11px", color: "var(--text-primary)" }}>{customer.gstin}</Text>
         </div>
       )}
       {customer.pan && (
-        <div style={{ fontSize: "11px", color: "#666" }}>
-          <Text type="secondary" style={{ fontSize: "11px" }}>PAN: </Text>
-          <Text style={{ fontSize: "11px" }}>{customer.pan}</Text>
+        <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
+          <Text type="secondary" style={{ fontSize: "11px", color: "var(--text-secondary)" }}>PAN: </Text>
+          <Text style={{ fontSize: "11px", color: "var(--text-primary)" }}>{customer.pan}</Text>
         </div>
       )}
       {customer.taxId && !customer.gstin && (
-        <div style={{ marginTop: 6, fontSize: "11px", color: "#666" }}>
-          <Text type="secondary" style={{ fontSize: "11px" }}>Tax ID: </Text>
-          <Text style={{ fontSize: "11px" }}>{customer.taxId}</Text>
+        <div style={{ marginTop: 6, fontSize: "11px", color: "var(--text-secondary)" }}>
+          <Text type="secondary" style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Tax ID: </Text>
+          <Text style={{ fontSize: "11px", color: "var(--text-primary)" }}>{customer.taxId}</Text>
         </div>
       )}
     </div>
@@ -389,9 +390,9 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                 </Table.Summary.Row>
               )}
 
-              <Table.Summary.Row style={{ backgroundColor: "#fafafa", borderTop: "2px solid #000" }}>
+              <Table.Summary.Row style={{ backgroundColor: "var(--bg-slate-50)", borderTop: "2px solid var(--border-color)" }}>
                 {columns.map((_, idx) => {
-                  if (idx === ITEM_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text strong>Total</Text></Table.Summary.Cell>;
+                  if (idx === ITEM_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text strong style={{ color: "var(--text-primary)" }}>Total</Text></Table.Summary.Cell>;
                   if (idx === QTY_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="center"><Text strong>{items.reduce((sum: number, i: any) => sum + (Number(i.quantity) || 0), 0)}</Text></Table.Summary.Cell>;
                   if (idx === TOTAL_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text strong style={{ fontSize: 16, color: primaryColor }}>{formatCurrency(totals.finalTotal, currencySymbol)}</Text></Table.Summary.Cell>;
                   return <Table.Summary.Cell key={idx} index={idx} />;
@@ -402,8 +403,8 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
         />
 
         {/* Amount in Words */}
-        <div style={{ marginTop: 12, padding: "10px 14px", backgroundColor: "#fafafa", borderRadius: 6, border: "1px solid #e5e7eb", fontSize: "13px" }}>
-          <Text strong>Amount in Words:</Text> <Text>{totalInWords}</Text>
+        <div style={{ marginTop: 12, padding: "10px 14px", backgroundColor: "var(--bg-slate-50)", borderRadius: 6, border: "1px solid var(--border-color)", fontSize: "13px" }}>
+          <Text strong style={{ color: "var(--text-primary)" }}>Amount in Words:</Text> <Text style={{ color: "var(--text-secondary)" }}>{totalInWords}</Text>
         </div>
 
 
@@ -413,7 +414,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
             style={{
               marginTop: 16,
               paddingTop: 8,
-              borderTop: "1px solid #f0f0f0",
+              borderTop: "1px solid var(--border-color)",
               display: "grid",
               gridTemplateColumns: settings.general?.signature ? "2fr 1fr" : "1fr",
               gap: 24,
@@ -426,8 +427,8 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
               <Card
                 size="small"
                 style={{
-                  backgroundColor: "#fafafa",
-                  border: "1px solid #e8e8e8",
+                  backgroundColor: "var(--bg-slate-50)",
+                  border: "1px solid var(--border-color)",
                   borderRadius: 6,
                 }}
                 bodyStyle={{ padding: "12px" }}
@@ -440,23 +441,23 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                   {/* Bank Info - label and value on same line */}
                   <div style={{ flex: 1 }}>
                     <div style={{ marginBottom: 6, display: "flex" }}>
-                      <Text type="secondary" style={{ width: 120, fontSize: "12px" }}>Bank Name:</Text>
-                      <Text style={{ fontSize: "12px" }}>{settings.payment.bankName}</Text>
+                      <Text type="secondary" style={{ width: 120, fontSize: "12px", color: "var(--text-secondary)" }}>Bank Name:</Text>
+                      <Text style={{ fontSize: "12px", color: "var(--text-primary)" }}>{settings.payment.bankName}</Text>
                     </div>
 
                     <div style={{ marginBottom: 6, display: "flex" }}>
-                      <Text type="secondary" style={{ width: 120, fontSize: "12px" }}>Account Number:</Text>
-                      <Text style={{ fontSize: "12px" }}>{settings.payment.accountNumber}</Text>
+                      <Text type="secondary" style={{ width: 120, fontSize: "12px", color: "var(--text-secondary)" }}>Account Number:</Text>
+                      <Text style={{ fontSize: "12px", color: "var(--text-primary)" }}>{settings.payment.accountNumber}</Text>
                     </div>
 
                     <div style={{ marginBottom: 6, display: "flex" }}>
-                      <Text type="secondary" style={{ width: 120, fontSize: "12px" }}>IFSC Code:</Text>
-                      <Text style={{ fontSize: "12px" }}>{settings.payment.ifscCode}</Text>
+                      <Text type="secondary" style={{ width: 120, fontSize: "12px", color: "var(--text-secondary)" }}>IFSC Code:</Text>
+                      <Text style={{ fontSize: "12px", color: "var(--text-primary)" }}>{settings.payment.ifscCode}</Text>
                     </div>
 
                     <div style={{ display: "flex" }}>
-                      <Text type="secondary" style={{ width: 120, fontSize: "12px" }}>Branch:</Text>
-                      <Text style={{ fontSize: "12px" }}>{settings.payment.branchName}</Text>
+                      <Text type="secondary" style={{ width: 120, fontSize: "12px", color: "var(--text-secondary)" }}>Branch:</Text>
+                      <Text style={{ fontSize: "12px", color: "var(--text-primary)" }}>{settings.payment.branchName}</Text>
                     </div>
                   </div>
 
@@ -470,7 +471,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                           width: 90,
                           height: 90,
                           objectFit: "contain",
-                          border: "1px solid #e5e7eb",
+                          border: "1px solid var(--border-color)",
                           borderRadius: 6,
                           background: "#fff",
                           padding: 6,
@@ -482,6 +483,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                           display: "block",
                           fontSize: 10,
                           marginTop: 4,
+                          color: "var(--text-secondary)"
                         }}
                       >
                         Scan to Pay
@@ -501,11 +503,11 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
 
                 <div
                   style={{
-                    backgroundColor: "#fafafa",
+                    backgroundColor: "var(--bg-slate-50)",
                     padding: 12,
                     borderRadius: 6,
                     display: "inline-block",
-                    border: "1px solid #e8e8e8",
+                    border: "1px solid var(--border-color)",
                   }}
                 >
                   <img
@@ -515,7 +517,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                       width: 100,
                       height: 80,
                       objectFit: "contain",
-                      border: "1px solid #e5e7eb",
+                      border: "1px solid var(--border-color)",
                       background: "#fff",
                       padding: 8,
                       borderRadius: 6,
@@ -527,6 +529,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                       display: "block",
                       fontSize: 10,
                       marginTop: 4,
+                      color: "var(--text-secondary)"
                     }}
                   >
                     Digitally signed
@@ -539,14 +542,14 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
 
         {/* Notes & Terms - After Bank Details */}
         {(data.notes || data.terms) && (
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #f0f0f0", display: "flex", gap: 16, alignItems: "flex-start" }}>
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-color)", display: "flex", gap: 16, alignItems: "flex-start" }}>
             {data.notes && (
               <div style={{ flex: 1 }}>
                 <Card
                   size="small"
                   style={{
-                    backgroundColor: "#fafafa",
-                    border: "1px solid #e8e8e8",
+                    backgroundColor: "var(--bg-slate-50)",
+                    border: "1px solid var(--border-color)",
                     borderRadius: 6,
                     minHeight: 120,
                   }}
@@ -555,8 +558,8 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                   <Title level={5} style={{ marginBottom: 8, color: primaryColor, fontSize: "14px" }}>
                     Notes
                   </Title>
-                  <div style={{ fontSize: "12px", color: "#555" }}>
-                    <Text>{data.notes}</Text>
+                  <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                    <Text style={{ color: "var(--text-secondary)" }}>{data.notes}</Text>
                   </div>
                 </Card>
               </div>
@@ -566,8 +569,8 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                 <Card
                   size="small"
                   style={{
-                    backgroundColor: "#fafafa",
-                    border: "1px solid #e8e8e8",
+                    backgroundColor: "var(--bg-slate-50)",
+                    border: "1px solid var(--border-color)",
                     borderRadius: 6,
                     minHeight: 120,
                   }}
@@ -576,8 +579,8 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                   <Title level={5} style={{ marginBottom: 8, color: primaryColor, fontSize: "14px" }}>
                     Terms & Conditions
                   </Title>
-                  <div style={{ fontSize: "12px", color: "#555" }}>
-                    <Text>{data.terms}</Text>
+                  <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                    <Text style={{ color: "var(--text-secondary)" }}>{data.terms}</Text>
                   </div>
                 </Card>
               </div>

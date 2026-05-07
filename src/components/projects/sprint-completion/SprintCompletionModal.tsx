@@ -1,24 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Modal,
-  Tabs,
-  Typography,
-  Space,
-  Button,
-  Badge,
-  Spin,
-  Tag,
-  App,
-} from "antd";
+import { Modal, Tabs, Button, Spin, App } from "antd";
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   FileTextOutlined,
-  HistoryOutlined,
   RocketOutlined,
-  WarningOutlined,
   TrophyOutlined,
   ArrowRightOutlined,
 } from "@ant-design/icons";
@@ -26,9 +14,6 @@ import { useSprintCompletionSummary, useCompleteSprint } from "@/hooks/useSprint
 import { SummaryTab } from "./tabs/SummaryTab";
 import { PendingTicketsTab } from "./tabs/PendingTicketsTab";
 import { CompletedTicketsTab } from "./tabs/CompletedTicketsTab";
-// import { AuditLogTab } from "./tabs/AuditLogTab";
-
-const { Title, Text } = Typography;
 
 interface SprintCompletionModalProps {
   sprintId: string | null;
@@ -37,7 +22,6 @@ interface SprintCompletionModalProps {
   onSuccess?: () => void;
 }
 
-// Inner component that uses App.useApp() hook
 const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
   sprintId,
   open,
@@ -47,20 +31,16 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
   const { modal, message } = App.useApp();
   const [activeTab, setActiveTab] = useState<string>("summary");
 
-  // Fetch sprint completion summary
   const { data: summary, isLoading, refetch } = useSprintCompletionSummary(
     sprintId || "",
     !!sprintId && open
   );
 
-  // Complete sprint mutation
   const completeSprint = useCompleteSprint();
 
-  // Handle sprint completion
   const handleCompleteSprint = async () => {
     if (!sprintId) return;
 
-    // Check if there are pending tickets
     if (summary && summary.statistics.pendingTickets > 0) {
       message.warning(
         `Cannot complete sprint with ${summary.statistics.pendingTickets} pending ticket(s). Please resolve all pending tickets first.`
@@ -73,37 +53,27 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
       title: "Complete Sprint?",
       content: (
         <div>
-          <p>
-            Are you sure you want to mark this sprint as complete? This action
-            will:
-          </p>
+          <p>Are you sure you want to mark this sprint as complete? This action will:</p>
           <ul>
             <li>Mark the sprint status as "Completed"</li>
-            <li>
-              Lock tickets from being edited (except by admins)
-            </li>
+            <li>Lock tickets from being edited (except by admins)</li>
             <li>Generate final velocity metrics</li>
             <li>Create audit log entry</li>
           </ul>
           <p style={{ marginTop: 16, fontWeight: 500 }}>
-            All {summary?.statistics.completedTickets || 0} tickets have been
-            resolved.
+            All {summary?.statistics.completedTickets || 0} tickets have been resolved.
           </p>
         </div>
       ),
-      icon: <RocketOutlined style={{ color: "#52c41a" }} />,
+      icon: <RocketOutlined style={{ color: "#10B981" }} />,
       okText: "Complete Sprint",
       okType: "primary",
       cancelText: "Cancel",
       onOk: async () => {
         try {
           await completeSprint.mutateAsync({ sprintId, force: false });
-          // Wait for parent to refresh before closing modal
-          if (onSuccess) {
-            await onSuccess();
-          }
-          // Small delay to ensure UI updates
-          await new Promise(resolve => setTimeout(resolve, 300));
+          if (onSuccess) onSuccess();
+          await new Promise((resolve) => setTimeout(resolve, 300));
           onClose();
         } catch (error: any) {
           message.error(error.message || "Failed to complete sprint");
@@ -112,149 +82,118 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
     });
   };
 
-  // Calculate completion progress
-  const completionPercentage = summary?.statistics.completionPercentage || 0;
+  const pendingCount = summary?.statistics.pendingTickets ?? 0;
+  const completedCount = summary?.statistics.completedTickets ?? 0;
+  const headerTone = !summary
+    ? ""
+    : pendingCount === 0
+    ? "sc-header-success"
+    : "sc-header";
 
   return (
     <Modal
-      title={
-        <div
-          style={{
-            padding: "16px 24px",
-            borderBottom: "1px solid #f0f0f0",
-            background: "linear-gradient(to right, #ffffff, #f9fbff)",
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Space size={12}>
-              <div 
-                style={{ 
-                  width: 40, 
-                  height: 40, 
-                  borderRadius: 10, 
-                  background: 'rgba(24, 144, 255, 0.1)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center' 
-                }}
-              >
-                <RocketOutlined style={{ fontSize: 22, color: "#1890ff" }} />
-              </div>
-              <Space direction="vertical" size={0}>
-                <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>
-                  Sprint Completion
-                </Title>
-                <Text type="secondary" style={{ fontSize: 13 }}>
-                  Finalize and review sprint activities
-                </Text>
-              </Space>
-            </Space>
-            {summary && (
-              <Space size={12}>
-                <Tag color="blue" style={{ borderRadius: 6, padding: '2px 10px', fontWeight: 500 }}>
-                  {summary.sprint.project.code}
-                </Tag>
-                <Tag 
-                  color={summary.sprint.status === "active" ? "processing" : "default"}
-                  style={{ borderRadius: 6, padding: '2px 10px', textTransform: 'capitalize' }}
-                >
-                  {summary.sprint.status}
-                </Tag>
-              </Space>
-            )}
-          </div>
-        </div>
-      }
+      className="sprint-completion-modal"
       open={open}
       onCancel={onClose}
       width={1100}
       centered
+      closable
+      title={null}
       styles={{
-        header: { padding: 0, margin: 0 },
-        body: { padding: 0, height: "calc(85vh - 120px)", overflow: "hidden" },
+        header: { display: 'none' },
+        body: { padding: 0 },
+        footer: { padding: 0, margin: 0, border: 'none' },
       }}
       footer={
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '16px 24px', background: '#ffffff', borderTop: '1px solid #f0f0f0' }}>
-          <Space size={32}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f0f7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1890ff' }}>
-                <FileTextOutlined style={{ fontSize: 18 }} />
-              </div>
-              <div>
-                <div style={{ fontSize: 11, color: '#8c8c8c', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1 }}>Total Tickets</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>{summary?.statistics.totalTickets || 0}</div>
-              </div>
+        summary ? (
+          <div className="sc-footer">
+            <div className="sc-footer-stats">
+              <span className="sc-footer-stat" style={{ ['--sc-stat-color' as any]: 'var(--sc-info)' }}>
+                <span className="sc-footer-stat-icon"><FileTextOutlined /></span>
+                <span>
+                  <span className="sc-footer-stat-value">{summary.statistics.totalTickets}</span>{' '}
+                  <span className="sc-footer-stat-label">Total</span>
+                </span>
+              </span>
+              <span className="sc-footer-stat" style={{ ['--sc-stat-color' as any]: 'var(--sc-success)' }}>
+                <span className="sc-footer-stat-icon"><TrophyOutlined /></span>
+                <span>
+                  <span className="sc-footer-stat-value">{summary.statistics.completedPoints}</span>{' '}
+                  <span className="sc-footer-stat-label">Resolved Points</span>
+                </span>
+              </span>
+              <span
+                className="sc-footer-stat"
+                style={{ ['--sc-stat-color' as any]: pendingCount > 0 ? 'var(--sc-warning)' : 'var(--sc-success)' }}
+              >
+                <span className="sc-footer-stat-icon"><ClockCircleOutlined /></span>
+                <span>
+                  <span className="sc-footer-stat-value">{pendingCount}</span>{' '}
+                  <span className="sc-footer-stat-label">Pending</span>
+                </span>
+              </span>
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f6ffed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#52c41a' }}>
-                <TrophyOutlined style={{ fontSize: 18 }} />
-              </div>
-              <div>
-                <div style={{ fontSize: 11, color: '#8c8c8c', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1 }}>Resolved Points</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>{summary?.statistics.completedPoints || 0}</div>
-              </div>
+            <div className="sc-footer-actions">
+              <Button onClick={onClose} className="sc-btn-cancel">Cancel</Button>
+              <Button
+                type="primary"
+                onClick={handleCompleteSprint}
+                loading={completeSprint.isPending}
+                disabled={pendingCount > 0}
+                className="sc-btn-complete"
+                icon={<ArrowRightOutlined />}
+                iconPosition="end"
+              >
+                {pendingCount > 0 ? `Resolve ${pendingCount} Pending` : 'Complete Sprint'}
+              </Button>
             </div>
-
-            {summary && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: summary.statistics.pendingTickets > 0 ? '#fffbe6' : '#f6ffed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: summary.statistics.pendingTickets > 0 ? '#faad14' : '#52c41a' }}>
-                  <ClockCircleOutlined style={{ fontSize: 18 }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 11, color: '#8c8c8c', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1 }}>Pending</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>{summary.statistics.pendingTickets}</div>
-                </div>
-              </div>
-            )}
-          </Space>
-
-          <Space size={12}>
-            <Button 
-              onClick={onClose}
-              style={{ 
-                borderRadius: 8, 
-                height: 40, 
-                padding: '0 24px',
-                fontWeight: 600,
-                border: '1px solid #d9d9d9',
-                color: '#595959'
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              onClick={handleCompleteSprint}
-              loading={completeSprint.isPending}
-              disabled={(summary?.statistics.pendingTickets ?? 0) > 0}
-              style={{ 
-                borderRadius: 8, 
-                height: 40, 
-                padding: '0 32px',
-                fontWeight: 700,
-                background: summary?.statistics.pendingTickets === 0 ? 'linear-gradient(90deg, #1890ff, #096dd9)' : undefined,
-                border: 'none',
-                boxShadow: summary?.statistics.pendingTickets === 0 ? '0 4px 12px rgba(24, 144, 255, 0.3)' : undefined,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8
-              }}
-            >
-              <span>Complete Sprint</span>
-              <ArrowRightOutlined />
-            </Button>
-          </Space>
-        </div>
+          </div>
+        ) : null
       }
     >
+      {/* Header */}
+      <div className={`sc-header ${headerTone}`}>
+        <div className="sc-header-row">
+          <div className="sc-header-left">
+            <div className="sc-header-icon">
+              <RocketOutlined />
+            </div>
+            <div>
+              <h3 className="sc-header-title">Sprint Completion</h3>
+              <span className="sc-header-sub">
+                <span className="sc-pulse-dot" />
+                Final review &amp; cleanup
+              </span>
+            </div>
+          </div>
+
+          {summary && (
+            <div className="sc-header-meta">
+              <span className="sc-project-pill">{summary.sprint.project.code}</span>
+              <span className="sc-meta-text">{summary.sprint.project.name}</span>
+              <span className="sc-meta-divider" />
+              <span className="sc-meta-text-muted">{summary.sprint.name}</span>
+              <span
+                className={`sc-status-tag ${
+                  summary.sprint.status === 'active' ? 'sc-status-tag-active' : 'sc-status-tag-default'
+                }`}
+              >
+                {summary.sprint.status}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs */}
       {isLoading || !summary ? (
         <div
           style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: 400,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: 'calc(85vh - 160px)',
+            background: 'var(--sc-canvas)',
           }}
         >
           <Spin size="large" tip="Loading sprint data" />
@@ -263,56 +202,74 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
-          style={{ height: "100%" }}
           items={[
             {
-              key: "summary",
+              key: 'summary',
               label: (
-                <Space>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <FileTextOutlined />
-                  <span>Summary</span>
-                </Space>
+                  Summary
+                </span>
               ),
               children: <SummaryTab summary={summary} />,
             },
             {
-              key: "pending",
+              key: 'pending',
               label: (
-                <Space>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <ClockCircleOutlined />
-                  <span>
-                    Pending Tickets
-                    <Badge
-                      count={summary.statistics.pendingTickets}
-                      style={{ marginLeft: 8 }}
-                      showZero
-                    />
+                  Pending
+                  <span
+                    style={{
+                      background: pendingCount > 0 ? 'rgba(245, 158, 11, 0.14)' : 'rgba(100, 116, 139, 0.14)',
+                      color: pendingCount > 0 ? 'var(--sc-warning)' : 'var(--sc-text-muted)',
+                      fontSize: 10,
+                      fontWeight: 800,
+                      borderRadius: 999,
+                      padding: '0 7px',
+                      minWidth: 18,
+                      height: 18,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {pendingCount}
                   </span>
-                </Space>
+                </span>
               ),
               children: (
                 <PendingTicketsTab
-                  sprintId={sprintId || ""}
+                  sprintId={sprintId || ''}
                   summary={summary}
                   onActionComplete={() => refetch()}
                 />
               ),
             },
             {
-              key: "completed",
+              key: 'completed',
               label: (
-                <Space>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <CheckCircleOutlined />
-                  <span>
-                    Completed Tickets
-                    <Badge
-                      count={summary.statistics.completedTickets}
-                      style={{ marginLeft: 8 }}
-                      showZero
-                      color="green"
-                    />
+                  Completed
+                  <span
+                    style={{
+                      background: 'rgba(16, 185, 129, 0.14)',
+                      color: 'var(--sc-success)',
+                      fontSize: 10,
+                      fontWeight: 800,
+                      borderRadius: 999,
+                      padding: '0 7px',
+                      minWidth: 18,
+                      height: 18,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {completedCount}
                   </span>
-                </Space>
+                </span>
               ),
               children: <CompletedTicketsTab tickets={summary.tickets.completed} />,
             },
@@ -323,7 +280,6 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
   );
 };
 
-// Wrapper component that provides App context
 export const SprintCompletionModal: React.FC<SprintCompletionModalProps> = (props) => {
   return (
     <App>

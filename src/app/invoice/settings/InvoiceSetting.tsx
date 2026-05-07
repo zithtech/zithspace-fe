@@ -1,8 +1,14 @@
-
 "use client";
 import { FC, useEffect, useRef, useState } from "react";
 import { Form, Input, Tooltip } from "antd";
-import { ReceiptText, CheckCircle2, Info, Edit2, XCircle } from "lucide-react";
+import {
+  ReceiptText,
+  CheckCircle2,
+  Info,
+  Edit2,
+  XCircle,
+  Eye,
+} from "lucide-react";
 import { InvoiceDraft } from "@/types/invoice";
 
 interface InvoiceSettingProps {
@@ -10,13 +16,66 @@ interface InvoiceSettingProps {
   onSave: (data: InvoiceDraft) => void;
 }
 
-const SectionTitle = ({ icon: Icon, title }: any) => (
-  <div className="flex items-center gap-3 mb-4">
-    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-      <Icon size={18} />
+const SectionHeader = ({
+  icon: Icon,
+  title,
+  subtitle,
+}: {
+  icon: any;
+  title: string;
+  subtitle?: string;
+}) => (
+  <div
+    className="px-5 py-3 flex items-center gap-2.5 border-b"
+    style={{ borderColor: "var(--border-color)" }}
+  >
+    <div
+      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+      style={{
+        background: "var(--bg-blue-50)",
+        color: "var(--text-blue-700)",
+        border: "1px solid var(--border-blue-200)",
+      }}
+    >
+      <Icon size={13} strokeWidth={2.25} />
     </div>
-    <h3 className="text-sm font-bold text-slate-800 m-0 uppercase tracking-wider">{title}</h3>
+    <span
+      className="text-[13px] font-semibold"
+      style={{ color: "var(--text-primary)" }}
+    >
+      {title}
+    </span>
+    {subtitle && (
+      <>
+        <span
+          className="h-3.5 w-px"
+          style={{ background: "var(--border-color)" }}
+        />
+        <span
+          className="text-[11px] uppercase tracking-[0.08em]"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          {subtitle}
+        </span>
+      </>
+    )}
   </div>
+);
+
+const FieldLabel = ({
+  children,
+  required,
+}: {
+  children: React.ReactNode;
+  required?: boolean;
+}) => (
+  <span
+    className="text-[11px] font-semibold uppercase tracking-[0.08em]"
+    style={{ color: "var(--text-secondary)" }}
+  >
+    {children}
+    {required && <span style={{ color: "#ef4444", marginLeft: 4 }}>*</span>}
+  </span>
 );
 
 const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
@@ -51,12 +110,9 @@ const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
   };
 
   const handleValuesChange = (_: any, values: any) => {
-    const capsFormat = values.format?.toUpperCase();
-    if (capsFormat !== values.format) {
-      form.setFieldsValue({ format: capsFormat });
-    }
-    setPreview(generatePreview(capsFormat));
-    onSave({ ...initialValues, ...values, format: capsFormat });
+    const rawFormat = values.format || "";
+    setPreview(generatePreview(rawFormat.toUpperCase()));
+    onSave({ ...initialValues, ...values, format: rawFormat.toUpperCase() });
   };
 
   const handleCancel = () => {
@@ -65,64 +121,101 @@ const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
     setEditable(false);
   };
 
+  const handleSave = () => {
+    const format = form.getFieldValue("format") || "";
+    form.setFieldsValue({ format: format.toUpperCase() });
+    setEditable(false);
+  };
+
+  const Tag = ({ children }: { children: string }) => (
+    <code
+      className="inline-flex items-center px-2 py-1 rounded-md text-[11px] font-semibold"
+      style={{
+        background: "var(--bg-secondary)",
+        color: "var(--text-blue-700)",
+        border: "1px solid var(--border-blue-200)",
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+      }}
+    >
+      {children}
+    </code>
+  );
+
   return (
-    <div className="bg-white">
-      <SectionTitle icon={ReceiptText} title="Invoice Numbering" />
-      <Form 
-        form={form} 
-        layout="vertical" 
-        onValuesChange={handleValuesChange}
-        requiredMark={false}
+    <Form
+      form={form}
+      layout="vertical"
+      onValuesChange={handleValuesChange}
+      requiredMark={false}
+      className="flex flex-col gap-5"
+    >
+      {/* FORMAT */}
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: "var(--bg-secondary)",
+          border: "1px solid var(--border-color)",
+        }}
       >
-        <div style={{ maxWidth: 500 }}>
+        <SectionHeader
+          icon={ReceiptText}
+          title="Invoice numbering"
+          subtitle="Auto-generation pattern"
+        />
+        <div className="px-5 py-5 max-w-2xl">
           <Form.Item
-            label={<span className="text-slate-500 font-medium">Auto-generation Format</span>}
+            label={<FieldLabel required>Auto-generation format</FieldLabel>}
             name="format"
             rules={[{ required: true, message: "Invoice format is required" }]}
-            extra={
-              <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-100 border-dashed">
-                <div className="flex gap-2 items-center text-slate-500 mb-2">
-                  <Info size={14} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Available Tags</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <code className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] text-blue-600 font-bold">{`{YYYY}`}</code>
-                  <code className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] text-blue-600 font-bold">{`{YY}`}</code>
-                  <code className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] text-blue-600 font-bold">{`{###}`}</code>
-                </div>
-              </div>
-            }
+            style={{ marginBottom: 0 }}
           >
             <Input
               ref={inputRef}
-              size="large"
               disabled={!editable}
               placeholder="e.g. INV-{YYYY}-{###}"
-              className={`rounded-xl border-slate-200 font-mono ${!editable ? 'bg-slate-50 opacity-100 text-slate-500 cursor-not-allowed' : ''}`}
+              style={{
+                height: 40,
+                borderRadius: 8,
+                background: editable ? "var(--bg-secondary)" : "var(--bg-slate-50)",
+                borderColor: "var(--border-color)",
+                color: "var(--text-primary)",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                fontSize: 13,
+                textTransform: "uppercase",
+              }}
               suffix={
                 !editable ? (
-                  <Tooltip title="Unlock to Edit">
-                    <Edit2 
-                      size={18} 
-                      className="text-blue-500 cursor-pointer hover:scale-110 transition-transform" 
-                      onClick={() => setEditable(true)} 
-                    />
+                  <Tooltip title="Unlock to edit">
+                    <button
+                      type="button"
+                      onClick={() => setEditable(true)}
+                      className="p-1 rounded-md transition-colors hover:bg-[var(--bg-secondary)]"
+                      style={{ color: "var(--text-blue-700)" }}
+                    >
+                      <Edit2 size={14} strokeWidth={2.25} />
+                    </button>
                   </Tooltip>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <Tooltip title="Save">
-                      <CheckCircle2 
-                        size={18} 
-                        className="text-green-500 cursor-pointer hover:scale-110 transition-transform" 
-                        onClick={() => setEditable(false)} 
-                      />
+                      <button
+                        type="button"
+                        onClick={handleSave}
+                        className="p-1 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+                        style={{ color: "#10b981" }}
+                      >
+                        <CheckCircle2 size={14} strokeWidth={2.25} />
+                      </button>
                     </Tooltip>
                     <Tooltip title="Cancel">
-                      <XCircle 
-                        size={18} 
-                        className="text-red-400 cursor-pointer hover:scale-110 transition-transform" 
-                        onClick={handleCancel} 
-                      />
+                      <button
+                        type="button"
+                        onClick={handleCancel}
+                        className="p-1 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+                        style={{ color: "#ef4444" }}
+                      >
+                        <XCircle size={14} strokeWidth={2.25} />
+                      </button>
                     </Tooltip>
                   </div>
                 )
@@ -130,28 +223,104 @@ const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
             />
           </Form.Item>
 
-          {preview && (
-            <div className="mt-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-center justify-between">
+          {/* Available tags */}
+          <div
+            className="mt-4 rounded-xl p-3.5"
+            style={{
+              background: "var(--bg-slate-50)",
+              border: "1px dashed var(--border-color)",
+            }}
+          >
+            <div
+              className="flex items-center gap-1.5 mb-2 text-[10.5px] font-semibold uppercase tracking-[0.08em]"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              <Info size={12} />
+              Available tags
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <Tag>{`{YYYY}`}</Tag>
+              <Tag>{`{YY}`}</Tag>
+              <Tag>{`{###}`}</Tag>
+              <Tag>{`{####}`}</Tag>
+            </div>
+            <div
+              className="text-[11.5px] mt-2.5 leading-relaxed"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Combine literal text and tags. Example: <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", color: "var(--text-primary)", fontWeight: 500 }}>INV-{`{YYYY}`}-{`{###}`}</span> →{" "}
+              <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", color: "var(--text-primary)", fontWeight: 500 }}>
+                INV-{new Date().getFullYear()}-001
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* LIVE PREVIEW */}
+      {preview && (
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{
+            background: "var(--bg-secondary)",
+            border: "1px solid var(--border-color)",
+          }}
+        >
+          <SectionHeader
+            icon={Eye}
+            title="Live preview"
+            subtitle="Next invoice number"
+          />
+          <div className="px-5 py-5 max-w-2xl">
+            <div
+              className="rounded-xl p-5 flex items-center justify-between gap-4"
+              style={{
+                background: "var(--bg-blue-50)",
+                border: "1px solid var(--border-blue-200)",
+              }}
+            >
               <div>
-                <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Live Preview</p>
-                <p className="text-xl font-mono font-bold text-blue-700 m-0">{preview}</p>
+                <div
+                  className="text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-1"
+                  style={{ color: "var(--text-blue-700)", opacity: 0.75 }}
+                >
+                  Generated number
+                </div>
+                <div
+                  className="text-2xl font-bold tabular-nums"
+                  style={{
+                    color: "var(--text-blue-700)",
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  }}
+                >
+                  {preview}
+                </div>
               </div>
-              <div className="p-3 bg-white rounded-xl shadow-sm border border-blue-100">
-                <CheckCircle2 className="text-blue-500" size={24} />
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: "var(--bg-secondary)",
+                  color: "var(--text-blue-700)",
+                  border: "1px solid var(--border-blue-200)",
+                }}
+              >
+                <CheckCircle2 size={20} strokeWidth={2.25} />
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </Form>
-      <style dangerouslySetInnerHTML={{ __html: `
+      )}
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .ant-form-item-label {
-          padding-bottom: 4px !important;
+          padding-bottom: 6px !important;
         }
-        .ant-form-item {
-          margin-bottom: 16px !important;
-        }
-      `}} />
-    </div>
+      `,
+        }}
+      />
+    </Form>
   );
 };
 

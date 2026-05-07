@@ -103,6 +103,7 @@ export default function UpdateDetailsDrawer({
           <Space size={16}>
             <Avatar
               size={56}
+              src={update.user?.avatarUrl}
               style={{
                 backgroundColor: update.updateType === "BOD" ? "var(--bg-holiday)" : "var(--bg-blue-50)",
                 color: update.updateType === "BOD" ? "var(--text-holiday)" : "var(--text-blue-700)",
@@ -112,7 +113,7 @@ export default function UpdateDetailsDrawer({
                 boxShadow: "0 0 0 1px var(--border-slate-100)"
               }}
             >
-              {update.user?.name.charAt(0).toUpperCase()}
+              {update.user?.name?.charAt(0).toUpperCase()}
             </Avatar>
             <div>
               <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>

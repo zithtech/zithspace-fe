@@ -2,35 +2,37 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Form, 
-  Input, 
-  Button, 
-  Select, 
-  Space, 
-  Tooltip, 
-  Typography, 
+import {
+  Form,
+  Input,
+  Button,
+  Select,
+  Space,
+  Tooltip,
+  Typography,
   Divider,
   InputNumber,
   Badge,
   Checkbox,
   Popover,
-  Empty,
   Modal,
   Switch,
-  Radio
+  Radio,
+  DatePicker,
+  Dropdown
 } from 'antd';
-import { 
-  DeleteOutlined, 
-  PlusOutlined, 
-  MenuOutlined, 
+import { Receipt, Sparkles } from 'lucide-react';
+import {
+  DeleteOutlined,
+  PlusOutlined,
+  MenuOutlined,
   SettingOutlined,
   CopyOutlined,
   BlockOutlined,
   TableOutlined,
   CheckOutlined,
-  DragOutlined,
-  CloseOutlined
+  CloseOutlined,
+  MoreOutlined
 } from '@ant-design/icons';
 import { 
   DndContext, 
@@ -79,6 +81,16 @@ export interface DynamicLineItemsProps {
   setActiveColumns: React.Dispatch<React.SetStateAction<Column[]>>;
 }
 
+const FIELD_TYPE_OPTIONS: { value: string; label: string; description: string; icon: string }[] = [
+  { value: 'text',       label: 'Text',       description: 'Single-line input',      icon: 'Aa' },
+  { value: 'textarea',   label: 'Textarea',   description: 'Multi-line input',       icon: '¶'  },
+  { value: 'number',     label: 'Number',     description: 'Integer or decimal',     icon: '#'  },
+  { value: 'currency',   label: 'Currency',   description: 'Money amount',           icon: '$'  },
+  { value: 'percentage', label: 'Percentage', description: 'Value with %',           icon: '%'  },
+  { value: 'dropdown',   label: 'Dropdown',   description: 'Pick from options',      icon: '▾'  },
+  { value: 'date',       label: 'Date',       description: 'Date picker',            icon: '📅' },
+];
+
 const AddFieldModal = ({ visible, onCancel, onAdd }: any) => {
   const [form] = Form.useForm();
   const fieldType = Form.useWatch('fieldType', form);
@@ -86,14 +98,61 @@ const AddFieldModal = ({ visible, onCancel, onAdd }: any) => {
   return (
     <Modal
       open={visible}
-      title={<Text strong className="text-lg">Add Custom Field</Text>}
       onCancel={onCancel}
-      footer={[
-        <Button key="cancel" onClick={onCancel} className="px-8 rounded-md h-10">Cancel</Button>,
-        <Button key="add" type="primary" onClick={() => form.submit()} className="px-8 rounded-md h-10 bg-blue-400 border-none">Add Field</Button>
-      ]}
-      width={400}
+      footer={null}
+      closable={false}
+      width={520}
+      styles={{
+        mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.45)' },
+        content: { padding: 0, borderRadius: 20, overflow: 'hidden' },
+        body: { padding: 0 },
+      }}
     >
+      {/* Header */}
+      <div
+        className="px-6 pt-5 pb-4 flex items-start justify-between border-b"
+        style={{
+          background: 'var(--bg-slate-50)',
+          borderColor: 'var(--border-color)',
+        }}
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold"
+            style={{
+              background: 'var(--bg-blue-50)',
+              color: 'var(--text-blue-700)',
+              border: '1px solid var(--border-blue-200)',
+            }}
+          >
+            +
+          </div>
+          <div>
+            <div
+              className="text-[15px] font-semibold leading-tight"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              Add custom field
+            </div>
+            <div
+              className="text-[12px] mt-0.5"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Define a new column for your line items
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label="Close"
+          className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-secondary)]"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          <CloseOutlined />
+        </button>
+      </div>
+
       <Form
         form={form}
         layout="vertical"
@@ -102,61 +161,231 @@ const AddFieldModal = ({ visible, onCancel, onAdd }: any) => {
           onAdd(values);
           form.resetFields();
         }}
-        className="mt-4"
       >
-        <Form.Item label="FIELD NAME" name="label" rules={[{ required: true, message: 'Please input field name' }]}>
-          <Input placeholder="e.g. Discount Code" className="h-10 rounded-md" />
-        </Form.Item>
-        
-        <Form.Item label="FIELD TYPE" name="fieldType">
-          <Select className="h-10 rounded-md">
-            <Select.Option value="text">Text</Select.Option>
-            <Select.Option value="textarea">Textarea</Select.Option>
-            <Select.Option value="number">Number</Select.Option>
-            <Select.Option value="currency">Currency</Select.Option>
-            <Select.Option value="percentage">Percentage</Select.Option>
-            <Select.Option value="dropdown">Dropdown</Select.Option>
-            <Select.Option value="date">Date</Select.Option>
-          </Select>
-        </Form.Item>
+        <div className="px-6 pt-5 pb-2">
+          {/* Field name */}
+          <div className="mb-4">
+            <div
+              className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Field name
+            </div>
+            <Form.Item
+              name="label"
+              rules={[{ required: true, message: 'Please input field name' }]}
+              className="mb-0"
+            >
+              <Input
+                placeholder="e.g. Discount code"
+                className="h-10 rounded-lg"
+                style={{
+                  borderColor: 'var(--border-color)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+            </Form.Item>
+          </div>
 
-        {fieldType === 'dropdown' && (
-          <Form.List name="options" initialValue={['Option 1']}>
-            {(fields, { add, remove }) => (
-              <div className="mb-4">
-                <Text type="secondary" className="text-xs font-bold mb-2 block uppercase">Options</Text>
-                {fields.map((field, index) => (
-                  <Form.Item key={field.key} required={false} className="mb-2">
-                    <div className="flex gap-2">
-                      <Form.Item {...field} noStyle>
-                        <Input placeholder="Option" className="rounded-md" />
-                      </Form.Item>
-                      {fields.length > 1 && (
-                        <Button type="text" onClick={() => remove(field.name)} icon={<CloseOutlined />} />
-                      )}
-                    </div>
-                  </Form.Item>
-                ))}
-                <Button type="text" onClick={() => add()} icon={<PlusOutlined />} className="text-blue-500 flex items-center gap-1 p-0">
-                  Add Option
-                </Button>
+          {/* Field type */}
+          <div className="mb-4">
+            <div
+              className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Field type
+            </div>
+            <Form.Item name="fieldType" className="mb-0">
+              <Radio.Group className="w-full" buttonStyle="solid">
+                <div className="grid grid-cols-2 gap-2">
+                  {FIELD_TYPE_OPTIONS.map((opt) => {
+                    const selected = fieldType === opt.value;
+                    return (
+                      <label
+                        key={opt.value}
+                        className="cursor-pointer rounded-lg p-2.5 transition-all flex items-center gap-2.5"
+                        style={{
+                          background: selected ? 'var(--bg-blue-50)' : 'var(--bg-secondary)',
+                          border: `1px solid ${selected ? '#60a5fa' : 'var(--border-color)'}`,
+                          boxShadow: selected ? '0 0 0 3px rgba(96, 165, 250, 0.15)' : 'none',
+                        }}
+                      >
+                        <Radio value={opt.value} className="!hidden" />
+                        <div
+                          className="w-7 h-7 rounded-md flex items-center justify-center text-[12px] font-bold flex-shrink-0"
+                          style={{
+                            background: selected ? '#fff' : 'var(--bg-slate-50)',
+                            color: selected ? 'var(--text-blue-700)' : 'var(--text-secondary)',
+                            border: '1px solid var(--border-color)',
+                          }}
+                        >
+                          {opt.icon}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div
+                            className="text-[13px] font-semibold leading-tight"
+                            style={{
+                              color: selected ? 'var(--text-blue-700)' : 'var(--text-primary)',
+                            }}
+                          >
+                            {opt.label}
+                          </div>
+                          <div
+                            className="text-[11px] truncate"
+                            style={{ color: 'var(--text-secondary)' }}
+                          >
+                            {opt.description}
+                          </div>
+                        </div>
+                        {selected && (
+                          <CheckOutlined style={{ color: 'var(--text-blue-700)', fontSize: 12 }} />
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              </Radio.Group>
+            </Form.Item>
+          </div>
+
+          {/* Dropdown options */}
+          {fieldType === 'dropdown' && (
+            <div
+              className="mb-4 rounded-lg p-3"
+              style={{
+                background: 'var(--bg-slate-50)',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              <div
+                className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Options
               </div>
-            )}
-          </Form.List>
-        )}
+              <Form.List name="options" initialValue={['Option 1']}>
+                {(fields, { add, remove }) => (
+                  <div className="space-y-2">
+                    {fields.map((field, index) => (
+                      <div key={field.key} className="flex items-center gap-2">
+                        <span
+                          className="w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-semibold flex-shrink-0"
+                          style={{
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-secondary)',
+                            border: '1px solid var(--border-color)',
+                          }}
+                        >
+                          {index + 1}
+                        </span>
+                        <Form.Item {...field} noStyle>
+                          <Input
+                            placeholder={`Option ${index + 1}`}
+                            className="rounded-md h-9"
+                            style={{
+                              borderColor: 'var(--border-color)',
+                              background: 'var(--bg-secondary)',
+                            }}
+                          />
+                        </Form.Item>
+                        {fields.length > 1 && (
+                          <Button
+                            type="text"
+                            size="small"
+                            onClick={() => remove(field.name)}
+                            icon={<CloseOutlined />}
+                            style={{ color: 'var(--text-secondary)' }}
+                          />
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      type="dashed"
+                      onClick={() => add()}
+                      icon={<PlusOutlined />}
+                      size="small"
+                      className="mt-1"
+                      style={{ borderColor: 'var(--border-color)', color: 'var(--text-blue-700)' }}
+                    >
+                      Add option
+                    </Button>
+                  </div>
+                )}
+              </Form.List>
+            </div>
+          )}
 
-        <div className="flex justify-between items-center mb-4">
-          <Text className="text-sm font-medium">Required</Text>
-          <Form.Item name="required" valuePropName="checked" className="mb-0">
-            <Switch size="small" />
-          </Form.Item>
+          {/* Settings */}
+          <div
+            className="rounded-lg overflow-hidden"
+            style={{ border: '1px solid var(--border-color)' }}
+          >
+            <div
+              className="flex items-center justify-between px-4 py-3 border-b"
+              style={{ borderColor: 'var(--border-color)' }}
+            >
+              <div>
+                <div
+                  className="text-[13px] font-semibold"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  Required
+                </div>
+                <div
+                  className="text-[11px]"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  User must fill this field for every line
+                </div>
+              </div>
+              <Form.Item name="required" valuePropName="checked" className="mb-0">
+                <Switch size="small" />
+              </Form.Item>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3">
+              <div>
+                <div
+                  className="text-[13px] font-semibold"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  Show in invoice PDF
+                </div>
+                <div
+                  className="text-[11px]"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  Include this column on the printed invoice
+                </div>
+              </div>
+              <Form.Item name="showInPdf" valuePropName="checked" className="mb-0">
+                <Switch size="small" />
+              </Form.Item>
+            </div>
+          </div>
         </div>
 
-        <div className="flex justify-between items-center mb-4">
-          <Text className="text-sm font-medium">Show in Invoice PDF</Text>
-          <Form.Item name="showInPdf" valuePropName="checked" className="mb-0">
-            <Switch size="small" />
-          </Form.Item>
+        {/* Footer */}
+        <div
+          className="px-6 py-4 flex items-center justify-end gap-2 border-t mt-4"
+          style={{
+            background: 'var(--bg-slate-50)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <Button
+            onClick={onCancel}
+            style={{ borderRadius: 8, height: 36 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="primary"
+            onClick={() => form.submit()}
+            style={{ borderRadius: 8, height: 36, background: '#2563eb', fontWeight: 600 }}
+          >
+            Add field
+          </Button>
         </div>
       </Form>
     </Modal>
@@ -221,7 +450,7 @@ const SortableItem = ({
           rules={[{ required: true, message: "" }]}
           style={{ marginBottom: 0 }}
         >
-          <Input placeholder="Item name" size="small" className="font-semibold rounded-lg h-9 text-sm border-slate-200 hover:border-blue-300 focus:border-blue-400 bg-white shadow-sm shadow-black/[0.02]" />
+          <Input placeholder="Service or item name" size="small" className="font-semibold rounded-lg h-9 text-sm border-[var(--border-color)] hover:border-blue-300 focus:border-blue-400 bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm shadow-black/[0.02]" />
         </Form.Item>
       );
     }
@@ -229,12 +458,12 @@ const SortableItem = ({
     if (key === 'description') {
       return (
         <Form.Item name={[name, "description"]} style={{ marginBottom: 0 }}>
-          <Input placeholder="DESCRIPTION" size="small" className="rounded-lg h-9 uppercase text-[10px] font-medium tracking-tight border-slate-200 hover:border-blue-300 focus:border-blue-400 bg-white shadow-sm shadow-black/[0.02]" />
+          <Input placeholder="Add a description" size="small" className="rounded-lg h-9 text-sm border-[var(--border-color)] hover:border-blue-300 focus:border-blue-400 bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm shadow-black/[0.02]" />
         </Form.Item>
       );
     }
 
-    const inputClass = "w-full rounded-lg h-9 border-slate-200 hover:border-blue-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all text-sm bg-white shadow-sm shadow-black/[0.02]";
+    const inputClass = "w-full rounded-lg h-9 border-[var(--border-color)] hover:border-blue-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all text-sm bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm shadow-black/[0.02]";
 
     if (key === 'quantity') {
       return (
@@ -281,10 +510,9 @@ const SortableItem = ({
     if (key === 'projectId') {
       return (
         <Form.Item key={key} name={[name, "projectId"]} style={{ marginBottom: 0 }}>
-          <Select 
-            placeholder="Select Project" 
-            size="small"
-            className="w-full h-8 rounded-md text-xs" 
+          <Select
+            placeholder="Select project"
+            className="line-item-select w-full rounded-lg text-sm"
             dropdownStyle={{ borderRadius: '8px' }}
             showSearch
             optionFilterProp="children"
@@ -308,7 +536,7 @@ const SortableItem = ({
         style={{ marginBottom: 0 }}
       >
         {type === 'dropdown' ? (
-          <Select size="small" placeholder={label} className="w-full h-8 rounded-md text-xs" dropdownStyle={{ borderRadius: '8px' }}>
+          <Select placeholder={label} className="line-item-select w-full rounded-lg text-sm" dropdownStyle={{ borderRadius: '8px' }}>
             {column.options?.map((opt: string) => (
               <Select.Option key={opt} value={opt}>{opt}</Select.Option>
             )) || <Select.Option value="default">Default</Select.Option>}
@@ -317,6 +545,8 @@ const SortableItem = ({
           <InputNumber size="small" className={inputClass} placeholder={label} onKeyDown={blockNonNumeric} />
         ) : type === 'percentage' ? (
           <InputNumber size="small" className={inputClass} placeholder={label} onKeyDown={blockNonNumeric} suffix="%" />
+        ) : type === 'date' ? (
+          <DatePicker size="small" className={inputClass} placeholder={label} style={{ width: '100%' }} format="YYYY-MM-DD" />
         ) : type === 'textarea' ? (
           <Input.TextArea size="small" autoSize={{ minRows: 1, maxRows: 3 }} className="rounded-md border-gray-200 text-xs" placeholder={label} />
         ) : (
@@ -330,41 +560,41 @@ const SortableItem = ({
     <tr
       ref={setNodeRef}
       style={style}
-      className={`border-b border-gray-100/50 transition-all duration-200 ${isDragging ? 'bg-blue-50/30 opacity-60 shadow-lg' : 'hover:bg-slate-50/80 group/row'}`}
+      className={`border-b border-[var(--border-color)] transition-all duration-200 ${isDragging ? 'bg-blue-50/30 opacity-60 shadow-lg' : 'hover:bg-[var(--bg-slate-50)] group/row'}`}
     >
-      <td className="p-2 w-12 align-middle text-center sticky left-0 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors">
-        <Checkbox 
-          checked={isSelected} 
-          onChange={(e) => onSelect(id, e.target.checked)} 
+      <td className="p-2 w-12 align-middle text-center sticky left-0 z-10 bg-[var(--bg-secondary)] group-hover/row:bg-[var(--bg-slate-50)] transition-colors">
+        <Checkbox
+          checked={isSelected}
+          onChange={(e) => onSelect(id, e.target.checked)}
           className="scale-90"
         />
       </td>
-      <td className="p-2 w-12 align-middle text-center text-slate-400 font-bold text-[10px] sticky left-12 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors border-r border-slate-50">
+      <td className="p-2 w-10 align-middle text-center text-[var(--text-secondary)] font-medium text-[11px] tabular-nums sticky left-12 z-10 bg-[var(--bg-secondary)] group-hover/row:bg-[var(--bg-slate-50)] transition-colors border-r border-[var(--border-color)]">
         {index + 1}
       </td>
-      <td className="p-2 w-10 align-middle text-center sticky left-24 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors border-r border-slate-100/50">
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-blue-500 transition-colors">
-          <DragOutlined style={{ fontSize: 16 }} />
+      <td className="p-2 w-8 align-middle text-center sticky left-[88px] z-10 bg-[var(--bg-secondary)] group-hover/row:bg-[var(--bg-slate-50)] transition-colors border-r border-[var(--border-color)]">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-[var(--text-secondary)] hover:text-blue-500 transition-colors opacity-0 group-hover/row:opacity-100">
+          <MenuOutlined style={{ fontSize: 13 }} />
         </div>
       </td>
-      
+
       {activeColumns.map((col: any) => (
         <td key={col.key} className={`p-2 align-middle ${col.width || ''}`}>
           {renderField(col)}
         </td>
       ))}
 
-      <td className="p-3 align-middle text-right w-36 sticky right-12 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors border-l border-slate-50 font-bold text-slate-700 text-sm">
+      <td className="px-5 py-2 align-middle text-right w-[120px] sticky right-10 z-10 bg-[var(--bg-secondary)] group-hover/row:bg-[var(--bg-slate-50)] transition-colors border-l border-[var(--border-color)] font-semibold text-[var(--text-primary)] text-[13px] tabular-nums whitespace-nowrap">
         {currencySymbol}{lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </td>
-      <td className="p-2 align-middle text-center w-12 sticky right-0 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors">
+      <td className="px-2 py-2 align-middle text-center w-10 sticky right-0 z-10 bg-[var(--bg-secondary)] group-hover/row:bg-[var(--bg-slate-50)] transition-colors">
         <Tooltip title="Remove row">
           <Button
             type="text"
             danger
-            icon={<DeleteOutlined />}
+            icon={<DeleteOutlined style={{ fontSize: 14 }} />}
             onClick={() => remove(name)}
-            className="opacity-40 hover:opacity-100 hover:bg-red-50 flex items-center justify-center m-auto rounded-lg transition-all"
+            className="opacity-0 group-hover/row:opacity-60 hover:!opacity-100 hover:bg-red-50 flex items-center justify-center m-auto rounded-md transition-all"
           />
         </Tooltip>
       </td>
@@ -389,25 +619,70 @@ const SortableHeader = ({ column, onDelete, onSelectAll, isAllSelected, isIndete
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const menuItems = [
+    {
+      key: 'drag',
+      label: (
+        <span className="flex items-center gap-2 text-[12px]">
+          <MenuOutlined style={{ fontSize: 12 }} />
+          <span>Drag to reorder</span>
+        </span>
+      ),
+      disabled: true,
+    },
+    { type: 'divider' as const },
+    {
+      key: 'remove',
+      danger: true,
+      label: (
+        <span className="flex items-center gap-2 text-[12px]">
+          <DeleteOutlined style={{ fontSize: 12 }} />
+          <span>Remove column</span>
+        </span>
+      ),
+      onClick: () => onDelete(column.key),
+    },
+  ];
+
   return (
-    <th 
-      ref={setNodeRef} 
+    <th
+      ref={setNodeRef}
       style={style}
-      className={`px-4 py-4 text-left font-bold text-slate-500 text-[10px] uppercase group whitespace-nowrap tracking-widest ${column.width || ''}`}
+      className={`px-4 py-3.5 text-left font-semibold text-[var(--text-secondary)] text-[10.5px] uppercase group whitespace-nowrap tracking-[0.08em] ${column.width || ''}`}
     >
-      <div className="flex items-center gap-2">
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity text-gray-300">
-          <DragOutlined />
+      <div className="flex items-center gap-1.5">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-opacity text-[var(--text-secondary)]"
+        >
+          <MenuOutlined style={{ fontSize: 11 }} />
         </div>
         <span>{column.label}</span>
-        {!column.isSystem && (
-          <Tooltip title="Remove column">
-            <CloseOutlined 
-              className="text-[8px] text-red-300 hover:text-red-500 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => onDelete(column.key)}
-            />
-          </Tooltip>
+        {column.required && (
+          <span
+            className="text-[9px] font-semibold normal-case opacity-70"
+            style={{ color: 'var(--text-secondary)' }}
+            title="Required"
+          >
+            *
+          </span>
         )}
+        <Dropdown
+          menu={{ items: menuItems }}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <button
+            type="button"
+            aria-label="Column options"
+            onClick={(e) => e.stopPropagation()}
+            className="ml-auto inline-flex items-center justify-center w-5 h-5 rounded-md opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--bg-secondary)]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <MoreOutlined style={{ fontSize: 13 }} />
+          </button>
+        </Dropdown>
       </div>
     </th>
   );
@@ -755,74 +1030,111 @@ export default function DynamicLineItems({
               onDragStart={handleDragStart}
               onDragEnd={(e) => handleDragEnd(e, fields, move)}
             >
-              {/* Toolbar Matching Image */}
-              <div className="mb-0 flex justify-between items-center bg-white px-5 py-4 border-b border-slate-100">
-                <div className="flex flex-col gap-0.5">
-                  <Text strong className="text-base text-slate-800 tracking-tight">Invoice Line Items</Text>
-                  <Text className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Manage your billing components</Text>
-                </div>
-                <div className="flex gap-2 items-center">
-                  <Button
-                    icon={<PlusOutlined />}
-                    onClick={() => handleAddRow(add)}
-                    className="flex items-center gap-1 font-bold text-blue-600 rounded-lg border-blue-100 bg-blue-50 h-9 text-xs hover:border-blue-300 hover:bg-blue-100 transition-all duration-200 shadow-sm shadow-blue-200/20"
+              {/* Toolbar */}
+              <div className="mb-0 flex justify-between items-center bg-[var(--bg-secondary)] px-6 py-4 border-b border-[var(--border-color)]">
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="inline-flex items-center justify-center w-6 h-6 rounded-md"
+                    style={{
+                      background: 'rgba(99, 102, 241, 0.1)',
+                      color: '#6366f1',
+                      border: '1px solid rgba(99, 102, 241, 0.25)',
+                    }}
                   >
-                    Add Row
-                  </Button>
+                    <TableOutlined style={{ fontSize: 12 }} />
+                  </span>
+                  <Text strong className="text-[15px] text-[var(--text-primary)] tracking-tight">Line items</Text>
+                  <span
+                    className="inline-flex items-center px-2 h-5 rounded-md text-[11px] font-semibold tabular-nums"
+                    style={{
+                      background: 'var(--bg-slate-50)',
+                      color: 'var(--text-secondary)',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    {fields.length}
+                  </span>
+                  {selectedRowKeys.length > 0 && (
+                    <span
+                      className="inline-flex items-center px-2 h-5 rounded-md text-[11px] font-semibold"
+                      style={{
+                        background: 'var(--bg-blue-50)',
+                        color: 'var(--text-blue-700)',
+                        border: '1px solid var(--border-blue-200)',
+                      }}
+                    >
+                      {selectedRowKeys.length} selected
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-1.5 items-center">
                   <Button
-                    icon={<CopyOutlined />}
+                    icon={<CopyOutlined style={{ fontSize: 13 }} />}
                     disabled={selectedRowKeys.length === 0}
                     onClick={() => handleDuplicateRows(fields, add)}
-                    className="flex items-center gap-1 font-semibold text-slate-600 rounded-lg border-slate-200 bg-white h-9 text-xs hover:border-slate-300 hover:text-slate-800 transition-all duration-200"
+                    className="flex items-center gap-1 font-medium text-[var(--text-primary)] rounded-lg border-[var(--border-color)] bg-[var(--bg-secondary)] h-9 text-[12.5px] hover:border-slate-300 transition-all"
                   >
                     Duplicate
                   </Button>
                   <Button
-                    danger
-                    icon={<DeleteOutlined />}
+                    icon={<DeleteOutlined style={{ fontSize: 13 }} />}
                     disabled={selectedRowKeys.length === 0}
                     onClick={() => handleDeleteRows(remove, fields)}
-                    className="flex items-center gap-1 font-semibold bg-white rounded-lg border-red-50 h-9 text-xs hover:bg-red-50 hover:border-red-200 transition-all duration-200"
+                    className="flex items-center gap-1 font-medium rounded-lg h-9 text-[12.5px] transition-all"
+                    style={{
+                      color: selectedRowKeys.length === 0 ? undefined : '#dc2626',
+                      borderColor: 'var(--border-color)',
+                      background: 'var(--bg-secondary)',
+                    }}
                   >
-                    Delete Row
+                    Delete
                   </Button>
-                  <Divider type="vertical" className="h-6 mx-1 border-slate-200" />
+                  <Divider type="vertical" className="h-6 mx-1.5 border-[var(--border-color)]" />
                   <Button
-                    icon={<SettingOutlined />}
+                    icon={<SettingOutlined style={{ fontSize: 13 }} />}
                     onClick={() => setShowAddFieldModal(true)}
-                    className="flex items-center gap-1 font-semibold text-slate-600 rounded-lg border-slate-200 bg-white h-9 text-xs hover:border-slate-300 hover:text-slate-800 transition-all duration-200"
+                    className="flex items-center gap-1 font-medium text-[var(--text-primary)] rounded-lg border-[var(--border-color)] bg-[var(--bg-secondary)] h-9 text-[12.5px] hover:border-slate-300 transition-all"
                   >
-                    Custom Fields
+                    Customize
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined style={{ fontSize: 13 }} />}
+                    onClick={() => handleAddRow(add)}
+                    className="flex items-center gap-1 font-semibold rounded-lg h-9 text-[12.5px] transition-all"
+                    style={{ background: '#2563eb' }}
+                  >
+                    Add row
                   </Button>
                 </div>
               </div>
 
               {/* Template Selector Removed - Now in Header */}
 
-              <div className="overflow-x-auto custom-scrollbar rounded-b-xl border border-slate-200 border-t-0 shadow-sm relative">
-                <table className="w-full border-collapse bg-white min-w-max border-hidden">
+              <div className="overflow-x-auto custom-scrollbar rounded-b-xl border border-[var(--border-color)] border-t-0 shadow-sm relative">
+                <table className="w-full border-collapse bg-[var(--bg-secondary)] min-w-max border-hidden">
                   <thead>
                     <SortableContext items={activeColumns.map(c => c.key)} strategy={horizontalListSortingStrategy}>
-                      <tr className="bg-[#f8fafc]/80 border-b border-slate-200">
-                        <th className="px-5 py-4 w-12 text-center sticky left-0 z-20 bg-[#f8fafc]">
-                          <Checkbox 
+                    <tr className="bg-[var(--bg-slate-50)] border-b border-[var(--border-color)]">
+                        <th className="px-5 py-3.5 w-12 text-center sticky left-0 z-20 bg-[var(--bg-slate-50)]">
+                          <Checkbox
                             checked={fields.length > 0 && selectedRowKeys.length === fields.length}
                             indeterminate={selectedRowKeys.length > 0 && selectedRowKeys.length < fields.length}
                             onChange={(e) => onSelectAll(e.target.checked, fields)}
                             className="scale-110"
                           />
                         </th>
-                        <th className="px-3 py-4 w-12 text-center font-bold text-slate-400 text-[9px] uppercase tracking-widest whitespace-nowrap sticky left-12 z-20 bg-[#f8fafc] border-r border-slate-200/50">S.No</th>
-                        <th className="p-3 w-10 sticky left-24 z-20 bg-[#f8fafc] border-r border-slate-200/50"></th>
+                        <th className="px-3 py-3.5 w-10 text-center font-semibold text-[var(--text-secondary)] text-[10px] uppercase tracking-[0.08em] whitespace-nowrap sticky left-12 z-20 bg-[var(--bg-slate-50)] border-r border-[var(--border-color)]">#</th>
+                        <th className="p-3 w-8 sticky left-[88px] z-20 bg-[var(--bg-slate-50)] border-r border-[var(--border-color)]"></th>
                         {activeColumns.map(col => (
-                          <SortableHeader 
-                            key={col.key} 
-                            column={col} 
+                          <SortableHeader
+                            key={col.key}
+                            column={col}
                             onDelete={handleDeleteColumn}
                           />
                         ))}
-                        <th className="px-5 py-4 text-right font-bold text-slate-500 text-[10px] uppercase tracking-widest sticky right-12 z-20 bg-[#f8fafc] border-l border-slate-200/50 w-36">Total</th>
-                        <th className="px-3 py-4 w-12 sticky right-0 z-20 bg-[#f8fafc] text-center font-bold text-slate-500 text-[10px] uppercase tracking-widest">Actions</th>
+                        <th className="px-5 py-3.5 text-right font-semibold text-[var(--text-secondary)] text-[10.5px] uppercase tracking-[0.08em] sticky right-10 z-20 bg-[var(--bg-slate-50)] border-l border-[var(--border-color)] w-[120px] whitespace-nowrap">Amount</th>
+                        <th className="px-2 py-3.5 w-10 sticky right-0 z-20 bg-[var(--bg-slate-50)]"></th>
                       </tr>
                     </SortableContext>
                   </thead>
@@ -859,19 +1171,116 @@ export default function DynamicLineItems({
                       })}
                       {fields.length === 0 && (
                         <tr>
-                          <td colSpan={activeColumns.length + 6} className="p-12 text-center">
-                            <Empty 
-                              image={Empty.PRESENTED_IMAGE_SIMPLE}
-                              description={<Text type="secondary">No line items added yet. Click 'Add Row' or apply a template.</Text>} 
-                            />
-                            <Button 
-                              type="primary" 
-                              icon={<PlusOutlined />} 
-                              onClick={() => handleAddRow(add)}
-                              className="mt-4 rounded-md h-10 px-6 bg-blue-500 border-none"
-                            >
-                              Add First Row
-                            </Button>
+                          <td colSpan={activeColumns.length + 5} className="p-0">
+                            <div className="relative flex flex-col items-center justify-center py-16 px-6 overflow-hidden">
+                              {/* subtle grid backdrop */}
+                              <div
+                                aria-hidden
+                                className="absolute inset-0 pointer-events-none opacity-[0.4]"
+                                style={{
+                                  backgroundImage:
+                                    'linear-gradient(var(--border-color) 1px, transparent 1px), linear-gradient(90deg, var(--border-color) 1px, transparent 1px)',
+                                  backgroundSize: '28px 28px',
+                                  maskImage:
+                                    'radial-gradient(circle at center, black 0%, transparent 70%)',
+                                  WebkitMaskImage:
+                                    'radial-gradient(circle at center, black 0%, transparent 70%)',
+                                }}
+                              />
+
+                              {/* icon stack */}
+                              <div className="relative mb-5">
+                                <div
+                                  className="absolute inset-0 rounded-2xl blur-2xl"
+                                  style={{
+                                    background:
+                                      'radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%)',
+                                  }}
+                                />
+                                <div
+                                  className="relative w-16 h-16 rounded-2xl flex items-center justify-center"
+                                  style={{
+                                    background:
+                                      'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%)',
+                                    border: '1px solid rgba(99, 102, 241, 0.25)',
+                                    boxShadow:
+                                      '0 8px 24px -8px rgba(99, 102, 241, 0.25), inset 0 1px 0 rgba(255,255,255,0.4)',
+                                  }}
+                                >
+                                  <Receipt size={28} strokeWidth={1.75} style={{ color: '#6366f1' }} />
+                                </div>
+                                <div
+                                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                                  style={{
+                                    background: '#fff',
+                                    border: '1px solid rgba(99, 102, 241, 0.3)',
+                                    boxShadow: '0 2px 6px rgba(99, 102, 241, 0.2)',
+                                  }}
+                                >
+                                  <PlusOutlined style={{ color: '#6366f1', fontSize: 10 }} />
+                                </div>
+                              </div>
+
+                              {/* copy */}
+                              <div
+                                className="relative text-[15px] font-semibold tracking-tight"
+                                style={{ color: 'var(--text-primary)' }}
+                              >
+                                Start building this invoice
+                              </div>
+                              <div
+                                className="relative text-[12.5px] mt-1.5 max-w-[360px] text-center leading-relaxed"
+                                style={{ color: 'var(--text-secondary)' }}
+                              >
+                                Add line items one by one, or apply a saved template to fill them in
+                                instantly.
+                              </div>
+
+                              {/* actions */}
+                              <div className="relative flex items-center gap-2 mt-5">
+                                <Button
+                                  type="primary"
+                                  icon={<PlusOutlined style={{ fontSize: 13 }} />}
+                                  onClick={() => handleAddRow(add)}
+                                  className="rounded-lg h-10 px-5 font-semibold text-[13px]"
+                                  style={{ background: '#2563eb' }}
+                                >
+                                  Add first row
+                                </Button>
+                                <Button
+                                  icon={
+                                    <Sparkles size={13} style={{ color: 'var(--text-secondary)' }} />
+                                  }
+                                  className="rounded-lg h-10 px-4 font-medium text-[13px] flex items-center gap-1.5"
+                                  style={{
+                                    background: 'var(--bg-secondary)',
+                                    borderColor: 'var(--border-color)',
+                                    color: 'var(--text-primary)',
+                                  }}
+                                  onClick={() => setShowAddFieldModal(true)}
+                                >
+                                  Customize columns
+                                </Button>
+                              </div>
+
+                              {/* tiny hint */}
+                              <div
+                                className="relative mt-4 inline-flex items-center gap-1.5 text-[11px]"
+                                style={{ color: 'var(--text-secondary)' }}
+                              >
+                                <kbd
+                                  className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded text-[10px] font-mono font-semibold"
+                                  style={{
+                                    background: 'var(--bg-slate-50)',
+                                    border: '1px solid var(--border-color)',
+                                    color: 'var(--text-secondary)',
+                                  }}
+                                >
+                                  ⏎
+                                </kbd>
+                                <span>or pick a template from the top bar</span>
+                              </div>
+                            </div>
                           </td>
                         </tr>
                       )}
@@ -885,17 +1294,38 @@ export default function DynamicLineItems({
       </Form.List>
 
       <style jsx global>{`
-        .dynamic-line-items .ant-input, 
+        .dynamic-line-items .ant-input,
         .dynamic-line-items .ant-input-number,
         .dynamic-line-items .ant-select-selector {
-          border-color: #f1f3f6 !important;
-          background: #ffffff !important;
+          border-color: var(--border-color) !important;
+          background: var(--bg-secondary) !important;
+          color: var(--text-primary) !important;
         }
-        .dynamic-line-items .ant-input:focus, 
+        .dynamic-line-items .ant-input:focus,
         .dynamic-line-items .ant-input-number:focus,
         .dynamic-line-items .ant-select-selector:focus {
           border-color: #3b82f6 !important;
           box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+        }
+        /* Match Select height to inputs (h-9 = 36px) */
+        .dynamic-line-items .line-item-select .ant-select-selector {
+          height: 36px !important;
+          border-radius: 8px !important;
+          padding: 0 11px !important;
+          display: flex !important;
+          align-items: center !important;
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
+        }
+        .dynamic-line-items .line-item-select .ant-select-selection-item,
+        .dynamic-line-items .line-item-select .ant-select-selection-placeholder,
+        .dynamic-line-items .line-item-select .ant-select-selection-search-input {
+          line-height: 34px !important;
+          height: 34px !important;
+          font-size: 13px !important;
+        }
+        .dynamic-line-items .line-item-select.ant-select-focused .ant-select-selector {
+          border-color: #60a5fa !important;
+          box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15) !important;
         }
         .cursor-grab { cursor: grab; }
         .cursor-grabbing { cursor: grabbing; }
@@ -907,16 +1337,16 @@ export default function DynamicLineItems({
           width: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f8fafc;
+          background: var(--bg-primary);
           border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #e2e8f0;
+          background: var(--border-color);
           border-radius: 4px;
-          border: 2px solid #f8fafc;
+          border: 2px solid var(--bg-primary);
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #cbd5e1;
+          background: var(--text-secondary);
         }
         .table-fixed {
           table-layout: fixed;

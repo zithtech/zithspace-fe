@@ -231,7 +231,7 @@ export class SettingsService {
    */
   static async getDropdownOptions(): Promise<Record<string, DropdownOption[]>> {
     try {
-      return await api.get<Record<string, DropdownOption[]>>('/api/settings/dropdown-options');
+      return await api.get<Record<string, DropdownOption[]>>('/api/settings/dropdown-options?includeInactive=true');
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
@@ -259,6 +259,7 @@ export class SettingsService {
    */
   static async updateDropdownOption(id: string, data: UpdateDropdownOptionData): Promise<DropdownOption> {
     try {
+      console.log('Sending to backend:', data); 
       return await api.put<DropdownOption>(`/api/settings/dropdown-options/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
@@ -285,7 +286,7 @@ export class SettingsService {
   /**
    * Reorder dropdown options
    */
-  static async reorderDropdownOptions(reorderData: Array<{ id: string; order: number }>): Promise<void> {
+  static async reorderDropdownOptions(reorderData: Array<{ id: string; order: number; value?: string; label?: string }>): Promise<void> {
     try {
       await api.put('/api/settings/dropdown-options/reorder', { items: reorderData });
     } catch (error) {

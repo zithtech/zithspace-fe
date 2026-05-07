@@ -1,18 +1,49 @@
-//comment added
+export const getStatusLabel = (status: string, options?: any[]) => {
+  if (!status) return 'Not Started';
+  const s = status.toLowerCase().replace(/ /g, '_');
+  
+  if (options && options.length > 0) {
+    const opt = options.find(o => o.value?.toLowerCase().replace(/ /g, '_') === s);
+    if (opt) return opt.label;
+  }
+  
+  // Fallback map
+  const labelMap: Record<string, string> = {
+    'not_started': 'Not Started',
+    'in_progress': 'In Progress',
+    'dev_complete': 'Dev Complete',
+    'dev_testing': 'Dev Testing',
+    'in_review': 'In Review',
+    'live': 'Live',
+    'live_testing': 'Live Testing',
+    'completed': 'Completed',
+    'pause': 'Pause'
+  };
+  
+  return labelMap[s] || status.replace(/_/g, ' ');
+};
+
 export const getStatusColor = (status: string) => {
-  switch (status) {
+  if (!status) return "default";
+  const s = status.toLowerCase().replace(/ /g, '_');
+
+  switch (s) {
     case "completed":
       return "success";
     case "in_progress":
       return "processing";
-    case "dev_complete":
-      return "cyan";
-    case "in_testing":
+    case "dev_testing":
       return "warning";
+    case "live_testing":
+      return "geekblue";
     case "in_review":
       return "purple";
+    case "dev_complete":
+      return "cyan";
     case "live":
       return "blue";
+    case "pause":
+      return "orange";
     case "not_started":
       return "default";
     default:
@@ -99,10 +130,12 @@ export const STATUS_OPTIONS = [
   { label: "Not Started", value: "not_started" },
   { label: "In Progress", value: "in_progress" },
   { label: "Dev Complete", value: "dev_complete" },
-  { label: "In Testing", value: "in_testing" },
+  { label: "Dev Testing", value: "dev_testing" },
   { label: "In Review", value: "in_review" },
-  { label: "Completed", value: "completed" },
   { label: "Live", value: "live" },
+  { label: "Live Testing", value: "live_testing" },
+  { label: "Completed", value: "completed" },
+  { label: "Pause", value: "pause" },
 ];
 
 export const PRIORITY_OPTIONS = [

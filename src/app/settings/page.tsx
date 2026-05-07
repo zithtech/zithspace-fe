@@ -41,11 +41,14 @@ import {
   DeleteOutlined,
   CheckCircleFilled,
   EnvironmentOutlined,
+  BgColorsOutlined,
+  LoadingOutlined
 } from '@ant-design/icons';
 import LogoCropper from '@/components/common/LogoCropper';
 import { SettingsService, Shift, CreateShiftData, UpdateShiftData } from '@/services/settingsService';
 import { TenantService, TenantProfile } from '@/services/tenantService';
 import { CompanyLocationService } from '@/services/companyLocationService';
+import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile, UploadProps } from 'antd';
@@ -163,6 +166,123 @@ export default function SettingsPage() {
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
   const [editingLocation, setEditingLocation] = useState<any | null>(null);
   const [locationForm] = Form.useForm();
+  const [processingBG, setProcessingBG] = useState<string | null>(null);
+
+  const removeLogoBackground = async (imageUrl: string, isExistingVersion: boolean = false) => {
+    try {
+      setProcessingBG(imageUrl);
+
+      if (!imageUrl) throw new Error("Could not find image to process.");
+
+      const img = new Image();
+
+      // Clean the URL and add a cache-buster to prevent CORS issues with cached versions
+      let finalUrl = imageUrl;
+      if (imageUrl.startsWith('http')) {
+        img.crossOrigin = "anonymous";
+        const separator = imageUrl.includes('?') ? '&' : '?';
+        finalUrl = `${imageUrl}${separator}t=${new Date().getTime()}`;
+      } else if (imageUrl.startsWith('/')) {
+        // Handle relative paths
+        img.crossOrigin = "anonymous";
+      }
+
+      img.src = finalUrl;
+
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = (e) => {
+          console.error("Image load detail error:", e);
+          reject(new Error("The browser blocked the image load. Try downloading the logo and re-uploading it as a fresh file."));
+        };
+      });
+
+      if (img.width === 0 || img.height === 0) {
+        throw new Error("The image appears to be empty or invalid.");
+      }
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("Your browser does not support image processing.");
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      let imageData;
+      try {
+        imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      } catch (e) {
+        throw new Error("Security Restriction: This logo is hosted on a server that blocks background removal. Please download and upload it again.");
+      }
+
+      const data = imageData.data;
+
+      // 1. Better background detection: Check all 4 corners
+      const corners = [
+        { r: data[0], g: data[1], b: data[2] }, // Top-left
+        { r: data[(canvas.width - 1) * 4], g: data[(canvas.width - 1) * 4 + 1], b: data[(canvas.width - 1) * 4 + 2] }, // Top-right
+        { r: data[data.length - 4], g: data[data.length - 3], b: data[data.length - 2] } // Bottom-right
+      ];
+
+      // Default to white if corners are inconsistent
+      let r_bg = 255, g_bg = 255, b_bg = 255;
+
+      // If at least two corners match, use that as background
+      if (Math.abs(corners[0].r - corners[1].r) < 10) {
+        r_bg = corners[0].r; g_bg = corners[0].g; b_bg = corners[0].b;
+      }
+
+      const threshold = 60; // Increased tolerance for "dirty" backgrounds
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        const diff_bg = Math.abs(r - r_bg) + Math.abs(g - g_bg) + Math.abs(b - b_bg);
+        const diff_white = Math.abs(r - 255) + Math.abs(g - 255) + Math.abs(b - 255);
+
+        // If it's close to the detected background OR close to white
+        // Use a very high tolerance for white to catch light-gray fringes
+        if (diff_bg < threshold || diff_white < 80) {
+          data[i + 3] = 0;
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      const processedUrl = canvas.toDataURL('image/png');
+
+      if (isExistingVersion) {
+        try {
+          const updatedProfile = await TenantService.updateProfile({
+            croppedLogo: processedUrl
+          });
+          updateUser({
+            tenantLogo: updatedProfile.settings?.logoUrl
+          });
+          fetchTenantProfile();
+          messageApi.success('Background removed and saved!');
+        } catch (apiErr) {
+          throw new Error("Failed to save the new version to the server.");
+        }
+      } else {
+        const newFile = {
+          ...fileList[0],
+          url: processedUrl,
+          thumbUrl: processedUrl,
+        };
+        setFileList([newFile]);
+        setIsSystemFormDirty(true);
+        messageApi.success('Background cleared! Click "Save Branding" to finish.');
+      }
+    } catch (error: any) {
+      console.error("BG removal failed:", error);
+      messageApi.error(error?.message || 'Unexpected error during background removal');
+    } finally {
+      setProcessingBG(null);
+    }
+  };
 
   // Fetch shifts
   const fetchShifts = async () => {
@@ -310,15 +430,21 @@ export default function SettingsPage() {
       };
 
       // Check for new logo
-      const newLogo = fileList.find(f => f.originFileObj);
+      const newLogo = fileList[0];
       if (newLogo) {
-        const reader = new FileReader();
-        const base64Promise = new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(newLogo.originFileObj as File);
-        });
-        payload.logo = await base64Promise;
+        if (newLogo.url && newLogo.url.startsWith('data:')) {
+          // Use the processed base64 (with transparency)
+          payload.logo = newLogo.url;
+        } else if (newLogo.originFileObj) {
+          // Fallback to original file if no processing was done
+          const reader = new FileReader();
+          const base64Promise = new Promise<string>((resolve, reject) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(newLogo.originFileObj as File);
+          });
+          payload.logo = await base64Promise;
+        }
       }
 
       const updatedProfile = await TenantService.updateProfile(payload);
@@ -585,7 +711,13 @@ export default function SettingsPage() {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ padding: 24, textAlign: 'center' }}>
+        <div style={{
+          margin: "0 -24px",
+          padding: "24px 32px",
+          background: "var(--bg-pure-white)",
+          minHeight: "calc(100vh - 64px)",
+          textAlign: 'center'
+        }}>
           <div style={{ padding: 100, textAlign: 'center' }}>
             <Spin size="large" tip="Loading">
               <div style={{ padding: 20 }} />
@@ -705,6 +837,30 @@ export default function SettingsPage() {
                     </div>
                   </Form.Item>
 
+                  <Form.Item style={{ marginBottom: 16 }}>
+                    {fileList.length > 0 && (
+                      <Button
+                        block
+                        type="dashed"
+                        icon={processingBG === (fileList[0].url || fileList[0].thumbUrl) ? <LoadingOutlined /> : <BgColorsOutlined />}
+                        loading={processingBG === (fileList[0].url || fileList[0].thumbUrl)}
+                        onClick={() => {
+                          const url = fileList[0].url || fileList[0].thumbUrl;
+                          if (url) removeLogoBackground(url, false);
+                        }}
+                        style={{ 
+                          borderRadius: 12, 
+                          height: 40, 
+                          color: 'var(--premium-blue)', 
+                          borderColor: 'var(--premium-blue)',
+                          fontWeight: 600
+                        }}
+                      >
+                        Clear Background
+                      </Button>
+                    )}
+                  </Form.Item>
+
                   <Form.Item style={{ marginBottom: 0 }}>
                     <Button
                       type="primary"
@@ -728,7 +884,7 @@ export default function SettingsPage() {
                 </Form>
               </Col>
 
-                  <Col xs={24} lg={14} xl={15} style={{ borderLeft: `1px solid ${token.colorBorderSecondary}`, paddingLeft: 40 }}>
+              <Col xs={24} lg={14} xl={15} style={{ borderLeft: `1px solid ${token.colorBorderSecondary}`, paddingLeft: 40 }}>
                 <div style={{ marginBottom: 24 }}>
                   <Title level={4} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)" }}>Logo Assets</Title>
                   <Text type="secondary" style={{ fontSize: 13, color: "var(--text-secondary)" }}>Previously generated logo versions. Set any version as your primary logo.</Text>
@@ -790,6 +946,16 @@ export default function SettingsPage() {
                                     style={{ background: 'var(--bg-blue-50)', borderRadius: 8 }}
                                   />
                                 </Tooltip>
+                                {/* <Tooltip title="Clear Background">
+                                  <Button
+                                    size="small"
+                                    type="text"
+                                    icon={processingBG === url ? <LoadingOutlined /> : <BgColorsOutlined style={{ color: '#6366f1' }} />}
+                                    loading={processingBG === url}
+                                    onClick={() => removeLogoBackground(url, true)}
+                                    style={{ background: '#f5f3ff', borderRadius: 8 }}
+                                  />
+                                </Tooltip> */}
                                 {tenantProfile?.settings?.logoUrl !== url && (
                                   <Button
                                     size="small"
@@ -1082,7 +1248,7 @@ export default function SettingsPage() {
     <MainLayout>
       {contextHolder}
       <div style={{
-        padding: "0 24px",
+        margin: "0 -24px",
         height: "calc(100vh - 64px)",
         background: "var(--bg-pure-white)",
         display: "flex",
@@ -1090,46 +1256,38 @@ export default function SettingsPage() {
         overflow: "hidden"
       }}>
         {/* Premium Header */}
-        <div style={styles.headerSection}>
-          <Space align="center" size="middle">
-            <div style={styles.iconContainer}>
-              <SettingOutlined style={{ fontSize: 24 }} />
-            </div>
-            <div>
-              <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                System Settings
-              </Title>
-              <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>
-                Configure your workspace, manage shifts, and customize branding.
-              </Text>
-            </div>
-          </Space>
-        </div>
-
-        {/* Settings Tabs */}
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          size="large"
-          type="line"
-          tabBarStyle={{
-            ...styles.tabStyle,
-            background: 'var(--bg-secondary)',
-            borderBottom: "1px solid var(--border-color)",
-            padding: "0 4px"
-          }}
-          style={{
-            margin: 0,
-            width: "100%",
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden"
-          }}
-          className="settings-tabs"
-          items={tabItems}
+        <TimeTrackingHeader
+          style={{ padding: '10.5px 32px' }}
+          icon={<SettingOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+          title="System Settings"
+          description="Configure your workspace, manage shifts, and customize branding."
         />
 
+        <div style={{ padding: "0 32px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* Settings Tabs */}
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            size="large"
+            type="line"
+            tabBarStyle={{
+              ...styles.tabStyle,
+              background: 'var(--bg-secondary)',
+              borderBottom: "1px solid var(--border-color)",
+              padding: "0 4px"
+            }}
+            style={{
+              margin: 0,
+              width: "100%",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden"
+            }}
+            className="settings-tabs"
+            items={tabItems}
+          />
+        </div>
 
         {/* Add Location Drawer */}
         <Drawer

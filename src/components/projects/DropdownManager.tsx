@@ -44,6 +44,7 @@ import {
   FilterOutlined
 } from "@ant-design/icons";
 import { SettingsService, DropdownOption, CreateDropdownOptionData, UpdateDropdownOptionData } from '@/services/settingsService';
+import { useSocket } from "@/providers/SocketProvider";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -61,6 +62,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   const [activeTab, setActiveTab] = useState('platform');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'hidden'>('all');
+  const { socket, connected } = useSocket();
 
   // State for dropdown options grouped by type
   const [dropdownOptions, setDropdownOptions] = useState<Record<string, DropdownOption[]>>({});
@@ -78,6 +80,22 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   useEffect(() => {
     loadDropdownOptions();
   }, []);
+
+  // Socket listener for real-time updates
+  useEffect(() => {
+    if (!socket || !connected) return;
+
+    const handleSettingsUpdate = () => {
+      console.log("Socket: Settings updated, reloading data...");
+      loadDropdownOptions();
+    };
+
+    socket.on("settings:updated", handleSettingsUpdate);
+
+    return () => {
+      socket.off("settings:updated", handleSettingsUpdate);
+    };
+  }, [socket, connected]);
 
   const loadDropdownOptions = async () => {
     try {

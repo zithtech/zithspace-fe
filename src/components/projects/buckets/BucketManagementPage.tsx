@@ -17,6 +17,7 @@ import {
   Skeleton,
   Avatar,
   App,
+  message,
 } from "antd";
 import {
   PlusOutlined,
@@ -72,7 +73,7 @@ const initialsOf = (name?: string) =>
     .toUpperCase();
 
 export default function BucketManagementPage() {
-  const { message } = App.useApp();
+  const { message: messageApi } = App.useApp();
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -84,6 +85,8 @@ export default function BucketManagementPage() {
   const [typeFilter, setTypeFilter] = useState<"all" | "shared" | "private">("all");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+
 
   // Queries
   const { data: projects } = useUserProjects();
@@ -295,13 +298,13 @@ export default function BucketManagementPage() {
                   {
                     onSuccess: (result) => {
                       if (result.movedCount > 0) {
-                        message.success(`Ticket added to sprint successfully`);
+                        messageApi.success(`Ticket added to sprint successfully`);
                       } else {
-                        message.info("This hub has no tickets to move");
+                        messageApi.info("This hub has no tickets to move");
                       }
                     },
                     onError: (err: any) => {
-                      message.error(err.message || "Movement failed");
+                      messageApi.error(err.message || "Movement failed");
                     }
                   }
                 )
@@ -320,13 +323,13 @@ export default function BucketManagementPage() {
                 moveBucketToBacklog.mutate(bucket.id, {
                   onSuccess: (result) => {
                     if (result.movedCount > 0) {
-                      message.success(`Ticket removed from sprint successfully`);
+                      messageApi.success(`Ticket removed from sprint successfully`);
                     } else {
-                      message.info("This hub has no tickets to move");
+                      messageApi.info("This hub has no tickets to move");
                     }
                   },
                   onError: (err: any) => {
-                    message.error(err.message || "Movement failed");
+                    messageApi.error(err.message || "Movement failed");
                   }
                 });
               }}
@@ -529,13 +532,13 @@ export default function BucketManagementPage() {
                 {
                   onSuccess: (result) => {
                     if (result.movedCount > 0) {
-                      message.success(`Ticket added to sprint successfully`);
+                      messageApi.success(`Ticket added to sprint successfully`);
                     } else {
-                      message.info("This hub has no tickets to move");
+                      messageApi.info("This hub has no tickets to move");
                     }
                   },
                   onError: (err: any) => {
-                    message.error(err.message || "Movement failed");
+                    messageApi.error(err.message || "Movement failed");
                   }
                 }
               )
@@ -617,7 +620,7 @@ export default function BucketManagementPage() {
                 setIsRefreshing(true);
                 await queryClient.invalidateQueries({ queryKey: bucketKeys.all });
                 setIsRefreshing(false);
-                message.success("Buckets refreshed");
+                messageApi.success("Buckets refreshed");
               }}
               loading={isLoading && !isRefreshing}
               className="bh-header-btn"

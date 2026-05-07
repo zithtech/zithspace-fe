@@ -48,14 +48,32 @@ import {
 } from "@/hooks/useSalaryStructure";
 import { calculateSalaryPreview, SalaryComponentInput } from "@/utils/salaryCalculation";
 import dayjs from "dayjs";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import MainLayout from "@/components/layout/MainLayout";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 
 export default function SalaryStructurePage() {
+  const router = useRouter();
+  const { isLoading: authLoading } = useAuth();
   const [form] = Form.useForm();
-  
+  const {
+    canReadPayrollStructure,
+    canCreatePayrollStructure,
+    canUpdatePayrollStructure,
+    canDeletePayrollStructure
+  } = usePermission();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadPayrollStructure) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, canReadPayrollStructure, router]);
   // Custom Hooks
   const { data: structuresData, isLoading: structuresLoading } = useSalaryStructures();
   const createMutation = useCreateSalaryStructure();
@@ -66,6 +84,16 @@ export default function SalaryStructurePage() {
   const [modal, contextHolder] = Modal.useModal();
 
   const structures = Array.isArray(structuresData) ? structuresData : [];
+
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+          <Spin size="large" tip="Loading" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   // Drawer & Edit State
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -321,6 +349,7 @@ export default function SalaryStructurePage() {
         <Switch
           checked={isActive}
           size="small"
+          disabled={!canUpdatePayrollStructure}
           loading={statusMutation.isPending && (statusMutation.variables as any)?.id === record.id}
           onChange={(checked) => statusMutation.mutate({ id: record.id, isActive: checked })}
         />
@@ -334,14 +363,31 @@ export default function SalaryStructurePage() {
         <Dropdown 
           menu={{
             items: [
-              { key: 'edit', icon: <EditOutlined />, label: 'Edit Structure', onClick: () => handleEdit(record) },
-              { key: 'delete', icon: <DeleteOutlined />, danger: true, label: 'Delete Structure', onClick: () => showDeleteConfirm(record.id) }
+              { 
+                key: 'edit', 
+                icon: <EditOutlined />, 
+                label: 'Edit Structure', 
+                onClick: () => handleEdit(record),
+                disabled: !canUpdatePayrollStructure
+              },
+              { 
+                key: 'delete', 
+                icon: <DeleteOutlined />, 
+                danger: true, 
+                label: 'Delete Structure', 
+                onClick: () => showDeleteConfirm(record.id),
+                disabled: !canDeletePayrollStructure
+              }
             ]
           }} 
           trigger={['click']}
           placement="bottomRight"
         >
-          <Button type="text" icon={<MoreOutlined style={{ fontSize: 18 }} />} />
+          <Button 
+            type="text" 
+            icon={<MoreOutlined style={{ fontSize: 18 }} />} 
+            disabled={!canUpdatePayrollStructure && !canDeletePayrollStructure}
+          />
         </Dropdown>
       ),
     },
@@ -508,15 +554,17 @@ export default function SalaryStructurePage() {
               Design and manage professional compensation plans.
             </Text>
           </div>
-          <Button
-            type="primary"
-            size="large"
-            icon={<PlusOutlined />}
-            onClick={handleOpenDrawer}
-            style={{ borderRadius: 8, padding: "0 24px", fontWeight: 600, boxShadow: "0 4px 12px rgba(22, 119, 255, 0.3)" }}
-          >
-            New Structure
-          </Button>
+          {canCreatePayrollStructure && (
+            <Button
+              type="primary"
+              size="large"
+              icon={<PlusOutlined />}
+              onClick={handleOpenDrawer}
+              style={{ borderRadius: 8, padding: "0 24px", fontWeight: 600, boxShadow: "0 4px 12px rgba(22, 119, 255, 0.3)" }}
+            >
+              New Structure
+            </Button>
+          )}
         </div>
 
         <Table

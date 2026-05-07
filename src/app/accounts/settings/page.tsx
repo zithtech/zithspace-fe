@@ -65,10 +65,12 @@ export default function AccountsSettingsPage() {
   const isActiveValue = Form.useWatch("isActive", form);
   const colorValue = Form.useWatch("color", form);
 
-  const canReadAccounts = can("ACCOUNTS_READ");
-  const canCreateAccounts = can("ACCOUNTS_CREATE");
-  const canUpdateAccounts = can("ACCOUNTS_UPDATE");
-  const canDeleteAccounts = can("ACCOUNTS_DELETE");
+  const {
+    canReadAccountConfig,
+    canCreateAccountConfig,
+    canUpdateAccountConfig,
+    canDeleteAccountConfig
+  } = usePermission();
 
   const { data: categories = [], isLoading: loading } = useExpenseCategories();
   const createMutation = useCreateExpenseCategory();
@@ -188,7 +190,7 @@ export default function AccountsSettingsPage() {
       align: "center" as const,
       render: (_: any, record: ExpenseCategory) => (
         <Space size={4} className="settings-row-actions">
-          {canUpdateAccounts && (
+          {canUpdateAccountConfig && (
             <Tooltip title="Edit">
               <Button
                 type="text"
@@ -200,7 +202,7 @@ export default function AccountsSettingsPage() {
               />
             </Tooltip>
           )}
-          {canDeleteAccounts && (
+          {canDeleteAccountConfig && (
             <Popconfirm
               title="Delete Category"
               description="Are you sure you want to delete this category?"
@@ -225,7 +227,7 @@ export default function AccountsSettingsPage() {
     },
   ];
 
-  if (!canReadAccounts) {
+  if (!canReadAccountConfig) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-96">
@@ -259,7 +261,7 @@ export default function AccountsSettingsPage() {
           description="Manage your expense categories and account settings."
           extra={
             <div className="flex items-center gap-3">
-              {canCreateAccounts && (
+              {canCreateAccountConfig && (
                 <Button
                   type="primary"
                   size="middle"
@@ -348,7 +350,7 @@ export default function AccountsSettingsPage() {
                   ? "Try adjusting your filters or search term"
                   : "Create your first category to start organizing your transactions"}
               </div>
-              {!searchText && statusFilter === "all" && canCreateAccounts && (
+              {!searchText && statusFilter === "all" && canCreateAccountConfig && (
                 <Button
                   type="primary"
                   size="large"

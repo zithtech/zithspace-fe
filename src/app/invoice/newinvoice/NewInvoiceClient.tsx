@@ -83,7 +83,14 @@ interface Totals {
 
 export default function InvoiceNewinvoicePage() {
   const router = useRouter();
-  const { canCreateInvoice, canUpdateInvoice } = usePermission();
+  const {
+    canCreateInvoice,
+    canUpdateInvoice,
+    canReadInvoiceTemplate,
+    canReadInvoiceCustomer,
+    canUpdateInvoiceCustomer,
+    canReadInvoiceSetting
+  } = usePermission();
   const { isLoading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   const editInvoiceId = searchParams.get("edit");
@@ -778,35 +785,37 @@ export default function InvoiceNewinvoicePage() {
                 >
                   Template
                 </span>
-                <Select
-                  placeholder="None"
-                  variant="borderless"
-                  className="template-select-inline"
-                  popupMatchSelectWidth={220}
-                  style={{ width: 140 }}
-                  loading={loadingTemplates}
-                  value={templateId || undefined}
-                  onChange={(val) => {
-                    setTemplateId(val);
-                    form.setFieldValue("templateId", val);
-                  }}
-                  allowClear
-                  suffixIcon={
-                    <ChevronRight
-                      size={13}
-                      style={{
-                        color: "var(--text-secondary)",
-                        transform: "rotate(90deg)",
-                      }}
-                    />
-                  }
-                >
-                  {templates.map((t) => (
-                    <Select.Option key={t.id} value={t.id}>
-                      {t.name}
-                    </Select.Option>
-                  ))}
-                </Select>
+                {canReadInvoiceTemplate && (
+                  <Select
+                    placeholder="None"
+                    variant="borderless"
+                    className="template-select-inline"
+                    popupMatchSelectWidth={220}
+                    style={{ width: 140 }}
+                    loading={loadingTemplates}
+                    value={templateId || undefined}
+                    onChange={(val) => {
+                      setTemplateId(val);
+                      form.setFieldValue("templateId", val);
+                    }}
+                    allowClear
+                    suffixIcon={
+                      <ChevronRight
+                        size={13}
+                        style={{
+                          color: "var(--text-secondary)",
+                          transform: "rotate(90deg)",
+                        }}
+                      />
+                    }
+                  >
+                    {templates.map((t) => (
+                      <Select.Option key={t.id} value={t.id}>
+                        {t.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                )}
               </div>
               <div
                 className="h-6 w-px"
@@ -935,23 +944,25 @@ export default function InvoiceNewinvoicePage() {
                         From
                       </div>
                     </div>
-                    <Form.Item
-                      name="settingsProfileId"
-                      rules={[{ required: true, message: "Please select a profile" }]}
-                      style={{ marginBottom: 12, marginTop: 10 }}
-                    >
-                      <Select
-                        placeholder="Select issuer profile"
-                        loading={isLoading}
-                        className="w-full custom-select-premium"
+                    {canReadInvoiceSetting && (
+                      <Form.Item
+                        name="settingsProfileId"
+                        rules={[{ required: true, message: "Please select a profile" }]}
+                        style={{ marginBottom: 12, marginTop: 10 }}
                       >
-                        {activeProfiles.map((profile) => (
-                          <Select.Option key={profile.id} value={profile.id}>
-                            {profile.name}
-                          </Select.Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
+                        <Select
+                          placeholder="Select issuer profile"
+                          loading={isLoading}
+                          className="w-full custom-select-premium"
+                        >
+                          {activeProfiles.map((profile) => (
+                            <Select.Option key={profile.id} value={profile.id}>
+                              {profile.name}
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    )}
                     {selectedProfile && (
                       <div className="flex items-start gap-3 pt-1">
                         {selectedProfile.general?.companyLogo ? (
@@ -1028,55 +1039,61 @@ export default function InvoiceNewinvoicePage() {
                         Bill to
                       </div>
                     </div>
-                    <Form.Item
-                      name="customer_id"
-                      rules={[{ required: true, message: "Please select a customer" }]}
-                      style={{ marginBottom: 12, marginTop: 10 }}
-                    >
-                      <Select
-                        placeholder="Select customer"
-                        loading={loadingCustomers}
-                        showSearch
-                        className="w-full custom-select-premium"
-                        filterOption={(input, option) =>
-                          String(option?.children ?? "")
-                            .toLowerCase()
-                            .includes(input.toLowerCase())
-                        }
-                        onSelect={(id) => {
-                          const c = customers.find((x) => x.id === id);
-                          if (c) {
-                            form.setFieldsValue({
-                              customer_snapshot: {
-                                id: c.id,
-                                companyName: c.companyName,
-                                email: c.email,
-                                phone: c.phone,
-                                address: c.address,
-                                city: c.city,
-                                country: c.country,
-                                taxId: c.taxId,
-                                gstin: c.gstin,
-                                pan: c.pan,
-                              },
-                            });
-                          }
-                        }}
+                    {canReadInvoiceCustomer && (
+                      <Form.Item
+                        name="customer_id"
+                        rules={[{ required: true, message: "Please select a customer" }]}
+                        style={{ marginBottom: 12, marginTop: 10 }}
                       >
-                        {customers
-                          .filter((c) => c.isActive)
-                          .map((c) => (
-                            <Select.Option key={c.id} value={c.id}>
-                              {c.companyName}
-                            </Select.Option>
-                          ))}
-                      </Select>
-                    </Form.Item>
+                        <Select
+                          placeholder="Select customer"
+                          loading={loadingCustomers}
+                          showSearch
+                          className="w-full custom-select-premium"
+                          filterOption={(input, option) =>
+                            String(option?.children ?? "")
+                              .toLowerCase()
+                              .includes(input.toLowerCase())
+                          }
+                          onSelect={(id) => {
+                            const c = customers.find((x) => x.id === id);
+                            if (c) {
+                              form.setFieldsValue({
+                                customer_snapshot: {
+                                  id: c.id,
+                                  companyName: c.companyName,
+                                  email: c.email,
+                                  phone: c.phone,
+                                  address: c.address,
+                                  city: c.city,
+                                  country: c.country,
+                                  taxId: c.taxId,
+                                  gstin: c.gstin,
+                                  pan: c.pan,
+                                },
+                              });
+                            }
+                          }}
+                        >
+                          {customers
+                            .filter((c) => c.isActive)
+                            .map((c) => (
+                              <Select.Option key={c.id} value={c.id}>
+                                {c.companyName}
+                              </Select.Option>
+                            ))}
+                        </Select>
+                      </Form.Item>
+                    )}
                     {selectedCustomer && (
-                      <Tooltip title="Click to edit customer details">
+                      <Tooltip title={canUpdateInvoiceCustomer ? "Click to edit customer details" : "Customer details"}>
                         <div
-                          onClick={() => setEditingCustomer(selectedCustomer)}
-                          className="cursor-pointer group flex items-start gap-3 pt-1"
+                          onClick={() => {
+                            if (canUpdateInvoiceCustomer) {
+                              setEditingCustomer(selectedCustomer);
+                            }
+                          }}
+                          className={`${canUpdateInvoiceCustomer ? "cursor-pointer" : "cursor-default"} group flex items-start gap-3 pt-1`}
                         >
                           <div
                             className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"

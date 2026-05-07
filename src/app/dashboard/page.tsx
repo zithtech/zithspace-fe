@@ -16,6 +16,7 @@ import { AttendanceService } from "@/services/attendanceService";
 import Organization from "@/components/organaization/Organization";
 import LeadService from "@/services/leadService";
 import InvoiceService from "@/services/invoiceService";
+import { Permissions } from "@/types/permissions";
 
 import {
   Card,
@@ -65,7 +66,7 @@ const { Title, Text } = Typography;
 
 function DashboardContent() {
   const { token } = theme.useToken();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
     null,
@@ -2646,14 +2647,16 @@ function DashboardContent() {
                     />
                   </Col>
                   <Col xs={24} sm={12} lg={6}>
-                    <KpiCard
-                      eyebrow="Invoices"
-                      value={createdInvoices.length}
-                      trend="Last 5 Generated"
-                      trendTone="neutral"
-                      icon={<AuditOutlined />}
-                      accent="#10B981"
-                    />
+                    {hasPermission(Permissions.INVOICE_DASHBOARD_READ) && (
+                      <KpiCard
+                        eyebrow="Invoices"
+                        value={createdInvoices.length}
+                        trend="Last 5 Generated"
+                        trendTone="neutral"
+                        icon={<AuditOutlined />}
+                        accent="#10B981"
+                      />
+                    )}
                   </Col>
                   <Col xs={24} sm={12} lg={6}>
                     <KpiCard
@@ -3390,48 +3393,50 @@ function DashboardContent() {
                   </Col>
 
                   {/* Created Invoices */}
-                  <Col xs={24} lg={12}>
-                    <Card
-                      style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column" }}
-                      styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
-                      title={sectionTitle(<AuditOutlined />, "Created Invoices", "#10B981")}
-                      extra={<Button type="link" size="small" onClick={() => router.push("/invoice")} style={{ fontSize: 11 }}>View all</Button>}
-                    >
-                      <div style={{ flex: 1, overflowY: "auto", padding: 12 }} className="no-scrollbar">
-                        {createdInvoices.length > 0 ? (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                            {createdInvoices.slice(0, 5).map((invoice: any) => (
-                              <div key={invoice.id} style={{ padding: "12px 14px", borderRadius: 14, background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}` }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                                  <div>
-                                    <Text strong style={{ fontSize: 14, color: token.colorText, display: "block" }}>{invoice.invoiceNumber}</Text>
-                                    <Text type="secondary" style={{ fontSize: 12 }}>{invoice.customer?.companyName || "Client"}</Text>
-                                  </div>
-                                  <div style={{ textAlign: "right" }}>
-                                    <Text strong style={{ fontSize: 15, color: token.colorText }}>{invoice.currency} {invoice.grandTotal?.toLocaleString()}</Text>
-                                    <div style={{ marginTop: 2 }}>
-                                      <Tag color={invoice.status === "PAID" ? "success" : "warning"} style={{ fontSize: 10, borderRadius: 6, margin: 0 }}>
-                                        {invoice.status}
-                                      </Tag>
+                  {hasPermission(Permissions.INVOICE_DASHBOARD_READ) && (
+                    <Col xs={24} lg={12}>
+                      <Card
+                        style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column" }}
+                        styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
+                        title={sectionTitle(<AuditOutlined />, "Created Invoices", "#10B981")}
+                        extra={<Button type="link" size="small" onClick={() => router.push("/invoice")} style={{ fontSize: 11 }}>View all</Button>}
+                      >
+                        <div style={{ flex: 1, overflowY: "auto", padding: 12 }} className="no-scrollbar">
+                          {createdInvoices.length > 0 ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                              {createdInvoices.slice(0, 5).map((invoice: any) => (
+                                <div key={invoice.id} style={{ padding: "12px 14px", borderRadius: 14, background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}` }}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                                    <div>
+                                      <Text strong style={{ fontSize: 14, color: token.colorText, display: "block" }}>{invoice.invoiceNumber}</Text>
+                                      <Text type="secondary" style={{ fontSize: 12 }}>{invoice.customer?.companyName || "Client"}</Text>
+                                    </div>
+                                    <div style={{ textAlign: "right" }}>
+                                      <Text strong style={{ fontSize: 15, color: token.colorText }}>{invoice.currency} {invoice.grandTotal?.toLocaleString()}</Text>
+                                      <div style={{ marginTop: 2 }}>
+                                        <Tag color={invoice.status === "PAID" ? "success" : "warning"} style={{ fontSize: 10, borderRadius: 6, margin: 0 }}>
+                                          {invoice.status}
+                                        </Tag>
+                                      </div>
                                     </div>
                                   </div>
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                                    <Text type="secondary" style={{ fontSize: 11 }}>Due: {dayjs(invoice.dueDate).format("MMM D, YYYY")}</Text>
+                                    <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(invoice.createdAt).format("MMM D")}</Text>
+                                  </div>
                                 </div>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
-                                  <Text type="secondary" style={{ fontSize: 11 }}>Due: {dayjs(invoice.dueDate).format("MMM D, YYYY")}</Text>
-                                  <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(invoice.createdAt).format("MMM D")}</Text>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div style={{ textAlign: "center", padding: 40 }}>
-                            <AuditOutlined style={{ fontSize: 32, color: token.colorTextTertiary, marginBottom: 12 }} />
-                            <Text type="secondary" style={{ display: "block", fontSize: 12 }}>No invoices found</Text>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-                  </Col>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ textAlign: "center", padding: 40 }}>
+                              <AuditOutlined style={{ fontSize: 32, color: token.colorTextTertiary, marginBottom: 12 }} />
+                              <Text type="secondary" style={{ display: "block", fontSize: 12 }}>No invoices found</Text>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
                 </Row>
               </>
             )}

@@ -39,6 +39,8 @@ import {
 } from "@/hooks/useInvoiceTemplates";
 import InvoiceTemplateDrawer from "./InvoiceTemplateDrawer";
 import { InvoiceTemplate } from "@/services/invoiceTemplateService";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
 
 const { Title, Text } = Typography;
 
@@ -54,6 +56,20 @@ export default function InvoiceTemplatePage() {
   const [templateToDelete, setTemplateToDelete] = useState<InvoiceTemplate | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
   const router = useRouter();
+  const {
+    canReadInvoiceTemplate,
+    canCreateInvoiceTemplate,
+    canUpdateInvoiceTemplate,
+    canDeleteInvoiceTemplate
+  } = usePermission();
+  const { isLoading: authLoading } = useAuth();
+
+  // Route guard
+  React.useEffect(() => {
+    if (!authLoading && !canReadInvoiceTemplate) {
+      router.push("/invoice/invoices");
+    }
+  }, [authLoading, canReadInvoiceTemplate, router]);
 
   const { data: templates, isLoading } = useInvoiceTemplates();
   const deleteMutation = useDeleteInvoiceTemplate();
@@ -299,13 +315,13 @@ export default function InvoiceTemplatePage() {
       width: 60,
       render: (_: any, record: InvoiceTemplate) => {
         const menuItems: MenuProps["items"] = [
-          { key: "edit", icon: <Edit3 size={14} />, label: "Edit template", onClick: () => handleEdit(record) },
+          canUpdateInvoiceTemplate && { key: "edit", icon: <Edit3 size={14} />, label: "Edit template", onClick: () => handleEdit(record) },
           { key: "copy", icon: <Copy size={14} />, label: "Duplicate", disabled: true },
-          { type: "divider" },
-          { key: "delete", danger: true, icon: <Trash2 size={14} />, label: "Delete", onClick: () => handleDelete(record) },
-        ];
+          (canUpdateInvoiceTemplate || canDeleteInvoiceTemplate) && { type: "divider" },
+          canDeleteInvoiceTemplate && { key: "delete", danger: true, icon: <Trash2 size={14} />, label: "Delete", onClick: () => handleDelete(record) },
+        ].filter(Boolean) as MenuProps["items"];
         return (
-          <div onClick={(e) => e.stopPropagation()}>
+          <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <Dropdown menu={{ items: menuItems }} trigger={["click"]} placement="bottomRight">
               <Button
                 type="text"
@@ -377,19 +393,21 @@ export default function InvoiceTemplatePage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button
-                type="primary"
-                icon={<Plus size={16} />}
-                onClick={handleCreate}
-                style={{
-                  borderRadius: 8,
-                  height: 36,
-                  fontWeight: 600,
-                  background: "#2563eb",
-                }}
-              >
-                New template
-              </Button>
+              {canCreateInvoiceTemplate && (
+                <Button
+                  type="primary"
+                  icon={<Plus size={16} />}
+                  onClick={handleCreate}
+                  style={{
+                    borderRadius: 8,
+                    height: 36,
+                    fontWeight: 600,
+                    background: "#2563eb",
+                  }}
+                >
+                  New template
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -464,7 +482,7 @@ export default function InvoiceTemplatePage() {
                   prefix={<Search size={14} style={{ color: "var(--text-secondary)" }} />}
                   allowClear
                   value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchText(e.target.value)}
                   style={{
                     width: 280,
                     borderRadius: 8,
@@ -588,7 +606,7 @@ export default function InvoiceTemplatePage() {
                     ? "Try adjusting your search or filter"
                     : "Create your first invoice template to get started."}
                 </Text>
-                {!searchText && statusFilter === "all" && (
+                {!searchText && statusFilter === "all" && canCreateInvoiceTemplate && (
                   <Button
                     type="primary"
                     icon={<Plus size={16} />}
@@ -674,26 +692,26 @@ export default function InvoiceTemplatePage() {
                       <Dropdown
                         menu={{
                           items: [
-                            {
+                            canUpdateInvoiceTemplate && {
                               key: "edit",
                               icon: <Edit3 size={14} />,
                               label: "Edit template",
-                              onClick: (e) => {
+                              onClick: (e: any) => {
                                 e.domEvent.stopPropagation();
                                 handleEdit(template);
                               },
                             },
-                            {
+                            canDeleteInvoiceTemplate && {
                               key: "delete",
                               danger: true,
                               icon: <Trash2 size={14} />,
                               label: "Delete",
-                              onClick: (e) => {
+                              onClick: (e: any) => {
                                 e.domEvent.stopPropagation();
                                 handleDelete(template);
                               },
                             },
-                          ],
+                          ].filter(Boolean) as MenuProps["items"],
                         }}
                         trigger={["click"]}
                       >
@@ -706,7 +724,7 @@ export default function InvoiceTemplatePage() {
                               style={{ color: "var(--text-secondary)" }}
                             />
                           }
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         />
                       </Dropdown>
                     </div>
@@ -784,8 +802,9 @@ export default function InvoiceTemplatePage() {
                 ))}
 
                 {/* Add card */}
-                <div
-                  onClick={handleCreate}
+                {canCreateInvoiceTemplate && (
+                  <div
+                    onClick={handleCreate}
                   className="rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-[var(--bg-slate-50)] self-stretch"
                   style={{
                     background: "transparent",
@@ -815,6 +834,7 @@ export default function InvoiceTemplatePage() {
                     Design a new billing structure
                   </span>
                 </div>
+              )}
               </div>
             ) : (
               <div

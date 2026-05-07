@@ -39,7 +39,12 @@ import { Toaster } from "react-hot-toast";
 const { Title, Text } = Typography;
 
 export default function CompanyPage() {
-  const { canManageSalary } = usePermission();
+  const {
+    canReadPayrollSetting,
+    canCreatePayrollSetting,
+    canUpdatePayrollSetting,
+    canDeletePayrollSetting
+  } = usePermission();
   
   const [mode, setMode] = useState<"list" | "create" | "edit">("list");
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -174,7 +179,7 @@ export default function CompanyPage() {
       key: "actions",
       render: (_: any, record: Company) => (
         <Space>
-          {canManageSalary && (
+          {canUpdatePayrollSetting && (
             <>
               <Button size="small" onClick={() => handleEdit(record.id)}>
                 Edit
@@ -244,7 +249,7 @@ export default function CompanyPage() {
               onChange={(val) => setViewMode(val as "card" | "table")}
             />
 
-            {canManageSalary && (
+            {canCreatePayrollSetting && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -330,7 +335,7 @@ export default function CompanyPage() {
                         )}
 
                         {/* Action Buttons on right side */}
-                        {canManageSalary && (
+                        {canUpdatePayrollSetting && (
                           <div
                             style={{
                               display: "flex",
@@ -357,7 +362,7 @@ export default function CompanyPage() {
                                         description="This action cannot be undone"
                                         okText="Yes"
                                         cancelText="No"
-                                        onConfirm={() => deleteMutation.mutate(c.id)}
+                                        onConfirm={() => canDeletePayrollSetting && deleteMutation.mutate(c.id)}
                                       >
                                         <div>
                                           <DeleteOutlined
@@ -687,7 +692,7 @@ export default function CompanyPage() {
                   );
                 })}
 
-                {canManageSalary && (
+                {canCreatePayrollSetting && (
                   <Card
                     hoverable
                     style={{

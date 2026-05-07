@@ -1,6 +1,6 @@
 "use client";
-
 import React, { useEffect } from "react";
+
 import {
   Modal,
   Form,
@@ -8,12 +8,12 @@ import {
   Select,
   ColorPicker,
   Typography,
-  message,
   Switch,
   Divider,
   Row,
   Col,
   Space,
+  App,
 } from "antd";
 import {
   FolderOutlined,
@@ -44,6 +44,7 @@ export function CreateBucketModal({
   onClose,
   onSuccess,
 }: CreateBucketModalProps) {
+  const { message: messageApi } = App.useApp();
   const [form] = Form.useForm();
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
 
@@ -60,11 +61,11 @@ export function CreateBucketModal({
         description: bucket.description,
         projectId: typeof bucket.project === "string" ? bucket.project : bucket.project?.id,
         color: bucket.color || "#6366f1",
-        isShared: bucket.isShared || false,
+        isShared: bucket.isShared ?? true,
       });
     } else if (open) {
       form.resetFields();
-      form.setFieldsValue({ color: "#6366f1", isShared: false });
+      form.setFieldsValue({ color: "#6366f1", isShared: true });
     }
   }, [open, bucket, form]);
 
@@ -82,13 +83,15 @@ export function CreateBucketModal({
         description: values.description || "",
         projectId: values.projectId,
         color: colorValue,
-        isShared: values.isShared || false,
+        isShared: values.isShared ?? true,
       };
 
       if (isEditing && bucket) {
         await updateBucket.mutateAsync({ id: bucket.id, data });
+        messageApi.success("Hub parameters updated successfully");
       } else {
         await createBucket.mutateAsync(data);
+        messageApi.success("New task repository initialized");
       }
 
       onSuccess();
@@ -98,161 +101,161 @@ export function CreateBucketModal({
         return;
       }
       console.error("Failed to save bucket:", error);
-      message.error(error.message || "Failed to save bucket");
+      messageApi.error(error.message || "Failed to save hub");
     }
   };
 
   return (
     <>
-    <Modal
-      title={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <div className="cbm-header-icon">
-            <FolderOutlined style={{ fontSize: 20, color: '#7c3aed' }} />
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <div className="cbm-header-icon">
+              <FolderOutlined style={{ fontSize: 20, color: '#7c3aed' }} />
+            </div>
+            <div>
+              <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}>
+                {isEditing ? "Configure Bucket" : "create New Bucket"}
+              </Title>
+              <Text style={{ fontSize: 13, color: 'var(--text-slate-600)', fontWeight: 500 }}>
+                {isEditing
+                  ? "Update repository parameters and visibility settings"
+                  : "Initialize a new task repository for specialized tracking"}
+              </Text>
+            </div>
           </div>
-          <div>
-            <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}>
-              {isEditing ? "Configure Bucket" : "create New Bucket"}
-            </Title>
-            <Text style={{ fontSize: 13, color: 'var(--text-slate-600)', fontWeight: 500 }}>
-              {isEditing
-                ? "Update repository parameters and visibility settings"
-                : "Initialize a new task repository for specialized tracking"}
-            </Text>
-          </div>
-        </div>
-      }
-      open={open}
-      onCancel={onClose}
-      onOk={handleSubmit}
-      okText={isEditing ? "Save Changes" : "Initialize Bucket"}
-      cancelText="Discard"
-      width={540}
-      centered
-      className="premium-modal"
-      okButtonProps={{
-        style: {
-          height: 40,
-          padding: '0 24px',
-          fontWeight: 700,
-          background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
-          border: 'none',
-          borderRadius: 6
         }
-      }}
-      cancelButtonProps={{
-        style: {
-          height: 40,
-          fontWeight: 600,
-          borderRadius: 6
-        }
-      }}
-      confirmLoading={createBucket.isPending || updateBucket.isPending}
-      maskClosable={false}
-    >
-      <Divider style={{ margin: '16px 0 24px', opacity: 0.6 }} />
-      <Form
-        form={form}
-        layout="vertical"
-        requiredMark={false}
-        initialValues={{ color: "#1890ff" }}
+        open={open}
+        onCancel={onClose}
+        onOk={handleSubmit}
+        okText={isEditing ? "Save Changes" : "Initialize Bucket"}
+        cancelText="Discard"
+        width={540}
+        centered
+        className="premium-modal"
+        okButtonProps={{
+          style: {
+            height: 40,
+            padding: '0 24px',
+            fontWeight: 700,
+            background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+            border: 'none',
+            borderRadius: 6
+          }
+        }}
+        cancelButtonProps={{
+          style: {
+            height: 40,
+            fontWeight: 600,
+            borderRadius: 6
+          }
+        }}
+        confirmLoading={createBucket.isPending || updateBucket.isPending}
+        maskClosable={false}
       >
-        <Form.Item
-          label={<Text strong style={{ fontSize: 13, color: 'var(--text-slate-600)' }}>REPOSITORY IDENTIFIER</Text>}
-          name="name"
-          rules={[
-            { required: true, message: "Bucket name is required" },
-            { max: 100, message: "Name must be less than 100 characters" },
-          ]}
+        <Divider style={{ margin: '16px 0 24px', opacity: 0.6 }} />
+        <Form
+          form={form}
+          layout="vertical"
+          requiredMark={false}
+          initialValues={{ color: "#1890ff" }}
         >
-          <Input
-            prefix={<FolderOutlined style={{ color: '#94a3b8', marginRight: 4 }} />}
-            placeholder="e.g. Technical Backlog v2"
-            style={{ height: 42, borderRadius: 6 }}
-          />
-        </Form.Item>
+          <Form.Item
+            label={<Text strong style={{ fontSize: 13, color: 'var(--text-slate-600)' }}>REPOSITORY IDENTIFIER</Text>}
+            name="name"
+            rules={[
+              { required: true, message: "Bucket name is required" },
+              { max: 100, message: "Name must be less than 100 characters" },
+            ]}
+          >
+            <Input
+              prefix={<FolderOutlined style={{ color: '#94a3b8', marginRight: 4 }} />}
+              placeholder="e.g. Technical Backlog v2"
+              style={{ height: 42, borderRadius: 6 }}
+            />
+          </Form.Item>
 
-        <Form.Item
-          label={<Text strong style={{ fontSize: 13, color: 'var(--text-slate-600)' }}>SCOPE DEFINITION</Text>}
-          name="projectId"
-          rules={[{ required: true, message: "Project context is required" }]}
-        >
-          <Select
-            placeholder="Select operational project"
-            style={{ width: '100%' }}
-            suffixIcon={<ProjectOutlined style={{ color: '#94a3b8' }} />}
-            loading={projectsLoading}
-            options={projects}
-            showSearch
-            filterOption={(input, option) =>
-              (option?.label?.toString() || "")
-                .toLowerCase()
-                .includes(input.toLowerCase())
-            }
-          />
-        </Form.Item>
+          <Form.Item
+            label={<Text strong style={{ fontSize: 13, color: 'var(--text-slate-600)' }}>SCOPE DEFINITION</Text>}
+            name="projectId"
+            rules={[{ required: true, message: "Project context is required" }]}
+          >
+            <Select
+              placeholder="Select operational project"
+              style={{ width: '100%' }}
+              suffixIcon={<ProjectOutlined style={{ color: '#94a3b8' }} />}
+              loading={projectsLoading}
+              options={projects}
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label?.toString() || "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+            />
+          </Form.Item>
 
-        <Form.Item
-          label={<Text strong style={{ fontSize: 13, color: 'var(--text-slate-600)' }}>CONTEXTUAL DESCRIPTION</Text>}
-          name="description"
-          rules={[
-            { max: 500, message: "Description must be less than 500 characters" },
-          ]}
-        >
-          <TextArea
-            rows={2}
-            placeholder="Outline the operational scope of this repository..."
-            style={{ resize: "none", borderRadius: 6, padding: '10px 12px' }}
-          />
-        </Form.Item>
+          <Form.Item
+            label={<Text strong style={{ fontSize: 13, color: 'var(--text-slate-600)' }}>CONTEXTUAL DESCRIPTION</Text>}
+            name="description"
+            rules={[
+              { max: 500, message: "Description must be less than 500 characters" },
+            ]}
+          >
+            <TextArea
+              rows={2}
+              placeholder="Outline the operational scope of this repository..."
+              style={{ resize: "none", borderRadius: 6, padding: '10px 12px' }}
+            />
+          </Form.Item>
 
-        <div className="cbm-settings-panel">
-          <Row gutter={24} align="middle">
-            <Col span={12}>
-              <Form.Item
-                label={<Text strong style={{ fontSize: 12, color: 'var(--text-slate-600)' }}>VISUAL COLOR CODE</Text>}
-                name="color"
-                style={{ marginBottom: 0 }}
-              >
-                <ColorPicker
-                  showText
-                  format="hex"
-                  presets={[
-                    {
-                      label: "Enterprise Palette",
-                      colors: ["#6366f1", "#10b981", "#8b5cf6", "#f59e0b", "#ef4444", "#06b6d4", "#f43f5e"]
-                    },
-                  ]}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12} style={{ borderLeft: '1px solid var(--border-slate-200)' }}>
-              <Form.Item
-                label={<Text strong style={{ fontSize: 12, color: 'var(--text-slate-600)' }}>ACCESS VISIBILITY</Text>}
-                name="isShared"
-                valuePropName="checked"
-                style={{ marginBottom: 0 }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
-                  <Switch size="small" />
-                  <Space size={4}>
-                    <Form.Item noStyle shouldUpdate={(prev, curr) => prev.isShared !== curr.isShared}>
-                      {({ getFieldValue }) => (
-                        <>
-                          {getFieldValue('isShared') ?
-                            <><TeamOutlined style={{ color: '#7c3aed' }} /><Text style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed' }}>SHARED WORKSPACE</Text></> :
-                            <><LockOutlined style={{ color: '#64748b' }} /><Text style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>PRIVATE NODE</Text></>
-                          }
-                        </>
-                      )}
-                    </Form.Item>
-                  </Space>
-                </div>
-              </Form.Item>
-            </Col>
-          </Row>
-        </div>
-      </Form>
+          <div className="cbm-settings-panel">
+            <Row gutter={24} align="middle">
+              <Col span={12}>
+                <Form.Item
+                  label={<Text strong style={{ fontSize: 12, color: 'var(--text-slate-600)' }}>VISUAL COLOR CODE</Text>}
+                  name="color"
+                  style={{ marginBottom: 0 }}
+                >
+                  <ColorPicker
+                    showText
+                    format="hex"
+                    presets={[
+                      {
+                        label: "Enterprise Palette",
+                        colors: ["#6366f1", "#10b981", "#8b5cf6", "#f59e0b", "#ef4444", "#06b6d4", "#f43f5e"]
+                      },
+                    ]}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12} style={{ borderLeft: '1px solid var(--border-slate-200)' }}>
+                <Form.Item
+                  label={<Text strong style={{ fontSize: 12, color: 'var(--text-slate-600)' }}>ACCESS VISIBILITY</Text>}
+                  name="isShared"
+                  valuePropName="checked"
+                  style={{ marginBottom: 0 }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+                    <Switch size="small" />
+                    <Space size={4}>
+                      <Form.Item noStyle shouldUpdate={(prev, curr) => prev.isShared !== curr.isShared}>
+                        {({ getFieldValue }) => (
+                          <>
+                            {getFieldValue('isShared') ?
+                              <><TeamOutlined style={{ color: '#7c3aed' }} /><Text style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed' }}>SHARED WORKSPACE</Text></> :
+                              <><LockOutlined style={{ color: '#64748b' }} /><Text style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>PRIVATE NODE</Text></>
+                            }
+                          </>
+                        )}
+                      </Form.Item>
+                    </Space>
+                  </div>
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
+        </Form>
       </Modal>
 
       <style jsx global>{`

@@ -10,6 +10,7 @@ import {
     ProjectOutlined,
     UserOutlined,
     ArrowRightOutlined,
+    DeleteOutlined,
 } from '@ant-design/icons';
 import { DocumentHub } from '@/services/documentHub';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -163,7 +164,6 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                 ))}
             </div>
 
-          
         </div>
     );
 };

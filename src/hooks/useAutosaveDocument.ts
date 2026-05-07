@@ -50,15 +50,21 @@ export interface AutosaveControls {
    * `replaceBlocks` doesn't trigger an autosave that overwrites the just-
    * loaded content.
    */
-  resync: (version?: number | null) => void;
+  resync: (version?: number | null, suppress?: boolean) => void;
   /**
-   * Open a "programmatic-update" window: suppresses notifyChange for ~1s.
-   * Call this BEFORE running `editor.replaceBlocks(...)` so the onChange that
-   * BlockNote fires synchronously inside replaceBlocks is dropped instead of
-   * triggering an autosave + localStorage draft write. Pair with `resync()`
-   * after the load to snapshot the new content.
+   * Open a "programmatic-update" window: suppresses notifyChange.
+   * Call this BEFORE running `editor.replaceBlocks(...)`.
    */
   beginProgrammaticUpdate: () => void;
+  /**
+   * Close the "programmatic-update" window.
+   * Call this AFTER running `editor.replaceBlocks(...)`.
+   */
+  endProgrammaticUpdate: () => void;
+  /** True if the editor has unsaved changes compared to the last saved state. */
+  isDirty: boolean;
+  /** Synchronously check if the editor is dirty. */
+  getIsDirty: () => boolean;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -208,13 +214,23 @@ export function useAutosaveDocument({
   // BlockNote fires onChange when replaceBlocks runs programmatically; without
   // this guard those spurious changes get treated as real user edits and
   // trigger autosaves that overwrite the just-loaded content.
-  const suppressUntilRef = useRef(0);
-  // Halts performSave when a 409 has been received until the user reloads.
   const conflictRef = useRef(false);
+  const isProgrammaticRef = useRef(false);
+  const suppressUntilRef = useRef(0);
 
   const setSuppressFor = (ms: number) => {
     const next = Date.now() + ms;
     if (next > suppressUntilRef.current) suppressUntilRef.current = next;
+  };
+
+  const isActuallyDirty = () => {
+    if (!editorRef.current) return false;
+    try {
+      const currentHash = hashContent(editorRef.current.document);
+      return currentHash !== lastSavedHashRef.current;
+    } catch {
+      return dirtyRef.current;
+    }
   };
 
   // Always-fresh refs for callbacks
@@ -238,18 +254,16 @@ export function useAutosaveDocument({
   /* --- per-document init: reset all state when the doc changes ------------ */
   useEffect(() => {
     clearAllTimers();
-    documentIdRef.current = documentId;
-    versionRef.current = initialVersion ?? null;
     dirtyRef.current = false;
     inFlightRef.current = false;
     queuedRef.current = false;
     retryAttemptRef.current = 0;
     localPendingRef.current = false;
     conflictRef.current = false;
-    // Suppress notifyChange for ~1.5s while the editor receives the new
-    // content. The workspace will replaceBlocks shortly after this effect, and
-    // BlockNote's onChange must not be treated as a real edit.
-    setSuppressFor(1500);
+
+    documentIdRef.current = documentId;
+    versionRef.current = initialVersion ?? null;
+
     setStatus("idle");
     setErrorMessage(null);
     setConflictActive(false);
@@ -441,8 +455,10 @@ export function useAutosaveDocument({
     if (!enabledRef.current || !documentIdRef.current || !editorRef.current) {
       return;
     }
-    // Drop spurious onChange events that fire while the editor is being
-    // populated programmatically (replaceBlocks, version restore, etc.).
+    // Drop events during programmatic updates (replaceBlocks)
+    if (isProgrammaticRef.current) return;
+    
+    // Legacy timer guard for extra safety
     if (Date.now() < suppressUntilRef.current) return;
     // Halt all autosave activity once a conflict has been raised — the user
     // must reload before any further writes are safe.
@@ -531,43 +547,53 @@ export function useAutosaveDocument({
   }, [enabled, documentId]);
 
   /* --- programmatic resync (post-load) ---------------------------------- */
-  const resync = useCallback((version?: number | null) => {
+  const resync = useCallback((version?: number | null, suppress = true) => {
     const ed = editorRef.current;
     if (!ed) return;
-    // Extend the suppress window so any onChange that fires *after* resync
-    // (BlockNote may fire it on a microtask / next render) is still ignored.
-    setSuppressFor(500);
     // Snapshot the now-loaded content as the "last saved" baseline, clear any
     // dirty/queued state from the spurious onChange that BlockNote fires after
     // replaceBlocks, and stop pending timers so we don't autosave the just-
     // loaded content as if it were a user edit.
+    if (suppress) {
+      // Very short timer for microtask/next-render safety
+      setSuppressFor(50);
+    }
+    
     try {
       lastSavedHashRef.current = hashContent(ed.document);
     } catch {
       lastSavedHashRef.current = null;
     }
     if (typeof version === "number") versionRef.current = version;
-    dirtyRef.current = false;
-    queuedRef.current = false;
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
+    
+    if (suppress) {
+      dirtyRef.current = false;
+      queuedRef.current = false;
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      if (maxWaitTimerRef.current) {
+        clearTimeout(maxWaitTimerRef.current);
+        maxWaitTimerRef.current = null;
+      }
+      // We're now back in sync with the server — drop any stale localStorage
+      // draft so the recovery banner doesn't surface on the next visit.
+      if (documentIdRef.current) clearDraft(documentIdRef.current);
+      setStatus((prev) => (prev === "saving" ? prev : "idle"));
     }
-    if (maxWaitTimerRef.current) {
-      clearTimeout(maxWaitTimerRef.current);
-      maxWaitTimerRef.current = null;
-    }
-    // We're now back in sync with the server — drop any stale localStorage
-    // draft so the recovery banner doesn't surface on the next visit.
-    if (documentIdRef.current) clearDraft(documentIdRef.current);
-    setStatus((prev) => (prev === "saving" ? prev : "idle"));
   }, []);
 
   /* --- programmatic-update guard (pre-load) ------------------------------ */
   const beginProgrammaticUpdate = useCallback(() => {
-    // 1s window covers the synchronous onChange fired inside replaceBlocks
-    // plus any microtask / next-render onChange BlockNote may emit later.
-    setSuppressFor(1000);
+    isProgrammaticRef.current = true;
+  }, []);
+
+  const endProgrammaticUpdate = useCallback(() => {
+    // Short delay to ensure any queued events are dropped
+    setTimeout(() => {
+        isProgrammaticRef.current = false;
+    }, 50);
   }, []);
 
   /* --- error retry (manual) --------------------------------------------- */
@@ -626,7 +652,10 @@ export function useAutosaveDocument({
       : { available: false },
     conflict: conflictActive ? { active: true, reload } : { active: false },
     notifyChange,
+    isDirty: isActuallyDirty(),
+    getIsDirty: isActuallyDirty,
     resync,
     beginProgrammaticUpdate,
+    endProgrammaticUpdate,
   };
 }

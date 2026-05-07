@@ -100,7 +100,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
         const updateTime = () =>
           setElapsedTime(
             baseDuration +
-              Math.floor((new Date().getTime() - lastActiveTime) / 1000)
+            Math.floor((new Date().getTime() - lastActiveTime) / 1000)
           );
 
         updateTime();
@@ -119,7 +119,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
     try {
       const res = await ProjectService.getUserProjects();
       setProjects(res || []);
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const loadTickets = async (projectIds: string[]) => {
@@ -205,8 +205,8 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
   const state: TimerState = !activeEntry
     ? "idle"
     : activeEntry.status === "RUNNING"
-    ? "running"
-    : "paused";
+      ? "running"
+      : "paused";
 
   const stateMeta: Record<TimerState, { label: string; dot: string; ring: string; text: string }> = {
     running: {
@@ -266,7 +266,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
                 onClick={async () => {
                   try {
                     await pauseTimer();
-                  } catch (e) {}
+                  } catch (e) { }
                 }}
                 disabled={isLoading}
                 aria-label="Pause"
@@ -294,7 +294,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
                 onClick={async () => {
                   try {
                     await resumeTimer();
-                  } catch (e) {}
+                  } catch (e) { }
                 }}
                 disabled={isLoading}
                 aria-label="Resume"
@@ -386,14 +386,12 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
             showSearch
             maxTagCount="responsive"
             options={tickets.map((t) => ({
-              label: `${t.title}${
-                selectedPids.length > 1
-                  ? ` · ${
-                      projects.find((p) => p.value === t.projectId)?.label ||
-                      "Unknown"
-                    }`
+              label: `${t.title}${selectedPids.length > 1
+                  ? ` · ${projects.find((p) => p.value === t.projectId)?.label ||
+                  "Unknown"
+                  }`
                   : ""
-              }`,
+                }`,
               value: t.id,
             }))}
             filterOption={(input, option) =>
@@ -620,49 +618,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
           color: var(--text-blue-700);
         }
 
-        /* Trigger button polish */
-        .ttp-trigger {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          height: 36px;
-          padding: 0 12px;
-          border-radius: 999px;
-          border: 1px solid var(--border-slate-200);
-          background: var(--bg-pure-white);
-          color: var(--text-slate-700);
-          font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-          font-weight: 600;
-          font-size: 13px;
-          font-variant-numeric: tabular-nums;
-          cursor: pointer;
-          transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
-        }
-        .ttp-trigger:hover {
-          border-color: #93c5fd;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
-        }
-        .ttp-trigger-running {
-          background: var(--bg-running-row);
-          border-color: rgba(16, 185, 129, 0.35);
-          color: #059669;
-        }
-        .ttp-trigger-paused {
-          background: var(--bg-paused-row);
-          border-color: #fcd34d;
-          color: #d97706;
-        }
-        .ttp-trigger-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 999px;
-          background: currentColor;
-          flex-shrink: 0;
-        }
-        .ttp-trigger-running .ttp-trigger-dot {
-          animation: ttp-pulse 1.6s ease-in-out infinite;
-          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18);
-        }
+        /* Trigger button polish - styles moved to globals.css */
 
         /* Popover container override */
         .ttp-popover .ant-popover-inner {
@@ -690,39 +646,6 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
     return renderContent();
   }
 
-  if (isMenuItem) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {activeEntry ? (
-          activeEntry.status === "RUNNING" ? (
-            <div
-              style={{
-                width: 12,
-                height: 12,
-                backgroundColor: "#15803d",
-                borderRadius: 2,
-              }}
-            />
-          ) : (
-            <PauseCircleFilled style={{ color: "#f59e0b" }} />
-          )
-        ) : (
-          <PlayCircleFilled style={{ color: "#1890ff" }} />
-        )}
-        <span style={{ fontFamily: "monospace", fontWeight: 600 }}>
-          {formatTime(elapsedTime)}
-        </span>
-        <span style={{ marginLeft: 8, color: "#8c8c8c" }}>
-          {activeEntry
-            ? activeEntry.status === "RUNNING"
-              ? "Running"
-              : "Paused"
-            : "Start Timer"}
-        </span>
-      </div>
-    );
-  }
-
   const triggerClass = `ttp-trigger ${
     state === "running"
       ? "ttp-trigger-running"
@@ -730,6 +653,23 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
       ? "ttp-trigger-paused"
       : ""
   }`;
+
+  if (isMenuItem) {
+    return (
+      <div className={triggerClass} style={{ pointerEvents: 'none', border: '1px solid var(--border-slate-300)' }}>
+        <span className="ttp-trigger-dot" />
+        <span>{formatTime(elapsedTime)}</span>
+        <span style={{ marginLeft: 8, fontSize: 11, opacity: 0.8, textTransform: 'uppercase' }}>
+          {activeEntry
+            ? activeEntry.status === "RUNNING"
+              ? "Running"
+              : "Paused"
+            : "Idle"}
+        </span>
+      </div>
+    );
+  }
+
 
   return (
     <Popover
@@ -747,8 +687,8 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
             {state === "running"
               ? "Running timer"
               : state === "paused"
-              ? "Paused timer"
-              : "Start a timer"}
+                ? "Paused timer"
+                : "Start a timer"}
           </span>
           <Button
             type="text"

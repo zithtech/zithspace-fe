@@ -20,6 +20,7 @@ import {
   Tooltip,
   message,
   Popconfirm,
+  App,
 } from "antd";
 import {
   FolderOutlined,
@@ -50,6 +51,7 @@ export function BucketDetailDrawer({
   open,
   onClose,
 }: BucketDetailDrawerProps) {
+  const { message: messageApi } = App.useApp();
   const [activeTab, setActiveTab] = useState("overview");
   const [memberManagerOpen, setMemberManagerOpen] = useState(false);
 
@@ -62,10 +64,10 @@ export function BucketDetailDrawer({
     if (!bucket) return;
     try {
       await removeMember.mutateAsync({ bucketId: bucket.id, userId });
-      message.success("Member removed successfully");
+      messageApi.success("Member removed successfully");
       refetch();
     } catch (error: any) {
-      message.error(error.message || "Failed to remove member");
+      messageApi.error(error.message || "Failed to remove member");
     }
   };
 

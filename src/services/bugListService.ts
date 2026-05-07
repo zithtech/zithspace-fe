@@ -62,6 +62,7 @@ export interface BugListItem {
   bugType?: BugType | null;
   severity?: BugSeverity | null;
   status: BugStatus;
+  bugStatus?: "not started" | "pending" | "completed" | null;
   tags: string[];
   attachments: BugAttachment[];
   externalLinks: BugExternalLink[];
@@ -108,6 +109,7 @@ export interface UpdateBugInput {
   bugType?: BugType | null;
   severity?: BugSeverity | null;
   status?: BugStatus;
+  bugStatus?: "not started" | "pending" | "completed" | null;
   tags?: string[];
   assigneeId?: string | null;
   attachments?: BugAttachment[];
@@ -160,6 +162,8 @@ export interface BulkConvertGroup {
   bugIds: string[];
   assigneeId?: string;
   projectId?: string;
+  attachments?: BugAttachment[];
+  externalLinks?: BugExternalLink[];
 }
 
 export interface BugConfigOption {
@@ -394,6 +398,7 @@ class BugListService {
     open: number;
     blockers: number;
     verified: number;
+    completed: number;
     linked: number;
     totalFolders: number;
     totalSheets: number;

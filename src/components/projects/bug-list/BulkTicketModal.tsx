@@ -78,9 +78,15 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
     setCollapsed(new Set());
     setTitle("");
     setProjectId(prefilledProjectId);
-    setAssigneeId(undefined);
+    
+    // Pre-fill assignee if all bugs have the same assignee
+    const bugsWithAssignee = bugs.filter(bug => bug.assigneeId);
+    const allSameAssignee = bugsWithAssignee.length > 0 && 
+      bugsWithAssignee.every(bug => bug.assigneeId === bugsWithAssignee[0].assigneeId);
+    setAssigneeId(allSameAssignee ? (bugsWithAssignee[0].assigneeId || undefined) : undefined);
+    
     setCreatedCount(0);
-  }, [open, prefilledProjectId]);
+  }, [open, prefilledProjectId]); // Remove 'bugs' to prevent mode reset during ticket creation
 
   const stagedBugs = useMemo(
     () => pool.filter((b) => staged.has(b.id)),
@@ -143,7 +149,12 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
     // After every successful create, return to the mode picker so the user can
     // re-choose Manual or AI for the remaining bugs. If nothing's left, stay
     // in the workspace so the celebratory "All done" state shows.
-    if (remaining.length > 0) setMode(null);
+    if (remaining.length > 0) {
+      setMode(null);
+    } else {
+      // When all bugs are processed, stay in manual mode so DoneState shows
+      // The DoneState component handles the "Done" button to close the modal
+    }
   };
 
   const handleCreateSingle = async () => {
@@ -160,6 +171,10 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
       return;
     }
     try {
+      // Collect all attachments and links from staged bugs
+      const allAttachments = stagedBugs.flatMap((b) => b.attachments || []);
+      const allExternalLinks = stagedBugs.flatMap((b) => b.externalLinks || []);
+      
       await convert.mutateAsync([
         {
           title: title.trim(),
@@ -167,6 +182,8 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
           bugIds: stagedBugs.map((b) => b.id),
           projectId,
           assigneeId,
+          attachments: allAttachments,
+          externalLinks: allExternalLinks,
         },
       ]);
       consumeStaged(1);
@@ -195,6 +212,8 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
         bugIds: [b.id],
         projectId,
         assigneeId,
+        attachments: b.attachments || [],
+        externalLinks: b.externalLinks || [],
       }));
       await convert.mutateAsync(groups);
       consumeStaged(groups.length);

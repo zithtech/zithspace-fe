@@ -24,6 +24,7 @@ import {
   Ticket as TicketIcon,
   Activity,
   Archive,
+  ChevronLeft,
 } from "lucide-react";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
 import HivebugTable from "./HivebugTable";
@@ -130,6 +131,7 @@ export default function BugListPage() {
     totalSheets: sheets?.length || 0,
     total: stats?.total || 0,
     verified: stats?.verified || 0,
+    completed: stats?.completed || 0,
     linked: stats?.linked || 0,
   };
   const filterSheets = sheets?.filter(s => s.name.toLowerCase().includes(filters.search.toLowerCase())) || [];
@@ -283,6 +285,17 @@ export default function BugListPage() {
     setEditingBug(null);
   };
 
+  const handleBugStatusUpdate = async (bugId: string, bugStatus: "not started" | "pending" | "completed") => {
+    try {
+      await updateBug.mutateAsync({ 
+        id: bugId, 
+        input: { bugStatus } 
+      });
+    } catch {
+      // hook handles error toast
+    }
+  };
+
   const toggleAll = (checked: boolean) => {
     if (checked)
       setSelectedIds(new Set(bugs.filter((b) => !b.ticketId).map((b) => b.id)));
@@ -347,13 +360,7 @@ export default function BugListPage() {
             {scope === "archived" && selectedSheetId && (
               <>
                 <span className="hb-bc-sep">›</span>
-                <button 
-                  className="hb-btn hb-btn-ghost" 
-                  onClick={() => setSelectedSheetId(null)}
-                  style={{ padding: "2px 8px", fontSize: 12 }}
-                >
-                  ← Back to Archived Sheets
-                </button>
+                <span className="hb-bc-soft">Archived Sheets</span>
                 <span className="hb-bc-sep">›</span>
                 <span className="hb-bc-soft">
                   {archivedSheets?.find((s) => s.id === selectedSheetId)?.name || "Loading..."}
@@ -486,7 +493,7 @@ export default function BugListPage() {
               value={
                 workspaceStats && workspaceStats.total > 0
                   ? `${Math.round(
-                      (workspaceStats.verified / workspaceStats.total) * 100,
+                      (workspaceStats.completed / workspaceStats.total) * 100,
                     )}%`
                   : "—"
               }
@@ -729,6 +736,34 @@ export default function BugListPage() {
               onSelectSheet={setSelectedSheetId}
             />
           )}
+
+          {/* ── archived sheet context banner ── */}
+          {scope === "archived" && selectedSheetId && (
+            <div className="hb-archive-banner">
+              <div className="hb-archive-banner-icon">
+                <Archive size={14} />
+              </div>
+              <div className="hb-archive-banner-text">
+                <div className="hb-archive-banner-title">
+                  Archived Sheet — Read Only
+                </div>
+                <div className="hb-archive-banner-sub">
+                  You're viewing bugs from{" "}
+                  <strong>
+                    {archivedSheets?.find((s) => s.id === selectedSheetId)?.name || "this sheet"}
+                  </strong>.
+                  Archived sheets cannot be edited.
+                </div>
+              </div>
+              <button
+                className="hb-archive-banner-back"
+                onClick={() => setSelectedSheetId(null)}
+              >
+                <ChevronLeft size={13} />
+                Back to Archived Sheets
+              </button>
+            </div>
+          )}
           {(scope !== "archived" || (scope === "archived" && selectedSheetId)) && (
             <>
               <HivebugTable
@@ -759,6 +794,7 @@ export default function BugListPage() {
                 onArchive={(bug) =>
                   bulkUpdateStatus.mutate({ bugIds: [bug.id], status: "archived" })
                 }
+                onBugStatusUpdate={handleBugStatusUpdate}
                 isTrashView={scope === "trash"}
                 isArchiveView={scope === "archived"}
               />

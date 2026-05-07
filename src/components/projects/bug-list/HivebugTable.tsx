@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Avatar, Dropdown, Tooltip, message } from "antd";
+import React, { useState } from "react";
+import { Avatar, Dropdown, Tooltip, message, Select } from "antd";
 import {
   MoreHorizontal,
   Link as LinkIcon,
@@ -57,6 +57,18 @@ const STATUS_LABEL: Record<DisplayStatus, string> = {
   ignored: "Ignored",
 };
 
+const BUG_STATUS_OPTIONS = [
+  { value: "not started", label: "Not Started" },
+  { value: "pending", label: "Pending" },
+  { value: "completed", label: "Completed" },
+];
+
+const BUG_STATUS_COLORS: Record<string, { dot: string; fg: string }> = {
+  "not started": { dot: "#9aa1ac", fg: "#cbd0d9" },
+  pending: { dot: "#f59f3b", fg: "#f9bd6c" },
+  completed: { dot: "#3fbf8f", fg: "#5fd7af" },
+};
+
 function formatRelative(iso: string | undefined): string {
   if (!iso) return "—";
   const t = new Date(iso).getTime();
@@ -101,6 +113,7 @@ interface HivebugTableProps {
   onDelete: (bug: BugListItem) => void;
   onRestore: (bug: BugListItem) => void;
   onArchive: (bug: BugListItem) => void;
+  onBugStatusUpdate?: (bugId: string, bugStatus: "not started" | "pending" | "completed") => void;
   isTrashView?: boolean;
   isArchiveView?: boolean;
 }
@@ -119,6 +132,7 @@ export default function HivebugTable({
   onDelete,
   onRestore,
   onArchive,
+  onBugStatusUpdate,
   isTrashView,
   isArchiveView,
 }: HivebugTableProps) {
@@ -145,12 +159,13 @@ export default function HivebugTable({
               />
             </th>
             <th>TITLE</th>
-            <th style={{ width: 130 }}>SEVERITY</th>
-            <th style={{ width: 150 }}>STATUS</th>
-            <th style={{ width: 180 }}>ASSIGNEE</th>
-            <th style={{ width: 200 }}>CREATED</th>
-            <th style={{ width: 110 }}>UPDATED</th>
-            <th style={{ width: 140 }}>TICKET</th>
+            <th style={{ width: 110 }}>SEVERITY</th>
+            <th style={{ width: 120 }}>STATUS</th>
+            <th style={{ width: 120 }}>BUG STATUS</th>
+            <th style={{ width: 150 }}>ASSIGNEE</th>
+            <th style={{ width: 160 }}>CREATED</th>
+            <th style={{ width: 100 }}>UPDATED</th>
+            <th style={{ width: 120 }}>TICKET</th>
             <th style={{ width: 40 }}></th>
           </tr>
         </thead>
@@ -183,6 +198,7 @@ export default function HivebugTable({
               onDelete={() => onDelete(bug)}
               onRestore={() => onRestore(bug)}
               onArchive={() => onArchive(bug)}
+              onBugStatusUpdate={onBugStatusUpdate}
               isTrashView={isTrashView}
               isArchiveView={isArchiveView}
             />
@@ -205,6 +221,7 @@ interface BugRowProps {
   onDelete: () => void;
   onRestore: () => void;
   onArchive: () => void;
+  onBugStatusUpdate?: (bugId: string, bugStatus: "not started" | "pending" | "completed") => void;
   isTrashView?: boolean;
   isArchiveView?: boolean;
 }
@@ -221,6 +238,7 @@ function BugRow({
   onDelete,
   onRestore,
   onArchive,
+  onBugStatusUpdate,
   isTrashView,
   isArchiveView,
 }: BugRowProps) {
@@ -276,6 +294,13 @@ function BugRow({
           label={STATUS_LABEL[status]}
           dot={STATUS_DOT[status]}
           fg={STATUS_FG[status]}
+        />
+      </td>
+      <td onClick={(e) => e.stopPropagation()}>
+        <BugStatusDropdown
+          currentStatus={bug.bugStatus || "not started"}
+          onUpdate={(value) => onBugStatusUpdate?.(bug.id, value)}
+          canEdit={!!onBugStatusUpdate}
         />
       </td>
       <td>
@@ -429,6 +454,129 @@ function initials(name: string) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+}
+
+function BugStatusDropdown({ 
+  currentStatus, 
+  onUpdate, 
+  canEdit 
+}: { 
+  currentStatus: string; 
+  onUpdate?: (value: "not started" | "pending" | "completed") => void; 
+  canEdit: boolean; 
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const currentOption = BUG_STATUS_OPTIONS.find(opt => opt.value === currentStatus);
+  const currentColors = BUG_STATUS_COLORS[currentStatus] || BUG_STATUS_COLORS["not started"];
+
+  if (!canEdit) {
+    return currentStatus ? (
+      <Pill
+        label={currentOption?.label || currentStatus}
+        dot={currentColors.dot}
+        fg={currentColors.fg}
+      />
+    ) : (
+      <span className="hb-muted">—</span>
+    );
+  }
+
+  return (
+    <Dropdown
+      trigger={["click"]}
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      placement="bottomLeft"
+      menu={{
+        items: BUG_STATUS_OPTIONS.map((option) => ({
+          key: option.value,
+          label: (
+            <div style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: "8px",
+              padding: "4px 8px"
+            }}>
+              <span 
+                style={{ 
+                  width: "8px", 
+                  height: "8px", 
+                  borderRadius: "50%", 
+                  background: BUG_STATUS_COLORS[option.value].dot,
+                  flexShrink: 0
+                }} 
+              />
+              <span style={{ fontSize: "13px" }}>{option.label}</span>
+            </div>
+          ),
+          onClick: () => {
+            onUpdate?.(option.value as "not started" | "pending" | "completed");
+            setIsOpen(false);
+          },
+        })),
+        style: {
+          borderRadius: "8px",
+          border: "1px solid #e5e7eb",
+          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+        },
+      }}
+    >
+      <button 
+        className="hb-bug-status-dropdown"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          padding: "3px 8px",
+          border: `1px solid ${currentColors.dot}33`,
+          borderRadius: "12px",
+          background: `${currentColors.dot}1a`,
+          color: currentColors.fg,
+          fontSize: "12px",
+          fontWeight: "500",
+          cursor: "pointer",
+          transition: "all 0.15s ease",
+          outline: "none",
+          whiteSpace: "nowrap",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = `${currentColors.dot}66`;
+          e.currentTarget.style.background = `${currentColors.dot}26`;
+          e.currentTarget.style.transform = "translateY(-1px)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = `${currentColors.dot}33`;
+          e.currentTarget.style.background = `${currentColors.dot}1a`;
+          e.currentTarget.style.transform = "translateY(0)";
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = `${currentColors.dot}66`;
+          e.currentTarget.style.boxShadow = `0 0 0 2px ${currentColors.dot}26`;
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.boxShadow = "none";
+        }}
+      >
+        <span 
+          style={{ 
+            width: "6px", 
+            height: "6px", 
+            borderRadius: "50%", 
+            background: currentColors.dot,
+            flexShrink: 0
+          }} 
+        />
+        <span>{currentOption?.label || currentStatus}</span>
+        <span style={{ 
+          marginLeft: "2px", 
+          opacity: 0.7, 
+          fontSize: "10px",
+          transition: "transform 0.15s ease"
+        }}>▼</span>
+      </button>
+    </Dropdown>
+  );
 }
 
 function avatarColor(seed: string) {

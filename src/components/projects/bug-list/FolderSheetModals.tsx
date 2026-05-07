@@ -184,9 +184,13 @@ export function FolderModal({ open, editing, onClose }: FolderModalProps) {
                 <label className="hb-fsm-label">
                   <Link2 size={11} />
                   <span>Link to project</span>
-                  <span className="hb-fsm-opt">optional</span>
+                  <span className="hb-fsm-req">*</span>
                 </label>
-                <Form.Item name="projectId" className="hb-fsm-fitem">
+                <Form.Item 
+                  name="projectId" 
+                  rules={[{ required: true, message: "Project selection is required" }]}
+                  className="hb-fsm-fitem"
+                >
                   <Select
                     allowClear
                     showSearch

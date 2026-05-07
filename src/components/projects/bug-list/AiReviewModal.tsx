@@ -653,7 +653,6 @@ function DoneStep({
             type="button"
             className="hb-aim-ticket"
             onClick={() => {
-              onClose();
               openTicketDrawer(t.ticketId);
             }}
           >

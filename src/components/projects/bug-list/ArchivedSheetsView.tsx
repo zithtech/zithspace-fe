@@ -1,14 +1,17 @@
 "use client";
 
 import React from "react";
-import { Skeleton, Avatar } from "antd";
+import { Skeleton, Avatar, Popconfirm, Tooltip } from "antd";
 import {
   Archive,
-  MoreHorizontal,
   RotateCcw,
   Trash2,
+  FolderOpen,
+  Bug,
+  Clock,
+  CalendarDays,
+  Eye,
 } from "lucide-react";
-import { Dropdown } from "antd";
 import {
   useArchivedSheets,
   useUpdateBugSheetStatus,
@@ -17,7 +20,8 @@ import {
 import type { BugSheet } from "@/services/bugListService";
 import { hivebugStyles } from "./hivebug-styles";
 
-// Helper functions from HivebugTable
+// ─── helpers ────────────────────────────────────────────────────────────────
+
 const initials = (name: string) => {
   if (!name) return "?";
   const parts = name.trim().split(/\s+/);
@@ -27,15 +31,13 @@ const initials = (name: string) => {
 
 const avatarColor = (id: string) => {
   const colors = [
-    "#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4", "#ffeaa7",
-    "#dfe6e9", "#74b9ff", "#a29bfe", "#6c5ce7", "#fd79a8",
-    "#fdcb6e", "#e17055", "#00b894", "#00cec9", "#0984e3",
-    "#6c5ce7", "#a29bfe", "#fd79a8", "#fdcb6e", "#e17055",
+    "#ff6b6b","#4ecdc4","#45b7d1","#96ceb4","#ffeaa7",
+    "#74b9ff","#a29bfe","#6c5ce7","#fd79a8","#fdcb6e",
+    "#e17055","#00b894","#00cec9","#0984e3",
   ];
   let hash = 0;
-  for (let i = 0; i < id.length; i++) {
+  for (let i = 0; i < id.length; i++)
     hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  }
   return colors[Math.abs(hash) % colors.length];
 };
 
@@ -44,7 +46,6 @@ const formatRelative = (date: string) => {
   const past = new Date(date);
   const diffMs = now.getTime() - past.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
   if (diffDays === 0) return "today";
   if (diffDays === 1) return "yesterday";
   if (diffDays < 7) return `${diffDays}d ago`;
@@ -52,242 +53,239 @@ const formatRelative = (date: string) => {
   return `${Math.floor(diffDays / 30)}mo ago`;
 };
 
-const formatAbsolute = (date: string) => {
-  return new Date(date).toLocaleString();
-};
+const formatDate = (date: string) =>
+  new Date(date).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 
-const cap = (s: string) => {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-};
+// ─── types ───────────────────────────────────────────────────────────────────
 
 interface ArchivedSheetsViewProps {
   selectedSheetId: string | null;
   onSelectSheet: (sheetId: string | null) => void;
 }
 
-export default function ArchivedSheetsView({ selectedSheetId, onSelectSheet }: ArchivedSheetsViewProps) {
+type SheetWithMeta = BugSheet & {
+  folderName?: string;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string;
+  } | null;
+};
+
+// ─── main component ──────────────────────────────────────────────────────────
+
+export default function ArchivedSheetsView({
+  selectedSheetId,
+  onSelectSheet,
+}: ArchivedSheetsViewProps) {
   const { data: archivedSheets, isLoading } = useArchivedSheets();
   const updateSheetStatus = useUpdateBugSheetStatus();
   const deleteSheet = useDeleteBugSheet();
 
   if (isLoading) {
     return (
-      <div className="hb-table-wrapper">
-        <table className="hb-table">
-          <tbody>
-            <tr>
-              <td colSpan={6} className="hb-empty">
-                Loading…
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <>
+        <style>{hivebugStyles}</style>
+        <div className="arc-header">
+          <div className="arc-header-icon">
+            <Archive size={16} />
+          </div>
+          <div>
+            <div className="arc-header-title">Archived Sheets</div>
+            <div className="arc-header-sub">Loading…</div>
+          </div>
+        </div>
+        <div className="arc-grid">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="arc-card arc-card-skeleton">
+              <Skeleton active paragraph={{ rows: 3 }} title={false} />
+            </div>
+          ))}
+        </div>
+      </>
     );
   }
 
   if (!archivedSheets || archivedSheets.length === 0) {
     return (
-      <div className="hb-table-wrapper hb-board-empty">
-        <table className="hb-table">
-          <tbody>
-            <tr>
-              <td colSpan={6} className="hb-empty">
-                <div style={{ textAlign: "center", padding: "48px 24px" }}>
-                  <Archive size={48} style={{ marginBottom: 16, opacity: 0.3 }} />
-                  <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 8 }}>
-                    No archived sheets
-                  </div>
-                  <div style={{ fontSize: 13 }}>
-                    Completed sheets will appear here when you archive them
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <>
+        <style>{hivebugStyles}</style>
+        <div className="arc-empty-wrap">
+          <div className="arc-empty-icon">
+            <Archive size={36} />
+          </div>
+          <div className="arc-empty-title">No archived sheets</div>
+          <div className="arc-empty-sub">
+            When you archive a sheet it will appear here — safe and out of the way.
+          </div>
+        </div>
+      </>
     );
   }
 
   return (
     <>
       <style>{hivebugStyles}</style>
-      <div className="hb-table-wrapper">
-        <table className="hb-table">
-          <thead>
-            <tr>
-              <th style={{ width: 40 }}></th>
-              <th>SHEET NAME</th>
-              <th style={{ width: 180 }}>FOLDER</th>
-              <th style={{ width: 100 }}>BUGS</th>
-              <th style={{ width: 200 }}>CREATED</th>
-              <th style={{ width: 200 }}>ARCHIVED</th>
-              <th style={{ width: 40 }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {archivedSheets.map((sheet) => (
-              <ArchivedSheetRow
-                key={sheet.id}
-                sheet={sheet}
-                selectedSheetId={selectedSheetId}
-                onSelectSheet={() => onSelectSheet(sheet.id)}
-                onRestore={() => updateSheetStatus.mutate({
-                  id: sheet.id,
-                  status: "active",
-                })}
-                onDelete={() => deleteSheet.mutate(sheet.id)}
-              />
-            ))}
-          </tbody>
-        </table>
+
+      {/* ── section header ── */}
+      <div className="arc-header">
+        <div className="arc-header-icon">
+          <Archive size={16} />
+        </div>
+        <div>
+          <div className="arc-header-title">Archived Sheets</div>
+          <div className="arc-header-sub">
+            {archivedSheets.length} sheet{archivedSheets.length !== 1 ? "s" : ""} archived
+          </div>
+        </div>
+      </div>
+
+      {/* ── card grid ── */}
+      <div className="arc-grid">
+        {archivedSheets.map((sheet) => (
+          <ArchivedSheetCard
+            key={sheet.id}
+            sheet={sheet as SheetWithMeta}
+            isSelected={selectedSheetId === sheet.id}
+            onView={() => onSelectSheet(sheet.id)}
+            onRestore={() =>
+              updateSheetStatus.mutate({ id: sheet.id, status: "active" })
+            }
+            onDelete={() => deleteSheet.mutate(sheet.id)}
+          />
+        ))}
       </div>
     </>
   );
 }
 
-interface ArchivedSheetRowProps {
-  sheet: BugSheet & { 
-    folderName?: string;
-    createdBy?: {
-      id: string;
-      name: string;
-      email: string;
-      avatarUrl?: string;
-    } | null;
-  };
-  selectedSheetId: string | null;
-  onSelectSheet: (sheetId: string) => void;
+// ─── card ────────────────────────────────────────────────────────────────────
+
+interface CardProps {
+  sheet: SheetWithMeta;
+  isSelected: boolean;
+  onView: () => void;
   onRestore: () => void;
   onDelete: () => void;
 }
 
-function ArchivedSheetRow({ sheet, selectedSheetId, onSelectSheet, onRestore, onDelete }: ArchivedSheetRowProps) {
+function ArchivedSheetCard({
+  sheet,
+  isSelected,
+  onView,
+  onRestore,
+  onDelete,
+}: CardProps) {
   const creatorName = sheet.createdBy?.name || "Unknown";
-  const creatorId = sheet.createdBy?.id || sheet.createdById;
+  const creatorId   = sheet.createdBy?.id || sheet.createdById || "x";
+  const bugCount    = sheet._count?.bugs ?? 0;
 
   return (
-    <tr 
-      className="hb-tr" 
-      style={{ 
-        opacity: 0.7,
-        cursor: "pointer",
-        backgroundColor: selectedSheetId === sheet.id ? "var(--hb-bg-hover)" : "transparent"
-      }}
-      onClick={() => onSelectSheet(sheet.id)}
+    <div
+      className={`arc-card${isSelected ? " arc-card-selected" : ""}`}
+      onClick={onView}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === "Enter" && onView()}
+      aria-label={`View archived sheet ${sheet.name}`}
     >
-      <td>
-        <div style={{ 
-          display: "flex", 
-          alignItems: "center", 
-          justifyContent: "center",
-          width: 20,
-          height: 20,
-          borderRadius: 4,
-          background: "var(--hb-bg-soft)",
-          border: "1px solid var(--hb-border)",
-        }}>
-          <Archive size={12} style={{ color: "var(--hb-text-muted)" }} />
-        </div>
-      </td>
-      <td>
-        <div className="hb-title-cell">
-          <span className="hb-bug-num">
-            SHEET-{sheet.id.slice(-3).toUpperCase()}
-          </span>
-          <span className="hb-bug-title" title={sheet.name}>
-            {sheet.name}
-          </span>
-          {sheet.description && (
-            <div style={{ 
-              fontSize: 11, 
-              color: "var(--hb-text-muted)",
-              marginTop: 2,
-              fontStyle: "italic"
-            }}>
-              {sheet.description}
-            </div>
-          )}
-        </div>
-      </td>
-      <td>
-        <div className="hb-assignee">
-          <div
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: "50%",
-              background: avatarColor(sheet.folderId || creatorId),
-              fontSize: 10,
-              color: "#ffffff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 500,
-            }}
-          >
-            📁
-          </div>
-          <span>{sheet.folderName || "Unknown Folder"}</span>
-        </div>
-      </td>
-      <td>
-        <span style={{ 
-          background: "var(--hb-bg-soft)",
-          padding: "2px 8px",
-          borderRadius: "999px",
-          fontSize: 11,
-          fontWeight: 500,
-          color: "var(--hb-text-soft)",
-          border: "1px solid var(--hb-border)"
-        }}>
-          {sheet._count?.bugs || 0} bugs
+      {/* ── top row: archive badge + bug count ── */}
+      <div className="arc-card-toprow">
+        <span className="arc-badge-archived">
+          <Archive size={10} />
+          Archived
         </span>
-      </td>
-      <td>
-        <div className="hb-meta-cell">
+        <span className="arc-badge-bugs">
+          <Bug size={10} />
+          {bugCount} {bugCount === 1 ? "bug" : "bugs"}
+        </span>
+      </div>
+
+      {/* ── sheet name ── */}
+      <div className="arc-card-name" title={sheet.name}>
+        {sheet.name}
+      </div>
+
+      {/* ── description ── */}
+      {sheet.description && (
+        <div className="arc-card-desc">{sheet.description}</div>
+      )}
+
+      {/* ── folder ── */}
+      <div className="arc-card-folder">
+        <FolderOpen size={12} />
+        <span>{sheet.folderName || "Unknown Folder"}</span>
+      </div>
+
+      {/* ── divider ── */}
+      <div className="arc-card-divider" />
+
+      {/* ── footer meta ── */}
+      <div className="arc-card-footer">
+        <div className="arc-card-creator">
           <Avatar
             size={20}
             src={sheet.createdBy?.avatarUrl}
             style={{
-              background: avatarColor(creatorId || creatorName),
-              fontSize: 10,
+              background: avatarColor(creatorId),
+              fontSize: 9,
+              flexShrink: 0,
             }}
           >
             {initials(creatorName)}
           </Avatar>
-          <div className="hb-meta-stack">
-            <span className="hb-meta-name" title={creatorName}>
-              {creatorName}
-            </span>
-            <span className="hb-meta-time">{formatRelative(sheet.createdAt)}</span>
-          </div>
+          <span className="arc-card-creator-name" title={creatorName}>
+            {creatorName}
+          </span>
         </div>
-      </td>
-      <td>
-        <span className="hb-meta-time">{formatRelative(sheet.updatedAt)}</span>
-      </td>
-      <td onClick={(e) => e.stopPropagation()}>
-        <Dropdown
-          trigger={["click"]}
-          menu={{
-            items: [
-              { key: "restore", label: "Restore from archive" },
-              { type: "divider" as const },
-              { key: "delete", label: "Delete permanently", danger: true },
-            ],
-            onClick: ({ key }) => {
-              if (key === "restore") onRestore();
-              if (key === "delete") onDelete();
-            },
-          }}
-        >
-          <button className="hb-icon-btn">
-            <MoreHorizontal size={14} />
+
+        <div className="arc-card-dates">
+          <Tooltip title={`Created: ${formatDate(sheet.createdAt)}`}>
+            <span className="arc-card-date">
+              <CalendarDays size={10} />
+              {formatRelative(sheet.createdAt)}
+            </span>
+          </Tooltip>
+          <Tooltip title={`Archived: ${formatDate(sheet.updatedAt)}`}>
+            <span className="arc-card-date">
+              <Clock size={10} />
+              {formatRelative(sheet.updatedAt)}
+            </span>
+          </Tooltip>
+        </div>
+      </div>
+
+      {/* ── actions ── */}
+      <div className="arc-card-actions" onClick={(e) => e.stopPropagation()}>
+        <button className="arc-action-btn arc-action-view" onClick={onView}>
+          <Eye size={13} />
+          View Bugs
+        </button>
+        <Tooltip title="Restore sheet to active">
+          <button className="arc-action-btn arc-action-restore" onClick={onRestore}>
+            <RotateCcw size={13} />
+            Restore
           </button>
-        </Dropdown>
-      </td>
-    </tr>
+        </Tooltip>
+        <Popconfirm
+          title="Permanently delete this sheet and all its bugs?"
+          description="This action cannot be undone."
+          okText="Delete"
+          okButtonProps={{ danger: true }}
+          onConfirm={onDelete}
+        >
+          <Tooltip title="Delete permanently">
+            <button className="arc-action-btn arc-action-delete">
+              <Trash2 size={13} />
+            </button>
+          </Tooltip>
+        </Popconfirm>
+      </div>
+    </div>
   );
 }

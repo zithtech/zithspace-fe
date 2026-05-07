@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Drawer, Form, Input, Select, DatePicker, Button, Row, Col, Typography, Space, Tag, InputNumber, notification, Divider, Avatar, Tooltip, Slider, ConfigProvider, Badge } from "antd";
+import { Drawer, Form, Input, Select, DatePicker, Button, Row, Col, Typography, Space, Tag, InputNumber, notification, Divider, Avatar, Tooltip, Slider, ConfigProvider, Badge, App } from "antd";
 import {
   FileTextOutlined, UserOutlined, CalendarOutlined, ThunderboltOutlined,
   CheckCircleOutlined, InfoCircleOutlined, CloseOutlined, PlusOutlined,
@@ -33,9 +33,10 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
   onTicketCreated,
 }) => {
   const [form] = Form.useForm();
-  const [api, contextHolder] = notification.useNotification({
-    placement: 'top',
-  });
+  const { message } = App.useApp();
+  // const [api, contextHolder] = notification.useNotification({
+  //   placement: 'top',
+  // });
   const [loading, setLoading] = useState(false);
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
 
@@ -81,12 +82,12 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
       };
 
       const savedTicket = await createTicketMutation.mutateAsync(ticketData);
-      api.success({ message: "Ticket initialized" });
+      // Removed local success message, let handleTicketCreated in TicketList handle it
       if (onTicketCreated) onTicketCreated(savedTicket);
       form.resetFields();
       onClose();
     } catch (error: any) {
-      api.error({ message: error?.message || "Failed to create" });
+      message.error(error?.message || "Failed to create");
     } finally {
       setLoading(false);
     }
@@ -104,8 +105,6 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
       footer={null}
       className="ticket-creation-slider"
     >
-      {contextHolder}
-
       {/* Premium Strong Header */}
       <div style={{
         padding: '16px 20px',

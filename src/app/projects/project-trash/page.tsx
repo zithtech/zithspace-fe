@@ -6,19 +6,19 @@ import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { Spin } from "antd";
-import TrashManagementPage from "@/components/projects/trash/TrashManagementPage";
+import ProjectTrashManagementPage from "@/components/projects/trash/ProjectTrashManagementPage";
 
-export default function TrashPage() {
+export default function ProjectTrashPage() {
   const { isLoading: authLoading } = useAuth();
-  const { canReadTicket } = usePermission();
+  const { canReadProject } = usePermission(); // Assuming we use PROJECT_READ for trash
   const router = useRouter();
 
   // Route guard
   useEffect(() => {
-    if (!authLoading && !canReadTicket) {
+    if (!authLoading && !canReadProject) {
       router.push('/dashboard');
     }
-  }, [authLoading, canReadTicket, router]);
+  }, [authLoading, canReadProject, router]);
 
   // Loading state
   if (authLoading) {
@@ -33,20 +33,20 @@ export default function TrashPage() {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <Spin size="large" tip="Loading trash repository..." />
+          <Spin size="large" tip="Loading project trash..." />
         </div>
       </MainLayout>
     );
   }
 
   // Permission check
-  if (!canReadTicket) {
+  if (!canReadProject) {
     return null;
   }
 
   return (
     <MainLayout>
-      <TrashManagementPage />
+      <ProjectTrashManagementPage />
     </MainLayout>
   );
 }

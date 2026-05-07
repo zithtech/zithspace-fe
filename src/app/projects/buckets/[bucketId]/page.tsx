@@ -918,7 +918,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
             display: flex;
             align-items: center;
             gap: 10px;
-            background: var(--bg-slate-50);
+            background: transparent !important;
             padding: 0 12px;
             border-radius: 8px;
             border: 1px solid var(--border-slate-100);
@@ -931,7 +931,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
             box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
           }
           [data-theme='dark'] .bd-search-box {
-            background: #1f2937 !important;
+            background: transparent !important;
             border-color: #374151 !important;
           }
           .bd-filter-wrap {

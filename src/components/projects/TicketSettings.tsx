@@ -54,14 +54,14 @@ export default function TicketSettings() {
   ];
 
   const renderIntegrationTab = () => (
-    <div style={{ padding: '0 48px 32px', flex: 1, overflowY: 'auto' }} className="no-scrollbar">
+    <div style={{ padding: '0 48px 32px', height: '100%', overflowY: 'auto' }}>
       <Row gutter={[24, 24]}>
         {/* Main Integration Hero */}
         <Col span={24}>
-          <Card 
-            bordered={false} 
-            className="premium-card" 
-            style={{ 
+          <Card
+            bordered={false}
+            className="premium-card"
+            style={{
               borderRadius: 16,
               overflow: 'hidden',
               boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
@@ -72,13 +72,13 @@ export default function TicketSettings() {
             <div style={{ position: 'absolute', top: -50, right: -50, width: 250, height: 250, background: 'rgba(59, 130, 246, 0.1)', borderRadius: '50%', filter: 'blur(60px)' }} />
             <Row align="middle" gutter={48}>
               <Col flex="0 0 100px">
-                <div style={{ 
-                  width: 90, 
-                  height: 90, 
-                  background: 'rgba(255, 255, 255, 0.08)', 
-                  borderRadius: 24, 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div style={{
+                  width: 90,
+                  height: 90,
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  borderRadius: 24,
+                  display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'center',
                   backdropFilter: 'blur(12px)',
                   border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -112,7 +112,7 @@ export default function TicketSettings() {
         {/* Telemetry & Synchronization */}
         <Col xs={24} lg={16}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <Card 
+            <Card
               title={
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <CloudSyncOutlined style={{ color: '#3b82f6' }} />
@@ -199,7 +199,7 @@ export default function TicketSettings() {
         {/* Integration Marketplace / Secondary */}
         <Col xs={24} lg={8}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <Card 
+            <Card
               title={<span style={{ fontWeight: 800 }}>Ecosystem Hub</span>}
               bordered={false}
               className="saas-card"
@@ -256,7 +256,7 @@ export default function TicketSettings() {
   );
 
   return (
-    <div className="no-scrollbar ts-root" style={{
+    <div className="ts-root" style={{
       margin: '0',
       height: 'calc(100vh - 104px)',
       display: 'flex',

@@ -112,6 +112,8 @@ export default function SprintPlanComponent() {
     status: "",
   });
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   useEffect(() => {
     loadData();
     loadProjects();
@@ -144,7 +146,7 @@ export default function SprintPlanComponent() {
       api.error({
         message: "Error",
         description: "Failed to load sprint plans",
-        
+
       });
     } finally {
       setLoading(false);
@@ -267,14 +269,14 @@ export default function SprintPlanComponent() {
         api.success({
           message: "Success",
           description: "Sprint Plan updated successfully",
-          
+
         });
       } else {
         await ReleasePlanService.createReleasePlan(formData);
         api.success({
           message: "Success",
           description: "Sprint Plan created successfully",
-          
+
         });
       }
 
@@ -285,7 +287,7 @@ export default function SprintPlanComponent() {
       api.error({
         message: "Error",
         description: error?.message || "Failed to save Sprint Plan",
-        
+
       });
     } finally {
       setSaving(false);
@@ -323,7 +325,7 @@ export default function SprintPlanComponent() {
       api.success({
         message: "Success",
         description: "Sprint Plan deleted successfully",
-        
+
       });
       loadData();
     } catch (error) {
@@ -337,14 +339,14 @@ export default function SprintPlanComponent() {
       api.success({
         message: "Success",
         description: "Sprint started successfully",
-        
+
       });
       loadData();
     } catch (error: any) {
       api.error({
         message: "Error",
         description: error.message || "Failed to start sprint",
-        
+
       });
     }
   };
@@ -361,7 +363,7 @@ export default function SprintPlanComponent() {
     api.success({
       message: "Success",
       description: "Sprint completed successfully",
-      
+
     });
   };
 
@@ -462,14 +464,14 @@ export default function SprintPlanComponent() {
       title: "Sprint",
       dataIndex: "name",
       key: "name",
-      width: 380,
+      width: 450,
       render: (text: string, record: ReleasePlan) => {
         const project = typeof record.project === 'object' ? record.project : null;
         const initial = (text || '?').charAt(0).toUpperCase();
         const accent =
           record.status === 'active' ? '#3b82f6' :
-          record.status === 'completed' ? '#10b981' :
-          record.status === 'planning' ? '#f59e0b' : '#64748b';
+            record.status === 'completed' ? '#10b981' :
+              record.status === 'planning' ? '#f59e0b' : '#64748b';
         return (
           <div
             className="sp-row-name"
@@ -517,9 +519,9 @@ export default function SprintPlanComponent() {
       render: (status: string) => {
         const cfg =
           status === 'active' ? { dot: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', color: '#047857', label: 'Active', pulse: true } :
-          status === 'planning' ? { dot: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)', color: '#b45309', label: 'Planning', pulse: false } :
-          status === 'completed' ? { dot: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)', color: '#1d4ed8', label: 'Completed', pulse: false } :
-          { dot: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)', color: '#475569', label: status?.toUpperCase() || '—', pulse: false };
+            status === 'planning' ? { dot: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)', color: '#b45309', label: 'Planning', pulse: false } :
+              status === 'completed' ? { dot: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)', color: '#1d4ed8', label: 'Completed', pulse: false } :
+                { dot: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)', color: '#475569', label: status?.toUpperCase() || '—', pulse: false };
         return (
           <span className="sp-status-pill" style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color }}>
             <span className={`sp-status-pill-dot ${cfg.pulse ? 'pulse' : ''}`} style={{ background: cfg.dot }} />
@@ -532,7 +534,7 @@ export default function SprintPlanComponent() {
       title: "Progress",
       dataIndex: "progress",
       key: "progress",
-      width: 220,
+      width: 250,
       render: (progress: number, record: ReleasePlan) => {
         const pct = progress || 0;
         const done = record?.completedTickets || 0;
@@ -559,7 +561,7 @@ export default function SprintPlanComponent() {
     {
       title: "Timeline",
       key: "timeline",
-      width: 220,
+      width: 250,
       render: (_: any, record: ReleasePlan) => {
         const today = dayjs();
         const start = record.startDate ? dayjs(record.startDate) : null;
@@ -619,40 +621,40 @@ export default function SprintPlanComponent() {
         );
       },
     },
-    {
-      title: "Team",
-      key: "team",
-      width: 130,
-      render: (_: any, record: ReleasePlan) => {
-        const seen = new Map<string, { name: string; color: string }>();
-        const palette = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899'];
-        (record.tickets || []).forEach((t, i) => {
-          if (t.assignee?.id && !seen.has(t.assignee.id)) {
-            seen.set(t.assignee.id, { name: t.assignee.name, color: palette[seen.size % palette.length] });
-          }
-        });
-        const members = Array.from(seen.values());
-        const visible = members.slice(0, 3);
-        const overflow = Math.max(members.length - 3, 0);
-        if (members.length === 0) {
-          return <Text style={{ fontSize: 11, color: 'var(--text-slate-400)', fontWeight: 500 }}>—</Text>;
-        }
-        return (
-          <Tooltip title={members.map(m => m.name).join(', ')}>
-            <div className="sp-avatar-stack">
-              {visible.map((m, i) => (
-                <span key={i} className="sp-avatar-stack-item" style={{ background: `${m.color}1a`, color: m.color, borderColor: `${m.color}55` }}>
-                  {m.name.charAt(0).toUpperCase()}
-                </span>
-              ))}
-              {overflow > 0 && (
-                <span className="sp-avatar-stack-item sp-avatar-stack-more">+{overflow}</span>
-              )}
-            </div>
-          </Tooltip>
-        );
-      },
-    },
+    // {
+    //   title: "Team",
+    //   key: "team",
+    //   width: 130,
+    //   render: (_: any, record: ReleasePlan) => {
+    //     const seen = new Map<string, { name: string; color: string }>();
+    //     const palette = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+    //     (record.tickets || []).forEach((t, i) => {
+    //       if (t.assignee?.id && !seen.has(t.assignee.id)) {
+    //         seen.set(t.assignee.id, { name: t.assignee.name, color: palette[seen.size % palette.length] });
+    //       }
+    //     });
+    //     const members = Array.from(seen.values());
+    //     const visible = members.slice(0, 3);
+    //     const overflow = Math.max(members.length - 3, 0);
+    //     if (members.length === 0) {
+    //       return <Text style={{ fontSize: 11, color: 'var(--text-slate-400)', fontWeight: 500 }}>—</Text>;
+    //     }
+    //     return (
+    //       <Tooltip title={members.map(m => m.name).join(', ')}>
+    //         <div className="sp-avatar-stack">
+    //           {visible.map((m, i) => (
+    //             <span key={i} className="sp-avatar-stack-item" style={{ background: `${m.color}1a`, color: m.color, borderColor: `${m.color}55` }}>
+    //               {m.name.charAt(0).toUpperCase()}
+    //             </span>
+    //           ))}
+    //           {overflow > 0 && (
+    //             <span className="sp-avatar-stack-item sp-avatar-stack-more">+{overflow}</span>
+    //           )}
+    //         </div>
+    //       </Tooltip>
+    //     );
+    //   },
+    // },
     {
       title: "",
       key: "actions",
@@ -721,9 +723,17 @@ export default function SprintPlanComponent() {
           <Col>
             <Space size={12}>
               <Button
-                icon={<ReloadOutlined />}
-                onClick={() => loadData()}
-                loading={loading}
+                icon={<ReloadOutlined spin={isRefreshing} />}
+                onClick={async () => {
+                  setIsRefreshing(true);
+                  await loadData();
+                  setIsRefreshing(false);
+                  api.success({
+                    message: "Success",
+                    description: "Sprint view refreshed",
+                  });
+                }}
+                loading={loading && !isRefreshing}
                 className="saas-button-item"
                 style={{ height: 36, fontWeight: 600 }}
               />
@@ -841,7 +851,7 @@ export default function SprintPlanComponent() {
               <Input
                 placeholder="Search by name, goal, or description"
                 variant="borderless"
-                style={{ fontSize: 13, fontWeight: 500, padding: '6px 0', flex: 1 }}
+                style={{ fontSize: 13, fontWeight: 500, padding: '6px 0', flex: 1, background: 'transparent' }}
                 value={tableFilters.search}
                 onChange={(e) => setTableFilters(prev => ({ ...prev, search: e.target.value }))}
                 allowClear
@@ -1309,9 +1319,9 @@ export default function SprintPlanComponent() {
             const ringColor = pct >= 100 ? '#10b981' : pct >= 60 ? '#3b82f6' : '#6366f1';
             const statusCfg =
               status === 'active' ? { color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)', label: 'Active' } :
-              status === 'planning' ? { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', label: 'Planning' } :
-              status === 'completed' ? { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.25)', label: 'Completed' } :
-              { color: '#64748b', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.25)', label: status?.toUpperCase() || '—' };
+                status === 'planning' ? { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', label: 'Planning' } :
+                  status === 'completed' ? { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.25)', label: 'Completed' } :
+                    { color: '#64748b', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.25)', label: status?.toUpperCase() || '—' };
             const project = typeof drawerSprintPlan.project === 'object' ? drawerSprintPlan.project : null;
 
             // Contributor aggregation
@@ -1357,8 +1367,8 @@ export default function SprintPlanComponent() {
               if (k === 'completed' || k === 'done') return { c: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.22)', label: 'Done' };
               if (k === 'in_progress' || k === 'active') return { c: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.22)', label: 'In Progress' };
               if (k === 'review') return { c: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.22)', label: 'Review' };
-              if (k === 'pending' || k === 'todo' || k === 'open') return { c: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.22)', label: k.replace(/_/g,' ') };
-              return { c: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.22)', label: k.replace(/_/g,' ') || '—' };
+              if (k === 'pending' || k === 'todo' || k === 'open') return { c: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.22)', label: k.replace(/_/g, ' ') };
+              return { c: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.22)', label: k.replace(/_/g, ' ') || '—' };
             };
 
             const prioCfg = (p: string) => {
@@ -1372,7 +1382,7 @@ export default function SprintPlanComponent() {
               <div className="sp-detail-shell">
                 {/* ── LEFT RAIL — Analytics ─────────────────────── */}
                 <aside className="sp-detail-left">
-                 
+
 
                   {/* Hero ring + KPIs */}
                   <div className="sp-detail-card">
@@ -1511,7 +1521,7 @@ export default function SprintPlanComponent() {
                     )}
                   </div>
 
-                   {/* Status banner */}
+                  {/* Status banner */}
                   <div className="sp-detail-banner" style={{ borderColor: statusCfg.border, background: statusCfg.bg }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span className="sp-status-pill" style={{ background: 'var(--bg-pure-white)', border: `1px solid ${statusCfg.border}`, color: statusCfg.color }}>
@@ -1544,7 +1554,7 @@ export default function SprintPlanComponent() {
                         <Text className="sp-card-title">Priority Mix</Text>
                       </div>
                       <div className="sp-prio-grid">
-                        {(['High','Medium','Low','None'] as const).map(k => {
+                        {(['High', 'Medium', 'Low', 'None'] as const).map(k => {
                           const v = prioMap[k] || 0;
                           const cfg = prioCfg(k);
                           const wpct = total ? Math.round((v / total) * 100) : 0;
@@ -1615,7 +1625,7 @@ export default function SprintPlanComponent() {
                         {contributors.map((c, i) => {
                           const ownership = Math.round((c.total / topContribTotal) * 100);
                           const completion = c.total ? Math.round((c.done / c.total) * 100) : 0;
-                          const palette = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899'];
+                          const palette = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
                           const color = c.id === '__unassigned__' ? '#94a3b8' : palette[i % palette.length];
                           return (
                             <div key={c.id} className="sp-contrib-row-card">
@@ -2012,7 +2022,7 @@ export default function SprintPlanComponent() {
           display: flex;
           align-items: center;
           gap: 10px;
-          background: var(--bg-slate-50);
+          background: transparent !important;
           padding: 4px 12px;
           border-radius: 10px;
           border: 1px solid var(--border-slate-200);
@@ -2021,16 +2031,16 @@ export default function SprintPlanComponent() {
           transition: all 0.2s ease;
         }
         .sp-search-box.active {
-          background: var(--bg-pure-white);
+          background: transparent !important;
           border-color: #3b82f6;
           box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
         }
         [data-theme='dark'] .sp-search-box {
-          background: #1f2937 !important;
+          background: transparent !important;
           border-color: #374151 !important;
         }
         [data-theme='dark'] .sp-search-box.active {
-          background: #0b0f1a !important;
+          background: transparent !important;
           border-color: #3b82f6 !important;
           box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
         }

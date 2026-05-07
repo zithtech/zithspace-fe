@@ -2498,6 +2498,70 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
 }
 
+/* ────────────────────────────── Time Tracker Trigger ────────────────────────── */
+.ttp-trigger {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  height: 32px !important;
+  min-width: 90px !important;
+  justify-content: center !important;
+  padding: 0 12px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(59, 130, 246, 0.25) !important;
+  background: rgba(59, 130, 246, 0.04) !important;
+  color: #1e293b !important;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace !important;
+  font-weight: 600 !important;
+  font-size: 12.5px !important;
+  font-variant-numeric: tabular-nums !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  outline: none !important;
+}
+
+[data-theme='dark'] .ttp-trigger {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #f1f5f9 !important;
+}
+
+.ttp-trigger:hover {
+  border-color: #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.08) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.05) !important;
+}
+
+.ttp-trigger-running {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  color: #10b981 !important;
+}
+
+.ttp-trigger-paused {
+  background: rgba(245, 158, 11, 0.1) !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  color: #f59e0b !important;
+}
+
+.ttp-trigger-dot {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 999px !important;
+  background: currentColor !important;
+  flex-shrink: 0 !important;
+}
+
+@keyframes ttp-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.92); }
+}
+
+.ttp-trigger-running .ttp-trigger-dot {
+  animation: ttp-pulse 1.6s ease-in-out infinite !important;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18) !important;
+}
+
 .saas-segmented-premium .ant-segmented-group {
   gap: 2px !important;
 }

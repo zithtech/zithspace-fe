@@ -243,11 +243,25 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
       {
-        key: "/projects/manage",
+        key: "projects-manage-group",
         label: "Projects",
         icon: I(FolderKanban),
-        path: "/projects/manage",
-        requiredPermission: Permissions.PROJECT_READ,
+        children: [
+          {
+            key: "/projects/manage",
+            label: "Projects",
+            icon: I(ListChecks),
+            path: "/projects/manage",
+            requiredPermission: Permissions.PROJECT_READ,
+          },
+          {
+            key: "/projects/project-trash",
+            label: "Trash",
+            icon: I(Trash2),
+            path: "/projects/project-trash",
+            requiredPermission: Permissions.PROJECT_MANAGE,
+          },
+        ]
       },
       {
         key: "timesheet-group",
@@ -391,6 +405,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             icon: I(Settings2),
             path: "/leads/settings",
+          },
+          {
+            key: "/leads/trash",
+            label: "Trash",
+            icon: I(Trash2),
+            path: "/leads/trash",
           },
         ],
       },

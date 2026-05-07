@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Typography, Tag, Input, Empty, Space, Avatar, Tooltip, Progress, Badge, Spin } from 'antd';
+import { Card, Row, Col, Typography, Tag, Input, Empty, Space, Avatar, Tooltip, Progress, Badge, Spin, Modal, message, Button } from 'antd';
 import {
   SearchOutlined,
   ProjectOutlined,
@@ -11,10 +11,12 @@ import {
   SyncOutlined,
   ClockCircleOutlined,
   LayoutOutlined,
-  ArrowRightOutlined
+  ArrowRightOutlined,
+  DeleteOutlined,
+  ExclamationCircleFilled
 } from '@ant-design/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Suspense } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProjectService } from '@/services/projectService';
@@ -36,9 +38,10 @@ function ProjectSelectContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
-  const { canReadProject } = usePermission();
+  const { canReadProject, canDeleteProject } = usePermission();
   const [search, setSearch] = useState('');
   const [isRedirecting, setIsRedirecting] = useState(true);
+  const queryClient = useQueryClient();
 
   // Route guard
   useEffect(() => {
@@ -55,6 +58,35 @@ function ProjectSelectContent() {
     staleTime: 5 * 60 * 1000,
     enabled: !!user,
   });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => ProjectService.deleteProject(id),
+    onSuccess: () => {
+      message.success('Project moved to trash');
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+    onError: (err: any) => {
+      message.error(err.message || 'Failed to delete project');
+    }
+  });
+
+  const handleDelete = (e: React.MouseEvent, id: string, name: string) => {
+    e.stopPropagation(); // Don't trigger card click
+    
+    Modal.confirm({
+      title: 'Are you sure you want to delete this project?',
+      icon: <ExclamationCircleFilled style={{ color: '#ef4444' }} />,
+      content: `The project "${name}" will be moved to trash.`,
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      centered: true,
+      onOk: () => {
+        return deleteMutation.mutateAsync(id);
+      },
+    });
+  };
 
   const projects = Array.isArray(response) ? response : (response?.data || []);
   const isLoading = authLoading || projectsLoading;
@@ -163,7 +195,7 @@ function ProjectSelectContent() {
                 height: 48,
                 fontSize: 14,
                 border: '1px solid var(--border-color)',
-                background: 'var(--bg-pure-white)',
+                background: 'transparent',
                 boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                 padding: '0 16px'
               }}
@@ -274,6 +306,24 @@ function ProjectSelectContent() {
                           >
                             {project?.status || 'Active'}
                           </Tag>
+
+                          {canDeleteProject && searchParams.get('select') !== 'true' && (
+                            <Tooltip title="Delete Project">
+                              <Button
+                                type="text"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={(e) => project?.id && handleDelete(e, project.id, project.name || 'Untitled Project')}
+                                style={{ 
+                                  marginLeft: 8, 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center',
+                                  borderRadius: 8
+                                }}
+                              />
+                            </Tooltip>
+                          )}
                         </div>
 
                         {/* Tag/Code Badge & Description */}

@@ -137,9 +137,8 @@ function DashboardContent() {
           height: 28,
           borderRadius: 8,
           background: accent ? `${accent}14` : token.colorFillAlter,
-          border: `1px solid ${
-            accent ? `${accent}33` : token.colorBorderSecondary
-          }`,
+          border: `1px solid ${accent ? `${accent}33` : token.colorBorderSecondary
+            }`,
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
@@ -332,35 +331,35 @@ function DashboardContent() {
   // ─── Stats ────────────────────────────────────────────────────────
   const stats = dashboardData
     ? [
-        {
-          eyebrow: "Total Members",
-          value: dashboardData.stats.totalMembers,
-          trend: dashboardData.trends.memberGrowth,
-          icon: <TeamOutlined />,
-          accent: "#0EA5E9",
-        },
-        {
-          eyebrow: "Active Projects",
-          value: dashboardData.stats.activeProjects,
-          trend: dashboardData.trends.projectGrowth,
-          icon: <ProjectOutlined />,
-          accent: "#7C3AED",
-        },
-        {
-          eyebrow: "Tickets · Closed / Total",
-          value: dashboardData.stats.tickets.display,
-          trend: dashboardData.trends.ticketCompletionRate,
-          icon: <TrophyOutlined />,
-          accent: "#F59E0B",
-        },
-        {
-          eyebrow: "Today's Attendance",
-          value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
-          trend: `${dashboardData.stats.attendance.attendanceRate}% Present`,
-          icon: <ClockCircleOutlined />,
-          accent: "#10B981",
-        },
-      ]
+      {
+        eyebrow: "Total Members",
+        value: dashboardData.stats.totalMembers,
+        trend: dashboardData.trends.memberGrowth,
+        icon: <TeamOutlined />,
+        accent: "#0EA5E9",
+      },
+      {
+        eyebrow: "Active Projects",
+        value: dashboardData.stats.activeProjects,
+        trend: dashboardData.trends.projectGrowth,
+        icon: <ProjectOutlined />,
+        accent: "#7C3AED",
+      },
+      {
+        eyebrow: "Tickets · Closed / Total",
+        value: dashboardData.stats.tickets.display,
+        trend: dashboardData.trends.ticketCompletionRate,
+        icon: <TrophyOutlined />,
+        accent: "#F59E0B",
+      },
+      {
+        eyebrow: "Today's Attendance",
+        value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
+        trend: `${dashboardData.stats.attendance.attendanceRate}% Present`,
+        icon: <ClockCircleOutlined />,
+        accent: "#10B981",
+      },
+    ]
     : [];
 
   // ─── Project Pulse render ─────────────────────────────────────────
@@ -630,8 +629,7 @@ function DashboardContent() {
         accent: "#F43F5E",
         items: onLeave,
         format: (l: any) =>
-          `${l.type.replace(/_/g, " ")} · ${l.duration} ${
-            l.durationType === "HOURS" ? "hrs" : "days"
+          `${l.type.replace(/_/g, " ")} · ${l.duration} ${l.durationType === "HOURS" ? "hrs" : "days"
           }`,
       },
       {

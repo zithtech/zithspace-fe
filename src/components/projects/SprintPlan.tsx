@@ -22,6 +22,7 @@ import {
   Tooltip,
   ConfigProvider,
   Divider,
+  App,
 } from "antd";
 import {
   PlusOutlined,
@@ -59,6 +60,7 @@ import ReleasePlanService, {
 } from "@/services/releasePlanService";
 import { ProjectService } from "@/services/projectService";
 import { SprintCompletionModal } from "./sprint-completion";
+import { useSocket } from "@/providers/SocketProvider";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -75,6 +77,8 @@ export default function SprintPlanComponent() {
   const [api, contextHolder] = notification.useNotification({
     placement: 'top',
   });
+  const { message } = App.useApp();
+  const { socket, connected } = useSocket();
 
   // State management
   const [sprintPlans, setSprintPlans] = useState<ReleasePlan[]>([]);
@@ -118,6 +122,26 @@ export default function SprintPlanComponent() {
     loadData();
     loadProjects();
   }, []);
+
+  // Socket listener for real-time updates
+  useEffect(() => {
+    if (!socket || !connected) return;
+
+    const handlePlanEvent = () => {
+      console.log("Socket: Plan event received, reloading data...");
+      loadData();
+    };
+
+    socket.on("plan:created", handlePlanEvent);
+    socket.on("plan:updated", handlePlanEvent);
+    socket.on("plan:deleted", handlePlanEvent);
+
+    return () => {
+      socket.off("plan:created", handlePlanEvent);
+      socket.off("plan:updated", handlePlanEvent);
+      socket.off("plan:deleted", handlePlanEvent);
+    };
+  }, [socket, connected]);
 
   const loadData = async (filtersOverride?: any) => {
     try {
@@ -174,6 +198,16 @@ export default function SprintPlanComponent() {
       console.error("Failed to load projects:", error);
     }
   };
+
+  // Listen for socket events (via custom DOM event dispatched from useTicketSocketEvents)
+  useEffect(() => {
+    const handler = () => {
+      console.log("Re-loading Sprint Plan data due to socket event...");
+      loadData();
+    };
+    window.addEventListener("zith:plan_changed", handler);
+    return () => window.removeEventListener("zith:plan_changed", handler);
+  }, [loadData]);
 
   const loadTicketsByProject = useCallback(
     async (projectId: string, search?: string, isSearching?: boolean) => {
@@ -266,29 +300,26 @@ export default function SprintPlanComponent() {
 
       if (editingPlan) {
         await ReleasePlanService.updateReleasePlan(editingPlan.id, formData);
-        api.success({
-          message: "Success",
-          description: "Sprint Plan updated successfully",
-
-        });
+        message.success(`Sprint Plan "${values.name}" updated successfully`);
       } else {
         await ReleasePlanService.createReleasePlan(formData);
-        api.success({
-          message: "Success",
-          description: "Sprint Plan created successfully",
-
-        });
+        message.success(`Sprint Plan "${values.name}" created successfully`);
       }
 
       handleCloseModal();
       loadData();
     } catch (error: any) {
       console.error("Failed to save Sprint Plan:", error);
-      api.error({
-        message: "Error",
-        description: error?.message || "Failed to save Sprint Plan",
-
-      });
+      const errorMessage = error?.message || "Failed to save Sprint Plan";
+      
+      if (errorMessage.includes("already exists")) {
+        message.error(errorMessage);
+      } else {
+        api.error({
+          message: "Error",
+          description: errorMessage,
+        });
+      }
     } finally {
       setSaving(false);
     }
@@ -322,11 +353,7 @@ export default function SprintPlanComponent() {
   const handleDelete = async (planId: string) => {
     try {
       await ReleasePlanService.deleteReleasePlan(planId);
-      api.success({
-        message: "Success",
-        description: "Sprint Plan deleted successfully",
-
-      });
+      message.success("Sprint Plan deleted successfully");
       loadData();
     } catch (error) {
       console.error("Failed to delete Sprint Plan:", error);
@@ -336,11 +363,7 @@ export default function SprintPlanComponent() {
   const handleStartSprint = async (plan: ReleasePlan) => {
     try {
       await ReleasePlanService.startSprint(plan.id);
-      api.success({
-        message: "Success",
-        description: "Sprint started successfully",
-
-      });
+      message.success("Sprint started successfully");
       loadData();
     } catch (error: any) {
       api.error({
@@ -360,11 +383,7 @@ export default function SprintPlanComponent() {
     setSprintCompletionModalOpen(false);
     setSelectedSprintId(null);
     loadData();
-    api.success({
-      message: "Success",
-      description: "Sprint completed successfully",
-
-    });
+    message.success("Sprint completed successfully");
   };
 
   const handleCloseModal = () => {

@@ -479,12 +479,20 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [addNodeParentId, setAddNodeParentId] = useState<string | null>(null);
     const [addNodeType, setAddNodeType] = useState<'file' | 'folder'>('folder');
     const [isCreatingNode, setIsCreatingNode] = useState(false);
-    const [form] = Form.useForm();
+    const form = Form.useForm()[0];
     const queryClient = useQueryClient();
     const [messageApi, contextHolder] = message.useMessage();
     const [modal, modalContextHolder] = Modal.useModal();
+    const lastSavedVersionRef = useRef<number | null>(null);
+    const hasInitialLoadRef = useRef(false);
 
-    // Hub Rename State
+    // Fetch selected document content
+    const { data: docData, isLoading: isDocumentLoading, refetch: refetchDocument } = useQuery({
+        queryKey: ['document', selectedDoc],
+        queryFn: () => DocumentHubService.getDocument(selectedDoc),
+        enabled: !!selectedDoc && selectedDoc !== 'api-ref', // Don't fetch if placeholder
+    });
+
     const [isEditingHubName, setIsEditingHubName] = useState(false);
     const [hubName, setHubName] = useState('');
 
@@ -496,12 +504,12 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         }
     }, [documentHub?.name]);
 
-    // Fetch selected document content
-    const { data: documentContent, isLoading: isDocumentLoading, refetch: refetchDocument } = useQuery({
-        queryKey: ['document', selectedDoc],
-        queryFn: () => DocumentHubService.getDocument(selectedDoc),
-        enabled: !!selectedDoc && selectedDoc !== 'api-ref', // Don't fetch if placeholder
-    });
+    // Sync lastSavedVersionRef with the loaded document's version
+    useEffect(() => {
+        if (docData && typeof (docData as any).version === 'number') {
+            lastSavedVersionRef.current = (docData as any).version;
+        }
+    }, [docData]);
 
     // Fetch document history
     const { data: documentHistory = [], isLoading: isHistoryLoading, refetch: refetchHistory } = useQuery({
@@ -548,10 +556,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         editor,
         documentId: selectedDoc && selectedDoc !== 'api-ref' ? selectedDoc : null,
         initialVersion:
-            documentContent && typeof (documentContent as any).version === 'number'
-                ? (documentContent as any).version
+            docData && typeof (docData as any).version === 'number'
+                ? (docData as any).version
                 : null,
-        initialUpdatedAt: (documentContent as any)?.updatedAt ?? null,
+        initialUpdatedAt: (docData as any)?.updatedAt ?? null,
         enabled: !previewVersion,
         onSaved: (updated: any) => {
             // Push the freshly-saved row directly into the React Query cache
@@ -559,6 +567,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             // serve the stale cached snapshot before a refetch lands, so the
             // user's just-saved edits would appear to be missing.
             if (updated && updated.id) {
+                lastSavedVersionRef.current = updated.version;
                 queryClient.setQueryData(['document', updated.id], updated);
             }
             if (isHistoryOpen) refetchHistory();
@@ -575,8 +584,9 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         notifyChange,
         resync,
         beginProgrammaticUpdate,
+        endProgrammaticUpdate,
     } = autosave;
-    const isDirty = saveStatus === 'dirty' || saveStatus === 'saving';
+    const isDirty = autosave.isDirty || saveStatus === 'saving';
     const isSaving = saveStatus === 'saving';
 
     // Expand all nodes by default when data loads and select first document
@@ -623,6 +633,18 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         const isSwitchingDoc = lastLoadedIdRef.current !== currentId;
         lastLoadedIdRef.current = currentId;
 
+        if (isSwitchingDoc) {
+            lastSavedVersionRef.current = null;
+        }
+
+        const incomingVersion = (docData as any)?.version ?? null;
+        const ed = editor as any;
+        const isActuallyEmpty = ed.document.length === 1 && ed.document[0].content.length === 0;
+
+        if (!isSwitchingDoc && !previewVersion && !isActuallyEmpty && incomingVersion !== null && lastSavedVersionRef.current === incomingVersion) {
+            return;
+        }
+
         let contentToLoad: any[] = [];
         let isProgrammaticLoad = false;
 
@@ -630,8 +652,8 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             contentToLoad = Array.isArray(previewVersion.content) ? previewVersion.content : [];
             editor.isEditable = false; // Read-only in preview
             isProgrammaticLoad = true;
-        } else if (documentContent?.content) {
-            contentToLoad = Array.isArray(documentContent.content) ? documentContent.content : [];
+        } else if (docData?.content) {
+            contentToLoad = Array.isArray(docData.content) ? docData.content : [];
             editor.isEditable = true; // Editable otherwise
             isProgrammaticLoad = true;
         } else {
@@ -644,7 +666,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
 
         // --- Selection preservation logic ---
         // BlockNote's replaceBlocks always resets the text cursor to the end.
-        // To prevent this during autosave (where documentContent updates after
+        // To prevent this during autosave (where docData updates after
         // every save), we only run replaceBlocks if:
         // 1. We are switching to a DIFFERENT document or version.
         // 2. The server content is actually different from what we have.
@@ -659,24 +681,29 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             // 1. If we aren't switching docs, and we have unsaved changes, 
             //    NEVER overwrite the editor. The autosave hook will eventually 
             //    sync our changes to the server.
-            if (!isSwitchingDoc && !previewVersion && (isDirty || isSaving)) {
+            // We use getIsDirty() for a synchronous check to avoid stale state.
+            const currentlyDirty = autosave.getIsDirty() || saveStatus === 'saving';
+
+            if (!isSwitchingDoc && !previewVersion && currentlyDirty) {
                 // Still need to resync the version if it changed (post-save)
-                const v = typeof (documentContent as any)?.version === 'number'
-                    ? (documentContent as any).version
+                const v = typeof (docData as any)?.version === 'number'
+                    ? (docData as any).version
                     : null;
                 resync(v, false);
                 return;
             }
 
             // 2. Deep compare to skip if identical.
-            const sameContent =
-                JSON.stringify(editor.document) === JSON.stringify(blocksToLoad);
+            // We strip any blocks that might have been added by BlockNote defaults
+            // to ensure a clean comparison.
+            const currentBlocks = JSON.stringify(editor.document);
+            const incomingBlocks = JSON.stringify(blocksToLoad);
 
-            if (sameContent) {
+            if (currentBlocks === incomingBlocks) {
                 if (isProgrammaticLoad) {
                     const v =
-                        !previewVersion && typeof (documentContent as any)?.version === 'number'
-                            ? (documentContent as any).version
+                        !previewVersion && typeof (docData as any)?.version === 'number'
+                            ? (docData as any).version
                             : null;
                     resync(v);
                 }
@@ -704,15 +731,29 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             editor.replaceBlocks(editor.document, [{ type: "paragraph", content: [] }]);
         }
 
+        endProgrammaticUpdate();
+
         // Restore selection if we aren't switching documents
         if (selection && !isSwitchingDoc) {
             try {
-                // We try to restore the cursor to the same block. If the block 
-                // still exists with the same ID, this will work perfectly.
-                // Restore to the exact character index if available
                 const sel = selection as any;
                 if (sel && sel.block) {
-                    editor.setTextCursorPosition(sel.block, sel.index);
+                    // Try to find the block by ID in the new content to be precise
+                    const blockId = sel.block.id;
+                    const blockExists = !!editor.getBlock(blockId);
+
+                    // Small delay to let Mantine/BlockNote settle
+                    setTimeout(() => {
+                        if (!editor) return;
+                        try {
+                            if (blockExists) {
+                                editor.setTextCursorPosition(blockId, sel.index);
+                            } else {
+                                // Fallback to the original block object if ID search failed
+                                editor.setTextCursorPosition(sel.block, sel.index);
+                            }
+                        } catch { }
+                    }, 10);
                 }
             } catch (e) {
                 // If the block is gone (rare during autosave), just let it go.
@@ -724,12 +765,12 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         // server.
         if (isProgrammaticLoad) {
             const v =
-                !previewVersion && typeof (documentContent as any)?.version === 'number'
-                    ? (documentContent as any).version
+                !previewVersion && typeof (docData as any)?.version === 'number'
+                    ? (docData as any).version
                     : null;
             resync(v);
         }
-    }, [documentContent, editor, previewVersion, resync, beginProgrammaticUpdate, isDirty, isSaving, selectedDoc]);
+    }, [docData, editor, previewVersion, resync, beginProgrammaticUpdate, isDirty, isSaving, selectedDoc]);
 
     useEffect(() => {
         const handleFullScreenChange = () => {
@@ -1557,13 +1598,13 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                             </Tooltip>
                             <div className="h-5 w-px mx-2" style={{ backgroundColor: 'var(--border-slate-200)' }} />
                             <div className="flex items-center gap-2.5 min-w-0">
-                                <Tooltip title={documentContent?.title} mouseEnterDelay={0.5}>
+                                <Tooltip title={docData?.title} mouseEnterDelay={0.5}>
                                     <h2
                                         className="text-[15px] font-semibold truncate max-w-[420px] tracking-tight"
                                         style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}
                                     >
                                         {(() => {
-                                            const t = documentContent?.title;
+                                            const t = docData?.title;
                                             if (!t) return 'Select a document';
                                             return t.length > 24 ? `${t.slice(0, 27)}…` : t;
                                         })()}
@@ -1839,22 +1880,24 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 open={isShareOpen}
                 onClose={() => setIsShareOpen(false)}
                 entityId={selectedDoc}
-                entityTitle={documentContent?.title || ''}
+                entityTitle={docData?.title || ''}
                 entityType="document"
-                currentVisibility={documentContent?.visibility || 'private'}
-                currentShareToken={documentContent?.shareToken || null}
+                currentVisibility={docData?.visibility || 'private'}
+                currentShareToken={docData?.shareToken || null}
             />
 
-            <AiEditDocModal
-                open={isAiEditOpen}
-                onClose={() => setIsAiEditOpen(false)}
-                editor={editor}
-                onApplied={() => {
-                    // The autosave hook picks up the editor's onChange after the
-                    // applied replaceBlocks/insertBlocks, so no manual save here.
-                    notifyChange();
-                }}
-            />
+            {editor && (
+                <AiEditDocModal
+                    open={isAiEditOpen}
+                    onClose={() => setIsAiEditOpen(false)}
+                    editor={editor}
+                    onApplied={() => {
+                        // The autosave hook picks up the editor's onChange after the
+                        // applied replaceBlocks/insertBlocks, so no manual save here.
+                        notifyChange();
+                    }}
+                />
+            )}
 
             <Modal
                 open={isAddModalOpen}

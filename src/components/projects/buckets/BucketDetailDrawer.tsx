@@ -51,51 +51,12 @@ export function BucketDetailDrawer({
   open,
   onClose,
 }: BucketDetailDrawerProps) {
-  const { notification: notifyApi } = App.useApp();
+  const { message: messageApi } = App.useApp();
   const [activeTab, setActiveTab] = useState("overview");
   const [memberManagerOpen, setMemberManagerOpen] = useState(false);
 
   const { data: bucket, isLoading, refetch } = useBucket(bucketId || '', !!bucketId);
   const removeMember = useRemoveBucketMember();
-
-  const showTinyToast = (
-    kind: 'success' | 'error',
-    label: string
-  ) => {
-    const palette =
-      kind === 'success'
-        ? { dot: '#10b981', icon: '✓' }
-        : { dot: '#ef4444', icon: '!' };
-
-    notifyApi.open({
-      key: 'bucket-detail-toast',
-      placement: 'top',
-      duration: 3,
-      className: 'tiny-toast',
-      message: (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          <span
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
-              background: palette.dot,
-              color: '#fff',
-              fontSize: 10,
-              fontWeight: 900,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            {palette.icon}
-          </span>
-          {label}
-        </span>
-      ),
-    });
-  };
 
   if (!bucketId) return null;
 
@@ -103,10 +64,10 @@ export function BucketDetailDrawer({
     if (!bucket) return;
     try {
       await removeMember.mutateAsync({ bucketId: bucket.id, userId });
-      showTinyToast('success', "Member removed successfully");
+      messageApi.success("Member removed successfully");
       refetch();
     } catch (error: any) {
-      showTinyToast('error', error.message || "Failed to remove member");
+      messageApi.error(error.message || "Failed to remove member");
     }
   };
 

@@ -80,7 +80,6 @@ import {
 } from "@/utils/ticketUtils";
 import { SettingsService } from "@/services/settingsService";
 import { useTickets, useKanbanTickets, useUpdateTicket, useDeleteTicket, useAllTicketTags } from "@/hooks/useTickets";
-import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
 import { useAllProjects, useMembers } from "@/hooks/useGlobalData";
 import { InlineCreateTicket } from "./InlineCreateTicket";
 import { TicketFilters } from "./TicketFilters";
@@ -452,8 +451,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     }
   };
 
-  // Enable live updates
-  useTicketSocketEvents();
+  // useTicketSocketEvents(); // Moved to MainLayout for global coverage
 
   // --- Effects ---
 

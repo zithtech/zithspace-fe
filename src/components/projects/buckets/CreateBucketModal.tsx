@@ -44,7 +44,7 @@ export function CreateBucketModal({
   onClose,
   onSuccess,
 }: CreateBucketModalProps) {
-  const { notification: notifyApi } = App.useApp();
+  const { message: messageApi } = App.useApp();
   const [form] = Form.useForm();
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
 
@@ -69,45 +69,6 @@ export function CreateBucketModal({
     }
   }, [open, bucket, form]);
 
-  const showTinyToast = (
-    kind: 'success' | 'error',
-    label: string
-  ) => {
-    const palette =
-      kind === 'success'
-        ? { dot: '#10b981', icon: '✓' }
-        : { dot: '#ef4444', icon: '!' };
-
-    notifyApi.open({
-      key: 'bucket-save-toast',
-      placement: 'top',
-      duration: 3,
-      className: 'tiny-toast',
-      message: (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          <span
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
-              background: palette.dot,
-              color: '#fff',
-              fontSize: 10,
-              fontWeight: 900,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            {palette.icon}
-          </span>
-          {label}
-        </span>
-      ),
-    });
-  };
-
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
@@ -127,10 +88,10 @@ export function CreateBucketModal({
 
       if (isEditing && bucket) {
         await updateBucket.mutateAsync({ id: bucket.id, data });
-        showTinyToast('success', "Hub parameters updated successfully");
+        messageApi.success("Hub parameters updated successfully");
       } else {
         await createBucket.mutateAsync(data);
-        showTinyToast('success', "New task repository initialized");
+        messageApi.success("New task repository initialized");
       }
 
       onSuccess();
@@ -140,7 +101,7 @@ export function CreateBucketModal({
         return;
       }
       console.error("Failed to save bucket:", error);
-      showTinyToast('error', error.message || "Failed to save hub");
+      messageApi.error(error.message || "Failed to save hub");
     }
   };
 

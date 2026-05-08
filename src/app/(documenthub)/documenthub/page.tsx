@@ -60,6 +60,7 @@ import dayjs from "dayjs";
 import TrashDrawer from "@/components/documenthub/TrashDrawer";
 import DocumentHubDashboard from "@/components/documenthub/DocumentHubDashboard";
 import AiCreateHubModal from "@/components/documenthub/AiCreateHubModal";
+import { useTicketDrawer } from "@/context/TicketDrawerContext";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -72,6 +73,7 @@ const InlineTicketSelector = ({
 }: any) => {
   const [searchValue, setSearchValue] = React.useState("");
   const [isEditing, setIsEditing] = React.useState(false);
+  const { open: openTicketDrawer } = useTicketDrawer();
   const isOwner = user?.id === record.createdById;
 
   // Use the hook locally for each row to avoid state conflicts
@@ -116,14 +118,24 @@ const InlineTicketSelector = ({
   if (record.ticketId && !isEditing) {
     return (
       <div
-        onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-        className="flex flex-col py-0.5 px-2 hover:bg-sky-50 rounded-md cursor-pointer transition-colors group"
+        className="flex flex-col py-0.5 px-2 hover:bg-sky-50 rounded-md transition-colors group"
         style={{ width: 'fit-content', maxWidth: '100%' }}
       >
-        <span className="font-semibold text-sky-500 group-hover:text-sky-600" style={{ fontSize: '11px', lineHeight: '1.2' }}>
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => { e.stopPropagation(); openTicketDrawer(record.ticketId); }}
+          className="font-semibold text-sky-500 group-hover:text-sky-600 cursor-pointer"
+          style={{ fontSize: '11px', lineHeight: '1.2' }}
+        >
           {record.ticket?.ticketNumber}
         </span>
-        <span className="text-slate-400 truncate group-hover:text-slate-500" style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '160px' }}>
+        <span
+          onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+          className="text-slate-400 truncate group-hover:text-slate-500 cursor-pointer"
+          style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '160px' }}
+          title="Click to change ticket"
+        >
           {record.ticket?.title}
         </span>
       </div>

@@ -11,6 +11,7 @@ import { App as AntdApp } from "antd";
 import { ThemeProvider } from "@/context/ThemeContext";
 import ThemeConfigProvider from "@/providers/ThemeConfigProvider";
 import { LayoutProvider } from "@/context/LayoutContext";
+import { TicketDrawerProvider } from "@/context/TicketDrawerContext";
 
 export default function RootLayout({
   children,
@@ -29,7 +30,9 @@ export default function RootLayout({
                     <AuthProvider>
                       <QueryProvider>
                         <SocketProvider>
-                          <LayoutProvider>{children}</LayoutProvider>
+                          <LayoutProvider>
+                            <TicketDrawerProvider>{children}</TicketDrawerProvider>
+                          </LayoutProvider>
                         </SocketProvider>
                       </QueryProvider>
                     </AuthProvider>

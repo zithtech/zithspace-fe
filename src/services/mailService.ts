@@ -66,7 +66,10 @@ export const MailService = {
     async getContacts() {
         return await api.get("/api/mail/contacts");
     },
-
+    async getUnreadCount() {
+        const response = await api.get("/api/mail/unread-count");
+        return response?.data || response || { unreadCount: 0 };
+    },
     async deleteThread(id: string) {
         return await api.delete(`/api/mail/threads/${id}`);
     },
@@ -104,5 +107,22 @@ export const MailService = {
     async getStatus(provider: MailProvider) {
         // Shared with calendar status usually, but we can have specific mail status if needed
         return await api.get(`/api/calendar/${provider}/status`);
+    },
+
+    // Invoice Mail Settings (New)
+    async getInvoiceMailSettings() {
+        return await api.get("/api/mail/invoice-settings");
+    },
+
+    async setInvoiceMail(data: { email: string, provider: string, integrationId: string }) {
+        return await api.post("/api/mail/invoice-mail", data);
+    },
+
+    async verifyInvoiceMail(token: string) {
+        return await api.post("/api/mail/verify", { token });
+    },
+
+    async resendInvoiceMailVerification(email: string) {
+        return await api.post("/api/mail/resend-verification", { email });
     }
 };

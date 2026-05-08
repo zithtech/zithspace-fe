@@ -123,6 +123,22 @@ export class CalendarService {
     }
 
     /**
+     * Check for any overlapping events for the current user.
+     */
+    static async checkOverlap(startTime: string, endTime: string, excludeEventId?: string): Promise<{ hasOverlap: boolean; count: number; overlaps: any[] }> {
+        try {
+            return await api.post<{ hasOverlap: boolean; count: number; overlaps: any[] }>("/api/calendar/events/check-overlap", {
+                startTime,
+                endTime,
+                excludeEventId
+            });
+        } catch (error) {
+            if (error instanceof ApiError) throw new Error(error.message);
+            throw new Error("Failed to check for event overlaps");
+        }
+    }
+
+    /**
      * Fetch events from all connected calendars.
      */
     static async getEvents(filters: EventFilters = {}): Promise<CalendarEvent[]> {

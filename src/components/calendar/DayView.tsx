@@ -317,6 +317,24 @@ export default function DayView({ currentDate, events, onEventClick, onTimeSlotC
                     })}
                 </div>
             </div>
+
+            <style jsx global>{`
+                .time-slot-hover:hover {
+                    background: #f8fafc !important;
+                }
+                .event-card-hover:hover {
+                    transform: scale(1.005);
+                    box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+                    z-index: 10;
+                }
+                .no-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                .no-scrollbar {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
         </div>
     );
 }

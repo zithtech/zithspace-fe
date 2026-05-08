@@ -95,7 +95,7 @@ export const usePermission = () => {
     canReadInvoiceReport:    hasPermission(Permissions.REPORT_READ),
 
     // ─── Accounts ───────────────────────────────────────────────
-    canReadAccountDashboard: hasPermission(Permissions.ACCOUNT_DASHBOARD_READ),
+    canReadAccountDashboard: hasPermission(Permissions.ACCOUNT_READ),
     canCreateAccount:        hasPermission(Permissions.ACCOUNT_CREATE),
     canReadAccount:          hasPermission(Permissions.ACCOUNT_READ),
     canUpdateAccount:        hasPermission(Permissions.ACCOUNT_UPDATE),

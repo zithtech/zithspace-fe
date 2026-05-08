@@ -80,7 +80,6 @@ export const Permissions = {
   INVOICE_STATUS_UPDATE:   'invoice.status.update',
 
   // Accounts
-  ACCOUNT_DASHBOARD_READ: 'account.dashboard.read',
   ACCOUNT_READ:           'account.read',
   ACCOUNT_CREATE:         'account.create',
   ACCOUNT_UPDATE:         'account.update',
@@ -181,6 +180,7 @@ export const Permissions = {
   PAYROLL_PROCESS:         'payroll.process',
   PAYROLL_MANAGE:          'payroll.manage',
   SALARY_READ:             'salary.read',
+  SALARY_APPROVE:          'salary.approve',
   SALARY_MANAGE:           'salary.manage',
 
   // Documents

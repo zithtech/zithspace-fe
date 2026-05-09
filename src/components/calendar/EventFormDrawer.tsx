@@ -218,10 +218,10 @@ export default function EventFormDrawer({
                                 <Text style={{ color: '#64748b' }}>Double-booking is not allowed. The following event(s) are already scheduled during this time:</Text>
                                 <div style={{ 
                                     marginTop: '16px', 
-                                    background: '#fef2f2', 
+                                    background: 'var(--cal-danger-bg)', 
                                     padding: '12px', 
                                     borderRadius: '12px',
-                                    border: '1px solid #fee2e2'
+                                    border: '1px solid var(--cal-danger-border)'
                                 }}>
                                     {overlap.overlaps?.slice(0, 2).map((o: any, idx: number) => (
                                         <div key={o.id} style={{ marginBottom: idx === 0 && (overlap.count || 0) > 1 ? '12px' : 0 }}>
@@ -244,7 +244,7 @@ export default function EventFormDrawer({
                                         </div>
                                     )}
                                 </div>
-                                <Text style={{ marginTop: '20px', display: 'block', fontWeight: 600, color: '#1e293b' }}>
+                                <Text style={{ marginTop: '20px', display: 'block', fontWeight: 600, color: 'var(--cal-text-strong)' }}>
                                     Please select a different time slot to proceed.
                                 </Text>
                             </div>
@@ -316,14 +316,14 @@ export default function EventFormDrawer({
             <Radio.Group onChange={(e) => setDeleteAction(e.target.value)} value={deleteAction}>
                 <Space direction="vertical" size="middle">
                     <Radio value={0}>
-                        <Text strong>Delete for one day</Text>
-                        <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginLeft: '24px' }}>
+                        <Text strong style={{ color: 'var(--cal-text-strong)' }}>Delete for one day</Text>
+                        <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginLeft: '24px', color: 'var(--cal-text-muted)' }}>
                             Only this occurrence will be removed
                         </Text>
                     </Radio>
                     <Radio value={2}>
-                        <Text strong>Delete for all days</Text>
-                        <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginLeft: '24px' }}>
+                        <Text strong style={{ color: 'var(--cal-text-strong)' }}>Delete for all days</Text>
+                        <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginLeft: '24px', color: 'var(--cal-text-muted)' }}>
                             The entire recurring series will be removed
                         </Text>
                     </Radio>
@@ -337,14 +337,14 @@ export default function EventFormDrawer({
             <Radio.Group onChange={(e) => setUpdateAction(e.target.value)} value={updateAction}>
                 <Space direction="vertical" size="middle">
                     <Radio value={0}>
-                        <Text strong>Update this event only</Text>
-                        <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginLeft: '24px' }}>
+                        <Text strong style={{ color: 'var(--cal-text-strong)' }}>Update this event only</Text>
+                        <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginLeft: '24px', color: 'var(--cal-text-muted)' }}>
                             Only this occurrence will be updated
                         </Text>
                     </Radio>
                     <Radio value={2}>
-                        <Text strong>Update all events</Text>
-                        <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginLeft: '24px' }}>
+                        <Text strong style={{ color: 'var(--cal-text-strong)' }}>Update all events</Text>
+                        <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginLeft: '24px', color: 'var(--cal-text-muted)' }}>
                             The entire recurring series will be updated
                         </Text>
                     </Radio>
@@ -363,18 +363,18 @@ export default function EventFormDrawer({
                 closable={false}
                 maskClosable={!loading}
                 styles={{
-                    body: { padding: 0 },
+                    body: { padding: 0, background: 'var(--cal-surface)' },
                     mask: { backdropFilter: 'blur(6px)' }
                 }}
             >
                 {/* Header */}
                 <div style={{
                     padding: '20px 24px',
-                    borderBottom: '1px solid #f1f5f9',
+                    borderBottom: '1px solid var(--cal-border)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)',
+                    background: 'var(--cal-surface)',
                     position: 'sticky',
                     top: 0,
                     zIndex: 10
@@ -383,20 +383,20 @@ export default function EventFormDrawer({
                         <div style={{
                             width: '40px',
                             height: '40px',
-                            background: '#eff6ff',
+                            background: 'var(--cal-brand-soft)',
                             borderRadius: '12px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            boxShadow: '0 2px 4px rgba(59, 130, 246, 0.1)'
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
                         }}>
                             <CalendarOutlined style={{ color: '#3b82f6', fontSize: '20px' }} />
                         </div>
                         <div>
-                            <Title level={4} style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>
+                            <Title level={4} style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--cal-text-strong)' }}>
                                 {editEvent ? "Edit Event" : "New Event"}
                             </Title>
-                            <Text style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
+                            <Text style={{ fontSize: '12px', color: 'var(--cal-text-muted)', fontWeight: 500 }}>
                                 {editEvent ? "Modify your event details" : "Schedule a new calendar entry"}
                             </Text>
                         </div>
@@ -443,10 +443,11 @@ export default function EventFormDrawer({
                                     style={{
                                         borderRadius: '12px',
                                         padding: '12px 16px',
-                                        border: '1px solid #e2e8f0',
+                                        border: '1px solid var(--cal-border)',
                                         fontSize: '16px',
                                         fontWeight: 600,
-                                        color: '#1e293b',
+                                        color: 'var(--cal-text-strong)',
+                                        background: 'var(--cal-surface)',
                                         boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                                     }}
                                 />
@@ -459,10 +460,10 @@ export default function EventFormDrawer({
                                     style={{
                                         borderRadius: '12px',
                                         padding: '12px 16px',
-                                        border: '1px solid #e2e8f0',
+                                        border: '1px solid var(--cal-border)',
                                         fontSize: '14px',
-                                        color: '#475569',
-                                        background: '#fafafa'
+                                        color: 'var(--cal-text-secondary)',
+                                        background: 'var(--cal-surface-2)'
                                     }}
                                 />
                             </Form.Item>
@@ -471,14 +472,14 @@ export default function EventFormDrawer({
                         {/* Section: Time & Schedule */}
                         <div style={{ 
                             padding: '20px', 
-                            background: '#f8fafc', 
+                            background: 'var(--cal-surface-2)', 
                             borderRadius: '16px', 
-                            border: '1px solid #f1f5f9',
+                            border: '1px solid var(--cal-border)',
                             marginBottom: '24px'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                                <ClockCircleOutlined style={{ color: '#3b82f6' }} />
-                                <Text strong style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Schedule</Text>
+                                <ClockCircleOutlined style={{ color: 'var(--cal-brand)' }} />
+                                <Text strong style={{ fontSize: '12px', color: 'var(--cal-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Schedule</Text>
                             </div>
 
                             <Row gutter={12} style={{ marginBottom: '16px' }}>
@@ -504,16 +505,16 @@ export default function EventFormDrawer({
                                                 width: '100%',
                                                 borderRadius: '10px',
                                                 padding: '8px 12px',
-                                                border: '1px solid #e2e8f0',
+                                                border: '1px solid var(--cal-border)',
                                                 height: '42px',
-                                                background: '#fff'
+                                                background: 'var(--cal-surface)'
                                             }}
                                         />
                                     </Form.Item>
                                 </Col>
                                 <Col span={12}>
                                     <Form.Item
-                                        label={<Text style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8' }}>ENDS</Text>}
+                                        label={<Text style={{ fontSize: '11px', fontWeight: 700, color: 'var(--cal-text-faint)' }}>ENDS</Text>}
                                         name="endTime"
                                         rules={[{ required: true, message: 'End required' }]}
                                         style={{ marginBottom: 0 }}
@@ -525,9 +526,9 @@ export default function EventFormDrawer({
                                                 width: '100%',
                                                 borderRadius: '10px',
                                                 padding: '8px 12px',
-                                                border: '1px solid #e2e8f0',
+                                                border: '1px solid var(--cal-border)',
                                                 height: '42px',
-                                                background: '#fff'
+                                                background: 'var(--cal-surface)'
                                             }}
                                         />
                                     </Form.Item>
@@ -537,19 +538,19 @@ export default function EventFormDrawer({
                             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                                 <Form.Item name="isAllDay" valuePropName="checked" style={{ marginBottom: 0 }}>
                                     <Checkbox>
-                                        <Text style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>All Day</Text>
+                                        <Text style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cal-text-secondary)' }}>All Day</Text>
                                     </Checkbox>
                                 </Form.Item>
                                 <Form.Item name="isRecurring" valuePropName="checked" style={{ marginBottom: 0 }}>
                                     <Checkbox>
-                                        <Text style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>Repeat Series</Text>
+                                        <Text style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cal-text-secondary)' }}>Repeat Series</Text>
                                     </Checkbox>
                                 </Form.Item>
                                 <Form.Item name="generateMeeting" valuePropName="checked" style={{ marginBottom: 0 }}>
                                     <Checkbox>
                                         <Space size={4}>
-                                            <VideoCameraOutlined style={{ color: '#3b82f6' }} />
-                                            <Text style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>Video Meeting</Text>
+                                            <VideoCameraOutlined style={{ color: 'var(--cal-brand)' }} />
+                                            <Text style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cal-text-secondary)' }}>Video Meeting</Text>
                                         </Space>
                                     </Checkbox>
                                 </Form.Item>
@@ -561,13 +562,13 @@ export default function EventFormDrawer({
                             <div style={{
                                 marginBottom: '24px',
                                 padding: '16px',
-                                background: 'linear-gradient(135deg, #f5f3ff 0%, #fcfaff 100%)',
+                                background: 'var(--cal-brand-soft)',
                                 borderRadius: '16px',
-                                border: '1px solid #ddd6fe'
+                                border: '1px solid var(--cal-brand-soft-border)'
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                                    <SyncOutlined spin style={{ color: '#7c3aed', fontSize: '12px' }} />
-                                    <Text strong style={{ fontSize: '11px', color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recurrence Pattern</Text>
+                                    <SyncOutlined spin style={{ color: 'var(--cal-brand)', fontSize: '12px' }} />
+                                    <Text strong style={{ fontSize: '11px', color: 'var(--cal-brand)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recurrence Pattern</Text>
                                 </div>
                                 <Form.Item name="recurringDays" style={{ marginBottom: 0 }}>
                                     <Checkbox.Group style={{ width: '100%' }}>
@@ -610,32 +611,32 @@ export default function EventFormDrawer({
                         {/* Section: Collaboration & Context */}
                         <div style={{ 
                             padding: '20px', 
-                            background: '#f8fafc', 
+                            background: 'var(--cal-surface-2)', 
                             borderRadius: '16px', 
-                            border: '1px solid #f1f5f9',
+                            border: '1px solid var(--cal-border)',
                             display: 'flex', 
                             flexDirection: 'column', 
                             gap: '16px' 
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <TeamOutlined style={{ color: '#3b82f6' }} />
-                                <Text strong style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Collaboration</Text>
+                                <TeamOutlined style={{ color: 'var(--cal-brand)' }} />
+                                <Text strong style={{ fontSize: '12px', color: 'var(--cal-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Collaboration</Text>
                             </div>
 
                             <Form.Item 
-                                label={<Text style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8' }}>LOCATION</Text>}
+                                label={<Text style={{ fontSize: '11px', fontWeight: 700, color: 'var(--cal-text-faint)' }}>LOCATION</Text>}
                                 name="location" 
                                 style={{ marginBottom: 0 }}
                             >
                                 <Input
                                     placeholder="Add location or physical address"
-                                    prefix={<EnvironmentOutlined style={{ color: '#94a3b8' }} />}
+                                    prefix={<EnvironmentOutlined style={{ color: 'var(--cal-text-faint)' }} />}
                                     style={{
                                         borderRadius: '10px',
                                         padding: '8px 12px',
-                                        border: '1px solid #e2e8f0',
+                                        border: '1px solid var(--cal-border)',
                                         height: '42px',
-                                        background: '#fff'
+                                        background: 'var(--cal-surface)'
                                     }}
                                 />
                             </Form.Item>
@@ -643,7 +644,7 @@ export default function EventFormDrawer({
                             <Row gutter={12}>
                                 <Col span={12}>
                                     <Form.Item 
-                                        label={<Text style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8' }}>CALENDAR</Text>}
+                                        label={<Text style={{ fontSize: '11px', fontWeight: 700, color: 'var(--cal-text-faint)' }}>CALENDAR</Text>}
                                         name="calendar" 
                                         style={{ marginBottom: 0 }}
                                     >
@@ -658,7 +659,7 @@ export default function EventFormDrawer({
                                 </Col>
                                 <Col span={12}>
                                     <Form.Item 
-                                        label={<Text style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8' }}>SOURCE TYPE</Text>}
+                                        label={<Text style={{ fontSize: '11px', fontWeight: 700, color: 'var(--cal-text-faint)' }}>SOURCE TYPE</Text>}
                                         name="sourceType" 
                                         style={{ marginBottom: 0 }}
                                     >
@@ -674,7 +675,7 @@ export default function EventFormDrawer({
                             </Row>
 
                             <Form.Item 
-                                label={<Text style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8' }}>INVITE ATTENDEES</Text>}
+                                label={<Text style={{ fontSize: '11px', fontWeight: 700, color: 'var(--cal-text-faint)' }}>INVITE ATTENDEES</Text>}
                                 name="attendees" 
                                 style={{ marginBottom: 0 }}
                             >
@@ -682,7 +683,7 @@ export default function EventFormDrawer({
                                     mode="multiple"
                                     placeholder="Invite members..."
                                     className="custom-select"
-                                    suffixIcon={<UserOutlined style={{ color: '#94a3b8' }} />}
+                                    suffixIcon={<UserOutlined style={{ color: 'var(--cal-text-faint)' }} />}
                                 >
                                     {users.map(user => (
                                         <Option key={user.id} value={user.workEmail} label={user.name}>
@@ -690,18 +691,18 @@ export default function EventFormDrawer({
                                                 <div style={{
                                                     width: '24px',
                                                     height: '24px',
-                                                    background: '#f1f5f9',
+                                                    background: 'var(--cal-surface-2)',
                                                     borderRadius: '8px',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                     fontSize: '10px',
                                                     fontWeight: 700,
-                                                    color: '#475569'
+                                                    color: 'var(--cal-text-muted)'
                                                 }}>
                                                     {user.name.charAt(0)}
                                                 </div>
-                                                <Text style={{ fontSize: '13px', fontWeight: 500 }}>{user.name}</Text>
+                                                <Text style={{ fontSize: '13px', fontWeight: 500, color: 'var(--cal-text-secondary)' }}>{user.name}</Text>
                                             </div>
                                         </Option>
                                     ))}
@@ -714,8 +715,8 @@ export default function EventFormDrawer({
                 {/* Footer Actions */}
                 <div style={{
                     padding: '16px 24px 24px',
-                    borderTop: '1px solid #f1f5f9',
-                    background: '#fff',
+                    borderTop: '1px solid var(--cal-border)',
+                    background: 'var(--cal-surface)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -754,8 +755,9 @@ export default function EventFormDrawer({
                                 height: '40px',
                                 padding: '0 20px',
                                 fontWeight: 600,
-                                border: '1px solid #e2e8f0',
-                                color: '#64748b'
+                                border: '1px solid var(--cal-border)',
+                                color: 'var(--cal-text-muted)',
+                                background: 'transparent'
                             }}
                         >
                             Cancel
@@ -770,7 +772,7 @@ export default function EventFormDrawer({
                                 padding: '0 24px',
                                 fontWeight: 700,
                                 boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)',
-                                background: '#3b82f6',
+                                background: 'var(--cal-brand)',
                                 border: 'none'
                             }}
                         >
@@ -782,8 +784,16 @@ export default function EventFormDrawer({
                 <style jsx global>{`
                     .custom-select .ant-select-selector {
                         border-radius: 12px !important;
-                        border: 1px solid #e2e8f0 !important;
+                        border: 1px solid var(--cal-border) !important;
                         padding: 4px 12px !important;
+                        background: var(--cal-surface) !important;
+                        color: var(--cal-text-strong) !important;
+                    }
+                    .custom-select .ant-select-selection-item {
+                        color: var(--cal-text-strong) !important;
+                    }
+                    .custom-select .ant-select-selection-placeholder {
+                        color: var(--cal-text-faint) !important;
                     }
                     .custom-day-checkbox .ant-checkbox {
                         display: none;
@@ -792,12 +802,12 @@ export default function EventFormDrawer({
                         padding: 0 !important;
                     }
                     .ant-checkbox-wrapper-checked.custom-day-checkbox div {
-                        background: #3b82f6 !important;
+                        background: var(--cal-brand) !important;
                         color: #fff !important;
                     }
                     .custom-day-checkbox div {
-                        background: #f1f5f9;
-                        color: #64748b;
+                        background: var(--cal-surface-2);
+                        color: var(--cal-text-muted);
                         transition: all 0.2s;
                     }
                 `}</style>

@@ -15,7 +15,7 @@ const { Text, Title } = Typography;
 export default function OverviewPage() {
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
-  const { canReadOrg } = usePermission();
+  const { canReadOrgDashboard } = usePermission();
   const [activeStep, setActiveStep] = useState<string | null>(null);
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
 
@@ -23,10 +23,10 @@ export default function OverviewPage() {
   const { dataSource: positions, loading: positionsLoading } = usePositions();
 
   useEffect(() => {
-    if (!authLoading && !canReadOrg) {
+    if (!authLoading && !canReadOrgDashboard) {
       router.push('/dashboard');
     }
-  }, [authLoading, canReadOrg, router]);
+  }, [authLoading, canReadOrgDashboard, router]);
 
   useEffect(() => {
     if (grades.length > 0 && !activeStep) {
@@ -186,7 +186,7 @@ export default function OverviewPage() {
     );
   }
 
-  if (!canReadOrg) return null;
+  if (!canReadOrgDashboard) return null;
 
   return (
     <ProtectedRoute>

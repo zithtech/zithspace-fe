@@ -99,7 +99,10 @@ export default function LeavesPage() {
     canCreateLeave,
     canUpdateLeave,
     canApproveLeave,
-    canManageLeaves
+    canManageLeaves,
+    canReadLeaveDashboard,
+    canReadLeaveType,
+    canReadLeavePolicy
   } = usePermission();
   
   // Determine if user has approval rights
@@ -697,7 +700,7 @@ export default function LeavesPage() {
               if (key === "apply-leave") router.push("/apply-leave");
             }}
             items={[
-              {
+              canReadLeaveDashboard && {
                 key: "dashboard",
                 label: (
                   <span>
@@ -705,7 +708,7 @@ export default function LeavesPage() {
                   </span>
                 ),
               },
-              {
+              canReadLeave && {
                 key: "leaves",
                 label: (
                   <span>
@@ -713,7 +716,7 @@ export default function LeavesPage() {
                   </span>
                 ),
               },
-              {
+              canReadLeave && {
                 key: "holidays",
                 label: (
                   <span>
@@ -721,7 +724,7 @@ export default function LeavesPage() {
                   </span>
                 ),
               },
-              {
+              canManageLeaves && {
                 key: "adjustments",
                 label: (
                   <span>
@@ -729,7 +732,7 @@ export default function LeavesPage() {
                   </span>
                 ),
               },
-              {
+              canReadLeaveType && {
                 key: "configuration",
                 label: (
                   <span>
@@ -737,7 +740,7 @@ export default function LeavesPage() {
                   </span>
                 ),
               },
-              {
+              canReadLeavePolicy && {
                 key: "positions",
                 label: (
                   <span>
@@ -745,7 +748,7 @@ export default function LeavesPage() {
                   </span>
                 ),
               },
-              {
+              canManageLeaves && {
                 key: "addLeaves",
                 label: (
                   <span>
@@ -753,7 +756,7 @@ export default function LeavesPage() {
                   </span>
                 ),
               },
-              {
+              canCreateLeave && {
                 key: "apply-leave",
                 label: (
                   <span>
@@ -761,7 +764,7 @@ export default function LeavesPage() {
                   </span>
                 ),
               },
-            ]}
+            ].filter(Boolean)}
           />
           </div>
           {/* My Leave Status Section */}

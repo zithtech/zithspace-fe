@@ -48,6 +48,8 @@ export const usePermission = () => {
     canReadAttendance:   hasPermission(Permissions.ATTENDANCE_READ),
     canUpdateAttendance: hasPermission(Permissions.ATTENDANCE_UPDATE),
     canManageAttendance: hasPermission(Permissions.ATTENDANCE_MANAGE),
+    canReadAttendanceDashboard: hasPermission(Permissions.ATTENDANCE_DASHBOARD_READ),
+    canClockInOut: hasPermission(Permissions.ATTENDANCE_CLOCK_IN_OUT),
 
     // ─── Leaves ─────────────────────────────────────────────────────
     canCreateLeave:  hasPermission(Permissions.LEAVE_CREATE),
@@ -56,6 +58,16 @@ export const usePermission = () => {
     canDeleteLeave:  hasPermission(Permissions.LEAVE_DELETE),
     canApproveLeave: hasPermission(Permissions.LEAVE_APPROVE),
     canManageLeaves: hasPermission(Permissions.LEAVE_MANAGE),
+    canReadLeaveDashboard: hasPermission(Permissions.LEAVE_DASHBOARD_READ),
+    canReadLeaveType:      hasPermission(Permissions.LEAVE_TYPE_READ),
+    canCreateLeaveType:    hasPermission(Permissions.LEAVE_TYPE_CREATE),
+    canUpdateLeaveType:    hasPermission(Permissions.LEAVE_TYPE_UPDATE),
+    canDeleteLeaveType:    hasPermission(Permissions.LEAVE_TYPE_DELETE),
+    canReadLeavePolicy:    hasPermission(Permissions.LEAVE_POLICY_READ),
+    canUpdateLeavePolicy:  hasPermission(Permissions.LEAVE_POLICY_UPDATE),
+    canReadLeaveTrash:     hasPermission(Permissions.LEAVE_TRASH_READ),
+    canRestoreLeaveTrash:  hasPermission(Permissions.LEAVE_TRASH_RESTORE),
+    canDeleteLeaveTrash:   hasPermission(Permissions.LEAVE_TRASH_DELETE),
 
     // ─── Shifts ─────────────────────────────────────────────────────
     canCreateShift: hasPermission(Permissions.SHIFT_CREATE),
@@ -198,6 +210,9 @@ export const usePermission = () => {
     canReadOnboarding:   hasPermission(Permissions.ONBOARDING_READ),
     canUpdateOnboarding: hasPermission(Permissions.ONBOARDING_UPDATE),
     canManageOnboarding: hasPermission(Permissions.ONBOARDING_MANAGE),
+    canReadOnboarded: hasPermission(Permissions.ONBOARDING_ONBOARDED_READ),
+    canReadOnboardingSetting: hasPermission(Permissions.ONBOARDING_SETTING_READ),
+    canUpdateOnboardingSetting: hasPermission(Permissions.ONBOARDING_SETTING_UPDATE),
 
     // ─── Timesheet ──────────────────────────────────────────────────
     canCreateTimesheet:  hasPermission(Permissions.TIMESHEET_CREATE),
@@ -209,6 +224,23 @@ export const usePermission = () => {
     // ─── Org structure ──────────────────────────────────────────────
     canReadOrg:   hasPermission(Permissions.ORG_READ),
     canManageOrg: hasPermission(Permissions.ORG_MANAGE),
+    canReadOrgDashboard: hasPermission(Permissions.ORG_DASHBOARD_READ),
+    canReadOrgDepartment:   hasPermission(Permissions.ORG_DEPARTMENT_READ),
+    canCreateOrgDepartment: hasPermission(Permissions.ORG_DEPARTMENT_CREATE),
+    canUpdateOrgDepartment: hasPermission(Permissions.ORG_DEPARTMENT_UPDATE),
+    canDeleteOrgDepartment: hasPermission(Permissions.ORG_DEPARTMENT_DELETE),
+    canReadOrgGrade:   hasPermission(Permissions.ORG_GRADE_READ),
+    canCreateOrgGrade: hasPermission(Permissions.ORG_GRADE_CREATE),
+    canUpdateOrgGrade: hasPermission(Permissions.ORG_GRADE_UPDATE),
+    canDeleteOrgGrade: hasPermission(Permissions.ORG_GRADE_DELETE),
+    canReadOrgPosition:   hasPermission(Permissions.ORG_POSITION_READ),
+    canCreateOrgPosition: hasPermission(Permissions.ORG_POSITION_CREATE),
+    canUpdateOrgPosition: hasPermission(Permissions.ORG_POSITION_UPDATE),
+    canDeleteOrgPosition: hasPermission(Permissions.ORG_POSITION_DELETE),
+    canReadOrgEmploymentType:   hasPermission(Permissions.ORG_EMPLOYMENT_TYPE_READ),
+    canCreateOrgEmploymentType: hasPermission(Permissions.ORG_EMPLOYMENT_TYPE_CREATE),
+    canUpdateOrgEmploymentType: hasPermission(Permissions.ORG_EMPLOYMENT_TYPE_UPDATE),
+    canDeleteOrgEmploymentType: hasPermission(Permissions.ORG_EMPLOYMENT_TYPE_DELETE),
 
     // ─── Daily updates ──────────────────────────────────────────────
     canCreateDailyUpdate: hasPermission(Permissions.DAILY_UPDATE_CREATE),
@@ -243,11 +275,25 @@ export const usePermission = () => {
     canDeleteEscalation: hasPermission(Permissions.ESCALATION_DELETE),
     canManageEscalations: hasPermission(Permissions.ESCALATION_MANAGE),
 
+    // ─── Pipeline ───────────────────────────────────────────────────
+    canCreatePipeline:  hasPermission(Permissions.PIPELINE_CREATE),
+    canReadPipeline:    hasPermission(Permissions.PIPELINE_READ),
+    canUpdatePipeline:  hasPermission(Permissions.PIPELINE_UPDATE),
+    canDeletePipeline:  hasPermission(Permissions.PIPELINE_DELETE),
+    canManagePipeline:  hasPermission(Permissions.PIPELINE_MANAGE),
+    canReadPipelineBoard:    hasPermission(Permissions.PIPELINE_BOARD_READ),
+    canReadDeals:            hasPermission(Permissions.PIPELINE_DEALS_READ),
+    canReadPipelineForecast: hasPermission(Permissions.PIPELINE_FORECAST_READ),
+    canReadPipelineSetting:  hasPermission(Permissions.PIPELINE_SETTING_READ),
+    canUpdatePipelineSetting: hasPermission(Permissions.PIPELINE_SETTING_UPDATE),
+
     // ─── Employee Exit ──────────────────────────────────────────────
     canCreateExit: hasPermission(Permissions.EXIT_CREATE),
     canReadExit:   hasPermission(Permissions.EXIT_READ),
     canUpdateExit: hasPermission(Permissions.EXIT_UPDATE),
     canManageExits: hasPermission(Permissions.EXIT_MANAGE),
+    canReadExitConfig: hasPermission(Permissions.EXIT_CONFIG_READ),
+    canUpdateExitConfig: hasPermission(Permissions.EXIT_CONFIG_UPDATE),
 
     // ─── Performance ────────────────────────────────────────────────
     canReadPerformance:   hasPermission(Permissions.PERFORMANCE_READ),

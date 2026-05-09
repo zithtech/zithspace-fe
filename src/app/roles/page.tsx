@@ -79,6 +79,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   proposal:     "Proposals",
   vendor:       "Vendors",
   escalation:   "Escalations",
+  pipeline:     "Sales Pipeline",
   exit:         "Employee Exit",
   performance:  "Performance",
   opening:      "Opening Management",
@@ -101,7 +102,7 @@ const PERMISSION_MODULES = [
   },
   {
     title: "Work",
-    resources: ["project", "ticket", "timesheet", "daily_update", "document", "proposal", "squad", "escalation", "lead"]
+    resources: ["project", "ticket", "timesheet", "daily_update", "document", "proposal", "squad", "escalation", "lead", "pipeline"]
   },
   {
     title: "HRMS",

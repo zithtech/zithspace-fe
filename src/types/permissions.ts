@@ -36,13 +36,25 @@ export const Permissions = {
   ATTENDANCE_READ:   'attendance.read',
   ATTENDANCE_UPDATE: 'attendance.update',
   ATTENDANCE_MANAGE: 'attendance.manage', // manual entries, admin overrides
+  ATTENDANCE_DASHBOARD_READ: 'attendance.dashboard.read',
+  ATTENDANCE_CLOCK_IN_OUT:   'attendance.clock.in_out',
 
   // Leaves
+  LEAVE_DASHBOARD_READ: 'leave.dashboard.read',
   LEAVE_CREATE:  'leave.create',
   LEAVE_READ:    'leave.read',
   LEAVE_UPDATE:  'leave.update',
   LEAVE_DELETE:  'leave.delete',
   LEAVE_APPROVE: 'leave.approve',
+  LEAVE_TYPE_READ:   'leave.type.read',
+  LEAVE_TYPE_CREATE: 'leave.type.create',
+  LEAVE_TYPE_UPDATE: 'leave.type.update',
+  LEAVE_TYPE_DELETE: 'leave.type.delete',
+  LEAVE_POLICY_READ:   'leave.policy.read',
+  LEAVE_POLICY_UPDATE: 'leave.policy.update',
+  LEAVE_TRASH_READ:    'leave.trash.read',
+  LEAVE_TRASH_RESTORE: 'leave.trash.restore',
+  LEAVE_TRASH_DELETE:  'leave.trash.delete',
   LEAVE_MANAGE:  'leave.manage', // view all, configure types
 
   // Shifts
@@ -195,6 +207,9 @@ export const Permissions = {
   ONBOARDING_READ:   'onboarding.read',
   ONBOARDING_UPDATE: 'onboarding.update',
   ONBOARDING_MANAGE: 'onboarding.manage', // checklist templates, welcome docs, and workflow automation
+  ONBOARDING_ONBOARDED_READ: 'onboarding.onboarded.read',
+  ONBOARDING_SETTING_READ:   'onboarding.setting.read',
+  ONBOARDING_SETTING_UPDATE: 'onboarding.setting.update',
 
   // Timesheet
   TIMESHEET_CREATE:  'timesheet.create',
@@ -204,7 +219,24 @@ export const Permissions = {
   TIMESHEET_MANAGE:  'timesheet.manage', // overriding timesheets, setting billing rates, and reporting
 
   // Org structure
+  ORG_DASHBOARD_READ: 'org.dashboard.read',
   ORG_READ:   'org.read',
+  ORG_DEPARTMENT_READ:   'org.department.read',
+  ORG_DEPARTMENT_CREATE: 'org.department.create',
+  ORG_DEPARTMENT_UPDATE: 'org.department.update',
+  ORG_DEPARTMENT_DELETE: 'org.department.delete',
+  ORG_GRADE_READ:   'org.grade.read',
+  ORG_GRADE_CREATE: 'org.grade.create',
+  ORG_GRADE_UPDATE: 'org.grade.grade.update',
+  ORG_GRADE_DELETE: 'org.grade.delete',
+  ORG_POSITION_READ:   'org.position.read',
+  ORG_POSITION_CREATE: 'org.position.create',
+  ORG_POSITION_UPDATE: 'org.position.update',
+  ORG_POSITION_DELETE: 'org.position.delete',
+  ORG_EMPLOYMENT_TYPE_READ:   'org.employment_type.read',
+  ORG_EMPLOYMENT_TYPE_CREATE: 'org.employment_type.create',
+  ORG_EMPLOYMENT_TYPE_UPDATE: 'org.employment_type.update',
+  ORG_EMPLOYMENT_TYPE_DELETE: 'org.employment_type.delete',
   ORG_MANAGE: 'org.manage', // departments, grades, positions, employment types
 
   // Daily updates
@@ -239,6 +271,18 @@ export const Permissions = {
   ESCALATION_UPDATE: 'escalation.update',
   ESCALATION_DELETE: 'escalation.delete',
   ESCALATION_MANAGE: 'escalation.manage', // SLA policies, notification matrix, and rules engine
+  
+  // Pipeline
+  PIPELINE_CREATE: 'pipeline.create',
+  PIPELINE_READ:   'pipeline.read',
+  PIPELINE_UPDATE: 'pipeline.update',
+  PIPELINE_DELETE: 'pipeline.delete',
+  PIPELINE_MANAGE: 'pipeline.manage', // pipeline stages, automation rules, and global sales workflows
+  PIPELINE_BOARD_READ:    'pipeline.board.read',
+  PIPELINE_DEALS_READ:    'pipeline.deals.read',
+  PIPELINE_FORECAST_READ: 'pipeline.forecast.read',
+  PIPELINE_SETTING_READ:   'pipeline.setting.read',
+  PIPELINE_SETTING_UPDATE: 'pipeline.setting.update',
 
   // Squads
   SQUAD_CREATE: 'squad.create',
@@ -270,6 +314,8 @@ export const Permissions = {
   EXIT_READ:   'exit.read',
   EXIT_UPDATE: 'exit.update',
   EXIT_MANAGE: 'exit.manage', // exit interview templates, clearing checklists, and separation data
+  EXIT_CONFIG_READ:   'exit.config.read',
+  EXIT_CONFIG_UPDATE: 'exit.config.update',
 
   // System / General
   MAIL_CREATE:       'mail.create',

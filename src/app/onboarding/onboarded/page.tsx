@@ -33,6 +33,8 @@ import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
 
 const { Text, Title } = Typography;
 
@@ -63,10 +65,18 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
 /* ---------------- MAIN COMPONENT ---------------- */
 
 const Onboarded = () => {
+  const { isLoading: authLoading } = useAuth();
+  const { canReadOnboarded } = usePermission();
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (!authLoading && !canReadOnboarded) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadOnboarded, router]);
 
   // ✅ Fetch All Employees
   const fetchEmployees = async (background = false) => {
@@ -95,8 +105,10 @@ const Onboarded = () => {
   };
 
   useEffect(() => {
-    fetchEmployees();
-  }, []);
+    if (canReadOnboarded) {
+      fetchEmployees();
+    }
+  }, [canReadOnboarded]);
 
   // ✅ Status Toggle
   const handleStatusChange = async (id: string, checked: boolean) => {
@@ -304,6 +316,8 @@ const Onboarded = () => {
       </Space>
     );
   }
+
+  if (authLoading || !canReadOnboarded) return null;
 
   return (
     <div style={{ padding: "8px 0" }}>

@@ -93,6 +93,13 @@ export default function LeaveTypePage() {
   const [leaveUnit, setLeaveUnit] = useState("Days");
   const [isSaving, setIsSaving] = useState(false);
 
+  const { 
+    canReadLeaveType, 
+    canCreateLeaveType, 
+    canUpdateLeaveType, 
+    canDeleteLeaveType 
+  } = usePermission();
+
   const {
     leaveTypes: apiLeaveTypes,
     loading,
@@ -101,6 +108,12 @@ export default function LeaveTypePage() {
     updateLeaveType,
     deleteLeaveType,
   } = useLeaveTypes();
+
+  useEffect(() => {
+    if (!canReadLeaveType) {
+      router.push('/dashboard');
+    }
+  }, [canReadLeaveType, router]);
 
   useEffect(() => {
     fetchLeaveTypes();
@@ -207,30 +220,34 @@ export default function LeaveTypePage() {
       render: (_: unknown, record: LeaveTypeRecord) => (
         <Space size={4}>
           <Tooltip title="Edit Rules">
-            <Button
-              type="text"
-              icon={<Settings2 size={18} style={{ color: "var(--text-slate-400)" }} />}
-              onClick={() => handleEdit(record)}
-              className="action-btn"
-            />
+            {canUpdateLeaveType && (
+              <Button
+                type="text"
+                icon={<Settings2 size={18} style={{ color: "var(--text-slate-400)" }} />}
+                onClick={() => handleEdit(record)}
+                className="action-btn"
+              />
+            )}
           </Tooltip>
           <Tooltip title="Delete Policy">
-            <Popconfirm
-              title="Delete this leave policy?"
-              description="This will affect current balances and historical records."
-              onConfirm={() => handleDelete(record.key)}
-              okButtonProps={{ loading: deletingKey === record.key, danger: true }}
-              cancelButtonProps={{ disabled: deletingKey === record.key }}
-              okText="Delete"
-              cancelText="Cancel"
-            >
-              <Button
-                danger
-                type="text"
-                icon={<DeleteOutlined style={{ fontSize: 18 }} />}
-                className="action-btn-danger"
-              />
-            </Popconfirm>
+            {canDeleteLeaveType && (
+              <Popconfirm
+                title="Delete this leave policy?"
+                description="This will affect current balances and historical records."
+                onConfirm={() => handleDelete(record.key)}
+                okButtonProps={{ loading: deletingKey === record.key, danger: true }}
+                cancelButtonProps={{ disabled: deletingKey === record.key }}
+                okText="Delete"
+                cancelText="Cancel"
+              >
+                <Button
+                  danger
+                  type="text"
+                  icon={<DeleteOutlined style={{ fontSize: 18 }} />}
+                  className="action-btn-danger"
+                />
+              </Popconfirm>
+            )}
           </Tooltip>
         </Space>
       ),
@@ -377,19 +394,21 @@ export default function LeaveTypePage() {
                 style={{ width: 280, borderRadius: 10, height: 44, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)", color: "var(--text-slate-900)" }}
                 onChange={(e) => setSearchText(e.target.value)}
               />
-              <Button
-                type="primary"
-                size="large"
-                icon={<Plus size={18} />}
-                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)" }}
-                onClick={() => {
-                  setEditingKey(null);
-                  form.resetFields();
-                  setIsDrawerVisible(true);
-                }}
-              >
-                New Leave Type
-              </Button>
+              {canCreateLeaveType && (
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<Plus size={18} />}
+                  style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)" }}
+                  onClick={() => {
+                    setEditingKey(null);
+                    form.resetFields();
+                    setIsDrawerVisible(true);
+                  }}
+                >
+                  New Leave Type
+                </Button>
+              )}
             </div>
           </div>
 

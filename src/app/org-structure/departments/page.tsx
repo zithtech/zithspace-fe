@@ -17,7 +17,11 @@ const { Text } = Typography;
 export default function DepartmentsPage() {
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
-  const { canReadOrg, canManageOrg } = usePermission();
+  const { 
+    canReadOrgDepartment, 
+    canCreateOrgDepartment, 
+    canUpdateOrgDepartment 
+  } = usePermission();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -44,10 +48,10 @@ export default function DepartmentsPage() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && !canReadOrg) {
+    if (!authLoading && !canReadOrgDepartment) {
       router.push("/dashboard");
     }
-  }, [authLoading, canReadOrg, router]);
+  }, [authLoading, canReadOrgDepartment, router]);
 
   if (authLoading) {
     return (
@@ -61,7 +65,7 @@ export default function DepartmentsPage() {
     );
   }
 
-  if (!canReadOrg) return null;
+  if (!canReadOrgDepartment) return null;
 
   const totalDepartments = departments.length;
   const activeDepartments = departments.filter((d) => d.isActive).length;
@@ -222,7 +226,7 @@ export default function DepartmentsPage() {
       align: "right" as const,
       width: 100,
       render: (_: any, record: Department) => {
-        if (!canManageOrg) return null;
+        if (!canUpdateOrgDepartment) return null;
         return (
           <Tooltip title="Edit Department">
             <Button
@@ -274,7 +278,7 @@ export default function DepartmentsPage() {
                 style={{ width: 240, borderRadius: 10, height: 44 }}
                 onChange={(e) => setSearchText(e.target.value)}
               />
-              {canManageOrg && (
+              {canCreateOrgDepartment && (
                 <Button 
                   type="primary" size="large" icon={<Plus size={18} />} 
                   style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}

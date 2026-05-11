@@ -20,6 +20,9 @@ export const Permissions = {
   PROJECT_READ:   'project.read',
   PROJECT_UPDATE: 'project.update',
   PROJECT_DELETE: 'project.delete',
+  PROJECT_TRASH_READ:    'project.trash.read',
+  PROJECT_TRASH_RESTORE: 'project.trash.restore',
+  PROJECT_TRASH_DELETE:  'project.trash.delete',
   PROJECT_MANAGE: 'project.manage', // add/remove members, view all projects
 
   // Tickets
@@ -35,7 +38,7 @@ export const Permissions = {
   ATTENDANCE_CREATE: 'attendance.create',
   ATTENDANCE_READ:   'attendance.read',
   ATTENDANCE_UPDATE: 'attendance.update',
-  ATTENDANCE_MANAGE: 'attendance.manage', // manual entries, admin overrides
+  ATTENDANCE_DELETE: 'attendance.delete',
   ATTENDANCE_DASHBOARD_READ: 'attendance.dashboard.read',
   ATTENDANCE_CLOCK_IN_OUT:   'attendance.clock.in_out',
 
@@ -206,8 +209,7 @@ export const Permissions = {
   ONBOARDING_CREATE: 'onboarding.create',
   ONBOARDING_READ:   'onboarding.read',
   ONBOARDING_UPDATE: 'onboarding.update',
-  ONBOARDING_MANAGE: 'onboarding.manage', // checklist templates, welcome docs, and workflow automation
-  ONBOARDING_ONBOARDED_READ: 'onboarding.onboarded.read',
+  ONBOARDING_DELETE: 'onboarding.delete',
   ONBOARDING_SETTING_READ:   'onboarding.setting.read',
   ONBOARDING_SETTING_UPDATE: 'onboarding.setting.update',
 
@@ -242,21 +244,27 @@ export const Permissions = {
   // Daily updates
   DAILY_UPDATE_CREATE: 'daily_update.create',
   DAILY_UPDATE_READ:   'daily_update.read',
-  DAILY_UPDATE_MANAGE: 'daily_update.manage', // update reminders, question templates, and compliance tracking
+  DAILY_UPDATE_UPDATE: 'daily_update.update',
+  DAILY_UPDATE_DELETE: 'daily_update.delete',
+  DAILY_UPDATE_MANAGE_TIME: 'daily_update.manage_time', // update reminders, question templates, and compliance tracking
 
   // Leads & CRM
   LEAD_CREATE: 'lead.create',
   LEAD_READ:   'lead.read',
   LEAD_UPDATE: 'lead.update',
   LEAD_DELETE: 'lead.delete',
+  LEAD_SETTING_READ:   'lead.setting.read',
+  LEAD_SETTING_CREATE: 'lead.setting.create',
+  LEAD_SETTING_UPDATE: 'lead.setting.update',
+  LEAD_SETTING_DELETE: 'lead.setting.delete',
+  LEAD_TRASH_READ:     'lead.trash.read',
+  LEAD_TRASH_RESTORE:  'lead.trash.restore',
+  LEAD_TRASH_DELETE:   'lead.trash.delete',
   LEAD_MANAGE: 'lead.manage', // lead distribution rules, source tracking, and conversion triggers
-
-  // Proposals
   PROPOSAL_CREATE: 'proposal.create',
   PROPOSAL_READ:   'proposal.read',
   PROPOSAL_UPDATE: 'proposal.update',
   PROPOSAL_DELETE: 'proposal.delete',
-  PROPOSAL_MANAGE: 'proposal.manage', // legal templates, e-signature settings, and contract automation
 
   // Vendors
   VENDOR_CREATE: 'vendor.create',
@@ -354,9 +362,9 @@ export const Permissions = {
   // Time Tracking
   TIME_TRACKING_CREATE: 'time_tracking.create',
   TIME_TRACKING_READ:   'time_tracking.read',
-  TIME_TRACKING_UPDATE: 'time_tracking.update',
   TIME_TRACKING_DELETE: 'time_tracking.delete',
-  TIME_TRACKING_MANAGE: 'time_tracking.manage',
+  TIME_TRACKING_TEAM_READ: 'time_tracking.team.read',
+  TIME_TRACKING_MANAGE_TIME: 'time_tracking.manage_time',
 } as const;
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions];

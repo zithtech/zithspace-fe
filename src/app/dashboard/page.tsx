@@ -17,6 +17,7 @@ import Organization from "@/components/organaization/Organization";
 import LeadService from "@/services/leadService";
 import InvoiceService from "@/services/invoiceService";
 import { Permissions } from "@/types/permissions";
+import { usePermission } from "@/hooks/usePermission";
 
 import {
   Card,
@@ -67,6 +68,7 @@ const { Title, Text } = Typography;
 function DashboardContent() {
   const { token } = theme.useToken();
   const { user, hasPermission } = useAuth();
+  const { canReadAttendanceDashboard, canClockInOut, canReadAttendance } = usePermission();
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
     null,
@@ -280,8 +282,12 @@ function DashboardContent() {
       }
     };
 
-    fetchTodayAttendance();
-  }, [user]);
+    if (user && (canReadAttendance || canClockInOut)) {
+      fetchTodayAttendance();
+    } else {
+      setLoading(false);
+    }
+  }, [user, canReadAttendance, canClockInOut]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -1030,391 +1036,395 @@ function DashboardContent() {
                   </Col>
 
                   {/* Today's Attendance */}
-                  <Col xs={24} sm={12} lg={6}>
-                    <KpiCard
-                      eyebrow="Team Attendance"
-                      value={`${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`}
-                      trend={`${dashboardData.stats.attendance.attendanceRate}% Present`}
-                      trendTone="positive"
-                      icon={<TeamOutlined />}
-                      accent="#10B981"
-                    />
-                  </Col>
+                  {(canReadAttendanceDashboard || canReadAttendance) && (
+                    <Col xs={24} sm={12} lg={6}>
+                      <KpiCard
+                        eyebrow="Team Attendance"
+                        value={`${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`}
+                        trend={`${dashboardData.stats.attendance.attendanceRate}% Present`}
+                        trendTone="positive"
+                        icon={<TeamOutlined />}
+                        accent="#10B981"
+                      />
+                    </Col>
+                  )}
                 </Row>
 
                 {/* ─── Main Grid ──────────────────────────────────── */}
                 <Row gutter={[16, 16]}>
                   {/* Time Tracker */}
-                  <Col xs={24} lg={8}>
-                    <Card
-                      style={{
-                        ...cardBase,
-                        background: todayAttendance?.canClockOut
-                          ? `linear-gradient(135deg, ${token.colorPrimaryBg}33 0%, ${token.colorBgContainer} 60%)`
-                          : token.colorBgContainer,
-                        overflow: "hidden",
-                        position: "relative",
-                        height: 340,
-                        display: "flex",
-                        flexDirection: "column",
-                      }}
-                      styles={{ body: { padding: 18, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
-                    >
-                      {todayAttendance?.canClockOut && (
-                        <div
-                          aria-hidden
-                          style={{
-                            position: "absolute",
-                            top: -40,
-                            right: -40,
-                            width: 220,
-                            height: 220,
-                            borderRadius: "50%",
-                            background: `radial-gradient(circle, ${token.colorPrimary}1A 0%, transparent 70%)`,
-                            pointerEvents: "none",
-                          }}
-                        />
-                      )}
-                      <div
+                  {(canReadAttendance || canClockInOut) && (
+                    <Col xs={24} lg={8}>
+                      <Card
                         style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                          marginBottom: 20,
+                          ...cardBase,
+                          background: todayAttendance?.canClockOut
+                            ? `linear-gradient(135deg, ${token.colorPrimaryBg}33 0%, ${token.colorBgContainer} 60%)`
+                            : token.colorBgContainer,
+                          overflow: "hidden",
                           position: "relative",
-                          zIndex: 1,
+                          height: 340,
+                          display: "flex",
+                          flexDirection: "column",
                         }}
+                        styles={{ body: { padding: 18, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
                       >
-                        {sectionTitle(
-                          <ClockCircleOutlined />,
-                          "Daily Attendance",
-                          token.colorPrimary,
-                        )}
-                        {todayAttendance && (
-                          <Tag
+                        {todayAttendance?.canClockOut && (
+                          <div
+                            aria-hidden
                             style={{
-                              borderRadius: 999,
-                              border: "none",
-                              padding: "2px 10px",
-                              fontWeight: 600,
-                              fontSize: 11,
-                              background: todayAttendance.canClockOut
-                                ? "#ECFDF5"
-                                : todayAttendance.canClockIn
-                                  ? token.colorFillAlter
-                                  : "#F0F9FF",
-                              color: todayAttendance.canClockOut
-                                ? "#047857"
-                                : todayAttendance.canClockIn
-                                  ? token.colorTextSecondary
-                                  : "#0369A1",
+                              position: "absolute",
+                              top: -40,
+                              right: -40,
+                              width: 220,
+                              height: 220,
+                              borderRadius: "50%",
+                              background: `radial-gradient(circle, ${token.colorPrimary}1A 0%, transparent 70%)`,
+                              pointerEvents: "none",
                             }}
-                          >
-                            {todayAttendance.canClockOut && (
-                              <span
-                                className="live-pulse"
-                                style={{
-                                  display: "inline-block",
-                                  width: 6,
-                                  height: 6,
-                                  borderRadius: "50%",
-                                  background: "#10B981",
-                                  marginRight: 6,
-                                }}
-                              />
-                            )}
-                            {todayAttendance.canClockIn
-                              ? "Not Clocked In"
-                              : todayAttendance.canClockOut
-                                ? "Active Now"
-                                : "Shift Completed"}
-                          </Tag>
+                          />
                         )}
-                      </div>
-
-                      {todayAttendance ? (
-                        (() => {
-                          const TARGET_HOURS = 8;
-                          const parts = (workDuration || "00:00:00").split(":");
-                          const elapsedSec =
-                            (parseInt(parts[0] || "0", 10) || 0) * 3600 +
-                            (parseInt(parts[1] || "0", 10) || 0) * 60 +
-                            (parseInt(parts[2] || "0", 10) || 0);
-                          const targetSec = TARGET_HOURS * 3600;
-                          const progressPct = Math.min(
-                            100,
-                            Math.round((elapsedSec / targetSec) * 100),
-                          );
-                          const remainingSec = Math.max(0, targetSec - elapsedSec);
-                          const remH = Math.floor(remainingSec / 3600)
-                            .toString()
-                            .padStart(2, "0");
-                          const remM = Math.floor((remainingSec % 3600) / 60)
-                            .toString()
-                            .padStart(2, "0");
-                          const isActive = !!todayAttendance.canClockOut;
-                          const ringColor = isActive
-                            ? token.colorPrimary
-                            : todayAttendance.canClockIn
-                              ? token.colorTextTertiary
-                              : "#10B981";
-                          return (
-                            <div
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            marginBottom: 20,
+                            position: "relative",
+                            zIndex: 1,
+                          }}
+                        >
+                          {sectionTitle(
+                            <ClockCircleOutlined />,
+                            "Daily Attendance",
+                            token.colorPrimary,
+                          )}
+                          {todayAttendance && (
+                            <Tag
                               style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 10,
-                                position: "relative",
-                                zIndex: 1,
-                                flex: 1,
-                                justifyContent: "space-between",
+                                borderRadius: 999,
+                                border: "none",
+                                padding: "2px 10px",
+                                fontWeight: 600,
+                                fontSize: 11,
+                                background: todayAttendance.canClockOut
+                                  ? "#ECFDF5"
+                                  : todayAttendance.canClockIn
+                                    ? token.colorFillAlter
+                                    : "#F0F9FF",
+                                color: todayAttendance.canClockOut
+                                  ? "#047857"
+                                  : todayAttendance.canClockIn
+                                    ? token.colorTextSecondary
+                                    : "#0369A1",
                               }}
                             >
-                              {/* Hero ring with timer */}
+                              {todayAttendance.canClockOut && (
+                                <span
+                                  className="live-pulse"
+                                  style={{
+                                    display: "inline-block",
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: "50%",
+                                    background: "#10B981",
+                                    marginRight: 6,
+                                  }}
+                                />
+                              )}
+                              {todayAttendance.canClockIn
+                                ? "Not Clocked In"
+                                : todayAttendance.canClockOut
+                                  ? "Active Now"
+                                  : "Shift Completed"}
+                            </Tag>
+                          )}
+                        </div>
+
+                        {todayAttendance ? (
+                          (() => {
+                            const TARGET_HOURS = 8;
+                            const parts = (workDuration || "00:00:00").split(":");
+                            const elapsedSec =
+                              (parseInt(parts[0] || "0", 10) || 0) * 3600 +
+                              (parseInt(parts[1] || "0", 10) || 0) * 60 +
+                              (parseInt(parts[2] || "0", 10) || 0);
+                            const targetSec = TARGET_HOURS * 3600;
+                            const progressPct = Math.min(
+                              100,
+                              Math.round((elapsedSec / targetSec) * 100),
+                            );
+                            const remainingSec = Math.max(0, targetSec - elapsedSec);
+                            const remH = Math.floor(remainingSec / 3600)
+                              .toString()
+                              .padStart(2, "0");
+                            const remM = Math.floor((remainingSec % 3600) / 60)
+                              .toString()
+                              .padStart(2, "0");
+                            const isActive = !!todayAttendance.canClockOut;
+                            const ringColor = isActive
+                              ? token.colorPrimary
+                              : todayAttendance.canClockIn
+                                ? token.colorTextTertiary
+                                : "#10B981";
+                            return (
                               <div
                                 style={{
-                                  position: "relative",
                                   display: "flex",
                                   flexDirection: "column",
-                                  alignItems: "center",
+                                  gap: 10,
+                                  position: "relative",
+                                  zIndex: 1,
+                                  flex: 1,
+                                  justifyContent: "space-between",
                                 }}
                               >
-                                <div style={{ position: "relative" }}>
-                                  <Progress
-                                    type="circle"
-                                    percent={progressPct}
-                                    size={108}
-                                    strokeWidth={6}
-                                    strokeLinecap="round"
-                                    strokeColor={
-                                      isActive
-                                        ? {
-                                            "0%": token.colorPrimary,
-                                            "100%": "#7C3AED",
-                                          }
-                                        : ringColor
-                                    }
-                                    trailColor={token.colorFillAlter}
-                                    format={() => (
-                                      <div>
-                                        <div
-                                          style={{
-                                            fontSize: 16,
-                                            fontWeight: 700,
-                                            lineHeight: 1,
-                                            color: isActive
-                                              ? token.colorPrimary
-                                              : token.colorText,
-                                            letterSpacing: "-0.4px",
-                                            fontVariantNumeric: "tabular-nums",
-                                          }}
-                                        >
-                                          {workDuration || "00:00:00"}
-                                        </div>
-                                        <div
-                                          style={{
-                                            fontSize: 8,
-                                            color: token.colorTextTertiary,
-                                            fontWeight: 700,
-                                            letterSpacing: "0.4px",
-                                            marginTop: 3,
-                                            fontVariantNumeric: "tabular-nums",
-                                          }}
-                                        >
-                                          {progressPct}% / {TARGET_HOURS}h
-                                        </div>
-                                      </div>
-                                    )}
-                                  />
-                                  {isActive && (
-                                    <span
-                                      className="live-pulse"
-                                      style={{
-                                        position: "absolute",
-                                        top: 8,
-                                        right: 8,
-                                        width: 7,
-                                        height: 7,
-                                        borderRadius: "50%",
-                                        background: "#10B981",
-                                        boxShadow:
-                                          "0 0 0 3px rgba(16, 185, 129, 0.18)",
-                                      }}
-                                    />
-                                  )}
-                                </div>
-                                <Text
+                                {/* Hero ring with timer */}
+                                <div
                                   style={{
-                                    fontSize: 9,
-                                    fontWeight: 700,
-                                    color: token.colorTextSecondary,
-                                    letterSpacing: "0.5px",
-                                    textTransform: "uppercase",
-                                    marginTop: 6,
-                                    fontVariantNumeric: "tabular-nums",
+                                    position: "relative",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
                                   }}
                                 >
-                                  {isActive
-                                    ? `${remH}h ${remM}m to target`
-                                    : todayAttendance.canClockIn
-                                      ? "Session not started"
-                                      : "Daily target reached"}
-                                </Text>
-                              </div>
-
-                              {/* In / Out session pills */}
-                              <div
-                                style={{
-                                  display: "grid",
-                                  gridTemplateColumns: "1fr 1fr",
-                                  gap: 8,
-                                }}
-                              >
-                                {[
-                                  {
-                                    icon: <LoginOutlined />,
-                                    label: "Clock In",
-                                    color: "#10B981",
-                                    time: todayAttendance.clockInTime,
-                                  },
-                                  {
-                                    icon: <LogoutOutlined />,
-                                    label: "Clock Out",
-                                    color: "#EF4444",
-                                    time: todayAttendance.clockOutTime,
-                                  },
-                                ].map((s) => (
-                                  <div
-                                    key={s.label}
+                                  <div style={{ position: "relative" }}>
+                                    <Progress
+                                      type="circle"
+                                      percent={progressPct}
+                                      size={108}
+                                      strokeWidth={6}
+                                      strokeLinecap="round"
+                                      strokeColor={
+                                        isActive
+                                          ? {
+                                              "0%": token.colorPrimary,
+                                              "100%": "#7C3AED",
+                                            }
+                                          : ringColor
+                                      }
+                                      trailColor={token.colorFillAlter}
+                                      format={() => (
+                                        <div>
+                                          <div
+                                            style={{
+                                              fontSize: 16,
+                                              fontWeight: 700,
+                                              lineHeight: 1,
+                                              color: isActive
+                                                ? token.colorPrimary
+                                                : token.colorText,
+                                              letterSpacing: "-0.4px",
+                                              fontVariantNumeric: "tabular-nums",
+                                            }}
+                                          >
+                                            {workDuration || "00:00:00"}
+                                          </div>
+                                          <div
+                                            style={{
+                                              fontSize: 8,
+                                              color: token.colorTextTertiary,
+                                              fontWeight: 700,
+                                              letterSpacing: "0.4px",
+                                              marginTop: 3,
+                                              fontVariantNumeric: "tabular-nums",
+                                            }}
+                                          >
+                                            {progressPct}% / {TARGET_HOURS}h
+                                          </div>
+                                        </div>
+                                      )}
+                                    />
+                                    {isActive && (
+                                      <span
+                                        className="live-pulse"
+                                        style={{
+                                          position: "absolute",
+                                          top: 8,
+                                          right: 8,
+                                          width: 7,
+                                          height: 7,
+                                          borderRadius: "50%",
+                                          background: "#10B981",
+                                          boxShadow:
+                                            "0 0 0 3px rgba(16, 185, 129, 0.18)",
+                                        }}
+                                      />
+                                    )}
+                                  </div>
+                                  <Text
                                     style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 8,
-                                      padding: "8px 10px",
-                                      borderRadius: 10,
-                                      background: token.colorFillAlter,
-                                      border: `1px solid ${token.colorBorderSecondary}`,
+                                      fontSize: 9,
+                                      fontWeight: 700,
+                                      color: token.colorTextSecondary,
+                                      letterSpacing: "0.5px",
+                                      textTransform: "uppercase",
+                                      marginTop: 6,
+                                      fontVariantNumeric: "tabular-nums",
                                     }}
                                   >
+                                    {isActive
+                                      ? `${remH}h ${remM}m to target`
+                                      : todayAttendance.canClockIn
+                                        ? "Session not started"
+                                        : "Daily target reached"}
+                                  </Text>
+                                </div>
+
+                                {/* In / Out session pills */}
+                                <div
+                                  style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr 1fr",
+                                    gap: 8,
+                                  }}
+                                >
+                                  {[
+                                    {
+                                      icon: <LoginOutlined />,
+                                      label: "Clock In",
+                                      color: "#10B981",
+                                      time: todayAttendance.clockInTime,
+                                    },
+                                    {
+                                      icon: <LogoutOutlined />,
+                                      label: "Clock Out",
+                                      color: "#EF4444",
+                                      time: todayAttendance.clockOutTime,
+                                    },
+                                  ].map((s) => (
                                     <div
+                                      key={s.label}
                                       style={{
-                                        width: 26,
-                                        height: 26,
-                                        borderRadius: 8,
-                                        background: `${s.color}14`,
-                                        border: `1px solid ${s.color}33`,
-                                        color: s.color,
-                                        display: "inline-flex",
+                                        display: "flex",
                                         alignItems: "center",
-                                        justifyContent: "center",
-                                        fontSize: 12,
-                                        flexShrink: 0,
+                                        gap: 8,
+                                        padding: "8px 10px",
+                                        borderRadius: 10,
+                                        background: token.colorFillAlter,
+                                        border: `1px solid ${token.colorBorderSecondary}`,
                                       }}
                                     >
-                                      {s.icon}
-                                    </div>
-                                    <div style={{ minWidth: 0 }}>
-                                      <Text
+                                      <div
                                         style={{
-                                          fontSize: 9,
-                                          fontWeight: 700,
-                                          letterSpacing: "0.5px",
-                                          color: token.colorTextSecondary,
-                                          textTransform: "uppercase",
-                                          display: "block",
-                                          lineHeight: 1,
-                                        }}
-                                      >
-                                        {s.label}
-                                      </Text>
-                                      <Text
-                                        strong
-                                        style={{
+                                          width: 26,
+                                          height: 26,
+                                          borderRadius: 8,
+                                          background: `${s.color}14`,
+                                          border: `1px solid ${s.color}33`,
+                                          color: s.color,
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
                                           fontSize: 12,
-                                          color: token.colorText,
-                                          fontVariantNumeric: "tabular-nums",
-                                          letterSpacing: "-0.2px",
-                                          display: "block",
-                                          marginTop: 2,
+                                          flexShrink: 0,
                                         }}
                                       >
-                                        {s.time
-                                          ? dayjs(s.time).format("hh:mm A")
-                                          : "--:-- --"}
-                                      </Text>
+                                        {s.icon}
+                                      </div>
+                                      <div style={{ minWidth: 0 }}>
+                                        <Text
+                                          style={{
+                                            fontSize: 9,
+                                            fontWeight: 700,
+                                            letterSpacing: "0.5px",
+                                            color: token.colorTextSecondary,
+                                            textTransform: "uppercase",
+                                            display: "block",
+                                            lineHeight: 1,
+                                          }}
+                                        >
+                                          {s.label}
+                                        </Text>
+                                        <Text
+                                          strong
+                                          style={{
+                                            fontSize: 12,
+                                            color: token.colorText,
+                                            fontVariantNumeric: "tabular-nums",
+                                            letterSpacing: "-0.2px",
+                                            display: "block",
+                                            marginTop: 2,
+                                          }}
+                                        >
+                                          {s.time
+                                            ? dayjs(s.time).format("hh:mm A")
+                                            : "--:-- --"}
+                                        </Text>
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
-                              </div>
+                                  ))}
+                                </div>
 
-                              {/* Action */}
-                              <div>
-                                {todayAttendance.canClockIn ? (
-                                  <Button
-                                    type="primary"
-                                    block
-                                    icon={<PlayCircleOutlined />}
-                                    onClick={handleClockIn}
-                                    loading={isClocking}
-                                    style={{
-                                      borderRadius: 10,
-                                      height: 40,
-                                      fontWeight: 600,
-                                      fontSize: 13,
-                                      boxShadow: `0 6px 16px -8px ${token.colorPrimary}99`,
-                                      background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #7C3AED 100%)`,
-                                      border: "none",
-                                    }}
-                                  >
-                                    Start Workday
-                                  </Button>
-                                ) : todayAttendance.canClockOut ? (
-                                  <Button
-                                    danger
-                                    block
-                                    icon={<PauseCircleOutlined />}
-                                    onClick={handleClockOut}
-                                    loading={isClocking}
-                                    style={{
-                                      borderRadius: 10,
-                                      height: 40,
-                                      fontWeight: 600,
-                                      fontSize: 13,
-                                      boxShadow:
-                                        "0 6px 16px -8px rgba(239, 68, 68, 0.55)",
-                                    }}
-                                  >
-                                    End Shift · Clock Out
-                                  </Button>
-                                ) : (
-                                  <div
-                                    style={{
-                                      padding: "10px 14px",
-                                      borderRadius: 10,
-                                      background: "#ECFDF5",
-                                      border: "1px solid #A7F3D0",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      gap: 8,
-                                      color: "#047857",
-                                      fontWeight: 600,
-                                      fontSize: 12,
-                                    }}
-                                  >
-                                    <CheckCircleFilled />
-                                    <span>Shift Complete · Great work!</span>
-                                  </div>
-                                )}
+                                {/* Action */}
+                                <div>
+                                  {todayAttendance.canClockIn ? (
+                                    <Button
+                                      type="primary"
+                                      block
+                                      icon={<PlayCircleOutlined />}
+                                      onClick={handleClockIn}
+                                      loading={isClocking}
+                                      style={{
+                                        borderRadius: 10,
+                                        height: 40,
+                                        fontWeight: 600,
+                                        fontSize: 13,
+                                        boxShadow: `0 6px 16px -8px ${token.colorPrimary}99`,
+                                        background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #7C3AED 100%)`,
+                                        border: "none",
+                                      }}
+                                    >
+                                      Start Workday
+                                    </Button>
+                                  ) : todayAttendance.canClockOut ? (
+                                    <Button
+                                      danger
+                                      block
+                                      icon={<PauseCircleOutlined />}
+                                      onClick={handleClockOut}
+                                      loading={isClocking}
+                                      style={{
+                                        borderRadius: 10,
+                                        height: 40,
+                                        fontWeight: 600,
+                                        fontSize: 13,
+                                        boxShadow:
+                                          "0 6px 16px -8px rgba(239, 68, 68, 0.55)",
+                                      }}
+                                    >
+                                      End Shift · Clock Out
+                                    </Button>
+                                  ) : (
+                                    <div
+                                      style={{
+                                        padding: "10px 14px",
+                                        borderRadius: 10,
+                                        background: "#ECFDF5",
+                                        border: "1px solid #A7F3D0",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: 8,
+                                        color: "#047857",
+                                        fontWeight: 600,
+                                        fontSize: 12,
+                                      }}
+                                    >
+                                      <CheckCircleFilled />
+                                      <span>Shift Complete · Great work!</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })()
-                      ) : (
-                        <Skeleton active paragraph={{ rows: 3 }} />
-                      )}
-                    </Card>
-                  </Col>
+                            );
+                          })()
+                        ) : (
+                          <Skeleton active paragraph={{ rows: 3 }} />
+                        )}
+                      </Card>
+                    </Col>
+                  )}
 
                   {/* Today's Meetings */}
                   <Col xs={24} lg={8}>

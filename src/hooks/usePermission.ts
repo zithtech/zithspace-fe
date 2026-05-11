@@ -32,6 +32,9 @@ export const usePermission = () => {
     canReadProject:    hasPermission(Permissions.PROJECT_READ),
     canUpdateProject:  hasPermission(Permissions.PROJECT_UPDATE),
     canDeleteProject:  hasPermission(Permissions.PROJECT_DELETE),
+    canReadProjectTrash:    hasPermission(Permissions.PROJECT_TRASH_READ),
+    canRestoreProjectTrash: hasPermission(Permissions.PROJECT_TRASH_RESTORE),
+    canDeleteProjectTrash:  hasPermission(Permissions.PROJECT_TRASH_DELETE),
     canManageProjects: hasPermission(Permissions.PROJECT_MANAGE),
 
     // ─── Tickets ────────────────────────────────────────────────────
@@ -47,7 +50,13 @@ export const usePermission = () => {
     canCreateAttendance: hasPermission(Permissions.ATTENDANCE_CREATE),
     canReadAttendance:   hasPermission(Permissions.ATTENDANCE_READ),
     canUpdateAttendance: hasPermission(Permissions.ATTENDANCE_UPDATE),
-    canManageAttendance: hasPermission(Permissions.ATTENDANCE_MANAGE),
+    canDeleteAttendance: hasPermission(Permissions.ATTENDANCE_DELETE),
+    canManageAttendance: hasAnyPermission(
+      Permissions.ATTENDANCE_CREATE,
+      Permissions.ATTENDANCE_READ,
+      Permissions.ATTENDANCE_UPDATE,
+      Permissions.ATTENDANCE_DELETE
+    ),
     canReadAttendanceDashboard: hasPermission(Permissions.ATTENDANCE_DASHBOARD_READ),
     canClockInOut: hasPermission(Permissions.ATTENDANCE_CLOCK_IN_OUT),
 
@@ -209,8 +218,7 @@ export const usePermission = () => {
     canCreateOnboarding: hasPermission(Permissions.ONBOARDING_CREATE),
     canReadOnboarding:   hasPermission(Permissions.ONBOARDING_READ),
     canUpdateOnboarding: hasPermission(Permissions.ONBOARDING_UPDATE),
-    canManageOnboarding: hasPermission(Permissions.ONBOARDING_MANAGE),
-    canReadOnboarded: hasPermission(Permissions.ONBOARDING_ONBOARDED_READ),
+    canDeleteOnboarding: hasPermission(Permissions.ONBOARDING_DELETE),
     canReadOnboardingSetting: hasPermission(Permissions.ONBOARDING_SETTING_READ),
     canUpdateOnboardingSetting: hasPermission(Permissions.ONBOARDING_SETTING_UPDATE),
 
@@ -245,13 +253,22 @@ export const usePermission = () => {
     // ─── Daily updates ──────────────────────────────────────────────
     canCreateDailyUpdate: hasPermission(Permissions.DAILY_UPDATE_CREATE),
     canReadDailyUpdate:   hasPermission(Permissions.DAILY_UPDATE_READ),
-    canManageDailyUpdates: hasPermission(Permissions.DAILY_UPDATE_MANAGE),
+    canUpdateDailyUpdate: hasPermission(Permissions.DAILY_UPDATE_UPDATE),
+    canDeleteDailyUpdate: hasPermission(Permissions.DAILY_UPDATE_DELETE),
+    canManageDailyUpdateTime: hasPermission(Permissions.DAILY_UPDATE_MANAGE_TIME),
 
     // ─── Leads & CRM ────────────────────────────────────────────────
     canCreateLead: hasPermission(Permissions.LEAD_CREATE),
     canReadLead:   hasPermission(Permissions.LEAD_READ),
     canUpdateLead: hasPermission(Permissions.LEAD_UPDATE),
     canDeleteLead: hasPermission(Permissions.LEAD_DELETE),
+    canReadLeadSetting:   hasPermission(Permissions.LEAD_SETTING_READ),
+    canCreateLeadSetting: hasPermission(Permissions.LEAD_SETTING_CREATE),
+    canUpdateLeadSetting: hasPermission(Permissions.LEAD_SETTING_UPDATE),
+    canDeleteLeadSetting: hasPermission(Permissions.LEAD_SETTING_DELETE),
+    canReadLeadTrash:     hasPermission(Permissions.LEAD_TRASH_READ),
+    canRestoreLeadTrash:  hasPermission(Permissions.LEAD_TRASH_RESTORE),
+    canDeleteLeadTrash:   hasPermission(Permissions.LEAD_TRASH_DELETE),
     canManageLeads: hasPermission(Permissions.LEAD_MANAGE),
 
     // ─── Proposals ──────────────────────────────────────────────────
@@ -259,7 +276,6 @@ export const usePermission = () => {
     canReadProposal:   hasPermission(Permissions.PROPOSAL_READ),
     canUpdateProposal: hasPermission(Permissions.PROPOSAL_UPDATE),
     canDeleteProposal: hasPermission(Permissions.PROPOSAL_DELETE),
-    canManageProposals: hasPermission(Permissions.PROPOSAL_MANAGE),
 
     // ─── Vendors ────────────────────────────────────────────────────
     canCreateVendor: hasPermission(Permissions.VENDOR_CREATE),
@@ -356,9 +372,9 @@ export const usePermission = () => {
 
     canCreateTimeTracking: hasPermission(Permissions.TIME_TRACKING_CREATE),
     canReadTimeTracking:   hasPermission(Permissions.TIME_TRACKING_READ),
-    canUpdateTimeTracking: hasPermission(Permissions.TIME_TRACKING_UPDATE),
     canDeleteTimeTracking: hasPermission(Permissions.TIME_TRACKING_DELETE),
-    canManageTimeTracking: hasPermission(Permissions.TIME_TRACKING_MANAGE),
+    canReadTimeTrackingTeam: hasPermission(Permissions.TIME_TRACKING_TEAM_READ),
+    canManageTimeTrackingTime: hasPermission(Permissions.TIME_TRACKING_MANAGE_TIME),
 
     // ─── Raw helpers ─────────────────────────────────────────────────
     /** Check a single permission string */

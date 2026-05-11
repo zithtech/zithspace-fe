@@ -849,9 +849,10 @@ export default function RolesPage() {
                         const subGroups: Record<string, RBACPermission[]> = {};
                         perms.forEach(p => {
                           const parts = p.name.split('.');
-                          let subKey = `${label} Management`;
+                          let subKey = `${label} Core`;
                           if (parts.length > 2) {
-                            subKey = parts[1].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') + ' Management';
+                            const subName = parts[1].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                            subKey = `${subName} ${label.includes('Settings') ? 'Config' : 'Module'}`;
                           }
                           if (!subGroups[subKey]) subGroups[subKey] = [];
                           subGroups[subKey].push(p);
@@ -977,9 +978,10 @@ export default function RolesPage() {
                           const subGroups: Record<string, RBACPermission[]> = {};
                           perms.forEach(p => {
                             const parts = p.name.split('.');
-                            let subKey = `${label} Management`;
+                            let subKey = `${label} Core`;
                             if (parts.length > 2) {
-                              subKey = parts[1].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') + ' Management';
+                              const subName = parts[1].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                              subKey = `${subName} ${label.includes('Settings') ? 'Config' : 'Module'}`;
                             }
                             if (!subGroups[subKey]) subGroups[subKey] = [];
                             subGroups[subKey].push(p);

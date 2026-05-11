@@ -2,14 +2,27 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useEmployeeSetting } from "@/hooks/use-employee-settings";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 
 const Settings = () => {
+  const { canReadOnboardingSetting, canUpdateOnboardingSetting } = usePermission();
+  const { isLoading: authLoading } = useAuth();
+  const router = useRouter();
+
   const [employeePrefix, setEmployeePrefix] = useState("EMP");
   const [isSaved, setIsSaved] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
   // Destructure setting and saveSetting from the hook
   const { setting, saveSetting, loading } = useEmployeeSetting();
+
+  useEffect(() => {
+    if (!authLoading && !canReadOnboardingSetting) {
+      router.push("/onboarding/onboarded");
+    }
+  }, [authLoading, canReadOnboardingSetting, router]);
 
   // Sync local state when settings are fetched from backend
   useEffect(() => {
@@ -38,6 +51,8 @@ const Settings = () => {
   const handleEdit = () => {
     setIsEditing(true);
   };
+
+  if (authLoading || !canReadOnboardingSetting) return null;
 
   return (
     <MainLayout>
@@ -104,7 +119,7 @@ const Settings = () => {
               type="text"
               value={employeePrefix}
               placeholder="Enter Prefix (Eg: EMP)"
-              disabled={(isSaved && !isEditing) || loading}
+              disabled={(isSaved && !isEditing) || loading || !canUpdateOnboardingSetting}
               onChange={(e) => setEmployeePrefix(e.target.value)}
               style={{
                 flex: 1,
@@ -112,67 +127,71 @@ const Settings = () => {
                 borderRadius: "10px",
                 border: "1px solid var(--border-slate-200)",
                 fontSize: "14px",
-                background: isSaved && !isEditing ? "var(--bg-slate-50)" : "var(--bg-pure-white)",
+                background: (isSaved && !isEditing) || !canUpdateOnboardingSetting ? "var(--bg-slate-50)" : "var(--bg-pure-white)",
                 color: "var(--text-slate-900)",
-                cursor: isSaved && !isEditing ? "not-allowed" : "text",
+                cursor: (isSaved && !isEditing) || !canUpdateOnboardingSetting ? "not-allowed" : "text",
               }}
             />
 
             {/* Buttons */}
-            {!isSaved && (
-              <button
-                onClick={handleSave}
-                disabled={loading}
-                style={{
-                  padding: "12px 22px",
-                  background: "var(--premium-blue)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "10px",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  opacity: loading ? 0.7 : 1,
-                }}
-              >
-                {loading ? "Saving..." : "Save"}
-              </button>
-            )}
+            {canUpdateOnboardingSetting && (
+              <>
+                {!isSaved && (
+                  <button
+                    onClick={handleSave}
+                    disabled={loading}
+                    style={{
+                      padding: "12px 22px",
+                      background: "var(--premium-blue)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      opacity: loading ? 0.7 : 1,
+                    }}
+                  >
+                    {loading ? "Saving..." : "Save"}
+                  </button>
+                )}
 
-            {isSaved && !isEditing && (
-              <button
-                onClick={handleEdit}
-                disabled={loading}
-                style={{
-                  padding: "12px 22px",
-                  background: "var(--premium-blue)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "10px",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                }}
-              >
-                Edit
-              </button>
-            )}
+                {isSaved && !isEditing && (
+                  <button
+                    onClick={handleEdit}
+                    disabled={loading}
+                    style={{
+                      padding: "12px 22px",
+                      background: "var(--premium-blue)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Edit
+                  </button>
+                )}
 
-            {isSaved && isEditing && (
-              <button
-                onClick={handleSave}
-                disabled={loading}
-                style={{
-                  padding: "12px 22px",
-                  background: "var(--premium-blue)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "10px",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  opacity: loading ? 0.7 : 1,
-                }}
-              >
-                {loading ? "Updating..." : "Update"}
-              </button>
+                {isSaved && isEditing && (
+                  <button
+                    onClick={handleSave}
+                    disabled={loading}
+                    style={{
+                      padding: "12px 22px",
+                      background: "var(--premium-blue)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      opacity: loading ? 0.7 : 1,
+                    }}
+                  >
+                    {loading ? "Updating..." : "Update"}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

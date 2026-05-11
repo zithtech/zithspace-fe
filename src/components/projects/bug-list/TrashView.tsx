@@ -70,8 +70,22 @@ const formatRelative = (date: string) => {
 
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString(undefined, {
-    month: "short", day: "numeric", year: "numeric",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
+
+const plural = (count: number, label: string) =>
+  `${count} ${count === 1 ? label : label + "s"}`;
+
+const formatBreakdown = (folders: number, sheets: number, bugs: number) => {
+  const parts = [];
+  if (folders > 0) parts.push(plural(folders, "folder"));
+  if (sheets > 0) parts.push(plural(sheets, "sheet"));
+  if (bugs > 0) parts.push(plural(bugs, "bug"));
+  if (parts.length === 0) return "";
+  return ` (${parts.join(", ")})`;
+};
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -201,7 +215,7 @@ export default function TrashView({
           <div className="arc-header-sub">
             {selectedFolderId
               ? `${filteredSheets?.length || 0} sheets in this folder`
-              : `${totalItems} items found in trash`
+              : `${plural(totalItems, "item")} found in trash${formatBreakdown(trashedFolders?.length || 0, filteredSheets?.length || 0, trashedBugs.length)}`
             }
           </div>
         </div>

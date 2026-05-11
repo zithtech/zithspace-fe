@@ -313,7 +313,7 @@ class BugListService {
 
   static async updateSheet(
     id: string,
-    input: Partial<{ name: string; description: string }>
+    input: Partial<{ name: string; description: string; folderId: string }>
   ): Promise<BugSheet> {
     const res = await apiClient.put<{ success: boolean; data: BugSheet }>(
       `/api/bug-list/sheets/${id}`,

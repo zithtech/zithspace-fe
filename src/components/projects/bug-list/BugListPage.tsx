@@ -259,9 +259,10 @@ export default function BugListPage() {
   ) => {
     setSelectedFolderId(folderId);
     setSelectedSheetId(sheetId);
-    // If we are in Trash or Archived and select a collection item, 
-    // we should go back to the active view to show the bugs.
-    if (scope === "trash" || scope === "archived") {
+    // If we are in My Bugs, Trash or Archived and select a collection item, 
+    // we should go back to the active view to show all bugs in that sheet.
+    const isSelectingCollection = folderId !== null || sheetId !== null;
+    if (isSelectingCollection && (scope === "mine" || scope === "trash" || scope === "archived")) {
       setScope("all");
     }
   };

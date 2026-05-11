@@ -1004,6 +1004,40 @@ class TicketService {
       throw new Error(errorMessage);
     }
   }
+  /**
+   * Bulk archive tickets
+   */
+  static async bulkArchive(ticketIds: string[]): Promise<any> {
+    try {
+      const response = await apiClient.patch("/api/tickets/bulk/archive", {
+        ticketIds,
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error("Error bulk archiving tickets:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to archive tickets";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Bulk delete tickets
+   */
+  static async bulkDelete(ticketIds: string[]): Promise<any> {
+    try {
+      const response = await apiClient.patch("/api/tickets/bulk/delete", {
+        ticketIds,
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error("Error bulk deleting tickets:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to delete tickets";
+      throw new Error(errorMessage);
+    }
+  }
 }
+
 
 export default TicketService;

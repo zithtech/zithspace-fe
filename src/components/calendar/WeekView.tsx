@@ -280,7 +280,7 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeSlot
 
             <style jsx global>{`
                 .time-slot-hover:hover {
-                    background: #f8fafc !important;
+                    background: var(--cal-surface-hover) !important;
                 }
                 .event-card-hover:hover {
                     transform: translateX(2px);

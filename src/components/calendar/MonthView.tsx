@@ -249,7 +249,7 @@ export default function MonthView({ currentDate, events, onDayClick, onEventClic
 
             <style jsx global>{`
                 .month-cell:hover {
-                    background: #f8fafc !important;
+                    background: var(--cal-surface-hover) !important;
                 }
                 .event-tag:hover {
                     transform: scale(1.02);

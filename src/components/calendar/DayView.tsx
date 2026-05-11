@@ -320,7 +320,7 @@ export default function DayView({ currentDate, events, onEventClick, onTimeSlotC
 
             <style jsx global>{`
                 .time-slot-hover:hover {
-                    background: #f8fafc !important;
+                    background: var(--cal-surface-hover) !important;
                 }
                 .event-card-hover:hover {
                     transform: scale(1.005);

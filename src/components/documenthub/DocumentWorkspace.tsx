@@ -119,6 +119,15 @@ function TreeNode({
             }
         },
         {
+            key: 'rename-node',
+            label: 'Rename',
+            icon: <EditOutlined style={{ fontSize: 14 }} />,
+            onClick: (e) => {
+                e.domEvent.stopPropagation();
+                setIsEditing(true);
+            }
+        },
+        {
             key: 'delete-node',
             label: 'Delete',
             icon: <Trash className="w-4 h-4 text-red-500" />,
@@ -427,6 +436,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
     const [sidebarWidth, setSidebarWidth] = useState<number>(SIDEBAR_DEFAULT_WIDTH);
     const [isResizing, setIsResizing] = useState(false);
+    const sidebarRef = useRef<HTMLElement>(null);
 
     // Load persisted sidebar width
     useEffect(() => {
@@ -443,7 +453,9 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     useEffect(() => {
         if (!isResizing) return;
         const handleMove = (e: MouseEvent) => {
-            const next = Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, e.clientX));
+            if (!sidebarRef.current) return;
+            const containerLeft = sidebarRef.current.getBoundingClientRect().left;
+            const next = Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, e.clientX - containerLeft));
             setSidebarWidth(next);
         };
         const handleUp = () => {
@@ -631,11 +643,6 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
 
         const currentId = previewVersion ? `v-${previewVersion.id}` : selectedDoc;
         const isSwitchingDoc = lastLoadedIdRef.current !== currentId;
-        lastLoadedIdRef.current = currentId;
-
-        if (isSwitchingDoc) {
-            lastSavedVersionRef.current = null;
-        }
 
         const incomingVersion = (docData as any)?.version ?? null;
         const ed = editor as any;
@@ -652,10 +659,20 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             contentToLoad = Array.isArray(previewVersion.content) ? previewVersion.content : [];
             editor.isEditable = false; // Read-only in preview
             isProgrammaticLoad = true;
+            
+            if (isSwitchingDoc) {
+                lastLoadedIdRef.current = currentId;
+                lastSavedVersionRef.current = null;
+            }
         } else if (docData?.content) {
             contentToLoad = Array.isArray(docData.content) ? docData.content : [];
             editor.isEditable = true; // Editable otherwise
             isProgrammaticLoad = true;
+
+            if (isSwitchingDoc) {
+                lastLoadedIdRef.current = currentId;
+                lastSavedVersionRef.current = null;
+            }
         } else {
             // Query is still loading or returned no content — leave the editor
             // alone rather than blanking it (prevents a "flash of empty editor"
@@ -1277,9 +1294,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                 setSelectedDoc('api-ref');
                             }
                         }
-                    } catch (error) {
+                    } catch (error: any) {
                         console.error(error);
-                        messageApi.error('Failed to delete document');
+                        const errorMessage = error.response?.data?.error || error.message || 'Failed to delete document';
+                        messageApi.error(errorMessage);
                     }
                 }
             });
@@ -1301,9 +1319,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                         queryClient.refetchQueries({ queryKey: ticketsKey });
                         queryClient.invalidateQueries({ queryKey: hubKey });
                         queryClient.refetchQueries({ queryKey: hubKey });
-                    } catch (error) {
+                    } catch (error: any) {
                         console.error(error);
-                        messageApi.error(`Failed to delete ${type}`);
+                        const errorMessage = error.response?.data?.error || error.message || `Failed to delete ${type}`;
+                        messageApi.error(errorMessage);
                     }
                 }
             });
@@ -1322,6 +1341,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 {/* Sidebar */}
                 {!isFullScreen && (
                     <aside
+                        ref={sidebarRef}
                         className="relative flex flex-col overflow-hidden shrink-0"
                         style={{
                             width: collapsed ? 0 : sidebarWidth,
@@ -1661,7 +1681,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             onClick={() => window.open(`/document/${selectedDoc}`, '_blank')}
                                         />
                                     </Tooltip>
-                                    <Tooltip title="Share Document">
+                                    <Tooltip title="Share Hub">
                                         <Button
                                             type="text"
                                             icon={<Share2 className="w-4 h-4" />}
@@ -1878,12 +1898,15 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
 
             <ShareModal
                 open={isShareOpen}
-                onClose={() => setIsShareOpen(false)}
-                entityId={selectedDoc}
-                entityTitle={docData?.title || ''}
-                entityType="document"
-                currentVisibility={docData?.visibility || 'private'}
-                currentShareToken={docData?.shareToken || null}
+                onClose={() => {
+                    setIsShareOpen(false);
+                    refetchHub();
+                }}
+                entityId={documentId}
+                entityTitle={documentHub?.name || ''}
+                entityType="hub"
+                currentVisibility={documentHub?.visibility || 'private'}
+                currentShareToken={documentHub?.shareToken || null}
             />
 
             {editor && (

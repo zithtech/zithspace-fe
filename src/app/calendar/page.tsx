@@ -19,7 +19,8 @@ import CalendarToolbar from "@/components/calendar/CalendarToolbar";
 import MonthView from "@/components/calendar/MonthView";
 import WeekView from "@/components/calendar/WeekView";
 import DayView from "@/components/calendar/DayView";
-import EventModal from "@/components/calendar/EventModal";
+import EventFormDrawer from "@/components/calendar/EventFormDrawer";
+import EventDrawer from "@/components/calendar/EventDrawer";
 import dayjs, { Dayjs } from "dayjs";
 
 const { Sider, Content } = Layout;
@@ -41,7 +42,8 @@ function CalendarPageContent() {
 
     const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
     const [view, setView] = useState<'month' | 'week' | 'day'>('month');
-    const [showModal, setShowModal] = useState(false);
+    const [showFormDrawer, setShowFormDrawer] = useState(false);
+    const [showDrawer, setShowDrawer] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
     const [selectedOccurrenceDate, setSelectedOccurrenceDate] = useState<Dayjs | null>(null);
     const [initialDateForModal, setInitialDateForModal] = useState<Dayjs | undefined>();
@@ -117,7 +119,7 @@ function CalendarPageContent() {
     const handleDayClick = (date: Dayjs) => {
         setInitialDateForModal(date);
         setSelectedEvent(null);
-        setShowModal(true);
+        setShowFormDrawer(true);
     };
 
     const handleEventClick = (event: any, occurrenceDate?: Dayjs) => {
@@ -139,8 +141,21 @@ function CalendarPageContent() {
             setSelectedEvent(event);
             setSelectedOccurrenceDate(null);
         }
-        setShowModal(false);
-        setTimeout(() => setShowModal(true), 0);
+        setShowDrawer(true);
+    };
+
+    const handleEditFromDrawer = (event: any) => {
+        setShowDrawer(false);
+        setInitialDateForModal(undefined);
+        setShowFormDrawer(true);
+    };
+
+    const handleDeleteFromDrawer = async (event: any, action?: number) => {
+        if (event) {
+            const finalOccurrenceDate = selectedOccurrenceDate?.toISOString();
+            const ok = await deleteEvent(event.id, action, finalOccurrenceDate);
+            if (ok) setShowDrawer(false);
+        }
     };
 
     const handleSaveEvent = async (data: any) => {
@@ -171,7 +186,7 @@ function CalendarPageContent() {
 
                 await createEvent(eventToCreate);
             }
-            setShowModal(false);
+            setShowFormDrawer(false);
         } catch (error) {
             console.error("Error saving event:", error);
         }
@@ -181,7 +196,10 @@ function CalendarPageContent() {
         if (selectedEvent) {
             const finalOccurrenceDate = occurrenceDate || selectedOccurrenceDate?.toISOString();
             const ok = await deleteEvent(selectedEvent.id, action, finalOccurrenceDate);
-            if (ok) setShowModal(false);
+            if (ok) {
+                setShowFormDrawer(false);
+                setShowDrawer(false);
+            }
         }
     };
 
@@ -233,20 +251,22 @@ function CalendarPageContent() {
                         onNavigate={handleNavigate}
                         currentDateRange={formatRange()}
                         onCreateEvent={() => {
-                            if (!connectedProvider) {
-                                message.warning('Please connect a calendar first');
-                                return;
-                            }
-                            setSelectedEvent(null);
-                            setInitialDateForModal(currentDate);
-                            setShowModal(true);
-                        }}
+                        if (!connectedProvider) {
+                            message.warning('Please connect a calendar first');
+                            return;
+                        }
+                        setSelectedEvent(null);
+                        setInitialDateForModal(currentDate);
+                        setShowFormDrawer(true);
+                    }}
                         provider={connectedProvider}
                         providerName={providerInfo.name}
                         providerIcon={providerInfo.icon}
                         providerColor={providerInfo.color}
                         eventCount={filteredEvents.length}
                     />
+                    
+
 
                     <Content style={{ position: 'relative', overflow: 'hidden', padding: '16px 24px 24px' }}>
                         <div
@@ -319,15 +339,24 @@ function CalendarPageContent() {
                 </Layout>
             </Layout>
 
-            <EventModal
-                open={showModal}
-                onClose={() => setShowModal(false)}
+            <EventFormDrawer
+                open={showFormDrawer}
+                onClose={() => setShowFormDrawer(false)}
                 onSave={handleSaveEvent}
                 onDelete={selectedEvent ? handleDeleteEvent : undefined}
                 editEvent={selectedEvent}
                 initialDate={initialDateForModal}
                 loading={loading}
                 error={error}
+            />
+
+            <EventDrawer
+                open={showDrawer}
+                onClose={() => setShowDrawer(false)}
+                event={selectedEvent}
+                onEdit={handleEditFromDrawer}
+                onDelete={handleDeleteFromDrawer}
+                loading={loading}
             />
         </MainLayout>
     );

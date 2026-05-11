@@ -23,11 +23,13 @@ import {
   PullRequestOutlined,
   HistoryOutlined,
   CheckCircleOutlined,
-  ShareAltOutlined
+  ShareAltOutlined,
+  BugOutlined
 } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { globalDataKeys } from '@/hooks/useGlobalData';
 import DropdownManager from './DropdownManager';
+import BugListConfigManager from './BugListConfigManager';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -311,6 +313,15 @@ export default function TicketSettings() {
                       <span>Configuration</span>
                     </Space>
                   ),
+                },
+                {
+                  key: 'bug-list',
+                  label: (
+                    <Space size={8}>
+                      <BugOutlined />
+                      <span>Bug List</span>
+                    </Space>
+                  ),
                 }
               ]}
             />
@@ -319,8 +330,12 @@ export default function TicketSettings() {
       </div>
 
       {/* Content Area */}
-      <div style={{ marginTop: 0, flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {activeTab === 'integration' ? renderIntegrationTab() : <DropdownManager onDataChange={handleDataChange} />}
+      <div className="no-scrollbar" style={{ marginTop: 0, flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {activeTab === 'integration'
+          ? renderIntegrationTab()
+          : activeTab === 'bug-list'
+            ? <BugListConfigManager />
+            : <DropdownManager onDataChange={handleDataChange} />}
       </div>
 
       <style jsx global>{`

@@ -172,8 +172,21 @@ export default function CalendarSidebar({
                                     position: 'relative',
                                     transition: 'background 0.15s ease',
                                 }}
+                                className={!isSelected ? "calendar-day-hover" : ""}
                             >
                                 {date.date()}
+                                {isToday && !isSelected && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        bottom: '4px',
+                                        left: '50%',
+                                        transform: 'translateX(-50%)',
+                                        width: '4px',
+                                        height: '4px',
+                                        borderRadius: '50%',
+                                        background: '#3b82f6'
+                                    }} />
+                                )}
                                 {hasEvents && isCurrentMonth && (
                                     <span
                                         style={{

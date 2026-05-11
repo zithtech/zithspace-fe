@@ -33,6 +33,29 @@ export default function ComposeEmailDrawer({
   const [messageLength, setMessageLength] = useState(0);
 
   useEffect(() => {
+  if (open && invoice) {
+    console.log('📎 ComposeEmailDrawer - Invoice loaded:', {
+      invoiceNumber: invoice.invoiceNumber,
+      pdfUrl: invoice.pdfUrl,
+      hasPdf: !!invoice.pdfUrl,
+      pdfUrlType: invoice.pdfUrl ? typeof invoice.pdfUrl : 'null',
+      pdfUrlLength: invoice.pdfUrl?.length
+    });
+    
+    // Rest of your form setup
+    const customer = invoice.customerSnapshot || invoice.customer;
+    form.setFieldsValue({
+      to: customer?.email,
+      subject: `Invoice ${invoice.invoiceNumber} from your Company Name`,
+      message: `Dear ${customer?.name || 'Customer'},\n\nPlease find attached invoice ${invoice.invoiceNumber} for the amount of $${invoice.grandTotal || '0.00'}.\n\nKind regards,\nAccounts Team`,
+    });
+  }
+}, [open, invoice, form]);
+
+
+
+  // Reset form when invoice changes or drawer opens
+  useEffect(() => {
     if (open && invoice) {
       const customer = invoice.customerSnapshot || invoice.customer;
       const initialMessage = `Dear ${
@@ -44,7 +67,7 @@ export default function ComposeEmailDrawer({
       form.setFieldsValue({
         to: customer?.email,
         subject: `Invoice ${invoice.invoiceNumber} from your Company Name`,
-        message: initialMessage,
+        message: `Dear ${customer?.name || 'Customer'},\n\nPlease find attached invoice ${invoice.invoiceNumber} for the amount of $${invoice.grandTotal || '0.00'}.\n\nKind regards,\nAccounts Team`,
       });
       setMessageLength(initialMessage.length);
     }

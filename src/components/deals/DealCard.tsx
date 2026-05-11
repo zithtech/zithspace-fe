@@ -8,7 +8,7 @@ import { CSS } from "@dnd-kit/utilities";
 import dayjs from "dayjs";
 import { Deal } from "@/services/dealService";
 
-const { Text } = Typography;
+const { Text } = Typography
 
 interface DealCardProps {
   deal: Deal;

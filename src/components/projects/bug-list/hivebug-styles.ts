@@ -672,8 +672,12 @@ export const hivebugStyles = `
 }
 
 .hb-title-cell {
-  display: flex; flex-direction: column;
-  min-width: 0; line-height: 1.25; gap: 2px;
+  display: flex; align-items: center; gap: 8px;
+  min-width: 0; line-height: 1.25;
+}
+.hb-title-stack {
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 0;
 }
 .hb-bug-num {
   color: var(--hb-text-muted);
@@ -685,7 +689,25 @@ export const hivebugStyles = `
   font-weight: 500;
   font-size: 11.5px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  max-width: 420px;
+  max-width: 320px;
+}
+.hb-title-indicators {
+  display: flex; align-items: center; gap: 4px;
+  flex-shrink: 0;
+}
+.hb-indicator {
+  display: flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  background: var(--hb-bg-soft);
+  border: 1px solid var(--hb-border);
+  color: var(--hb-text-muted);
+  transition: all 0.15s ease;
+}
+.hb-indicator:hover {
+  color: var(--hb-text);
+  border-color: var(--hb-primary);
+  background: var(--hb-bg-hover);
 }
 
 .hb-pill {
@@ -2003,8 +2025,9 @@ export const hivebugStyles = `
 .hb-cbd-light .hb-cbd-tile-preview { background: var(--hb-bg-soft); }
 .hb-cbd-tile-preview img {
   width: 100%; height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+  background: rgba(0,0,0,0.2);
 }
 .hb-cbd-tile-fallback {
   width: 100%; height: 100%;

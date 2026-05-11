@@ -268,6 +268,22 @@ class BugListService {
     await apiClient.delete(`/api/bug-list/folders/${id}/permanent`);
   }
 
+  static async bulkRestoreFolders(folderIds: string[]): Promise<{ restored: number }> {
+    const res = await apiClient.post<{ success: boolean; data: { restored: number } }>(
+      `/api/bug-list/folders/bulk-restore`,
+      { folderIds }
+    );
+    return res.data.data;
+  }
+
+  static async bulkPermanentDeleteFolders(folderIds: string[]): Promise<{ deleted: number }> {
+    const res = await apiClient.post<{ success: boolean; data: { deleted: number } }>(
+      `/api/bug-list/folders/bulk-permanent-delete`,
+      { folderIds }
+    );
+    return res.data.data;
+  }
+
   // ==================== Sheets ====================
   static async getSheets(folderId: string): Promise<BugSheet[]> {
     const res = await apiClient.get<{ success: boolean; data: BugSheet[] }>(
@@ -334,6 +350,22 @@ class BugListService {
 
   static async permanentDeleteSheet(id: string): Promise<void> {
     await apiClient.delete(`/api/bug-list/sheets/${id}/permanent`);
+  }
+
+  static async bulkRestoreSheets(sheetIds: string[]): Promise<{ restored: number }> {
+    const res = await apiClient.post<{ success: boolean; data: { restored: number } }>(
+      `/api/bug-list/sheets/bulk-restore`,
+      { sheetIds }
+    );
+    return res.data.data;
+  }
+
+  static async bulkPermanentDeleteSheets(sheetIds: string[]): Promise<{ deleted: number }> {
+    const res = await apiClient.post<{ success: boolean; data: { deleted: number } }>(
+      `/api/bug-list/sheets/bulk-permanent-delete`,
+      { sheetIds }
+    );
+    return res.data.data;
   }
 
   // ==================== Bugs ====================

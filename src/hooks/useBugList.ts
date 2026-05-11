@@ -138,6 +138,30 @@ export const usePermanentDeleteFolder = () => {
   });
 };
 
+export const useBulkRestoreFolders = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (folderIds: string[]) => BugListService.bulkRestoreFolders(folderIds),
+    onSuccess: ({ restored }) => {
+      qc.invalidateQueries({ queryKey: bugKeys.all });
+      message.success(`${restored} folder(s) restored`);
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const useBulkPermanentDeleteFolders = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (folderIds: string[]) => BugListService.bulkPermanentDeleteFolders(folderIds),
+    onSuccess: ({ deleted }) => {
+      qc.invalidateQueries({ queryKey: [...bugKeys.all, "trashed-folders"] });
+      message.success(`${deleted} folder(s) permanently deleted`);
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
 // ==================== Sheets ====================
 export const useBugSheets = (folderId: string | null) =>
   useQuery({
@@ -237,6 +261,30 @@ export const usePermanentDeleteSheet = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: bugKeys.all });
       message.success("Sheet permanently deleted");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const useBulkRestoreSheets = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (sheetIds: string[]) => BugListService.bulkRestoreSheets(sheetIds),
+    onSuccess: ({ restored }) => {
+      qc.invalidateQueries({ queryKey: bugKeys.all });
+      message.success(`${restored} sheet(s) restored`);
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const useBulkPermanentDeleteSheets = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (sheetIds: string[]) => BugListService.bulkPermanentDeleteSheets(sheetIds),
+    onSuccess: ({ deleted }) => {
+      qc.invalidateQueries({ queryKey: bugKeys.all });
+      message.success(`${deleted} sheet(s) permanently deleted`);
     },
     onError: (err: Error) => message.error(err.message),
   });

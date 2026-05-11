@@ -26,6 +26,10 @@ import {
   usePermanentDeleteBug,
   useBulkRestoreBugs,
   useBulkPermanentDeleteBugs,
+  useBulkRestoreFolders,
+  useBulkPermanentDeleteFolders,
+  useBulkRestoreSheets,
+  useBulkPermanentDeleteSheets,
 } from "@/hooks/useBugList";
 import type { BugSheet, BugFolder, BugListItem } from "@/services/bugListService";
 import { hivebugStyles } from "./hivebug-styles";
@@ -137,8 +141,12 @@ export default function TrashView({
   const restoreBug = useRestoreBug();
   const deleteBug = usePermanentDeleteBug();
 
-  const bulkRestore = useBulkRestoreBugs();
-  const bulkDelete = useBulkPermanentDeleteBugs();
+  const bulkRestoreBugs = useBulkRestoreBugs();
+  const bulkDeleteBugs = useBulkPermanentDeleteBugs();
+  const bulkRestoreFolders = useBulkRestoreFolders();
+  const bulkDeleteFolders = useBulkPermanentDeleteFolders();
+  const bulkRestoreSheets = useBulkRestoreSheets();
+  const bulkDeleteSheets = useBulkPermanentDeleteSheets();
 
   const isLoading = loadingFolders || loadingSheets || loadingBugs;
 
@@ -251,7 +259,10 @@ export default function TrashView({
             <button
               className="hb-btn hb-btn-primary"
               onClick={() => {
-                bulkRestore.mutate(Array.from(selectedIds));
+                const ids = Array.from(selectedIds);
+                if (activeTab === "folders") bulkRestoreFolders.mutate(ids);
+                else if (activeTab === "sheets") bulkRestoreSheets.mutate(ids);
+                else bulkRestoreBugs.mutate(ids);
                 setSelectedIds(new Set());
               }}
             >
@@ -261,7 +272,10 @@ export default function TrashView({
             <Popconfirm
               title={`Permanently delete ${selectedIds.size} items?`}
               onConfirm={() => {
-                bulkDelete.mutate(Array.from(selectedIds));
+                const ids = Array.from(selectedIds);
+                if (activeTab === "folders") bulkDeleteFolders.mutate(ids);
+                else if (activeTab === "sheets") bulkDeleteSheets.mutate(ids);
+                else bulkDeleteBugs.mutate(ids);
                 setSelectedIds(new Set());
               }}
             >

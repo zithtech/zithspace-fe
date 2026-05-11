@@ -2072,7 +2072,7 @@ body {
 
 .ticket-filter-row__fields {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 0.7fr 0.6fr 0.6fr 1fr 0.8fr;
   gap: 12px;
   flex: 1;
   min-width: 0;

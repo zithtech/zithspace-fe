@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Card,
   Button,
@@ -61,10 +61,12 @@ import {
   CaretDownOutlined,
   ClockCircleOutlined,
   CloseOutlined,
+  FolderAddOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
-import { Ticket } from "@/services/ticketService";
+import TicketService, { Ticket } from "@/services/ticketService";
 import { ProjectService } from "@/services/projectService";
 import {
   PRIORITY_OPTIONS,
@@ -151,7 +153,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [localSearchValue, setLocalSearchValue] = useState("");
   const [backlogSearchValue, setBacklogSearchValue] = useState("");
   const [debouncedBacklogSearch, setDebouncedBacklogSearch] = useState("");
+  const [backlogStatusFilter, setBacklogStatusFilter] = useState<string[]>([]);
   const [recentTicket, setRecentTicket] = useState<Ticket | null>(null);
+  const [activeSelectedRowKeys, setActiveSelectedRowKeys] = useState<React.Key[]>([]);
+  const [backlogSelectedRowKeys, setBacklogSelectedRowKeys] = useState<React.Key[]>([]);
   const recentTicketCardRef = useRef<HTMLDivElement | null>(null);
 
   // Measure active-sprint card head so the table column headers stick flush below it
@@ -243,6 +248,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     fetchOptions();
   }, []);
 
+  const finalStatusOptions = useMemo(() => {
+    const opts = dbStatusOptions.length > 0 ? [...dbStatusOptions] : [...STATUS_OPTIONS];
+    // Ensure "Completed" is always available for archive workflows
+    if (!opts.some(o => o.value?.toLowerCase() === 'completed')) {
+      opts.push({ label: "Completed", value: "completed" });
+    }
+    return opts;
+  }, [dbStatusOptions]);
+
   // --- React Query Hooks ---
 
   // Base params (without pagination) for filters
@@ -286,6 +300,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // Query Params for Backlog List (WITH PAGINATION)
   const backlogParams = {
     ...baseQueryParams,
+    status: backlogStatusFilter.length > 0 ? backlogStatusFilter.join(",") : baseQueryParams.status,
     sprintId: 'null',
     search: backlogCombinedSearch || undefined,
     page: pagination.current,
@@ -342,6 +357,33 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const updateTicketMutation = useUpdateTicket();
   const deleteTicketMutation = useDeleteTicket();
+
+  const bulkArchiveMutation = useMutation({
+    mutationFn: (ids: string[]) => TicketService.bulkArchive(ids),
+    onSuccess: (_, variables) => {
+      message.success("Tickets archived successfully");
+      setActiveSelectedRowKeys(prev => prev.filter(id => !variables.includes(id as string)));
+      setBacklogSelectedRowKeys(prev => prev.filter(id => !variables.includes(id as string)));
+      refetchActive();
+      refetchBacklog();
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+    },
+    onError: (err: any) => message.error(err.message),
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => TicketService.bulkDelete(ids),
+    onSuccess: (_, variables) => {
+      message.success("Tickets moved to trash");
+      setActiveSelectedRowKeys(prev => prev.filter(id => !variables.includes(id as string)));
+      setBacklogSelectedRowKeys(prev => prev.filter(id => !variables.includes(id as string)));
+      refetchActive();
+      refetchBacklog();
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+    },
+    onError: (err: any) => message.error(err.message),
+  });
+
   const { data: tagSuggestions = [] } = useAllTicketTags();
 
   // Handle Add/Remove from Sprint
@@ -678,6 +720,18 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     requestAnimationFrame(() => fireConfettiAtCard());
     message.success(`1 ticket(s) created successfully`);
   };
+  const activeRowSelection = {
+    selectedRowKeys: activeSelectedRowKeys,
+    onChange: (keys: React.Key[]) => setActiveSelectedRowKeys(keys),
+  };
+
+  const backlogRowSelection = {
+    selectedRowKeys: backlogSelectedRowKeys,
+    onChange: (keys: React.Key[]) => setBacklogSelectedRowKeys(keys),
+  };
+
+  const isCompletedFilterActive = filters.status.includes('completed') || filters.status.includes('Completed');
+
 
   // Table columns generator
   const getColumns = (context: 'active' | 'backlog'): TableProps<Ticket>['columns'] => [
@@ -757,6 +811,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             />
           </div>
         );
+
       },
     },
     {
@@ -781,7 +836,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               onBlur={() => setEditingField(null)}
               autoFocus
               loading={isUpdating}
-              options={dbStatusOptions.length > 0 ? dbStatusOptions : STATUS_OPTIONS}
+              options={finalStatusOptions}
             />
           );
         }
@@ -794,7 +849,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               setEditingField({ ticketId: record.id, field: "status" })
             }
           >
-            {getStatusLabel(status, dbStatusOptions.length > 0 ? dbStatusOptions : STATUS_OPTIONS)}
+            {getStatusLabel(status, finalStatusOptions)}
           </Tag>
         );
       },
@@ -1583,54 +1638,102 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       </Space>
                     </Space>
                     <Space size={12} split={<Divider type="vertical" style={{ height: 20, margin: 0, opacity: 1, borderColor: '#e2e8f0', borderWidth: 1 }} />}>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Progress</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#10b981' }}>
-                          {overallSprintTickets.length > 0 ? Math.round((overallSprintTickets.filter(t => ['completed'].includes(t.status?.toLowerCase() || '')).length / overallSprintTickets.length) * 100) : 0}%
-                        </div>
-                      </div>
-                      {(() => {
-                        const start = dayjs(activeSprint.startDate);
-                        const end = dayjs(activeSprint.endDate);
-                        const now = dayjs();
-                        const totalDays = Math.max(end.diff(start, 'day'), 1);
-                        const elapsedDays = Math.max(0, Math.min(totalDays, now.diff(start, 'day')));
-                        const pct = Math.round((elapsedDays / totalDays) * 100);
-                        const isOverdue = now.isAfter(end, 'day');
-                        const accent = isOverdue ? '#ef4444' : pct >= 75 ? '#f59e0b' : '#10b981';
-
-                        return (
-                          <div style={{ textAlign: 'left', minWidth: 180 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                              <div style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Sprint Timeline
-                              </div>
-                              <Text style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: '0.02em' }}>
-                                {isOverdue ? 'OVERDUE' : `${Math.max(0, totalDays - elapsedDays)}d LEFT`}
-                              </Text>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
-                                {start.format('MMM D')}
-                              </Text>
-                              <div style={{ flex: 1, position: 'relative', height: 6, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', minWidth: 80 }}>
-                                <div style={{
-                                  position: 'absolute',
-                                  inset: 0,
-                                  width: `${Math.min(100, pct)}%`,
-                                  background: accent,
-                                  opacity: 0.9,
-                                  borderRadius: 999,
-                                  transition: 'width 0.4s ease',
-                                }} />
-                              </div>
-                              <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
-                                {end.format('MMM D')}
-                              </Text>
+                      {activeSelectedRowKeys.length > 0 ? (
+                        <>
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
+                            onClick={() => bulkArchiveMutation.mutate(activeSelectedRowKeys as string[])}
+                            style={{ 
+                              background: 'var(--premium-blue)', 
+                              borderColor: 'var(--premium-blue)', 
+                              fontWeight: 800, 
+                              borderRadius: 4, 
+                              height: 24, 
+                              fontSize: 10,
+                              textTransform: 'uppercase'
+                            }}
+                          >
+                            Move to Archive
+                          </Button>
+                          <Button
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                            onClick={() => {
+                              modal.confirm({
+                                title: 'Move to Trash',
+                                content: `Are you sure you want to move ${activeSelectedRowKeys.length} selected tickets to trash?`,
+                                okText: 'Move to Trash',
+                                okType: 'danger',
+                                onOk: () => bulkDeleteMutation.mutate(activeSelectedRowKeys as string[])
+                              });
+                            }}
+                            style={{ 
+                              fontWeight: 800, 
+                              borderRadius: 4, 
+                              height: 24, 
+                              fontSize: 10,
+                              textTransform: 'uppercase'
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Progress</div>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: '#10b981' }}>
+                              {overallSprintTickets.length > 0 ? Math.round((overallSprintTickets.filter(t => ['completed'].includes(t.status?.toLowerCase() || '')).length / overallSprintTickets.length) * 100) : 0}%
                             </div>
                           </div>
-                        );
-                      })()}
+                          {(() => {
+                            const start = dayjs(activeSprint.startDate);
+                            const end = dayjs(activeSprint.endDate);
+                            const now = dayjs();
+                            const totalDays = Math.max(end.diff(start, 'day'), 1);
+                            const elapsedDays = Math.max(0, Math.min(totalDays, now.diff(start, 'day')));
+                            const pct = Math.round((elapsedDays / totalDays) * 100);
+                            const isOverdue = now.isAfter(end, 'day');
+                            const accent = isOverdue ? '#ef4444' : pct >= 75 ? '#f59e0b' : '#10b981';
+
+                            return (
+                              <div style={{ textAlign: 'left', minWidth: 180 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                                  <div style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    Sprint Timeline
+                                  </div>
+                                  <Text style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: '0.02em' }}>
+                                    {isOverdue ? 'OVERDUE' : `${Math.max(0, totalDays - elapsedDays)}d LEFT`}
+                                  </Text>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+                                    {start.format('MMM D')}
+                                  </Text>
+                                  <div style={{ flex: 1, position: 'relative', height: 6, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', minWidth: 80 }}>
+                                    <div style={{
+                                      position: 'absolute',
+                                      inset: 0,
+                                      width: `${Math.min(100, pct)}%`,
+                                      background: accent,
+                                      opacity: 0.9,
+                                      borderRadius: 999,
+                                      transition: 'width 0.4s ease',
+                                    }} />
+                                  </div>
+                                  <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+                                    {end.format('MMM D')}
+                                  </Text>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </>
+                      )}
+
                       <Button
                         type="default"
                         size="middle"
@@ -1656,6 +1759,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 }
               >
                 <Table
+                  rowSelection={activeRowSelection}
                   columns={getColumns('active')}
                   dataSource={activeTickets}
                   loading={activeSprintFetching}
@@ -1698,6 +1802,61 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     </Tag>
                   </Space>
                   <Space size={12}>
+                    <Select
+                      mode="multiple"
+                      placeholder="Filter Status"
+                      style={{ width: 160 }}
+                      value={backlogStatusFilter}
+                      onChange={setBacklogStatusFilter}
+                      options={finalStatusOptions}
+                      allowClear
+                      maxTagCount={1}
+                      className="saas-select-minimal"
+                    />
+                    {backlogSelectedRowKeys.length > 0 && (
+                      <Space size={8}>
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
+                          onClick={() => bulkArchiveMutation.mutate(backlogSelectedRowKeys as string[])}
+                          style={{ 
+                            background: 'var(--premium-blue)', 
+                            borderColor: 'var(--premium-blue)', 
+                            fontWeight: 800, 
+                            height: 24, 
+                            fontSize: 10, 
+                            borderRadius: 4,
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          Move to Archive
+                        </Button>
+                        <Button
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                          onClick={() => {
+                            modal.confirm({
+                              title: 'Move to Trash',
+                              content: `Are you sure you want to move ${backlogSelectedRowKeys.length} selected tickets to trash?`,
+                              okText: 'Move to Trash',
+                              okType: 'danger',
+                              onOk: () => bulkDeleteMutation.mutate(backlogSelectedRowKeys as string[])
+                            });
+                          }}
+                          style={{ 
+                            fontWeight: 800, 
+                            height: 24, 
+                            fontSize: 10, 
+                            borderRadius: 4,
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </Space>
+                    )}
                     <Input
                       placeholder="Search backlog..."
                       prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
@@ -1727,10 +1886,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       New Sprint
                     </Button>
                   </Space>
+
                 </div>
               }
             >
               <Table
+                rowSelection={backlogRowSelection}
                 columns={getColumns('backlog')}
                 loading={backlogFetching}
                 dataSource={backlogTickets}

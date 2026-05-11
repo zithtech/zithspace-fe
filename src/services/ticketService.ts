@@ -1022,6 +1022,23 @@ class TicketService {
   }
 
   /**
+   * Bulk unarchive tickets
+   */
+  static async bulkUnarchive(ticketIds: string[]): Promise<any> {
+    try {
+      const response = await apiClient.patch("/api/tickets/bulk/unarchive", {
+        ticketIds,
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error("Error bulk unarchiving tickets:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to unarchive tickets";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
    * Bulk delete tickets
    */
   static async bulkDelete(ticketIds: string[]): Promise<any> {

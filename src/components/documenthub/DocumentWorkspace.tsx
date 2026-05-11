@@ -648,7 +648,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         const ed = editor as any;
         const isActuallyEmpty = ed.document.length === 1 && ed.document[0].content.length === 0;
 
-        if (!isSwitchingDoc && !previewVersion && !isActuallyEmpty && incomingVersion !== null && lastSavedVersionRef.current === incomingVersion) {
+        if (!isSwitchingDoc && !previewVersion && incomingVersion !== null && lastSavedVersionRef.current === incomingVersion) {
             return;
         }
 

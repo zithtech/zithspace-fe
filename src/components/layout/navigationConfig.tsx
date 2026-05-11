@@ -512,6 +512,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/onboarding",
       "/employee-exit",
       "/performance",
+      "/perfomance-management",
     ],
     defaultPath: "/members",
     requiredPermission: Permissions.USER_READ,

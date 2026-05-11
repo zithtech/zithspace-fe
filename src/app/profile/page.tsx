@@ -101,12 +101,12 @@ const SectionLabel = ({
       display: "flex",
       alignItems: "baseline",
       gap: 10,
-      margin: "4px 0 14px",
+      margin: "0 0 8px",
     }}
   >
     <span
       style={{
-        fontSize: 10.5,
+        fontSize: 10,
         fontWeight: 700,
         color: "var(--text-slate-500)",
         textTransform: "uppercase",
@@ -116,7 +116,7 @@ const SectionLabel = ({
       {children}
     </span>
     {hint && (
-      <span style={{ fontSize: 11.5, color: "var(--text-slate-400)" }}>
+      <span style={{ fontSize: 10.5, color: "var(--text-slate-400)" }}>
         · {hint}
       </span>
     )}
@@ -371,20 +371,22 @@ export default function ProfilePage() {
           margin: "0 -24px",
           background: "var(--bg-pure-white)",
           minHeight: "calc(100vh - 64px)",
+          overflow: "hidden"
         }}
       >
         <TimeTrackingHeader
-          style={{ padding: "8.5px 32px" }}
-          icon={<UserOutlined style={{ fontSize: 20, color: "#8b5cf6" }} />}
-          title="My Profile"
-          description="Manage your personal information, security, and preferences"
+          style={{ padding: "10.5px 32px", marginBottom: 8 }}
+          icon={<UserOutlined style={{ fontSize: 18, color: "#8b5cf6" }} />}
+          title={<span style={{ fontSize: 16 }}>My Profile</span>}
+          description={<span style={{ fontSize: 11, opacity: 0.8 }}>Manage your information and security</span>}
           extra={
             <Button
               icon={<LogoutOutlined />}
               onClick={() => logout()}
+              size="small"
               style={{
-                height: 38,
-                borderRadius: 10,
+                height: 32,
+                borderRadius: 8,
                 fontWeight: 500,
                 color: "#e11d48",
                 border: "1px solid rgba(225,29,72,0.25)",
@@ -396,7 +398,7 @@ export default function ProfilePage() {
           }
         />
 
-        <div style={{ padding: "8px 32px 40px", maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ padding: "0 32px 20px", maxWidth: 1200, margin: "0 auto" }}>
           {/* Identity Card */}
           <div className="pp-identity-card">
             <div className="pp-identity-bg" />
@@ -405,14 +407,14 @@ export default function ProfilePage() {
                 {/* Avatar with camera */}
                 <div className="pp-avatar-wrap">
                   <Avatar
-                    size={88}
+                    size={64}
                     src={userProfile?.avatarUrl}
                     style={{
                       background: gradientFor(seed),
                       color: "#fff",
-                      fontSize: 32,
+                      fontSize: 24,
                       fontWeight: 700,
-                      border: "4px solid var(--bg-pure-white)",
+                      border: "3px solid var(--bg-pure-white)",
                       boxShadow: "0 10px 30px rgba(15,23,42,0.12)",
                     }}
                   >
@@ -446,11 +448,11 @@ export default function ProfilePage() {
                       level={3}
                       style={{
                         margin: 0,
-                        fontSize: 22,
+                        fontSize: 18,
                         fontWeight: 800,
                         color: "var(--text-slate-900)",
                         letterSpacing: "-0.02em",
-                        lineHeight: 1.15,
+                        lineHeight: 1.1,
                       }}
                     >
                       {userProfile?.name || user?.name}
@@ -479,8 +481,8 @@ export default function ProfilePage() {
                       display: "flex",
                       flexWrap: "wrap",
                       gap: "8px 18px",
-                      marginTop: 10,
-                      fontSize: 12.5,
+                      marginTop: 6,
+                      fontSize: 11.5,
                       color: "var(--text-slate-600)",
                       fontWeight: 500,
                     }}
@@ -522,7 +524,7 @@ export default function ProfilePage() {
 
               {/* Completion */}
               <div className="pp-completion">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                   <Text
                     style={{
                       fontSize: 11,
@@ -536,7 +538,7 @@ export default function ProfilePage() {
                   </Text>
                   <Text
                     style={{
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: 800,
                       color: completion >= 85 ? "#059669" : "#8b5cf6",
                       letterSpacing: "-0.01em",
@@ -559,9 +561,9 @@ export default function ProfilePage() {
                 </div>
                 <Text
                   style={{
-                    fontSize: 11.5,
+                    fontSize: 10.5,
                     color: "var(--text-slate-500)",
-                    marginTop: 8,
+                    marginTop: 4,
                     display: "block",
                   }}
                 >
@@ -574,9 +576,10 @@ export default function ProfilePage() {
           </div>
 
           {/* Tab pills */}
-          <div className="pp-tabs">
+          <div className="pp-tabs" style={{ marginBottom: 10 }}>
             <button
               className={`pp-tab${activeTab === "profile" ? " active" : ""}`}
+              style={{ padding: "6px 14px", fontSize: 12 }}
               onClick={() => setActiveTab("profile")}
             >
               <UserOutlined />
@@ -584,6 +587,7 @@ export default function ProfilePage() {
             </button>
             <button
               className={`pp-tab${activeTab === "security" ? " active" : ""}`}
+              style={{ padding: "6px 14px", fontSize: 12 }}
               onClick={() => setActiveTab("security")}
             >
               <KeyOutlined />
@@ -605,7 +609,7 @@ export default function ProfilePage() {
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
-                    gap: 16,
+                    gap: "8px 16px",
                   }}
                 >
                   <Form.Item
@@ -615,6 +619,7 @@ export default function ProfilePage() {
                   >
                     <Input
                       placeholder="Your full name"
+                      size="small"
                       prefix={
                         <UserOutlined style={{ color: "var(--text-slate-400)" }} />
                       }
@@ -624,6 +629,7 @@ export default function ProfilePage() {
                   <Form.Item name="phone" label="Phone number">
                     <Input
                       placeholder="+1 555 123 4567"
+                      size="small"
                       prefix={
                         <PhoneOutlined style={{ color: "var(--text-slate-400)" }} />
                       }
@@ -637,6 +643,7 @@ export default function ProfilePage() {
                   >
                     <Input
                       placeholder="you@personal.com"
+                      size="small"
                       prefix={
                         <MailOutlined style={{ color: "var(--text-slate-400)" }} />
                       }
@@ -644,11 +651,11 @@ export default function ProfilePage() {
                   </Form.Item>
 
                   <Form.Item name="dateOfBirth" label="Date of birth">
-                    <Input type="date" />
+                    <Input type="date" size="small" />
                   </Form.Item>
                 </div>
 
-                <div style={{ height: 8 }} />
+                <div style={{ height: 4 }} />
                 <SectionLabel hint="Managed by your admin">
                   Work Information
                 </SectionLabel>
@@ -657,7 +664,7 @@ export default function ProfilePage() {
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
-                    gap: 16,
+                    gap: "8px 16px",
                   }}
                 >
                   <div className="pp-readonly-field">
@@ -691,13 +698,14 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="pp-form-footer">
-                  <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
+                  <Text style={{ fontSize: 11, color: "var(--text-slate-500)" }}>
                     Some fields require admin approval to change.
                   </Text>
                   <div style={{ display: "flex", gap: 8 }}>
                     <Button
                       onClick={() => profileForm.resetFields()}
-                      style={{ borderRadius: 8, height: 38 }}
+                      size="small"
+                      style={{ borderRadius: 8, height: 34 }}
                       icon={<ReloadOutlined />}
                     >
                       Reset
@@ -706,10 +714,11 @@ export default function ProfilePage() {
                       type="primary"
                       htmlType="submit"
                       loading={profileLoading}
+                      size="small"
                       style={{
                         borderRadius: 8,
-                        height: 38,
-                        padding: "0 20px",
+                        height: 34,
+                        padding: "0 16px",
                         fontWeight: 600,
                         background:
                           "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
@@ -741,6 +750,7 @@ export default function ProfilePage() {
                   >
                     <Input.Password
                       placeholder="••••••••"
+                      size="small"
                       iconRender={(visible) =>
                         visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
                       }
@@ -757,6 +767,7 @@ export default function ProfilePage() {
                   >
                     <Input.Password
                       placeholder="At least 8 characters"
+                      size="small"
                       iconRender={(visible) =>
                         visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
                       }
@@ -816,6 +827,7 @@ export default function ProfilePage() {
                   >
                     <Input.Password
                       placeholder="Re-enter new password"
+                      size="small"
                       iconRender={(visible) =>
                         visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
                       }
@@ -830,8 +842,8 @@ export default function ProfilePage() {
                       icon={<KeyOutlined />}
                       style={{
                         borderRadius: 8,
-                        height: 40,
-                        padding: "0 22px",
+                        height: 34,
+                        padding: "0 18px",
                         fontWeight: 600,
                         background:
                           "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
@@ -851,7 +863,7 @@ export default function ProfilePage() {
                   </div>
                   <Text
                     style={{
-                      fontSize: 13.5,
+                      fontSize: 12.5,
                       fontWeight: 700,
                       color: "var(--text-slate-900)",
                       display: "block",
@@ -1028,12 +1040,12 @@ export default function ProfilePage() {
             background: var(--bg-pure-white);
             box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
             overflow: hidden;
-            margin-bottom: 18px;
+            margin-bottom: 12px;
           }
           .pp-identity-bg {
             position: absolute;
             top: 0; left: 0; right: 0;
-            height: 92px;
+            height: 60px;
             background:
               radial-gradient(60% 100% at 0% 0%, rgba(99,102,241,0.10) 0%, transparent 60%),
               radial-gradient(60% 100% at 100% 0%, rgba(217,70,239,0.08) 0%, transparent 60%),
@@ -1045,7 +1057,7 @@ export default function ProfilePage() {
             display: flex;
             align-items: center;
             gap: 24px;
-            padding: 28px 28px 24px;
+            padding: 16px 24px 12px;
             flex-wrap: wrap;
           }
           .pp-avatar-wrap {
@@ -1055,14 +1067,14 @@ export default function ProfilePage() {
           .pp-camera-btn {
             position: absolute;
             bottom: -2px; right: -2px;
-            width: 30px; height: 30px;
+            width: 24px; height: 24px;
             border-radius: 50%;
             background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             color: #fff;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer;
-            font-size: 13px;
-            border: 3px solid var(--bg-pure-white);
+            font-size: 11px;
+            border: 2px solid var(--bg-pure-white);
             box-shadow: 0 4px 10px rgba(139,92,246,0.35);
             transition: transform 0.15s ease;
           }
@@ -1074,8 +1086,8 @@ export default function ProfilePage() {
             box-shadow: 0 0 0 2px rgba(16,185,129,0.18);
           }
           .pp-completion {
-            min-width: 220px;
-            padding: 14px 16px;
+            min-width: 180px;
+            padding: 10px 14px;
             border-radius: 12px;
             background: var(--bg-slate-50);
             border: 1px solid var(--border-slate-100);
@@ -1098,14 +1110,14 @@ export default function ProfilePage() {
             border-radius: 12px;
             background: var(--bg-slate-50);
             border: 1px solid var(--border-slate-100);
-            margin-bottom: 18px;
+            margin-bottom: 10px;
             width: fit-content;
           }
           .pp-tab {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 9px 18px;
+            padding: 6px 14px;
             border-radius: 9px;
             background: transparent;
             border: none;
@@ -1129,7 +1141,10 @@ export default function ProfilePage() {
             border: 1px solid var(--border-slate-100);
             background: var(--bg-pure-white);
             box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-            padding: 24px 26px;
+            padding: 16px 20px;
+          }
+          .pp-content-card .ant-form-item {
+            margin-bottom: 14px !important;
           }
           .pp-content-card .ant-form-item-label > label {
             font-weight: 600 !important;
@@ -1144,7 +1159,7 @@ export default function ProfilePage() {
             border-radius: 9px !important;
             border-color: var(--border-slate-200) !important;
             background: var(--bg-secondary) !important;
-            min-height: 40px;
+            min-height: 34px;
           }
           .pp-content-card .ant-input:focus,
           .pp-content-card .ant-input-focused,
@@ -1157,13 +1172,13 @@ export default function ProfilePage() {
             display: flex;
             flex-direction: column;
             gap: 6px;
-            padding: 12px 14px;
+            padding: 8px 12px;
             border-radius: 9px;
             background: var(--bg-slate-50);
             border: 1px dashed var(--border-slate-200);
           }
           .pp-readonly-label {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-slate-500);
             font-weight: 600;
             text-transform: uppercase;
@@ -1173,7 +1188,7 @@ export default function ProfilePage() {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            font-size: 13.5px;
+            font-size: 12.5px;
             color: var(--text-slate-900);
             font-weight: 500;
           }
@@ -1182,8 +1197,8 @@ export default function ProfilePage() {
             font-size: 13px;
           }
           .pp-form-footer {
-            margin-top: 20px;
-            padding-top: 18px;
+            margin-top: 12px;
+            padding-top: 10px;
             border-top: 1px solid var(--border-slate-100);
             display: flex;
             justify-content: space-between;
@@ -1202,20 +1217,20 @@ export default function ProfilePage() {
             transition: background 0.2s ease;
           }
           .pp-tips-card {
-            padding: 20px;
+            padding: 12px 16px;
             border-radius: 12px;
             border: 1px solid var(--border-slate-100);
             background: var(--bg-slate-50);
             position: relative;
           }
           .pp-tips-icon {
-            width: 36px; height: 36px;
-            border-radius: 10px;
+            width: 28px; height: 28px;
+            border-radius: 8px;
             background: rgba(139,92,246,0.12);
             color: #8b5cf6;
             display: flex; align-items: center; justify-content: center;
-            font-size: 16px;
-            margin-bottom: 12px;
+            font-size: 14px;
+            margin-bottom: 8px;
           }
           .pp-tips-list {
             list-style: none;

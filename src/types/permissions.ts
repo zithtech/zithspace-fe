@@ -279,7 +279,13 @@ export const Permissions = {
   PIPELINE_DELETE: 'pipeline.delete',
   PIPELINE_MANAGE: 'pipeline.manage', // pipeline stages, automation rules, and global sales workflows
   PIPELINE_BOARD_READ:    'pipeline.board.read',
+  PIPELINE_BOARD_CREATE:  'pipeline.board.create',
+  PIPELINE_BOARD_UPDATE:  'pipeline.board.update',
+  PIPELINE_BOARD_DELETE:  'pipeline.board.delete',
   PIPELINE_DEALS_READ:    'pipeline.deals.read',
+  PIPELINE_DEALS_CREATE:  'pipeline.deals.create',
+  PIPELINE_DEALS_UPDATE:  'pipeline.deals.update',
+  PIPELINE_DEALS_DELETE:  'pipeline.deals.delete',
   PIPELINE_FORECAST_READ: 'pipeline.forecast.read',
   PIPELINE_SETTING_READ:   'pipeline.setting.read',
   PIPELINE_SETTING_UPDATE: 'pipeline.setting.update',

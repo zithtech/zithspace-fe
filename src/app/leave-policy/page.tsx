@@ -64,6 +64,7 @@ import { useDepartments } from "@/hooks/useDepartments";
 import { useSubDepartments } from "@/hooks/useSubDepartments";
 import { usePositions } from "@/hooks/usePositions";
 import { useLeaveTypes } from "@/hooks/useLeaveTypes";
+import { usePermission } from "@/hooks/usePermission";
 
 const { TextArea } = Input;
 const { Text, Title } = Typography;

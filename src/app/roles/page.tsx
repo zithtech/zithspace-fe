@@ -712,35 +712,61 @@ export default function RolesPage() {
         {/* ── Permissions Drawer ── */}
         <Drawer
           title={
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <Space size={8}>
-                <SafetyOutlined style={{ color: 'var(--premium-blue)' }} />
-                <Text strong style={{ fontSize: 16, color: 'var(--text-slate-900)' }}>Edit Permissions</Text>
-                {drawerRole?.isSystem && <Tag bordered={false} color="blue" style={{ fontSize: 10 }}>SYSTEM</Tag>}
-              </Space>
-              <Text style={{ fontSize: 12, fontWeight: 400, marginTop: 4, color: 'var(--text-slate-500)' }}>
-                Configure access rights for the <strong style={{ color: 'var(--text-slate-900)' }}>{drawerRole?.name}</strong> role
-              </Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{
+                width: 48,
+                height: 48,
+                borderRadius: 12,
+                background: 'var(--bg-blue-50)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--premium-blue)',
+                fontSize: 24,
+                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+              }}>
+                <SafetyOutlined />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <Space size={8}>
+                  <Text strong style={{ fontSize: 20, color: 'var(--text-slate-900)', letterSpacing: '-0.5px' }}>
+                    Access Control: {drawerRole?.name}
+                  </Text>
+                  {drawerRole?.isSystem && (
+                    <Tag color="blue" bordered={false} style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>SYSTEM ROLE</Tag>
+                  )}
+                </Space>
+                <Text style={{ fontSize: 13, fontWeight: 400, marginTop: 2, color: 'var(--text-slate-500)' }}>
+                  Define granular permissions and operational limits for this role.
+                </Text>
+              </div>
             </div>
           }
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
-          width={560}
+          width={820}
           styles={{
-            header: { borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
-            body: { padding: '0 0 24px 0', background: 'var(--bg-pure-white)' }
+            header: { borderBottom: '1px solid var(--border-slate-100)', padding: '24px 32px', background: 'var(--bg-pure-white)' },
+            body: { padding: '0 0 80px 0', background: 'var(--bg-secondary)' },
+            footer: { borderTop: '1px solid var(--border-slate-100)', padding: '16px 32px', background: 'var(--bg-pure-white)' }
           }}
-          extra={
-            canUpdateRole && (
-              <Button
-                type="primary"
-                loading={drawerSaving}
-                onClick={handleSavePermissions}
-                style={{ borderRadius: 6 }}
-              >
-                Save Changes
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <Button onClick={() => setDrawerOpen(false)} size="large" style={{ borderRadius: 10, padding: '0 24px' }}>
+                Cancel
               </Button>
-            )
+              {canUpdateRole && (
+                <Button
+                  type="primary"
+                  size="large"
+                  loading={drawerSaving}
+                  onClick={handleSavePermissions}
+                  style={{ borderRadius: 10, padding: '0 32px', fontWeight: 600, background: 'var(--premium-blue)' }}
+                >
+                  Save Configuration
+                </Button>
+              )}
+            </div>
           }
         >
           {drawerLoadingPerms ? (
@@ -798,18 +824,18 @@ export default function RolesPage() {
               </div>
 
               {/* Permission Groups */}
-              <div style={{ padding: '0 24px' }}>
+              <div style={{ padding: '24px 32px' }}>
                 {PERMISSION_MODULES.map((module) => {
                   const moduleResources = module.resources.filter(r => allPermissions[r]);
                   if (moduleResources.length === 0) return null;
 
                   return (
-                    <div key={module.title} style={{ marginBottom: 32 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                        <div style={{ width: 4, height: 16, background: 'var(--premium-blue)', borderRadius: 2 }} />
-                        <Text strong style={{ fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-slate-900)' }}>
-                          {module.title}
-                        </Text>
+                    <div key={module.title} style={{ marginBottom: 40 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                        <div style={{ width: 6, height: 24, background: 'var(--premium-blue)', borderRadius: 3 }} />
+                        <Title level={4} style={{ margin: 0, fontSize: 18, color: 'var(--text-slate-900)', letterSpacing: '-0.3px' }}>
+                          {module.title} Module
+                        </Title>
                       </div>
 
                       {moduleResources.map((resource) => {
@@ -819,15 +845,28 @@ export default function RolesPage() {
                         const allInGroup = selectedCount === perms.length;
                         const someInGroup = selectedCount > 0 && !allInGroup;
 
+                        // Group by sub-resource
+                        const subGroups: Record<string, RBACPermission[]> = {};
+                        perms.forEach(p => {
+                          const parts = p.name.split('.');
+                          let subKey = `${label} Management`;
+                          if (parts.length > 2) {
+                            subKey = parts[1].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') + ' Management';
+                          }
+                          if (!subGroups[subKey]) subGroups[subKey] = [];
+                          subGroups[subKey].push(p);
+                        });
+
                         return (
                           <div
                             key={resource}
                             style={{
-                              marginBottom: 16,
-                              border: '1px solid var(--border-slate-100)',
-                              borderRadius: 10,
+                              marginBottom: 24,
+                              border: '1px solid var(--border-slate-200)',
+                              borderRadius: 16,
                               overflow: 'hidden',
-                              background: 'var(--bg-pure-white)'
+                              background: 'var(--bg-pure-white)',
+                              boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
                             }}
                           >
                             {/* Group Header */}
@@ -836,45 +875,77 @@ export default function RolesPage() {
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: 'space-between',
-                                padding: "10px 16px",
+                                padding: "14px 20px",
                                 background: 'var(--bg-slate-50)',
                                 borderBottom: '1px solid var(--border-slate-100)'
                               }}
                             >
-                              <Space size={12}>
+                              <Space size={14}>
                                 <Checkbox
                                   checked={allInGroup}
                                   indeterminate={someInGroup}
                                   onChange={() => toggleResource(perms)}
                                   disabled={!canUpdateRole}
+                                  style={{ transform: 'scale(1.1)' }}
                                 />
-                                <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>
+                                <Text strong style={{ fontSize: 15, color: 'var(--text-slate-900)' }}>
                                   {label}
                                 </Text>
                               </Space>
-                              <Tag bordered={false} style={{ fontSize: 11, borderRadius: 4, margin: 0 }}>
-                                {selectedCount} / {perms.length}
-                              </Tag>
+                              <Badge
+                                count={`${selectedCount} / ${perms.length}`}
+                                style={{ backgroundColor: selectedCount === perms.length ? 'var(--text-holiday)' : 'var(--text-slate-400)', boxShadow: 'none' }}
+                              />
                             </div>
 
-                            {/* Individual permission checkboxes */}
-                            <div style={{ padding: '12px 16px' }}>
-                              <Row gutter={[12, 12]}>
-                                {perms.map((perm) => (
-                                  <Col key={perm.id} xs={12} sm={8}>
-                                    <Checkbox
-                                      checked={selectedPermIds.includes(perm.id)}
-                                      onChange={() => togglePermission(perm.id)}
-                                      disabled={!canUpdateRole}
-                                      style={{ fontSize: 12, display: 'flex', alignItems: 'center', color: 'var(--text-slate-700)' }}
-                                    >
-                                      <Tooltip title={perm.description || perm.name}>
-                                        <span style={{ marginLeft: 4 }}>{perm.action}</span>
-                                      </Tooltip>
-                                    </Checkbox>
-                                  </Col>
-                                ))}
-                              </Row>
+                            {/* Sub-groups within Resource */}
+                            <div style={{ padding: '20px' }}>
+                              {Object.entries(subGroups).map(([subTitle, subPerms], idx) => (
+                                <div key={subTitle} style={{ marginBottom: idx === Object.entries(subGroups).length - 1 ? 0 : 24 }}>
+                                  <div style={{ marginBottom: 12, paddingBottom: 8, borderBottom: '1px dashed var(--border-slate-100)' }}>
+                                    <Text strong style={{ fontSize: 13, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
+                                      {subTitle}
+                                    </Text>
+                                  </div>
+                                  <Row gutter={[16, 16]}>
+                                    {subPerms.map((perm) => (
+                                      <Col key={perm.id} xs={24} sm={12} lg={8}>
+                                        <div 
+                                          onClick={() => canUpdateRole && togglePermission(perm.id)}
+                                          style={{
+                                            padding: '10px 14px',
+                                            borderRadius: 10,
+                                            border: '1px solid transparent',
+                                            background: selectedPermIds.includes(perm.id) ? 'var(--bg-blue-50)' : 'var(--bg-slate-50)',
+                                            borderColor: selectedPermIds.includes(perm.id) ? 'var(--border-blue-200)' : 'transparent',
+                                            cursor: canUpdateRole ? 'pointer' : 'default',
+                                            transition: 'all 0.2s ease',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 10
+                                          }}
+                                        >
+                                          <Checkbox
+                                            checked={selectedPermIds.includes(perm.id)}
+                                            disabled={!canUpdateRole}
+                                            style={{ pointerEvents: 'none' }}
+                                          />
+                                          <div style={{ flex: 1, overflow: 'hidden' }}>
+                                            <Text strong style={{ fontSize: 13, display: 'block', color: selectedPermIds.includes(perm.id) ? 'var(--premium-blue)' : 'var(--text-slate-700)' }}>
+                                              {perm.action.charAt(0).toUpperCase() + perm.action.slice(1)}
+                                            </Text>
+                                            {perm.description && (
+                                              <Text type="secondary" style={{ fontSize: 11, display: 'block' }} ellipsis>
+                                                {perm.description}
+                                              </Text>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </Col>
+                                    ))}
+                                  </Row>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         );
@@ -887,12 +958,12 @@ export default function RolesPage() {
                 {Object.entries(allPermissions)
                   .filter(([res]) => !PERMISSION_MODULES.some(m => m.resources.includes(res)))
                   .length > 0 && (
-                    <div style={{ marginBottom: 32 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                        <div style={{ width: 4, height: 16, background: 'var(--text-slate-400)', borderRadius: 2 }} />
-                        <Text strong style={{ fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-slate-400)' }}>
+                    <div style={{ marginBottom: 40 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                        <div style={{ width: 6, height: 24, background: 'var(--text-slate-400)', borderRadius: 3 }} />
+                        <Title level={4} style={{ margin: 0, fontSize: 18, color: 'var(--text-slate-400)', letterSpacing: '-0.3px' }}>
                           Other Permissions
-                        </Text>
+                        </Title>
                       </div>
                       {Object.entries(allPermissions)
                         .filter(([res]) => !PERMISSION_MODULES.some(m => m.resources.includes(res)))
@@ -902,15 +973,28 @@ export default function RolesPage() {
                           const allInGroup = selectedCount === perms.length;
                           const someInGroup = selectedCount > 0 && !allInGroup;
 
+                          // Group by sub-resource
+                          const subGroups: Record<string, RBACPermission[]> = {};
+                          perms.forEach(p => {
+                            const parts = p.name.split('.');
+                            let subKey = `${label} Management`;
+                            if (parts.length > 2) {
+                              subKey = parts[1].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') + ' Management';
+                            }
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
+
                           return (
                             <div
                               key={resource}
                               style={{
-                                marginBottom: 16,
-                                border: '1px solid var(--border-slate-100)',
-                                borderRadius: 10,
+                                marginBottom: 24,
+                                border: '1px solid var(--border-slate-200)',
+                                borderRadius: 16,
                                 overflow: 'hidden',
-                                background: 'var(--bg-pure-white)'
+                                background: 'var(--bg-pure-white)',
+                                boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
                               }}
                             >
                               <div
@@ -918,43 +1002,75 @@ export default function RolesPage() {
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: 'space-between',
-                                  padding: "10px 16px",
+                                  padding: "14px 20px",
                                   background: 'var(--bg-slate-50)',
                                   borderBottom: '1px solid var(--border-slate-100)'
                                 }}
                               >
-                                <Space size={12}>
+                                <Space size={14}>
                                   <Checkbox
                                     checked={allInGroup}
                                     indeterminate={someInGroup}
                                     onChange={() => toggleResource(perms)}
                                     disabled={!canUpdateRole}
+                                    style={{ transform: 'scale(1.1)' }}
                                   />
-                                  <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>
+                                  <Text strong style={{ fontSize: 15, color: 'var(--text-slate-900)' }}>
                                     {label}
                                   </Text>
                                 </Space>
-                                <Tag bordered={false} style={{ fontSize: 11, borderRadius: 4, margin: 0 }}>
-                                  {selectedCount} / {perms.length}
-                                </Tag>
+                                <Badge
+                                  count={`${selectedCount} / ${perms.length}`}
+                                  style={{ backgroundColor: selectedCount === perms.length ? 'var(--text-holiday)' : 'var(--text-slate-400)', boxShadow: 'none' }}
+                                />
                               </div>
-                              <div style={{ padding: '12px 16px' }}>
-                                <Row gutter={[12, 12]}>
-                                  {perms.map((perm) => (
-                                    <Col key={perm.id} xs={12} sm={8}>
-                                      <Checkbox
-                                        checked={selectedPermIds.includes(perm.id)}
-                                        onChange={() => togglePermission(perm.id)}
-                                        disabled={!canUpdateRole}
-                                        style={{ fontSize: 12, display: 'flex', alignItems: 'center', color: 'var(--text-slate-700)' }}
-                                      >
-                                        <Tooltip title={perm.description || perm.name}>
-                                          <span style={{ marginLeft: 4 }}>{perm.action}</span>
-                                        </Tooltip>
-                                      </Checkbox>
-                                    </Col>
-                                  ))}
-                                </Row>
+                              <div style={{ padding: '20px' }}>
+                                {Object.entries(subGroups).map(([subTitle, subPerms], idx) => (
+                                  <div key={subTitle} style={{ marginBottom: idx === Object.entries(subGroups).length - 1 ? 0 : 24 }}>
+                                    <div style={{ marginBottom: 12, paddingBottom: 8, borderBottom: '1px dashed var(--border-slate-100)' }}>
+                                      <Text strong style={{ fontSize: 13, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
+                                        {subTitle}
+                                      </Text>
+                                    </div>
+                                    <Row gutter={[16, 16]}>
+                                      {subPerms.map((perm) => (
+                                        <Col key={perm.id} xs={24} sm={12} lg={8}>
+                                          <div 
+                                            onClick={() => canUpdateRole && togglePermission(perm.id)}
+                                            style={{
+                                              padding: '10px 14px',
+                                              borderRadius: 10,
+                                              border: '1px solid transparent',
+                                              background: selectedPermIds.includes(perm.id) ? 'var(--bg-slate-100)' : 'var(--bg-slate-50)',
+                                              borderColor: selectedPermIds.includes(perm.id) ? 'var(--border-slate-200)' : 'transparent',
+                                              cursor: canUpdateRole ? 'pointer' : 'default',
+                                              transition: 'all 0.2s ease',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 10
+                                            }}
+                                          >
+                                            <Checkbox
+                                              checked={selectedPermIds.includes(perm.id)}
+                                              disabled={!canUpdateRole}
+                                              style={{ pointerEvents: 'none' }}
+                                            />
+                                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                                              <Text strong style={{ fontSize: 13, display: 'block', color: 'var(--text-slate-700)' }}>
+                                                {perm.action.charAt(0).toUpperCase() + perm.action.slice(1)}
+                                              </Text>
+                                              {perm.description && (
+                                                <Text type="secondary" style={{ fontSize: 11, display: 'block' }} ellipsis>
+                                                  {perm.description}
+                                                </Text>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </Col>
+                                      ))}
+                                    </Row>
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           );

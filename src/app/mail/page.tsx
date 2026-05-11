@@ -2,22 +2,11 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import {
-  Button,
-  Space,
-  Spin,
-  Input,
-  Drawer,
-  Form,
-  message,
-  Select,
-  Popconfirm,
-  Checkbox,
-  DatePicker,
-  Upload,
-  Tooltip,
-} from "antd";
+import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Spin, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload, Popover, Tooltip, Tag } from "antd";
+import { useAuth } from "@/context/AuthContext";
+import axios from "axios";
 import { apiClient } from "@/lib/axios";
+import { useRouter } from "next/navigation";
 import {
   Mail,
   RefreshCw,
@@ -51,14 +40,8 @@ import {
   SendOutlined,
   PaperClipOutlined,
 } from "@ant-design/icons";
-import {
-  useMail,
-  useMailThreads,
-  useThreadMessages,
-  useMailStatus,
-  useMailContacts,
-} from "@/hooks/useMail";
-import { MailService } from "@/services/mailService";
+import { useMail, useMailThreads, useThreadMessages, useMailStatus, useMailContacts, useMailUnreadCount } from "@/hooks/useMail";
+import { MailService, MailMessage } from "@/services/mailService";
 
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -185,6 +168,8 @@ const FILTERS: { label: string; value: any; icon?: any }[] = [
 ];
 
 export default function MailPage() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const [selectedFolder, setSelectedFolder] = useState("INBOX");
   const [filter, setFilter] = useState<
     "ALL" | "READ" | "UNREAD" | "HAS_ATTACHMENTS" | "NO_ATTACHMENTS"
@@ -194,13 +179,11 @@ export default function MailPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const { data: threads = [], isLoading: threadsLoading } = useMailThreads(
-    selectedFolder,
-    filter,
-    debouncedSearch
-  );
-  const { data: messages = [] } = useThreadMessages(selectedThreadId);
+  const { data: threadsData = [], isLoading: threadsLoading } = useMailThreads(selectedFolder, filter, debouncedSearch);
+  const { data: messages = [], isLoading: messagesLoading } = useThreadMessages(selectedThreadId);
   const { data: mailStatus } = useMailStatus();
+  // const { data: unreadCount = 0 } = useMailUnreadCount();
+  const threads = Array.isArray(threadsData) ? threadsData : [];
   const { data: contacts = [] } = useMailContacts();
 
   useEffect(() => {
@@ -234,7 +217,10 @@ export default function MailPage() {
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [composeVisible, setComposeVisible] = useState(false);
+  const [showCc, setShowCc] = useState(false);
+  const [showBcc, setShowBcc] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [currentDraftThreadId, setCurrentDraftThreadId] = useState<string | null>(null);
   const [form] = Form.useForm();
 
   const [quickReply, setQuickReply] = useState("");
@@ -251,10 +237,9 @@ export default function MailPage() {
 
     const promises = attachments.map(async (att) => {
       try {
-        const proxyUrl = `/api/mail/attachments/download?url=${encodeURIComponent(
-          att.downloadUrl
-        )}&filename=${encodeURIComponent(att.fileName)}`;
-        const response = await apiClient.get(proxyUrl, { responseType: "blob" });
+        // Use backend proxy to bypass CORS
+        const proxyUrl = `/api/mail/attachments/download?url=${encodeURIComponent(att.downloadUrl)}&filename=${encodeURIComponent(att.fileName)}&attachmentId=${encodeURIComponent(att.id)}`;
+        const response = await apiClient.get(proxyUrl, { responseType: 'blob' });
         zip.file(att.fileName, response.data);
         filesAdded++;
       } catch (error) {
@@ -271,6 +256,28 @@ export default function MailPage() {
 
     const content = await zip.generateAsync({ type: "blob" });
     saveAs(content, "attachments.zip");
+  };
+
+  const downloadAttachment = async (att: any) => {
+    try {
+      // Use backend proxy with authenticated apiClient to fetch blob
+      const proxyUrl = `/api/mail/attachments/download?url=${encodeURIComponent(att.downloadUrl)}&filename=${encodeURIComponent(att.fileName)}&attachmentId=${encodeURIComponent(att.id)}`;
+      const response = await apiClient.get(proxyUrl, { responseType: 'blob' });
+
+      // Create a temporary object URL and trigger download
+      const blob = new Blob([response.data], { type: att.mimeType || att.contentType || 'application/octet-stream' });
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = att.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Failed to download attachment:", error);
+      message.error("Could not download attachment");
+    }
   };
 
   const getFileIcon = (fileName?: string) => {
@@ -340,10 +347,9 @@ export default function MailPage() {
       att.fileName?.toLowerCase().endsWith(".pdf");
 
     try {
-      const proxyUrl = `/api/mail/attachments/download?url=${encodeURIComponent(
-        att.downloadUrl
-      )}&filename=${encodeURIComponent(att.fileName)}&mode=inline`;
-      const response = await apiClient.get(proxyUrl, { responseType: "blob" });
+      // Use backend proxy with authenticated apiClient to fetch blob
+      const proxyUrl = `/api/mail/attachments/download?url=${encodeURIComponent(att.downloadUrl)}&filename=${encodeURIComponent(att.fileName)}&mode=inline&attachmentId=${encodeURIComponent(att.id)}`;
+      const response = await apiClient.get(proxyUrl, { responseType: 'blob' });
 
       const blob = new Blob([response.data], {
         type: isPdf
@@ -390,9 +396,18 @@ export default function MailPage() {
           cc: lastMsg.ccEmails || [],
           bcc: lastMsg.bccEmails || [],
           subject: lastMsg.subject || "",
-          body: lastMsg.bodyText || lastMsg.bodyHtml || "",
+          body: lastMsg.bodyHtml || lastMsg.bodyText || ""
         });
-        setCurrentDraftId(lastMsg.id);
+        
+        // Show Cc/Bcc if they have values
+        if (lastMsg.ccEmails && lastMsg.ccEmails.length > 0) setShowCc(true);
+        else setShowCc(false);
+        if (lastMsg.bccEmails && lastMsg.bccEmails.length > 0) setShowBcc(true);
+        else setShowBcc(false);
+
+        // Store the local message id (for save-as-draft updates) and the thread id (for deletion after send)
+        setCurrentDraftId(lastMsg.externalId || lastMsg.id);
+        setCurrentDraftThreadId(threadId);
         setComposeVisible(true);
       }
     } catch (err) {

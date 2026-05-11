@@ -152,7 +152,7 @@ export default function MonthView({ currentDate, events, onDayClick, onEventClic
                                         >
                                             {date.date()}
                                         </div>
-                                    </div>
+                                        </div>
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                                         {visible.map((e, idx) => {
@@ -212,6 +212,7 @@ export default function MonthView({ currentDate, events, onDayClick, onEventClic
                                                             textOverflow: 'ellipsis',
                                                             fontWeight: 600,
                                                         }}
+                                                        className="event-tag"
                                                     >
                                                         <span style={{ opacity: 0.7, fontWeight: 500 }}>
                                                             {formatTime(e.startTime)}
@@ -235,12 +236,33 @@ export default function MonthView({ currentDate, events, onDayClick, onEventClic
                                             </div>
                                         )}
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ))}
-            </div>
+
+                                    </div>
+                                    
+                                    
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+         
+
+            <style jsx global>{`
+                .month-cell:hover {
+                    background: var(--cal-surface-hover) !important;
+                }
+                .event-tag:hover {
+                    transform: scale(1.02);
+                    filter: brightness(0.98);
+                }
+                .no-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                .no-scrollbar {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
         </div>
     );
 }

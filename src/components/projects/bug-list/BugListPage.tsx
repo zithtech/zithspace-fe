@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Popconfirm,
   Select,
@@ -8,6 +8,7 @@ import {
   message,
   DatePicker,
   Segmented,
+  Dropdown,
 } from "antd";
 
 const { RangePicker } = DatePicker;
@@ -26,15 +27,21 @@ import {
   Activity,
   Archive,
   ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
   Folder,
   Layers,
   User,
+  UserCheck,
   CircleDot,
   AlertTriangle,
   Tag,
   Box,
   Calendar,
+  ChevronDown,
+  Briefcase,
 } from "lucide-react";
+import { useAllProjects } from "@/hooks/useGlobalData";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
 import HivebugTable from "./HivebugTable";
 import ArchiveView from "./ArchiveView";
@@ -61,6 +68,10 @@ import {
   useVerifyBug,
   useArchivedSheets,
   useTrashedSheets,
+  useArchivedFolders,
+  useTrashedFolders,
+  useProjectSheets,
+  useBulkMoveBugs,
 } from "@/hooks/useBugList";
 import { useMembersSelect } from "@/hooks/useMembersSelect";
 import type {
@@ -94,7 +105,30 @@ interface FilterState {
 
 const DEFAULT_FILTERS: FilterState = { search: "" };
 
+const stringToHash = (str: string) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash);
+};
+
 export default function BugListPage() {
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("buglist_selected_project") || null;
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (selectedProjectId) {
+      localStorage.setItem("buglist_selected_project", selectedProjectId);
+    } else {
+      localStorage.removeItem("buglist_selected_project");
+    }
+  }, [selectedProjectId]);
+
   const [scope, setScope] = useState<BugScope>("all");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedSheetId, setSelectedSheetId] = useState<string | null>(null);
@@ -121,15 +155,60 @@ export default function BugListPage() {
   const [quickTitle, setQuickTitle] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const { data: folders } = useBugFolders();
+  const { data: projects, isLoading: projectsLoading } = useAllProjects();
+  const { data: folders, isLoading: foldersLoading } = useBugFolders(selectedProjectId || undefined);
   const { data: sheets } = useBugSheets(selectedFolderId);
-  const { data: archivedSheets } = useArchivedSheets();
-  const { data: trashedSheets } = useTrashedSheets();
+  const { data: archivedSheets } = useArchivedSheets(selectedFolderId || undefined);
+  const { data: trashedSheets } = useTrashedSheets(selectedFolderId || undefined);
+  const { data: archivedFolders } = useArchivedFolders();
+  const { data: trashedFolders } = useTrashedFolders();
   const { data: stats } = useBugStats({
     folderId: selectedFolderId || undefined,
     sheetId: selectedSheetId || undefined,
     scope,
+    projectId: selectedProjectId || undefined,
   });
+
+  const [sidebarWidth, setSidebarWidth] = useState(252);
+  const [isResizing, setIsResizing] = useState(false);
+
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    setIsResizing(true);
+    e.preventDefault();
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const resize = useCallback(
+    (e: MouseEvent) => {
+      if (isResizing) {
+        const newWidth = e.clientX;
+        if (newWidth >= 180 && newWidth <= 600) {
+          setSidebarWidth(newWidth);
+        }
+      }
+    },
+    [isResizing]
+  );
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener("mousemove", resize);
+      window.addEventListener("mouseup", stopResizing);
+    } else {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+    }
+    return () => {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+    };
+  }, [isResizing, resize, stopResizing]);
+
+  const { data: projectSheets } = useProjectSheets(selectedProjectId);
+  const bulkMoveBugs = useBulkMoveBugs();
 
   const prefilledProjectId = useMemo(() => {
     if (!selectedFolderId) return undefined;
@@ -140,6 +219,21 @@ export default function BugListPage() {
   // Add missing variables to fix TypeScript errors
   const { users } = useMembersSelect();
   const members = users.map(u => ({ value: u.value, label: u.label }));
+  const allFolders = useMemo(() => {
+    const res = [...(folders || [])];
+    archivedFolders?.forEach(f => { if(!res.find(x => x.id === f.id)) res.push(f); });
+    trashedFolders?.forEach(f => { if(!res.find(x => x.id === f.id)) res.push(f); });
+    return res;
+  }, [folders, archivedFolders, trashedFolders]);
+
+  const allSheets = useMemo(() => {
+    const res = [...(sheets || [])];
+    projectSheets?.forEach(s => { if(!res.find(x => x.id === s.id)) res.push(s); });
+    archivedSheets?.forEach(s => { if(!res.find(x => x.id === s.id)) res.push(s); });
+    trashedSheets?.forEach(s => { if(!res.find(x => x.id === s.id)) res.push(s); });
+    return res;
+  }, [sheets, projectSheets, archivedSheets, trashedSheets]);
+
   const workspaceStats = {
     totalFolders: folders?.length || 0,
     totalSheets: sheets?.length || 0,
@@ -149,13 +243,14 @@ export default function BugListPage() {
     linked: stats?.linked || 0,
   };
   const filterSheets = sheets?.filter(s => s.name.toLowerCase().includes(filters.search.toLowerCase())) || [];
-  const showWorkspaceStats = scope !== "archived" && scope !== "trash" && !selectedSheetId;
+  const showWorkspaceStats = scope !== "archived" && scope !== "trash" && (folders?.length || 0) > 0;
   const isViewingBugs = selectedSheetId || (scope !== "archived" && scope !== "trash") || (subScope === "bugs");
 
   const queryFilters = useMemo(
     () => ({
       folderId: selectedFolderId || undefined,
       sheetId: selectedSheetId || undefined,
+      projectId: selectedProjectId || undefined,
       scope,
       search: filters.search || undefined,
       severity: filters.severity,
@@ -171,7 +266,7 @@ export default function BugListPage() {
       page,
       limit,
     }),
-    [scope, selectedFolderId, selectedSheetId, filters, page, limit]
+    [scope, selectedFolderId, selectedSheetId, selectedProjectId, filters, page, limit]
   );
 
   const { data: bugsResponse, isLoading, isFetching } = useBugs(queryFilters);
@@ -347,6 +442,8 @@ export default function BugListPage() {
 
       <HivebugSidebar
         scope={scope}
+        width={sidebarWidth}
+        onResizerMouseDown={startResizing}
         onScopeChange={setScope}
         selectedFolderId={selectedFolderId}
         selectedSheetId={selectedSheetId}
@@ -369,12 +466,77 @@ export default function BugListPage() {
           setEditingSheet(s);
           setSheetModalOpen(true);
         }}
+        selectedProjectId={selectedProjectId}
+        onProjectChange={(id) => {
+          setSelectedProjectId(id);
+          setSelectedFolderId(null);
+          setSelectedSheetId(null);
+        }}
       />
 
       <main className="hb-main">
         <header className="hb-header">
           <div className="hb-breadcrumb" style={{ paddingLeft: 0 }}>
-            <span className="hb-bc-strong">Bug List</span>
+            <div className="hb-project-switcher-header">
+              <Dropdown
+                trigger={["click"]}
+                menu={{
+                  items: [
+                    {
+                      key: 'header',
+                      label: (
+                        <div className="hb-project-dropdown-header">
+                          <span className="hb-dropdown-title">Projects</span>
+                          <span className="hb-dropdown-count">{(projects || []).length} Total</span>
+                        </div>
+                      ),
+                      disabled: true,
+                    },
+                    { type: 'divider' },
+                    ...(projects || []).map(p => ({
+                      key: p.value,
+                      label: (
+                        <div className={`hb-project-dropdown-item ${p.value === selectedProjectId ? 'hb-selected' : ''}`}>
+                          <div className="hb-project-code-badge" style={{ 
+                            background: p.value === selectedProjectId ? 'var(--hb-accent)' : `hsla(${stringToHash(p.code || 'PRJ') % 360}, 70%, 50%, 0.1)`,
+                            color: p.value === selectedProjectId ? '#fff' : `hsl(${stringToHash(p.code || 'PRJ') % 360}, 70%, 50%)`
+                          }}>
+                            {p.code?.toUpperCase() || "PRJ"}
+                          </div>
+                          <div className="hb-project-info">
+                            <div className="hb-project-label">{p.label}</div>
+                            <div className="hb-project-code">#{p.code || "N/A"}</div>
+                          </div>
+                          {p.value === selectedProjectId && (
+                            <div className="hb-selected-dot" />
+                          )}
+                        </div>
+                      ),
+                      onClick: () => {
+                        setSelectedProjectId(p.value);
+                        setSelectedFolderId(null);
+                        setSelectedSheetId(null);
+                      }
+                    }))
+                  ],
+                  style: { padding: 8, borderRadius: 16, border: '1px solid var(--hb-border)', boxShadow: '0 12px 48px rgba(0,0,0,0.3)', minWidth: 260 }
+                }}
+              >
+                <div className="hb-project-trigger">
+                  <div className="hb-project-trigger-main">
+                    <Briefcase size={14} className="hb-project-trigger-icon" />
+                    <span className="hb-project-name">
+                      {projects?.find(p => p.value === selectedProjectId)?.label || "Select Project"}
+                    </span>
+                  </div>
+                  <div className="hb-project-trigger-header">
+                    <span className="hb-project-trigger-hint">Switch Project</span>
+                    <ChevronRight size={8} className="hb-project-hint-arrow" />
+                  </div>
+                </div>
+              </Dropdown>
+            </div>
+
             {scope === "archived" && !selectedSheetId && (
               <>
                 <span className="hb-bc-sep">›</span>
@@ -403,14 +565,14 @@ export default function BugListPage() {
                 {selectedFolderId && (
                   <>
                     <span className="hb-bc-soft">
-                      {folders?.find((f) => f.id === selectedFolderId)?.name || "Loading..."}
+                      {allFolders.find((f) => f.id === selectedFolderId)?.name || "Loading..."}
                     </span>
                     {selectedSheetId && <span className="hb-bc-sep">›</span>}
                   </>
                 )}
                 {selectedSheetId && (
                   <span className="hb-bc-soft">
-                    {sheets?.find((s) => s.id === selectedSheetId)?.name || "Loading..."}
+                    {allSheets.find((s) => s.id === selectedSheetId)?.name || "Loading..."}
                   </span>
                 )}
               </>
@@ -422,70 +584,72 @@ export default function BugListPage() {
             )}
           </div>
 
-          <div className="hb-header-tools">
-            <div className="hb-search">
-              <Search size={14} />
-              <input
-                ref={searchRef}
-                placeholder="Search title, tags, assignee…"
-                value={filters.search}
-                onChange={(e) =>
-                  setFilters((f) => ({ ...f, search: e.target.value }))
-                }
-              />
-              <span className="hb-kbd">/</span>
-            </div>
+          {(folders?.length || 0) > 0 && (
+            <div className="hb-header-tools">
+              <div className="hb-search">
+                <Search size={14} />
+                <input
+                  ref={searchRef}
+                  placeholder="Search title, tags, assignee…"
+                  value={filters.search}
+                  onChange={(e) =>
+                    setFilters((f) => ({ ...f, search: e.target.value }))
+                  }
+                />
 
-            <button
-              className={`hb-btn hb-btn-ghost hb-filter-toggle ${
-                filtersVisible ? "active" : ""
-              }`}
-              onClick={() => setFiltersVisible((v) => !v)}
-              aria-pressed={filtersVisible}
-            >
-              <SlidersHorizontal size={14} />
-              Filters
-              {activeFilterCount > 0 && (
-                <span className="hb-filter-badge">{activeFilterCount}</span>
+              </div>
+
+              <button
+                className={`hb-btn hb-btn-ghost hb-filter-toggle ${
+                  filtersVisible ? "active" : ""
+                }`}
+                onClick={() => setFiltersVisible((v) => !v)}
+                aria-pressed={filtersVisible}
+              >
+                <SlidersHorizontal size={14} />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="hb-filter-badge">{activeFilterCount}</span>
+                )}
+              </button>
+
+              <Tooltip title="Trash Bin">
+                <button
+                  className={`hb-btn hb-btn-ghost ${scope === "trash" ? "active" : ""}`}
+                  onClick={() => {
+                    setScope("trash");
+                    setSelectedFolderId(null);
+                    setSelectedSheetId(null);
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </Tooltip>
+
+              <Tooltip title="Archive Bin">
+                <button
+                  className={`hb-btn hb-btn-ghost ${scope === "archived" ? "active" : ""}`}
+                  onClick={() => {
+                    setScope("archived");
+                    setSelectedFolderId(null);
+                    setSelectedSheetId(null);
+                  }}
+                >
+                  <Archive size={14} />
+                </button>
+              </Tooltip>
+
+              {selectedSheetId && (
+                <button
+                  className="hb-btn hb-btn-primary"
+                  onClick={openCreateBug}
+                >
+                  <Plus size={14} />
+                  New Bug
+                </button>
               )}
-            </button>
-
-            <Tooltip title="Trash Bin">
-              <button
-                className={`hb-btn hb-btn-ghost ${scope === "trash" ? "active" : ""}`}
-                onClick={() => {
-                  setScope("trash");
-                  setSelectedFolderId(null);
-                  setSelectedSheetId(null);
-                }}
-              >
-                <Trash2 size={14} />
-              </button>
-            </Tooltip>
-
-            <Tooltip title="Archive Bin">
-              <button
-                className={`hb-btn hb-btn-ghost ${scope === "archived" ? "active" : ""}`}
-                onClick={() => {
-                  setScope("archived");
-                  setSelectedFolderId(null);
-                  setSelectedSheetId(null);
-                }}
-              >
-                <Archive size={14} />
-              </button>
-            </Tooltip>
-
-            {selectedSheetId && (
-              <button
-                className="hb-btn hb-btn-primary"
-                onClick={openCreateBug}
-              >
-                <Plus size={14} />
-                New Bug
-              </button>
-            )}
-          </div>
+            </div>
+          )}
         </header>
 
         {showWorkspaceStats && (
@@ -542,7 +706,7 @@ export default function BugListPage() {
           </div>
         )}
 
-        {filtersVisible && (
+        {filtersVisible && (folders?.length || 0) > 0 && (
         <div className="hb-filterbar">
           <div className="hb-filterbar-lead">
             <SlidersHorizontal size={14} strokeWidth={2.5} />
@@ -571,7 +735,7 @@ export default function BugListPage() {
                     setSelectedFolderId(v || null);
                     setSelectedSheetId(null);
                   }}
-                  options={(folders || []).map((f) => ({
+                  options={allFolders.map((f) => ({
                     value: f.id,
                     label: f.name,
                   }))}
@@ -588,7 +752,7 @@ export default function BugListPage() {
                   variant="borderless"
                   value={selectedSheetId || undefined}
                   onChange={(v) => setSelectedSheetId(v || null)}
-                  options={(filterSheets || []).map((s) => ({
+                  options={allSheets.map((s) => ({
                     value: s.id,
                     label: s.name,
                   }))}
@@ -610,6 +774,25 @@ export default function BugListPage() {
               variant="borderless"
               value={filters.createdById}
               onChange={(v) => setFilters((f) => ({ ...f, createdById: v }))}
+              options={memberOptions}
+              filterOption={(input, option) =>
+                (option?.label as string)
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              style={{ width: 140 }}
+            />
+          </div>
+          <div className={`hb-filter-group ${filters.assigneeId ? "active" : ""}`}>
+            <span className="hb-filter-label"><UserCheck size={12} /></span>
+            <Select
+              allowClear
+              showSearch
+              placeholder="Assignee"
+              size="small"
+              variant="borderless"
+              value={filters.assigneeId}
+              onChange={(v) => setFilters((f) => ({ ...f, assigneeId: v }))}
               options={memberOptions}
               filterOption={(input, option) =>
                 (option?.label as string)
@@ -724,7 +907,7 @@ export default function BugListPage() {
         </div>
         )}
 
-        {selectedSheetId && (
+        {selectedSheetId && (scope === "all" || scope === "mine") && (
           <div className="hb-quickadd">
             <Plus size={14} />
             <input
@@ -767,6 +950,44 @@ export default function BugListPage() {
                 </>
               ) : (
                 <>
+                  <Select
+                    placeholder="Move to Sheet"
+                    size="small"
+                    className="hb-bulk-move-select"
+                    popupClassName="hb-bulk-move-popup"
+                    suffixIcon={<ChevronDown size={12} />}
+                    style={{ width: 160 }}
+                    value={null}
+                    loading={bulkMoveBugs.isPending}
+                    onChange={(targetSheetId) => {
+                      if (!targetSheetId) return;
+                      bulkMoveBugs.mutate(
+                        { 
+                          bugIds: Array.from(selectedIds), 
+                          targetSheetId 
+                        },
+                        {
+                          onSuccess: () => {
+                            setSelectedIds(new Set());
+                          }
+                        }
+                      );
+                    }}
+                    options={(projectSheets || [])
+                      .filter(s => s.id !== selectedSheetId)
+                      .map(s => ({
+                        value: s.id,
+                        label: (
+                          <div className="hb-move-option">
+                            <Box size={12} className="hb-move-icon" />
+                            <div className="hb-move-info">
+                              <div className="hb-move-name">{s.name}</div>
+                              <div className="hb-move-folder">{s.folderName}</div>
+                            </div>
+                          </div>
+                        )
+                      }))}
+                  />
                   <button
                     className="hb-btn hb-btn-primary"
                     onClick={() => setBulkTicketOpen(true)}
@@ -804,7 +1025,49 @@ export default function BugListPage() {
         )}
 
         <div className="hb-content">
-          {scope === "archived" && !selectedSheetId && (
+          {!selectedProjectId ? (
+            <div className="hb-empty-state hb-project-empty">
+              <div className="hb-empty-icon">
+                <div className="hb-empty-icon-ring">
+                  <Briefcase size={40} />
+                </div>
+              </div>
+              <h3>Choose a Project</h3>
+              <p>To view bugs and manage your workflow, please select a project from the header above.</p>
+              <div className="hb-empty-actions">
+                <button 
+                  className="hb-btn hb-btn-primary hb-btn-lg"
+                  onClick={() => {
+                    message.info("Click the project switcher in the top-left");
+                  }}
+                >
+                  <Search size={14} />
+                  Find Project
+                </button>
+              </div>
+            </div>
+          ) : (folders?.length === 0 && scope === "all" && !foldersLoading) ? (
+            <div className="hb-empty-state hb-folders-empty">
+              <div className="hb-empty-icon">
+                <div className="hb-empty-icon-ring hb-folder-ring">
+                  <FolderTree size={40} />
+                </div>
+              </div>
+              <h3>No Folders Found</h3>
+              <p>This project doesn't have any bug folders yet. Create your first folder to start tracking bugs.</p>
+              <div className="hb-empty-actions">
+                <button 
+                  className="hb-btn hb-btn-primary hb-btn-lg"
+                  onClick={() => setFolderModalOpen(true)}
+                >
+                  <Plus size={14} />
+                  New Folder
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {scope === "archived" && !selectedSheetId && (
             <ArchiveView
               selectedSheetId={selectedSheetId}
               selectedFolderId={selectedFolderId}
@@ -979,8 +1242,10 @@ export default function BugListPage() {
               )}
             </>
           )}
-        </div>
-      </main>
+        </>
+      )}
+    </div>
+  </main>
 
       <CreateBugDrawer
         open={bugDrawerOpen}
@@ -999,6 +1264,7 @@ export default function BugListPage() {
       <FolderModal
         open={folderModalOpen}
         editing={editingFolder}
+        defaultProjectId={selectedProjectId}
         onClose={() => {
           setFolderModalOpen(false);
           setEditingFolder(null);

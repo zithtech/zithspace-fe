@@ -63,7 +63,8 @@ import {
   ContactsOutlined,
   FireFilled,
   StarFilled,
-  SafetyCertificateFilled,
+  SyncOutlined,
+  ExperimentOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -375,8 +376,15 @@ function DashboardContent() {
         try {
           const getAverageWorkingHours =
             await AttendanceService.getLast5DaysAverage();
-          if (getAverageWorkingHours && getAverageWorkingHours.averageHours) {
-            setAverageWorkHours(getAverageWorkingHours.averageHours);
+          if (getAverageWorkingHours && typeof getAverageWorkingHours.averageHours !== 'undefined') {
+            const avg = getAverageWorkingHours.averageHours;
+            if (typeof avg === 'number') {
+              const h = Math.floor(avg);
+              const m = Math.round((avg - h) * 60);
+              setAverageWorkHours(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`);
+            } else {
+              setAverageWorkHours(avg);
+            }
           }
         } catch (error) {
           console.error("Failed to fetch last 5 days average", error);
@@ -509,8 +517,13 @@ function DashboardContent() {
       t.status?.toLowerCase() === "in_progress" ||
       t.status?.toLowerCase() === "doing",
   ).length;
-  const blockedTickets = tickets.filter(
-    (t) => t.status?.toLowerCase() === "blocked",
+  const notStartedTickets = tickets.filter(
+    (t) => t.status?.toLowerCase() === "not_started",
+  ).length;
+  const inTestingTickets = tickets.filter(
+    (t) =>
+      t.status?.toLowerCase() === "in_testing" ||
+      t.status?.toLowerCase() === "testing",
   ).length;
   const completionRate =
     totalTickets > 0
@@ -993,7 +1006,7 @@ function DashboardContent() {
                   {/* Avg Working Hours */}
                   <Col xs={24} sm={12} lg={6}>
                     {(() => {
-                      const [hh = 0, mm = 0, ss = 0] = (averageWorkHours || "0:0:0")
+                      const [hh = 0, mm = 0, ss = 0] = String(averageWorkHours || "0:0:0")
                         .split(":")
                         .map((n) => Number(n) || 0);
                       const hoursDecimal = hh + mm / 60 + ss / 3600;
@@ -2278,686 +2291,119 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
-
                       <Col xs={24} lg={8}>
                         {(() => {
-                          const accent = "#7C3AED";
-                          const groupOf = (status: string) => {
-                            const s = status?.toLowerCase();
-                            if (["completed", "live", "done"].includes(s))
-                              return "done";
-                            if (["in_progress", "doing"].includes(s))
-                              return "active";
-                            if (s === "blocked") return "blocked";
-                            return "pending";
-                          };
-                          const buckets: Record<string, any[]> = {
-                            done: [],
-                            active: [],
-                            blocked: [],
-                            pending: [],
-                          };
-                          tickets.forEach((t: any) =>
-                            buckets[groupOf(t.status)].push(t),
-                          );
-                          const rows = [
-                            {
-                              key: "active",
-                              label: "Active",
-                              color: "#0EA5E9",
-                              tickets: buckets.active,
-                            },
-                            {
-                              key: "blocked",
-                              label: "Blocked",
-                              color: "#EF4444",
-                              tickets: buckets.blocked,
-                            },
-                            {
-                              key: "pending",
-                              label: "Pending",
-                              color: "#F59E0B",
-                              tickets: buckets.pending,
-                            },
-                            {
-                              key: "done",
-                              label: "Done",
-                              color: "#10B981",
-                              tickets: buckets.done,
-                            },
+                          const segments = [
+                            { key: "done", label: "Done", value: completedTickets, color: "#10B981", icon: <CheckCircleFilled style={{ fontSize: 11 }} /> },
+                            { key: "active", label: "Active", value: inProgressTickets, color: "#0EA5E9", icon: <SyncOutlined spin style={{ fontSize: 11 }} /> },
+                            { key: "testing", label: "In Testing", value: inTestingTickets, color: "#F59E0B", icon: <ExperimentOutlined style={{ fontSize: 11 }} /> },
+                            { key: "not_started", label: "Not Started", value: notStartedTickets, color: "#94A3B8", icon: <ClockCircleOutlined style={{ fontSize: 11 }} /> },
                           ];
-                          const MARKERS_MAX = 18;
-                          const upNext = [
-                            ...buckets.blocked,
-                            ...buckets.active,
-                            ...buckets.pending,
-                          ].slice(0, 3);
-                          const lastWin = buckets.done[0];
-
+                          const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
                           return (
                             <Card
-                              style={{
-                                ...cardBase,
-                                height: 340,
-                                overflow: "hidden",
-                                position: "relative",
-                              }}
-                              styles={{
-                                body: {
-                                  padding: 0,
-                                  height: "100%",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                },
-                              }}
-                              title={
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 10,
-                                    flexWrap: "wrap",
-                                    minWidth: 0,
-                                  }}
-                                >
-                                  {sectionTitle(
-                                    <TrophyOutlined />,
-                                    "My Tickets",
-                                    accent,
-                                  )}
-                                  {totalTickets > 0 && (
-                                    <span
-                                      style={{
-                                        fontSize: 10,
-                                        fontWeight: 700,
-                                        letterSpacing: "0.4px",
-                                        color: accent,
-                                        background: `${accent}14`,
-                                        border: `1px solid ${accent}33`,
-                                        padding: "2px 7px",
-                                        borderRadius: 999,
-                                        fontVariantNumeric: "tabular-nums",
-                                      }}
-                                    >
-                                      {totalTickets} TOTAL
-                                    </span>
-                                  )}
-                                </div>
-                              }
-                              extra={
-                                <Button
-                                  type="link"
-                                  size="small"
-                                  onClick={() => router.push("/tickets")}
-                                  style={{ fontSize: 11, fontWeight: 600 }}
-                                >
-                                  View all{" "}
-                                  <ArrowRightOutlined
-                                    style={{ fontSize: 10 }}
-                                  />
-                                </Button>
-                              }
+                              style={{ ...cardBase, height: 340, overflow: "hidden" }}
+                              styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
+                              title={sectionTitle(<TrophyOutlined />, "My Tickets", "#7C3AED")}
+                              extra={<Button type="link" size="small" onClick={() => router.push("/tickets")} style={{ fontSize: 11 }}>View all</Button>}
                             >
-                              {/* Soft ambient accent */}
-                              <div
-                                aria-hidden
-                                style={{
-                                  position: "absolute",
-                                  top: -50,
-                                  right: -50,
-                                  width: 220,
-                                  height: 220,
-                                  borderRadius: "50%",
-                                  background: `radial-gradient(circle, ${accent}1F 0%, transparent 70%)`,
-                                  pointerEvents: "none",
-                                }}
-                              />
-
-                              {totalTickets === 0 ? (
-                                <div
-                                  style={{
-                                    flex: 1,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    gap: 10,
-                                    padding: 24,
-                                    position: "relative",
-                                    zIndex: 1,
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      width: 52,
-                                      height: 52,
-                                      borderRadius: 16,
-                                      background: `${accent}14`,
-                                      border: `1px solid ${accent}33`,
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      color: accent,
-                                      fontSize: 22,
-                                    }}
-                                  >
-                                    <TrophyOutlined />
-                                  </div>
-                                  <Text
-                                    strong
-                                    style={{
-                                      fontSize: 13,
-                                      color: token.colorText,
-                                    }}
-                                  >
-                                    No tickets yet
-                                  </Text>
-                                  <Text
-                                    type="secondary"
-                                    style={{ fontSize: 11 }}
-                                  >
-                                    Your assignments will show up here
-                                  </Text>
-                                </div>
-                              ) : (
-                                <div
-                                  style={{
-                                    flex: 1,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    padding: "14px 16px 14px",
-                                    gap: 12,
-                                    position: "relative",
-                                    zIndex: 1,
-                                  }}
-                                >
-                                  {/* Hero strip: completion gradient bar */}
+                              <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
+                                <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
                                   <div>
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        alignItems: "baseline",
-                                        justifyContent: "space-between",
-                                        marginBottom: 6,
-                                      }}
-                                    >
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          alignItems: "baseline",
-                                          gap: 6,
-                                        }}
-                                      >
-                                        <span
-                                          style={{
-                                            fontSize: 9.5,
-                                            fontWeight: 700,
-                                            letterSpacing: "0.5px",
-                                            textTransform: "uppercase",
-                                            color: token.colorTextTertiary,
-                                          }}
-                                        >
-                                          Completion
-                                        </span>
-                                        <span
-                                          style={{
-                                            fontSize: 22,
-                                            fontWeight: 800,
-                                            lineHeight: 1,
-                                            color: token.colorText,
-                                            letterSpacing: "-0.6px",
-                                            fontVariantNumeric: "tabular-nums",
-                                            background: `linear-gradient(135deg, ${token.colorPrimary} 0%, ${accent} 100%)`,
-                                            WebkitBackgroundClip: "text",
-                                            WebkitTextFillColor: "transparent",
-                                            backgroundClip: "text",
-                                          }}
-                                        >
-                                          {completionRate}%
-                                        </span>
-                                      </div>
-                                      <span
-                                        style={{
-                                          fontSize: 11,
-                                          fontWeight: 700,
-                                          color: token.colorTextSecondary,
-                                          fontVariantNumeric: "tabular-nums",
-                                        }}
-                                      >
-                                        {completedTickets}
-                                        <span
-                                          style={{
-                                            color: token.colorTextTertiary,
-                                            fontWeight: 500,
-                                          }}
-                                        >
-                                          {" "}
-                                          / {totalTickets}
-                                        </span>
+                                    <Text style={{ fontSize: 10, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "0.6px", textTransform: "uppercase", display: "block" }}>Completion</Text>
+                                    <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 0 }}>
+                                      <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: token.colorText, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #7C3AED 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                                        {completionRate}%
                                       </span>
                                     </div>
-                                    <div
-                                      style={{
-                                        position: "relative",
-                                        height: 6,
-                                        borderRadius: 999,
-                                        background: token.colorFillAlter,
-                                        border: `1px solid ${token.colorBorderSecondary}`,
-                                        overflow: "hidden",
-                                      }}
-                                    >
-                                      <span
-                                        style={{
-                                          position: "absolute",
-                                          inset: 0,
-                                          width: `${completionRate}%`,
-                                          background: `linear-gradient(90deg, ${token.colorPrimary}, ${accent})`,
-                                          borderRadius: 999,
-                                          boxShadow: `0 0 12px ${accent}80`,
-                                          transition: "width 0.6s ease",
-                                        }}
-                                      />
+                                  </div>
+                                  <div style={{ textAlign: "right", paddingBottom: 4 }}>
+                                    <div style={{ fontSize: 16, fontWeight: 700, color: token.colorText, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                                      {completedTickets}
+                                      <span style={{ color: token.colorTextTertiary, fontWeight: 500 }}> / {totalTickets}</span>
                                     </div>
+                                    <Text style={{ fontSize: 10, color: token.colorTextSecondary, fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Closed · Total</Text>
                                   </div>
-
-                                  {/* Abacus rows */}
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      flexDirection: "column",
-                                      gap: 6,
-                                      paddingTop: 2,
-                                    }}
-                                  >
-                                    {rows.map((row) => {
-                                      const visible = row.tickets.slice(
-                                        0,
-                                        MARKERS_MAX,
-                                      );
-                                      const overflow = Math.max(
-                                        0,
-                                        row.tickets.length - MARKERS_MAX,
-                                      );
-                                      return (
-                                        <div
-                                          key={row.key}
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 10,
-                                          }}
-                                        >
-                                          <div
-                                            style={{
-                                              display: "inline-flex",
-                                              alignItems: "center",
-                                              gap: 5,
-                                              minWidth: 64,
-                                              flexShrink: 0,
-                                            }}
-                                          >
-                                            <span
-                                              style={{
-                                                width: 6,
-                                                height: 6,
-                                                borderRadius: "50%",
-                                                background: row.color,
-                                                boxShadow: `0 0 6px ${row.color}80`,
-                                              }}
-                                            />
-                                            <span
-                                              style={{
-                                                fontSize: 10,
-                                                fontWeight: 700,
-                                                letterSpacing: "0.4px",
-                                                textTransform: "uppercase",
-                                                color: token.colorTextSecondary,
-                                              }}
-                                            >
-                                              {row.label}
-                                            </span>
-                                          </div>
-
-                                          <div
-                                            style={{
-                                              flex: 1,
-                                              minWidth: 0,
-                                              display: "flex",
-                                              alignItems: "center",
-                                              gap: 4,
-                                              flexWrap: "wrap",
-                                            }}
-                                          >
-                                            {visible.length === 0 ? (
-                                              <span
-                                                style={{
-                                                  fontSize: 11,
-                                                  color: token.colorTextTertiary,
-                                                  fontStyle: "italic",
-                                                }}
-                                              >
-                                                —
-                                              </span>
-                                            ) : (
-                                              visible.map((t: any) => (
-                                                <Tooltip
-                                                  key={t.id}
-                                                  title={
-                                                    <span>
-                                                      <strong>
-                                                        {t.ticketNumber ||
-                                                          t.ticketId}
-                                                      </strong>
-                                                      {" · "}
-                                                      {t.title}
-                                                    </span>
-                                                  }
-                                                >
-                                                  <span
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      router.push(
-                                                        `/tickets/${t.id}`,
-                                                      );
-                                                    }}
-                                                    style={{
-                                                      width: 12,
-                                                      height: 6,
-                                                      borderRadius: 3,
-                                                      background: row.color,
-                                                      boxShadow: `0 1px 4px ${row.color}55`,
-                                                      cursor: "pointer",
-                                                      transition:
-                                                        "transform .15s ease, box-shadow .15s ease",
-                                                      flexShrink: 0,
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                      (
-                                                        e.currentTarget as HTMLElement
-                                                      ).style.transform =
-                                                        "translateY(-2px) scale(1.15)";
-                                                      (
-                                                        e.currentTarget as HTMLElement
-                                                      ).style.boxShadow = `0 4px 10px ${row.color}80`;
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                      (
-                                                        e.currentTarget as HTMLElement
-                                                      ).style.transform = "";
-                                                      (
-                                                        e.currentTarget as HTMLElement
-                                                      ).style.boxShadow = `0 1px 4px ${row.color}55`;
-                                                    }}
-                                                  />
-                                                </Tooltip>
-                                              ))
-                                            )}
-                                            {overflow > 0 && (
-                                              <span
-                                                style={{
-                                                  fontSize: 9.5,
-                                                  fontWeight: 700,
-                                                  color: token.colorTextTertiary,
-                                                  padding: "0 4px",
-                                                }}
-                                              >
-                                                +{overflow}
-                                              </span>
-                                            )}
-                                          </div>
-
-                                          <span
-                                            style={{
-                                              fontSize: 13,
-                                              fontWeight: 800,
-                                              color: token.colorText,
-                                              fontVariantNumeric:
-                                                "tabular-nums",
-                                              minWidth: 18,
-                                              textAlign: "right",
-                                              flexShrink: 0,
-                                            }}
-                                          >
-                                            {row.tickets.length}
-                                          </span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-
-                                  {/* Up Next priority queue */}
-                                  {(upNext.length > 0 || lastWin) && (
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: 6,
-                                        marginTop: "auto",
-                                        paddingTop: 10,
-                                        borderTop: `1px dashed ${token.colorBorderSecondary}`,
-                                      }}
-                                    >
+                                </div>
+                                <div style={{ display: "flex", width: "100%", height: 5, borderRadius: 999, overflow: "hidden", background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, gap: 2, padding: 1, marginBottom: 6 }}>
+                                  {segments.filter((s) => s.value > 0).map((s) => (
+                                    <Tooltip key={s.key} title={`${s.label}: ${s.value} (${pct(s.value)}%)`}>
+                                      <div style={{ flex: s.value, background: s.color, borderRadius: 999, minWidth: 4 }} />
+                                    </Tooltip>
+                                  ))}
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                                  {segments.map((s) => {
+                                    const segmentPct = pct(s.value);
+                                    return (
                                       <div
+                                        key={s.key}
                                         style={{
+                                          position: "relative",
                                           display: "flex",
                                           alignItems: "center",
                                           justifyContent: "space-between",
-                                          gap: 8,
+                                          padding: "6px 12px",
+                                          borderRadius: 10,
+                                          background: token.colorFillAlter,
+                                          border: `1px solid ${token.colorBorderSecondary}`,
+                                          overflow: "hidden",
                                         }}
                                       >
-                                        <span
+                                        {/* Progress background */}
+                                        <div
+                                          aria-hidden
                                           style={{
-                                            fontSize: 9.5,
-                                            fontWeight: 800,
-                                            letterSpacing: "0.6px",
-                                            textTransform: "uppercase",
-                                            color: accent,
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            gap: 5,
+                                            position: "absolute",
+                                            left: 0,
+                                            top: 0,
+                                            bottom: 0,
+                                            width: `${segmentPct}%`,
+                                            background: `${s.color}0D`,
+                                            transition: "width .6s cubic-bezier(0.4, 0, 0.2, 1)",
                                           }}
-                                        >
-                                          <ThunderboltFilled
-                                            style={{ fontSize: 10 }}
-                                          />
-                                          Up Next
-                                        </span>
-                                        {lastWin && (
-                                          <Tooltip
-                                            title={`Last win: ${lastWin.title}`}
+                                        />
+
+                                        <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
+                                          <div
+                                            style={{
+                                              width: 26,
+                                              height: 26,
+                                              borderRadius: 8,
+                                              background: `${s.color}14`,
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                              border: `1px solid ${s.color}26`,
+                                            }}
                                           >
-                                            <span
+                                            <div
                                               style={{
-                                                fontSize: 9.5,
-                                                fontWeight: 700,
-                                                letterSpacing: "0.3px",
-                                                color: "#10B981",
-                                                background: "#10B98114",
-                                                border: "1px solid #10B98133",
-                                                padding: "2px 7px",
-                                                borderRadius: 999,
-                                                display: "inline-flex",
+                                                display: "flex",
                                                 alignItems: "center",
-                                                gap: 4,
-                                                cursor: "default",
-                                                maxWidth: 130,
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                whiteSpace: "nowrap",
+                                                justifyContent: "center",
+                                                color: s.color,
+                                                filter: `drop-shadow(0 0 4px ${s.color}40)`,
                                               }}
                                             >
-                                              <CheckCircleFilled
-                                                style={{ fontSize: 9 }}
-                                              />
-                                              Last win: {lastWin.title}
-                                            </span>
-                                          </Tooltip>
-                                        )}
-                                      </div>
+                                              {s.icon}
+                                            </div>
+                                          </div>
+                                          <div style={{ display: "flex", flexDirection: "column" }}>
+                                            <Text style={{ fontSize: 12, fontWeight: 700, color: token.colorText, lineHeight: 1.1 }}>{s.label}</Text>
+                                            <Text style={{ fontSize: 8, fontWeight: 600, color: token.colorTextTertiary, textTransform: "uppercase", letterSpacing: "0.3px" }}>Tasks</Text>
+                                          </div>
+                                        </div>
 
-                                      {upNext.length > 0 ? (
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            gap: 5,
-                                            paddingBottom: 2,
-                                          }}
-                                        >
-                                          {upNext.map((t: any) => {
-                                            const s = t.status?.toLowerCase();
-                                            const sColor =
-                                              s === "blocked"
-                                                ? "#EF4444"
-                                                : ["in_progress", "doing"].includes(s)
-                                                  ? "#0EA5E9"
-                                                  : "#F59E0B";
-                                            const pColor = getPriorityColor(
-                                              t.priority,
-                                            );
-                                            return (
-                                              <div
-                                                key={t.id}
-                                                onClick={() =>
-                                                  router.push(
-                                                    `/tickets/${t.id}`,
-                                                  )
-                                                }
-                                                style={{
-                                                  display: "flex",
-                                                  alignItems: "center",
-                                                  gap: 9,
-                                                  padding: "7px 10px 7px 12px",
-                                                  borderRadius: 10,
-                                                  background: `linear-gradient(135deg, ${sColor}10 0%, ${token.colorBgContainer} 80%)`,
-                                                  border: `1px solid ${sColor}26`,
-                                                  cursor: "pointer",
-                                                  position: "relative",
-                                                  overflow: "hidden",
-                                                  transition:
-                                                    "transform .15s ease, box-shadow .15s ease",
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                  (
-                                                    e.currentTarget as HTMLElement
-                                                  ).style.transform =
-                                                    "translateX(2px)";
-                                                  (
-                                                    e.currentTarget as HTMLElement
-                                                  ).style.boxShadow = `0 6px 14px -8px ${sColor}66`;
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                  (
-                                                    e.currentTarget as HTMLElement
-                                                  ).style.transform = "";
-                                                  (
-                                                    e.currentTarget as HTMLElement
-                                                  ).style.boxShadow = "";
-                                                }}
-                                              >
-                                                <span
-                                                  aria-hidden
-                                                  style={{
-                                                    position: "absolute",
-                                                    left: 0,
-                                                    top: 0,
-                                                    bottom: 0,
-                                                    width: 3,
-                                                    background: pColor,
-                                                  }}
-                                                />
-                                                <span
-                                                  style={{
-                                                    width: 6,
-                                                    height: 6,
-                                                    borderRadius: "50%",
-                                                    background: sColor,
-                                                    boxShadow: `0 0 6px ${sColor}80`,
-                                                    flexShrink: 0,
-                                                  }}
-                                                />
-                                                <Tooltip title={t.title}>
-                                                  <span
-                                                    style={{
-                                                      flex: 1,
-                                                      minWidth: 0,
-                                                      fontSize: 11.5,
-                                                      fontWeight: 600,
-                                                      color: token.colorText,
-                                                      whiteSpace: "nowrap",
-                                                      overflow: "hidden",
-                                                      textOverflow:
-                                                        "ellipsis",
-                                                    }}
-                                                  >
-                                                    {t.title}
-                                                  </span>
-                                                </Tooltip>
-                                                {t.ticketNumber && (
-                                                  <span
-                                                    style={{
-                                                      fontSize: 9.5,
-                                                      fontWeight: 700,
-                                                      color: token.colorTextTertiary,
-                                                      fontVariantNumeric:
-                                                        "tabular-nums",
-                                                      whiteSpace: "nowrap",
-                                                    }}
-                                                  >
-                                                    {t.ticketNumber}
-                                                  </span>
-                                                )}
-                                                <Text
-                                                  style={{
-                                                    fontSize: 10,
-                                                    color: token.colorTextTertiary,
-                                                    fontWeight: 500,
-                                                    whiteSpace: "nowrap",
-                                                  }}
-                                                >
-                                                  {formatTimeAgo(t.createdAt)}
-                                                </Text>
-                                              </div>
-                                            );
-                                          })}
+                                        <div style={{ display: "flex", alignItems: "baseline", gap: 6, position: "relative", zIndex: 1 }}>
+                                          <span style={{ fontSize: 16, fontWeight: 800, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{s.value}</span>
+                                          <span style={{ fontSize: 10, color: token.colorTextTertiary, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 32, textAlign: "right" }}>{segmentPct}%</span>
                                         </div>
-                                      ) : (
-                                        <div
-                                          style={{
-                                            flex: 1,
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            gap: 8,
-                                            padding: "12px 10px",
-                                            borderRadius: 10,
-                                            background: "#10B98110",
-                                            border: "1px solid #10B98133",
-                                          }}
-                                        >
-                                          <span
-                                            style={{
-                                              fontSize: 16,
-                                              color: "#10B981",
-                                            }}
-                                          >
-                                            🎉
-                                          </span>
-                                          <span
-                                            style={{
-                                              fontSize: 12,
-                                              fontWeight: 600,
-                                              color: token.colorText,
-                                            }}
-                                          >
-                                            All caught up — nothing pending.
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
-                              )}
+                              </div>
                             </Card>
                           );
                         })()}
@@ -2969,19 +2415,18 @@ function DashboardContent() {
                       <Col xs={24} lg={16}>
                         {(() => {
                           const accent = "#0EA5E9";
-                          const activeCount = recentTickets.filter((t: any) =>
-                            ["in_progress", "doing"].includes(
-                              t.status?.toLowerCase(),
-                            ),
-                          ).length;
-                          const blockedCount = recentTickets.filter(
-                            (t: any) => t.status?.toLowerCase() === "blocked",
-                          ).length;
-                          const doneCount = recentTickets.filter((t: any) =>
-                            ["completed", "live", "done"].includes(
-                              t.status?.toLowerCase(),
-                            ),
-                          ).length;
+                          const testingCount = recentTickets.filter((t: any) => {
+                            const s = t.status?.toLowerCase();
+                            return s === "in_testing" || s === "testing";
+                          }).length;
+                          const activeCount = recentTickets.filter((t: any) => {
+                            const s = t.status?.toLowerCase();
+                            return s === "in_progress" || s === "doing";
+                          }).length;
+                          const notStartedCount = recentTickets.filter((t: any) => {
+                            const s = t.status?.toLowerCase();
+                            return s === "not_started";
+                          }).length;
                           return (
                         <Card
                           style={{
@@ -3063,8 +2508,8 @@ function DashboardContent() {
                                   </span>
                                 </Tooltip>
                               )}
-                              {blockedCount > 0 && (
-                                <Tooltip title={`${blockedCount} blocked`}>
+                              {testingCount > 0 && (
+                                <Tooltip title={`${testingCount} in testing`}>
                                   <span
                                     style={{
                                       display: "inline-flex",
@@ -3073,9 +2518,9 @@ function DashboardContent() {
                                       fontSize: 10,
                                       fontWeight: 700,
                                       letterSpacing: "0.3px",
-                                      color: "#EF4444",
-                                      background: "#FEF2F2",
-                                      border: "1px solid #EF444433",
+                                      color: "#F59E0B",
+                                      background: "#FFFBEB",
+                                      border: "1px solid #F59E0B33",
                                       padding: "2px 7px",
                                       borderRadius: 999,
                                     }}
@@ -3085,15 +2530,15 @@ function DashboardContent() {
                                         width: 5,
                                         height: 5,
                                         borderRadius: "50%",
-                                        background: "#EF4444",
+                                        background: "#F59E0B",
                                       }}
                                     />
-                                    {blockedCount} BLOCKED
+                                    {testingCount} TESTING
                                   </span>
                                 </Tooltip>
                               )}
-                              {doneCount > 0 && (
-                                <Tooltip title={`${doneCount} closed`}>
+                              {notStartedCount > 0 && (
+                                <Tooltip title={`${notStartedCount} not started`}>
                                   <span
                                     style={{
                                       display: "inline-flex",
@@ -3102,17 +2547,22 @@ function DashboardContent() {
                                       fontSize: 10,
                                       fontWeight: 700,
                                       letterSpacing: "0.3px",
-                                      color: "#10B981",
-                                      background: "#ECFDF5",
-                                      border: "1px solid #10B98133",
+                                      color: "#94A3B8",
+                                      background: token.colorFillAlter,
+                                      border: `1px solid ${token.colorBorderSecondary}`,
                                       padding: "2px 7px",
                                       borderRadius: 999,
                                     }}
                                   >
-                                    <CheckCircleFilled
-                                      style={{ fontSize: 9 }}
+                                    <span
+                                      style={{
+                                        width: 5,
+                                        height: 5,
+                                        borderRadius: "50%",
+                                        background: "#94A3B8",
+                                      }}
                                     />
-                                    {doneCount} DONE
+                                    {notStartedCount} NOT STARTED
                                   </span>
                                 </Tooltip>
                               )}
@@ -3210,7 +2660,8 @@ function DashboardContent() {
                                   done: { label: "Done", color: "#10B981", bg: "#ECFDF5" },
                                   in_progress: { label: "In Progress", color: "#0EA5E9", bg: "#F0F9FF" },
                                   doing: { label: "In Progress", color: "#0EA5E9", bg: "#F0F9FF" },
-                                  blocked: { label: "Blocked", color: "#EF4444", bg: "#FEF2F2" },
+                                  in_testing: { label: "In Testing", color: "#F59E0B", bg: "#FFFBEB" },
+                                  testing: { label: "In Testing", color: "#F59E0B", bg: "#FFFBEB" },
                                   not_started: { label: "Not Started", color: "#94A3B8", bg: token.colorFillAlter },
                                 };
                                 const sm =
@@ -4030,12 +3481,11 @@ function DashboardContent() {
                   {/* My Tickets Stats */}
                   <Col xs={24} lg={8}>
                     {(() => {
-                      const pendingTickets = Math.max(0, totalTickets - completedTickets - inProgressTickets - blockedTickets);
                       const segments = [
-                        { key: "done", label: "Done", value: completedTickets, color: "#10B981" },
-                        { key: "active", label: "Active", value: inProgressTickets, color: "#0EA5E9" },
-                        { key: "blocked", label: "Blocked", value: blockedTickets, color: "#EF4444" },
-                        { key: "pending", label: "Pending", value: pendingTickets, color: "#F59E0B" },
+                        { key: "done", label: "Done", value: completedTickets, color: "#10B981", icon: <CheckCircleFilled style={{ fontSize: 11 }} /> },
+                        { key: "active", label: "Active", value: inProgressTickets, color: "#0EA5E9", icon: <SyncOutlined spin style={{ fontSize: 11 }} /> },
+                        { key: "testing", label: "In Testing", value: inTestingTickets, color: "#F59E0B", icon: <ExperimentOutlined style={{ fontSize: 11 }} /> },
+                        { key: "not_started", label: "Not Started", value: notStartedTickets, color: "#94A3B8", icon: <ClockCircleOutlined style={{ fontSize: 11 }} /> },
                       ];
                       const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
                       return (
@@ -4045,12 +3495,12 @@ function DashboardContent() {
                           title={sectionTitle(<TrophyOutlined />, "My Tickets", "#7C3AED")}
                           extra={<Button type="link" size="small" onClick={() => router.push("/tickets")} style={{ fontSize: 11 }}>View all</Button>}
                         >
-                          <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "12px 16px 14px" }}>
-                            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
+                            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
                               <div>
                                 <Text style={{ fontSize: 10, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "0.6px", textTransform: "uppercase", display: "block" }}>Completion</Text>
-                                <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 2 }}>
-                                  <span style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: token.colorText, letterSpacing: "-0.8px", fontVariantNumeric: "tabular-nums", background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #7C3AED 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 0 }}>
+                                  <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: token.colorText, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #7C3AED 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
                                     {completionRate}%
                                   </span>
                                 </div>
@@ -4063,26 +3513,83 @@ function DashboardContent() {
                                 <Text style={{ fontSize: 10, color: token.colorTextSecondary, fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Closed · Total</Text>
                               </div>
                             </div>
-                            <div style={{ display: "flex", width: "100%", height: 6, borderRadius: 999, overflow: "hidden", background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, gap: 2, padding: 1, marginBottom: 10 }}>
+                            <div style={{ display: "flex", width: "100%", height: 5, borderRadius: 999, overflow: "hidden", background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, gap: 2, padding: 1, marginBottom: 6 }}>
                               {segments.filter((s) => s.value > 0).map((s) => (
                                 <Tooltip key={s.key} title={`${s.label}: ${s.value} (${pct(s.value)}%)`}>
                                   <div style={{ flex: s.value, background: s.color, borderRadius: 999, minWidth: 4 }} />
                                 </Tooltip>
                               ))}
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
-                              {segments.map((s) => (
-                                <div key={s.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 10px", borderRadius: 8, background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}` }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: s.color, boxShadow: `0 0 0 3px ${s.color}1F` }} />
-                                    <Text style={{ fontSize: 12, fontWeight: 600, color: token.colorText }}>{s.label}</Text>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                              {segments.map((s) => {
+                                const segmentPct = pct(s.value);
+                                return (
+                                  <div
+                                    key={s.key}
+                                    style={{
+                                      position: "relative",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      padding: "6px 12px",
+                                      borderRadius: 10,
+                                      background: token.colorFillAlter,
+                                      border: `1px solid ${token.colorBorderSecondary}`,
+                                      overflow: "hidden",
+                                    }}
+                                  >
+                                    {/* Progress background */}
+                                    <div
+                                      aria-hidden
+                                      style={{
+                                        position: "absolute",
+                                        left: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        width: `${segmentPct}%`,
+                                        background: `${s.color}0D`,
+                                        transition: "width .6s cubic-bezier(0.4, 0, 0.2, 1)",
+                                      }}
+                                    />
+
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
+                                      <div
+                                        style={{
+                                          width: 26,
+                                          height: 26,
+                                          borderRadius: 8,
+                                          background: `${s.color}14`,
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          border: `1px solid ${s.color}26`,
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            color: s.color,
+                                            filter: `drop-shadow(0 0 4px ${s.color}40)`,
+                                          }}
+                                        >
+                                          {s.icon}
+                                        </div>
+                                      </div>
+                                      <div style={{ display: "flex", flexDirection: "column" }}>
+                                        <Text style={{ fontSize: 12, fontWeight: 700, color: token.colorText, lineHeight: 1.1 }}>{s.label}</Text>
+                                        <Text style={{ fontSize: 8, fontWeight: 600, color: token.colorTextTertiary, textTransform: "uppercase", letterSpacing: "0.3px" }}>Tasks</Text>
+                                      </div>
+                                    </div>
+
+                                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, position: "relative", zIndex: 1 }}>
+                                      <span style={{ fontSize: 16, fontWeight: 800, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{s.value}</span>
+                                      <span style={{ fontSize: 10, color: token.colorTextTertiary, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 32, textAlign: "right" }}>{segmentPct}%</span>
+                                    </div>
                                   </div>
-                                  <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                                    <span style={{ fontSize: 14, fontWeight: 700, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{s.value}</span>
-                                    <span style={{ fontSize: 10, color: token.colorTextTertiary, fontWeight: 600, fontVariantNumeric: "tabular-nums", minWidth: 28, textAlign: "right" }}>{pct(s.value)}%</span>
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
                         </Card>
@@ -4678,9 +4185,17 @@ function DashboardContent() {
                     {(() => {
                       const accent = "#0EA5E9";
                       const list = recentTickets.slice(0, 5);
-                      const liveCount = recentTickets.filter((t: any) => {
+                      const activeCount = recentTickets.filter((t: any) => {
                         const s = t.status?.toLowerCase();
-                        return s === "in_progress" || s === "doing" || s === "live";
+                        return s === "in_progress" || s === "doing";
+                      }).length;
+                      const testingCount = recentTickets.filter((t: any) => {
+                        const s = t.status?.toLowerCase();
+                        return s === "in_testing" || s === "testing";
+                      }).length;
+                      const notStartedCount = recentTickets.filter((t: any) => {
+                        const s = t.status?.toLowerCase();
+                        return s === "not_started";
                       }).length;
                       return (
                         <Card
@@ -4732,8 +4247,8 @@ function DashboardContent() {
                                   {recentTickets.length} TOTAL
                                 </span>
                               )}
-                              {liveCount > 0 && (
-                                <Tooltip title={`${liveCount} in progress`}>
+                              {activeCount > 0 && (
+                                <Tooltip title={`${activeCount} active`}>
                                   <span
                                     style={{
                                       display: "inline-flex",
@@ -4755,7 +4270,55 @@ function DashboardContent() {
                                           "pulse-soft 2s infinite ease-in-out",
                                       }}
                                     />
-                                    LIVE
+                                    ACTIVE
+                                  </span>
+                                </Tooltip>
+                              )}
+                              {testingCount > 0 && (
+                                <Tooltip title={`${testingCount} in testing`}>
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      color: "#F59E0B",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        width: 6,
+                                        height: 6,
+                                        borderRadius: "50%",
+                                        background: "#F59E0B",
+                                      }}
+                                    />
+                                    TESTING
+                                  </span>
+                                </Tooltip>
+                              )}
+                              {notStartedCount > 0 && (
+                                <Tooltip title={`${notStartedCount} not started`}>
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      color: "#94A3B8",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        width: 6,
+                                        height: 6,
+                                        borderRadius: "50%",
+                                        background: "#94A3B8",
+                                      }}
+                                    />
+                                    NOT STARTED
                                   </span>
                                 </Tooltip>
                               )}
@@ -4835,10 +4398,15 @@ function DashboardContent() {
                                       color: "#0EA5E9",
                                       bg: "#F0F9FF",
                                     },
-                                    blocked: {
-                                      label: "Blocked",
-                                      color: "#EF4444",
-                                      bg: "#FEF2F2",
+                                    in_testing: {
+                                      label: "In Testing",
+                                      color: "#F59E0B",
+                                      bg: "#FFFBEB",
+                                    },
+                                    testing: {
+                                      label: "In Testing",
+                                      color: "#F59E0B",
+                                      bg: "#FFFBEB",
                                     },
                                     not_started: {
                                       label: "Not Started",

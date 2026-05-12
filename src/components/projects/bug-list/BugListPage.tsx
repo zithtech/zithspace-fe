@@ -536,12 +536,7 @@ export default function BugListPage() {
                 </div>
               </Dropdown>
             </div>
-            {selectedProjectId && (
-              <>
-                <span className="hb-bc-sep">›</span>
-                <span className="hb-bc-strong">Bug List</span>
-              </>
-            )}
+
             {scope === "archived" && !selectedSheetId && (
               <>
                 <span className="hb-bc-sep">›</span>
@@ -601,7 +596,7 @@ export default function BugListPage() {
                     setFilters((f) => ({ ...f, search: e.target.value }))
                   }
                 />
-                <span className="hb-kbd">/</span>
+
               </div>
 
               <button

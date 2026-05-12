@@ -286,22 +286,7 @@ function BugRow({
               {bug.title || bug.description}
             </span>
           </div>
-          <div className="hb-title-indicators">
-            {bug.attachments && bug.attachments.length > 0 && (
-              <Tooltip title={`${bug.attachments.length} attachment${bug.attachments.length > 1 ? "s" : ""}`}>
-                <span className="hb-indicator">
-                  <Paperclip size={10} />
-                </span>
-              </Tooltip>
-            )}
-            {bug.externalLinks && bug.externalLinks.length > 0 && (
-              <Tooltip title={`${bug.externalLinks.length} external link${bug.externalLinks.length > 1 ? "s" : ""}`}>
-                <span className="hb-indicator">
-                  <Link2 size={10} />
-                </span>
-              </Tooltip>
-            )}
-          </div>
+
         </div>
       </td>
       <td>

@@ -65,6 +65,7 @@ export interface BugListItem {
   status: BugStatus;
   bugStatus?: "not started" | "pending" | "completed" | null;
   tags: string[];
+  comments?: string | null;
   attachments: BugAttachment[];
   externalLinks: BugExternalLink[];
   ticketId?: string | null;
@@ -101,6 +102,7 @@ export interface CreateBugInput {
   assigneeId?: string;
   attachments?: BugAttachment[];
   externalLinks?: BugExternalLink[];
+  comments?: string;
 }
 
 export interface UpdateBugInput {
@@ -112,6 +114,7 @@ export interface UpdateBugInput {
   status?: BugStatus;
   bugStatus?: "not started" | "pending" | "completed" | null;
   tags?: string[];
+  comments?: string | null;
   assigneeId?: string | null;
   attachments?: BugAttachment[];
   externalLinks?: BugExternalLink[];

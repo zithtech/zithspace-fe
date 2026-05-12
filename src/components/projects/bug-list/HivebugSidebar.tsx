@@ -22,8 +22,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Dropdown, Skeleton, Tooltip, Select } from "antd";
-import { 
-  useAllProjects 
+import {
+  useAllProjects
 } from "@/hooks/useGlobalData";
 import {
   useBugFolders,
@@ -40,11 +40,11 @@ import type {
   BugSheet,
   BugSheetStatus,
 } from "@/services/bugListService";
-import { 
-  DndContext, 
-  DragOverlay, 
-  useDraggable, 
-  useDroppable, 
+import {
+  DndContext,
+  DragOverlay,
+  useDraggable,
+  useDroppable,
   DragEndEvent,
   PointerSensor,
   useSensor,
@@ -85,7 +85,13 @@ export default function HivebugSidebar({
   onResizerMouseDown,
 }: HivebugSidebarProps) {
   const { data: folders, isLoading: foldersLoading } = useBugFolders(selectedProjectId || undefined);
+  const { data: allProjects } = useAllProjects();
   const stats = useBugStats({ projectId: selectedProjectId || undefined });
+
+  const selectedProject = useMemo(() =>
+    allProjects?.find(p => p.value === selectedProjectId),
+    [allProjects, selectedProjectId]
+  );
 
   const updateSheet = useUpdateBugSheet();
 
@@ -127,10 +133,11 @@ export default function HivebugSidebar({
         <aside className="hb-sidebar">
           <div className="hb-brand">
             <div className="hb-brand-icon">
-              <Bug size={18} />
+              <Bug size={20} />
             </div>
             <div className="hb-brand-text">
-              <div className="hb-brand-name">Hivebug</div>
+              <div className="hb-brand-name">Bug List</div>
+              <div className="hb-brand-workspace">QA WORKSPACE</div>
             </div>
           </div>
 
@@ -142,9 +149,8 @@ export default function HivebugSidebar({
               </span>
             </div>
             <button
-              className={`hb-row ${
-                scope === "all" && !selectedFolderId && !selectedSheetId ? "active" : ""
-              }`}
+              className={`hb-row ${scope === "all" && !selectedFolderId && !selectedSheetId ? "active" : ""
+                }`}
               onClick={() => {
                 onScopeChange("all");
                 onSelect(null, null);
@@ -426,9 +432,9 @@ function SheetNode({
 
   const style = transform
     ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        zIndex: 100,
-      }
+      transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      zIndex: 100,
+    }
     : undefined;
 
   const status: BugSheetStatus = sheet.status ?? "active";
@@ -442,9 +448,8 @@ function SheetNode({
       style={style}
       {...attributes}
       {...listeners}
-      className={`hb-row hb-row-sub ${
-        selectedSheetId === sheet.id ? "active" : ""
-      } ${isCompleted ? "hb-row-completed" : ""} ${isArchived ? "hb-row-archived" : ""} ${isDragging ? "dragging" : ""}`}
+      className={`hb-row hb-row-sub ${selectedSheetId === sheet.id ? "active" : ""
+        } ${isCompleted ? "hb-row-completed" : ""} ${isArchived ? "hb-row-archived" : ""} ${isDragging ? "dragging" : ""}`}
       onClick={() => !isArchived && onSelectSheet(sheet.id)}
       role="button"
     >

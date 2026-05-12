@@ -98,7 +98,7 @@ export const hivebugStyles = `
 }
 .hb-brand {
   display: flex; align-items: center; gap: 10px;
-  padding: 12px 12px 12px;
+  padding: 10.5px 12px;
   border-bottom: 1px solid var(--hb-border);
 }
 .hb-brand-icon {
@@ -109,8 +109,16 @@ export const hivebugStyles = `
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.hb-brand-name { font-weight: 600; font-size: 14px; line-height: 1.1; }
+.hb-brand-name { font-weight: 700; font-size: 17px; line-height: 1.1; letter-spacing: -0.02em; }
 .hb-brand-sub { color: var(--hb-text-muted); font-size: 9px; letter-spacing: 0.14em; margin-top: 4px; font-weight: 600; }
+
+.hb-brand-workspace {
+  color: var(--hb-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
 
 .hb-project-context {
   padding: 8px 12px;
@@ -435,7 +443,7 @@ export const hivebugStyles = `
 }
 .hb-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 11px 12px;
+  padding: 9.5px 12px;
   gap: 16px;
   border-bottom: 1px solid var(--hb-border);
   min-width: 0;

@@ -31,7 +31,17 @@ export const Permissions = {
   TICKET_UPDATE:  'ticket.update',
   TICKET_DELETE:  'ticket.delete',
   TICKET_ASSIGN:  'ticket.assign',
-  TICKET_ARCHIVE: 'ticket.archive',
+  TICKET_BUCKET_READ:   'ticket.bucket.read',
+  TICKET_BUCKET_CREATE: 'ticket.bucket.create',
+  TICKET_BUCKET_UPDATE: 'ticket.bucket.update',
+  TICKET_BUCKET_DELETE: 'ticket.bucket.delete',
+  TICKET_SETTING_READ:   'ticket.setting.read',
+  TICKET_SETTING_UPDATE: 'ticket.setting.update',
+  TICKET_TRASH_READ:    'ticket.trash.read',
+  TICKET_TRASH_RESTORE: 'ticket.trash.restore',
+  TICKET_TRASH_DELETE:  'ticket.trash.delete',
+  TICKET_ARCHIVE_READ:    'ticket.archive.read',
+  TICKET_ARCHIVE_RESTORE: 'ticket.archive.restore',
   TICKET_MANAGE:  'ticket.manage', // bulk ops, workflow management
 
   // Bug List (QA workspace; converts to tickets)
@@ -39,6 +49,11 @@ export const Permissions = {
   BUG_READ:   'bug.read',
   BUG_UPDATE: 'bug.update',
   BUG_DELETE: 'bug.delete',
+  BUG_TRASH_READ:    'bug.trash.read',
+  BUG_TRASH_RESTORE: 'bug.trash.restore',
+  BUG_TRASH_DELETE:  'bug.trash.delete',
+  BUG_ARCHIVE_READ:    'bug.archive.read',
+  BUG_ARCHIVE_RESTORE: 'bug.archive.restore',
   BUG_MANAGE: 'bug.manage',
 
   // Attendance

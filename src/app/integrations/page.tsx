@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Space, Typography, Card, Button, Badge, Row, Col, message, Modal, Input, Tabs, Tag, Dropdown, Avatar } from "antd";
+import { Space, Typography, Card, Button, Badge, Row, Col, message, Modal, Input, Tabs, Tag, Dropdown, Avatar, Tooltip } from "antd";
 const { Title, Text, Paragraph } = Typography;
 import {
   GoogleOutlined,
@@ -15,6 +15,7 @@ import {
 import { Blocks, Search, Users, CheckCircle2, Link2, Plug, ChevronDown } from "lucide-react";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { useAuth } from "@/context/AuthContext";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 // StatCard removed
 import { CalendarService, CalendarProvider, CalendarStatus } from "@/services/calendarService";
@@ -57,7 +58,7 @@ import { AlertCircle } from "lucide-react";
 
 export default function IntegrationPage() {
   const { canReadMail, canReadCalendar } = usePermission();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [statuses, setStatuses] = useState<Record<string, CalendarStatus | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [searchText, setSearchText] = useState("");
@@ -100,7 +101,7 @@ export default function IntegrationPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!canReadMail && !canReadCalendar) {
+    if (!authLoading && user && !canReadMail && !canReadCalendar) {
       Modal.error({
         title: 'Access Denied',
         content: "You don't have the required permissions (Mail or Calendar) to manage integrations. Please contact your administrator.",
@@ -110,11 +111,25 @@ export default function IntegrationPage() {
         maskClosable: false,
       });
     }
-  }, [canReadMail, canReadCalendar, router]);
+  }, [canReadMail, canReadCalendar, authLoading, user, router]);
 
   const handleConnect = async (provider: CalendarProvider) => {
+    // Check for both mail and calendar permissions as integrations usually cover both
+    if (!canReadCalendar && !canReadMail) {
+      Modal.error({
+        title: 'Permission Denied',
+        content: "You don't have the required permissions (Mail or Calendar) to connect this integration. Please contact your administrator.",
+        centered: true,
+      });
+      return;
+    }
+
     if (!canReadCalendar) {
-      message.error("You don't have permission to connect calendars.");
+      Modal.error({
+        title: 'Calendar Permission Required',
+        content: "You don't have permission to connect calendars. This is required for this integration.",
+        centered: true,
+      });
       return;
     }
     const token = localStorage.getItem('accessToken');
@@ -159,6 +174,14 @@ export default function IntegrationPage() {
   };
 
   const handleDisconnect = async (provider: CalendarProvider) => {
+    if (!canReadCalendar && !canReadMail) {
+      Modal.error({
+        title: 'Permission Denied',
+        content: "You don't have permission to manage integrations.",
+        centered: true,
+      });
+      return;
+    }
     setLoading(prev => ({ ...prev, [provider]: true }));
     try {
       await CalendarService.disconnect(provider);
@@ -175,26 +198,36 @@ export default function IntegrationPage() {
   const filteredProviders = PROVIDERS.filter((provider) => {
     const matchesSearch = provider.name.toLowerCase().includes(searchText.toLowerCase()) || provider.description.toLowerCase().includes(searchText.toLowerCase());
     const isConnected = statuses[provider.key]?.connected;
-    
+
     if (activeTab === "connected") return matchesSearch && isConnected;
     if (activeTab === "disconnected") return matchesSearch && !isConnected;
     return matchesSearch;
   });
 
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <LoadingSpinner size="large" message="Loading permissions..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
-      <div style={{ 
-        margin: "0 -24px", 
-        background: "var(--bg-pure-white)", 
-        minHeight: "calc(100vh - 64px)" 
+      <div style={{
+        margin: "0 -24px",
+        background: "var(--bg-pure-white)",
+        minHeight: "calc(100vh - 64px)"
       }}>
         <TimeTrackingHeader
           icon={<Blocks size={20} color="#8b5cf6" />}
           title="Integrations"
           description="Connect your favorite tools to Zithspace to streamline your workflow and sync your schedule."
           extra={
-            <Input 
-              placeholder="Search integrations..." 
+            <Input
+              placeholder="Search integrations..."
               prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
               style={{ width: 280, borderRadius: 10, height: 38, background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}
               onChange={(e) => setSearchText(e.target.value)}
@@ -203,9 +236,9 @@ export default function IntegrationPage() {
         />
 
         <div style={{ padding: "0 32px 32px 32px" }}>
-          
-          <Tabs 
-            activeKey={activeTab} 
+
+          <Tabs
+            activeKey={activeTab}
             onChange={setActiveTab}
             style={{ marginBottom: 24 }}
             items={[
@@ -231,8 +264,8 @@ export default function IntegrationPage() {
                   <Col xs={24} sm={12} md={8} lg={6} key={provider.key}>
                     <Card
                       hoverable
-                      style={{ 
-                        borderRadius: 12, 
+                      style={{
+                        borderRadius: 12,
                         border: '1px solid var(--border-color)',
                         background: 'var(--bg-pure-white)',
                         height: '100%',
@@ -268,8 +301,8 @@ export default function IntegrationPage() {
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                         {isConnected ? (
-                          <Dropdown 
-                            menu={{ items: mockConnectedUsers }} 
+                          <Dropdown
+                            menu={{ items: mockConnectedUsers }}
                             trigger={['click']}
                             placement="bottomLeft"
                           >
@@ -286,43 +319,53 @@ export default function IntegrationPage() {
                         )}
 
                         {isConnected ? (
-                          <Button
-                            onClick={() => handleDisconnect(provider.key)}
-                            loading={isLoading}
-                            size="small"
-                            style={{ 
-                              borderRadius: 6, 
-                              fontWeight: 500, 
-                              height: 28, 
-                              padding: '0 12px',
-                              background: 'rgba(239, 68, 68, 0.1)',
-                              color: '#ef4444',
-                              borderColor: 'transparent'
-                            }}
-                          >
-                            Disconnect
-                          </Button>
+                          <Tooltip title={(!canReadCalendar && !canReadMail) ? "You don't have permission to manage integrations" : ""}>
+                            <Button
+                              onClick={() => handleDisconnect(provider.key)}
+                              loading={isLoading}
+                              disabled={!canReadCalendar && !canReadMail}
+                              size="small"
+                              style={{
+                                borderRadius: 6,
+                                fontWeight: 500,
+                                height: 28,
+                                padding: '0 12px',
+                                background: isConnected && (!canReadCalendar && !canReadMail) ? 'var(--bg-secondary)' : 'rgba(239, 68, 68, 0.1)',
+                                color: isConnected && (!canReadCalendar && !canReadMail) ? 'var(--text-slate-400)' : '#ef4444',
+                                borderColor: 'transparent'
+                              }}
+                            >
+                              Disconnect
+                            </Button>
+                          </Tooltip>
                         ) : (
-                          <Button
-                            type={anyProviderConnected ? "default" : "primary"}
-                            icon={<Plug size={14} />}
-                            onClick={() => handleConnect(provider.key)}
-                            loading={isLoading}
-                            size="small"
-                            style={{ 
-                              borderRadius: 6, 
-                              fontWeight: 500, 
-                              background: anyProviderConnected ? 'var(--bg-primary)' : provider.color,
-                              color: anyProviderConnected ? 'var(--text-primary)' : '#fff',
-                              borderColor: anyProviderConnected ? 'var(--border-color)' : 'transparent',
-                              display: 'flex', 
-                              alignItems: 'center',
-                              height: 28,
-                              padding: '0 12px'
-                            }}
-                          >
-                            {anyProviderConnected ? 'Switch' : 'Connect'}
-                          </Button>
+                          <Tooltip title={(!canReadCalendar && !canReadMail) ? "Calendar or Mail permission required to connect" : ""}>
+                            <Button
+                              type={anyProviderConnected ? "default" : "primary"}
+                              icon={<Plug size={14} />}
+                              onClick={() => handleConnect(provider.key)}
+                              loading={isLoading}
+                              disabled={!canReadCalendar && !canReadMail}
+                              size="small"
+                              style={{
+                                borderRadius: 6,
+                                fontWeight: 500,
+                                background: (!canReadCalendar && !canReadMail)
+                                  ? 'var(--bg-secondary)'
+                                  : (anyProviderConnected ? 'var(--bg-primary)' : provider.color),
+                                color: (!canReadCalendar && !canReadMail)
+                                  ? 'var(--text-slate-400)'
+                                  : (anyProviderConnected ? 'var(--text-primary)' : '#fff'),
+                                borderColor: anyProviderConnected ? 'var(--border-color)' : 'transparent',
+                                display: 'flex',
+                                alignItems: 'center',
+                                height: 28,
+                                padding: '0 12px'
+                              }}
+                            >
+                              {anyProviderConnected ? 'Switch' : 'Connect'}
+                            </Button>
+                          </Tooltip>
                         )}
                       </div>
                     </Card>
@@ -332,7 +375,8 @@ export default function IntegrationPage() {
             </Row>
           </div>
         </div>
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .connected-users-hover:hover {
             background: var(--bg-primary);
           }

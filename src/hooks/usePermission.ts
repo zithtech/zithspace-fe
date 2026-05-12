@@ -38,12 +38,22 @@ export const usePermission = () => {
     canManageProjects: hasPermission(Permissions.PROJECT_MANAGE),
 
     // ─── Tickets ────────────────────────────────────────────────────
-    canCreateTicket:  hasPermission(Permissions.TICKET_CREATE),
-    canReadTicket:    hasPermission(Permissions.TICKET_READ),
-    canUpdateTicket:  hasPermission(Permissions.TICKET_UPDATE),
-    canDeleteTicket:  hasPermission(Permissions.TICKET_DELETE),
-    canAssignTicket:  hasPermission(Permissions.TICKET_ASSIGN),
-    canArchiveTicket: hasPermission(Permissions.TICKET_ARCHIVE),
+    canCreateTicket: hasPermission(Permissions.TICKET_CREATE),
+    canReadTicket:   hasPermission(Permissions.TICKET_READ),
+    canUpdateTicket: hasPermission(Permissions.TICKET_UPDATE),
+    canDeleteTicket: hasPermission(Permissions.TICKET_DELETE),
+    canAssignTicket: hasPermission(Permissions.TICKET_ASSIGN),
+    canReadTicketBucket:   hasPermission(Permissions.TICKET_BUCKET_READ),
+    canCreateTicketBucket: hasPermission(Permissions.TICKET_BUCKET_CREATE),
+    canUpdateTicketBucket: hasPermission(Permissions.TICKET_BUCKET_UPDATE),
+    canDeleteTicketBucket: hasPermission(Permissions.TICKET_BUCKET_DELETE),
+    canReadTicketSetting:   hasPermission(Permissions.TICKET_SETTING_READ),
+    canUpdateTicketSetting: hasPermission(Permissions.TICKET_SETTING_UPDATE),
+    canReadTicketTrash:    hasPermission(Permissions.TICKET_TRASH_READ),
+    canRestoreTicketTrash: hasPermission(Permissions.TICKET_TRASH_RESTORE),
+    canDeleteTicketTrash:  hasPermission(Permissions.TICKET_TRASH_DELETE),
+    canReadTicketArchive:    hasPermission(Permissions.TICKET_ARCHIVE_READ),
+    canRestoreTicketArchive: hasPermission(Permissions.TICKET_ARCHIVE_RESTORE),
     canManageTickets: hasPermission(Permissions.TICKET_MANAGE),
 
     // ─── Attendance ─────────────────────────────────────────────────
@@ -336,11 +346,16 @@ export const usePermission = () => {
     canManageProfile: hasPermission(Permissions.PROFILE_MANAGE),
 
     // ─── Squads ─────────────────────────────────────────────────────
-    canCreateSquad: hasPermission(Permissions.SQUAD_CREATE),
-    canReadSquad:   hasPermission(Permissions.SQUAD_READ),
-    canUpdateSquad: hasPermission(Permissions.SQUAD_UPDATE),
-    canDeleteSquad: hasPermission(Permissions.SQUAD_DELETE),
-    canManageSquads: hasPermission(Permissions.SQUAD_MANAGE),
+    canCreateBug: hasPermission(Permissions.BUG_CREATE),
+    canReadBug:   hasPermission(Permissions.BUG_READ),
+    canUpdateBug: hasPermission(Permissions.BUG_UPDATE),
+    canDeleteBug: hasPermission(Permissions.BUG_DELETE),
+    canReadBugTrash:    hasPermission(Permissions.BUG_TRASH_READ),
+    canRestoreBugTrash: hasPermission(Permissions.BUG_TRASH_RESTORE),
+    canDeleteBugTrash:  hasPermission(Permissions.BUG_TRASH_DELETE),
+    canReadBugArchive:    hasPermission(Permissions.BUG_ARCHIVE_READ),
+    canRestoreBugArchive: hasPermission(Permissions.BUG_ARCHIVE_RESTORE),
+    canManageBugs: hasPermission(Permissions.BUG_MANAGE),
 
     // ─── System / General ───────────────────────────────────────────
     canCreateMail:   hasPermission(Permissions.MAIL_CREATE),

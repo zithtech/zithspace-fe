@@ -200,6 +200,16 @@ export default function RolesPage() {
   const fetchPermissions = useCallback(async () => {
     try {
       const { grouped } = await RBACService.listPermissions();
+      
+      // Merge 'bug' permissions into 'ticket' if they exist separately
+      if (grouped.bug && grouped.ticket) {
+        grouped.ticket = [...grouped.ticket, ...grouped.bug];
+        delete grouped.bug;
+      } else if (grouped.bug && !grouped.ticket) {
+        grouped.ticket = grouped.bug;
+        delete grouped.bug;
+      }
+      
       setAllPermissions(grouped);
     } catch {
       /* non-critical */
@@ -845,14 +855,20 @@ export default function RolesPage() {
                         const allInGroup = selectedCount === perms.length;
                         const someInGroup = selectedCount > 0 && !allInGroup;
 
-                        // Group by sub-resource
                         const subGroups: Record<string, RBACPermission[]> = {};
                         perms.forEach(p => {
                           const parts = p.name.split('.');
                           let subKey = `${label} Core`;
+                          
+                          // Handle sub-modules (e.g., ticket.bucket.read -> Bucket Module)
                           if (parts.length > 2) {
                             const subName = parts[1].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
                             subKey = `${subName} ${label.includes('Settings') ? 'Config' : 'Module'}`;
+                          } 
+                          // Handle merged modules (e.g., bug.read inside ticket resource)
+                          else if (parts[0] !== resource) {
+                            const subName = parts[0].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                            subKey = `${subName} Module`;
                           }
                           if (!subGroups[subKey]) subGroups[subKey] = [];
                           subGroups[subKey].push(p);
@@ -933,7 +949,29 @@ export default function RolesPage() {
                                           />
                                           <div style={{ flex: 1, overflow: 'hidden' }}>
                                             <Text strong style={{ fontSize: 13, display: 'block', color: selectedPermIds.includes(perm.id) ? 'var(--premium-blue)' : 'var(--text-slate-700)' }}>
-                                              {perm.action.charAt(0).toUpperCase() + perm.action.slice(1)}
+                                              {(() => {
+                                                const name = perm.name;
+                                                const action = perm.action;
+                                                
+                                                // If it's a bug permission, make it explicit
+                                                if (name.startsWith('bug.')) {
+                                                  if (action.includes('trash.')) {
+                                                    const subAction = action.split('.')[1];
+                                                    return `Bug ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
+                                                  }
+                                                  if (action.includes('archive.')) {
+                                                    const subAction = action.split('.')[1];
+                                                    return `Bug Archive ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
+                                                  }
+                                                  return `Bug ${action.charAt(0).toUpperCase() + action.slice(1)}`;
+                                                }
+
+                                                // Default formatting
+                                                if (action.includes('.')) {
+                                                  return action.split('.').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                                                }
+                                                return action.charAt(0).toUpperCase() + action.slice(1);
+                                              })()}
                                             </Text>
                                             {perm.description && (
                                               <Text type="secondary" style={{ fontSize: 11, display: 'block' }} ellipsis>

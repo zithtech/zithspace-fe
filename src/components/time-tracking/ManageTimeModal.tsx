@@ -10,7 +10,10 @@ import {
   CalendarOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  ThunderboltFilled,
+  PlayCircleOutlined,
+  PauseCircleOutlined
 } from '@ant-design/icons';
 import { TimeTrackingService } from '@/services/timeTracking.service';
 import TicketService from '@/services/ticketService';
@@ -19,7 +22,7 @@ import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 interface ManageTimeModalProps {
   open: boolean;
@@ -35,12 +38,12 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
   const effectiveDate = selectedDate || dayjs();
   const selectedUserId = Form.useWatch('userId', form);
   const selectedProjectIds = Form.useWatch('projectIds', form) || [];
+  const selectedTicketIds = Form.useWatch('ticketIds', form) || [];
   const startTime = Form.useWatch('startTime', form);
   const endTime = Form.useWatch('endTime', form);
 
   const { data: members = [] } = useMembers();
 
-  // Calculate total duration
   const totalDuration = useMemo(() => {
     if (startTime && endTime) {
       if (startTime.isAfter(endTime)) return null;
@@ -52,7 +55,6 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
     return null;
   }, [startTime, endTime]);
 
-  // Fetch tickets for the selected user
   const { data: userTicketsResponse, isLoading: loadingTickets } = useQuery({
     queryKey: ['user-tickets', selectedUserId],
     queryFn: () => TicketService.getTickets({ assigneeId: selectedUserId, limit: 1000 }),
@@ -61,7 +63,6 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
 
   const allUserTickets = useMemo(() => userTicketsResponse?.data || [], [userTicketsResponse]);
 
-  // Extract unique projects from tickets
   const availableProjects = useMemo(() => {
     const projectMap = new Map();
     allUserTickets.forEach((ticket: any) => {
@@ -75,7 +76,6 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
     return Array.from(projectMap.values());
   }, [allUserTickets]);
 
-  // Filter tickets by selected projects
   const filteredTickets = useMemo(() => {
     if (selectedProjectIds.length === 0) return allUserTickets;
     return allUserTickets.filter((t: any) => {
@@ -84,20 +84,23 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
     });
   }, [allUserTickets, selectedProjectIds]);
 
-  // Reset fields when user changes
   useEffect(() => {
     form.setFieldsValue({ projectIds: [], ticketIds: [] });
   }, [selectedUserId, form]);
 
-  // Reset form when modal opens
   useEffect(() => {
     if (open) {
       form.resetFields();
     }
   }, [open, form]);
 
+  const selectedMember = useMemo(
+    () => members.find(m => m.value === selectedUserId),
+    [members, selectedUserId]
+  );
+
   const handleSubmit = async (values: any) => {
-    const { userId, projectIds, ticketIds, startTime, endTime } = values;
+    const { userId, ticketIds, startTime, endTime } = values;
 
     if (!startTime || !endTime) {
       notification.error({ message: "Start and End times are required" });
@@ -117,7 +120,6 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
       const startISO = startDayjs.toISOString();
       const endISO = endDayjs.toISOString();
 
-      // Batch Create
       let successCount = 0;
       for (const tId of ticketIds) {
         const ticketObj = allUserTickets.find((t: any) => t.id === tId);
@@ -149,7 +151,7 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
         notification.success({
           message: "Time Logged Successfully",
           icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
-          description: `Created ${successCount} entries for ${totalDuration?.hours}h ${totalDuration?.minutes}m total.`
+          description: `Created ${successCount} ${successCount === 1 ? 'entry' : 'entries'} for ${totalDuration?.hours}h ${totalDuration?.minutes}m total.`
         });
         useTimeTrackerStore.getState().fetchActiveTimer();
         onSuccess();
@@ -164,23 +166,43 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
     }
   };
 
+  const ticketCount = selectedTicketIds.length;
+  const totalLoggedMinutes = (totalDuration?.totalMinutes || 0) * Math.max(ticketCount, 1);
+  const hasInvalidRange = startTime && endTime && startTime.isAfter(endTime);
+
   return (
     <Modal
-      title={
-        <Space size="middle">
-          <div style={{ background: "var(--bg-blue-50)", padding: 6, borderRadius: 8, display: "flex", color: "#0ea5e9" }}>
-            <ClockCircleOutlined style={{ fontSize: 18 }} />
-          </div>
-          <span style={{ fontWeight: 700, color: "var(--text-slate-900)", fontSize: 16 }}>Log Time Session</span>
-        </Space>
-      }
+      title={null}
       open={open}
       onCancel={onClose}
       footer={null}
       destroyOnHidden
-      width={650}
+      width={680}
       className="manage-time-modal"
+      closeIcon={<CloseCircleOutlined style={{ fontSize: 18 }} />}
     >
+      <div className="mtm-hero">
+        <div className="mtm-hero__icon">
+          <ClockCircleOutlined />
+        </div>
+        <div className="mtm-hero__copy">
+          <div className="mtm-hero__title">Log Time Session</div>
+          <div className="mtm-hero__subtitle">Manually record a work session against one or more tickets</div>
+        </div>
+        <div className={`mtm-hero__duration ${totalDuration ? 'is-active' : ''} ${hasInvalidRange ? 'is-error' : ''}`}>
+          <span className="mtm-hero__duration-label">
+            {hasInvalidRange ? 'Invalid range' : 'Duration'}
+          </span>
+          <span className="mtm-hero__duration-value">
+            {hasInvalidRange
+              ? '—'
+              : totalDuration
+                ? `${totalDuration.hours}h ${String(totalDuration.minutes).padStart(2, '0')}m`
+                : '00h 00m'}
+          </span>
+        </div>
+      </div>
+
       <Form
         form={form}
         layout="vertical"
@@ -192,161 +214,189 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
           date: effectiveDate
         }}
         autoComplete="off"
+        className="mtm-form"
+        requiredMark={false}
       >
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="date"
-              label={<Space><CalendarOutlined /><span>Select Date</span></Space>}
-              rules={[{ required: true, message: 'Please select a date' }]}
-            >
-              <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              name="userId"
-              label={<Space><UserOutlined /><span>Select User</span></Space>}
-              rules={[{ required: true, message: 'Please select a user' }]}
-            >
-              <Select
-                placeholder="Search User"
-                showSearch
-                filterOption={(input, option) => (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())}
-                options={members.map(m => ({ value: m.value, label: m.label }))}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Form.Item
-          name="projectIds"
-          label={<Space><ProjectOutlined /><span>Projects</span></Space>}
-          rules={[{ required: true, message: 'Select at least one project' }]}
-        >
-          <Select
-            mode="multiple"
-            placeholder="Select Projects"
-            disabled={!selectedUserId}
-            options={availableProjects}
-            loading={loadingTickets}
-            maxTagCount="responsive"
-            showSearch
-            filterOption={(input, option) => (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())}
-            onChange={() => form.setFieldsValue({ ticketIds: [] })}
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="ticketIds"
-          label={<Space><TagOutlined /><span>Tickets</span></Space>}
-          rules={[{ required: true, message: 'Select at least one ticket' }]}
-        >
-          <Select
-            mode="multiple"
-            placeholder="Select Tickets"
-            disabled={selectedProjectIds.length === 0}
-            loading={loadingTickets}
-            maxTagCount="responsive"
-            showSearch
-            filterOption={(input, option) => {
-              const ticket = allUserTickets.find((t: any) => t.id === option?.value);
-              if (!ticket) return false;
-              return (
-                ticket.title.toLowerCase().includes(input.toLowerCase()) ||
-                ticket.ticketNumber.toLowerCase().includes(input.toLowerCase())
-              );
-            }}
-            optionLabelProp="label"
-          >
-            {filteredTickets.map((t: any) => (
-              <Select.Option key={t.id} value={t.id} label={`${t.ticketNumber}: ${t.title}`}>
-                <Space>
-                  <Tag color="blue" bordered={false}>{t.ticketNumber}</Tag>
-                  <Text ellipsis style={{ maxWidth: 350 }}>{t.title}</Text>
-                </Space>
-              </Select.Option>
-            ))}
-          </Select>
-        </Form.Item>
-
-        <div style={{
-          background: 'var(--bg-secondary)',
-          padding: '16px',
-          borderRadius: '8px',
-          border: '1px solid var(--border-slate-200)',
-          marginBottom: '24px'
-        }}>
-          <Row gutter={16} align="bottom">
-            <Col span={10}>
+        <div className="mtm-section">
+          <div className="mtm-section__header">
+            <span className="mtm-section__index">1</span>
+            <span className="mtm-section__title">Who & When</span>
+          </div>
+          <Row gutter={16}>
+            <Col span={12}>
               <Form.Item
-                name="startTime"
-                label={<Space><ClockCircleOutlined /><span>Start Time</span></Space>}
-                rules={[{ required: true, message: 'Required' }]}
-                style={{ marginBottom: 0 }}
+                name="userId"
+                label={<span className="mtm-label"><UserOutlined /> Team Member</span>}
+                rules={[{ required: true, message: 'Please select a user' }]}
               >
-                <TimePicker style={{ width: '100%' }} format="h:mm A" changeOnBlur use12Hours needConfirm={false} />
+                <Select
+                      placeholder="Search team member"
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
+                  }
+                  options={members.map(m => ({ value: m.value, label: m.label }))}
+                />
               </Form.Item>
             </Col>
-
-            <Col span={10}>
+            <Col span={12}>
               <Form.Item
-                name="endTime"
-                label={<Space><ClockCircleOutlined /><span>End Time</span></Space>}
-                rules={[{ required: true, message: 'Required' }]}
-                style={{ marginBottom: 0 }}
+                name="date"
+                label={<span className="mtm-label"><CalendarOutlined /> Date</span>}
+                rules={[{ required: true, message: 'Please select a date' }]}
               >
-                <TimePicker style={{ width: '100%' }} format="h:mm A" changeOnBlur use12Hours needConfirm={false} />
+                <DatePicker style={{ width: '100%' }} format="MMM D, YYYY" />
               </Form.Item>
-            </Col>
-
-            <Col span={4}>
-              <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                <Text type="secondary" style={{ fontSize: '11px', display: 'block', textTransform: 'uppercase' }}>Duration</Text>
-                <Tag color={totalDuration ? "blue" : "default"} style={{ margin: 0, fontWeight: 600, fontSize: '14px', width: '100%', textAlign: 'center' }}>
-                  {totalDuration ? `${totalDuration.hours}h ${totalDuration.minutes}m` : '--:--'}
-                </Tag>
-              </div>
             </Col>
           </Row>
         </div>
 
-        {!loadingTickets && selectedUserId && filteredTickets.length === 0 && (
-          <Text type="warning" style={{ display: 'block', marginBottom: 16 }}>
-            <InfoCircleOutlined /> This user has no tickets assigned to the selected projects.
-          </Text>
-        )}
+        <div className="mtm-section">
+          <div className="mtm-section__header">
+            <span className="mtm-section__index">2</span>
+            <span className="mtm-section__title">What was worked on</span>
+            {selectedMember && (
+              <span className="mtm-section__hint">
+                {allUserTickets.length} {allUserTickets.length === 1 ? 'ticket' : 'tickets'} assigned
+              </span>
+            )}
+          </div>
 
-        <Form.Item style={{ marginBottom: 0, marginTop: 32, textAlign: 'right' }}>
-          <Space size="middle">
-            <Button
-              onClick={onClose}
-              icon={<CloseCircleOutlined />}
-              style={{ borderRadius: 8, height: 40, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              icon={<CheckCircleOutlined />}
-              style={{
-                height: 40,
-                padding: '0 24px',
-                borderRadius: 8,
-                fontWeight: 600,
-                background: "#1677ff",
-                border: "none",
-                // boxShadow: '0 4px 10px rgba(22, 119, 255, 0.25)'
+          <Form.Item
+            name="projectIds"
+            label={<span className="mtm-label"><ProjectOutlined /> Projects</span>}
+            rules={[{ required: true, message: 'Select at least one project' }]}
+          >
+            <Select
+              mode="multiple"
+              placeholder={selectedUserId ? 'Select projects' : 'Pick a team member first'}
+              disabled={!selectedUserId}
+              options={availableProjects}
+              loading={loadingTickets}
+              maxTagCount="responsive"
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
+              }
+              onChange={() => form.setFieldsValue({ ticketIds: [] })}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="ticketIds"
+            label={<span className="mtm-label"><TagOutlined /> Tickets</span>}
+            rules={[{ required: true, message: 'Select at least one ticket' }]}
+            style={{ marginBottom: 0 }}
+          >
+            <Select
+              mode="multiple"
+              placeholder={selectedProjectIds.length === 0 ? 'Pick a project first' : 'Select tickets'}
+              disabled={selectedProjectIds.length === 0}
+              loading={loadingTickets}
+              maxTagCount="responsive"
+              showSearch
+              filterOption={(input, option) => {
+                const ticket = allUserTickets.find((t: any) => t.id === option?.value);
+                if (!ticket) return false;
+                return (
+                  ticket.title.toLowerCase().includes(input.toLowerCase()) ||
+                  ticket.ticketNumber.toLowerCase().includes(input.toLowerCase())
+                );
               }}
+              optionLabelProp="label"
             >
-              Create Entry
-            </Button>
-          </Space>
-        </Form.Item>
+              {filteredTickets.map((t: any) => (
+                <Select.Option key={t.id} value={t.id} label={`${t.ticketNumber}: ${t.title}`}>
+                  <Space>
+                    <Tag color="blue" bordered={false}>{t.ticketNumber}</Tag>
+                    <Text ellipsis style={{ maxWidth: 350 }}>{t.title}</Text>
+                  </Space>
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          {!loadingTickets && selectedUserId && filteredTickets.length === 0 && (
+            <div className="mtm-empty">
+              <InfoCircleOutlined /> This user has no tickets assigned to the selected projects.
+            </div>
+          )}
+        </div>
+
+        <div className="mtm-section">
+          <div className="mtm-section__header">
+            <span className="mtm-section__index">3</span>
+            <span className="mtm-section__title">Time window</span>
+          </div>
+          <div className="mtm-time-card">
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="startTime"
+                  label={<span className="mtm-label"><PlayCircleOutlined /> Start</span>}
+                  rules={[{ required: true, message: 'Required' }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <TimePicker
+                          style={{ width: '100%' }}
+                    format="h:mm A"
+                    use12Hours
+                    needConfirm={false}
+                    suffixIcon={<ClockCircleOutlined />}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="endTime"
+                  label={<span className="mtm-label"><PauseCircleOutlined /> End</span>}
+                  rules={[{ required: true, message: 'Required' }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <TimePicker
+                          style={{ width: '100%' }}
+                    format="h:mm A"
+                    use12Hours
+                    needConfirm={false}
+                    suffixIcon={<ClockCircleOutlined />}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            {ticketCount > 0 && totalDuration && (
+              <div className="mtm-summary">
+                <ThunderboltFilled className="mtm-summary__icon" />
+                <span>
+                  This will create <strong>{ticketCount}</strong> {ticketCount === 1 ? 'entry' : 'entries'} ·
+                  <strong> {Math.floor(totalLoggedMinutes / 60)}h {String(totalLoggedMinutes % 60).padStart(2, '0')}m</strong> total logged
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mtm-footer">
+          <Button
+            onClick={onClose}
+            size="large"
+            className="mtm-btn-cancel"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+            size="large"
+            icon={<CheckCircleOutlined />}
+            className="mtm-btn-primary"
+            disabled={!!hasInvalidRange}
+          >
+            Create Entry
+          </Button>
+        </div>
       </Form>
     </Modal>
   );
 };
-

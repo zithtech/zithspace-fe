@@ -6,11 +6,10 @@ import {
   TeamOutlined,
   ClockCircleOutlined,
   RocketOutlined,
-  SearchOutlined,
   EditOutlined,
   HistoryOutlined,
-  UserOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  RiseOutlined,
 } from "@ant-design/icons";
 const { RangePicker } = DatePicker;
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
@@ -341,6 +340,19 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       // Calculate unique ticket count
       const uniqueTickets = new Set(groupData.entries.map(e => e.ticketId).filter(Boolean)).size;
       (groupData as any).ticketCount = uniqueTickets;
+
+      // Calculate Activity Timeline session count (matches expanded row)
+      let sessionCount = 0;
+      let liveSessions = 0;
+      groupData.entries.forEach((entry) => {
+        const sessions = processLogsToSessions(entry.logs, entry.startTime, entry.endTime);
+        sessionCount += sessions.length;
+        sessions.forEach((s) => {
+          if (!s.end && entry.status === "RUNNING") liveSessions++;
+        });
+      });
+      (groupData as any).sessionCount = sessionCount;
+      (groupData as any).liveSessions = liveSessions;
     });
 
     return Object.values(groupMap).sort((a, b) => {
@@ -420,6 +432,31 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           <Text type="secondary" style={{ fontSize: 11 }}>{count === 1 ? 'ticket' : 'tickets'}</Text>
         </Space>
       ),
+    },
+    {
+      title: "Activity",
+      dataIndex: "sessionCount",
+      key: "sessionCount",
+      width: 130,
+      render: (count: number, record: any) => {
+        if (!count) {
+          return <Text type="secondary" style={{ fontSize: 12 }}>—</Text>;
+        }
+        return (
+          <Tooltip title={record.liveSessions > 0 ? `${record.liveSessions} session${record.liveSessions === 1 ? '' : 's'} running now` : "Click the row to expand the timeline"}>
+            <span className="mtt-activity-pill">
+              <HistoryOutlined />
+              <span className="mtt-activity-pill__count">{count}</span>
+              <span className="mtt-activity-pill__label">{count === 1 ? "session" : "sessions"}</span>
+              {record.liveSessions > 0 && (
+                <span className="mtt-activity-pill__live">
+                  <span className="pulse-indicator" /> {record.liveSessions}
+                </span>
+              )}
+            </span>
+          </Tooltip>
+        );
+      },
     },
     {
       title: "Daily Capacity",
@@ -756,170 +793,217 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
     });
   };
 
+  const hasActiveFilters = !!(filters.userId || filters.projectId);
+  const totalDailyEntries = filteredEntries.length;
+  const teamAvgSeconds = stats.activeUsers > 0 ? Math.round(stats.totalSeconds / stats.activeUsers) : 0;
+  const avgSeconds = filters.userId ? stats.averageSeconds : teamAvgSeconds;
+  const avgLabel = filters.userId ? "Individual Avg" : "Avg per Member";
+  const avgFmt = (() => {
+    const h = Math.floor(avgSeconds / 3600);
+    const m = Math.floor((avgSeconds % 3600) / 60);
+    return { h, m };
+  })();
+  const totalFmt = (() => {
+    const h = Math.floor(stats.totalSeconds / 3600);
+    const m = Math.floor((stats.totalSeconds % 3600) / 60);
+    return { h, m };
+  })();
+
   return (
     <div style={{ padding: '0 0 24px 0' }}>
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={8}>
-          <Card bordered={true} style={{ borderRadius: 12, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-100)', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }} styles={{ body: { padding: '16px 20px' } }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <Text style={{ color: 'var(--text-slate-600)', fontSize: 13, fontWeight: 500 }}>Active Members</Text>
-                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-slate-900)', marginTop: 4 }}>{stats.activeUsers}</div>
+      {/* KPI Strip */}
+      <div className="mtt-kpi-strip">
+        <Row gutter={16}>
+          <Col xs={24} sm={12} lg={6}>
+            <div className="mtt-kpi mtt-kpi--emerald">
+              <div className="mtt-kpi__head">
+                <div className="mtt-kpi__icon"><TeamOutlined /></div>
+                <span className="mtt-kpi__label">Active Members</span>
               </div>
-              <div style={{ background: 'var(--bg-blue-50)', color: 'var(--text-blue-600)', padding: 10, borderRadius: 12, display: 'flex' }}>
-                <TeamOutlined style={{ fontSize: 20 }} />
+              <div className="mtt-kpi__value">
+                <span className="mtt-kpi__main">{stats.activeUsers}</span>
+                <span className="mtt-kpi__unit">{stats.activeUsers === 1 ? 'member' : 'members'}</span>
               </div>
-            </div>
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card bordered={true} style={{ borderRadius: 12, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-100)', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }} styles={{ body: { padding: '16px 20px' } }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <Text style={{ color: 'var(--text-slate-600)', fontSize: 13, fontWeight: 500 }}>Total Work Hours</Text>
-                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-slate-900)', marginTop: 4 }}>{formatTime(stats.totalSeconds)}</div>
-              </div>
-              <div style={{ background: 'var(--bg-holiday)', color: 'var(--text-holiday)', padding: 10, borderRadius: 12, display: 'flex' }}>
-                <ClockCircleOutlined style={{ fontSize: 20 }} />
+              <div className="mtt-kpi__sub">
+                <span className="mtt-trend mtt-trend--flat">
+                  {groupedData.length} {groupedData.length === 1 ? 'tracked day' : 'tracked days'} in range
+                </span>
               </div>
             </div>
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card bordered={true} style={{ borderRadius: 12, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-100)', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }} styles={{ body: { padding: '16px 20px' } }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <Text style={{ color: 'var(--text-slate-600)', fontSize: 13, fontWeight: 500 }}>Project Coverage</Text>
-                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-slate-900)', marginTop: 4 }}>{stats.uniqueProjects}</div>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <div className="mtt-kpi mtt-kpi--blue">
+              <div className="mtt-kpi__head">
+                <div className="mtt-kpi__icon"><ClockCircleOutlined /></div>
+                <span className="mtt-kpi__label">Total Work Hours</span>
               </div>
-              <div style={{ background: 'var(--bg-paused-row)', color: '#f59e0b', padding: 10, borderRadius: 12, display: 'flex' }}>
-                <RocketOutlined style={{ fontSize: 20 }} />
+              <div className="mtt-kpi__value">
+                <span className="mtt-kpi__main">{totalFmt.h}</span>
+                <span className="mtt-kpi__unit">h</span>
+                <span className="mtt-kpi__main mtt-kpi__main--sm">{String(totalFmt.m).padStart(2, '0')}</span>
+                <span className="mtt-kpi__unit">m</span>
+              </div>
+              <div className="mtt-kpi__sub">
+                <span className="mtt-trend mtt-trend--flat">
+                  Across {totalDailyEntries} {totalDailyEntries === 1 ? 'entry' : 'entries'}
+                </span>
               </div>
             </div>
-          </Card>
-        </Col>
-      </Row>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <div className="mtt-kpi mtt-kpi--amber">
+              <div className="mtt-kpi__head">
+                <div className="mtt-kpi__icon"><RocketOutlined /></div>
+                <span className="mtt-kpi__label">Project Coverage</span>
+              </div>
+              <div className="mtt-kpi__value">
+                <span className="mtt-kpi__main">{stats.uniqueProjects}</span>
+                <span className="mtt-kpi__unit">{stats.uniqueProjects === 1 ? 'project' : 'projects'}</span>
+              </div>
+              <div className="mtt-kpi__sub">
+                <span className="mtt-trend mtt-trend--flat">
+                  {filters.projectId ? 'Filtered to one project' : 'Across the team'}
+                </span>
+              </div>
+            </div>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <div className="mtt-kpi mtt-kpi--violet">
+              <div className="mtt-kpi__head">
+                <div className="mtt-kpi__icon"><RiseOutlined /></div>
+                <span className="mtt-kpi__label">{avgLabel}</span>
+              </div>
+              <div className="mtt-kpi__value">
+                <span className="mtt-kpi__main">{avgFmt.h}</span>
+                <span className="mtt-kpi__unit">h</span>
+                <span className="mtt-kpi__main mtt-kpi__main--sm">{String(avgFmt.m).padStart(2, '0')}</span>
+                <span className="mtt-kpi__unit">m</span>
+              </div>
+              <div className="mtt-kpi__sub">
+                <span className="mtt-trend mtt-trend--flat">
+                  {filters.userId ? 'Selected member · per active day' : 'Per active member'}
+                </span>
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </div>
 
-      <div style={{
-        marginBottom: 20,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 16
-      }}>
-        {/* Left Side: Statistics (Persistent) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            padding: '0 16px',
-            height: 38,
-            background: 'var(--bg-blue-50)',
-            border: '1px solid var(--border-blue-200)',
-            borderRadius: 10,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-          }}>
-            <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
-              Individual Average:
-            </Text>
-            <Text strong style={{ fontSize: 15, color: 'var(--text-blue-700)' }}>
-              {formatTime(filters.userId ? stats.averageSeconds : lastIndividualAverage)}
-            </Text>
+      {/* Tracker card */}
+      <div className="mtt-tracker-card mtt-team-card" style={{ marginTop: 20 }}>
+        <div className="mtt-tracker-card__head mtt-team-card__head">
+          <div className="mtt-tracker-card__title-wrap">
+            <div className="mtt-tracker-card__icon"><TeamOutlined /></div>
+            <div>
+              <div className="mtt-tracker-card__title">Team Activity</div>
+              <div className="mtt-tracker-card__subtitle">
+                {groupedData.length} {groupedData.length === 1 ? 'row' : 'rows'}
+                {stats.activeUsers > 0 && (
+                  <>
+                    {" · "}
+                    <span className="mtt-tracker-card__chip mtt-tracker-card__chip--running">
+                      <span className="pulse-indicator" /> {stats.activeUsers} active now
+                    </span>
+                  </>
+                )}
+                {hasActiveFilters && (
+                  <>
+                    {" · "}
+                    <span className="mtt-tracker-card__chip mtt-team-card__chip--filter">
+                      Filters on
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mtt-team-filters">
+            <Select
+              allowClear
+              showSearch
+              placeholder="All members"
+              className="mtt-team-filters__select"
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.children ?? "")
+                  .toString()
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              value={filters.userId}
+              onChange={(val) => setFilters(f => ({ ...f, userId: val }))}
+            >
+              {members.map(m => (
+                <Select.Option key={m.value} value={m.value}>
+                  {m.label}
+                </Select.Option>
+              ))}
+            </Select>
+
+            <Select
+              allowClear
+              placeholder="All projects"
+              className="mtt-team-filters__select"
+              value={filters.projectId}
+              onChange={(val) => setFilters(f => ({ ...f, projectId: val }))}
+            >
+              {projects.map(p => <Select.Option key={p.value} value={p.value}>{p.label}</Select.Option>)}
+            </Select>
+
+            <RangePicker
+              className="mtt-team-filters__range"
+              allowClear
+              value={filters.dateRange}
+              onChange={(dates) => setFilters(f => ({ ...f, dateRange: dates as any }))}
+            />
+
+            {hasActiveFilters && (
+              <Button
+                onClick={handleClearFilters}
+                className="mtt-team-filters__clear"
+                size="small"
+              >
+                Clear filters
+              </Button>
+            )}
+
+            <Tooltip title="Refresh data">
+              <Button
+                onClick={fetchTeamEntries}
+                icon={<ReloadOutlined />}
+                loading={loading}
+                className="mtt-tracker-card__action mtt-team-card__refresh"
+                size="small"
+              />
+            </Tooltip>
           </div>
         </div>
 
-        {/* Right Side: Filters, Clear & Refresh */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <Select
-            allowClear
-            showSearch
-            placeholder="Select Member"
-            style={{ width: 180, height: 38 }}
-            size="middle"
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              (option?.children ?? "")
-                .toString()
-                .toLowerCase()
-                .includes(input.toLowerCase())
-            }
-            value={filters.userId}
-            onChange={(val) => setFilters(f => ({ ...f, userId: val }))}
-          >
-            {members.map(m => (
-              <Select.Option key={m.value} value={m.value}>
-                {m.label}
-              </Select.Option>
-            ))}
-          </Select>
-
-          <Select
-            placeholder="All Projects"
-            style={{ width: 180, height: 38 }}
-            size="middle"
-            allowClear
-            value={filters.projectId}
-            onChange={(val) => setFilters(f => ({ ...f, projectId: val }))}
-          >
-            {projects.map(p => <Select.Option key={p.value} value={p.value}>{p.label}</Select.Option>)}
-          </Select>
-
-          <RangePicker
-            style={{ height: 38, borderRadius: 10, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}
-            size="middle"
-            allowClear
-            value={filters.dateRange}
-            onChange={(dates) => setFilters(f => ({ ...f, dateRange: dates as any }))}
-          />
-
-          <Button
-            onClick={handleClearFilters}
-            style={{
-              fontWeight: 500,
-              height: 38,
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              background: 'var(--bg-pure-white)',
-              border: '1px solid var(--border-slate-200)',
-              color: 'var(--text-leave)'
-            }}
-          >
-            Clear
-          </Button>
-
-          <Tooltip title="Refresh Data">
-            <Button
-              onClick={fetchTeamEntries}
-              icon={<ReloadOutlined />}
-              style={{
-                height: 38,
-                width: 38,
-                borderRadius: 10,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'var(--bg-pure-white)',
-                border: '1px solid var(--border-slate-200)'
-              }}
-              size="middle"
-            />
-          </Tooltip>
-        </div>
+        <Table
+          className="mtt-team-table"
+          columns={userColumns}
+          dataSource={groupedData}
+          loading={loading}
+          rowKey={(record) => record.id}
+          expandable={{ expandedRowRender }}
+          pagination={{ pageSize: 20, hideOnSinglePage: true, showTotal: (total) => `${total} ${total === 1 ? 'row' : 'rows'}` }}
+          size="middle"
+          locale={{
+            emptyText: loading ? <></> : (
+              <div className="mtt-tracker-card__empty">
+                <div className="mtt-tracker-card__empty-icon">
+                  <TeamOutlined />
+                </div>
+                <div className="mtt-tracker-card__empty-title">No team activity in this range</div>
+                <div className="mtt-tracker-card__empty-sub">
+                  Try widening the date range or clearing filters to see more.
+                </div>
+              </div>
+            )
+          }}
+        />
       </div>
-
-      <Table
-        columns={userColumns}
-        dataSource={groupedData}
-        loading={loading}
-        rowKey={(record) => record.id}
-        expandable={{ expandedRowRender }}
-        pagination={{ pageSize: 20 }}
-        size="middle"
-      />
 
       <style jsx global>{`
         .ant-table-thead > tr > th {

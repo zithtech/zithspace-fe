@@ -21,41 +21,20 @@ import {
   Switch,
   Spin,
 } from "antd";
-import type { NotificationArgsProps } from "antd";
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ClockCircleOutlined,
-  SendOutlined,
-  WarningOutlined,
-  CalendarOutlined,
-  ClockCircleTwoTone,
-  EditOutlined,
-  SmileOutlined,
-  MehOutlined,
-  FrownOutlined,
-  InfoCircleOutlined,
-} from "@ant-design/icons";
 import {
   Clock,
   Trash2,
   Plus,
-  AlertCircle,
   Save,
   Send,
-  Calendar,
-  CheckCircle2,
   ChevronRight,
   MessageSquare,
   AlertTriangle,
   Smile,
-  Meh,
-  Frown,
-  Activity,
-  Zap,
-  FileText
+  FileText,
+  Briefcase,
+  ListChecks,
+  CalendarClock,
 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { ProjectService } from "@/services/projectService";
@@ -63,7 +42,6 @@ import DailyUpdateService from "@/services/dailyUpdateService";
 import TicketService from "@/services/ticketService";
 import {
   ProjectUpdate,
-  Task,
   WorkStatus,
   calculateHours,
   formatHours,
@@ -71,7 +49,7 @@ import {
 import dayjs, { Dayjs } from "dayjs";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { TextArea } = Input;
 
 interface ProjectOption {
@@ -748,42 +726,70 @@ function SubmitDailyUpdateContent() {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-        .daily-update-scroll-area::-webkit-scrollbar {
-          display: none;
-        }
-        .daily-update-scroll-area {
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
+        .daily-update-scroll-area::-webkit-scrollbar { display: none; }
+        .daily-update-scroll-area { scrollbar-width: none; -ms-overflow-style: none; }
+
+        .premium-form-item .ant-form-item-label { padding-bottom: 4px !important; }
         .premium-form-item .ant-form-item-label > label {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text-slate-600);
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-slate-400);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          height: auto !important;
         }
+        .premium-form-item .ant-form-item-label > label::after { display: none; }
+        .premium-form-item .ant-form-item-label > label.ant-form-item-required::before {
+          color: #e11d48 !important;
+          font-size: 12px !important;
+          margin-right: 2px !important;
+        }
+
         .mood-btn {
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: border-color .15s ease, background .15s ease, color .15s ease;
           border: 1px solid var(--border-slate-200) !important;
           background: var(--bg-pure-white) !important;
-          color: var(--text-slate-600) !important;
-          height: 38px !important;
-          border-radius: 10px !important;
+          color: var(--text-slate-700) !important;
+          height: 32px !important;
+          padding: 0 11px !important;
+          border-radius: 8px !important;
+          font-weight: 500 !important;
+          font-size: 12px !important;
         }
-        .mood-btn-active-happy { background: var(--bg-holiday) !important; border-color: var(--text-holiday) !important; color: var(--text-holiday) !important; }
-        .mood-btn-active-neutral { background: var(--bg-slate-50) !important; border-color: var(--text-slate-400) !important; color: var(--text-slate-900) !important; }
-        .mood-btn-active-stressed { background: var(--bg-paused-row) !important; border-color: #f59e0b !important; color: #92400e !important; }
-        .mood-btn-active-blocked { background: var(--bg-leave) !important; border-color: var(--text-leave) !important; color: var(--text-leave) !important; }
-        
-        .project-card {
-          border: 1px solid var(--border-slate-200) !important;
-          border-radius: 16px !important;
-          overflow: hidden !important;
-          transition: all 0.3s ease !important;
-          background: var(--bg-pure-white) !important;
+        .mood-btn:hover { border-color: #cbd5e1 !important; }
+        .mood-btn-active-happy    { background: #fef9c3 !important; border-color: #fde68a !important; color: #a16207 !important; }
+        .mood-btn-active-neutral  { background: var(--bg-slate-50) !important; border-color: var(--border-slate-200) !important; color: var(--text-slate-900) !important; }
+        .mood-btn-active-stressed { background: #ffedd5 !important; border-color: #fed7aa !important; color: #9a3412 !important; }
+        .mood-btn-active-blocked  { background: #fee2e2 !important; border-color: #fca5a5 !important; color: #991b1b !important; }
+
+        .dud-card {
+          border: 1px solid var(--border-slate-200);
+          border-radius: 12px;
+          background: var(--bg-pure-white);
+          transition: border-color .15s ease;
         }
-        .project-card:hover {
-          border-color: var(--border-sky-500) !important;
-          box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
+        .dud-card:hover { border-color: #cbd5e1; }
+
+        .dud-task-row {
+          transition: border-color .15s ease;
         }
+        .dud-task-row:hover { border-color: #cbd5e1; }
+        .dud-task-row .ant-select { height: 100%; }
+        .dud-task-row .ant-select .ant-select-selector {
+          height: 100% !important;
+          display: flex;
+          align-items: center;
+        }
+        .dud-task-row > .ant-btn {
+          height: 100%;
+          min-height: 32px;
+        }
+
+        @keyframes dudFadeUp {
+          from { opacity: 0; transform: translateY(4px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .dud-anim { animation: dudFadeUp .3s cubic-bezier(.2,.6,.2,1) both; }
       `}} />
 
       <TimeTrackingHeader
@@ -811,14 +817,42 @@ function SubmitDailyUpdateContent() {
         }
         description="Document your daily progress, accomplishments, and blockers."
         extra={
-          <Space size="middle">
-            <div style={{ textAlign: "right", marginRight: 16 }}>
-              <Text style={{ fontSize: 11, color: "var(--text-slate-600)", display: "block" }}>Project Entries</Text>
-              <Text strong style={{ fontSize: 18, color: "var(--text-slate-900)" }}>{projectUpdates.length}</Text>
+          <Space size={10} align="center">
+            <div style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 12px",
+              borderRadius: 8,
+              border: "1px solid var(--border-slate-200)",
+              background: "var(--bg-pure-white)",
+              height: 38,
+            }}>
+              <Briefcase size={14} color="var(--text-slate-400)" />
+              <Text style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>
+                Projects
+              </Text>
+              <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)" }}>
+                {projectUpdates.length}
+              </Text>
             </div>
-            <div style={{ textAlign: "right", marginRight: 16 }}>
-              <Text style={{ fontSize: 11, color: "var(--text-slate-600)", display: "block" }}>Total Hours</Text>
-              <Text strong style={{ fontSize: 18, color: "var(--text-sky-500)" }}>{formatHours(totalHours)}</Text>
+            <div style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 12px",
+              borderRadius: 8,
+              border: "1px solid var(--border-slate-200)",
+              background: "var(--bg-pure-white)",
+              height: 38,
+            }}>
+              <Clock size={14} color="#0ea5e9" />
+              <Text style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>
+                Total
+              </Text>
+              <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)" }}>
+                {formatHours(totalHours)}
+              </Text>
             </div>
             <Button
               type="primary"
@@ -853,177 +887,248 @@ function SubmitDailyUpdateContent() {
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           <Form form={form} layout="vertical" className="premium-form-item">
 
-            {/* Daily Context Section */}
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 340px",
-              gap: 20,
-              marginBottom: 24
+            {/* Context Toolbar — Update Type + Mood + Missed Update */}
+            <div className="dud-card" style={{
+              padding: "12px 16px",
+              marginBottom: isMissedUpdate ? 12 : 22,
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 18,
+              rowGap: 12,
             }}>
-              {/* Mood Card */}
-              <Card
-                style={{ borderRadius: 16, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)" }}
-                bodyStyle={{ padding: "16px 20px" }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ background: "var(--bg-sky-50)", padding: 8, borderRadius: 10, color: "var(--text-sky-500)" }}>
-                      <Smile size={20} />
-                    </div>
-                    <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)" }}>How are you feeling?</Text>
-                  </div>
-                  <Form.Item name="mood" noStyle>
-                    <Space size={8}>
-                      {[
-                        { key: "happy", icon: "😊", label: "Happy" },
-                        { key: "neutral", icon: "😐", label: "Neutral" },
-                        { key: "stressed", icon: "😰", label: "Stressed" },
-                        { key: "blocked", icon: "🚫", label: "Blocked" }
-                      ].map((m) => (
-                        <Button
-                          key={m.key}
-                          className={`mood-btn ${form.getFieldValue("mood") === m.key ? `mood-btn-active-${m.key}` : ""}`}
-                          onClick={() => {
-                            form.setFieldsValue({ mood: m.key });
-                            setProjectUpdates([...projectUpdates]); // force re-render
-                          }}
-                          style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
-                        >
-                          <span>{m.icon}</span>
-                          <span>{m.label}</span>
-                        </Button>
-                      ))}
-                    </Space>
-                  </Form.Item>
-                </div>
-              </Card>
+              {/* Update Type */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Text style={{ fontSize: 11, color: "var(--text-slate-400)", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>
+                  Type
+                </Text>
+                <Form.Item name="updateType" noStyle>
+                  <Radio.Group
+                    optionType="button"
+                    buttonStyle="solid"
+                    size="small"
+                  >
+                    <Radio.Button value="BOD" style={{ width: 56, textAlign: "center", fontSize: 12, fontWeight: 600 }}>BOD</Radio.Button>
+                    <Radio.Button value="EOD" style={{ width: 56, textAlign: "center", fontSize: 12, fontWeight: 600 }}>EOD</Radio.Button>
+                  </Radio.Group>
+                </Form.Item>
+              </div>
 
-              {/* Update Type & Date Card */}
-              <Card
-                style={{ borderRadius: 16, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)" }}
-                bodyStyle={{ padding: "16px 20px" }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-                  <Form.Item name="updateType" noStyle>
-                    <Radio.Group
-                      optionType="button"
-                      buttonStyle="solid"
-                      size="middle"
-                      style={{ borderRadius: 8, overflow: "hidden" }}
-                    >
-                      <Radio.Button value="BOD" style={{ width: 60, textAlign: "center" }}>BOD</Radio.Button>
-                      <Radio.Button value="EOD" style={{ width: 60, textAlign: "center" }}>EOD</Radio.Button>
-                    </Radio.Group>
-                  </Form.Item>
-                  <div style={{ height: 24, width: 1, background: "var(--border-slate-200)" }} />
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Switch
-                      size="small"
-                      checked={isMissedUpdate}
-                      onChange={(checked) => {
-                        setIsMissedUpdate(checked);
-                        if (!checked) setMissedDate(null);
-                      }}
-                    />
-                    <Text style={{ fontSize: 12, fontWeight: 500, color: isMissedUpdate ? "var(--text-amber-500)" : "var(--text-slate-600)" }}>
-                      Missed Update
-                    </Text>
-                  </div>
-                </div>
-                {isMissedUpdate && (
-                  <div style={{ marginTop: 12 }}>
-                    <DatePicker
-                      placeholder="Select missed date"
-                      style={{ width: "100%", borderRadius: 8 }}
-                      value={missedDate}
-                      onChange={(date) => setMissedDate(date)}
-                      disabledDate={(current) =>
-                        current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"))
-                      }
-                    />
-                  </div>
-                )}
-              </Card>
+              <div style={{ height: 22, width: 1, background: "var(--border-slate-200)" }} />
+
+              {/* Mood */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "1 1 auto", minWidth: 0 }}>
+                <Smile size={14} color="var(--text-slate-400)" />
+                <Text style={{ fontSize: 11, color: "var(--text-slate-400)", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5, whiteSpace: "nowrap" }}>
+                  Feeling
+                </Text>
+                <Form.Item name="mood" noStyle>
+                  <Space size={6} wrap>
+                    {[
+                      { key: "happy", icon: "😊", label: "Happy" },
+                      { key: "neutral", icon: "😐", label: "Neutral" },
+                      { key: "stressed", icon: "😰", label: "Stressed" },
+                      { key: "blocked", icon: "🚫", label: "Blocked" }
+                    ].map((m) => (
+                      <Button
+                        key={m.key}
+                        className={`mood-btn ${form.getFieldValue("mood") === m.key ? `mood-btn-active-${m.key}` : ""}`}
+                        onClick={() => {
+                          form.setFieldsValue({ mood: m.key });
+                          setProjectUpdates([...projectUpdates]);
+                        }}
+                        style={{ display: "flex", alignItems: "center", gap: 6 }}
+                      >
+                        <span>{m.icon}</span>
+                        <span>{m.label}</span>
+                      </Button>
+                    ))}
+                  </Space>
+                </Form.Item>
+              </div>
+
+              <div style={{ height: 22, width: 1, background: "var(--border-slate-200)" }} />
+
+              {/* Missed Update */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CalendarClock size={14} color={isMissedUpdate ? "#b45309" : "var(--text-slate-400)"} />
+                <Text style={{ fontSize: 12, fontWeight: 600, color: isMissedUpdate ? "#92400e" : "var(--text-slate-700)" }}>
+                  Missed Update
+                </Text>
+                <Switch
+                  size="small"
+                  checked={isMissedUpdate}
+                  onChange={(checked) => {
+                    setIsMissedUpdate(checked);
+                    if (!checked) setMissedDate(null);
+                  }}
+                />
+              </div>
             </div>
+
+            {/* Missed-update date picker (revealed below toolbar) */}
+            {isMissedUpdate && (
+              <div className="dud-anim" style={{
+                marginBottom: 22,
+                padding: "12px 16px",
+                background: "#fffbeb",
+                border: "1px solid #fde68a",
+                borderRadius: 12,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}>
+                <AlertTriangle size={16} color="#b45309" />
+                <Text style={{ fontSize: 12, color: "#92400e", fontWeight: 600 }}>
+                  Date for the missed update:
+                </Text>
+                <DatePicker
+                  placeholder="Select missed date"
+                  style={{ flex: 1, maxWidth: 240, borderRadius: 8 }}
+                  value={missedDate}
+                  onChange={(date) => setMissedDate(date)}
+                  disabledDate={(current) =>
+                    current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"))
+                  }
+                />
+              </div>
+            )}
 
             {/* Project Updates Section Title */}
             <div style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 16,
-              padding: "0 4px"
+              marginBottom: 14,
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Activity size={18} color="var(--text-sky-500)" />
-                <Text strong style={{ fontSize: 16, color: "var(--text-slate-900)" }}>Work Details</Text>
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <div style={{ width: 3, height: 16, borderRadius: 2, background: "#6366f1" }} />
+                <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)", letterSpacing: -0.1 }}>
+                  Work Details
+                </Text>
+                <Text style={{ fontSize: 12, color: "var(--text-slate-400)", fontWeight: 500 }}>
+                  · {projectUpdates.length} {projectUpdates.length === 1 ? "entry" : "entries"}
+                </Text>
               </div>
               <Button
-                type="link"
-                icon={<Plus size={16} />}
+                icon={<Plus size={14} />}
                 onClick={handleAddProject}
                 disabled={projectUpdates.length >= projects.length}
-                style={{ fontWeight: 600, fontSize: 14, color: "var(--text-sky-500)" }}
+                style={{
+                  height: 32,
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  border: "1px solid var(--border-slate-200)",
+                  background: "var(--bg-pure-white)",
+                  color: "var(--text-slate-700)",
+                }}
               >
                 Add Project
               </Button>
             </div>
 
             {/* Project Cards */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {projectUpdates.map((update, projectIndex) => (
-                <Card
+                <div
                   key={projectIndex}
-                  className="project-card"
-                  bodyStyle={{ padding: 0 }}
+                  className="dud-card dud-anim"
+                  style={{
+                    overflow: "hidden",
+                    animationDelay: `${projectIndex * 30}ms`,
+                  }}
                 >
                   {/* Card Header Strip */}
                   <div style={{
-                    padding: "12px 20px",
-                    background: "var(--bg-table-header)",
-                    borderBottom: "1px solid var(--border-slate-200)",
+                    padding: "10px 16px",
+                    background: "var(--bg-slate-50)",
+                    borderBottom: "1px solid var(--border-slate-100)",
                     display: "flex",
                     justifyContent: "space-between",
-                    alignItems: "center"
+                    alignItems: "center",
+                    gap: 12,
                   }}>
-                    <Space size="middle">
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                       <div style={{
-                        width: 24,
-                        height: 24,
+                        width: 22,
+                        height: 22,
                         borderRadius: 6,
-                        background: "var(--text-sky-500)",
-                        color: "white",
+                        background: "var(--bg-pure-white)",
+                        border: "1px solid var(--border-slate-200)",
+                        color: "var(--text-slate-700)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: 12,
-                        fontWeight: 700
+                        fontSize: 11,
+                        fontWeight: 700,
+                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                        flexShrink: 0,
                       }}>
                         {projectIndex + 1}
                       </div>
-                      <Text strong style={{ color: "var(--text-slate-900)" }}>Project Entry</Text>
-                    </Space>
+                      <Text strong style={{ color: "var(--text-slate-900)", fontSize: 13 }}>
+                        Project Entry
+                      </Text>
+                      {update.projectName && (
+                        <>
+                          <span style={{ color: "var(--text-slate-400)", fontSize: 12 }}>·</span>
+                          <Text style={{
+                            fontSize: 12,
+                            color: "var(--text-slate-600)",
+                            fontWeight: 500,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}>
+                            {update.projectName}
+                          </Text>
+                        </>
+                      )}
+                      {update.hoursWorked > 0 && (
+                        <div style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "2px 8px",
+                          background: "#ecfdf5",
+                          color: "#047857",
+                          borderRadius: 999,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          border: "1px solid #a7f3d0",
+                          marginLeft: 4,
+                          flexShrink: 0,
+                        }}>
+                          <Clock size={10} strokeWidth={2.5} />
+                          {formatHours(update.hoursWorked)}
+                        </div>
+                      )}
+                    </div>
                     {projectUpdates.length > 1 && (
                       <Button
                         type="text"
                         danger
                         size="small"
-                        icon={<Trash2 size={14} />}
+                        icon={<Trash2 size={13} />}
                         onClick={() => handleRemoveProject(projectIndex)}
-                        style={{ display: "flex", alignItems: "center", gap: 4 }}
+                        style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}
                       >
                         Remove
                       </Button>
                     )}
                   </div>
 
-                  <div style={{ padding: 20 }}>
-                    <Row gutter={24}>
+                  <div style={{ padding: 16 }}>
+                    <Row gutter={14}>
                       <Col span={10}>
                         <Form.Item
                           label="Project & Client"
                           required
-                          style={{ marginBottom: 16 }}
+                          style={{ marginBottom: 14 }}
                         >
                           <Select
                             placeholder="Search and select project"
@@ -1042,8 +1147,8 @@ function SubmitDailyUpdateContent() {
                         </Form.Item>
                       </Col>
                       <Col span={14}>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px", gap: 12 }}>
-                          <Form.Item label="Start Time" required style={{ marginBottom: 16 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 96px", gap: 10 }}>
+                          <Form.Item label="Start Time" required style={{ marginBottom: 14 }}>
                             <DatePicker
                               showTime
                               format="DD-MM-YYYY HH:mm"
@@ -1063,7 +1168,7 @@ function SubmitDailyUpdateContent() {
                               suffixIcon={<Clock size={14} />}
                             />
                           </Form.Item>
-                          <Form.Item label="End Time" required style={{ marginBottom: 16 }}>
+                          <Form.Item label="End Time" required style={{ marginBottom: 14 }}>
                             <DatePicker
                               showTime
                               format="DD-MM-YYYY HH:mm"
@@ -1082,20 +1187,21 @@ function SubmitDailyUpdateContent() {
                               suffixIcon={<Clock size={14} />}
                             />
                           </Form.Item>
-                          <Form.Item label="Total" style={{ marginBottom: 16 }}>
+                          <Form.Item label="Total" style={{ marginBottom: 14 }}>
                             <div style={{
                               height: 32,
-                              background: "var(--bg-secondary)",
+                              background: "var(--bg-slate-50)",
                               borderRadius: 6,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
                               border: "1px solid var(--border-slate-200)",
-                              fontWeight: 600,
-                              color: "var(--text-slate-900)",
-                              fontSize: 13
+                              fontWeight: 700,
+                              color: update.hoursWorked > 0 ? "#047857" : "var(--text-slate-400)",
+                              fontSize: 13,
+                              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                             }}>
-                              {update.hoursWorked > 0 ? formatHours(update.hoursWorked) : "0h 0m"}
+                              {update.hoursWorked > 0 ? formatHours(update.hoursWorked) : "—"}
                             </div>
                           </Form.Item>
                         </div>
@@ -1104,42 +1210,60 @@ function SubmitDailyUpdateContent() {
 
                     {/* Tasks Content Area */}
                     <div style={{
-                      marginTop: 8,
-                      padding: 16,
-                      background: "var(--bg-secondary)",
-                      borderRadius: 12,
+                      marginTop: 4,
+                      padding: 14,
+                      background: "var(--bg-slate-50)",
+                      borderRadius: 10,
                       border: "1px solid var(--border-slate-200)",
-                      borderLeft: "4px solid var(--text-sky-500)"
                     }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <CheckCircle2 size={14} color="var(--text-green-500)" />
-                          <Text strong style={{ fontSize: 13, color: "var(--text-slate-600)" }}>Tasks & Deliverables</Text>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <ListChecks size={14} color="var(--text-slate-600)" />
+                          <Text style={{
+                            fontSize: 11,
+                            color: "var(--text-slate-600)",
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5,
+                          }}>
+                            Tasks &amp; Deliverables · {update.tasks.length}
+                          </Text>
                         </div>
                         <Button
-                          type="link"
                           size="small"
-                          icon={<Plus size={14} />}
+                          icon={<Plus size={12} />}
                           onClick={() => handleAddTask(projectIndex)}
-                          style={{ padding: 0, height: "auto", fontWeight: 600 }}
+                          style={{
+                            height: 26,
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: 600,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                            border: "1px solid var(--border-slate-200)",
+                            background: "var(--bg-pure-white)",
+                            color: "var(--text-slate-700)",
+                          }}
                         >
                           Add Task
                         </Button>
                       </div>
 
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         {update.tasks.map((task, taskIndex) => (
                           <div
                             key={taskIndex}
+                            className="dud-task-row"
                             style={{
                               display: "grid",
-                              gridTemplateColumns: "140px 1fr 180px 32px",
-                              gap: 12,
-                              alignItems: "flex-start",
+                              gridTemplateColumns: "112px 1fr 170px 32px",
+                              gap: 8,
+                              alignItems: "stretch",
                               background: "var(--bg-pure-white)",
-                              padding: 10,
-                              borderRadius: 10,
-                              border: "1px solid var(--border-slate-200)"
+                              padding: 8,
+                              borderRadius: 8,
+                              border: "1px solid var(--border-slate-200)",
                             }}
                           >
                             <Select
@@ -1148,7 +1272,7 @@ function SubmitDailyUpdateContent() {
                               onChange={(val) => handleTaskTypeChange(projectIndex, taskIndex, val as any)}
                               options={[
                                 { label: "Ticket", value: "ticket" },
-                                { label: "Manual", value: "manual" }
+                                { label: "Manual", value: "manual" },
                               ]}
                               style={{ width: "100%" }}
                             />
@@ -1175,7 +1299,7 @@ function SubmitDailyUpdateContent() {
                                 autoSize={{ minRows: 1, maxRows: 3 }}
                                 value={task.description || ""}
                                 onChange={(e) => handleTaskDescriptionChange(projectIndex, taskIndex, e.target.value)}
-                                style={{ padding: "4px 11px" }}
+                                style={{ padding: "4px 10px", fontSize: 13 }}
                               />
                             )}
 
@@ -1203,92 +1327,118 @@ function SubmitDailyUpdateContent() {
                     </div>
 
                     {/* Blockers & Notes Grid */}
-                    <Row gutter={16} style={{ marginTop: 20 }}>
+                    <Row gutter={12} style={{ marginTop: 14 }}>
                       <Col span={12}>
                         <Form.Item
-                          label={<span style={{ display: "flex", alignItems: "center", gap: 6 }}><AlertTriangle size={14} color="#f59e0b" /> Blockers</span>}
+                          label={
+                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <AlertTriangle size={12} color="#f59e0b" />
+                              Blockers
+                            </span>
+                          }
                           style={{ marginBottom: 0 }}
                         >
                           <TextArea
                             rows={2}
-                            placeholder="Any blockers or dependencies..."
+                            placeholder="Any blockers or dependencies…"
                             value={update.blockers}
                             onChange={(e) => handleBlockersChange(projectIndex, e.target.value)}
-                            style={{ borderRadius: 8 }}
+                            style={{ borderRadius: 8, fontSize: 13 }}
                           />
                         </Form.Item>
                       </Col>
                       <Col span={12}>
                         <Form.Item
-                          label={<span style={{ display: "flex", alignItems: "center", gap: 6 }}><MessageSquare size={14} color="var(--text-slate-600)" />  Comments</span>}
+                          label={
+                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <MessageSquare size={12} color="var(--text-slate-600)" />
+                              Comments
+                            </span>
+                          }
                           style={{ marginBottom: 0 }}
                         >
                           <TextArea
                             rows={2}
-                            placeholder="Project specific notes..."
+                            placeholder="Project specific notes…"
                             value={update.notes}
                             onChange={(e) => handleNotesChange(projectIndex, e.target.value)}
-                            style={{ borderRadius: 8 }}
+                            style={{ borderRadius: 8, fontSize: 13 }}
                           />
                         </Form.Item>
                       </Col>
                     </Row>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
 
-            {/* General Section */}
-            <div style={{ marginTop: 32 }}>
-              <div style={{
-                padding: "24px 32px",
-                background: "var(--bg-pure-white)",
-                borderRadius: 20,
-                border: "1px solid var(--border-slate-200)",
-                boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                  <MessageSquare size={18} color="var(--text-slate-600)" />
-                  <Text strong style={{ fontSize: 16, color: "var(--text-slate-900)", margin: 0 }}>
-                    General Comments
-                  </Text>
-                </div>
-                <Form.Item name="generalNotes" style={{ marginBottom: 0 }}>
-                  <TextArea
-                    rows={4}
-                    placeholder="Provide any overall updates, wins, or concerns for the day..."
-                    style={{ borderRadius: 12, border: "1px solid var(--border-slate-200)", background: 'var(--bg-secondary)', padding: 16 }}
-                  />
-                </Form.Item>
+            {/* General Comments Section */}
+            <div className="dud-card" style={{ marginTop: 22, padding: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <MessageSquare size={15} color="var(--text-slate-600)" />
+                <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)" }}>
+                  General Comments
+                </Text>
+                <Text style={{ fontSize: 12, color: "var(--text-slate-400)", fontWeight: 500 }}>
+                  · Optional
+                </Text>
               </div>
+              <Form.Item name="generalNotes" style={{ marginBottom: 0 }}>
+                <TextArea
+                  rows={4}
+                  placeholder="Provide any overall updates, wins, or concerns for the day…"
+                  style={{
+                    borderRadius: 8,
+                    border: "1px solid var(--border-slate-200)",
+                    background: "var(--bg-pure-white)",
+                    padding: 12,
+                    fontSize: 13,
+                  }}
+                />
+              </Form.Item>
             </div>
 
-            {/* Bottom Info Bar */}
+            {/* Daily Total Summary */}
             <div style={{
-              marginTop: 24,
-              padding: "12px 20px",
-              background: "var(--bg-blue-50)",
+              marginTop: 18,
+              padding: "14px 18px",
+              background: "var(--bg-pure-white)",
               borderRadius: 12,
-              border: "1px solid var(--border-blue-200)",
+              border: "1px solid var(--border-slate-200)",
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center"
+              alignItems: "center",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ background: "#3b82f6", padding: 6, borderRadius: 8, color: "white" }}>
-                  <Clock size={16} />
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  background: "#eff6ff",
+                  color: "#1d4ed8",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}>
+                  <Clock size={18} strokeWidth={2.2} />
                 </div>
                 <div>
-                  <Text strong style={{ color: "var(--text-blue-700)", fontSize: 13 }}>Final Review</Text>
-                  <Text type="secondary" style={{ display: "block", fontSize: 11, color: "var(--text-slate-400)" }}>
-                    Total logged time for all selected projects today
+                  <Text strong style={{ display: "block", color: "var(--text-slate-900)", fontSize: 13, lineHeight: 1.3 }}>
+                    Daily Total
+                  </Text>
+                  <Text style={{ display: "block", fontSize: 11, color: "var(--text-slate-400)", lineHeight: 1.3 }}>
+                    Time logged across all project entries
                   </Text>
                 </div>
               </div>
-              <div style={{ textAlign: "right" }}>
-                <Text style={{ fontSize: 12, color: "var(--text-blue-700)", fontWeight: 500 }}>Daily Total:</Text>
-                <Text strong style={{ fontSize: 20, color: "#2563eb", marginLeft: 8 }}>{formatHours(totalHours)}</Text>
-              </div>
+              <Text strong style={{
+                fontSize: 22,
+                color: "var(--text-slate-900)",
+                letterSpacing: -0.4,
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              }}>
+                {formatHours(totalHours)}
+              </Text>
             </div>
 
             {/* Extra Spacing Bottom */}

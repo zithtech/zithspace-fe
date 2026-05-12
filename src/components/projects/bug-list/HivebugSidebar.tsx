@@ -11,15 +11,20 @@ import {
   ChevronRight,
   FileText,
   FileCheck2,
-  MoreHorizontal,
+  Archive,
+  ChevronDown,
+  Briefcase,
   LayoutGrid,
   Library,
-  CheckCircle2,
+  MoreHorizontal,
   Star,
   Trash2,
-  Archive,
+  CheckCircle2,
 } from "lucide-react";
-import { Dropdown, Skeleton, Tooltip } from "antd";
+import { Dropdown, Skeleton, Tooltip, Select } from "antd";
+import { 
+  useAllProjects 
+} from "@/hooks/useGlobalData";
 import {
   useBugFolders,
   useBugSheets,
@@ -58,6 +63,10 @@ interface HivebugSidebarProps {
   onEditFolder: (f: BugFolder) => void;
   onCreateSheet: (folderId: string) => void;
   onEditSheet: (s: BugSheet) => void;
+  selectedProjectId: string | null;
+  onProjectChange: (id: string | null) => void;
+  width?: number;
+  onResizerMouseDown?: (e: React.MouseEvent) => void;
 }
 
 export default function HivebugSidebar({
@@ -70,13 +79,13 @@ export default function HivebugSidebar({
   onEditFolder,
   onCreateSheet,
   onEditSheet,
+  selectedProjectId,
+  onProjectChange,
+  width,
+  onResizerMouseDown,
 }: HivebugSidebarProps) {
-  const { data: folders, isLoading: foldersLoading } = useBugFolders();
-  const stats = useBugStats({
-    folderId: selectedFolderId || undefined,
-    sheetId: selectedSheetId || undefined,
-    scope,
-  });
+  const { data: folders, isLoading: foldersLoading } = useBugFolders(selectedProjectId || undefined);
+  const stats = useBugStats({ projectId: selectedProjectId || undefined });
 
   const updateSheet = useUpdateBugSheet();
 
@@ -114,125 +123,127 @@ export default function HivebugSidebar({
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <aside className="hb-sidebar">
-        <div className="hb-brand">
-          <div className="hb-brand-icon">
-            <Bug size={18} />
+      <div className="hb-sidebar-wrap" style={{ width }}>
+        <aside className="hb-sidebar">
+          <div className="hb-brand">
+            <div className="hb-brand-icon">
+              <Bug size={18} />
+            </div>
+            <div className="hb-brand-text">
+              <div className="hb-brand-name">Hivebug</div>
+            </div>
           </div>
-          <div className="hb-brand-text">
-            <div className="hb-brand-name">Hivebug</div>
-            <div className="hb-brand-sub">QA WORKSPACE</div>
-          </div>
-        </div>
 
-        <div className="hb-section">
-          <div className="hb-section-title">
-            <span className="hb-section-title-text">
-              <LayoutGrid size={11} className="hb-section-title-icon" />
-              <span>WORKSPACE</span>
-            </span>
-          </div>
-          <button
-            className={`hb-row ${
-              scope === "all" && !selectedFolderId && !selectedSheetId ? "active" : ""
-            }`}
-            onClick={() => {
-              onScopeChange("all");
-              onSelect(null, null);
-            }}
-          >
-            <Inbox size={15} />
-            <span className="hb-row-label">All Bugs</span>
-            <span className="hb-row-count">{totalAll}</span>
-          </button>
-          <button
-            className={`hb-row ${scope === "mine" ? "active" : ""}`}
-            onClick={() => {
-              onScopeChange("mine");
-              onSelect(null, null);
-            }}
-          >
-            <User size={15} />
-            <span className="hb-row-label">My Bugs</span>
-            <span className="hb-row-count">
-              {stats.data && scope === "mine" ? stats.data.total : ""}
-            </span>
-          </button>
-          <button
-            className={`hb-row ${scope === "trash" ? "active" : ""}`}
-            onClick={() => {
-              onScopeChange("trash");
-              onSelect(null, null);
-            }}
-          >
-            <Trash2 size={15} />
-            <span className="hb-row-label">Trash</span>
-            <span className="hb-row-count">
-              {stats.data && scope === "trash" ? stats.data.total : ""}
-            </span>
-          </button>
-          <button
-            className={`hb-row ${scope === "archived" ? "active" : ""}`}
-            onClick={() => {
-              onScopeChange("archived");
-              onSelect(null, null);
-            }}
-          >
-            <Archive size={15} />
-            <span className="hb-row-label">Archived</span>
-            <span className="hb-row-count">
-              {stats.data && scope === "archived" ? stats.data.total : ""}
-            </span>
-          </button>
-        </div>
-
-        <div className="hb-section hb-section-grow">
-          <div className="hb-section-title">
-            <span className="hb-section-title-text">
-              <Library size={11} className="hb-section-title-icon" />
-              <span>COLLECTIONS</span>
-            </span>
-            <button className="hb-icon-btn" onClick={onCreateFolder} aria-label="New folder">
-              <Plus size={13} />
+          <div className="hb-section">
+            <div className="hb-section-title">
+              <span className="hb-section-title-text">
+                <LayoutGrid size={11} className="hb-section-title-icon" />
+                <span>WORKSPACE</span>
+              </span>
+            </div>
+            <button
+              className={`hb-row ${
+                scope === "all" && !selectedFolderId && !selectedSheetId ? "active" : ""
+              }`}
+              onClick={() => {
+                onScopeChange("all");
+                onSelect(null, null);
+              }}
+            >
+              <Inbox size={15} />
+              <span className="hb-row-label">All Bugs</span>
+              <span className="hb-row-count">{totalAll}</span>
+            </button>
+            <button
+              className={`hb-row ${scope === "mine" ? "active" : ""}`}
+              onClick={() => {
+                onScopeChange("mine");
+                onSelect(null, null);
+              }}
+            >
+              <User size={15} />
+              <span className="hb-row-label">My Bugs</span>
+              <span className="hb-row-count">
+                {stats.data?.mineTotal ?? 0}
+              </span>
+            </button>
+            <button
+              className={`hb-row ${scope === "trash" ? "active" : ""}`}
+              onClick={() => {
+                onScopeChange("trash");
+                onSelect(null, null);
+              }}
+            >
+              <Trash2 size={15} />
+              <span className="hb-row-label">Trash</span>
+              <span className="hb-row-count">
+                {stats.data?.trashTotal ?? 0}
+              </span>
+            </button>
+            <button
+              className={`hb-row ${scope === "archived" ? "active" : ""}`}
+              onClick={() => {
+                onScopeChange("archived");
+                onSelect(null, null);
+              }}
+            >
+              <Archive size={15} />
+              <span className="hb-row-label">Archived</span>
+              <span className="hb-row-count">
+                {stats.data?.archivedTotal ?? 0}
+              </span>
             </button>
           </div>
-          <div className="hb-collections">
-            {foldersLoading ? (
-              <div style={{ padding: 12 }}>
-                <Skeleton active paragraph={{ rows: 4 }} title={false} />
-              </div>
-            ) : !folders || folders.length === 0 ? (
-              <button className="hb-row hb-row-muted" onClick={onCreateFolder}>
+
+          <div className="hb-section hb-section-grow">
+            <div className="hb-section-title">
+              <span className="hb-section-title-text">
+                <Library size={11} className="hb-section-title-icon" />
+                <span>COLLECTIONS</span>
+              </span>
+              <button className="hb-icon-btn" onClick={onCreateFolder} aria-label="New folder">
                 <Plus size={13} />
-                <span className="hb-row-label">New collection</span>
               </button>
-            ) : (
-              folders.map((folder) => (
-                <FolderNode
-                  key={folder.id}
-                  folder={folder}
-                  isOpen={!!expanded[folder.id]}
-                  isFolderSelected={
-                    selectedFolderId === folder.id && !selectedSheetId
-                  }
-                  selectedSheetId={
-                    selectedFolderId === folder.id ? selectedSheetId : null
-                  }
-                  onToggle={() => toggle(folder.id)}
-                  onSelectFolder={() => {
-                    onSelect(folder.id, null);
-                    if (!expanded[folder.id]) toggle(folder.id);
-                  }}
-                  onSelectSheet={(sid) => onSelect(folder.id, sid)}
-                  onEdit={() => onEditFolder(folder)}
-                  onAddSheet={() => onCreateSheet(folder.id)}
-                  onEditSheet={onEditSheet}
-                />
-              ))
-            )}
+            </div>
+            <div className="hb-collections">
+              {foldersLoading ? (
+                <div style={{ padding: 12 }}>
+                  <Skeleton active paragraph={{ rows: 4 }} title={false} />
+                </div>
+              ) : !folders || folders.length === 0 ? (
+                <button className="hb-row hb-row-muted" onClick={onCreateFolder}>
+                  <Plus size={13} />
+                  <span className="hb-row-label">New collection</span>
+                </button>
+              ) : (
+                folders.map((folder) => (
+                  <FolderNode
+                    key={folder.id}
+                    folder={folder}
+                    isOpen={!!expanded[folder.id]}
+                    isFolderSelected={
+                      selectedFolderId === folder.id && !selectedSheetId
+                    }
+                    selectedSheetId={
+                      selectedFolderId === folder.id ? selectedSheetId : null
+                    }
+                    onToggle={() => toggle(folder.id)}
+                    onSelectFolder={() => {
+                      onSelect(folder.id, null);
+                      if (!expanded[folder.id]) toggle(folder.id);
+                    }}
+                    onSelectSheet={(sid) => onSelect(folder.id, sid)}
+                    onEdit={() => onEditFolder(folder)}
+                    onAddSheet={() => onCreateSheet(folder.id)}
+                    onEditSheet={onEditSheet}
+                  />
+                ))
+              )}
+            </div>
           </div>
-        </div>
-      </aside>
+        </aside>
+        <div className="hb-resizer" onMouseDown={onResizerMouseDown} />
+      </div>
     </DndContext>
   );
 }

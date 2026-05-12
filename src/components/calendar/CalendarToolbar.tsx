@@ -28,7 +28,8 @@ export default function CalendarToolbar({
     providerIcon,
     providerColor,
     eventCount = 0,
-}: CalendarToolbarProps) {
+    canCreate = true,
+}: CalendarToolbarProps & { canCreate?: boolean }) {
     const views: Array<'month' | 'week' | 'day'> = ['day', 'week', 'month'];
 
     return (
@@ -117,22 +118,24 @@ export default function CalendarToolbar({
             {/* Right: View switcher + CTA */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <SegmentedSwitcher value={view} onChange={onViewChange} options={views} />
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={onCreateEvent}
-                    style={{
-                        height: 36,
-                        padding: '0 16px',
-                        borderRadius: 8,
-                        background: 'var(--cal-brand)',
-                        borderColor: 'var(--cal-brand)',
-                        boxShadow: '0 1px 2px rgba(79, 70, 229, 0.25), 0 4px 10px -3px rgba(79, 70, 229, 0.4)',
-                        fontWeight: 600,
-                    }}
-                >
-                    New event
-                </Button>
+                {canCreate && (
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={onCreateEvent}
+                        style={{
+                            height: 36,
+                            padding: '0 16px',
+                            borderRadius: 8,
+                            background: 'var(--cal-brand)',
+                            borderColor: 'var(--cal-brand)',
+                            boxShadow: '0 1px 2px rgba(79, 70, 229, 0.25), 0 4px 10px -3px rgba(79, 70, 229, 0.4)',
+                            fontWeight: 600,
+                        }}
+                    >
+                        New event
+                    </Button>
+                )}
             </div>
         </div>
     );

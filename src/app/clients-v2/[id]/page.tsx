@@ -55,6 +55,7 @@ import { useTenant } from "@/context/TenantContext";
 import { api } from "@/lib/axios";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
+import { usePermission } from "@/hooks/usePermission";
 
 import ContactsTab from "./Tabs/ContactsTab";
 import AllocationsTab from "./Tabs/AllocationsTab";
@@ -407,6 +408,7 @@ export default function ClientV2DetailsPage() {
   const router = useRouter();
   const params = useParams();
   const { tenantId } = useTenant();
+  const { canUpdateClient } = usePermission();
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notify, contextHolder] = notification.useNotification();
@@ -618,13 +620,15 @@ export default function ClientV2DetailsPage() {
               <span className="cd-crumb-current">{client.companyName}</span>
             </div>
             <div className="cd-cmdbar-actions">
-              <Button
-                icon={<Settings2 size={15} />}
-                className="cd-secondary-btn"
-                onClick={() => router.push(`/clients-v2/create?id=${client.id}`)}
-              >
-                Edit profile
-              </Button>
+              {canUpdateClient && (
+                <Button
+                  icon={<Settings2 size={15} />}
+                  className="cd-secondary-btn"
+                  onClick={() => router.push(`/clients-v2/create?id=${client.id}`)}
+                >
+                  Edit profile
+                </Button>
+              )}
             </div>
           </div>
 
@@ -805,7 +809,7 @@ export default function ClientV2DetailsPage() {
                           icon={Building2}
                           accent="#3b82f6"
                           editOn={editModes.basic}
-                          onToggleEdit={(v) => handleEditModeChange("basic", v)}
+                          onToggleEdit={canUpdateClient ? (v) => handleEditModeChange("basic", v) : undefined}
                         >
                           <div className="cd-grid">
                             <Field label="Legal Entity" icon={Building2}>
@@ -899,7 +903,7 @@ export default function ClientV2DetailsPage() {
                           icon={Activity}
                           accent="#ef4444"
                           editOn={editModes.operational}
-                          onToggleEdit={(v) => handleEditModeChange("operational", v)}
+                          onToggleEdit={canUpdateClient ? (v) => handleEditModeChange("operational", v) : undefined}
                         >
                           <div className="cd-grid">
                             <Field label="Account Status" icon={CheckCircle2}>
@@ -996,7 +1000,7 @@ export default function ClientV2DetailsPage() {
                           icon={ShieldCheck}
                           accent="#10b981"
                           editOn={editModes.finance}
-                          onToggleEdit={(v) => handleEditModeChange("finance", v)}
+                          onToggleEdit={canUpdateClient ? (v) => handleEditModeChange("finance", v) : undefined}
                         >
                           <div className="cd-grid">
                             <Field label="GST / VAT / Tax ID" icon={FileText}>
@@ -1077,7 +1081,7 @@ export default function ClientV2DetailsPage() {
                           icon={Landmark}
                           accent="#8b5cf6"
                           editOn={editModes.banking}
-                          onToggleEdit={(v) => handleEditModeChange("banking", v)}
+                          onToggleEdit={canUpdateClient ? (v) => handleEditModeChange("banking", v) : undefined}
                         >
                           <div className="cd-grid">
                             <Field label="Bank Name" icon={Landmark}>

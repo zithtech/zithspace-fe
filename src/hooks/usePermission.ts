@@ -150,6 +150,7 @@ export const usePermission = () => {
     // ─── Settings ───────────────────────────────────────────────────
     canReadSettings:   hasPermission(Permissions.SETTINGS_READ),
     canUpdateSettings: hasPermission(Permissions.SETTINGS_UPDATE),
+    canDeleteSettings: hasPermission(Permissions.SETTINGS_DELETE),
     canManageSettings: hasPermission(Permissions.SETTINGS_MANAGE),
 
     // ─── Roles (RBAC) ───────────────────────────────────────────────
@@ -382,8 +383,17 @@ export const usePermission = () => {
     canDeleteSkills: hasPermission(Permissions.SKILLS_DELETE),
     canManageSkills: hasPermission(Permissions.SKILLS_MANAGE),
 
-    canReadNotification: hasPermission(Permissions.NOTIFICATION_READ),
-    canReadBookmark:     hasPermission(Permissions.BOOKMARK_READ),
+    // ─── Notifications ──────────────────────────────────────────────
+    canCreateNotification: hasPermission(Permissions.NOTIFICATION_CREATE),
+    canReadNotification:   hasPermission(Permissions.NOTIFICATION_READ),
+    canUpdateNotification: hasPermission(Permissions.NOTIFICATION_UPDATE),
+    canDeleteNotification: hasPermission(Permissions.NOTIFICATION_DELETE),
+
+    // ─── Bookmarks ──────────────────────────────────────────────────
+    canCreateBookmark: hasPermission(Permissions.BOOKMARK_CREATE),
+    canReadBookmark:   hasPermission(Permissions.BOOKMARK_READ),
+    canUpdateBookmark: hasPermission(Permissions.BOOKMARK_UPDATE),
+    canDeleteBookmark: hasPermission(Permissions.BOOKMARK_DELETE),
 
     canCreateTimeTracking: hasPermission(Permissions.TIME_TRACKING_CREATE),
     canReadTimeTracking:   hasPermission(Permissions.TIME_TRACKING_READ),

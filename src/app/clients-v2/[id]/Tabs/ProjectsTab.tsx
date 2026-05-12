@@ -41,6 +41,7 @@ import {
   Hash,
 } from "lucide-react";
 import { api } from "@/lib/axios";
+import { usePermission } from "@/hooks/usePermission";
 import dayjs from "dayjs";
 
 const currencyOptions = [
@@ -60,6 +61,7 @@ interface ProjectsTabProps {
 }
 
 export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
+  const { canUpdateClient } = usePermission();
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
@@ -310,9 +312,11 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           <Tooltip title="View Project Details">
             <Button type="text" className="premium-action-btn" icon={<Eye size={16} />} style={{ color: "var(--text-slate-400)" }} />
           </Tooltip>
-          <Tooltip title="Edit Configuration">
-            <Button type="text" className="premium-action-btn" icon={<Edit2 size={16} />} style={{ color: "var(--text-slate-400)" }} onClick={() => openEditModal(record)} />
-          </Tooltip>
+          {canUpdateClient && (
+            <Tooltip title="Edit Configuration">
+              <Button type="text" className="premium-action-btn" icon={<Edit2 size={16} />} style={{ color: "var(--text-slate-400)" }} onClick={() => openEditModal(record)} />
+            </Tooltip>
+          )}
         </Space>
       ),
     },
@@ -346,15 +350,17 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ borderRadius: 10, width: 300, height: 40 }}
             />
-            <Button
-              type="primary"
-              size="large"
-              icon={<Plus size={18} />}
-              onClick={() => setIsModalVisible(true)}
-              style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
-            >
-              Initiate Project
-            </Button>
+            {canUpdateClient && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<Plus size={18} />}
+                onClick={() => setIsModalVisible(true)}
+                style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
+              >
+                Initiate Project
+              </Button>
+            )}
           </Space>
         </div>
 

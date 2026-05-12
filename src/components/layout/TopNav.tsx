@@ -50,6 +50,7 @@ import { Permissions } from '@/types/permissions';
 import { ModuleType, NAVIGATION_CONFIG, NAV_MOBILE_BREAKPOINT } from './navigationConfig';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import { useIsBreakpoint } from '@/hooks/use-is-breakpoint';
 import { TimeTrackerPopover } from '@/components/time-tracking/TimeTrackerPopover';
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
@@ -77,6 +78,17 @@ export default function TopNav({
 }: TopNavProps) {
   const router = useRouter();
   const { hasPermission, hasAnyPermission } = useAuth();
+  const { 
+    canReadMail, 
+    canReadCalendar, 
+    canReadSkills, 
+    canReadChat, 
+    canReadNotification, 
+    canReadBookmark,
+    canCreateBookmark,
+    canDeleteBookmark,
+    canReadTimeTracking
+  } = usePermission();
   const { token } = theme.useToken();
   const { theme: appTheme } = useTheme();
   const isDark = appTheme === "dark";
@@ -414,17 +426,19 @@ export default function TopNav({
               </div>
 
               {hoveredShortcutId === item.id ? (
-                <Tooltip title="Delete Bookmark">
-                  <Button
-                    type="text"
-                    shape="circle"
-                    icon={
-                      <Trash2 size={14} strokeWidth={1.75} color="#8c8c8c" />
-                    }
-                    size="small"
-                    onClick={(e) => handleDeleteBookmark(item.id, e)}
-                  />
-                </Tooltip>
+                canDeleteBookmark && (
+                  <Tooltip title="Delete Bookmark">
+                    <Button
+                      type="text"
+                      shape="circle"
+                      icon={
+                        <Trash2 size={14} strokeWidth={1.75} color="#8c8c8c" />
+                      }
+                      size="small"
+                      onClick={(e) => handleDeleteBookmark(item.id, e)}
+                    />
+                  </Tooltip>
+                )
               ) : (
                 <ChevronRight size={12} strokeWidth={2} color="#bfbfbf" />
               )}
@@ -479,18 +493,20 @@ export default function TopNav({
             </Space>
           </Space>
         ) : (
-          <Button
-            type="text"
-            icon={<Plus size={14} strokeWidth={2} />}
-            onClick={() => setIsAddMode(true)}
-            style={{
-              width: "100%",
-              textAlign: "left",
-              padding: "4px 0",
-            }}
-          >
-            Add Bookmark
-          </Button>
+          canCreateBookmark && (
+            <Button
+              type="text"
+              icon={<Plus size={14} strokeWidth={2} />}
+              onClick={() => setIsAddMode(true)}
+              style={{
+                width: "100%",
+                textAlign: "left",
+                padding: "4px 0",
+              }}
+            >
+              Add Bookmark
+            </Button>
+          )
         )}
       </div>
     </div>
@@ -623,10 +639,10 @@ export default function TopNav({
         {!isCustomBreakpoint ? (
           <>
             <ThemeToggle />
-            {hasPermission(Permissions.TIME_TRACKING_READ) && <TimeTrackerPopover />}
+            {canReadTimeTracking && <TimeTrackerPopover />}
 
 
-            {hasPermission(Permissions.MAIL_READ) && (
+            {canReadMail && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -646,7 +662,7 @@ export default function TopNav({
                 />
               </Tooltip>
             )}
-            {hasPermission(Permissions.CALENDAR_READ) && (
+            {canReadCalendar && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -666,7 +682,7 @@ export default function TopNav({
                 />
               </Tooltip>
             )}
-            {hasPermission(Permissions.SKILLS_READ) && (
+            {canReadSkills && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -687,7 +703,7 @@ export default function TopNav({
               </Tooltip>
             )}
 
-            {hasPermission(Permissions.CHAT_READ) && (
+            {canReadChat && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -707,7 +723,7 @@ export default function TopNav({
                 />
               </Tooltip>
             )}
-            {hasPermission(Permissions.NOTIFICATION_READ) && (
+            {canReadNotification && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -730,7 +746,7 @@ export default function TopNav({
                 </div>
               </Tooltip>
             )}
-            {hasPermission(Permissions.BOOKMARK_READ) && (
+            {canReadBookmark && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -775,7 +791,7 @@ export default function TopNav({
         ) : (
           <Space size={isSmallMobile ? 4 : 8}>
             <ThemeToggle />
-            {hasPermission(Permissions.NOTIFICATION_READ) && (
+            {canReadNotification && (
               <div className={`novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
                 <Inbox
                   applicationIdentifier="67g_5lVLFWvd"

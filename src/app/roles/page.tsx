@@ -102,7 +102,7 @@ const PERMISSION_MODULES = [
   },
   {
     title: "Work",
-    resources: ["project", "ticket", "timesheet", "daily_update", "document", "proposal", "squad", "escalation", "lead", "pipeline"]
+    resources: ["project", "ticket", "timesheet", "daily_update", "document", "squad", "escalation", "lead", "pipeline"]
   },
   {
     title: "HRMS",
@@ -201,13 +201,22 @@ export default function RolesPage() {
     try {
       const { grouped } = await RBACService.listPermissions();
       
-      // Merge 'bug' permissions into 'ticket' if they exist separately
+      // Merge 'bug' permissions into 'ticket'
       if (grouped.bug && grouped.ticket) {
         grouped.ticket = [...grouped.ticket, ...grouped.bug];
         delete grouped.bug;
       } else if (grouped.bug && !grouped.ticket) {
         grouped.ticket = grouped.bug;
         delete grouped.bug;
+      }
+
+      // Merge 'proposal' permissions into 'lead'
+      if (grouped.proposal && grouped.lead) {
+        grouped.lead = [...grouped.lead, ...grouped.proposal];
+        delete grouped.proposal;
+      } else if (grouped.proposal && !grouped.lead) {
+        grouped.lead = grouped.proposal;
+        delete grouped.proposal;
       }
       
       setAllPermissions(grouped);
@@ -1096,8 +1105,37 @@ export default function RolesPage() {
                                               style={{ pointerEvents: 'none' }}
                                             />
                                             <div style={{ flex: 1, overflow: 'hidden' }}>
-                                              <Text strong style={{ fontSize: 13, display: 'block', color: 'var(--text-slate-700)' }}>
-                                                {perm.action.charAt(0).toUpperCase() + perm.action.slice(1)}
+                                              <Text strong style={{ fontSize: 13, display: 'block', color: selectedPermIds.includes(perm.id) ? 'var(--premium-blue)' : 'var(--text-slate-700)' }}>
+                                                {(() => {
+                                                  const name = perm.name;
+                                                  const action = perm.action;
+                                                  
+                                                  // If it's a bug permission, make it explicit
+                                                  if (name.startsWith('bug.')) {
+                                                    if (action.includes('trash.')) {
+                                                      const subAction = action.split('.')[1];
+                                                      return `Bug ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
+                                                    }
+                                                    if (action.includes('archive.')) {
+                                                      const subAction = action.split('.')[1];
+                                                      return `Bug Archive ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
+                                                    }
+                                                    return `Bug ${action.charAt(0).toUpperCase() + action.slice(1)}`;
+                                                  }
+
+                                                  // If it's a proposal permission merged into lead
+                                                  if (name.startsWith('proposal.')) {
+                                                    return `Proposal ${action.charAt(0).toUpperCase() + action.slice(1)}`;
+                                                  }
+
+
+
+                                                  // Default formatting
+                                                  if (action.includes('.')) {
+                                                    return action.split('.').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                                                  }
+                                                  return action.charAt(0).toUpperCase() + action.slice(1);
+                                                })()}
                                               </Text>
                                               {perm.description && (
                                                 <Text type="secondary" style={{ fontSize: 11, display: 'block' }} ellipsis>

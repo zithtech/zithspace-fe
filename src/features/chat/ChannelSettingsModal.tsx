@@ -7,6 +7,7 @@ import { channelService } from '@/services/channelService';
 import { userService, User } from '@/services/userService';
 import { useChatStore } from '@/store/chatStore';
 import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 
 const { Text, Title } = Typography;
 
@@ -19,6 +20,7 @@ interface ChannelSettingsModalProps {
 export default function ChannelSettingsModal({ open, onClose, channelId }: ChannelSettingsModalProps) {
     const { token } = theme.useToken();
     const { user } = useAuth();
+    const { canUpdateChat } = usePermission();
     const { channels } = useChatStore();
     const channel = channels.find(c => c.id === channelId);
 
@@ -78,8 +80,8 @@ export default function ChannelSettingsModal({ open, onClose, channelId }: Chann
         }
     };
 
-    const canAddMembers = channel?.type === 'CHANNEL' ||
-        channel?.members?.some(m => m.userId === user?.id && ['owner', 'admin'].includes(m.role));
+    const canAddMembers = (channel?.type === 'CHANNEL' ||
+        channel?.members?.some(m => m.userId === user?.id && ['owner', 'admin'].includes(m.role))) && canUpdateChat;
 
     return (
         <Modal

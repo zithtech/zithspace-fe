@@ -153,6 +153,7 @@ export const Permissions = {
   // Settings
   SETTINGS_READ:   'settings.read',
   SETTINGS_UPDATE: 'settings.update',
+  SETTINGS_DELETE: 'settings.delete',
   SETTINGS_MANAGE: 'settings.manage', // global system preferences and core branding
 
   // Roles (RBAC management)
@@ -378,8 +379,15 @@ export const Permissions = {
   SKILLS_DELETE:     'skills.delete',
   SKILLS_MANAGE:     'skills.manage', // competency matrix, training catalog, and certification tracking
 
-  NOTIFICATION_READ: 'notification.read',
-  BOOKMARK_READ:     'bookmark.read',
+  NOTIFICATION_CREATE: 'notification.create',
+  NOTIFICATION_READ:   'notification.read',
+  NOTIFICATION_UPDATE: 'notification.update',
+  NOTIFICATION_DELETE: 'notification.delete',
+
+  BOOKMARK_CREATE: 'bookmark.create',
+  BOOKMARK_READ:   'bookmark.read',
+  BOOKMARK_UPDATE: 'bookmark.update',
+  BOOKMARK_DELETE: 'bookmark.delete',
 
   // Time Tracking
   TIME_TRACKING_CREATE: 'time_tracking.create',

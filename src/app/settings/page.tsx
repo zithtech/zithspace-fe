@@ -129,7 +129,7 @@ export default function SettingsPage() {
       border: `1px solid ${token.colorBorderSecondary}`
     }
   };
-  const { canReadSettings, canUpdateSettings } = usePermission();
+  const { canReadSettings, canUpdateSettings, canDeleteSettings, canManageSettings, canReadMail, canUpdateMail } = usePermission();
   const router = useRouter();
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
@@ -141,9 +141,21 @@ export default function SettingsPage() {
     }
   }, [authLoading, canReadSettings, router]);
 
+
   // State management
   const [activeTab, setActiveTab] = useState('system');
   const [loading, setLoading] = useState(false);
+
+  const hasShownMailError = React.useRef(false);
+  useEffect(() => {
+    if (activeTab === 'mail' && !canReadMail && !hasShownMailError.current) {
+      messageApi.error("Access Denied: You don't have the required Mail permissions to view this configuration. Please contact your administrator.");
+      hasShownMailError.current = true;
+      setActiveTab('system');
+    } else if (activeTab !== 'mail') {
+      hasShownMailError.current = false;
+    }
+  }, [activeTab, canReadMail, messageApi, setActiveTab]);
 
   // Shift management state
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -757,7 +769,7 @@ export default function SettingsPage() {
     );
   }
 
-  if (!canReadSettings || !user || !['super_admin', 'admin'].includes(user.role)) {
+  if (!canReadSettings || !user) {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
@@ -848,6 +860,7 @@ export default function SettingsPage() {
                         }}
                         beforeUpload={() => false}
                         maxCount={1}
+                        disabled={!canManageSettings}
                       >
                         {fileList.length < 1 && (
                           <div style={{ color: 'var(--text-secondary)' }}>
@@ -867,7 +880,7 @@ export default function SettingsPage() {
                   </Form.Item>
 
                   <Form.Item style={{ marginBottom: 16 }}>
-                    {fileList.length > 0 && (
+                    {fileList.length > 0 && canManageSettings && (
                       <Button
                         block
                         type="dashed"
@@ -895,7 +908,7 @@ export default function SettingsPage() {
                       type="primary"
                       htmlType="submit"
                       loading={formLoading}
-                      disabled={!isSystemFormDirty}
+                      disabled={!isSystemFormDirty || !canManageSettings}
                       size="large"
                       block
                       style={{
@@ -973,9 +986,10 @@ export default function SettingsPage() {
                                       setIsCropperVisible(true);
                                     }}
                                     style={{ background: 'var(--bg-blue-50)', borderRadius: 8 }}
+                                    disabled={!canManageSettings}
                                   />
                                 </Tooltip>
-                                {tenantProfile?.settings?.logoUrl !== url && (
+                                {tenantProfile?.settings?.logoUrl !== url && canManageSettings && (
                                   <Button
                                     size="small"
                                     type="link"
@@ -986,21 +1000,23 @@ export default function SettingsPage() {
                                   </Button>
                                 )}
                               </Space>
-                              <Popconfirm
-                                title="Delete version?"
-                                onConfirm={() => handleDeleteVersion(url)}
-                                okText="Delete"
-                                cancelText="No"
-                                okButtonProps={{ danger: true, size: 'small' }}
-                              >
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  danger
-                                  icon={<DeleteOutlined style={{ fontSize: 13 }} />}
-                                  style={{ borderRadius: 8 }}
-                                />
-                              </Popconfirm>
+                              {canDeleteSettings && (
+                                <Popconfirm
+                                  title="Delete version?"
+                                  onConfirm={() => handleDeleteVersion(url)}
+                                  okText="Delete"
+                                  cancelText="No"
+                                  okButtonProps={{ danger: true, size: 'small' }}
+                                >
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    danger
+                                    icon={<DeleteOutlined style={{ fontSize: 13 }} />}
+                                    style={{ borderRadius: 8 }}
+                                  />
+                                </Popconfirm>
+                              )}
                             </div>
                           </Card>
                         </Col>
@@ -1070,19 +1086,21 @@ export default function SettingsPage() {
                   </Text>
                 </div>
               </Space>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={showAddLocationDrawer}
-                style={{
-                  borderRadius: 10,
-                  height: 42,
-                  fontWeight: 600,
-                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
-                }}
-              >
-                Add Location
-              </Button>
+              {canUpdateSettings && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={showAddLocationDrawer}
+                  style={{
+                    borderRadius: 10,
+                    height: 42,
+                    fontWeight: 600,
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+                  }}
+                >
+                  Add Location
+                </Button>
+              )}
             </div>
 
             <Row gutter={[24, 24]}>
@@ -1154,20 +1172,24 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <Space size={2} style={{ marginRight: 24 }}>
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<EditOutlined style={{ color: '#64748b' }} />}
-                          onClick={() => showEditLocationDrawer(loc)}
-                        />
-                        <Popconfirm
-                          title="Delete location?"
-                          onConfirm={() => handleDeleteLocation(loc.id)}
-                          okText="Yes"
-                          cancelText="No"
-                        >
-                          <Button type="text" size="small" icon={<DeleteOutlined style={{ color: '#ef4444' }} />} />
-                        </Popconfirm>
+                        {canUpdateSettings && (
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<EditOutlined style={{ color: '#64748b' }} />}
+                            onClick={() => showEditLocationDrawer(loc)}
+                          />
+                        )}
+                        {canDeleteSettings && (
+                          <Popconfirm
+                            title="Delete location?"
+                            onConfirm={() => handleDeleteLocation(loc.id)}
+                            okText="Yes"
+                            cancelText="No"
+                          >
+                            <Button type="text" size="small" icon={<DeleteOutlined style={{ color: '#ef4444' }} />} />
+                          </Popconfirm>
+                        )}
                       </Space>
                     </div>
 
@@ -1252,7 +1274,7 @@ export default function SettingsPage() {
                   }}>
                     <EnvironmentOutlined style={{ fontSize: 48, color: 'var(--text-slate-300)', marginBottom: 16 }} />
                     <Title level={5} style={{ color: 'var(--text-slate-500)' }}>No locations added yet</Title>
-                    <Button type="link" onClick={showAddLocationDrawer}>Add your first location</Button>
+                    {canUpdateSettings && <Button type="link" onClick={showAddLocationDrawer}>Add your first location</Button>}
                   </div>
                 </Col>
               )}
@@ -1305,6 +1327,7 @@ export default function SettingsPage() {
                   placeholder="Select an email account"
                   style={{ width: '100%', height: 45 }}
                   value={invoiceMailSettings?.email}
+                  disabled={!canUpdateMail}
                   onChange={async (email) => {
                     const account = connectedEmails.find(a => a.email === email);
                     if (account) {
@@ -1378,7 +1401,7 @@ export default function SettingsPage() {
                         </div>
                       </Space>
                       
-                      {!invoiceMailSettings.is_verified && (
+                      {canUpdateMail && !invoiceMailSettings.is_verified && (
                         <Button 
                           type="primary" 
                           size="small"

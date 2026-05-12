@@ -33,6 +33,7 @@ import {
   X,
 } from "lucide-react";
 import { useTenant } from "@/context/TenantContext";
+import { usePermission } from "@/hooks/usePermission";
 import { api } from "@/lib/axios";
 
 const { Option } = Select;
@@ -45,6 +46,7 @@ interface Props {
 
 export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
   const { tenantId } = useTenant();
+  const { canUpdateClient } = usePermission();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -221,6 +223,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                 checked={isActive}
                 onChange={(checked) => handleStatusChange(record.id, checked)}
                 style={{ backgroundColor: isActive ? "#10b981" : "var(--border-slate-200)" }}
+                disabled={!canUpdateClient}
               />
             </Tooltip>
             <Tag
@@ -239,13 +242,15 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       align: "right" as const,
       render: (_: any, record: any) => (
         <Space>
-          <Button
-            type="text"
-            className="premium-action-btn"
-            icon={<Edit2 size={16} />}
-            onClick={() => openEditModal(record)}
-            style={{ color: "var(--text-slate-500)" }}
-          />
+          {canUpdateClient && (
+            <Button
+              type="text"
+              className="premium-action-btn"
+              icon={<Edit2 size={16} />}
+              onClick={() => openEditModal(record)}
+              style={{ color: "var(--text-slate-500)" }}
+            />
+          )}
         </Space>
       ),
     },
@@ -288,15 +293,17 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                   />
                 </Col>
                 <Col xs={24} sm={8} md={12} lg={10}>
-                  <Button
-                    type="primary"
-                    size="large"
-                    icon={<Plus size={18} />}
-                    onClick={() => setIsModalOpen(true)}
-                    style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", width: "100%", justifyContent: "center" }}
-                  >
-                    Add Contact
-                  </Button>
+                  {canUpdateClient && (
+                    <Button
+                      type="primary"
+                      size="large"
+                      icon={<Plus size={18} />}
+                      onClick={() => setIsModalOpen(true)}
+                      style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", width: "100%", justifyContent: "center" }}
+                    >
+                      Add Contact
+                    </Button>
+                  )}
                 </Col>
               </Row>
             </Col>

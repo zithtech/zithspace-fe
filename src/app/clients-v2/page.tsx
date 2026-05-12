@@ -45,6 +45,7 @@ import { api, apiUtils } from "@/lib/axios";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { usePermission } from "@/hooks/usePermission";
 
 const { Title, Text } = Typography;
 
@@ -138,6 +139,7 @@ const StatCard: React.FC<StatCardProps> = ({
 export default function ClientsV2ListPage() {
   const router = useRouter();
   const { tenantId } = useTenant();
+  const { canCreateClient, canUpdateClient } = usePermission();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
@@ -389,26 +391,28 @@ export default function ClientsV2ListPage() {
               className="cm-action-btn"
             />
           </Tooltip>
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              size="small"
-              icon={<Settings2 size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/clients-v2/create?id=${record.id}`);
-              }}
-              className="cm-action-btn"
-            />
-          </Tooltip>
+          {canUpdateClient && (
+            <Tooltip title="Edit">
+              <Button
+                type="text"
+                size="small"
+                icon={<Settings2 size={16} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/clients-v2/create?id=${record.id}`);
+                }}
+                className="cm-action-btn"
+              />
+            </Tooltip>
+          )}
           <Dropdown
             menu={{
               items: [
                 { key: "view", label: "View overview", icon: <Eye size={14} />, onClick: () => router.push(`/clients-v2/${record.id}`) },
-                { key: "edit", label: "Edit profile", icon: <Settings2 size={14} />, onClick: () => router.push(`/clients-v2/create?id=${record.id}`) },
+                canUpdateClient ? { key: "edit", label: "Edit profile", icon: <Settings2 size={14} />, onClick: () => router.push(`/clients-v2/create?id=${record.id}`) } : null,
                 { type: "divider" },
                 { key: "projects", label: "View projects", icon: <FolderKanban size={14} /> },
-              ],
+              ].filter(Boolean) as any,
             }}
             trigger={["click"]}
           >
@@ -523,14 +527,16 @@ export default function ClientsV2ListPage() {
                 <Button icon={<Download size={15} />} className="cm-secondary-btn">
                   Export
                 </Button>
-                <Button
-                  type="primary"
-                  icon={<Plus size={16} />}
-                  className="cm-primary-btn"
-                  onClick={() => router.push("/clients-v2/create")}
-                >
-                  New Client
-                </Button>
+                {canCreateClient && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={16} />}
+                    className="cm-primary-btn"
+                    onClick={() => router.push("/clients-v2/create")}
+                  >
+                    New Client
+                  </Button>
+                )}
               </div>
             }
           />
@@ -630,15 +636,17 @@ export default function ClientsV2ListPage() {
                       <Text type="secondary" style={{ fontSize: 13 }}>
                         Add your first client to start tracking projects and contracts.
                       </Text>
-                      <Button
-                        type="primary"
-                        icon={<Plus size={14} />}
-                        className="cm-primary-btn"
-                        style={{ marginTop: 16 }}
-                        onClick={() => router.push("/clients-v2/create")}
-                      >
-                        Create Client
-                      </Button>
+                      {canCreateClient && (
+                        <Button
+                          type="primary"
+                          icon={<Plus size={14} />}
+                          className="cm-primary-btn"
+                          style={{ marginTop: 16 }}
+                          onClick={() => router.push("/clients-v2/create")}
+                        >
+                          Create Client
+                        </Button>
+                      )}
                     </div>
                   ),
                 }}

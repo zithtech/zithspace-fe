@@ -46,6 +46,7 @@ import { useSkills } from "@/hooks/useSkills";
 import SkillsAutocomplete from "@/components/SkillsAutocomplete";
 import { searchSkills } from "@/data/skillsData";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
+import { usePermission } from "@/hooks/usePermission";
 
 const { Title, Text } = Typography;
 
@@ -94,6 +95,8 @@ export default function SkillsPage() {
     updateExperience,
     deleteExperience,
   } = useSkills();
+
+  const { canCreateSkills, canUpdateSkills, canDeleteSkills, canManageSkills } = usePermission();
 
   const [activeTab, setActiveTab] = useState<"1" | "2">("1");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -312,6 +315,7 @@ export default function SkillsPage() {
         <div className="skl-visibility">
           <Switch
             size="small"
+            disabled={!canUpdateSkills}
             checked={val !== false}
             onChange={async (checked) => {
               try {
@@ -335,23 +339,27 @@ export default function SkillsPage() {
       width: 100,
       render: (_: any, record: any) => (
         <div className="skl-row-actions">
-          <Tooltip title="Edit">
-            <button className="skl-icon-btn" onClick={() => handleEdit(record)} aria-label="Edit">
-              <Edit2 size={14} />
-            </button>
-          </Tooltip>
-          <Popconfirm
-            title="Delete this skill?"
-            description="This action can't be undone."
-            onConfirm={() => deleteSkill(record.id)}
-            okText="Delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-          >
-            <button className="skl-icon-btn skl-icon-danger" aria-label="Delete">
-              <Trash2 size={14} />
-            </button>
-          </Popconfirm>
+          {canUpdateSkills && (
+            <Tooltip title="Edit">
+              <button className="skl-icon-btn" onClick={() => handleEdit(record)} aria-label="Edit">
+                <Edit2 size={14} />
+              </button>
+            </Tooltip>
+          )}
+          {canDeleteSkills && (
+            <Popconfirm
+              title="Delete this skill?"
+              description="This action can't be undone."
+              onConfirm={() => deleteSkill(record.id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <button className="skl-icon-btn skl-icon-danger" aria-label="Delete">
+                <Trash2 size={14} />
+              </button>
+            </Popconfirm>
+          )}
         </div>
       ),
     },
@@ -439,23 +447,27 @@ export default function SkillsPage() {
       width: 100,
       render: (_: any, record: any) => (
         <div className="skl-row-actions">
-          <Tooltip title="Edit">
-            <button className="skl-icon-btn" onClick={() => handleEdit(record)} aria-label="Edit">
-              <Edit2 size={14} />
-            </button>
-          </Tooltip>
-          <Popconfirm
-            title="Delete this experience?"
-            description="This action can't be undone."
-            onConfirm={() => deleteExperience(record.id)}
-            okText="Delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-          >
-            <button className="skl-icon-btn skl-icon-danger" aria-label="Delete">
-              <Trash2 size={14} />
-            </button>
-          </Popconfirm>
+          {canUpdateSkills && (
+            <Tooltip title="Edit">
+              <button className="skl-icon-btn" onClick={() => handleEdit(record)} aria-label="Edit">
+                <Edit2 size={14} />
+              </button>
+            </Tooltip>
+          )}
+          {canDeleteSkills && (
+            <Popconfirm
+              title="Delete this experience?"
+              description="This action can't be undone."
+              onConfirm={() => deleteExperience(record.id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <button className="skl-icon-btn skl-icon-danger" aria-label="Delete">
+                <Trash2 size={14} />
+              </button>
+            </Popconfirm>
+          )}
         </div>
       ),
     },
@@ -527,15 +539,17 @@ export default function SkillsPage() {
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
               />
-              <Button
-                type="primary"
-                icon={<Plus size={14} />}
-                onClick={showDrawer}
-                className="skl-cta-btn"
-              >
-                {activeTab === "1" ? "New Skill" : "New Experience"}
-                <ArrowUpRight size={13} />
-              </Button>
+              {canCreateSkills && (
+                <Button
+                  type="primary"
+                  icon={<Plus size={14} />}
+                  onClick={showDrawer}
+                  className="skl-cta-btn"
+                >
+                  {activeTab === "1" ? "New Skill" : "New Experience"}
+                  <ArrowUpRight size={13} />
+                </Button>
+              )}
             </div>
           </div>
 
@@ -679,16 +693,18 @@ export default function SkillsPage() {
                         ? "Add your first skill to begin building your portfolio."
                         : "Capture your first role to start your career timeline."}
                     </div>
-                    <Button
-                      type="primary"
-                      icon={<Plus size={13} />}
-                      onClick={searchText ? () => setSearchText("") : showDrawer}
-                      className="skl-empty-cta"
-                    >
-                      {searchText
-                        ? "Clear search"
-                        : `Add ${activeTab === "1" ? "Skill" : "Experience"}`}
-                    </Button>
+                    {(searchText || canCreateSkills) && (
+                      <Button
+                        type="primary"
+                        icon={<Plus size={13} />}
+                        onClick={searchText ? () => setSearchText("") : showDrawer}
+                        className="skl-empty-cta"
+                      >
+                        {searchText
+                          ? "Clear search"
+                          : `Add ${activeTab === "1" ? "Skill" : "Experience"}`}
+                      </Button>
+                    )}
                   </div>
                 ),
               }}

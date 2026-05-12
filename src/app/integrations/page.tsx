@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Space, Typography, Card, Button, Badge, Row, Col, message, Modal, Input, Tabs, Tag, Dropdown, Avatar, Tooltip } from "antd";
+import { Space, Typography, Card, Button, Badge, Row, Col, message, Modal, Input, Tabs, Tag, Dropdown, Avatar, Tooltip, App } from "antd";
 const { Title, Text, Paragraph } = Typography;
 import {
   GoogleOutlined,
@@ -57,6 +57,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { AlertCircle } from "lucide-react";
 
 export default function IntegrationPage() {
+  const { modal, message: messageApi } = App.useApp();
   const { canReadMail, canReadCalendar } = usePermission();
   const { user, isLoading: authLoading } = useAuth();
   const [statuses, setStatuses] = useState<Record<string, CalendarStatus | null>>({});
@@ -100,41 +101,28 @@ export default function IntegrationPage() {
 
   const router = useRouter();
 
+  const hasShownError = React.useRef(false);
   useEffect(() => {
-    if (!authLoading && user && !canReadMail && !canReadCalendar) {
-      Modal.error({
-        title: 'Access Denied',
-        content: "You don't have the required permissions (Mail or Calendar) to manage integrations. Please contact your administrator.",
-        onOk: () => router.push('/dashboard'),
-        okText: 'Back to Dashboard',
-        centered: true,
-        maskClosable: false,
-      });
+    if (!authLoading && user && !canReadMail && !canReadCalendar && !hasShownError.current) {
+      messageApi.error("Access Denied: You don't have the required permissions (Mail or Calendar) to manage integrations. Please contact your administrator.");
+      hasShownError.current = true;
     }
-  }, [canReadMail, canReadCalendar, authLoading, user, router]);
+  }, [canReadMail, canReadCalendar, authLoading, user, messageApi]);
 
   const handleConnect = async (provider: CalendarProvider) => {
     // Check for both mail and calendar permissions as integrations usually cover both
     if (!canReadCalendar && !canReadMail) {
-      Modal.error({
-        title: 'Permission Denied',
-        content: "You don't have the required permissions (Mail or Calendar) to connect this integration. Please contact your administrator.",
-        centered: true,
-      });
+      messageApi.error("Permission Denied: You don't have the required permissions (Mail or Calendar) to connect this integration.");
       return;
     }
 
     if (!canReadCalendar) {
-      Modal.error({
-        title: 'Calendar Permission Required',
-        content: "You don't have permission to connect calendars. This is required for this integration.",
-        centered: true,
-      });
+      messageApi.error("Calendar Permission Required: You don't have permission to connect calendars.");
       return;
     }
     const token = localStorage.getItem('accessToken');
     if (!token) {
-      message.warning('Please log in to connect your calendar');
+      messageApi.warning('Please log in to connect your calendar');
       window.location.href = '/login?redirect=/integrations';
       return;
     }
@@ -143,7 +131,7 @@ export default function IntegrationPage() {
     const currentProviderConnected = statuses[provider]?.connected;
 
     if (currentProviderConnected) {
-      message.info(`${provider} is already connected`);
+      messageApi.info(`${provider} is already connected`);
       return;
     }
 
@@ -168,27 +156,23 @@ export default function IntegrationPage() {
       const url = await CalendarService.getConnectUrl(provider);
       window.location.href = url;
     } catch (error: any) {
-      message.error(error.message || `Failed to connect to ${provider}`);
+      messageApi.error(error.message || `Failed to connect to ${provider}`);
       setLoading(prev => ({ ...prev, [provider]: false }));
     }
   };
 
   const handleDisconnect = async (provider: CalendarProvider) => {
     if (!canReadCalendar && !canReadMail) {
-      Modal.error({
-        title: 'Permission Denied',
-        content: "You don't have permission to manage integrations.",
-        centered: true,
-      });
+      messageApi.error("Permission Denied: You don't have permission to manage integrations.");
       return;
     }
     setLoading(prev => ({ ...prev, [provider]: true }));
     try {
       await CalendarService.disconnect(provider);
-      message.success(`${provider} disconnected successfully`);
+      messageApi.success(`${provider} disconnected successfully`);
       await fetchStatuses();
     } catch (error: any) {
-      message.error(error.message || `Failed to disconnect ${provider}`);
+      messageApi.error(error.message || `Failed to disconnect ${provider}`);
     } finally {
       setLoading(prev => ({ ...prev, [provider]: false }));
     }
@@ -317,45 +301,36 @@ export default function IntegrationPage() {
                             No accounts
                           </Tag>
                         )}
-
-                        {isConnected ? (
-                          <Tooltip title={(!canReadCalendar && !canReadMail) ? "You don't have permission to manage integrations" : ""}>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {isConnected ? (
                             <Button
                               onClick={() => handleDisconnect(provider.key)}
                               loading={isLoading}
-                              disabled={!canReadCalendar && !canReadMail}
                               size="small"
                               style={{
                                 borderRadius: 6,
                                 fontWeight: 500,
                                 height: 28,
                                 padding: '0 12px',
-                                background: isConnected && (!canReadCalendar && !canReadMail) ? 'var(--bg-secondary)' : 'rgba(239, 68, 68, 0.1)',
-                                color: isConnected && (!canReadCalendar && !canReadMail) ? 'var(--text-slate-400)' : '#ef4444',
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                color: '#ef4444',
                                 borderColor: 'transparent'
                               }}
                             >
                               Disconnect
                             </Button>
-                          </Tooltip>
-                        ) : (
-                          <Tooltip title={(!canReadCalendar && !canReadMail) ? "Calendar or Mail permission required to connect" : ""}>
+                          ) : (
                             <Button
                               type={anyProviderConnected ? "default" : "primary"}
                               icon={<Plug size={14} />}
                               onClick={() => handleConnect(provider.key)}
                               loading={isLoading}
-                              disabled={!canReadCalendar && !canReadMail}
                               size="small"
                               style={{
                                 borderRadius: 6,
                                 fontWeight: 500,
-                                background: (!canReadCalendar && !canReadMail)
-                                  ? 'var(--bg-secondary)'
-                                  : (anyProviderConnected ? 'var(--bg-primary)' : provider.color),
-                                color: (!canReadCalendar && !canReadMail)
-                                  ? 'var(--text-slate-400)'
-                                  : (anyProviderConnected ? 'var(--text-primary)' : '#fff'),
+                                background: anyProviderConnected ? 'var(--bg-primary)' : provider.color,
+                                color: anyProviderConnected ? 'var(--text-primary)' : '#fff',
                                 borderColor: anyProviderConnected ? 'var(--border-color)' : 'transparent',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -365,8 +340,8 @@ export default function IntegrationPage() {
                             >
                               {anyProviderConnected ? 'Switch' : 'Connect'}
                             </Button>
-                          </Tooltip>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </Card>
                   </Col>

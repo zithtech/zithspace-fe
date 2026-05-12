@@ -36,15 +36,17 @@ import {
   AppstoreOutlined,
   BarsOutlined,
   ArrowRightOutlined,
-  CheckCircleOutlined,
-  PauseCircleOutlined,
-  RocketOutlined,
-  FolderOpenOutlined,
   ApartmentOutlined,
   InfoCircleOutlined,
   CloseOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
+import {
+  FolderKanban,
+  Rocket,
+  PauseCircle,
+  CheckCircle2,
+} from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useRouter } from "next/navigation";
@@ -74,6 +76,82 @@ interface Member {
   position: string;
 
 }
+
+/* -------------------------------------------------------------------------- */
+/*                              Premium StatCard                              */
+/* -------------------------------------------------------------------------- */
+
+interface StatCardProps {
+  label: string;
+  value: React.ReactNode;
+  icon: React.ComponentType<any>;
+  accent: string;
+  subtle?: string;
+  chart?: React.ReactNode;
+}
+
+const StatCard: React.FC<StatCardProps> = ({
+  label,
+  value,
+  icon: Icon,
+  accent,
+  subtle,
+  chart,
+}) => (
+  <div className="pm-stat-card" style={{ ["--pm-accent" as any]: accent }}>
+    <div className="pm-stat-head">
+      <div
+        className="pm-stat-icon"
+        style={{
+          background: `${accent}12`,
+          color: accent,
+          boxShadow: `inset 0 0 0 1px ${accent}26`,
+        }}
+      >
+        <Icon size={16} color={accent} />
+      </div>
+      <Text className="pm-stat-label">{label}</Text>
+      <div className="pm-stat-value-wrap">
+        <span className="pm-stat-value">{value}</span>
+      </div>
+    </div>
+    {subtle && <Text className="pm-stat-subtle">{subtle}</Text>}
+    {chart && <div className="pm-stat-chart">{chart}</div>}
+    <span
+      className="pm-stat-accent"
+      style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
+    />
+  </div>
+);
+
+interface MiniBarProps {
+  segments: { value: number; color: string; label: string }[];
+}
+const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  return (
+    <div className="pm-minibar">
+      <div className="pm-minibar-track">
+        {segments.map((s, i) => (
+          <Tooltip key={i} title={`${s.label}: ${s.value}`}>
+            <span
+              className="pm-minibar-seg"
+              style={{ width: `${(s.value / total) * 100}%`, background: s.color }}
+            />
+          </Tooltip>
+        ))}
+      </div>
+      <div className="pm-minibar-legend">
+        {segments.map((s, i) => (
+          <span key={i} className="pm-minibar-legend-item">
+            <span className="pm-minibar-dot" style={{ background: s.color }} />
+            {s.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const ProjectsManagePage: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -546,40 +624,9 @@ const ProjectsManagePage: React.FC = () => {
   }
 
 
-  const statTiles = [
-    {
-      key: "total",
-      label: "Total Projects",
-      value: stats.total,
-      icon: <FolderOpenOutlined />,
-      tint: "rgba(59, 130, 246, 0.08)",
-      color: "#3b82f6",
-    },
-    {
-      key: "active",
-      label: "Active",
-      value: stats.active,
-      icon: <RocketOutlined />,
-      tint: "rgba(16, 185, 129, 0.08)",
-      color: "#10b981",
-    },
-    {
-      key: "onHold",
-      label: "On Hold",
-      value: stats.onHold,
-      icon: <PauseCircleOutlined />,
-      tint: "rgba(245, 158, 11, 0.08)",
-      color: "#f59e0b",
-    },
-    {
-      key: "completed",
-      label: "Completed",
-      value: stats.completed,
-      icon: <CheckCircleOutlined />,
-      tint: "rgba(139, 92, 246, 0.08)",
-      color: "#8b5cf6",
-    },
-  ];
+  const activePct = stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0;
+  const onHoldPct = stats.total > 0 ? Math.round((stats.onHold / stats.total) * 100) : 0;
+  const completedPct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
   const hasActiveFilters = !!(filters.search || filters.status || filters.projectManagerId || filters.startDate);
 
@@ -697,62 +744,95 @@ const ProjectsManagePage: React.FC = () => {
         />
 
         {/* Stats Row */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
-          {statTiles.map((tile) => (
-            <Col xs={24} sm={12} lg={6} key={tile.key}>
-              <Card
-                style={{
-                  ...glassStyle,
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  position: "relative",
-                  transition: "transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease",
-                }}
-                styles={{ body: { padding: 18 } }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow = "0 6px 16px rgba(15, 23, 42, 0.05)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 10,
-                    background: tile.tint,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: tile.color,
-                    fontSize: 18,
-                  }}>
-                    {tile.icon}
+        <div className="pm-stat-grid">
+          <StatCard
+            label="Total Projects"
+            value={stats.total}
+            icon={FolderKanban}
+            accent="#3b82f6"
+            subtle="Across all statuses"
+            chart={
+              stats.total > 0 ? (
+                <MiniBar
+                  segments={[
+                    { value: stats.active, color: "#10b981", label: `${stats.active} active` },
+                    { value: stats.onHold, color: "#f59e0b", label: `${stats.onHold} on hold` },
+                    { value: stats.completed, color: "#8b5cf6", label: `${stats.completed} completed` },
+                  ]}
+                />
+              ) : null
+            }
+          />
+          <StatCard
+            label="Active"
+            value={stats.active}
+            icon={Rocket}
+            accent="#10b981"
+            subtle={stats.total > 0 ? `${activePct}% of total` : "No projects yet"}
+            chart={
+              stats.total > 0 ? (
+                <div className="pm-progress-row">
+                  <div className="pm-progress-track">
+                    <span
+                      className="pm-progress-fill"
+                      style={{
+                        width: `${activePct}%`,
+                        background: "linear-gradient(90deg, #10b981, #34d399)",
+                      }}
+                    />
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <Text style={{
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                      color: "var(--text-slate-500)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                      display: "block",
-                    }}>
-                      {tile.label}
-                    </Text>
-                    <Title level={3} style={{
-                      margin: "2px 0 0 0",
-                      fontWeight: 700,
-                      color: "var(--text-slate-900)",
-                      letterSpacing: "-0.02em",
-                    }}>
-                      {tile.value}
-                    </Title>
-                  </div>
+                  <span className="pm-progress-label">{activePct}%</span>
                 </div>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+              ) : null
+            }
+          />
+          <StatCard
+            label="On Hold"
+            value={stats.onHold}
+            icon={PauseCircle}
+            accent="#f59e0b"
+            subtle={stats.total > 0 ? `${onHoldPct}% of total` : "No projects yet"}
+            chart={
+              stats.total > 0 ? (
+                <div className="pm-progress-row">
+                  <div className="pm-progress-track">
+                    <span
+                      className="pm-progress-fill"
+                      style={{
+                        width: `${onHoldPct}%`,
+                        background: "linear-gradient(90deg, #f59e0b, #fbbf24)",
+                      }}
+                    />
+                  </div>
+                  <span className="pm-progress-label">{onHoldPct}%</span>
+                </div>
+              ) : null
+            }
+          />
+          <StatCard
+            label="Completed"
+            value={stats.completed}
+            icon={CheckCircle2}
+            accent="#8b5cf6"
+            subtle={stats.total > 0 ? `${completedPct}% of total` : "No projects yet"}
+            chart={
+              stats.total > 0 ? (
+                <div className="pm-progress-row">
+                  <div className="pm-progress-track">
+                    <span
+                      className="pm-progress-fill"
+                      style={{
+                        width: `${completedPct}%`,
+                        background: "linear-gradient(90deg, #8b5cf6, #a78bfa)",
+                      }}
+                    />
+                  </div>
+                  <span className="pm-progress-label">{completedPct}%</span>
+                </div>
+              ) : null
+            }
+          />
+        </div>
 
         {/* Filter / All Projects Bar */}
         <div style={{
@@ -1641,9 +1721,166 @@ const ProjectsManagePage: React.FC = () => {
         </Button> */}
       </div>
 
+      <style jsx global>{`
+        .pm-stat-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+        @media (max-width: 1100px) {
+          .pm-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 600px) {
+          .pm-stat-grid { grid-template-columns: 1fr; }
+        }
+        .pm-stat-card {
+          position: relative;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          border-radius: 14px;
+          padding: 14px 16px 14px;
+          overflow: hidden;
+          transition: transform .25s cubic-bezier(.2,.8,.2,1),
+                      box-shadow .25s cubic-bezier(.2,.8,.2,1),
+                      border-color .25s ease;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+        }
+        .pm-stat-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 18px 36px -22px rgba(15,23,42,0.22);
+          border-color: var(--border-slate-200);
+        }
+        .pm-stat-card:hover .pm-stat-accent { opacity: 1; }
+        .pm-stat-accent {
+          position: absolute;
+          left: 0; right: 0; bottom: 0;
+          height: 2px;
+          opacity: 0.55;
+          transition: opacity .25s ease;
+          pointer-events: none;
+        }
+        .pm-stat-head {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+        }
+        .pm-stat-icon {
+          width: 32px; height: 32px;
+          border-radius: 9px;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .pm-stat-label {
+          flex: 1;
+          min-width: 0;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-slate-700);
+          letter-spacing: -0.005em;
+          text-transform: none;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .pm-stat-value-wrap {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+        .pm-stat-value {
+          font-size: 22px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.025em;
+          line-height: 1;
+          font-variant-numeric: tabular-nums;
+        }
+        .pm-stat-subtle {
+          display: block;
+          font-size: 11.5px;
+          color: var(--text-slate-500);
+          margin-top: 8px;
+          padding-left: 42px;
+          font-weight: 500;
+          line-height: 1.4;
+        }
+        .pm-stat-chart {
+          margin-top: 10px;
+          padding-top: 10px;
+          padding-left: 42px;
+          border-top: 1px dashed var(--border-slate-100);
+        }
 
+        /* MiniBar */
+        .pm-minibar { display: flex; flex-direction: column; gap: 7px; }
+        .pm-minibar-track {
+          height: 6px;
+          background: var(--bg-slate-50);
+          border-radius: 999px;
+          display: flex;
+          overflow: hidden;
+          border: 1px solid var(--border-slate-100);
+        }
+        .pm-minibar-seg {
+          display: block;
+          height: 100%;
+          transition: width .4s ease;
+        }
+        .pm-minibar-seg + .pm-minibar-seg {
+          border-left: 1px solid var(--bg-pure-white);
+        }
+        .pm-minibar-legend {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .pm-minibar-legend-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 11px;
+          color: var(--text-slate-600);
+          font-weight: 500;
+        }
+        .pm-minibar-dot {
+          width: 7px; height: 7px;
+          border-radius: 2px;
+          display: inline-block;
+        }
 
+        /* Inline progress */
+        .pm-progress-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .pm-progress-track {
+          flex: 1;
+          height: 6px;
+          background: var(--bg-slate-50);
+          border-radius: 999px;
+          overflow: hidden;
+          border: 1px solid var(--border-slate-100);
+        }
+        .pm-progress-fill {
+          display: block;
+          height: 100%;
+          border-radius: 999px;
+          transition: width .4s ease;
+        }
+        .pm-progress-label {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-slate-700);
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+        }
 
+        [data-theme='dark'] .pm-stat-card { background: var(--bg-secondary); }
+      `}</style>
     </MainLayout >
   );
 };

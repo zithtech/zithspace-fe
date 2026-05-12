@@ -44,7 +44,17 @@ import {
   EnvironmentOutlined,
   BgColorsOutlined,
   LoadingOutlined,
-  MailOutlined
+  MailOutlined,
+  GoogleOutlined,
+  WindowsFilled,
+  CloudOutlined,
+  SafetyCertificateFilled,
+  ReloadOutlined,
+  InboxOutlined,
+  StarFilled,
+  PictureOutlined,
+  ThunderboltFilled,
+  LinkOutlined,
 } from '@ant-design/icons';
 import LogoCropper from '@/components/common/LogoCropper';
 import { SettingsService, Shift, CreateShiftData, UpdateShiftData } from '@/services/settingsService';
@@ -786,243 +796,513 @@ export default function SettingsPage() {
           flex: 1,
           minHeight: 0,
           overflowY: "auto",
-          padding: "8px 4px 40px 4px",
+          padding: "20px 8px 40px 8px",
           display: "flex",
           flexDirection: "column",
-          alignItems: "flex-start",
-          width: "100%"
+          alignItems: "stretch",
+          width: "100%",
+          gap: 20
         }}>
-          <Card
-            variant="borderless"
-            style={{ ...styles.sectionCard, width: "100%", maxWidth: 1100, marginTop: 8 }}
-            styles={{ body: { padding: "40px" } }}
-            title={
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: "8px 0" }}>
-                <Space size={12}>
-                  <div style={{ ...styles.iconContainer, width: 36, height: 36, borderRadius: 10 }}>
-                    <SettingOutlined style={{ fontSize: 18 }} />
-                  </div>
-                  <div>
-                    <Text strong style={{ fontSize: 18, color: "var(--text-primary)", display: 'block' }}>Company Branding</Text>
-                    <Text type="secondary" style={{ fontSize: 12, color: "var(--text-secondary)" }}>Customize your workspace identity</Text>
-                  </div>
-                </Space>
-              </div>
-            }
-          >
-            <Row gutter={40} align="top">
-              {/* Left Column: Branding Form */}
-              <Col xs={24} lg={10} xl={9}>
-                <Form
-                  form={systemForm}
-                  layout="vertical"
-                  onFinish={handleSystemSubmit}
-                  onValuesChange={() => setIsSystemFormDirty(true)}
-                >
-                  <Form.Item
-                    name="name"
-                    label={<Text strong style={{ color: 'var(--text-primary)' }}>Company Name</Text>}
-                    rules={[{ required: true, message: 'Please enter company name' }]}
-                  >
-                    <Input placeholder="Enter company name" style={{ height: 44, borderRadius: 10 }} />
-                  </Form.Item>
+          {/* Hero / Identity Banner */}
+          <div style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: 20,
+            background: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 50%, #8B5CF6 100%)',
+            padding: '28px 32px',
+            color: '#fff',
+            boxShadow: '0 10px 30px rgba(59, 130, 246, 0.25)',
+            flexShrink: 0
+          }}>
+            {/* Decorative glow blobs */}
+            <div style={{
+              position: 'absolute',
+              top: -60,
+              right: -40,
+              width: 220,
+              height: 220,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 70%)',
+              pointerEvents: 'none'
+            }} />
+            <div style={{
+              position: 'absolute',
+              bottom: -80,
+              left: 20,
+              width: 240,
+              height: 240,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(139, 92, 246, 0.35) 0%, rgba(139, 92, 246, 0) 70%)',
+              pointerEvents: 'none'
+            }} />
 
-                  <Form.Item
-                    label={
-                      <Space size={8}>
-                        <Text strong style={{ color: 'var(--text-primary)' }}>Company Logo</Text>
-                        {tenantProfile?.settings?.logoUrl && fileList.length === 0 && (
-                          <Tag color="blue" icon={<CheckCircleFilled />} style={{ margin: 0, borderRadius: 4 }}>Active</Tag>
-                        )}
-                      </Space>
-                    }
-                    style={{ marginBottom: 32 }}
-                  >
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-                      <Upload
-                        listType="picture-card"
-                        fileList={fileList}
-                        onChange={({ fileList }) => {
-                          setFileList(fileList);
-                          setIsSystemFormDirty(true);
-                        }}
-                        beforeUpload={() => false}
-                        maxCount={1}
-                      >
-                        {fileList.length < 1 && (
-                          <div style={{ color: 'var(--text-secondary)' }}>
-                            <PlusOutlined style={{ fontSize: 20 }} />
-                            <div style={{ marginTop: 8, fontSize: 12, fontWeight: 500 }}>Upload</div>
-                          </div>
-                        )}
-                      </Upload>
-                      <Space direction="vertical" size={2} style={{ flex: 1, minWidth: 200 }}>
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', height: '100%', display: 'flex', alignItems: 'center' }}>
-                          <div style={{ padding: '12px 16px', background: token.colorFillAlter, borderRadius: 12, border: `1px dashed ${token.colorBorder}`, width: '100%' }}>
-                            Recommended: 200x50px transparent PNG. Max 2MB.
-                          </div>
-                        </div>
-                      </Space>
-                    </div>
-                  </Form.Item>
-
-                  <Form.Item style={{ marginBottom: 16 }}>
-                    {fileList.length > 0 && (
-                      <Button
-                        block
-                        type="dashed"
-                        icon={processingBG === (fileList[0].url || fileList[0].thumbUrl) ? <LoadingOutlined /> : <BgColorsOutlined />}
-                        loading={processingBG === (fileList[0].url || fileList[0].thumbUrl)}
-                        onClick={() => {
-                          const url = fileList[0].url || fileList[0].thumbUrl;
-                          if (url) removeLogoBackground(url, false);
-                        }}
-                        style={{ 
-                          borderRadius: 12, 
-                          height: 40, 
-                          color: 'var(--premium-blue)', 
-                          borderColor: 'var(--premium-blue)',
-                          fontWeight: 600
-                        }}
-                      >
-                        Clear Background
-                      </Button>
+            <Row gutter={[24, 24]} align="middle" style={{ position: 'relative', zIndex: 1 }}>
+              <Col xs={24} md={16}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
+                  <div style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 18,
+                    background: 'rgba(255,255,255,0.18)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    flexShrink: 0
+                  }}>
+                    {tenantProfile?.settings?.logoUrl ? (
+                      <img
+                        src={tenantProfile.settings.logoUrl}
+                        alt="Company logo"
+                        style={{ maxWidth: '85%', maxHeight: '85%', objectFit: 'contain' }}
+                      />
+                    ) : (
+                      <PictureOutlined style={{ fontSize: 28, color: '#fff' }} />
                     )}
-                  </Form.Item>
-
-                  <Form.Item style={{ marginBottom: 0 }}>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={formLoading}
-                      disabled={!isSystemFormDirty}
-                      size="large"
-                      block
-                      style={{
-                        borderRadius: 12,
-                        height: 50,
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                        Workspace Identity
+                      </Text>
+                      <div style={{
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                        background: 'rgba(255,255,255,0.18)',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        fontSize: 10,
                         fontWeight: 700,
-                        background: !isSystemFormDirty ? 'var(--border-color)' : 'linear-gradient(135deg, var(--premium-blue) 0%, #1D4ED8 100%)',
-                        border: 'none',
-                        boxShadow: !isSystemFormDirty ? 'none' : "0 4px 12px rgba(59, 130, 246, 0.2)"
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        flexShrink: 0
+                      }}>
+                        <StarFilled style={{ fontSize: 9, color: '#FBBF24' }} /> PREMIUM
+                      </div>
+                    </div>
+                    <Title
+                      level={3}
+                      style={{
+                        color: '#fff',
+                        margin: 0,
+                        fontWeight: 700,
+                        fontSize: 24,
+                        lineHeight: 1.25,
+                        wordBreak: 'break-word'
                       }}
                     >
-                      Save Branding
-                    </Button>
-                  </Form.Item>
-                </Form>
-              </Col>
-
-              <Col xs={24} lg={14} xl={15} style={{ borderLeft: `1px solid ${token.colorBorderSecondary}`, paddingLeft: 40 }}>
-                <div style={{ marginBottom: 24 }}>
-                  <Title level={4} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)" }}>Logo Assets</Title>
-                  <Text type="secondary" style={{ fontSize: 13, color: "var(--text-secondary)" }}>Previously generated logo versions. Set any version as your primary logo.</Text>
+                      {tenantProfile?.name || 'Your Company'}
+                    </Title>
+                    <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, display: 'block', marginTop: 4 }}>
+                      Customize your branding, manage logo versions, and refine how your workspace presents itself.
+                    </Text>
+                  </div>
                 </div>
-
-                {logoVersions.length > 0 ? (
-                  <div style={{
-                    background: token.colorFillAlter,
-                    borderRadius: 16,
-                    padding: 24,
-                    border: `1px solid ${token.colorBorderSecondary}`,
-                    width: '100%'
-                  }}>
-                    <Row gutter={[16, 16]}>
-                      {logoVersions.map((url, index) => (
-                        <Col key={index} span={12}>
-                          <Card
-                            hoverable
-                            styles={{ body: { padding: 12 } }}
-                            style={{
-                              borderRadius: "12px",
-                              overflow: 'hidden',
-                              border: tenantProfile?.settings?.logoUrl === url ? `2px solid ${token.colorPrimary}` : `1px solid ${token.colorBorderSecondary}`,
-                              position: 'relative',
-                              background: token.colorBgContainer
-                            }}
-                          >
-                            {tenantProfile?.settings?.logoUrl === url && (
-                              <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>
-                                <Tag color="blue" icon={<CheckCircleFilled />} style={{ borderRadius: 6, margin: 0, fontWeight: 700, fontSize: 10 }}>
-                                  Active
-                                </Tag>
-                              </div>
-                            )}
-                            <div style={{
-                              height: 80,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              padding: 8,
-                              background: token.colorFillAlter,
-                              borderRadius: 8,
-                              marginBottom: 12,
-                              border: `1px solid ${token.colorBorderSecondary}`
-                            }}>
-                              <img src={url} alt={`Version ${index}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Space size={6}>
-                                <Tooltip title="Crop/Edit">
-                                  <Button
-                                    size="small"
-                                    type="text"
-                                    icon={<EditOutlined style={{ color: 'var(--premium-blue)' }} />}
-                                    onClick={() => {
-                                      setImageToCrop(url);
-                                      setIsCropperVisible(true);
-                                    }}
-                                    style={{ background: 'var(--bg-blue-50)', borderRadius: 8 }}
-                                  />
-                                </Tooltip>
-                                {tenantProfile?.settings?.logoUrl !== url && (
-                                  <Button
-                                    size="small"
-                                    type="link"
-                                    style={{ fontSize: 11, fontWeight: 600, padding: 0 }}
-                                    onClick={() => handleSetAsFinal(url)}
-                                  >
-                                    Use Logo
-                                  </Button>
-                                )}
-                              </Space>
-                              <Popconfirm
-                                title="Delete version?"
-                                onConfirm={() => handleDeleteVersion(url)}
-                                okText="Delete"
-                                cancelText="No"
-                                okButtonProps={{ danger: true, size: 'small' }}
-                              >
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  danger
-                                  icon={<DeleteOutlined style={{ fontSize: 13 }} />}
-                                  style={{ borderRadius: 8 }}
-                                />
-                              </Popconfirm>
-                            </div>
-                          </Card>
-                        </Col>
-                      ))}
-                    </Row>
-                  </div>
-                ) : (
-                  <div style={{
-                    padding: '60px 40px',
-                    textAlign: 'center',
-                    background: 'var(--bg-slate-50)',
-                    borderRadius: 16,
-                    border: '1px dashed var(--border-slate-200)'
-                  }}>
-                    <div style={{ color: '#cbd5e1', marginBottom: 16 }}>
-                      <PlusOutlined style={{ fontSize: 32 }} />
+              </Col>
+              <Col xs={24} md={8}>
+                <Row gutter={12}>
+                  <Col span={12}>
+                    <div style={{
+                      background: 'rgba(255,255,255,0.12)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      borderRadius: 14,
+                      padding: '14px 16px'
+                    }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Logo Versions
+                      </Text>
+                      <div style={{ fontSize: 26, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginTop: 4 }}>
+                        {logoVersions.length}
+                      </div>
                     </div>
-                    <Text type="secondary">Generated logo versions will appear here.</Text>
-                  </div>
-                )}
+                  </Col>
+                  <Col span={12}>
+                    <div style={{
+                      background: 'rgba(255,255,255,0.12)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      borderRadius: 14,
+                      padding: '14px 16px'
+                    }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Status
+                      </Text>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                        <div style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          background: tenantProfile?.settings?.logoUrl ? '#34D399' : '#FBBF24',
+                          boxShadow: tenantProfile?.settings?.logoUrl
+                            ? '0 0 0 3px rgba(52, 211, 153, 0.25)'
+                            : '0 0 0 3px rgba(251, 191, 36, 0.25)'
+                        }} />
+                        <Text style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>
+                          {tenantProfile?.settings?.logoUrl ? 'Active' : 'Pending'}
+                        </Text>
+                      </div>
+                    </div>
+                  </Col>
+                </Row>
               </Col>
             </Row>
+          </div>
+
+          {/* Branding Card */}
+          <Card
+            variant="borderless"
+            style={{ ...styles.sectionCard, width: "100%", borderRadius: 20 }}
+            styles={{ body: { padding: 0 } }}
+          >
+            <div style={{
+              padding: "20px 32px",
+              borderBottom: `1px solid ${token.colorBorderSecondary}`,
+              background: `linear-gradient(180deg, ${token.colorFillAlter} 0%, ${token.colorBgContainer} 100%)`,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20
+            }}>
+              <Space size={14} align="center">
+                <div style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
+                  color: '#2563EB',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 0 1px rgba(37, 99, 235, 0.15), inset 0 1px 0 rgba(255,255,255,0.6)'
+                }}>
+                  <SettingOutlined style={{ fontSize: 20 }} />
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: 17, color: "var(--text-primary)", display: 'block', letterSpacing: '-0.01em' }}>
+                    Company Branding
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                    Set your display name and upload a logo for use across the workspace
+                  </Text>
+                </div>
+              </Space>
+            </div>
+
+            <div style={{ padding: 32 }}>
+              <Row gutter={[40, 32]} align="top">
+                {/* Left Column: Branding Form */}
+                <Col xs={24} lg={11} xl={10}>
+                  <Form
+                    form={systemForm}
+                    layout="vertical"
+                    onFinish={handleSystemSubmit}
+                    onValuesChange={() => setIsSystemFormDirty(true)}
+                  >
+                    <Form.Item
+                      name="name"
+                      label={
+                        <Space size={6}>
+                          <Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Company Name</Text>
+                          <Text style={{ color: '#EF4444', fontSize: 13 }}>*</Text>
+                        </Space>
+                      }
+                      rules={[{ required: true, message: 'Please enter company name' }]}
+                    >
+                      <Input
+                        placeholder="Enter company name"
+                        prefix={<SettingOutlined style={{ color: token.colorTextTertiary, marginRight: 6 }} />}
+                        style={{ height: 46, borderRadius: 12, fontSize: 14 }}
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      label={
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                          <Space size={8}>
+                            <Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Company Logo</Text>
+                            {tenantProfile?.settings?.logoUrl && fileList.length === 0 && (
+                              <Tag color="success" icon={<CheckCircleFilled />} style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>
+                                Active
+                              </Tag>
+                            )}
+                          </Space>
+                        </div>
+                      }
+                      style={{ marginBottom: 20 }}
+                    >
+                      <div style={{
+                        background: token.colorFillAlter,
+                        borderRadius: 14,
+                        padding: 16,
+                        border: `1px dashed ${token.colorBorder}`
+                      }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
+                          <Upload
+                            listType="picture-card"
+                            fileList={fileList}
+                            onChange={({ fileList }) => {
+                              setFileList(fileList);
+                              setIsSystemFormDirty(true);
+                            }}
+                            beforeUpload={() => false}
+                            maxCount={1}
+                            className="settings-logo-upload"
+                          >
+                            {fileList.length < 1 && (
+                              <div style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
+                                <InboxOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
+                                <div style={{ marginTop: 6, fontSize: 12, fontWeight: 600 }}>Upload</div>
+                              </div>
+                            )}
+                          </Upload>
+                          <div style={{ flex: 1, minWidth: 180 }}>
+                            <Text strong style={{ display: 'block', fontSize: 13, color: 'var(--text-primary)', marginBottom: 4 }}>
+                              Drop your logo here
+                            </Text>
+                            <Text style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', lineHeight: 1.5 }}>
+                              Recommended: 200×50px transparent PNG
+                            </Text>
+                            <Text style={{ fontSize: 11, color: 'var(--text-secondary)', opacity: 0.7 }}>
+                              PNG, JPG up to 2MB
+                            </Text>
+                          </div>
+                        </div>
+                      </div>
+                    </Form.Item>
+
+                    {fileList.length > 0 && (
+                      <Form.Item style={{ marginBottom: 16 }}>
+                        <Button
+                          block
+                          icon={processingBG === (fileList[0].url || fileList[0].thumbUrl) ? <LoadingOutlined /> : <BgColorsOutlined />}
+                          loading={processingBG === (fileList[0].url || fileList[0].thumbUrl)}
+                          onClick={() => {
+                            const url = fileList[0].url || fileList[0].thumbUrl;
+                            if (url) removeLogoBackground(url, false);
+                          }}
+                          style={{
+                            borderRadius: 12,
+                            height: 44,
+                            color: 'var(--premium-blue)',
+                            borderColor: 'rgba(59, 130, 246, 0.35)',
+                            background: 'rgba(59, 130, 246, 0.06)',
+                            fontWeight: 600
+                          }}
+                        >
+                          Remove White Background
+                        </Button>
+                      </Form.Item>
+                    )}
+
+                    <Form.Item style={{ marginBottom: 0 }}>
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={formLoading}
+                        disabled={!isSystemFormDirty}
+                        size="large"
+                        block
+                        icon={!formLoading && <ThunderboltFilled />}
+                        style={{
+                          borderRadius: 12,
+                          height: 50,
+                          fontWeight: 700,
+                          fontSize: 14,
+                          letterSpacing: '0.01em',
+                          background: !isSystemFormDirty
+                            ? token.colorFillSecondary
+                            : 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+                          color: !isSystemFormDirty ? token.colorTextDisabled : '#fff',
+                          border: 'none',
+                          boxShadow: !isSystemFormDirty ? 'none' : '0 8px 20px -6px rgba(59, 130, 246, 0.45)'
+                        }}
+                      >
+                        Save Branding Changes
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                </Col>
+
+                {/* Right Column: Logo Gallery */}
+                <Col xs={24} lg={13} xl={14} style={{ borderLeft: `1px solid ${token.colorBorderSecondary}`, paddingLeft: 32 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+                    <div>
+                      <Space size={8} align="center">
+                        <PictureOutlined style={{ fontSize: 16, color: token.colorPrimary }} />
+                        <Text strong style={{ fontSize: 15, color: "var(--text-primary)", letterSpacing: '-0.01em' }}>
+                          Logo Library
+                        </Text>
+                      </Space>
+                      <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 2 }}>
+                        Switch between saved versions or upload a fresh one
+                      </Text>
+                    </div>
+                    {logoVersions.length > 0 && (
+                      <div style={{
+                        padding: '4px 10px',
+                        borderRadius: 999,
+                        background: token.colorFillAlter,
+                        border: `1px solid ${token.colorBorderSecondary}`,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: 'var(--text-secondary)'
+                      }}>
+                        {logoVersions.length} {logoVersions.length === 1 ? 'version' : 'versions'}
+                      </div>
+                    )}
+                  </div>
+
+                  {logoVersions.length > 0 ? (
+                    <Row gutter={[16, 16]}>
+                      {logoVersions.map((url, index) => {
+                        const isActive = tenantProfile?.settings?.logoUrl === url;
+                        return (
+                          <Col key={index} xs={24} sm={12}>
+                            <div
+                              style={{
+                                borderRadius: 14,
+                                overflow: 'hidden',
+                                border: isActive
+                                  ? `2px solid ${token.colorPrimary}`
+                                  : `1px solid ${token.colorBorderSecondary}`,
+                                position: 'relative',
+                                background: token.colorBgContainer,
+                                transition: 'all 0.25s ease',
+                                boxShadow: isActive
+                                  ? '0 10px 24px -10px rgba(37, 99, 235, 0.35)'
+                                  : '0 1px 2px rgba(0,0,0,0.03)'
+                              }}
+                            >
+                              {isActive && (
+                                <div style={{
+                                  position: 'absolute',
+                                  top: 10,
+                                  right: 10,
+                                  zIndex: 10,
+                                  background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                                  color: '#fff',
+                                  padding: '3px 8px',
+                                  borderRadius: 6,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                                }}>
+                                  <CheckCircleFilled style={{ fontSize: 10 }} /> ACTIVE
+                                </div>
+                              )}
+                              <div style={{
+                                height: 110,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: 16,
+                                background: `repeating-conic-gradient(${token.colorFillAlter} 0% 25%, ${token.colorBgContainer} 0% 50%) 50% / 16px 16px`,
+                                borderBottom: `1px solid ${token.colorBorderSecondary}`
+                              }}>
+                                <img
+                                  src={url}
+                                  alt={`Version ${index + 1}`}
+                                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                                />
+                              </div>
+                              <div style={{
+                                padding: '10px 12px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                background: token.colorBgContainer
+                              }}>
+                                <Text style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                  Version {index + 1}
+                                </Text>
+                                <Space size={4}>
+                                  <Tooltip title="Crop / Edit">
+                                    <Button
+                                      size="small"
+                                      type="text"
+                                      icon={<EditOutlined style={{ color: 'var(--premium-blue)' }} />}
+                                      onClick={() => {
+                                        setImageToCrop(url);
+                                        setIsCropperVisible(true);
+                                      }}
+                                      style={{ borderRadius: 8 }}
+                                    />
+                                  </Tooltip>
+                                  {!isActive && (
+                                    <Tooltip title="Set as active logo">
+                                      <Button
+                                        size="small"
+                                        type="primary"
+                                        ghost
+                                        onClick={() => handleSetAsFinal(url)}
+                                        style={{ borderRadius: 8, fontSize: 11, fontWeight: 600, height: 26, padding: '0 10px' }}
+                                      >
+                                        Use
+                                      </Button>
+                                    </Tooltip>
+                                  )}
+                                  <Popconfirm
+                                    title="Delete version?"
+                                    description="This action cannot be undone."
+                                    onConfirm={() => handleDeleteVersion(url)}
+                                    okText="Delete"
+                                    cancelText="No"
+                                    okButtonProps={{ danger: true, size: 'small' }}
+                                  >
+                                    <Tooltip title="Delete">
+                                      <Button
+                                        type="text"
+                                        size="small"
+                                        danger
+                                        icon={<DeleteOutlined style={{ fontSize: 13 }} />}
+                                        style={{ borderRadius: 8 }}
+                                      />
+                                    </Tooltip>
+                                  </Popconfirm>
+                                </Space>
+                              </div>
+                            </div>
+                          </Col>
+                        );
+                      })}
+                    </Row>
+                  ) : (
+                    <div style={{
+                      padding: '60px 40px',
+                      textAlign: 'center',
+                      background: token.colorFillAlter,
+                      borderRadius: 16,
+                      border: `1px dashed ${token.colorBorder}`
+                    }}>
+                      <div style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 16,
+                        background: token.colorBgContainer,
+                        border: `1px solid ${token.colorBorderSecondary}`,
+                        margin: '0 auto 16px auto',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: token.colorTextTertiary
+                      }}>
+                        <PictureOutlined style={{ fontSize: 24 }} />
+                      </div>
+                      <Text strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: 14, marginBottom: 4 }}>
+                        No logo versions yet
+                      </Text>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        Upload your first logo on the left to start building your library.
+                      </Text>
+                    </div>
+                  )}
+                </Col>
+              </Row>
+            </div>
           </Card>
 
           {/* Cropper Modal */}
@@ -1274,136 +1554,424 @@ export default function SettingsPage() {
           flex: 1,
           minHeight: 0,
           overflowY: "auto",
-          padding: "8px 4px 40px 4px",
+          padding: "20px 8px 40px 8px",
           display: "flex",
           flexDirection: "column",
-          alignItems: "flex-start",
-          width: "100%"
+          alignItems: "stretch",
+          width: "100%",
+          gap: 20
         }}>
+
+          {/* Default Invoice Mail Card */}
           <Card
             variant="borderless"
-            style={{ ...styles.sectionCard, width: "100%", marginTop: 8 }}
-            styles={{ body: { padding: "24px" } }}
-            title={
-              <Space size={12}>
-                <div style={{ ...styles.iconContainer, width: 36, height: 36, borderRadius: 10, background: '#f5f3ff', color: '#8b5cf6' }}>
-                  <MailOutlined style={{ fontSize: 18 }} />
+            style={{ ...styles.sectionCard, width: "100%", borderRadius: 20 }}
+            styles={{ body: { padding: 0 } }}
+          >
+            <div style={{
+              padding: "20px 32px",
+              borderBottom: `1px solid ${token.colorBorderSecondary}`,
+              background: `linear-gradient(180deg, ${token.colorFillAlter} 0%, ${token.colorBgContainer} 100%)`,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20
+            }}>
+              <Space size={14} align="center">
+                <div style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)',
+                  color: '#7C3AED',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 0 1px rgba(124, 58, 237, 0.15), inset 0 1px 0 rgba(255,255,255,0.6)'
+                }}>
+                  <MailOutlined style={{ fontSize: 20 }} />
                 </div>
                 <div>
-                  <Text strong style={{ fontSize: 18, color: "var(--text-primary)", display: 'block' }}>Default Invoice Mail</Text>
-                  <Text type="secondary" style={{ fontSize: 12, color: "var(--text-secondary)" }}>Select a verified integrated email to send your invoices</Text>
+                  <Text strong style={{ fontSize: 17, color: "var(--text-primary)", display: 'block', letterSpacing: '-0.01em' }}>
+                    Default Invoice Mail
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Choose which connected mailbox will deliver invoices to your clients
+                  </Text>
                 </div>
               </Space>
-            }
-          >
-            <Row gutter={[24, 24]}>
-              <Col span={24} md={12}>
-                <div style={{ marginBottom: 8 }}>
-                  <Text strong style={{ color: 'var(--text-primary)' }}>Select Integrated Email</Text>
-                </div>
-                <Select
-                  placeholder="Select an email account"
-                  style={{ width: '100%', height: 45 }}
-                  value={invoiceMailSettings?.email}
-                  onChange={async (email) => {
-                    const account = connectedEmails.find(a => a.email === email);
-                    if (account) {
-                      try {
-                        setInvoiceMailLoading(true);
-                        await MailService.setInvoiceMail({
-                          email: account.email,
-                          provider: account.provider,
-                          integrationId: account.id
-                        });
-                        messageApi.success('Invoice mail set. Please verify the link sent to your inbox.');
-                        fetchInvoiceMailSettings();
-                      } catch (error: any) {
-                        messageApi.error(error.message || 'Failed to set invoice mail');
-                      } finally {
-                        setInvoiceMailLoading(false);
-                      }
-                    }
-                  }}
-                  loading={invoiceMailLoading}
-                >
-                  {connectedEmails.map(account => (
-                    <Select.Option key={account.email} value={account.email}>
-                      <Space>
-                        <Tag color={account.provider === 'GOOGLE' ? 'blue' : account.provider === 'MICROSOFT' ? 'orange' : 'green'}>
-                          {account.provider}
-                        </Tag>
-                        {account.email}
-                      </Space>
-                    </Select.Option>
-                  ))}
-                </Select>
-                {connectedEmails.length === 0 && (
-                  <Alert
-                    type="warning"
-                    showIcon
-                    message="No integrated email accounts found. Please connect an account first."
-                    style={{ marginTop: 16, borderRadius: 8 }}
-                  />
-                )}
-              </Col>
-              
-              {invoiceMailSettings && (
-                <Col span={24} md={12}>
-                  <div style={{ 
-                    padding: '16px', 
-                    background: invoiceMailSettings.is_verified ? '#f0fdf4' : '#fffbeb', 
-                    borderRadius: '12px',
-                    border: `1px solid ${invoiceMailSettings.is_verified ? '#bbf7d0' : '#fef3c7'}`,
-                    height: '100%',
+            </div>
+
+            <div style={{ padding: 32 }}>
+              {connectedEmails.length === 0 ? (
+                <div style={{
+                  padding: '60px 40px',
+                  textAlign: 'center',
+                  background: token.colorFillAlter,
+                  borderRadius: 16,
+                  border: `1px dashed ${token.colorBorder}`
+                }}>
+                  <div style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 18,
+                    background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)',
+                    color: '#B45309',
+                    margin: '0 auto 16px auto',
                     display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center'
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 8px 24px -8px rgba(245, 158, 11, 0.3)'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Space size={12}>
-                        {invoiceMailSettings.is_verified ? (
-                          <CheckCircleFilled style={{ fontSize: 24, color: '#22c55e' }} />
-                        ) : (
-                          <ClockCircleOutlined style={{ fontSize: 24, color: '#f59e0b' }} />
-                        )}
-                        <div>
-                          <Text strong style={{ fontSize: 16, display: 'block', color: invoiceMailSettings.is_verified ? '#166534' : '#92400e' }}>
-                            {invoiceMailSettings.is_verified ? 'Verified' : 'Verification Pending'}
+                    <InboxOutlined style={{ fontSize: 28 }} />
+                  </div>
+                  <Text strong style={{ display: 'block', fontSize: 16, color: 'var(--text-primary)', marginBottom: 6 }}>
+                    No email accounts connected
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: 13, display: 'block', maxWidth: 420, margin: '0 auto 20px' }}>
+                    Connect a Google or Microsoft account from the Integrations page to start sending invoices from your own domain.
+                  </Text>
+                  <Button
+                    type="primary"
+                    icon={<LinkOutlined />}
+                    onClick={() => router.push('/integrations')}
+                    style={{
+                      borderRadius: 10,
+                      height: 40,
+                      fontWeight: 600,
+                      background: 'linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%)',
+                      border: 'none',
+                      boxShadow: '0 8px 20px -6px rgba(124, 58, 237, 0.45)'
+                    }}
+                  >
+                    Connect Email Account
+                  </Button>
+                </div>
+              ) : (
+                <Row gutter={[24, 24]}>
+                  {/* Selector + accounts list */}
+                  <Col xs={24} md={14}>
+                    <div style={{ marginBottom: 20 }}>
+                      <Text strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: 13, marginBottom: 8 }}>
+                        Active Invoice Sender
+                      </Text>
+                      <Select
+                        placeholder="Select an email account"
+                        style={{ width: '100%' }}
+                        size="large"
+                        value={invoiceMailSettings?.email}
+                        onChange={async (email) => {
+                          const account = connectedEmails.find(a => a.email === email);
+                          if (account) {
+                            try {
+                              setInvoiceMailLoading(true);
+                              await MailService.setInvoiceMail({
+                                email: account.email,
+                                provider: account.provider,
+                                integrationId: account.id
+                              });
+                              messageApi.success('Invoice mail set. Please verify the link sent to your inbox.');
+                              fetchInvoiceMailSettings();
+                            } catch (error: any) {
+                              messageApi.error(error.message || 'Failed to set invoice mail');
+                            } finally {
+                              setInvoiceMailLoading(false);
+                            }
+                          }
+                        }}
+                        loading={invoiceMailLoading}
+                        suffixIcon={<MailOutlined style={{ color: token.colorTextTertiary }} />}
+                        optionLabelProp="label"
+                      >
+                        {connectedEmails.map(account => {
+                          const providerColors: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
+                            GOOGLE: { bg: '#FEF2F2', text: '#DC2626', icon: <GoogleOutlined /> },
+                            MICROSOFT: { bg: '#EFF6FF', text: '#1D4ED8', icon: <WindowsFilled /> },
+                          };
+                          const p = providerColors[account.provider] || { bg: '#F0FDF4', text: '#15803D', icon: <CloudOutlined /> };
+                          return (
+                            <Select.Option
+                              key={account.email}
+                              value={account.email}
+                              label={
+                                <Space size={8}>
+                                  <span style={{ color: p.text, fontSize: 14 }}>{p.icon}</span>
+                                  <span style={{ fontWeight: 500 }}>{account.email}</span>
+                                </Space>
+                              }
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0' }}>
+                                <div style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: 8,
+                                  background: p.bg,
+                                  color: p.text,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}>
+                                  {p.icon}
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: 500, fontSize: 13 }}>{account.email}</div>
+                                  <div style={{ fontSize: 11, color: token.colorTextTertiary }}>{account.provider}</div>
+                                </div>
+                              </div>
+                            </Select.Option>
+                          );
+                        })}
+                      </Select>
+                      <Text style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginTop: 8 }}>
+                        Invoices will be sent from this address. Recipients see your domain.
+                      </Text>
+                    </div>
+
+                    <div>
+                      <Text strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: 13, marginBottom: 10 }}>
+                        Connected Accounts
+                      </Text>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {connectedEmails.map(account => {
+                          const isSelected = invoiceMailSettings?.email === account.email;
+                          const providerColors: Record<string, { bg: string; text: string; icon: React.ReactNode; label: string }> = {
+                            GOOGLE: { bg: '#FEF2F2', text: '#DC2626', icon: <GoogleOutlined />, label: 'Google' },
+                            MICROSOFT: { bg: '#EFF6FF', text: '#1D4ED8', icon: <WindowsFilled />, label: 'Microsoft' },
+                          };
+                          const p = providerColors[account.provider] || { bg: '#F0FDF4', text: '#15803D', icon: <CloudOutlined />, label: account.provider };
+                          return (
+                            <div
+                              key={account.email}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '12px 14px',
+                                borderRadius: 12,
+                                border: isSelected ? `1.5px solid ${token.colorPrimary}` : `1px solid ${token.colorBorderSecondary}`,
+                                background: isSelected
+                                  ? 'linear-gradient(180deg, rgba(124, 58, 237, 0.04) 0%, rgba(124, 58, 237, 0.01) 100%)'
+                                  : token.colorBgContainer,
+                                transition: 'all 0.2s ease',
+                                boxShadow: isSelected ? '0 4px 12px -4px rgba(124, 58, 237, 0.2)' : 'none'
+                              }}
+                            >
+                              <Space size={12} align="center">
+                                <div style={{
+                                  width: 36,
+                                  height: 36,
+                                  borderRadius: 10,
+                                  background: p.bg,
+                                  color: p.text,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: 16
+                                }}>
+                                  {p.icon}
+                                </div>
+                                <div>
+                                  <Text strong style={{ display: 'block', fontSize: 13, color: 'var(--text-primary)' }}>
+                                    {account.email}
+                                  </Text>
+                                  <Text style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                                    {p.label} · Connected
+                                  </Text>
+                                </div>
+                              </Space>
+                              {isSelected && (
+                                <div style={{
+                                  padding: '3px 8px',
+                                  borderRadius: 6,
+                                  background: 'linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%)',
+                                  color: '#fff',
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  letterSpacing: '0.05em',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}>
+                                  <StarFilled style={{ fontSize: 9 }} /> DEFAULT
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </Col>
+
+                  {/* Status panel */}
+                  <Col xs={24} md={10}>
+                    <div style={{
+                      padding: 20,
+                      borderRadius: 16,
+                      height: '100%',
+                      background: invoiceMailSettings
+                        ? invoiceMailSettings.is_verified
+                          ? 'linear-gradient(160deg, #F0FDF4 0%, #DCFCE7 100%)'
+                          : 'linear-gradient(160deg, #FFFBEB 0%, #FEF3C7 100%)'
+                        : token.colorFillAlter,
+                      border: `1px solid ${invoiceMailSettings
+                        ? invoiceMailSettings.is_verified ? '#BBF7D0' : '#FDE68A'
+                        : token.colorBorderSecondary}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 16,
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}>
+                      {invoiceMailSettings ? (
+                        <>
+                          <div style={{
+                            position: 'absolute',
+                            top: -30,
+                            right: -30,
+                            width: 120,
+                            height: 120,
+                            borderRadius: '50%',
+                            background: invoiceMailSettings.is_verified
+                              ? 'radial-gradient(circle, rgba(34, 197, 94, 0.15) 0%, transparent 70%)'
+                              : 'radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%)',
+                            pointerEvents: 'none'
+                          }} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
+                            <div style={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 14,
+                              background: invoiceMailSettings.is_verified
+                                ? 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)'
+                                : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                              color: '#fff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: invoiceMailSettings.is_verified
+                                ? '0 8px 20px -6px rgba(34, 197, 94, 0.5)'
+                                : '0 8px 20px -6px rgba(245, 158, 11, 0.5)'
+                            }}>
+                              {invoiceMailSettings.is_verified
+                                ? <SafetyCertificateFilled style={{ fontSize: 24 }} />
+                                : <ClockCircleOutlined style={{ fontSize: 22 }} />
+                              }
+                            </div>
+                            <div>
+                              <Text strong style={{
+                                fontSize: 16,
+                                display: 'block',
+                                color: invoiceMailSettings.is_verified ? '#14532D' : '#78350F',
+                                letterSpacing: '-0.01em'
+                              }}>
+                                {invoiceMailSettings.is_verified ? 'Domain Verified' : 'Verification Pending'}
+                              </Text>
+                              <Text style={{
+                                fontSize: 12,
+                                color: invoiceMailSettings.is_verified ? '#166534' : '#92400E',
+                                fontWeight: 500
+                              }}>
+                                {invoiceMailSettings.is_verified ? 'Ready to send' : 'Action required'}
+                              </Text>
+                            </div>
+                          </div>
+
+                          <div style={{
+                            padding: '12px 14px',
+                            background: 'rgba(255,255,255,0.6)',
+                            backdropFilter: 'blur(8px)',
+                            borderRadius: 10,
+                            border: `1px solid ${invoiceMailSettings.is_verified ? 'rgba(34, 197, 94, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
+                            position: 'relative'
+                          }}>
+                            <Text style={{
+                              fontSize: 11,
+                              color: invoiceMailSettings.is_verified ? '#166534' : '#92400E',
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em'
+                            }}>
+                              Account
+                            </Text>
+                            <Text strong style={{
+                              fontSize: 13,
+                              display: 'block',
+                              color: invoiceMailSettings.is_verified ? '#14532D' : '#78350F',
+                              wordBreak: 'break-all',
+                              marginTop: 2
+                            }}>
+                              {invoiceMailSettings.email}
+                            </Text>
+                          </div>
+
+                          <Text style={{
+                            fontSize: 12,
+                            color: invoiceMailSettings.is_verified ? '#166534' : '#92400E',
+                            lineHeight: 1.6,
+                            position: 'relative'
+                          }}>
+                            {invoiceMailSettings.is_verified
+                              ? 'All invoices sent through Z-Space will be delivered from this address. Recipients will see your company name and domain.'
+                              : 'A verification link was sent to your inbox. Click the link to activate this email for sending invoices.'}
                           </Text>
-                          <Text style={{ fontSize: 13, color: invoiceMailSettings.is_verified ? '#166534' : '#92400e' }}>
-                            {invoiceMailSettings.is_verified 
-                              ? `This email is ready to send invoices.` 
-                              : `Check your inbox (${invoiceMailSettings.email}) for a verification link.`}
+
+                          {!invoiceMailSettings.is_verified && (
+                            <Button
+                              type="primary"
+                              icon={<ReloadOutlined />}
+                              block
+                              loading={resendingVerification === invoiceMailSettings.email}
+                              onClick={async () => {
+                                try {
+                                  setResendingVerification(invoiceMailSettings.email);
+                                  await MailService.resendInvoiceMailVerification(invoiceMailSettings.email);
+                                  messageApi.success('Verification email resent!');
+                                } catch (error: any) {
+                                  messageApi.error(error.message || 'Failed to resend verification');
+                                } finally {
+                                  setResendingVerification(null);
+                                }
+                              }}
+                              style={{
+                                borderRadius: 10,
+                                height: 42,
+                                fontWeight: 600,
+                                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                                border: 'none',
+                                boxShadow: '0 6px 16px -4px rgba(245, 158, 11, 0.4)'
+                              }}
+                            >
+                              Resend Verification Email
+                            </Button>
+                          )}
+                        </>
+                      ) : (
+                        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                          <div style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 16,
+                            background: token.colorBgContainer,
+                            border: `1px solid ${token.colorBorderSecondary}`,
+                            margin: '0 auto 12px auto',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: token.colorTextTertiary
+                          }}>
+                            <MailOutlined style={{ fontSize: 24 }} />
+                          </div>
+                          <Text strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: 14, marginBottom: 4 }}>
+                            No default mail selected
+                          </Text>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Pick a connected account on the left to set it as your invoice sender.
                           </Text>
                         </div>
-                      </Space>
-                      
-                      {!invoiceMailSettings.is_verified && (
-                        <Button 
-                          type="primary" 
-                          size="small"
-                          loading={resendingVerification === invoiceMailSettings.email}
-                          onClick={async () => {
-                            try {
-                              setResendingVerification(invoiceMailSettings.email);
-                              await MailService.resendInvoiceMailVerification(invoiceMailSettings.email);
-                              messageApi.success('Verification email resent!');
-                            } catch (error: any) {
-                              messageApi.error(error.message || 'Failed to resend verification');
-                            } finally {
-                              setResendingVerification(null);
-                            }
-                          }}
-                          style={{ borderRadius: 6 }}
-                        >
-                          Resend
-                        </Button>
                       )}
                     </div>
-                  </div>
-                </Col>
+                  </Col>
+                </Row>
               )}
-            </Row>
+            </div>
           </Card>
         </div>
       )

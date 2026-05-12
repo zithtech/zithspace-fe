@@ -12,6 +12,7 @@ import {
   Skeleton,
   Empty,
   Segmented,
+  Select,
   Dropdown,
 } from "antd";
 import type { ColumnType } from "antd/es/table";
@@ -30,7 +31,6 @@ import {
   TrendingDown,
   ArrowUpRight,
   Globe2,
-  Filter,
   Download,
   MoreHorizontal,
   Wallet,
@@ -97,6 +97,7 @@ interface StatCardProps {
   trend?: { value: number; label: string; positive?: boolean };
   subtle?: string;
   loading?: boolean;
+  chart?: React.ReactNode;
 }
 
 const StatCard: React.FC<StatCardProps> = ({
@@ -107,29 +108,76 @@ const StatCard: React.FC<StatCardProps> = ({
   trend,
   subtle,
   loading,
+  chart,
 }) => (
-  <div className="cm-stat-card">
-    <div className="cm-stat-glow" style={{ background: accent }} />
-    <div className="cm-stat-row">
-      <div className="cm-stat-icon" style={{ background: `${accent}14`, color: accent, boxShadow: `inset 0 0 0 1px ${accent}30` }}>
-        <Icon size={18} color={accent} />
+  <div className="cm-stat-card" style={{ ["--cm-accent" as any]: accent }}>
+    <div className="cm-stat-head">
+      <div
+        className="cm-stat-icon"
+        style={{
+          background: `${accent}12`,
+          color: accent,
+          boxShadow: `inset 0 0 0 1px ${accent}26`,
+        }}
+      >
+        <Icon size={16} color={accent} />
       </div>
-      {trend && (
-        <div className={`cm-trend ${trend.positive ? "up" : "down"}`}>
-          {trend.positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-          <span>{trend.value > 0 ? "+" : ""}{trend.value}%</span>
-        </div>
-      )}
+      <Text className="cm-stat-label">{label}</Text>
+      <div className="cm-stat-value-wrap">
+        {loading ? (
+          <Skeleton.Input active size="small" style={{ width: 64, height: 22 }} />
+        ) : (
+          <span className="cm-stat-value">{value}</span>
+        )}
+        {trend && (
+          <span className={`cm-trend ${trend.positive ? "up" : "down"}`}>
+            {trend.positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+            <span className="cm-trend-value">
+              {trend.value > 0 ? "+" : ""}
+              {trend.value}%
+            </span>
+          </span>
+        )}
+      </div>
     </div>
-    <Text className="cm-stat-label">{label}</Text>
-    {loading ? (
-      <Skeleton.Input active size="small" style={{ width: 80, marginTop: 4 }} />
-    ) : (
-      <div className="cm-stat-value">{value}</div>
-    )}
     {subtle && <Text className="cm-stat-subtle">{subtle}</Text>}
+    {chart && <div className="cm-stat-chart">{chart}</div>}
+    <span
+      className="cm-stat-accent"
+      style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
+    />
   </div>
 );
+
+/* Mini distribution bar — segmented progress using real data */
+interface MiniBarProps {
+  segments: { value: number; color: string; label: string }[];
+}
+const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  return (
+    <div className="cm-minibar">
+      <div className="cm-minibar-track">
+        {segments.map((s, i) => (
+          <Tooltip key={i} title={`${s.label}: ${s.value}`}>
+            <span
+              className="cm-minibar-seg"
+              style={{ width: `${(s.value / total) * 100}%`, background: s.color }}
+            />
+          </Tooltip>
+        ))}
+      </div>
+      <div className="cm-minibar-legend">
+        {segments.map((s, i) => (
+          <span key={i} className="cm-minibar-legend-item">
+            <span className="cm-minibar-dot" style={{ background: s.color }} />
+            {s.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 /* -------------------------------------------------------------------------- */
 /*                                 Page                                       */
@@ -147,17 +195,36 @@ export default function ClientsV2ListPage() {
   const [expandedClientProjects, setExpandedClientProjects] = useState<{ [key: string]: any[] }>({});
   const [expandedLoading, setExpandedLoading] = useState<string | null>(null);
 
+  // Quick-filter dropdown state
+  const [allClientsOpts, setAllClientsOpts] = useState<{ value: string; label: string; code?: string }[]>([]);
+  const [allProjectsOpts, setAllProjectsOpts] = useState<{ value: string; label: string; code?: string }[]>([]);
+  const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
+
+  // Project stats (Total / Active) for dashboard cards
+  const [projectStats, setProjectStats] = useState({ total: 0, active: 0 });
+
+  // Global client stats — independent of search / filter state.
+  // Stats cards and segmented counts read from here so they stay stable while the user searches.
+  const [globalStats, setGlobalStats] = useState({
+    totalClients: 0,
+    activeClients: 0,
+    inactiveClients: 0,
+    totalContractValue: 0,
+  });
+
   const fetchClients = async (
     page = 1,
     pageSize = 10,
     search = "",
     filter: "all" | "active" | "highRisk" = "all",
+    type?: string,
   ) => {
     setLoading(true);
     try {
       const params: any = { page, limit: pageSize, search };
       if (filter === "active") params.status = "Active";
       if (filter === "highRisk") params.riskLevel = "High";
+      if (type) params.clientType = type;
 
       const result = await apiUtils.getPaginated("/api/clients-v2", params);
       setData(result.data);
@@ -170,6 +237,57 @@ export default function ClientsV2ListPage() {
       console.error("Failed to fetch clients v2", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllClientOptions = async () => {
+    try {
+      const result = await apiUtils.getPaginated("/api/clients-v2", { page: 1, limit: 1000 });
+      const all = result.data || [];
+      setAllClientsOpts(
+        all.map((c: any) => ({
+          value: c.id,
+          label: c.companyName,
+          code: c.clientCode,
+        }))
+      );
+      const activeClients = all.filter((c: any) => c.status === "Active").length;
+      setGlobalStats({
+        totalClients: result.pagination.total,
+        activeClients,
+        inactiveClients: Math.max(0, all.length - activeClients),
+        totalContractValue: all.reduce(
+          (s: number, c: any) => s + (Number(c.contractValue) || 0),
+          0,
+        ),
+      });
+    } catch (err) {
+      console.error("Failed to fetch all clients", err);
+    }
+  };
+
+  const fetchAllProjectOptions = async () => {
+    try {
+      const data = await api.get<any[]>("/api/projects/select");
+      const opts = (data || []).map((p: any) => ({
+        value: p.value,
+        label: p.label,
+        code: p.code,
+      }));
+      setAllProjectsOpts(opts);
+    } catch (err) {
+      console.error("Failed to fetch all projects", err);
+    }
+  };
+
+  const fetchProjectStats = async () => {
+    try {
+      const data = await api.get<{ total: number; active: number }>(
+        "/api/clients-v2/projects/stats",
+      );
+      setProjectStats({ total: data?.total || 0, active: data?.active || 0 });
+    } catch (err) {
+      console.error("Failed to fetch project stats", err);
     }
   };
 
@@ -206,33 +324,43 @@ export default function ClientsV2ListPage() {
     if (tenantId) {
       fetchClients();
       fetchHighRiskStats();
+      fetchAllClientOptions();
+      fetchAllProjectOptions();
+      fetchProjectStats();
     }
   }, [tenantId]);
 
+  /* Distinct client types derived from the loaded option list */
+  const typeOptions = useMemo(() => {
+    const set = new Set<string>();
+    allClientsOpts.forEach(() => {}); // placeholder so order of hooks stays stable
+    data.forEach((c) => c.clientType && set.add(c.clientType));
+    // Common fallbacks if data is sparse
+    ["B2B", "B2C", "Enterprise", "SME", "Government", "Partner"].forEach((t) => set.add(t));
+    return Array.from(set).sort().map((t) => ({ value: t, label: t }));
+  }, [data, allClientsOpts]);
+
+  const handleTypeChange = (value?: string) => {
+    setTypeFilter(value);
+    fetchClients(1, pagination.pageSize, searchText, activeFilter, value);
+  };
+
   const handleTableChange = (paginationInfo: any) => {
-    fetchClients(paginationInfo.current, paginationInfo.pageSize, searchText, activeFilter);
+    fetchClients(paginationInfo.current, paginationInfo.pageSize, searchText, activeFilter, typeFilter);
   };
 
   const handleSearch = (value: string) => {
     setSearchText(value);
-    fetchClients(1, pagination.pageSize, value, activeFilter);
+    fetchClients(1, pagination.pageSize, value, activeFilter, typeFilter);
   };
 
   const handleFilter = (next: "all" | "active" | "highRisk") => {
     setActiveFilter(next);
-    fetchClients(1, pagination.pageSize, searchText, next);
+    fetchClients(1, pagination.pageSize, searchText, next, typeFilter);
   };
 
   /* ---------------------- Derived metrics ---------------------- */
 
-  const activeCount = useMemo(() => data.filter((c) => c.status === "Active").length, [data]);
-  const totalContractValue = useMemo(
-    () => data.reduce((sum, c) => sum + (Number(c.contractValue) || 0), 0),
-    [data],
-  );
-  const healthyShare = pagination.total
-    ? Math.round(((pagination.total - highRiskCount) / pagination.total) * 100)
-    : 0;
 
   /* ---------------------- Columns ---------------------- */
 
@@ -244,10 +372,14 @@ export default function ClientsV2ListPage() {
       render: (_: any, record: any) => {
         const initials = initialsOf(record.companyName, record.clientCode);
         const grad = gradientFor(record.companyName || record.clientCode);
+        const isActive = record.status === "Active";
         return (
           <Space size={14} align="center">
-            <div className="cm-avatar" style={{ background: grad }}>
-              <span>{initials}</span>
+            <div className={`cm-avatar-wrap ${isActive ? "is-active" : ""}`}>
+              <div className="cm-avatar" style={{ background: grad }}>
+                <span>{initials}</span>
+              </div>
+              {isActive && <span className="cm-avatar-pulse" />}
             </div>
             <div style={{ minWidth: 0 }}>
               <div className="cm-client-name">
@@ -319,19 +451,23 @@ export default function ClientsV2ListPage() {
       },
     },
     {
-      title: "Contract Value",
-      dataIndex: "contractValue",
-      key: "contractValue",
-      width: 150,
-      align: "right" as const,
-      render: (val: number, record: any) => (
-        <div className="cm-currency">
-          <span className="cm-currency-amount">{formatCurrency(val, record.defaultCurrency)}</span>
-          {record.defaultCurrency && val != null && (
-            <span className="cm-currency-code">{record.defaultCurrency}</span>
-          )}
-        </div>
-      ),
+      title: "Projects",
+      key: "projectsCount",
+      width: 130,
+      render: (_: any, record: any) => {
+        const count = record?._count?.ClientProject ?? 0;
+        return (
+          <span className={`cm-projects-pill ${count > 0 ? "has" : "empty"}`}>
+            <span className="cm-projects-ico">
+              <FolderKanban size={13} />
+            </span>
+            <span className="cm-projects-count">{count}</span>
+            <span className="cm-projects-label">
+              {count === 1 ? "project" : "projects"}
+            </span>
+          </span>
+        );
+      },
     },
     {
       title: "Risk",
@@ -535,44 +671,116 @@ export default function ClientsV2ListPage() {
             }
           />
 
-          <div className="cm-body">
-           
+          <div className="cm-ambient" />
 
+          <div className="cm-body">
             {/* Stat grid */}
             <div className="cm-stat-grid">
               <StatCard
                 label="Total Clients"
-                value={pagination.total}
+                value={globalStats.totalClients}
                 icon={Users}
                 accent="#3b82f6"
-                trend={{ value: 12, label: "vs last month", positive: true }}
                 subtle="Across all segments"
-                loading={loading && pagination.total === 0}
+                loading={globalStats.totalClients === 0 && loading}
+                chart={
+                  globalStats.totalClients > 0 ? (
+                    <MiniBar
+                      segments={[
+                        {
+                          value: globalStats.activeClients,
+                          color: "#10b981",
+                          label: `${globalStats.activeClients} active`,
+                        },
+                        {
+                          value: globalStats.inactiveClients,
+                          color: "#94a3b8",
+                          label: `${globalStats.inactiveClients} other`,
+                        },
+                      ]}
+                    />
+                  ) : null
+                }
               />
               <StatCard
-                label="Active Accounts"
-                value={activeCount}
+                label="Total Projects"
+                value={projectStats.total}
+                icon={FolderKanban}
+                accent="#0ea5e9"
+                subtle="Across all clients"
+                loading={projectStats.total === 0 && loading}
+                chart={
+                  projectStats.total > 0 ? (
+                    <MiniBar
+                      segments={[
+                        { value: projectStats.active, color: "#0ea5e9", label: `${projectStats.active} active` },
+                        {
+                          value: Math.max(0, projectStats.total - projectStats.active),
+                          color: "#94a3b8",
+                          label: `${Math.max(0, projectStats.total - projectStats.active)} other`,
+                        },
+                      ]}
+                    />
+                  ) : null
+                }
+              />
+              <StatCard
+                label="Active Projects"
+                value={projectStats.active}
                 icon={CheckCircle2}
                 accent="#10b981"
-                subtle={`${pagination.total ? Math.round((activeCount / pagination.total) * 100) : 0}% of portfolio`}
-                loading={loading && data.length === 0}
-              />
-              <StatCard
-                label="High Risk"
-                value={highRiskCount}
-                icon={AlertCircle}
-                accent="#ef4444"
-                trend={{ value: -3, label: "improving", positive: false }}
-                subtle="Needs review"
+                subtle={
+                  projectStats.total > 0
+                    ? `${Math.round((projectStats.active / projectStats.total) * 100)}% of total`
+                    : "No projects yet"
+                }
+                loading={projectStats.total === 0 && loading}
+                chart={
+                  projectStats.total > 0 ? (
+                    <div className="cm-progress-row">
+                      <div className="cm-progress-track">
+                        <span
+                          className="cm-progress-fill"
+                          style={{
+                            width: `${Math.round((projectStats.active / projectStats.total) * 100)}%`,
+                            background: "linear-gradient(90deg, #10b981, #34d399)",
+                          }}
+                        />
+                      </div>
+                      <span className="cm-progress-label">
+                        {Math.round((projectStats.active / projectStats.total) * 100)}%
+                      </span>
+                    </div>
+                  ) : null
+                }
               />
               <StatCard
                 label="Contract Value"
-                value={formatCurrency(totalContractValue)}
+                value={formatCurrency(globalStats.totalContractValue)}
                 icon={Wallet}
                 accent="#8b5cf6"
-                subtle="On current page"
-                loading={loading && data.length === 0}
+                subtle="Across all clients"
+                loading={globalStats.totalClients === 0 && loading}
+                chart={
+                  globalStats.totalClients > 0 ? (
+                    <div className="cm-cv-row">
+                      <Sparkles size={11} />
+                      <span>
+                        Avg{" "}
+                        <strong>
+                          {formatCurrency(globalStats.totalContractValue / globalStats.totalClients)}
+                        </strong>{" "}
+                        per client
+                      </span>
+                    </div>
+                  ) : null
+                }
               />
+            </div>
+
+            {/* Divider between stats and filters */}
+            <div className="cm-section-divider">
+              <span className="cm-section-divider-label">Filters &amp; quick navigation</span>
             </div>
 
             {/* Filter / toolbar row */}
@@ -581,18 +789,115 @@ export default function ClientsV2ListPage() {
                 value={activeFilter}
                 onChange={(v) => handleFilter(v as any)}
                 options={[
-                  { label: <span className="cm-seg-label"><ShieldCheck size={13} /> All clients</span>, value: "all" },
-                  { label: <span className="cm-seg-label"><CheckCircle2 size={13} /> Active</span>, value: "active" },
-                  { label: <span className="cm-seg-label"><AlertCircle size={13} /> High risk</span>, value: "highRisk" },
+                  {
+                    label: (
+                      <span className="cm-seg-label">
+                        <ShieldCheck size={13} /> All
+                        <span className="cm-seg-count">{globalStats.totalClients}</span>
+                      </span>
+                    ),
+                    value: "all",
+                  },
+                  {
+                    label: (
+                      <span className="cm-seg-label">
+                        <CheckCircle2 size={13} /> Active
+                        <span className="cm-seg-count">{globalStats.activeClients}</span>
+                      </span>
+                    ),
+                    value: "active",
+                  },
+                  {
+                    label: (
+                      <span className="cm-seg-label">
+                        <AlertCircle size={13} /> High risk
+                        <span className="cm-seg-count">{highRiskCount}</span>
+                      </span>
+                    ),
+                    value: "highRisk",
+                  },
                 ]}
                 className="cm-segmented"
               />
+
+              <div className="cm-toolbar-mid">
+                <Select
+                  showSearch
+                  allowClear
+                  placeholder="Jump to client…"
+                  className="cm-quick-select cm-quick-select-client"
+                  popupClassName="cm-quick-popup"
+                  suffixIcon={<Building2 size={13} />}
+                  options={allClientsOpts}
+                  onChange={(id?: string) => {
+                    if (id) router.push(`/clients-v2/${id}`);
+                  }}
+                  filterOption={(input, option) => {
+                    const q = (input || "").toLowerCase();
+                    const label = ((option?.label as string) || "").toLowerCase();
+                    const code = ((option as any)?.code || "").toLowerCase();
+                    return label.includes(q) || code.includes(q);
+                  }}
+                  optionRender={(opt) => (
+                    <div className="cm-quick-opt">
+                      <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
+                      {(opt.data as any)?.code && (
+                        <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
+                      )}
+                    </div>
+                  )}
+                />
+
+                <Select
+                  showSearch
+                  allowClear
+                  placeholder="Jump to project…"
+                  className="cm-quick-select cm-quick-select-project"
+                  popupClassName="cm-quick-popup"
+                  suffixIcon={<FolderKanban size={13} />}
+                  options={allProjectsOpts}
+                  onChange={(id?: string) => {
+                    if (id) router.push(`/projects/${id}/overview`);
+                  }}
+                  filterOption={(input, option) => {
+                    const q = (input || "").toLowerCase();
+                    const label = ((option?.label as string) || "").toLowerCase();
+                    const code = ((option as any)?.code || "").toLowerCase();
+                    return label.includes(q) || code.includes(q);
+                  }}
+                  optionRender={(opt) => (
+                    <div className="cm-quick-opt">
+                      <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
+                      {(opt.data as any)?.code && (
+                        <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
+                      )}
+                    </div>
+                  )}
+                />
+
+                <Select
+                  showSearch
+                  allowClear
+                  placeholder="Client type"
+                  className="cm-quick-select cm-quick-select-type"
+                  popupClassName="cm-quick-popup"
+                  suffixIcon={<Sparkles size={13} />}
+                  value={typeFilter}
+                  options={typeOptions}
+                  onChange={(v?: string) => handleTypeChange(v)}
+                  filterOption={(input, option) =>
+                    ((option?.label as string) || "")
+                      .toLowerCase()
+                      .includes((input || "").toLowerCase())
+                  }
+                />
+              </div>
+
               <div className="cm-toolbar-right">
-                <Tooltip title="More filters">
-                  <Button icon={<Filter size={15} />} className="cm-icon-btn">Filters</Button>
-                </Tooltip>
                 <span className="cm-result-count">
-                  {pagination.total ? `Showing ${(pagination.current - 1) * pagination.pageSize + 1}–${Math.min(pagination.current * pagination.pageSize, pagination.total)} of ${pagination.total}` : "No results"}
+                  {pagination.total
+                    ? `Showing ${(pagination.current - 1) * pagination.pageSize + 1}–${Math.min(pagination.current * pagination.pageSize, pagination.total)} of ${pagination.total}`
+                    : "No results"}
                 </span>
               </div>
             </div>
@@ -624,17 +929,14 @@ export default function ClientsV2ListPage() {
                       <div className="cm-empty-icon">
                         <Building2 size={28} />
                       </div>
-                      <Title level={5} style={{ margin: "12px 0 4px", fontWeight: 700 }}>
-                        No clients yet
-                      </Title>
-                      <Text type="secondary" style={{ fontSize: 13 }}>
+                      <div className="cm-empty-title">No clients yet</div>
+                      <div className="cm-empty-desc">
                         Add your first client to start tracking projects and contracts.
-                      </Text>
+                      </div>
                       <Button
                         type="primary"
                         icon={<Plus size={14} />}
-                        className="cm-primary-btn"
-                        style={{ marginTop: 16 }}
+                        className="cm-primary-btn cm-empty-cta"
                         onClick={() => router.push("/clients-v2/create")}
                       >
                         Create Client
@@ -668,12 +970,33 @@ export default function ClientsV2ListPage() {
           {/* ----------------------------- Styles ------------------------------ */}
           <style jsx global>{`
             .cm-page {
+              position: relative;
               margin: 0 -24px;
               background: var(--bg-primary);
               min-height: calc(100vh - 64px);
             }
+            /* Subtle ambient accent — adds depth without glassiness */
+            .cm-ambient {
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              height: 320px;
+              pointer-events: none;
+              background:
+                radial-gradient(900px 240px at 12% 0%, rgba(139, 92, 246, 0.06), transparent 60%),
+                radial-gradient(700px 220px at 90% 0%, rgba(59, 130, 246, 0.05), transparent 60%);
+              z-index: 0;
+            }
+            [data-theme='dark'] .cm-ambient {
+              background:
+                radial-gradient(900px 240px at 12% 0%, rgba(139, 92, 246, 0.10), transparent 60%),
+                radial-gradient(700px 220px at 90% 0%, rgba(59, 130, 246, 0.08), transparent 60%);
+            }
             .cm-body {
-              padding: 0 32px 40px 32px;
+              position: relative;
+              z-index: 1;
+              padding: 8px 32px 40px 32px;
             }
 
             /* ---------- Hero banner ---------- */
@@ -759,7 +1082,7 @@ export default function ClientsV2ListPage() {
               display: grid;
               grid-template-columns: repeat(4, minmax(0, 1fr));
               gap: 16px;
-              margin-bottom: 24px;
+              margin-bottom: 22px;
             }
             @media (max-width: 1100px) {
               .cm-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -772,70 +1095,212 @@ export default function ClientsV2ListPage() {
               background: var(--bg-pure-white);
               border: 1px solid var(--border-slate-100);
               border-radius: 14px;
-              padding: 14px 18px 12px;
+              padding: 14px 16px 14px;
               overflow: hidden;
-              transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+              transition: transform .25s cubic-bezier(.2,.8,.2,1),
+                          box-shadow .25s cubic-bezier(.2,.8,.2,1),
+                          border-color .25s ease;
+              box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
             }
             .cm-stat-card:hover {
               transform: translateY(-2px);
-              box-shadow: 0 14px 30px -16px rgba(15,23,42,0.18);
+              box-shadow: 0 18px 36px -22px rgba(15,23,42,0.22);
               border-color: var(--border-slate-200);
             }
-            .cm-stat-glow {
+            .cm-stat-card:hover .cm-stat-accent { opacity: 1; }
+            .cm-stat-accent {
               position: absolute;
-              top: -40px;
-              right: -40px;
-              width: 140px;
-              height: 140px;
-              border-radius: 50%;
-              filter: blur(40px);
-              opacity: 0.12;
+              left: 0; right: 0; bottom: 0;
+              height: 2px;
+              opacity: 0.55;
+              transition: opacity .25s ease;
               pointer-events: none;
             }
-            .cm-stat-row {
+            /* Single-row head: icon | title | value */
+            .cm-stat-head {
               display: flex;
               align-items: center;
-              justify-content: space-between;
-              margin-bottom: 10px;
+              gap: 10px;
+              min-width: 0;
             }
             .cm-stat-icon {
               width: 32px; height: 32px;
               border-radius: 9px;
               display: flex; align-items: center; justify-content: center;
+              flex-shrink: 0;
             }
-            .cm-trend {
-              display: inline-flex;
-              align-items: center;
-              gap: 4px;
-              padding: 3px 8px;
-              border-radius: 999px;
-              font-size: 11px;
-              font-weight: 700;
-            }
-            .cm-trend.up { background: rgba(16,185,129,0.1); color: #059669; }
-            .cm-trend.down { background: rgba(239,68,68,0.1); color: #dc2626; }
             .cm-stat-label {
-              display: block;
-              font-size: 12px;
+              flex: 1;
+              min-width: 0;
+              font-size: 13px;
               font-weight: 600;
-              color: var(--text-slate-500);
-              text-transform: uppercase;
-              letter-spacing: 0.04em;
+              color: var(--text-slate-700);
+              letter-spacing: -0.005em;
+              text-transform: none;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .cm-stat-value-wrap {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              flex-shrink: 0;
             }
             .cm-stat-value {
               font-size: 22px;
               font-weight: 800;
               color: var(--text-slate-900);
-              letter-spacing: -0.02em;
-              margin-top: 2px;
-              line-height: 1.1;
+              letter-spacing: -0.025em;
+              line-height: 1;
+              font-variant-numeric: tabular-nums;
             }
+            .cm-trend {
+              display: inline-flex;
+              align-items: center;
+              gap: 4px;
+              padding: 3px 7px;
+              border-radius: 999px;
+              font-size: 10.5px;
+              font-weight: 700;
+              line-height: 1;
+              white-space: nowrap;
+            }
+            .cm-trend.up { background: rgba(16,185,129,0.1); color: #047857; }
+            .cm-trend.down { background: rgba(239,68,68,0.1); color: #b91c1c; }
+            .cm-trend-value { letter-spacing: 0.01em; }
             .cm-stat-subtle {
               display: block;
               font-size: 11.5px;
               color: var(--text-slate-500);
-              margin-top: 4px;
+              margin-top: 8px;
+              padding-left: 42px;
               font-weight: 500;
+              line-height: 1.4;
+            }
+            .cm-stat-chart {
+              margin-top: 10px;
+              padding-top: 10px;
+              padding-left: 42px;
+              border-top: 1px dashed var(--border-slate-100);
+            }
+
+            /* MiniBar */
+            .cm-minibar { display: flex; flex-direction: column; gap: 7px; }
+            .cm-minibar-track {
+              height: 6px;
+              background: var(--bg-slate-50);
+              border-radius: 999px;
+              display: flex;
+              overflow: hidden;
+              border: 1px solid var(--border-slate-100);
+            }
+            .cm-minibar-seg {
+              display: block;
+              height: 100%;
+              transition: width .4s ease;
+            }
+            .cm-minibar-seg + .cm-minibar-seg {
+              border-left: 1px solid var(--bg-pure-white);
+            }
+            .cm-minibar-legend {
+              display: flex;
+              gap: 12px;
+              flex-wrap: wrap;
+            }
+            .cm-minibar-legend-item {
+              display: inline-flex;
+              align-items: center;
+              gap: 5px;
+              font-size: 11px;
+              color: var(--text-slate-600);
+              font-weight: 500;
+            }
+            .cm-minibar-dot {
+              width: 7px; height: 7px;
+              border-radius: 2px;
+              display: inline-block;
+            }
+
+            /* Inline progress (active / risk) */
+            .cm-progress-row {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            }
+            .cm-progress-track {
+              flex: 1;
+              height: 6px;
+              background: var(--bg-slate-50);
+              border-radius: 999px;
+              overflow: hidden;
+              border: 1px solid var(--border-slate-100);
+            }
+            .cm-progress-fill {
+              display: block;
+              height: 100%;
+              border-radius: 999px;
+              transition: width .4s ease;
+            }
+            .cm-progress-label {
+              font-size: 11px;
+              font-weight: 700;
+              color: var(--text-slate-700);
+              font-variant-numeric: tabular-nums;
+              white-space: nowrap;
+            }
+
+            /* Contract value sub-row */
+            .cm-cv-row {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 11.5px;
+              color: var(--text-slate-600);
+              font-weight: 500;
+            }
+            .cm-cv-row strong {
+              color: var(--text-slate-900);
+              font-weight: 700;
+              font-variant-numeric: tabular-nums;
+            }
+
+            /* ---------- Section divider between stats and filters ---------- */
+            .cm-section-divider {
+              position: relative;
+              margin: 4px 0 16px;
+              height: 18px;
+              display: flex;
+              align-items: center;
+            }
+            .cm-section-divider::before {
+              content: "";
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 50%;
+              height: 1px;
+              background: linear-gradient(
+                90deg,
+                transparent 0%,
+                var(--border-slate-100) 18%,
+                var(--border-slate-100) 82%,
+                transparent 100%
+              );
+              transform: translateY(-0.5px);
+              pointer-events: none;
+            }
+            .cm-section-divider-label {
+              position: relative;
+              z-index: 1;
+              background: var(--bg-primary);
+              padding: 0 12px;
+              margin-left: 4px;
+              font-size: 10.5px;
+              font-weight: 700;
+              letter-spacing: 0.1em;
+              text-transform: uppercase;
+              color: var(--text-slate-500);
             }
 
             /* ---------- Toolbar ---------- */
@@ -846,12 +1311,126 @@ export default function ClientsV2ListPage() {
               gap: 12px;
               margin-bottom: 14px;
               flex-wrap: wrap;
+              padding: 14px 16px;
+              background: var(--bg-pure-white);
+              border: 1px solid var(--border-slate-100);
+              border-radius: 14px;
+              box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+            }
+            .cm-toolbar-mid {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex: 1 1 auto;
+              flex-wrap: wrap;
+              justify-content: flex-start;
+              padding-left: 4px;
+            }
+
+            /* Quick filter dropdowns */
+            .cm-quick-select.ant-select {
+              min-width: 180px;
+            }
+            .cm-quick-select.ant-select .ant-select-selector {
+              height: 36px !important;
+              border-radius: 10px !important;
+              border: 1px solid var(--border-slate-100) !important;
+              background: var(--bg-slate-50) !important;
+              padding: 0 12px !important;
+              display: flex !important;
+              align-items: center !important;
+              transition: all .18s ease;
+            }
+            .cm-quick-select.ant-select:hover .ant-select-selector {
+              border-color: rgba(139, 92, 246, 0.45) !important;
+            }
+            .cm-quick-select.ant-select-focused .ant-select-selector {
+              border-color: #8b5cf6 !important;
+              background: var(--bg-pure-white) !important;
+              box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+            }
+            .cm-quick-select .ant-select-selection-search-input { height: 34px !important; }
+            .cm-quick-select .ant-select-selection-placeholder,
+            .cm-quick-select .ant-select-selection-item {
+              font-size: 13px !important;
+              font-weight: 500;
+              line-height: 34px !important;
+            }
+            .cm-quick-select .ant-select-arrow {
+              color: var(--text-slate-400) !important;
+              transition: color .15s ease;
+            }
+            .cm-quick-select.ant-select-focused .ant-select-arrow,
+            .cm-quick-select.ant-select:hover .ant-select-arrow {
+              color: #8b5cf6 !important;
+            }
+            .cm-quick-select-client.ant-select { min-width: 220px; flex: 1 1 220px; max-width: 280px; }
+            .cm-quick-select-project.ant-select { min-width: 220px; flex: 1 1 220px; max-width: 280px; }
+            .cm-quick-select-type.ant-select { min-width: 160px; max-width: 200px; }
+
+            /* Dropdown popup */
+            .cm-quick-popup .ant-select-item {
+              padding: 7px 12px !important;
+              border-radius: 7px !important;
+              margin: 0 6px !important;
+              transition: background .15s ease;
+            }
+            .cm-quick-popup .ant-select-item-option-active {
+              background: rgba(139, 92, 246, 0.08) !important;
+            }
+            .cm-quick-popup .ant-select-item-option-selected {
+              background: linear-gradient(135deg, rgba(139, 92, 246, 0.14), rgba(99, 102, 241, 0.1)) !important;
+              color: #6d28d9 !important;
+              font-weight: 600 !important;
+            }
+            .cm-quick-opt {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 10px;
+              width: 100%;
+            }
+            .cm-quick-opt-main {
+              font-size: 13px;
+              font-weight: 500;
+              color: var(--text-slate-700);
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              min-width: 0;
+            }
+            .cm-quick-opt-code {
+              font-family: ui-monospace, "SF Mono", Menlo, monospace;
+              font-size: 10.5px;
+              font-weight: 600;
+              color: var(--text-slate-500);
+              background: var(--bg-slate-50);
+              padding: 1px 6px;
+              border-radius: 4px;
+              border: 1px solid var(--border-slate-100);
+              flex-shrink: 0;
+            }
+
+            /* Dark theme */
+            [data-theme='dark'] .cm-section-divider-label { background: var(--bg-primary); }
+            [data-theme='dark'] .cm-toolbar { background: var(--bg-secondary); }
+            [data-theme='dark'] .cm-quick-select.ant-select .ant-select-selector {
+              background: var(--bg-secondary) !important;
+            }
+            [data-theme='dark'] .cm-quick-popup .ant-select-item-option-selected {
+              color: #c4b5fd !important;
+            }
+            [data-theme='dark'] .cm-quick-opt-code {
+              background: var(--bg-primary);
+              border-color: var(--border-slate-100);
+              color: var(--text-slate-400);
             }
             .cm-segmented.ant-segmented {
               background: var(--bg-pure-white) !important;
               border: 1px solid var(--border-slate-100);
               padding: 4px;
               border-radius: 12px;
+              box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
             }
             .cm-segmented .ant-segmented-item {
               border-radius: 8px !important;
@@ -860,23 +1439,48 @@ export default function ClientsV2ListPage() {
             .cm-segmented .ant-segmented-item-selected {
               background: linear-gradient(135deg, #8b5cf6, #6366f1) !important;
               color: #fff !important;
-              box-shadow: 0 4px 12px -4px rgba(139,92,246,0.45);
+              box-shadow: 0 6px 14px -6px rgba(139,92,246,0.5);
             }
             .cm-segmented .ant-segmented-item-selected .ant-segmented-item-label {
+              color: #fff !important;
+            }
+            .cm-segmented .ant-segmented-item-selected .cm-seg-count {
+              background: rgba(255,255,255,0.22) !important;
               color: #fff !important;
             }
             .cm-seg-label {
               display: inline-flex;
               align-items: center;
-              gap: 6px;
+              gap: 7px;
               font-size: 13px;
               font-weight: 600;
               padding: 2px 4px;
+            }
+            .cm-seg-count {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              min-width: 22px;
+              height: 18px;
+              padding: 0 6px;
+              border-radius: 999px;
+              background: var(--bg-slate-50);
+              color: var(--text-slate-600);
+              font-size: 10.5px;
+              font-weight: 700;
+              letter-spacing: 0.02em;
+              transition: all .2s ease;
+              font-variant-numeric: tabular-nums;
             }
             .cm-toolbar-right {
               display: flex;
               align-items: center;
               gap: 12px;
+            }
+            .cm-result-divider {
+              width: 1px;
+              height: 18px;
+              background: var(--border-slate-100);
             }
             .cm-icon-btn {
               border-radius: 10px !important;
@@ -953,7 +1557,7 @@ export default function ClientsV2ListPage() {
               border-radius: 16px;
               border: 1px solid var(--border-slate-100);
               overflow: hidden;
-              box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+              box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.06);
             }
             .cm-table-card .ant-table {
               background: transparent !important;
@@ -963,35 +1567,72 @@ export default function ClientsV2ListPage() {
               color: var(--text-slate-500) !important;
               font-weight: 700 !important;
               text-transform: uppercase !important;
-              font-size: 11px !important;
-              letter-spacing: 0.06em !important;
+              font-size: 10.5px !important;
+              letter-spacing: 0.08em !important;
               padding: 14px 16px !important;
               border-bottom: 1px solid var(--border-slate-100) !important;
             }
             .cm-table-card .ant-table-thead > tr > th::before { display: none !important; }
             .cm-table-card .ant-table-tbody > tr > td {
-              padding: 16px !important;
+              padding: 18px 16px !important;
               border-bottom: 1px solid var(--border-slate-100) !important;
               transition: background .15s ease;
+              position: relative;
+            }
+            .cm-table-card .cm-row > td:first-child::before {
+              content: "";
+              position: absolute;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 3px;
+              background: linear-gradient(180deg, #8b5cf6, #6366f1);
+              opacity: 0;
+              transition: opacity .2s ease;
+              pointer-events: none;
             }
             .cm-table-card .cm-row:hover > td {
               background: var(--bg-slate-50) !important;
+            }
+            .cm-table-card .cm-row:hover > td:first-child::before {
+              opacity: 1;
             }
             .cm-table-card .ant-table-tbody > tr.ant-table-row-level-0:last-child > td {
               border-bottom: 0 !important;
             }
 
             /* avatar / cells */
+            .cm-avatar-wrap {
+              position: relative;
+              width: 42px; height: 42px;
+              flex-shrink: 0;
+            }
             .cm-avatar {
-              width: 40px; height: 40px;
+              width: 42px; height: 42px;
               border-radius: 12px;
               display: flex; align-items: center; justify-content: center;
               color: #fff;
               font-weight: 700;
               font-size: 13px;
               letter-spacing: 0.02em;
-              box-shadow: 0 4px 10px -4px rgba(15,23,42,0.25);
+              box-shadow: 0 6px 14px -6px rgba(15,23,42,0.3),
+                          inset 0 1px 0 rgba(255,255,255,0.18);
               flex-shrink: 0;
+            }
+            .cm-avatar-wrap.is-active .cm-avatar-pulse {
+              position: absolute;
+              right: -2px;
+              bottom: -2px;
+              width: 12px; height: 12px;
+              border-radius: 50%;
+              background: #10b981;
+              border: 2px solid var(--bg-pure-white);
+              box-shadow: 0 0 0 2px rgba(16,185,129,0.25);
+              animation: cm-avatar-pulse 2.4s ease-in-out infinite;
+            }
+            @keyframes cm-avatar-pulse {
+              0%, 100% { box-shadow: 0 0 0 2px rgba(16,185,129,0.25); }
+              50% { box-shadow: 0 0 0 4px rgba(16,185,129,0.08); }
             }
             .cm-mini-avatar {
               width: 26px; height: 26px;
@@ -1002,8 +1643,13 @@ export default function ClientsV2ListPage() {
             }
             .cm-client-name {
               display: flex; align-items: center; gap: 6px;
-              font-size: 14px; color: var(--text-slate-900);
-              line-height: 1.2;
+              font-size: 14.5px; color: var(--text-slate-900);
+              line-height: 1.25;
+              letter-spacing: -0.005em;
+            }
+            .cm-client-name .ant-typography {
+              font-weight: 700 !important;
+              color: var(--text-slate-900) !important;
             }
             .cm-website-link {
               width: 18px; height: 18px;
@@ -1046,22 +1692,55 @@ export default function ClientsV2ListPage() {
               font-weight: 600;
             }
 
-            .cm-currency { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
-            .cm-currency-amount {
-              font-size: 14px;
-              font-weight: 700;
-              color: var(--text-slate-900);
+            /* Projects pill (replaces former currency cell) */
+            .cm-projects-pill {
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+              padding: 5px 11px 5px 6px;
+              border-radius: 999px;
+              border: 1px solid var(--border-slate-100);
+              background: var(--bg-pure-white);
+              font-size: 12.5px;
+              font-weight: 600;
+              color: var(--text-slate-700);
+              transition: all .2s ease;
+            }
+            .cm-projects-pill.has {
+              background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(99,102,241,0.06));
+              border-color: rgba(139,92,246,0.25);
+              color: #6d28d9;
+            }
+            .cm-projects-pill.empty { color: var(--text-slate-500); }
+            .cm-projects-ico {
+              width: 22px; height: 22px;
+              border-radius: 50%;
+              display: inline-flex; align-items: center; justify-content: center;
+              background: var(--bg-slate-50);
+              color: var(--text-slate-500);
+              flex-shrink: 0;
+            }
+            .cm-projects-pill.has .cm-projects-ico {
+              background: linear-gradient(135deg, #8b5cf6, #6366f1);
+              color: #fff;
+              box-shadow: 0 4px 10px -4px rgba(139,92,246,0.45);
+            }
+            .cm-projects-count {
+              font-weight: 800;
               font-variant-numeric: tabular-nums;
               letter-spacing: -0.01em;
             }
-            .cm-currency-code {
-              font-size: 10px;
-              font-weight: 600;
-              color: var(--text-slate-400);
-              text-transform: uppercase;
-              letter-spacing: 0.06em;
-              margin-top: 2px;
+            .cm-projects-label {
+              font-weight: 500;
+              opacity: 0.85;
+              font-size: 11.5px;
             }
+            [data-theme='dark'] .cm-projects-pill { background: var(--bg-secondary); }
+            [data-theme='dark'] .cm-projects-pill.has {
+              background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(99,102,241,0.12));
+              color: #a78bfa;
+            }
+            [data-theme='dark'] .cm-projects-ico { background: var(--bg-slate-50); }
 
             .cm-risk-pill {
               display: inline-flex;
@@ -1237,15 +1916,36 @@ export default function ClientsV2ListPage() {
             }
 
             .cm-table-empty {
-              padding: 60px 24px;
-              text-align: center;
+              padding: 56px 24px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 6px;
             }
             .cm-empty-icon {
-              width: 56px; height: 56px;
-              border-radius: 14px;
+              width: 60px; height: 60px;
+              border-radius: 16px;
               display: inline-flex; align-items: center; justify-content: center;
-              background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(99,102,241,0.1));
+              background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1));
               color: #8b5cf6;
+              margin-bottom: 10px;
+            }
+            .cm-empty-title {
+              font-size: 16px;
+              font-weight: 700;
+              color: var(--text-slate-900);
+              letter-spacing: -0.01em;
+              line-height: 1.2;
+            }
+            .cm-empty-desc {
+              font-size: 13px;
+              color: var(--text-slate-500);
+              max-width: 380px;
+              line-height: 1.5;
+              text-align: center;
+            }
+            .cm-empty-cta {
+              margin-top: 18px !important;
             }
 
             /* pagination */

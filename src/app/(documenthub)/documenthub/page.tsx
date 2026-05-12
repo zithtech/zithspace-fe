@@ -800,13 +800,11 @@ const DocumentHubPage = () => {
     const savedProject = sessionStorage.getItem("documenthub_filterProjectId");
     const savedTicket = sessionStorage.getItem("documenthub_filterTicketId");
     const savedUser = sessionStorage.getItem("documenthub_selectedUser");
-    const savedStarred = sessionStorage.getItem("documenthub_showStarredOnly");
 
     if (savedSearch) setSearchText(savedSearch);
     if (savedProject && savedProject !== "undefined") setFilterProjectId(savedProject);
     if (savedTicket && savedTicket !== "undefined") setFilterTicketId(savedTicket);
     if (savedUser && savedUser !== "undefined") setSelectedUser(savedUser);
-    if (savedStarred) setShowStarredOnly(savedStarred === "true");
   }, []);
 
   // Persist filters to sessionStorage when they change
@@ -838,9 +836,6 @@ const DocumentHubPage = () => {
     }
   }, [selectedUser]);
 
-  useEffect(() => {
-    sessionStorage.setItem("documenthub_showStarredOnly", String(showStarredOnly));
-  }, [showStarredOnly]);
   // -------------------------
 
   // Share Modal State
@@ -1581,7 +1576,6 @@ const DocumentHubPage = () => {
     setFilterTicketId(undefined);
     setSelectedUser(undefined);
     setDateRange(null);
-    setShowStarredOnly(false);
     refetch();
   };
 

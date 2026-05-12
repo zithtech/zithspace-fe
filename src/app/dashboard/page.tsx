@@ -65,6 +65,7 @@ import {
   StarFilled,
   SyncOutlined,
   ExperimentOutlined,
+  SafetyCertificateFilled
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";

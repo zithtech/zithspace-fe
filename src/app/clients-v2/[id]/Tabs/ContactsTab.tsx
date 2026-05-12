@@ -10,6 +10,7 @@ import {
   Select,
   Tag,
   Switch,
+  Segmented,
   Popconfirm,
   notification,
   Card,
@@ -24,6 +25,7 @@ import {
   Edit2,
   Search,
   User,
+  Users,
   Mail,
   Phone,
   ShieldCheck,
@@ -261,46 +263,39 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
-      <Card
-        style={{
-          borderRadius: 16,
-          border: "1px solid var(--border-slate-100)",
-          background: "var(--bg-pure-white)"
-        }}
-        bodyStyle={{ padding: "0" }}
-      >
-        <div style={{ padding: "24px", borderBottom: "1px solid var(--border-slate-100)" }}>
-          <Row justify="space-between" align="middle" gutter={[16, 16]}>
-            <Col xs={24} md={12}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>Points of Contact</div>
-                <div style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 4 }}>Manage multiple client representatives and communication details</div>
+      <Card className="ptab-card" styles={{ body: { padding: 0 } }}>
+        <div className="ptab-header">
+          <div className="ptab-header-left">
+            <div className="ptab-header-icon violet">
+              <Users size={20} />
+            </div>
+            <div className="ptab-header-titlewrap">
+              <div className="ptab-header-title">
+                Points of Contact
+                <span className="ptab-header-count">{contacts.length}</span>
               </div>
-            </Col>
-            <Col xs={24} md={12}>
-              <Row gutter={[12, 12]} justify="end">
-                <Col xs={24} sm={16} md={12} lg={14}>
-                  <Input
-                    placeholder="Filter by name..."
-                    prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ borderRadius: 10, width: "100%", height: 40 }}
-                  />
-                </Col>
-                <Col xs={24} sm={8} md={12} lg={10}>
-                  <Button
-                    type="primary"
-                    size="large"
-                    icon={<Plus size={18} />}
-                    onClick={() => setIsModalOpen(true)}
-                    style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", width: "100%", justifyContent: "center" }}
-                  >
-                    Add Contact
-                  </Button>
-                </Col>
-              </Row>
-            </Col>
-          </Row>
+              <div className="ptab-header-desc">
+                Manage multiple client representatives and communication details
+              </div>
+            </div>
+          </div>
+          <div className="ptab-header-right">
+            <Input
+              placeholder="Filter by name..."
+              prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="ptab-search"
+              allowClear
+            />
+            <Button
+              type="primary"
+              icon={<Plus size={16} />}
+              onClick={() => setIsModalOpen(true)}
+              className="ptab-primary-btn"
+            >
+              Add Contact
+            </Button>
+          </div>
         </div>
 
         <Table
@@ -310,7 +305,19 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
           pagination={false}
           className="premium-table"
           scroll={{ x: "max-content" }}
-          locale={{ emptyText: <div style={{ padding: "40px 0", color: "var(--text-slate-500)" }}>No contacts found matching your criteria</div> }}
+          locale={{
+            emptyText: (
+              <div className="ptab-empty">
+                <div className="ptab-empty-icon">
+                  <Users size={26} />
+                </div>
+                <div className="ptab-empty-title">No contacts yet</div>
+                <div className="ptab-empty-desc">
+                  Add representatives, emails, and phone numbers to keep client communication organized.
+                </div>
+              </div>
+            ),
+          }}
         />
       </Card>
 
@@ -320,33 +327,27 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         onCancel={() => setIsModalOpen(false)}
         footer={null}
         title={null}
-        width={560}
+        width={540}
         centered
         destroyOnClose
-        className="pmodal"
+        className="pmodal pmodal-compact"
         closeIcon={<X size={16} />}
       >
         <Form form={form} layout="vertical" onFinish={handleAdd}>
-          <div className="pmodal-hero">
-            <div className="pmodal-hero-mesh" />
-            <div className="pmodal-hero-blob" />
+          <div className="pmodal-hero pmodal-hero-slim">
             <div className="pmodal-hero-content">
               <div className="pmodal-hero-icon">
-                <User size={20} />
+                <User size={18} />
               </div>
-              <div>
+              <div className="pmodal-hero-text">
                 <div className="pmodal-hero-title">Add New Contact</div>
-                <div className="pmodal-hero-sub">Add a new representative for this client account</div>
+                <div className="pmodal-hero-sub">A new representative for this client account</div>
               </div>
             </div>
           </div>
 
-          <div className="pmodal-body">
-            <div className="pmodal-section-label">
-              <User size={11} />
-              <span>Identity</span>
-            </div>
-            <Row gutter={16}>
+          <div className="pmodal-body pmodal-body-compact">
+            <Row gutter={12}>
               <Col xs={24} sm={12}>
                 <Form.Item
                   name="firstName"
@@ -393,63 +394,58 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
               </Col>
             </Row>
 
-            <Form.Item
-              name="designation"
-              label="Job designation"
-            >
+            <Form.Item name="designation" label="Job designation">
               <Input placeholder="e.g. CTO, Hiring Manager" />
             </Form.Item>
 
-            <div className="pmodal-section-label">
-              <Mail size={11} />
-              <span>Communication</span>
-            </div>
             <Form.Item
               name="officialEmail"
-              label="Official email address"
+              label="Official email"
               rules={[{ required: true, type: "email", message: "Valid email required" }]}
             >
               <Input
                 placeholder="john.smith@company.com"
-                prefix={<Mail size={15} style={{ color: "var(--text-slate-400)" }} />}
+                prefix={<Mail size={14} style={{ color: "var(--text-slate-400)" }} />}
               />
             </Form.Item>
 
-            <Form.Item
-              name="mobileNumber"
-              label="Contact number"
-            >
-              <Input
-                placeholder="+1 (555) 000-0000"
-                type="number"
-                prefix={<Phone size={15} style={{ color: "var(--text-slate-400)" }} />}
-              />
-            </Form.Item>
-
-            <div className="pmodal-section-label">
-              <ShieldCheck size={11} />
-              <span>Designation</span>
-            </div>
-            <Form.Item
-              name="isPrimary"
-              label="Primary contact"
-              initialValue={false}
-            >
-              <Select
-                placeholder="Select designation"
-                options={[
-                  { value: true, label: "Yes — this is a primary contact" },
-                  { value: false, label: "No — secondary contact" },
-                ]}
-              />
-            </Form.Item>
+            <Row gutter={12} align="top">
+              <Col xs={24} sm={12}>
+                <Form.Item name="mobileNumber" label="Contact number">
+                  <Input
+                    placeholder="+1 (555) 000-0000"
+                    type="number"
+                    prefix={<Phone size={14} style={{ color: "var(--text-slate-400)" }} />}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="isPrimary"
+                  label="Designation"
+                  initialValue={false}
+                >
+                  <Segmented
+                    block
+                    className="pmodal-segmented"
+                    options={[
+                      {
+                        label: (
+                          <span className="pmodal-seg-label">
+                            <ShieldCheck size={12} /> Primary
+                          </span>
+                        ),
+                        value: true,
+                      },
+                      { label: "Secondary", value: false },
+                    ]}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
           </div>
 
-          <div className="pmodal-footer">
-            <span className="pmodal-footer-hint">
-              <ShieldCheck size={12} />
-              Required fields are marked
-            </span>
+          <div className="pmodal-footer pmodal-footer-compact">
             <Button
               onClick={() => setIsModalOpen(false)}
               className="pmodal-btn-cancel"
@@ -460,7 +456,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
               type="primary"
               htmlType="submit"
               loading={loading}
-              icon={<Plus size={15} />}
+              icon={<Plus size={14} />}
               className="pmodal-btn-primary"
             >
               Create Contact

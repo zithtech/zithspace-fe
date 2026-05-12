@@ -168,6 +168,8 @@ function DashboardContent() {
     trendTone = "neutral",
     icon,
     accent,
+    subtle,
+    chart,
   }: {
     eyebrow: string;
     value: React.ReactNode;
@@ -175,96 +177,53 @@ function DashboardContent() {
     trendTone?: "positive" | "neutral" | "warning";
     icon: React.ReactNode;
     accent: string;
+    subtle?: string;
+    chart?: React.ReactNode;
   }) => {
     const trendColors: Record<string, { bg: string; fg: string }> = {
-      positive: { bg: "#ECFDF5", fg: "#047857" },
+      positive: { bg: "rgba(16,185,129,0.1)", fg: "#047857" },
       neutral: { bg: token.colorFillAlter, fg: token.colorTextSecondary },
-      warning: { bg: "#FEF3C7", fg: "#92400E" },
+      warning: { bg: "rgba(245,158,11,0.12)", fg: "#92400E" },
     };
     const tc = trendColors[trendTone];
     return (
-      <Card
-        size="small"
-        style={{ ...cardBase, height: "100%" }}
-        styles={{ body: { padding: "14px 16px" } }}
+      <div
+        className="dash-stat-card"
+        style={{ ["--dash-accent" as any]: accent }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            marginBottom: 10,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: token.colorTextSecondary,
-              letterSpacing: "0.6px",
-              textTransform: "uppercase",
-            }}
-          >
-            {eyebrow}
-          </Text>
+        <div className="dash-stat-head">
           <div
+            className="dash-stat-icon"
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 9,
-              background: `${accent}14`,
-              border: `1px solid ${accent}26`,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
+              background: `${accent}1F`,
               color: accent,
-              fontSize: 13,
+              boxShadow: `inset 0 0 0 1px ${accent}26`,
             }}
           >
             {icon}
           </div>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-            gap: 10,
-            flexWrap: "wrap",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 26,
-              fontWeight: 700,
-              lineHeight: 1.05,
-              color: token.colorText,
-              letterSpacing: "-0.6px",
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            {value}
+          <Text className="dash-stat-label">{eyebrow}</Text>
+          <div className="dash-stat-value-wrap">
+            <span className="dash-stat-value">{value}</span>
+            {trend && (
+              <span
+                className="dash-stat-trend"
+                style={{ background: tc.bg, color: tc.fg }}
+              >
+                {trend}
+              </span>
+            )}
           </div>
-          {trend && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                padding: "2px 8px",
-                borderRadius: 999,
-                background: tc.bg,
-                color: tc.fg,
-                fontSize: 11,
-                fontWeight: 600,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {trend}
-            </span>
-          )}
         </div>
-      </Card>
+        {subtle && <Text className="dash-stat-subtle">{subtle}</Text>}
+        {chart && <div className="dash-stat-chart">{chart}</div>}
+        <span
+          className="dash-stat-accent"
+          style={{
+            background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)`,
+          }}
+        />
+      </div>
     );
   };
 
@@ -329,37 +288,214 @@ function DashboardContent() {
   );
 
   // ─── Stats ────────────────────────────────────────────────────────
-  const stats = dashboardData
-    ? [
-      {
-        eyebrow: "Total Members",
-        value: dashboardData.stats.totalMembers,
-        trend: dashboardData.trends.memberGrowth,
-        icon: <TeamOutlined />,
-        accent: "#0EA5E9",
-      },
-      {
-        eyebrow: "Active Projects",
-        value: dashboardData.stats.activeProjects,
-        trend: dashboardData.trends.projectGrowth,
-        icon: <ProjectOutlined />,
-        accent: "#7C3AED",
-      },
-      {
-        eyebrow: "Tickets · Closed / Total",
-        value: dashboardData.stats.tickets.display,
-        trend: dashboardData.trends.ticketCompletionRate,
-        icon: <TrophyOutlined />,
-        accent: "#F59E0B",
-      },
-      {
-        eyebrow: "Today's Attendance",
-        value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
-        trend: `${dashboardData.stats.attendance.attendanceRate}% Present`,
-        icon: <ClockCircleOutlined />,
-        accent: "#10B981",
-      },
-    ]
+  const stats: {
+    eyebrow: string;
+    value: React.ReactNode;
+    trend?: string;
+    icon: React.ReactNode;
+    accent: string;
+    subtle?: string;
+    chart?: React.ReactNode;
+  }[] = dashboardData
+    ? (() => {
+        const closedT = dashboardData.stats.tickets.closed;
+        const totalT = dashboardData.stats.tickets.total;
+        const openT = Math.max(0, totalT - closedT);
+        const completionPctT = totalT > 0 ? Math.round((closedT / totalT) * 100) : 0;
+        const presentA = dashboardData.stats.attendance.present;
+        const totalA = dashboardData.stats.totalMembers;
+        const rateA = dashboardData.stats.attendance.attendanceRate;
+        const absentA = dashboardData.stats.attendance.absent;
+        const lateA = dashboardData.stats.attendance.late;
+        return [
+          {
+            eyebrow: "Total Members",
+            value: dashboardData.stats.totalMembers,
+            icon: <TeamOutlined />,
+            accent: "#0EA5E9",
+            subtle: `Growth ${dashboardData.trends.memberGrowth} this period`,
+            chart: (
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <RocketOutlined style={{ color: "#0EA5E9", fontSize: 13 }} />
+                <Text style={{ fontSize: 11.5, color: token.colorTextSecondary }}>
+                  {presentA} active today
+                </Text>
+              </div>
+            ),
+          },
+          {
+            eyebrow: "Active Projects",
+            value: dashboardData.stats.activeProjects,
+            icon: <ProjectOutlined />,
+            accent: "#7C3AED",
+            subtle: `Growth ${dashboardData.trends.projectGrowth} this period`,
+            chart:
+              dashboardData.stats.activeProjects > 0 ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      flex: 1,
+                      height: 6,
+                      background: "rgba(124,58,237,0.12)",
+                      borderRadius: 999,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "block",
+                        height: "100%",
+                        width: `${Math.min(100, dashboardData.stats.activeProjects * 12)}%`,
+                        background: "linear-gradient(90deg, #7C3AED, #A78BFA)",
+                        borderRadius: 999,
+                        transition: "width .4s ease",
+                      }}
+                    />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: token.colorTextSecondary,
+                      fontVariantNumeric: "tabular-nums",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {dashboardData.stats.activeProjects} live
+                  </span>
+                </div>
+              ) : null,
+          },
+          {
+            eyebrow: "Tickets",
+            value: `${closedT} / ${totalT}`,
+            icon: <TrophyOutlined />,
+            accent: "#F59E0B",
+            subtle:
+              totalT > 0
+                ? `${completionPctT}% completion · ${openT} open`
+                : "No tickets yet",
+            chart:
+              totalT > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div
+                    style={{
+                      height: 6,
+                      borderRadius: 999,
+                      display: "flex",
+                      overflow: "hidden",
+                      border: `1px solid ${token.colorBorderSecondary}`,
+                      background: token.colorFillAlter,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: `${(closedT / totalT) * 100}%`,
+                        background: "#F59E0B",
+                        display: "block",
+                        height: "100%",
+                        transition: "width .4s ease",
+                      }}
+                    />
+                    <span
+                      style={{
+                        width: `${(openT / totalT) * 100}%`,
+                        background: "#FCD34D",
+                        display: "block",
+                        height: "100%",
+                        transition: "width .4s ease",
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        fontSize: 11,
+                        color: token.colorTextSecondary,
+                        fontWeight: 500,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: 2,
+                          background: "#F59E0B",
+                        }}
+                      />
+                      {closedT} closed
+                    </span>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        fontSize: 11,
+                        color: token.colorTextSecondary,
+                        fontWeight: 500,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: 2,
+                          background: "#FCD34D",
+                        }}
+                      />
+                      {openT} open
+                    </span>
+                  </div>
+                </div>
+              ) : null,
+          },
+          {
+            eyebrow: "Team Today",
+            value: `${presentA} / ${totalA}`,
+            icon: <ClockCircleOutlined />,
+            accent: "#10B981",
+            subtle: `${rateA}% present · ${absentA} absent · ${lateA} late`,
+            chart: (
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    flex: 1,
+                    height: 6,
+                    background: "rgba(16,185,129,0.12)",
+                    borderRadius: 999,
+                    overflow: "hidden",
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "block",
+                      height: "100%",
+                      width: `${rateA}%`,
+                      background: "linear-gradient(90deg, #10B981, #34D399)",
+                      borderRadius: 999,
+                      transition: "width .4s ease",
+                    }}
+                  />
+                </div>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: token.colorTextSecondary,
+                    fontVariantNumeric: "tabular-nums",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {rateA}%
+                </span>
+              </div>
+            ),
+          },
+        ];
+      })()
     : [];
 
   // ─── Project Pulse render ─────────────────────────────────────────
@@ -1212,6 +1348,8 @@ function DashboardContent() {
                   trendTone="positive"
                   icon={s.icon}
                   accent={s.accent}
+                  subtle={s.subtle}
+                  chart={s.chart}
                 />
               </Col>
             ))}

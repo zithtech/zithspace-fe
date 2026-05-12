@@ -833,7 +833,7 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* ─── ME SEGMENT ───────────────────────────────────────── */}
+        {/* ─── ME: SEGMENT ───────────────────────────────────────── */}
         {activeSegment === "me" && (
           <>
             {/* Alerts */}

@@ -60,6 +60,7 @@ import dayjs from "dayjs";
 import TrashDrawer from "@/components/documenthub/TrashDrawer";
 import DocumentHubDashboard from "@/components/documenthub/DocumentHubDashboard";
 import AiCreateHubModal from "@/components/documenthub/AiCreateHubModal";
+import { useTicketDrawer } from "@/context/TicketDrawerContext";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -72,6 +73,7 @@ const InlineTicketSelector = ({
 }: any) => {
   const [searchValue, setSearchValue] = React.useState("");
   const [isEditing, setIsEditing] = React.useState(false);
+  const { open: openTicketDrawer } = useTicketDrawer();
   const isOwner = user?.id === record.createdById;
 
   // Use the hook locally for each row to avoid state conflicts
@@ -116,14 +118,24 @@ const InlineTicketSelector = ({
   if (record.ticketId && !isEditing) {
     return (
       <div
-        onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-        className="flex flex-col py-0.5 px-2 hover:bg-sky-50 rounded-md cursor-pointer transition-colors group"
+        className="flex flex-col py-0.5 px-2 hover:bg-sky-50 rounded-md transition-colors group"
         style={{ width: 'fit-content', maxWidth: '100%' }}
       >
-        <span className="font-semibold text-sky-500 group-hover:text-sky-600" style={{ fontSize: '11px', lineHeight: '1.2' }}>
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => { e.stopPropagation(); openTicketDrawer(record.ticketId); }}
+          className="font-semibold text-sky-500 group-hover:text-sky-600 cursor-pointer"
+          style={{ fontSize: '11px', lineHeight: '1.2' }}
+        >
           {record.ticket?.ticketNumber}
         </span>
-        <span className="text-slate-400 truncate group-hover:text-slate-500" style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '160px' }}>
+        <span
+          onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+          className="text-slate-400 truncate group-hover:text-slate-500 cursor-pointer"
+          style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '160px' }}
+          title="Click to change ticket"
+        >
           {record.ticket?.title}
         </span>
       </div>
@@ -302,6 +314,56 @@ const DocumentHubPage = (props: Props) => {
   const [messageApi, contextHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
 
+  // --- Persistence Logic ---
+  // Restore filters from sessionStorage on mount
+  useEffect(() => {
+    const savedSearch = sessionStorage.getItem("documenthub_search");
+    const savedProject = sessionStorage.getItem("documenthub_filterProjectId");
+    const savedTicket = sessionStorage.getItem("documenthub_filterTicketId");
+    const savedUser = sessionStorage.getItem("documenthub_selectedUser");
+    const savedStarred = sessionStorage.getItem("documenthub_showStarredOnly");
+
+    if (savedSearch) setSearchText(savedSearch);
+    if (savedProject && savedProject !== "undefined") setFilterProjectId(savedProject);
+    if (savedTicket && savedTicket !== "undefined") setFilterTicketId(savedTicket);
+    if (savedUser && savedUser !== "undefined") setSelectedUser(savedUser);
+    if (savedStarred) setShowStarredOnly(savedStarred === "true");
+  }, []);
+
+  // Persist filters to sessionStorage when they change
+  useEffect(() => {
+    sessionStorage.setItem("documenthub_search", searchText);
+  }, [searchText]);
+
+  useEffect(() => {
+    if (filterProjectId !== undefined) {
+      sessionStorage.setItem("documenthub_filterProjectId", filterProjectId);
+    } else {
+      sessionStorage.removeItem("documenthub_filterProjectId");
+    }
+  }, [filterProjectId]);
+
+  useEffect(() => {
+    if (filterTicketId !== undefined) {
+      sessionStorage.setItem("documenthub_filterTicketId", filterTicketId);
+    } else {
+      sessionStorage.removeItem("documenthub_filterTicketId");
+    }
+  }, [filterTicketId]);
+
+  useEffect(() => {
+    if (selectedUser !== undefined) {
+      sessionStorage.setItem("documenthub_selectedUser", selectedUser);
+    } else {
+      sessionStorage.removeItem("documenthub_selectedUser");
+    }
+  }, [selectedUser]);
+
+  useEffect(() => {
+    sessionStorage.setItem("documenthub_showStarredOnly", String(showStarredOnly));
+  }, [showStarredOnly]);
+  // -------------------------
+
   // Share Modal State
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [selectedHubForShare, setSelectedHubForShare] = useState<{
@@ -359,6 +421,7 @@ const DocumentHubPage = (props: Props) => {
       setIsCreating(true);
       const documentDetails = {
         ...values,
+        visibility: 'public',
       };
 
       const data = await DocumentHubService.createDocumentHub(documentDetails);
@@ -752,6 +815,7 @@ const DocumentHubPage = (props: Props) => {
     setFilterTicketId(undefined);
     setSelectedUser(undefined);
     setDateRange(null);
+    setShowStarredOnly(false);
     refetch();
   };
 

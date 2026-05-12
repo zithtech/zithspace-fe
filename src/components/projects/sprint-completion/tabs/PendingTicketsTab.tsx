@@ -143,8 +143,7 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
 
     setActiveBulkAction({ action, destinationId, destinationName });
     message.success(
-      `Ready to ${SprintCompletionService.getActionLabel(action).toLowerCase()}${
-        destinationName ? ` to ${destinationName}` : ''
+      `Ready to ${SprintCompletionService.getActionLabel(action).toLowerCase()}${destinationName ? ` to ${destinationName}` : ''
       } for ${selectedRowKeys.length} selected ticket(s). Click "Resolve" to apply.`
     );
   };
@@ -296,27 +295,27 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
         <>
           {(summary.availableDestinations.sprints.length === 0 ||
             summary.availableDestinations.buckets.length === 0) && (
-            <Alert
-              message={<strong style={{ fontSize: 13 }}>Limited resolution options</strong>}
-              description={
-                <Space direction="vertical" size={2}>
-                  {summary.availableDestinations.sprints.length === 0 && (
-                    <Text style={{ fontSize: 12 }}>
-                      • No upcoming sprints available. Move tickets to Backlog or Trash, or create a new sprint.
-                    </Text>
-                  )}
-                  {summary.availableDestinations.buckets.length === 0 && (
-                    <Text style={{ fontSize: 12 }}>
-                      • No buckets configured. Create a bucket to organize tickets.
-                    </Text>
-                  )}
-                </Space>
-              }
-              type="warning"
-              showIcon
-              style={{ marginBottom: 12, borderRadius: 12, border: '1px solid rgba(245, 158, 11, 0.3)' }}
-            />
-          )}
+              <Alert
+                message={<strong style={{ fontSize: 13 }}>Limited resolution options</strong>}
+                description={
+                  <Space direction="vertical" size={2}>
+                    {summary.availableDestinations.sprints.length === 0 && (
+                      <Text style={{ fontSize: 12 }}>
+                        • No upcoming sprints available. Move tickets to Backlog or Trash, or create a new sprint.
+                      </Text>
+                    )}
+                    {summary.availableDestinations.buckets.length === 0 && (
+                      <Text style={{ fontSize: 12 }}>
+                        • No buckets configured. Create a bucket to organize tickets.
+                      </Text>
+                    )}
+                  </Space>
+                }
+                type="warning"
+                showIcon
+                style={{ marginBottom: 12, borderRadius: 12, border: '1px solid rgba(245, 158, 11, 0.3)' }}
+              />
+            )}
 
           {/* Toolbar */}
           <div className="sc-toolbar">

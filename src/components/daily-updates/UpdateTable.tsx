@@ -18,6 +18,7 @@ import {
   ProjectUpdate,
   formatHours,
 } from "@/types/dailyUpdate";
+import { useTicketDrawer } from "@/context/TicketDrawerContext";
 
 const { Text } = Typography;
 
@@ -45,6 +46,7 @@ export default function UpdateTable({
   loading,
   onViewDetails,
 }: UpdateTableProps) {
+  const { open: openTicketDrawer } = useTicketDrawer();
 
   const columns: ColumnsType<TableDataType> = [
     {
@@ -106,12 +108,32 @@ export default function UpdateTable({
       render: (count: number, record) => {
         const projectUpdates = (record.update.projectUpdates || []) as ProjectUpdate[];
         const firstTask = projectUpdates[0]?.tasks?.[0];
+        const showAsTicketLink = count === 1 && !!firstTask?.ticketNumber && !!firstTask?.ticketId;
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <CheckCircle2 size={14} color="var(--text-green-500)" />
-            <Text ellipsis style={{ fontSize: 12, color: "var(--text-slate-700)", maxWidth: 160 }}>
-              {count === 1 ? (firstTask?.ticketNumber || firstTask?.description) : `${count} Tasks Completed`}
-            </Text>
+            {showAsTicketLink ? (
+              <Text
+                ellipsis
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openTicketDrawer(firstTask!.ticketId!);
+                }}
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-sky-500, #0ea5e9)",
+                  maxWidth: 160,
+                  cursor: "pointer",
+                  fontWeight: 500,
+                }}
+              >
+                {firstTask!.ticketNumber}
+              </Text>
+            ) : (
+              <Text ellipsis style={{ fontSize: 12, color: "var(--text-slate-700)", maxWidth: 160 }}>
+                {count === 1 ? (firstTask?.description) : `${count} Tasks Completed`}
+              </Text>
+            )}
           </div>
         );
       },

@@ -560,9 +560,13 @@ export function useAutosaveDocument({
     }
     
     try {
-      lastSavedHashRef.current = hashContent(ed.document);
+      if (suppress) {
+        lastSavedHashRef.current = hashContent(ed.document);
+      }
     } catch {
-      lastSavedHashRef.current = null;
+      if (suppress) {
+        lastSavedHashRef.current = null;
+      }
     }
     if (typeof version === "number") versionRef.current = version;
     

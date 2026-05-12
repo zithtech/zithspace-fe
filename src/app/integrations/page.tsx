@@ -1,348 +1,22 @@
-// "use client";
-
-// import React, { useEffect, useState } from "react";
-// import MainLayout from "@/components/layout/MainLayout";
-// import { Space, Typography, Card, Button, Badge, Row, Col, message, Spin ,Modal} from "antd";
-// const { Title, Text, Paragraph } = Typography;
-// import {
-//   SettingOutlined,
-//   GoogleOutlined,
-//   WindowsOutlined,
-//   CalendarOutlined,
-//   CheckCircleFilled,
-//   DisconnectOutlined,
-//   LinkOutlined
-// } from "@ant-design/icons";
-// import { CalendarService, CalendarProvider, CalendarStatus } from "@/services/calendarService";
-
-// interface ProviderConfig {
-//   key: CalendarProvider;
-//   name: string;
-//   icon: React.ReactNode;
-//   color: string;
-//   description: string;
-// }
-
-// const PROVIDERS: ProviderConfig[] = [
-//   {
-//     key: "GOOGLE",
-//     name: "Google Calendar",
-//     icon: <GoogleOutlined />,
-//     color: "#4285F4",
-//     description: "Connect your Google Calendar to sync meetings and events."
-//   },
-//   {
-//     key: "ZOHO",
-//     name: "Zoho Calendar",
-//     icon: <CalendarOutlined />,
-//     color: "#F44336",
-//     description: "Sync your Zoho Calendar events and manage them within Zithspace."
-//   },
-//   {
-//     key: "MICROSOFT",
-//     name: "Microsoft Outlook",
-//     icon: <WindowsOutlined />,
-//     color: "#00A4EF",
-//     description: "Connect your Outlook calendar for a unified schedule view."
-//   }
-// ];
-
-// export default function IntegrationPage() {
-//   const [statuses, setStatuses] = useState<Record<string, CalendarStatus | null>>({});
-//   const [loading, setLoading] = useState<Record<string, boolean>>({});
-
-//   const fetchStatuses = async () => {
-//     const newStatuses: Record<string, CalendarStatus | null> = {};
-//     for (const provider of PROVIDERS) {
-//       try {
-//         const status = await CalendarService.getStatus(provider.key);
-//         newStatuses[provider.key] = status;
-//       } catch (error) {
-//         console.error(`Failed to get status for ${provider.key}:`, error);
-//         newStatuses[provider.key] = { connected: false, provider: provider.key, lastSync: null };
-//       }
-//     }
-//     setStatuses(newStatuses);
-//   };
-
-//   useEffect(() => {
-//     fetchStatuses();
-//   }, []);
-
-//   // const handleConnect = async (provider: CalendarProvider) => {
-//   //   setLoading(prev => ({ ...prev, [provider]: true }));
-//   //   try {
-//   //     const url = await CalendarService.getConnectUrl(provider);
-//   //     window.location.href = url;
-//   //   } catch (error: any) {
-//   //     message.error(error.message || `Failed to connect to ${provider}`);
-//   //     setLoading(prev => ({ ...prev, [provider]: false }));
-//   //   }
-//   // };
-
-
-
-//   const handleConnect = async (provider: CalendarProvider) => {
-//   // Check if user is authenticated
-//   const token = localStorage.getItem('accessToken');
-//   if (!token) {
-//     message.warning('Please log in to connect your calendar');
-//     window.location.href = '/login?redirect=/integrations';
-//     return;
-//   }
-
-//   // Check if another provider is already connected
-//   const anyConnected = Object.values(statuses).some(s => s?.connected);
-//   const currentProviderConnected = statuses[provider]?.connected;
-
-//   // If this provider is already connected, do nothing
-//   if (currentProviderConnected) {
-//     message.info(`${provider} is already connected`);
-//     return;
-//   }
-
-//   // If another provider is connected, show confirmation
-//   if (anyConnected) {
-//     Modal.confirm({
-//       title: 'Switch Calendar Provider?',
-//       content: 'You already have a calendar connected. Connecting a new one will disconnect the current provider. Continue?',
-//       okText: 'Yes, Switch',
-//       cancelText: 'No',
-//       onOk: async () => {
-//         setLoading(prev => ({ ...prev, [provider]: true }));
-//         try {
-//           const url = await CalendarService.getConnectUrl(provider);
-//           window.location.href = url;
-//         } catch (error: any) {
-//           message.error(error.message || `Failed to connect to ${provider}`);
-//           setLoading(prev => ({ ...prev, [provider]: false }));
-//         }
-//       }
-//     });
-//   } else {
-//     // No provider connected, connect directly
-//     setLoading(prev => ({ ...prev, [provider]: true }));
-//     try {
-//       const url = await CalendarService.getConnectUrl(provider);
-//       window.location.href = url;
-//     } catch (error: any) {
-//       message.error(error.message || `Failed to connect to ${provider}`);
-//       setLoading(prev => ({ ...prev, [provider]: false }));
-//     }
-//   }
-// };
-
-
-//   const handleDisconnect = async (provider: CalendarProvider) => {
-//     setLoading(prev => ({ ...prev, [provider]: true }));
-//     try {
-//       await CalendarService.disconnect(provider);
-//       message.success(`${provider} disconnected successfully`);
-//       await fetchStatuses();
-//     } catch (error: any) {
-//       message.error(error.message || `Failed to disconnect ${provider}`);
-//     } finally {
-//       setLoading(prev => ({ ...prev, [provider]: false }));
-//     }
-//   };
-
-//   return (
-//     <MainLayout>
-//       <div style={{ padding: '24px' }}>
-//         <div style={{ marginBottom: 32 }}>
-//           <Space align="center" size="middle">
-//             <SettingOutlined style={{ fontSize: 28, color: "#1677ff" }} />
-//             <Title level={2} style={{ margin: 0 }}>
-//               Integrations
-//             </Title>
-//           </Space>
-//           <Paragraph style={{ marginTop: 8, color: '#666' }}>
-//             Connect your favorite tools to Zithspace to streamline your workflow and sync your schedule.
-//           </Paragraph>
-//         </div>
-
-//         <Title level={4} style={{ marginBottom: 24 }}>Calendar Integrations</Title>
-
-//         <Row gutter={[24, 24]}>
-//           {/* {PROVIDERS.map((provider) => {
-//             const status = statuses[provider.key];
-//             const isConnected = status?.connected;
-//             const isLoading = loading[provider.key];
-
-//             return (
-//               <Col xs={24} sm={12} lg={8} key={provider.key}>
-//                 <Card
-//                   hoverable
-//                   style={{ height: '100%', borderRadius: 12, overflow: 'hidden' }}
-//                   bodyStyle={{ padding: 24 }}
-//                 >
-//                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-//                     <div style={{
-//                       fontSize: 32,
-//                       color: provider.color,
-//                       background: `${provider.color}15`,
-//                       padding: 12,
-//                       borderRadius: 12,
-//                       display: 'flex',
-//                       alignItems: 'center',
-//                       justifyContent: 'center'
-//                     }}>
-//                       {provider.icon}
-//                     </div>
-//                     {isConnected && (
-//                       <Badge status="success" text={<Text type="success">Connected</Text>} />
-//                     )}
-//                   </div>
-
-//                   <Title level={4} style={{ marginBottom: 12 }}>{provider.name}</Title>
-//                   <Paragraph type="secondary" style={{ height: 44, marginBottom: 24, overflow: 'hidden' }}>
-//                     {provider.description}
-//                   </Paragraph>
-
-//                   <div style={{ marginTop: 'auto' }}>
-//                     {isConnected ? (
-//                       <Space direction="vertical" style={{ width: '100%' }}>
-//                         <Button
-//                           danger
-//                           block
-//                           icon={<DisconnectOutlined />}
-//                           onClick={() => handleDisconnect(provider.key)}
-//                           loading={isLoading}
-//                         >
-//                           Disconnect
-//                         </Button>
-//                         {status?.lastSync && (
-//                           <Text type="secondary" style={{ fontSize: 12, display: 'block', textAlign: 'center' }}>
-//                             Last synced: {new Date(status.lastSync).toLocaleString()}
-//                           </Text>
-//                         )}
-//                       </Space>
-//                     ) : (
-//                       <Button
-//                         type="primary"
-//                         block
-//                         icon={<LinkOutlined />}
-//                         onClick={() => handleConnect(provider.key)}
-//                         loading={isLoading}
-//                         style={{ background: provider.color, borderColor: provider.color }}
-//                       >
-//                         Connect {provider.name.split(' ')[0]}
-//                       </Button>
-//                     )}
-//                   </div>
-//                 </Card>
-//               </Col>
-//             );
-//           })} */}
-//           {PROVIDERS.map((provider) => {
-//     const status = statuses[provider.key];
-//     const isConnected = status?.connected;
-//     const isLoading = loading[provider.key];
-
-//     // Check if ANY provider is connected (and it's not this one)
-//     const anyOtherConnected = Object.entries(statuses).some(
-//         ([key, s]) => s?.connected && key !== provider.key
-//     );
-
-//     return (
-//         <Col xs={24} sm={12} lg={8} key={provider.key}>
-//             <Card
-//                 hoverable
-//                 style={{ 
-//                     height: '100%', 
-//                     borderRadius: 12, 
-//                     overflow: 'hidden',
-//                     opacity: anyOtherConnected ? 0.7 : 1
-//                 }}
-//                 bodyStyle={{ padding: 24 }}
-//             >
-//                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-//                     <div style={{
-//                         fontSize: 32,
-//                         color: provider.color,
-//                         background: `${provider.color}15`,
-//                         padding: 12,
-//                         borderRadius: 12,
-//                         display: 'flex',
-//                         alignItems: 'center',
-//                         justifyContent: 'center'
-//                     }}>
-//                         {provider.icon}
-//                     </div>
-//                     {isConnected && (
-//                         <Badge status="success" text={<Text type="success">Connected</Text>} />
-//                     )}
-//                     {anyOtherConnected && !isConnected && (
-//                         <Badge status="default" text={<Text type="secondary">Disabled</Text>} />
-//                     )}
-//                 </div>
-
-//                 <Title level={4} style={{ marginBottom: 12 }}>{provider.name}</Title>
-//                 <Paragraph type="secondary" style={{ height: 44, marginBottom: 24, overflow: 'hidden' }}>
-//                     {provider.description}
-//                 </Paragraph>
-
-//                 <div style={{ marginTop: 'auto' }}>
-//                     {isConnected ? (
-//                         <Space direction="vertical" style={{ width: '100%' }}>
-//                             <Button
-//                                 danger
-//                                 block
-//                                 icon={<DisconnectOutlined />}
-//                                 onClick={() => handleDisconnect(provider.key)}
-//                                 loading={isLoading}
-//                             >
-//                                 Disconnect
-//                             </Button>
-//                             {status?.lastSync && (
-//                                 <Text type="secondary" style={{ fontSize: 12, display: 'block', textAlign: 'center' }}>
-//                                     Last synced: {new Date(status.lastSync).toLocaleString()}
-//                                 </Text>
-//                             )}
-//                         </Space>
-//                     ) : (
-//                         <Button
-//                             type="primary"
-//                             block
-//                             icon={<LinkOutlined />}
-//                             onClick={() => handleConnect(provider.key)}
-//                             loading={isLoading}
-//                             disabled={anyOtherConnected} // Disable if another is connected
-//                             style={{ 
-//                                 background: provider.color, 
-//                                 borderColor: provider.color,
-//                                 opacity: anyOtherConnected ? 0.5 : 1 
-//                             }}
-//                         >
-//                             {anyOtherConnected ? 'Switch to ' + provider.name.split(' ')[0] : 'Connect ' + provider.name.split(' ')[0]}
-//                         </Button>
-//                     )}
-//                 </div>
-//             </Card>
-//         </Col>
-//     );
-// })}
-//         </Row>
-//       </div>
-//     </MainLayout>
-//   );
-// }
-
 
 "use client";
 
 import React, { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Space, Typography, Card, Button, Badge, Row, Col, message, Modal } from "antd";
+import { Space, Typography, Card, Button, Badge, Row, Col, message, Modal, Input, Tabs, Tag, Dropdown, Avatar } from "antd";
 const { Title, Text, Paragraph } = Typography;
 import {
-  SettingOutlined,
   GoogleOutlined,
   WindowsOutlined,
   CalendarOutlined,
   DisconnectOutlined,
   LinkOutlined
 } from "@ant-design/icons";
+import { Blocks, Search, Users, CheckCircle2, Link2, Plug, ChevronDown } from "lucide-react";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { useAuth } from "@/context/AuthContext";
+
+// StatCard removed
 import { CalendarService, CalendarProvider, CalendarStatus } from "@/services/calendarService";
 import { useRouter } from "next/navigation";
 
@@ -357,24 +31,24 @@ interface ProviderConfig {
 const PROVIDERS: ProviderConfig[] = [
   {
     key: "GOOGLE",
-    name: "Google Calendar",
+    name: "Google Workspace",
     icon: <GoogleOutlined />,
     color: "#4285F4",
-    description: "Sync your Google Calendar meetings."
+    description: "Sync your Google Workspace emails and calendar meetings."
   },
   {
     key: "ZOHO",
-    name: "Zoho Calendar",
+    name: "Zoho Workspace",
     icon: <CalendarOutlined />,
     color: "#F44336",
-    description: "Manage Zoho events within Zithspace."
+    description: "Manage Zoho emails and events within Zithspace."
   },
   {
     key: "MICROSOFT",
-    name: "Microsoft Outlook",
+    name: "Microsoft 365",
     icon: <WindowsOutlined />,
     color: "#00A4EF",
-    description: "Unified schedule with Outlook."
+    description: "Unified schedule and emails with Microsoft 365."
   }
 ];
 
@@ -383,8 +57,26 @@ import { AlertCircle } from "lucide-react";
 
 export default function IntegrationPage() {
   const { canReadMail, canReadCalendar } = usePermission();
+  const { user } = useAuth();
   const [statuses, setStatuses] = useState<Record<string, CalendarStatus | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [searchText, setSearchText] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+
+  const userName = user?.name || "You";
+  const userInitial = userName.charAt(0).toUpperCase();
+
+  const mockConnectedUsers = [
+    {
+      key: '1',
+      label: (
+        <Space style={{ padding: '4px 0', alignItems: 'center' }}>
+          <Avatar size="small" style={{ backgroundColor: '#1677ff', fontSize: 12 }}>{userInitial}</Avatar>
+          <Text style={{ fontSize: 13, fontWeight: 500 }}>{userName}</Text>
+        </Space>
+      ),
+    }
+  ];
 
   const fetchStatuses = async () => {
     const newStatuses: Record<string, CalendarStatus | null> = {};
@@ -479,33 +171,55 @@ export default function IntegrationPage() {
     }
   };
 
+  const connectedCount = Object.values(statuses).filter(s => s?.connected).length;
+  const filteredProviders = PROVIDERS.filter((provider) => {
+    const matchesSearch = provider.name.toLowerCase().includes(searchText.toLowerCase()) || provider.description.toLowerCase().includes(searchText.toLowerCase());
+    const isConnected = statuses[provider.key]?.connected;
+    
+    if (activeTab === "connected") return matchesSearch && isConnected;
+    if (activeTab === "disconnected") return matchesSearch && !isConnected;
+    return matchesSearch;
+  });
+
   return (
     <MainLayout>
-      <div style={{ padding: '24px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
-        {/* Main content container */}
-        <div style={{
-          background: 'var(--bg-pure-white)',
-          padding: '16px 0',
-          width: '100%'
-        }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
+        <TimeTrackingHeader
+          icon={<Blocks size={20} color="#8b5cf6" />}
+          title="Integrations"
+          description="Connect your favorite tools to Zithspace to streamline your workflow and sync your schedule."
+          extra={
+            <Input 
+              placeholder="Search integrations..." 
+              prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
+              style={{ width: 280, borderRadius: 10, height: 38, background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          }
+        />
 
-          <div style={{ marginBottom: 32 }}>
-            <Space align="center" size="middle">
-              <SettingOutlined style={{ fontSize: 24, color: "var(--premium-blue)" }} />
-              <Title level={3} style={{ margin: 0, color: "var(--text-primary)" }}>
-                Integrations
-              </Title>
-            </Space>
-            <Paragraph style={{ marginTop: 8, color: 'var(--text-secondary)', maxWidth: '800px' }}>
-              Connect your favorite tools to Zithspace to streamline your workflow and sync your schedule.
-            </Paragraph>
-          </div>
+        <div style={{ padding: "0 32px 32px 32px" }}>
+          
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={setActiveTab}
+            style={{ marginBottom: 24 }}
+            items={[
+              { key: "all", label: "All Integrations" },
+              { key: "connected", label: "Connected" },
+              { key: "disconnected", label: "Disconnected" }
+            ]}
+          />
 
-          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 24 }}>
-            <Title level={5} style={{ marginBottom: 20, color: "var(--text-primary)" }}>Calendar Integrations</Title>
+          <div>
+            <Title level={5} style={{ marginBottom: 20, color: "var(--text-primary)" }}>Mail & Calendar Integrations</Title>
 
             <Row gutter={[16, 16]} justify="start">
-              {PROVIDERS.map((provider) => {
+              {filteredProviders.map((provider) => {
                 const status = statuses[provider.key];
                 const isConnected = status?.connected;
                 const isLoading = loading[provider.key];
@@ -517,78 +231,94 @@ export default function IntegrationPage() {
                   <Col xs={24} sm={12} md={8} lg={6} key={provider.key}>
                     <Card
                       hoverable
-                      size="small"
-                      style={{
-                        borderRadius: 8,
-                        border: isConnected ? `1px solid ${provider.color}` : '1px solid var(--border-color)',
+                      style={{ 
+                        borderRadius: 12, 
+                        border: '1px solid var(--border-color)',
                         background: 'var(--bg-pure-white)',
-                        transition: 'all 0.2s',
-                        height: '100%'
+                        height: '100%',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                       }}
-                      styles={{ body: { padding: '16px', display: 'flex', flexDirection: 'column', height: '100%' } }}
+                      styles={{ body: { padding: '20px', display: 'flex', flexDirection: 'column', height: '100%' } }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 24 }}>
                         <div style={{
-                          fontSize: 18,
-                          color: provider.color,
-                          background: `${provider.color}12`,
-                          padding: '6px',
-                          borderRadius: '6px',
-                          display: 'flex'
+                          width: 48,
+                          height: 48,
+                          borderRadius: 12,
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 24,
+                          marginRight: 16,
+                          color: provider.color
                         }}>
                           {provider.icon}
                         </div>
-                        {isConnected && (
-                          <Badge
-                            color={provider.color}
-                            text={<Text strong style={{ fontSize: 11, color: provider.color }}>Active</Text>}
-                          />
-                        )}
+                        <div style={{ flex: 1 }}>
+                          <Title level={5} style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {provider.name}
+                          </Title>
+                          <Text style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                            {provider.description}
+                          </Text>
+                        </div>
                       </div>
 
-                      <Title level={5} style={{ marginBottom: 4, fontSize: 14 }}>{provider.name}</Title>
-                      <Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 16, flexGrow: 1, lineHeight: '1.4' }}>
-                        {provider.description}
-                      </Paragraph>
-
-                      <div style={{ marginTop: 'auto' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                         {isConnected ? (
-                          <Space direction="vertical" style={{ width: '100%' }} size={4}>
-                            <Button
-                              danger
-                              block
-                              size="small"
-                              icon={<DisconnectOutlined />}
-                              onClick={() => handleDisconnect(provider.key)}
-                              loading={isLoading}
-                              style={{ borderRadius: '6px' }}
-                            >
-                              Disconnect
-                            </Button>
-                            {status?.lastSync && (
-                              <Text type="secondary" style={{ fontSize: 10, display: 'block', textAlign: 'center' }}>
-                                Last Sync: {new Date(status.lastSync).toLocaleString(undefined, {
-                                  dateStyle: 'short',
-                                  timeStyle: 'short'
-                                })}
-                              </Text>
-                            )}
-                          </Space>
+                          <Dropdown 
+                            menu={{ items: mockConnectedUsers }} 
+                            trigger={['click']}
+                            placement="bottomLeft"
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', padding: '4px', borderRadius: '4px', transition: 'background 0.2s' }} className="connected-users-hover">
+                              <Users size={16} />
+                              <span>1 Connected</span>
+                              <ChevronDown size={14} />
+                            </div>
+                          </Dropdown>
+                        ) : (
+                          <Tag color="warning" style={{ borderRadius: 12, padding: '4px 12px', fontWeight: 600, fontSize: 12, margin: 0, border: 'none' }}>
+                            No accounts
+                          </Tag>
+                        )}
+
+                        {isConnected ? (
+                          <Button
+                            onClick={() => handleDisconnect(provider.key)}
+                            loading={isLoading}
+                            size="small"
+                            style={{ 
+                              borderRadius: 6, 
+                              fontWeight: 500, 
+                              height: 28, 
+                              padding: '0 12px',
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              color: '#ef4444',
+                              borderColor: 'transparent'
+                            }}
+                          >
+                            Disconnect
+                          </Button>
                         ) : (
                           <Button
-                            type="primary"
-                            block
-                            size="small"
-                            icon={<LinkOutlined />}
+                            type={anyProviderConnected ? "default" : "primary"}
+                            icon={<Plug size={14} />}
                             onClick={() => handleConnect(provider.key)}
                             loading={isLoading}
-                            // Button is disabled if another provider is connected
-                            disabled={anyProviderConnected}
-                            style={{
-                              background: anyProviderConnected ? '#f5f5f5' : provider.color,
-                              borderColor: anyProviderConnected ? '#d9d9d9' : provider.color,
-                              color: anyProviderConnected ? 'rgba(0,0,0,0.25)' : '#fff',
-                              borderRadius: '6px'
+                            size="small"
+                            style={{ 
+                              borderRadius: 6, 
+                              fontWeight: 500, 
+                              background: anyProviderConnected ? 'var(--bg-primary)' : provider.color,
+                              color: anyProviderConnected ? 'var(--text-primary)' : '#fff',
+                              borderColor: anyProviderConnected ? 'var(--border-color)' : 'transparent',
+                              display: 'flex', 
+                              alignItems: 'center',
+                              height: 28,
+                              padding: '0 12px'
                             }}
                           >
                             {anyProviderConnected ? 'Switch' : 'Connect'}
@@ -602,6 +332,11 @@ export default function IntegrationPage() {
             </Row>
           </div>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          .connected-users-hover:hover {
+            background: var(--bg-primary);
+          }
+        `}} />
       </div>
     </MainLayout>
   );

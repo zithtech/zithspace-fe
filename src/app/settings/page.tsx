@@ -30,6 +30,7 @@ import {
   Tooltip,
   Tag,
   theme,
+  Select,
 } from 'antd';
 import {
   SettingOutlined,
@@ -42,12 +43,14 @@ import {
   CheckCircleFilled,
   EnvironmentOutlined,
   BgColorsOutlined,
-  LoadingOutlined
+  LoadingOutlined,
+  MailOutlined
 } from '@ant-design/icons';
 import LogoCropper from '@/components/common/LogoCropper';
 import { SettingsService, Shift, CreateShiftData, UpdateShiftData } from '@/services/settingsService';
 import { TenantService, TenantProfile } from '@/services/tenantService';
 import { CompanyLocationService } from '@/services/companyLocationService';
+import { MailService, MailProvider } from '@/services/mailService';
 import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from 'antd/es/table';
@@ -167,6 +170,12 @@ export default function SettingsPage() {
   const [editingLocation, setEditingLocation] = useState<any | null>(null);
   const [locationForm] = Form.useForm();
   const [processingBG, setProcessingBG] = useState<string | null>(null);
+
+  // Invoice Mail Settings State
+  const [connectedEmails, setConnectedEmails] = useState<any[]>([]);
+  const [invoiceMailSettings, setInvoiceMailSettings] = useState<any>(null);
+  const [invoiceMailLoading, setInvoiceMailLoading] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState<string | null>(null);
 
   const removeLogoBackground = async (imageUrl: string, isExistingVersion: boolean = false) => {
     try {
@@ -345,7 +354,7 @@ export default function SettingsPage() {
     }
   };
 
-  // Load shifts when attendance tab is active
+  // Load data based on active tab
   useEffect(() => {
     if (user && activeTab === 'attendance') {
       fetchShifts();
@@ -355,6 +364,9 @@ export default function SettingsPage() {
     }
     if (user && activeTab === 'location') {
       fetchLocations();
+    }
+    if (user && activeTab === 'mail') {
+      fetchInvoiceMailSettings();
     }
   }, [user, activeTab]);
 
@@ -605,6 +617,23 @@ export default function SettingsPage() {
       setFormLoading(false);
     }
   };
+
+  const fetchInvoiceMailSettings = async () => {
+    try {
+      setInvoiceMailLoading(true);
+      const response = await MailService.getInvoiceMailSettings();
+      if (response) {
+        setConnectedEmails(response.connectedAccounts || []);
+        const settings = response.settings || [];
+        setInvoiceMailSettings(settings.find((s: any) => s.is_default_invoice_mail) || settings[0] || null);
+      }
+    } catch (error) {
+      console.error('Failed to fetch invoice mail settings:', error);
+    } finally {
+      setInvoiceMailLoading(false);
+    }
+  };
+
 
   // Shift table columns
   const shiftColumns: ColumnsType<Shift> = [
@@ -946,16 +975,6 @@ export default function SettingsPage() {
                                     style={{ background: 'var(--bg-blue-50)', borderRadius: 8 }}
                                   />
                                 </Tooltip>
-                                {/* <Tooltip title="Clear Background">
-                                  <Button
-                                    size="small"
-                                    type="text"
-                                    icon={processingBG === url ? <LoadingOutlined /> : <BgColorsOutlined style={{ color: '#6366f1' }} />}
-                                    loading={processingBG === url}
-                                    onClick={() => removeLogoBackground(url, true)}
-                                    style={{ background: '#f5f3ff', borderRadius: 8 }}
-                                  />
-                                </Tooltip> */}
                                 {tenantProfile?.settings?.logoUrl !== url && (
                                   <Button
                                     size="small"
@@ -1239,6 +1258,153 @@ export default function SettingsPage() {
               )}
             </Row>
           </div>
+        </div>
+      )
+    },
+    {
+      key: 'mail',
+      label: (
+        <Space size={8} style={{ padding: "4px 8px" }}>
+          <MailOutlined style={{ fontSize: 16 }} />
+          <span style={{ fontWeight: 600 }}>Mail Configuration</span>
+        </Space>
+      ),
+      children: (
+        <div style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          padding: "8px 4px 40px 4px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          width: "100%"
+        }}>
+          <Card
+            variant="borderless"
+            style={{ ...styles.sectionCard, width: "100%", marginTop: 8 }}
+            styles={{ body: { padding: "24px" } }}
+            title={
+              <Space size={12}>
+                <div style={{ ...styles.iconContainer, width: 36, height: 36, borderRadius: 10, background: '#f5f3ff', color: '#8b5cf6' }}>
+                  <MailOutlined style={{ fontSize: 18 }} />
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: 18, color: "var(--text-primary)", display: 'block' }}>Default Invoice Mail</Text>
+                  <Text type="secondary" style={{ fontSize: 12, color: "var(--text-secondary)" }}>Select a verified integrated email to send your invoices</Text>
+                </div>
+              </Space>
+            }
+          >
+            <Row gutter={[24, 24]}>
+              <Col span={24} md={12}>
+                <div style={{ marginBottom: 8 }}>
+                  <Text strong style={{ color: 'var(--text-primary)' }}>Select Integrated Email</Text>
+                </div>
+                <Select
+                  placeholder="Select an email account"
+                  style={{ width: '100%', height: 45 }}
+                  value={invoiceMailSettings?.email}
+                  onChange={async (email) => {
+                    const account = connectedEmails.find(a => a.email === email);
+                    if (account) {
+                      try {
+                        setInvoiceMailLoading(true);
+                        await MailService.setInvoiceMail({
+                          email: account.email,
+                          provider: account.provider,
+                          integrationId: account.id
+                        });
+                        messageApi.success('Invoice mail set. Please verify the link sent to your inbox.');
+                        fetchInvoiceMailSettings();
+                      } catch (error: any) {
+                        messageApi.error(error.message || 'Failed to set invoice mail');
+                      } finally {
+                        setInvoiceMailLoading(false);
+                      }
+                    }
+                  }}
+                  loading={invoiceMailLoading}
+                >
+                  {connectedEmails.map(account => (
+                    <Select.Option key={account.email} value={account.email}>
+                      <Space>
+                        <Tag color={account.provider === 'GOOGLE' ? 'blue' : account.provider === 'MICROSOFT' ? 'orange' : 'green'}>
+                          {account.provider}
+                        </Tag>
+                        {account.email}
+                      </Space>
+                    </Select.Option>
+                  ))}
+                </Select>
+                {connectedEmails.length === 0 && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    message="No integrated email accounts found. Please connect an account first."
+                    style={{ marginTop: 16, borderRadius: 8 }}
+                  />
+                )}
+              </Col>
+              
+              {invoiceMailSettings && (
+                <Col span={24} md={12}>
+                  <div style={{ 
+                    padding: '16px', 
+                    background: invoiceMailSettings.is_verified ? '#f0fdf4' : '#fffbeb', 
+                    borderRadius: '12px',
+                    border: `1px solid ${invoiceMailSettings.is_verified ? '#bbf7d0' : '#fef3c7'}`,
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Space size={12}>
+                        {invoiceMailSettings.is_verified ? (
+                          <CheckCircleFilled style={{ fontSize: 24, color: '#22c55e' }} />
+                        ) : (
+                          <ClockCircleOutlined style={{ fontSize: 24, color: '#f59e0b' }} />
+                        )}
+                        <div>
+                          <Text strong style={{ fontSize: 16, display: 'block', color: invoiceMailSettings.is_verified ? '#166534' : '#92400e' }}>
+                            {invoiceMailSettings.is_verified ? 'Verified' : 'Verification Pending'}
+                          </Text>
+                          <Text style={{ fontSize: 13, color: invoiceMailSettings.is_verified ? '#166534' : '#92400e' }}>
+                            {invoiceMailSettings.is_verified 
+                              ? `This email is ready to send invoices.` 
+                              : `Check your inbox (${invoiceMailSettings.email}) for a verification link.`}
+                          </Text>
+                        </div>
+                      </Space>
+                      
+                      {!invoiceMailSettings.is_verified && (
+                        <Button 
+                          type="primary" 
+                          size="small"
+                          loading={resendingVerification === invoiceMailSettings.email}
+                          onClick={async () => {
+                            try {
+                              setResendingVerification(invoiceMailSettings.email);
+                              await MailService.resendInvoiceMailVerification(invoiceMailSettings.email);
+                              messageApi.success('Verification email resent!');
+                            } catch (error: any) {
+                              messageApi.error(error.message || 'Failed to resend verification');
+                            } finally {
+                              setResendingVerification(null);
+                            }
+                          }}
+                          style={{ borderRadius: 6 }}
+                        >
+                          Resend
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Col>
+              )}
+            </Row>
+          </Card>
         </div>
       )
     },
@@ -1526,5 +1692,3 @@ export default function SettingsPage() {
     </MainLayout>
   );
 }
-
-

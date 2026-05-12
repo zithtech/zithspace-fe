@@ -4,10 +4,10 @@ import { DeleteOutlined, PlayCircleOutlined, PauseCircleOutlined, ClockCircleOut
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import dayjs from "dayjs";
-import Link from "next/link";
 import { PlayCircleOutlined as RunningIcon } from "@ant-design/icons";
 import { calculateNetDuration } from "@/utils/timeTrackingUtils";
 import { Table, Tag, Button, Typography, Space, Popconfirm, App, Tabs, Card, Row, Col } from "antd";
+import { useTicketDrawer } from "@/context/TicketDrawerContext";
 
 const { Text } = Typography;
 
@@ -16,6 +16,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
   const [entries, setEntries] = useState<TimeTrackingEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const { stopAllTimers, pauseAllTimers, resumeAllTimers, activeEntry, refreshTrigger } = useTimeTrackerStore();
+  const { open: openTicketDrawer } = useTicketDrawer();
 
   const fetchEntries = async () => {
     try {
@@ -123,9 +124,16 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
         <div>
           <div>
             {record.ticket?.title ? (
-              <Link href={`/tickets/${record.ticketId}`} style={{ fontWeight: 500 }}>
+              <a
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (record.ticketId) openTicketDrawer(record.ticketId);
+                }}
+                style={{ fontWeight: 500, cursor: "pointer" }}
+              >
                 {record.ticket.title}
-              </Link>
+              </a>
             ) : (
               text || (record.ticketId ? `Ticket ${record.ticketId}` : <Text type="secondary">No task</Text>)
             )}
@@ -337,11 +345,15 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                               <div style={{ marginBottom: 0 }}>
                                 {record.ticket?.title ? (
                                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                    <Link href={`/tickets/${record.ticketId}`}>
-                                      <div style={{ display: 'flex', gap: 6, cursor: 'pointer' }}>
-                                        <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{record.ticket.title}</Text>
-                                      </div>
-                                    </Link>
+                                    <div
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (record.ticketId) openTicketDrawer(record.ticketId);
+                                      }}
+                                      style={{ display: 'flex', gap: 6, cursor: 'pointer' }}
+                                    >
+                                      <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{record.ticket.title}</Text>
+                                    </div>
                                     {record.ticket.estimateHours !== undefined ? (
                                       <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
                                         EST: {(() => {

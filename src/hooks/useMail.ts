@@ -7,6 +7,7 @@ export const mailKeys = {
     threads: (label?: string, filter?: string, search?: string) => [...mailKeys.all, 'threads', label, filter, search] as const,
     messages: (threadId: string) => [...mailKeys.all, 'messages', threadId] as const,
     status: () => [...mailKeys.all, 'status'] as const,
+    unreadCount: () => [...mailKeys.all, 'unreadCount'] as const,
     contacts: () => [...mailKeys.all, 'contacts'] as const,
 };
 
@@ -40,7 +41,18 @@ export const useMailStatus = () => {
             return {
                 connectedEmail: (data?.connected && data?.email) ? data.email : null,
                 isConnected: !!data?.connected,
+                provider: data?.provider || null
             };
+        },
+    });
+};
+
+export const useMailUnreadCount = () => {
+    return useQuery({
+        queryKey: mailKeys.unreadCount(),
+        queryFn: async () => {
+            const data = await MailService.getUnreadCount();
+            return data.unreadCount || 0;
         },
     });
 };
@@ -149,8 +161,9 @@ export const useMail = () => {
 
     const markAsReadMutation = useMutation({
         mutationFn: (threadId: string) => MailService.markAsRead(threadId),
-        onSuccess: (_, threadId) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['mail', 'threads'] });
+            queryClient.invalidateQueries({ queryKey: mailKeys.unreadCount() });
         },
     });
 

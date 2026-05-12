@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { TicketDetailDrawer } from "@/components/projects/drawer/TicketDetailDrawer";
 import MainLayout from "@/components/layout/MainLayout";
+
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   dashboardService,
@@ -104,7 +106,10 @@ function DashboardContent() {
 
   const [todayAttendance, setTodayAttendance] = useState<any>(null);
 
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+
   useEffect(() => {
+
     console.log("recentTickets", recentTickets);
   }, [recentTickets]);
 
@@ -2373,8 +2378,9 @@ function DashboardContent() {
                                   <div
                                     key={item.id}
                                     onClick={() =>
-                                      router.push(`/tickets/${item.id}`)
+                                      setSelectedTicketId(item.id)
                                     }
+
                                     className="ticket-list-item"
                                     style={{
                                       position: "relative",
@@ -3340,14 +3346,18 @@ function DashboardContent() {
                         {recentTickets.length > 0 ? (
                           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                             {recentTickets.slice(0, 5).map((ticket: any) => (
-                              <div key={ticket.id} onClick={() => router.push(`/tickets/${ticket.id}`)} style={{ padding: "10px 12px", borderRadius: 12, background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, cursor: "pointer" }}>
+                              <div key={ticket.id} onClick={() => setSelectedTicketId(ticket.id)} style={{ padding: "10px 12px", borderRadius: 12, background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, cursor: "pointer" }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                                   <Text strong style={{ fontSize: 13, color: token.colorText, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>{ticket.title}</Text>
                                   <Tag style={{ fontSize: 10, borderRadius: 6, margin: 0, marginLeft: 8 }}>{ticket.status}</Tag>
                                 </div>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <Text type="secondary" style={{ fontSize: 11 }}>{ticket.ticketId}</Text>
-                                  <Text type="secondary" style={{ fontSize: 10 }}>{formatTimeAgo(ticket.createdAt)}</Text>
+                                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: token.colorTextSecondary, background: token.colorBgContainer, border: `1px solid ${token.colorBorderSecondary}`, padding: "1px 6px", borderRadius: 6, fontVariantNumeric: "tabular-nums" }}>
+                                      {ticket.ticketNumber}
+                                    </span>
+                                    <Text type="secondary" style={{ fontSize: 10 }}>{formatTimeAgo(ticket.createdAt)}</Text>
+                                  </div>
                                 </div>
                               </div>
                             ))}
@@ -3455,8 +3465,17 @@ function DashboardContent() {
 
         {/* ─── ORGANIZATION SEGMENT ─────────────────────────────── */}
         {activeSegment === "organization" && <Organization />}
+
+        <TicketDetailDrawer
+          ticketId={selectedTicketId}
+          open={!!selectedTicketId}
+          onClose={() => setSelectedTicketId(null)}
+          ticketIds={recentTickets.map((t: any) => t.id)}
+          onNavigate={(id) => setSelectedTicketId(id)}
+        />
       </div>
     </MainLayout>
+
   );
 }
 

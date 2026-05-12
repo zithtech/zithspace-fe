@@ -23,7 +23,7 @@ const colorIndex = (e: CalendarEvent) => {
 const HOUR_HEIGHT = 56;
 
 export default function WeekView({ currentDate, events, onEventClick, onTimeSlotClick }: WeekViewProps) {
-    const startOfWeek = currentDate.startOf('week').add(1, 'day');
+    const startOfWeek = currentDate.subtract((currentDate.day() + 6) % 7, 'day').startOf('day');
     const days = Array.from({ length: 7 }, (_, i) => startOfWeek.add(i, 'day'));
     const hours = Array.from({ length: 24 }, (_, i) => i);
     const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -277,6 +277,24 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeSlot
                     );
                 })}
             </div>
+
+            <style jsx global>{`
+                .time-slot-hover:hover {
+                    background: var(--cal-surface-hover) !important;
+                }
+                .event-card-hover:hover {
+                    transform: translateX(2px);
+                    filter: brightness(0.98);
+                    z-index: 10;
+                }
+                .no-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                .no-scrollbar {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
         </div>
     );
 }

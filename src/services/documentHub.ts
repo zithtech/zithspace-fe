@@ -53,6 +53,7 @@ export interface CreateDocumentHubData {
   name: string;
   projectId?: string;
   ticketId?: string;
+  visibility?: string;
 }
 
 export interface UpdateDocumentHubData {
@@ -200,9 +201,9 @@ class DocumentHubService {
       const response = await apiClient.get(`/api/documenthub/${documentId}`);
       return response.data.data;
     } catch (error: any) {
-      console.error("Error creating document hub:", error);
+      console.error("Error fetching document hub:", error);
       const errorMessage =
-        error.response?.data?.error || "Failed to create document hub";
+        error.response?.data?.error || "Failed to fetch document hub";
       throw new Error(errorMessage);
     }
   }

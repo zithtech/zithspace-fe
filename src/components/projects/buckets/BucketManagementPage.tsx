@@ -624,6 +624,7 @@ export default function BucketManagementPage() {
               }}
               loading={isLoading && !isRefreshing}
               className="bh-header-btn"
+              style={{ width: 38, padding: 0 }}
             />
             <Button
               type="primary"
@@ -915,21 +916,29 @@ export default function BucketManagementPage() {
 
           /* ────────────────────────────── Header buttons ────────────────────────── */
           .bh-header-btn {
-            height: 38px;
-            border-radius: 8px;
+            height: 38px !important;
+            border-radius: 8px !important;
             font-weight: 600;
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
           }
           .bh-create-btn {
-            height: 38px;
-            border-radius: 8px;
-            padding: 0 18px;
+            height: 38px !important;
+            border-radius: 8px !important;
+            padding: 0 18px !important;
             font-weight: 700;
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
             letter-spacing: -0.01em;
             background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%) !important;
             border: none !important;
             box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25),
               inset 0 1px 0 rgba(255, 255, 255, 0.18);
-            transition: transform 0.15s ease, box-shadow 0.2s ease;
+            transition: all 0.2s ease;
           }
           .bh-create-btn:hover {
             transform: translateY(-1px);
@@ -1049,7 +1058,7 @@ export default function BucketManagementPage() {
             display: flex;
             align-items: center;
             gap: 8px;
-            background: var(--bg-slate-50);
+            background: transparent !important;
             padding: 0 10px;
             border-radius: 8px;
             border: 1px solid var(--border-slate-100);
@@ -1057,7 +1066,7 @@ export default function BucketManagementPage() {
           }
           [data-theme='dark'] .bh-filter-select-wrap,
           [data-theme='dark'] .bh-segmented-wrap {
-            background: #1f2937 !important;
+            background: transparent !important;
             border-color: #374151 !important;
           }
           [data-theme='dark'] .bh-filter-select-wrap .ant-select-selector {
@@ -1325,19 +1334,22 @@ export default function BucketManagementPage() {
           }
 
           .bh-icon-btn {
-            width: 28px !important;
-            height: 28px !important;
-            border-radius: 6px !important;
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 8px !important;
             display: inline-flex !important;
             align-items: center;
             justify-content: center;
             color: var(--text-slate-500) !important;
-            transition: all 0.15s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 0 !important;
+            cursor: pointer;
           }
           .bh-icon-btn:hover {
             background: var(--bg-slate-100) !important;
             color: var(--text-slate-900) !important;
             transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
           }
           [data-theme='dark'] .bh-icon-btn:hover {
             background: #1f2937 !important;
@@ -1551,13 +1563,19 @@ export default function BucketManagementPage() {
             display: flex !important;
             align-items: center;
             justify-content: center;
-            border-radius: 6px !important;
-            transition: all 0.18s ease;
+            width: 32px !important;
+            height: 32px !important;
+            padding: 0 !important;
+            border-radius: 8px !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             color: var(--text-slate-500) !important;
+            cursor: pointer;
           }
           .saas-action-btn:hover {
             background: var(--bg-slate-100) !important;
+            color: var(--text-slate-900) !important;
             transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
           }
           [data-theme='dark'] .saas-action-btn:hover {
             background: #1f2937 !important;

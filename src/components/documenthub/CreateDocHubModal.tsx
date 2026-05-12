@@ -70,6 +70,7 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
                 name: values.name,
                 projectId: values.projectId,
                 ticketId: values.ticketId,
+                visibility: 'public',
             });
             messageApi.success('Document hub created');
             form.resetFields();

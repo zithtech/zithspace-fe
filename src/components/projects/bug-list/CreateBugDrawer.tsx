@@ -19,6 +19,8 @@ import {
   UserPlus,
   Loader2,
   Wand2,
+  Play,
+  FileText,
 } from "lucide-react";
 import { useMembersSelect } from "@/hooks/useMembersSelect";
 import { useTheme } from "@/context/ThemeContext";
@@ -740,37 +742,103 @@ function AttachmentTile({
   attachment: BugAttachment;
   onRemove: () => void;
 }) {
+  const [imageError, setImageError] = useState(false);
+
   const isImage =
     attachment.fileType?.startsWith("image/") ||
-    attachment.fileUrl.startsWith("data:image/");
+    attachment.fileUrl?.startsWith("data:image/") ||
+    /\.(jpg|jpeg|png|gif|webp|svg)/i.test(attachment.fileUrl || "");
+
+  const isVideo =
+    attachment.fileType?.startsWith("video/") ||
+    /\.(mp4|webm|ogg|mov)/i.test(attachment.fileUrl || "");
+
+  // Fix previously mangled URLs (missing slash or wrong domain)
+  const displayUrl = React.useMemo(() => {
+    if (!attachment.fileUrl) return "";
+    let url = attachment.fileUrl;
+
+    // Redirect private cloudflarestorage.com URLs to the public R2 domain
+    if (url.includes("r2.cloudflarestorage.com")) {
+      url = url.replace(
+        /https:\/\/[^/]+\.r2\.cloudflarestorage\.com\/[^/]+/,
+        "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev"
+      );
+    }
+
+    // Fix mangled R2 domains (missing slash after .r2.dev)
+    if (url.includes(".r2.dev") && !url.includes(".r2.dev/")) {
+      url = url.replace(".r2.dev", ".r2.dev/");
+    }
+    return url;
+  }, [attachment.fileUrl]);
+
+  const handleOpen = () => {
+    if (!displayUrl) return;
+    if (displayUrl.startsWith("data:")) {
+      try {
+        const parts = displayUrl.split(",");
+        const mime = parts[0].match(/:(.*?);/)?.[1];
+        const b64 = parts[1];
+        const bin = atob(b64);
+        const u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        const blob = new Blob([u8], { type: mime });
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+      } catch (e) {
+        window.open(displayUrl, "_blank");
+      }
+    } else {
+      window.open(displayUrl, "_blank");
+    }
+  };
+
   return (
     <div className="hb-cbd-tile">
-      <div className="hb-cbd-tile-preview">
-        {isImage ? (
+      <div
+        className="hb-cbd-tile-preview"
+        onClick={handleOpen}
+        style={{ cursor: "pointer" }}
+      >
+        {isImage && !imageError ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={attachment.fileUrl} alt={attachment.fileName} />
+          <img
+            src={displayUrl}
+            alt={attachment.fileName}
+            onError={() => setImageError(true)}
+          />
+        ) : isVideo ? (
+          <div className="hb-cbd-tile-fallback video">
+            <Play size={20} />
+          </div>
         ) : (
           <div className="hb-cbd-tile-fallback">
-            <ImageIcon size={20} />
+            <FileText size={20} />
           </div>
         )}
         <button
           className="hb-cbd-tile-remove"
-          onClick={onRemove}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
           aria-label="Remove attachment"
         >
           <X size={11} />
         </button>
         {attachment.isNew && <span className="hb-cbd-tile-new">NEW</span>}
       </div>
-      <div className="hb-cbd-tile-name" title={attachment.fileName}>
-        {attachment.fileName}
-      </div>
-      {attachment.fileSize && (
-        <div className="hb-cbd-tile-size">
-          {formatBytes(attachment.fileSize)}
+      <div className="hb-cbd-tile-info">
+        <div className="hb-cbd-tile-name" title={attachment.fileName}>
+          {attachment.fileName}
         </div>
-      )}
+        <div className="hb-cbd-tile-meta">
+          {attachment.fileSize
+            ? formatBytes(attachment.fileSize)
+            : attachment.fileType}
+        </div>
+      </div>
     </div>
   );
 }

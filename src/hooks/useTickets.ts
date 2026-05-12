@@ -595,3 +595,18 @@ export const useDeleteTicket = () => {
     },
   });
 };
+
+export const useBulkUnarchiveTickets = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ticketIds: string[]) => TicketService.bulkUnarchive(ticketIds),
+    onSuccess: () => {
+      message.success("Tickets restored successfully");
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
+    },
+    onError: (error: any) => {
+      message.error(error.message || "Failed to restore tickets");
+    },
+  });
+};

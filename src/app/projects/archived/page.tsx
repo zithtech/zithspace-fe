@@ -35,10 +35,11 @@ import {
   CheckCircleFilled,
   AppstoreFilled,
   HistoryOutlined,
+  UndoOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useUserProjects } from '@/hooks/useGlobalData';
-import { useTickets } from '@/hooks/useTickets';
+import { useTickets, useBulkUnarchiveTickets } from '@/hooks/useTickets';
 import { useMoveToTrash } from '@/hooks/useTrash';
 import { Ticket } from '@/services/ticketService';
 import { Avatar, Tooltip } from 'antd';
@@ -141,6 +142,7 @@ export default function ArchivedTicketsPage() {
   const activeProjects = projectStats.length;
 
   const { mutateAsync: moveToTrash, isPending: isDeleting } = useMoveToTrash();
+  const { mutateAsync: bulkRestore, isPending: isRestoring } = useBulkUnarchiveTickets();
 
   const handleDelete = async () => {
     if (selectedRowKeys.length === 0) {
@@ -154,6 +156,22 @@ export default function ArchivedTicketsPage() {
       refetch();
     } catch (error: any) {
       console.error('Error moving to trash:', error);
+    }
+  };
+
+  const handleRestore = async (ids?: string[]) => {
+    const targetIds = ids || (selectedRowKeys as string[]);
+    if (targetIds.length === 0) {
+      message.warning('Please select tickets to restore');
+      return;
+    }
+
+    try {
+      await bulkRestore(targetIds);
+      setSelectedRowKeys([]);
+      refetch();
+    } catch (error: any) {
+      console.error('Error restoring tickets:', error);
     }
   };
 
@@ -204,21 +222,6 @@ export default function ArchivedTicketsPage() {
       ),
     },
     {
-      title: 'Priority',
-      dataIndex: 'priority',
-      key: 'priority',
-      width: 120,
-      render: (priority) => {
-        const tone = priority === 'HIGH' ? 'red' : priority === 'MEDIUM' ? 'amber' : 'green';
-        return (
-          <div className={`ar-priority-pill ${tone}`}>
-            <span className="ar-priority-dot" />
-            <Text className="ar-priority-text">{priority}</Text>
-          </div>
-        );
-      },
-    },
-    {
       title: 'Assignee',
       key: 'assignee',
       width: 200,
@@ -251,6 +254,62 @@ export default function ArchivedTicketsPage() {
             <Text className="ar-date-primary">{dayjs(date).format('MMM D, YYYY')}</Text>
             <Text className="ar-date-secondary">{dayjs(date).fromNow()}</Text>
           </div>
+        </div>
+      ),
+    },
+    {
+      title: '',
+      key: 'actions',
+      width: 100,
+      fixed: 'right' as const,
+      render: (_: any, record: Ticket) => (
+        <div className="ar-action-cell">
+          <Popconfirm
+            title="Restore Ticket"
+            description="Move this ticket back to active status?"
+            onConfirm={() => handleRestore([record.id])}
+            okText="Restore"
+            cancelText="Cancel"
+          >
+            <Tooltip title="Restore">
+              <Button
+                type="text"
+                shape="circle"
+                size="small"
+                icon={<UndoOutlined />}
+                style={{ color: '#10b981' }}
+                className="ar-icon-btn restore"
+                loading={isRestoring && selectedRowKeys.includes(record.id)}
+              />
+            </Tooltip>
+          </Popconfirm>
+
+          <Popconfirm
+            title="Delete Ticket"
+            description="Move this ticket to trash?"
+            onConfirm={async () => {
+              try {
+                await moveToTrash([record.id]);
+                refetch();
+              } catch {}
+            }}
+            okText="Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="Delete">
+              <Button
+                type="text"
+                shape="circle"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                style={{ color: '#ef4444' }}
+                className="ar-icon-btn delete"
+                loading={isDeleting && selectedRowKeys.includes(record.id)}
+              />
+            </Tooltip>
+          </Popconfirm>
         </div>
       ),
     },
@@ -467,6 +526,16 @@ export default function ArchivedTicketsPage() {
                 </Text>
               </div>
               <div className="ar-bulk-actions">
+                <Button
+                  size="small"
+                  type="primary"
+                  icon={<UndoOutlined />}
+                  onClick={() => handleRestore()}
+                  loading={isRestoring}
+                  className="ar-bulk-btn restore"
+                >
+                  Restore
+                </Button>
                 <Popconfirm
                   title="Move to Trash"
                   description={`Move ${selectedRowKeys.length} ticket${selectedRowKeys.length === 1 ? '' : 's'
@@ -1021,7 +1090,8 @@ export default function ArchivedTicketsPage() {
             gap: 6px;
             align-items: center;
           }
-          .ar-bulk-btn.purge {
+          .ar-bulk-btn.purge,
+          .ar-bulk-btn.restore {
             height: 30px !important;
             font-weight: 600 !important;
             font-size: 12px !important;
@@ -1360,6 +1430,31 @@ export default function ArchivedTicketsPage() {
             font-size: 11px !important;
             color: var(--text-slate-400) !important;
             font-weight: 500;
+          }
+
+          /* ── Action cell ─────────────────────────────────────── */
+          .ar-action-cell {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+          }
+          .ar-icon-btn {
+            transition: all 0.2s ease !important;
+          }
+          .ar-icon-btn:hover {
+            background: var(--bg-slate-100) !important;
+          }
+          .ar-icon-btn.restore:hover {
+            color: #10b981 !important;
+            background: rgba(16, 185, 129, 0.1) !important;
+          }
+          .ar-icon-btn.delete:hover {
+            color: #ef4444 !important;
+            background: rgba(239, 68, 68, 0.1) !important;
+          }
+          [data-theme='dark'] .ar-icon-btn:hover {
+            background: #1f2937 !important;
           }
 
           /* ── Empty state ─────────────────────────────────────── */

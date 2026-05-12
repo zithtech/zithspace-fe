@@ -382,6 +382,7 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
         name: hubName,
         projectId: defaultProjectId,
         ticketId: defaultTicketId,
+        visibility: 'public',
       });
 
       // Server already cleans ticket artifacts; parse the HTML into BlockNote blocks.

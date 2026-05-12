@@ -28,12 +28,23 @@ import {
   useArchiveFolder,
   useDeleteBugSheet,
   useUpdateBugSheetStatus,
+  useUpdateBugSheet,
 } from "@/hooks/useBugList";
 import type {
   BugFolder,
   BugSheet,
   BugSheetStatus,
 } from "@/services/bugListService";
+import { 
+  DndContext, 
+  DragOverlay, 
+  useDraggable, 
+  useDroppable, 
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 
 export type BugScope = "all" | "mine" | "trash" | "archived";
 
@@ -67,8 +78,34 @@ export default function HivebugSidebar({
     scope,
   });
 
+  const updateSheet = useUpdateBugSheet();
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const sheetId = active.id as string;
+    const targetFolderId = over.id as string;
+    const sourceFolderId = active.data.current?.folderId;
+
+    if (targetFolderId !== sourceFolderId) {
+      updateSheet.mutate({
+        id: sheetId,
+        input: { folderId: targetFolderId },
+      });
+    }
+  };
 
   const totalAll = useMemo(
     () => folders?.reduce((acc, f) => acc + (f._count?.bugs || 0), 0) || 0,
@@ -76,128 +113,127 @@ export default function HivebugSidebar({
   );
 
   return (
-    <aside className="hb-sidebar">
-      <div className="hb-brand">
-        <div className="hb-brand-icon">
-          <Bug size={18} />
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <aside className="hb-sidebar">
+        <div className="hb-brand">
+          <div className="hb-brand-icon">
+            <Bug size={18} />
+          </div>
+          <div className="hb-brand-text">
+            <div className="hb-brand-name">Hivebug</div>
+            <div className="hb-brand-sub">QA WORKSPACE</div>
+          </div>
         </div>
-        <div className="hb-brand-text">
-          <div className="hb-brand-name">Hivebug</div>
-          <div className="hb-brand-sub">QA WORKSPACE</div>
-        </div>
-      </div>
 
-      <div className="hb-section">
-        <div className="hb-section-title">
-          <span className="hb-section-title-text">
-            <LayoutGrid size={11} className="hb-section-title-icon" />
-            <span>WORKSPACE</span>
-          </span>
-        </div>
-        <button
-          className={`hb-row ${
-            scope === "all" && !selectedFolderId && !selectedSheetId ? "active" : ""
-          }`}
-          onClick={() => {
-            onScopeChange("all");
-            onSelect(null, null);
-          }}
-        >
-          <Inbox size={15} />
-          <span className="hb-row-label">All Bugs</span>
-          <span className="hb-row-count">{totalAll}</span>
-        </button>
-        <button
-          className={`hb-row ${scope === "mine" ? "active" : ""}`}
-          onClick={() => {
-            onScopeChange("mine");
-            onSelect(null, null);
-          }}
-        >
-          <User size={15} />
-          <span className="hb-row-label">My Bugs</span>
-          <span className="hb-row-count">
-            {stats.data && scope === "mine" ? stats.data.total : ""}
-          </span>
-        </button>
-        <button
-          className={`hb-row ${scope === "trash" ? "active" : ""}`}
-          onClick={() => {
-            onScopeChange("trash");
-            onSelect(null, null);
-          }}
-        >
-          <Trash2 size={15} />
-          <span className="hb-row-label">Trash</span>
-          <span className="hb-row-count">
-            {stats.data && scope === "trash" ? stats.data.total : ""}
-          </span>
-        </button>
-        <button
-          className={`hb-row ${scope === "archived" ? "active" : ""}`}
-          onClick={() => {
-            onScopeChange("archived");
-            onSelect(null, null);
-          }}
-        >
-          <Archive size={15} />
-          <span className="hb-row-label">Archived</span>
-          <span className="hb-row-count">
-            {stats.data && scope === "archived" ? stats.data.total : ""}
-          </span>
-        </button>
-      </div>
-
-      
-      <div className="hb-section hb-section-grow">
-        <div className="hb-section-title">
-          <span className="hb-section-title-text">
-            <Library size={11} className="hb-section-title-icon" />
-            <span>COLLECTIONS</span>
-          </span>
-          <button className="hb-icon-btn" onClick={onCreateFolder} aria-label="New folder">
-            <Plus size={13} />
+        <div className="hb-section">
+          <div className="hb-section-title">
+            <span className="hb-section-title-text">
+              <LayoutGrid size={11} className="hb-section-title-icon" />
+              <span>WORKSPACE</span>
+            </span>
+          </div>
+          <button
+            className={`hb-row ${
+              scope === "all" && !selectedFolderId && !selectedSheetId ? "active" : ""
+            }`}
+            onClick={() => {
+              onScopeChange("all");
+              onSelect(null, null);
+            }}
+          >
+            <Inbox size={15} />
+            <span className="hb-row-label">All Bugs</span>
+            <span className="hb-row-count">{totalAll}</span>
+          </button>
+          <button
+            className={`hb-row ${scope === "mine" ? "active" : ""}`}
+            onClick={() => {
+              onScopeChange("mine");
+              onSelect(null, null);
+            }}
+          >
+            <User size={15} />
+            <span className="hb-row-label">My Bugs</span>
+            <span className="hb-row-count">
+              {stats.data && scope === "mine" ? stats.data.total : ""}
+            </span>
+          </button>
+          <button
+            className={`hb-row ${scope === "trash" ? "active" : ""}`}
+            onClick={() => {
+              onScopeChange("trash");
+              onSelect(null, null);
+            }}
+          >
+            <Trash2 size={15} />
+            <span className="hb-row-label">Trash</span>
+            <span className="hb-row-count">
+              {stats.data && scope === "trash" ? stats.data.total : ""}
+            </span>
+          </button>
+          <button
+            className={`hb-row ${scope === "archived" ? "active" : ""}`}
+            onClick={() => {
+              onScopeChange("archived");
+              onSelect(null, null);
+            }}
+          >
+            <Archive size={15} />
+            <span className="hb-row-label">Archived</span>
+            <span className="hb-row-count">
+              {stats.data && scope === "archived" ? stats.data.total : ""}
+            </span>
           </button>
         </div>
-        <div className="hb-collections">
-          {foldersLoading ? (
-            <div style={{ padding: 12 }}>
-              <Skeleton active paragraph={{ rows: 4 }} title={false} />
-            </div>
-          ) : !folders || folders.length === 0 ? (
-            <button className="hb-row hb-row-muted" onClick={onCreateFolder}>
-              <Plus size={13} />
-              <span className="hb-row-label">New collection</span>
-            </button>
-          ) : (
-            folders.map((folder) => (
-              <FolderNode
-                key={folder.id}
-                folder={folder}
-                isOpen={!!expanded[folder.id]}
-                isFolderSelected={
-                  selectedFolderId === folder.id && !selectedSheetId
-                }
-                selectedSheetId={
-                  selectedFolderId === folder.id ? selectedSheetId : null
-                }
-                onToggle={() => toggle(folder.id)}
-                onSelectFolder={() => {
-                  onSelect(folder.id, null);
-                  if (!expanded[folder.id]) toggle(folder.id);
-                }}
-                onSelectSheet={(sid) => onSelect(folder.id, sid)}
-                onEdit={() => onEditFolder(folder)}
-                onAddSheet={() => onCreateSheet(folder.id)}
-                onEditSheet={onEditSheet}
-              />
-            ))
-          )}
-        </div>
-      </div>
 
-     
-    </aside>
+        <div className="hb-section hb-section-grow">
+          <div className="hb-section-title">
+            <span className="hb-section-title-text">
+              <Library size={11} className="hb-section-title-icon" />
+              <span>COLLECTIONS</span>
+            </span>
+            <button className="hb-icon-btn" onClick={onCreateFolder} aria-label="New folder">
+              <Plus size={13} />
+            </button>
+          </div>
+          <div className="hb-collections">
+            {foldersLoading ? (
+              <div style={{ padding: 12 }}>
+                <Skeleton active paragraph={{ rows: 4 }} title={false} />
+              </div>
+            ) : !folders || folders.length === 0 ? (
+              <button className="hb-row hb-row-muted" onClick={onCreateFolder}>
+                <Plus size={13} />
+                <span className="hb-row-label">New collection</span>
+              </button>
+            ) : (
+              folders.map((folder) => (
+                <FolderNode
+                  key={folder.id}
+                  folder={folder}
+                  isOpen={!!expanded[folder.id]}
+                  isFolderSelected={
+                    selectedFolderId === folder.id && !selectedSheetId
+                  }
+                  selectedSheetId={
+                    selectedFolderId === folder.id ? selectedSheetId : null
+                  }
+                  onToggle={() => toggle(folder.id)}
+                  onSelectFolder={() => {
+                    onSelect(folder.id, null);
+                    if (!expanded[folder.id]) toggle(folder.id);
+                  }}
+                  onSelectSheet={(sid) => onSelect(folder.id, sid)}
+                  onEdit={() => onEditFolder(folder)}
+                  onAddSheet={() => onCreateSheet(folder.id)}
+                  onEditSheet={onEditSheet}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      </aside>
+    </DndContext>
   );
 }
 
@@ -253,15 +289,17 @@ function FolderNode({
   const { data: sheets, isLoading } = useBugSheets(isOpen ? folder.id : null);
   const deleteFolder = useDeleteBugFolder();
   const archiveFolder = useArchiveFolder();
-  const deleteSheet = useDeleteBugSheet();
-  const updateSheetStatus = useUpdateBugSheetStatus();
+
+  const { setNodeRef, isOver } = useDroppable({
+    id: folder.id,
+  });
 
   const sheetCount = folder._count?.sheets ?? 0;
   const completedCount = folder._count?.completedSheets ?? 0;
   const folderCompleted = sheetCount > 0 && completedCount === sheetCount;
 
   return (
-    <div>
+    <div ref={setNodeRef} className={isOver ? "hb-folder-drop-target" : ""}>
       <div
         className={`hb-row ${isFolderSelected ? "active" : ""}`}
         onClick={onSelectFolder}
@@ -340,89 +378,127 @@ function FolderNode({
               <span className="hb-row-label">Add sheet</span>
             </button>
           ) : (
-            sheets.map((s) => {
-              const status: BugSheetStatus = s.status ?? "active";
-              const isCurrent = status === "current";
-              const isCompleted = status === "completed";
-              const isArchived = status === "archived";
-              return (
-                <div
-                  key={s.id}
-                  className={`hb-row hb-row-sub ${
-                    selectedSheetId === s.id ? "active" : ""
-                  } ${isCompleted ? "hb-row-completed" : ""} ${isArchived ? "hb-row-archived" : ""}`}
-                  onClick={() => !isArchived && onSelectSheet(s.id)}
-                  role="button"
-                  style={{ opacity: isArchived ? 0.6 : 1 }}
-                >
-                  <SheetStatusIcon status={status} />
-                  <span className="hb-row-label">{s.name}</span>
-                  <span className="hb-row-count">{s._count?.bugs ?? 0}</span>
-                  <Dropdown
-                    trigger={["click"]}
-                    menu={{
-                      items: [
-                        ...(isArchived ? [{
-                          key: "toggle-archived",
-                          label: "Restore from archive",
-                        }] : [
-                          {
-                            key: "toggle-current",
-                            label: isCurrent ? "Unmark as current" : "Mark as current",
-                          },
-                          {
-                            key: "toggle-completed",
-                            label: isCompleted ? "Reopen sheet" : "Mark as completed",
-                          },
-                          ...(isCompleted ? [{
-                            key: "toggle-archived",
-                            label: "Move to archive",
-                          }] : []),
-                        ]),
-                        { type: "divider" },
-                        { key: "edit", label: "Edit", disabled: isArchived },
-                        { type: "divider" },
-                        { key: "delete", label: "Move to Trash", danger: true },
-                      ],
-                      onClick: ({ key, domEvent }) => {
-                        domEvent.stopPropagation();
-                        if (key === "toggle-current") {
-                          updateSheetStatus.mutate({
-                            id: s.id,
-                            status: isCurrent ? "active" : "current",
-                          });
-                        }
-                        if (key === "toggle-completed") {
-                          updateSheetStatus.mutate({
-                            id: s.id,
-                            status: isCompleted ? "active" : "completed",
-                          });
-                        }
-                        if (key === "toggle-archived") {
-                          updateSheetStatus.mutate({
-                            id: s.id,
-                            status: isArchived ? "active" : "archived",
-                          });
-                        }
-                        if (key === "edit") onEditSheet(s);
-                        if (key === "delete") deleteSheet.mutate(s.id);
-                      },
-                    }}
-                  >
-                    <button
-                      className="hb-icon-btn hb-row-action"
-                      onClick={(e) => e.stopPropagation()}
-                      aria-label="Sheet actions"
-                    >
-                      <MoreHorizontal size={12} />
-                    </button>
-                  </Dropdown>
-                </div>
-              );
-            })
+            sheets.map((s) => (
+              <SheetNode
+                key={s.id}
+                sheet={s}
+                selectedSheetId={selectedSheetId}
+                onSelectSheet={onSelectSheet}
+                onEditSheet={onEditSheet}
+              />
+            ))
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function SheetNode({
+  sheet,
+  selectedSheetId,
+  onSelectSheet,
+  onEditSheet,
+}: {
+  sheet: BugSheet;
+  selectedSheetId: string | null;
+  onSelectSheet: (id: string) => void;
+  onEditSheet: (s: BugSheet) => void;
+}) {
+  const deleteSheet = useDeleteBugSheet();
+  const updateSheetStatus = useUpdateBugSheetStatus();
+
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: sheet.id,
+    data: { folderId: sheet.folderId },
+  });
+
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        zIndex: 100,
+      }
+    : undefined;
+
+  const status: BugSheetStatus = sheet.status ?? "active";
+  const isCurrent = status === "current";
+  const isCompleted = status === "completed";
+  const isArchived = status === "archived";
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`hb-row hb-row-sub ${
+        selectedSheetId === sheet.id ? "active" : ""
+      } ${isCompleted ? "hb-row-completed" : ""} ${isArchived ? "hb-row-archived" : ""} ${isDragging ? "dragging" : ""}`}
+      onClick={() => !isArchived && onSelectSheet(sheet.id)}
+      role="button"
+    >
+      <SheetStatusIcon status={status} />
+      <span className="hb-row-label">{sheet.name}</span>
+      <span className="hb-row-count">{sheet._count?.bugs ?? 0}</span>
+      <Dropdown
+        trigger={["click"]}
+        menu={{
+          items: [
+            ...(isArchived ? [{
+              key: "toggle-archived",
+              label: "Restore from archive",
+            }] : [
+              {
+                key: "toggle-current",
+                label: isCurrent ? "Unmark as current" : "Mark as current",
+              },
+              {
+                key: "toggle-completed",
+                label: isCompleted ? "Reopen sheet" : "Mark as completed",
+              },
+              ...(isCompleted ? [{
+                key: "toggle-archived",
+                label: "Move to archive",
+              }] : []),
+            ]),
+            { type: "divider" },
+            { key: "edit", label: "Edit", disabled: isArchived },
+            { type: "divider" },
+            { key: "delete", label: "Move to Trash", danger: true },
+          ],
+          onClick: ({ key, domEvent }) => {
+            domEvent.stopPropagation();
+            if (key === "toggle-current") {
+              updateSheetStatus.mutate({
+                id: sheet.id,
+                status: isCurrent ? "active" : "current",
+              });
+            }
+            if (key === "toggle-completed") {
+              updateSheetStatus.mutate({
+                id: sheet.id,
+                status: isCompleted ? "active" : "completed",
+              });
+            }
+            if (key === "toggle-archived") {
+              updateSheetStatus.mutate({
+                id: sheet.id,
+                status: isArchived ? "active" : "archived",
+              });
+            }
+            if (key === "edit") onEditSheet(sheet);
+            if (key === "delete") deleteSheet.mutate(sheet.id);
+          },
+        }}
+      >
+        <button
+          className="hb-icon-btn hb-row-action"
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Sheet actions"
+        >
+          <MoreHorizontal size={12} />
+        </button>
+      </Dropdown>
     </div>
   );
 }

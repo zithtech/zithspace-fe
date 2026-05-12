@@ -793,6 +793,56 @@ const DocumentHubPage = () => {
     return () => clearInterval(id);
   }, []);
 
+  // --- Persistence Logic ---
+  // Restore filters from sessionStorage on mount
+  useEffect(() => {
+    const savedSearch = sessionStorage.getItem("documenthub_search");
+    const savedProject = sessionStorage.getItem("documenthub_filterProjectId");
+    const savedTicket = sessionStorage.getItem("documenthub_filterTicketId");
+    const savedUser = sessionStorage.getItem("documenthub_selectedUser");
+    const savedStarred = sessionStorage.getItem("documenthub_showStarredOnly");
+
+    if (savedSearch) setSearchText(savedSearch);
+    if (savedProject && savedProject !== "undefined") setFilterProjectId(savedProject);
+    if (savedTicket && savedTicket !== "undefined") setFilterTicketId(savedTicket);
+    if (savedUser && savedUser !== "undefined") setSelectedUser(savedUser);
+    if (savedStarred) setShowStarredOnly(savedStarred === "true");
+  }, []);
+
+  // Persist filters to sessionStorage when they change
+  useEffect(() => {
+    sessionStorage.setItem("documenthub_search", searchText);
+  }, [searchText]);
+
+  useEffect(() => {
+    if (filterProjectId !== undefined) {
+      sessionStorage.setItem("documenthub_filterProjectId", filterProjectId);
+    } else {
+      sessionStorage.removeItem("documenthub_filterProjectId");
+    }
+  }, [filterProjectId]);
+
+  useEffect(() => {
+    if (filterTicketId !== undefined) {
+      sessionStorage.setItem("documenthub_filterTicketId", filterTicketId);
+    } else {
+      sessionStorage.removeItem("documenthub_filterTicketId");
+    }
+  }, [filterTicketId]);
+
+  useEffect(() => {
+    if (selectedUser !== undefined) {
+      sessionStorage.setItem("documenthub_selectedUser", selectedUser);
+    } else {
+      sessionStorage.removeItem("documenthub_selectedUser");
+    }
+  }, [selectedUser]);
+
+  useEffect(() => {
+    sessionStorage.setItem("documenthub_showStarredOnly", String(showStarredOnly));
+  }, [showStarredOnly]);
+  // -------------------------
+
   // Share Modal State
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [selectedHubForShare, setSelectedHubForShare] = useState<{
@@ -895,7 +945,12 @@ const DocumentHubPage = () => {
   const handleAddDocument = async (values: any) => {
     try {
       setIsCreating(true);
-      const data = await DocumentHubService.createDocumentHub({ ...values });
+      const documentDetails = {
+        ...values,
+        visibility: 'public',
+      };
+
+      const data = await DocumentHubService.createDocumentHub(documentDetails);
       await queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
       setModalVisible(false);
       form.resetFields();
@@ -1526,6 +1581,7 @@ const DocumentHubPage = () => {
     setFilterTicketId(undefined);
     setSelectedUser(undefined);
     setDateRange(null);
+    setShowStarredOnly(false);
     refetch();
   };
 

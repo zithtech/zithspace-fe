@@ -108,7 +108,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   const queryClient = useQueryClient();
   const { isLoading: authLoading } = useAuth();
   const { canReadProject } = usePermission();
-  const [, contextHolder] = antdMessage.useMessage();
+  const [messageApi, contextHolder] = antdMessage.useMessage();
 
   const { bucketId } = use(params);
 
@@ -123,8 +123,9 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'table' | 'compact'>('table');
   const [page, setPage] = useState(1);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { data: bucket, isLoading: bucketLoading } = useBucket(bucketId);
+  const { data: bucket, isLoading: bucketLoading, refetch: refetchBucket } = useBucket(bucketId);
   const {
     data: ticketsData,
     isLoading: ticketsLoading,
@@ -214,10 +215,9 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   const resetFilters = () => {
     setSearchText('');
     setStatusFilter('all');
-    setPriorityFilter('all');
   };
 
-  const hasFilter = searchText || statusFilter !== 'all' || priorityFilter !== 'all';
+  const hasFilter = searchText || statusFilter !== 'all';
 
   // ────────────────────────── Table columns ──────────────────────────
   const columns: ColumnsType<BucketTicket> = [
@@ -225,16 +225,13 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
       title: 'TICKET',
       dataIndex: 'ticketNumber',
       key: 'ticketNumber',
-      width: 150,
+      width: 120,
       fixed: 'left',
-      render: (text, record) => (
+      render: (text) => (
         <div className="bd-row-id">
           <span className="bd-row-id-tag" style={{ color: accent, background: `${accent}10`, borderColor: `${accent}28` }}>
             {text}
           </span>
-          <Text className="bd-row-id-project" type="secondary">
-            {record.project?.code}
-          </Text>
         </div>
       ),
     },
@@ -244,6 +241,21 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
       key: 'title',
       ellipsis: true,
       render: (text) => <Text className="bd-row-title">{text}</Text>,
+    },
+    {
+      title: 'PROJECT',
+      dataIndex: 'project',
+      key: 'project',
+      width: 200,
+      render: (project) =>
+        project ? (
+          <div className="bd-project-tag">
+            <span className="bd-project-code-box">{project.code}</span>
+            <span className="bd-project-name-text">{project.name}</span>
+          </div>
+        ) : (
+          <Text type="secondary" style={{ fontSize: 11 }}>—</Text>
+        ),
     },
     {
       title: 'STATUS',
@@ -260,35 +272,6 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
           </span>
         );
       },
-    },
-    {
-      title: 'PRIORITY',
-      dataIndex: 'priority',
-      key: 'priority',
-      width: 120,
-      render: (priority: string) => {
-        const m = priorityMeta(priority);
-        const Icon = m.Icon;
-        return (
-          <span className="bd-pill" style={{ color: m.color, background: m.bg, borderColor: m.border }}>
-            <Icon style={{ fontSize: 9 }} />
-            {priority}
-          </span>
-        );
-      },
-    },
-    {
-      title: 'POINTS',
-      dataIndex: 'storyPoint',
-      key: 'storyPoint',
-      width: 90,
-      align: 'center',
-      render: (points) =>
-        points ? (
-          <span className="bd-points">{points}</span>
-        ) : (
-          <Text className="bd-points-empty">—</Text>
-        ),
     },
     {
       title: 'ASSIGNEE',
@@ -431,12 +414,18 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
               </div>
             </Tooltip>
             <Button
-              icon={<ReloadOutlined />}
-              onClick={() => {
-                queryClient.invalidateQueries({ queryKey: bucketKeys.all });
-                refetchTickets();
+              icon={<ReloadOutlined spin={isRefreshing} />}
+              onClick={async () => {
+                setIsRefreshing(true);
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: bucketKeys.all }),
+                  refetchBucket(),
+                  refetchTickets()
+                ]);
+                setIsRefreshing(false);
+                messageApi.success('Bucket data refreshed');
               }}
-              loading={ticketsLoading}
+              loading={ticketsLoading && !isRefreshing}
               className="bd-ghost-btn"
               size="small"
             />
@@ -444,62 +433,73 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
         </div>
 
         <div className="bd-body">
-          {/* ─────────── KPI strip ─────────── */}
+          {/* ──────────────── KPI strip ──────────────── */}
           <div className="bd-kpi-strip">
-            <div className="bd-kpi bd-kpi-purple">
-              <div className="bd-kpi-icon">
-                <FileTextOutlined />
-              </div>
-              <div className="bd-kpi-meta">
-                <Text className="bd-kpi-value">{analytics.total}</Text>
-                <Text className="bd-kpi-label">Total Tickets</Text>
-              </div>
-            </div>
-            <div className="bd-kpi bd-kpi-blue">
-              <div className="bd-kpi-icon">
-                <PlayCircleFilled />
-              </div>
-              <div className="bd-kpi-meta">
-                <Text className="bd-kpi-value">{analytics.inProgress}</Text>
-                <Text className="bd-kpi-label">In Progress</Text>
-              </div>
-            </div>
-            <div className="bd-kpi bd-kpi-emerald">
-              <div className="bd-kpi-icon">
-                <CheckCircleFilled />
-              </div>
-              <div className="bd-kpi-meta">
-                <Text className="bd-kpi-value">{analytics.completed}</Text>
-                <Text className="bd-kpi-label">Completed</Text>
-              </div>
-            </div>
-            <div className="bd-kpi bd-kpi-rose">
-              <div className="bd-kpi-icon">
-                <PauseCircleFilled />
-              </div>
-              <div className="bd-kpi-meta">
-                <Text className="bd-kpi-value">{analytics.blocked}</Text>
-                <Text className="bd-kpi-label">Blocked</Text>
-              </div>
-            </div>
-            <div className="bd-kpi bd-kpi-amber">
-              <div className="bd-kpi-icon">
-                <RocketOutlined />
-              </div>
-              <div className="bd-kpi-meta">
-                <Text className="bd-kpi-value">{analytics.points}</Text>
-                <Text className="bd-kpi-label">Story Points</Text>
-              </div>
-            </div>
-            <div className="bd-kpi bd-kpi-slate">
-              <div className="bd-kpi-icon">
-                <TeamOutlined />
-              </div>
-              <div className="bd-kpi-meta">
-                <Text className="bd-kpi-value">{analytics.assigneeCount}</Text>
-                <Text className="bd-kpi-label">Assignees</Text>
-              </div>
-            </div>
+            {(ticketsLoading || isRefreshing) && !tickets.length ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bd-kpi" style={{ padding: '14px 16px' }}>
+                  <Skeleton.Avatar active size="small" shape="square" />
+                  <Skeleton active paragraph={{ rows: 1 }} title={false} />
+                </div>
+              ))
+            ) : (
+              <>
+                <div className="bd-kpi bd-kpi-purple">
+                  <div className="bd-kpi-icon">
+                    <FileTextOutlined />
+                  </div>
+                  <div className="bd-kpi-meta">
+                    <Text className="bd-kpi-value">{analytics.total}</Text>
+                    <Text className="bd-kpi-label">Tickets</Text>
+                  </div>
+                </div>
+                <div className="bd-kpi bd-kpi-emerald">
+                  <div className="bd-kpi-icon">
+                    <CheckCircleFilled />
+                  </div>
+                  <div className="bd-kpi-meta">
+                    <Text className="bd-kpi-value">{analytics.completed}</Text>
+                    <Text className="bd-kpi-label">Completed</Text>
+                  </div>
+                </div>
+                <div className="bd-kpi bd-kpi-blue">
+                  <div className="bd-kpi-icon">
+                    <PlayCircleFilled />
+                  </div>
+                  <div className="bd-kpi-meta">
+                    <Text className="bd-kpi-value">{analytics.inProgress}</Text>
+                    <Text className="bd-kpi-label">In Progress</Text>
+                  </div>
+                </div>
+                <div className="bd-kpi bd-kpi-amber">
+                  <div className="bd-kpi-icon">
+                    <ClockCircleOutlined />
+                  </div>
+                  <div className="bd-kpi-meta">
+                    <Text className="bd-kpi-value">{analytics.todo}</Text>
+                    <Text className="bd-kpi-label">To Do</Text>
+                  </div>
+                </div>
+                <div className="bd-kpi bd-kpi-rose">
+                  <div className="bd-kpi-icon">
+                    <PauseCircleFilled />
+                  </div>
+                  <div className="bd-kpi-meta">
+                    <Text className="bd-kpi-value">{analytics.blocked}</Text>
+                    <Text className="bd-kpi-label">Blocked</Text>
+                  </div>
+                </div>
+                <div className="bd-kpi bd-kpi-slate">
+                  <div className="bd-kpi-icon">
+                    <TeamOutlined />
+                  </div>
+                  <div className="bd-kpi-meta">
+                    <Text className="bd-kpi-value">{analytics.assigneeCount}</Text>
+                    <Text className="bd-kpi-label">Assignees</Text>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* ─────────── Sticky control bar ─────────── */}
@@ -588,21 +588,6 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                   </Select>
                 </div>
 
-                <div className="bd-filter-wrap">
-                  <Text className="bd-filter-label">Priority</Text>
-                  <Select
-                    variant="borderless"
-                    value={priorityFilter}
-                    onChange={setPriorityFilter}
-                    style={{ width: 110 }}
-                    size="small"
-                  >
-                    <Option value="all">All</Option>
-                    <Option value="HIGH">High</Option>
-                    <Option value="MEDIUM">Medium</Option>
-                    <Option value="LOW">Low</Option>
-                  </Select>
-                </div>
 
                 {hasFilter && (
                   <Button
@@ -622,6 +607,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                   {tickets.length} of {analytics.total} tickets
                 </Text>
 
+                {/* 
                 <Segmented
                   value={viewMode}
                   onChange={(v) => setViewMode(v as 'table' | 'compact')}
@@ -631,56 +617,63 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                     { label: <Tooltip title="Compact"><AppstoreOutlined /></Tooltip>, value: 'compact' },
                   ]}
                 />
+                */}
               </div>
             )}
           </div>
 
           {/* ─────────── Table ─────────── */}
           <Card styles={{ body: { padding: 0 } }} className="bd-table-shell">
-            <Table
-              columns={columns}
-              dataSource={tickets}
-              rowKey="id"
-              loading={ticketsLoading}
-              rowSelection={{
-                selectedRowKeys,
-                onChange: setSelectedRowKeys,
-                columnWidth: 44,
-              }}
-              pagination={{
-                pageSize: viewMode === 'compact' ? 30 : 15,
-                showSizeChanger: true,
-                showTotal: (total) => (
-                  <Text className="bd-pagination-total">{total} TICKETS</Text>
-                ),
-                style: { padding: '12px 20px', margin: 0 },
-              }}
-              scroll={{ x: 1200 }}
-              className={`bd-table ${viewMode === 'compact' ? 'bd-table-compact' : ''}`}
-              locale={{
-                emptyText: (
-                  <div className="bd-empty">
-                    <div className="bd-empty-illust">
-                      <FolderOutlined />
-                      <span className="bd-empty-illust-glow" />
+            {isRefreshing || (ticketsLoading && !tickets.length) ? (
+              <div style={{ padding: 32 }}>
+                <Skeleton active paragraph={{ rows: 10 }} title />
+              </div>
+            ) : (
+              <Table
+                columns={columns}
+                dataSource={tickets}
+                rowKey="id"
+                loading={ticketsLoading}
+                rowSelection={{
+                  selectedRowKeys,
+                  onChange: setSelectedRowKeys,
+                  columnWidth: 44,
+                }}
+                pagination={{
+                  pageSize: viewMode === 'compact' ? 30 : 15,
+                  showSizeChanger: true,
+                  showTotal: (total) => (
+                    <Text className="bd-pagination-total">{total} TICKETS</Text>
+                  ),
+                  style: { padding: '12px 20px', margin: 0 },
+                }}
+                scroll={{ x: 1200 }}
+                className={`bd-table ${viewMode === 'compact' ? 'bd-table-compact' : ''}`}
+                locale={{
+                  emptyText: (
+                    <div className="bd-empty">
+                      <div className="bd-empty-illust">
+                        <FolderOutlined />
+                        <span className="bd-empty-illust-glow" />
+                      </div>
+                      <Title level={4} className="bd-empty-title">
+                        {hasFilter ? 'No tickets match these filters' : 'This bucket is empty'}
+                      </Title>
+                      <Text className="bd-empty-sub">
+                        {hasFilter
+                          ? 'Try adjusting search, status, or priority filters.'
+                          : 'Drag tickets here from a sprint or backlog to start organizing.'}
+                      </Text>
+                      {hasFilter && (
+                        <Button onClick={resetFilters} className="bd-ghost-btn" style={{ marginTop: 14 }}>
+                          Reset filters
+                        </Button>
+                      )}
                     </div>
-                    <Title level={4} className="bd-empty-title">
-                      {hasFilter ? 'No tickets match these filters' : 'This bucket is empty'}
-                    </Title>
-                    <Text className="bd-empty-sub">
-                      {hasFilter
-                        ? 'Try adjusting search, status, or priority filters.'
-                        : 'Drag tickets here from a sprint or backlog to start organizing.'}
-                    </Text>
-                    {hasFilter && (
-                      <Button onClick={resetFilters} className="bd-ghost-btn" style={{ marginTop: 14 }}>
-                        Reset filters
-                      </Button>
-                    )}
-                  </div>
-                ),
-              }}
-            />
+                  ),
+                }}
+              />
+            )}
           </Card>
         </div>
 
@@ -698,18 +691,23 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
 
           /* ──────────────── Slim header ──────────────── */
           .bd-header {
+            position: sticky;
+            top: 0;
+            z-index: 101;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            padding: 10px 32px;
+            padding: 11px 32px 12px;
             background: var(--bg-pure-white);
             border-bottom: 1px solid var(--border-slate-100);
             min-height: 56px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
           }
           [data-theme='dark'] .bd-header {
-            background: #0d1117 !important;
-            border-bottom-color: #1f2937;
+            background: rgba(11, 15, 26, 0.8) !important;
+            border-bottom-color: #1f2937 !important;
           }
           .bd-header-left {
             display: flex;
@@ -892,9 +890,6 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
 
           /* ──────────────── Control bar ──────────────── */
           .bd-control-bar {
-            position: sticky;
-            top: 64px;
-            z-index: 9;
             background: var(--bg-pure-white);
             border: 1px solid var(--border-slate-200);
             border-radius: 12px;
@@ -938,14 +933,16 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
             display: flex;
             align-items: center;
             gap: 6px;
-            background: var(--bg-slate-50);
+            // background: var(--bg-slate-50);
+            background: transparent !important;
             padding: 0 6px 0 12px;
             border-radius: 8px;
             border: 1px solid var(--border-slate-100);
             height: 36px;
           }
           [data-theme='dark'] .bd-filter-wrap {
-            background: #1f2937 !important;
+            // background: #1f2937 !important;
+            background: transparent !important;
             border-color: #374151 !important;
           }
           .bd-filter-label {
@@ -1061,6 +1058,48 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
           .bd-execute-btn:hover {
             transform: translateY(-1px);
             box-shadow: 0 6px 16px -4px var(--accent) !important;
+          }
+
+          .bd-row-id-project { font-size: 10px; margin-left: 4px; font-weight: 600; }
+          .bd-row-title { font-size: 13px !important; color: var(--text-slate-900) !important; font-weight: 600 !important; }
+
+          /* ──────────────── Project tag ──────────────── */
+          .bd-project-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 3px 10px 3px 3px;
+            background: rgba(241, 245, 249, 0.8);
+            border: 1px solid var(--border-slate-200);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+          }
+          [data-theme='dark'] .bd-project-tag {
+            background: rgba(31, 41, 55, 0.4) !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+          }
+          .bd-project-code-box {
+            background: #ffffff;
+            color: #2563eb;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 6px;
+            min-width: 32px;
+            text-align: center;
+            border: 1px solid rgba(37, 99, 235, 0.15);
+            letter-spacing: 0.02em;
+          }
+          [data-theme='dark'] .bd-project-code-box {
+            background: #0d1117 !important;
+            color: #60a5fa !important;
+            border-color: rgba(96, 165, 250, 0.2) !important;
+          }
+          .bd-project-name-text {
+            color: var(--text-slate-900) !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.01em;
           }
           .bd-execute-btn[disabled] {
             background: var(--bg-slate-100) !important;

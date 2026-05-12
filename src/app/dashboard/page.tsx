@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { TicketDetailDrawer } from "@/components/projects/drawer/TicketDetailDrawer";
 import MainLayout from "@/components/layout/MainLayout";
+
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   dashboardService,
@@ -107,7 +109,10 @@ function DashboardContent() {
 
   const [todayAttendance, setTodayAttendance] = useState<any>(null);
 
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+
   useEffect(() => {
+
     console.log("recentTickets", recentTickets);
   }, [recentTickets]);
 
@@ -3232,7 +3237,7 @@ function DashboardContent() {
                                   <div
                                     key={item.id}
                                     onClick={() =>
-                                      router.push(`/tickets/${item.id}`)
+                                      setSelectedTicketId(item.id)
                                     }
                                     className="dash-rt-card"
                                     style={
@@ -6200,8 +6205,17 @@ function DashboardContent() {
 
         {/* ─── ORGANIZATION SEGMENT ─────────────────────────────── */}
         {activeSegment === "organization" && <Organization />}
+
+        <TicketDetailDrawer
+          ticketId={selectedTicketId}
+          open={!!selectedTicketId}
+          onClose={() => setSelectedTicketId(null)}
+          ticketIds={recentTickets.map((t: any) => t.id)}
+          onNavigate={(id) => setSelectedTicketId(id)}
+        />
       </div>
     </MainLayout>
+
   );
 }
 

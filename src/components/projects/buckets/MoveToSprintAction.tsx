@@ -286,7 +286,7 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
       <Tooltip title="Move to sprint">
         <Button
           type="text"
-          icon={<RocketOutlined style={{ fontSize: 13, color: disabled ? '#94a3b8' : "#8b5cf6" }} />}
+          icon={<RocketOutlined style={{ fontSize: 14, color: disabled ? '#94a3b8' : "#8b5cf6" }} />}
           className="saas-action-btn"
           loading={loading}
           disabled={disabled}

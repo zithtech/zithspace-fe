@@ -26,6 +26,10 @@ import {
   usePermanentDeleteBug,
   useBulkRestoreBugs,
   useBulkPermanentDeleteBugs,
+  useBulkRestoreFolders,
+  useBulkPermanentDeleteFolders,
+  useBulkRestoreSheets,
+  useBulkPermanentDeleteSheets,
 } from "@/hooks/useBugList";
 import type { BugSheet, BugFolder, BugListItem } from "@/services/bugListService";
 import { hivebugStyles } from "./hivebug-styles";
@@ -66,8 +70,22 @@ const formatRelative = (date: string) => {
 
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString(undefined, {
-    month: "short", day: "numeric", year: "numeric",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
+
+const plural = (count: number, label: string) =>
+  `${count} ${count === 1 ? label : label + "s"}`;
+
+const formatBreakdown = (folders: number, sheets: number, bugs: number) => {
+  const parts = [];
+  if (folders > 0) parts.push(plural(folders, "folder"));
+  if (sheets > 0) parts.push(plural(sheets, "sheet"));
+  if (bugs > 0) parts.push(plural(bugs, "bug"));
+  if (parts.length === 0) return "";
+  return ` (${parts.join(", ")})`;
+};
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -137,8 +155,12 @@ export default function TrashView({
   const restoreBug = useRestoreBug();
   const deleteBug = usePermanentDeleteBug();
 
-  const bulkRestore = useBulkRestoreBugs();
-  const bulkDelete = useBulkPermanentDeleteBugs();
+  const bulkRestoreBugs = useBulkRestoreBugs();
+  const bulkDeleteBugs = useBulkPermanentDeleteBugs();
+  const bulkRestoreFolders = useBulkRestoreFolders();
+  const bulkDeleteFolders = useBulkPermanentDeleteFolders();
+  const bulkRestoreSheets = useBulkRestoreSheets();
+  const bulkDeleteSheets = useBulkPermanentDeleteSheets();
 
   const isLoading = loadingFolders || loadingSheets || loadingBugs;
 
@@ -193,7 +215,7 @@ export default function TrashView({
           <div className="arc-header-sub">
             {selectedFolderId
               ? `${filteredSheets?.length || 0} sheets in this folder`
-              : `${totalItems} items found in trash`
+              : `${plural(totalItems, "item")} found in trash${formatBreakdown(trashedFolders?.length || 0, filteredSheets?.length || 0, trashedBugs.length)}`
             }
           </div>
         </div>
@@ -251,7 +273,10 @@ export default function TrashView({
             <button
               className="hb-btn hb-btn-primary"
               onClick={() => {
-                bulkRestore.mutate(Array.from(selectedIds));
+                const ids = Array.from(selectedIds);
+                if (activeTab === "folders") bulkRestoreFolders.mutate(ids);
+                else if (activeTab === "sheets") bulkRestoreSheets.mutate(ids);
+                else bulkRestoreBugs.mutate(ids);
                 setSelectedIds(new Set());
               }}
             >
@@ -261,7 +286,10 @@ export default function TrashView({
             <Popconfirm
               title={`Permanently delete ${selectedIds.size} items?`}
               onConfirm={() => {
-                bulkDelete.mutate(Array.from(selectedIds));
+                const ids = Array.from(selectedIds);
+                if (activeTab === "folders") bulkDeleteFolders.mutate(ids);
+                else if (activeTab === "sheets") bulkDeleteSheets.mutate(ids);
+                else bulkDeleteBugs.mutate(ids);
                 setSelectedIds(new Set());
               }}
             >

@@ -7,6 +7,8 @@ import {
   Link as LinkIcon,
   Plus,
   Archive,
+  Paperclip,
+  Link2,
 } from "lucide-react";
 import type {
   BugListItem,
@@ -280,12 +282,30 @@ function BugRow({
       </td>
       <td>
         <div className="hb-title-cell">
-          <span className="hb-bug-num">
-            {bug.bugNumber || `BUG-${bug.id.slice(-3).toUpperCase()}`}
-          </span>
-          <span className="hb-bug-title" title={bug.title || bug.description}>
-            {bug.title || bug.description}
-          </span>
+          <div className="hb-title-stack">
+            <span className="hb-bug-num">
+              {bug.bugNumber || `BUG-${bug.id.slice(-3).toUpperCase()}`}
+            </span>
+            <span className="hb-bug-title" title={bug.title || bug.description}>
+              {bug.title || bug.description}
+            </span>
+          </div>
+          <div className="hb-title-indicators">
+            {bug.attachments && bug.attachments.length > 0 && (
+              <Tooltip title={`${bug.attachments.length} attachment${bug.attachments.length > 1 ? "s" : ""}`}>
+                <span className="hb-indicator">
+                  <Paperclip size={10} />
+                </span>
+              </Tooltip>
+            )}
+            {bug.externalLinks && bug.externalLinks.length > 0 && (
+              <Tooltip title={`${bug.externalLinks.length} external link${bug.externalLinks.length > 1 ? "s" : ""}`}>
+                <span className="hb-indicator">
+                  <Link2 size={10} />
+                </span>
+              </Tooltip>
+            )}
+          </div>
         </div>
       </td>
       <td>

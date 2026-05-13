@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Table,
   Button,
@@ -62,6 +63,7 @@ interface ProjectsTabProps {
 
 export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   const { canUpdateClient } = usePermission();
+  const router = useRouter();
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
@@ -75,6 +77,87 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   const [editingProject, setEditingProject] = useState<any>(null);
   const [editForm] = Form.useForm();
   const [notify, contextHolder] = notification.useNotification();
+
+  // Live duplicate-check state for the Initiate New Project modal
+  type CheckState = { status: "idle" | "checking" | "available" | "taken"; value: string };
+  const [nameCheck, setNameCheck] = useState<CheckState>({ status: "idle", value: "" });
+  const [codeCheck, setCodeCheck] = useState<CheckState>({ status: "idle", value: "" });
+  const nameTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const codeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track the latest typed value via ref — synchronous & immune to form-state lag
+  const latestName = React.useRef("");
+  const latestCode = React.useRef("");
+
+  const runCheck = async (field: "name" | "code", value: string) => {
+    if (value.length < 3) return;
+    const setter = field === "name" ? setNameCheck : setCodeCheck;
+    const latest = field === "name" ? latestName : latestCode;
+    try {
+      const url = `/api/clients-v2/projects/check?${field}=${encodeURIComponent(value)}`;
+      const data = await api.get(url);
+      // Bail if user kept typing — only apply result for the most recent value
+      if (latest.current.trim() !== value) return;
+      const exists = field === "name" ? !!data?.nameExists : !!data?.codeExists;
+      setter({ status: exists ? "taken" : "available", value });
+      form.setFields([
+        {
+          name: field,
+          errors: exists
+            ? [field === "name" ? "A project with this name already exists" : "This project code is already in use"]
+            : [],
+        },
+      ]);
+    } catch (err) {
+      console.error("Project availability check failed", err);
+      if (latest.current.trim() === value) {
+        setter({ status: "idle", value });
+      }
+    }
+  };
+
+  const onNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    latestName.current = v;
+    if (nameTimer.current) clearTimeout(nameTimer.current);
+    const trimmed = v.trim();
+    if (trimmed.length < 3) {
+      setNameCheck({ status: "idle", value: v });
+      form.setFields([{ name: "name", errors: [] }]);
+      return;
+    }
+    setNameCheck({ status: "checking", value: v });
+    nameTimer.current = setTimeout(() => runCheck("name", trimmed), 400);
+  };
+
+  const onCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    latestCode.current = v;
+    if (codeTimer.current) clearTimeout(codeTimer.current);
+    const trimmed = v.trim();
+    if (trimmed.length < 3) {
+      setCodeCheck({ status: "idle", value: v });
+      form.setFields([{ name: "code", errors: [] }]);
+      return;
+    }
+    setCodeCheck({ status: "checking", value: v });
+    codeTimer.current = setTimeout(() => runCheck("code", trimmed), 400);
+  };
+
+  const resetChecks = () => {
+    if (nameTimer.current) clearTimeout(nameTimer.current);
+    if (codeTimer.current) clearTimeout(codeTimer.current);
+    latestName.current = "";
+    latestCode.current = "";
+    setNameCheck({ status: "idle", value: "" });
+    setCodeCheck({ status: "idle", value: "" });
+  };
+
+  const renderCheckSuffix = (s: CheckState) => {
+    if (s.status === "checking") return <span className="pmodal-check spin"><Clock size={13} /></span>;
+    if (s.status === "available") return <span className="pmodal-check ok"><CheckCircle2 size={14} /></span>;
+    if (s.status === "taken") return <span className="pmodal-check bad"><AlertCircle size={14} /></span>;
+    return null;
+  };
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -120,6 +203,14 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   );
 
   const handleCreateProject = async (values: any) => {
+    if (nameCheck.status === "taken" || codeCheck.status === "taken") {
+      notify.warning({
+        message: "Duplicate detected",
+        description: "Please choose a unique project name and code before creating.",
+        placement: "top",
+      });
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = {
@@ -136,6 +227,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       });
       setIsModalVisible(false);
       form.resetFields();
+      resetChecks();
       fetchProjects();
       onRefresh();
     } catch (error: any) {
@@ -308,9 +400,18 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       key: "actions",
       align: "right" as const,
       render: (_: any, record: any) => (
-        <Space>
-          <Tooltip title="View Project Details">
-            <Button type="text" className="premium-action-btn" icon={<Eye size={16} />} style={{ color: "var(--text-slate-400)" }} />
+        <Space onClick={(e) => e.stopPropagation()}>
+          <Tooltip title="View Project Overview">
+            <Button
+              type="text"
+              className="premium-action-btn"
+              icon={<Eye size={16} />}
+              style={{ color: "var(--text-slate-400)" }}
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/projects/${record.id}/overview`);
+              }}
+            />
           </Tooltip>
           {canUpdateClient && (
             <Tooltip title="Edit Configuration">
@@ -330,25 +431,29 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
-      <Card
-        style={{
-          borderRadius: 16,
-          border: "1px solid var(--border-slate-100)",
-          background: "var(--bg-pure-white)"
-        }}
-        bodyStyle={{ padding: "0" }}
-      >
-        <div style={{ padding: "24px", borderBottom: "1px solid var(--border-slate-100)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>Internal Projects</div>
-            <div style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 4 }}>Monitor project lifecycles, budget utilization, and leadership assignments</div>
+      <Card className="ptab-card" styles={{ body: { padding: 0 } }}>
+        <div className="ptab-header">
+          <div className="ptab-header-left">
+            <div className="ptab-header-icon blue">
+              <Layers size={20} />
+            </div>
+            <div className="ptab-header-titlewrap">
+              <div className="ptab-header-title">
+                Internal Projects
+                <span className="ptab-header-count">{filteredProjects.length}</span>
+              </div>
+              <div className="ptab-header-desc">
+                Monitor project lifecycles, budget utilization, and leadership assignments
+              </div>
+            </div>
           </div>
-          <Space size={12}>
+          <div className="ptab-header-right">
             <Input
               placeholder="Search by name or project code..."
-              prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
+              prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ borderRadius: 10, width: 300, height: 40 }}
+              className="ptab-search"
+              allowClear
             />
             {canUpdateClient && (
               <Button
@@ -361,7 +466,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                 Initiate Project
               </Button>
             )}
-          </Space>
+          </div>
         </div>
 
         <Table
@@ -372,7 +477,23 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           pagination={{ pageSize: 8, hideOnSinglePage: true }}
           className="premium-table"
           scroll={{ x: "max-content" }}
-          locale={{ emptyText: <div style={{ padding: "40px 0", color: "var(--text-slate-500)" }}>No project initiatives recorded</div> }}
+          onRow={(record) => ({
+            onClick: () => router.push(`/projects/${record.id}/overview`),
+            style: { cursor: "pointer" },
+          })}
+          locale={{
+            emptyText: (
+              <div className="ptab-empty">
+                <div className="ptab-empty-icon">
+                  <Layers size={26} />
+                </div>
+                <div className="ptab-empty-title">No projects yet</div>
+                <div className="ptab-empty-desc">
+                  Initiate the first project under this client to start tracking budget, timelines, and ownership.
+                </div>
+              </div>
+            ),
+          }}
         />
       </Card>
 
@@ -382,45 +503,57 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         onCancel={() => {
           setIsModalVisible(false);
           form.resetFields();
+          resetChecks();
         }}
         footer={null}
         title={null}
-        width={680}
+        width={640}
         centered
         destroyOnClose
-        className="pmodal"
+        className="pmodal pmodal-compact pmodal-project"
         closeIcon={<X size={16} />}
       >
         <Form form={form} layout="vertical" onFinish={handleCreateProject}>
-          <div className="pmodal-hero amber">
-            <div className="pmodal-hero-mesh" />
-            <div className="pmodal-hero-blob" />
+          <div className="pmodal-hero pmodal-hero-slim">
             <div className="pmodal-hero-content">
               <div className="pmodal-hero-icon">
-                <Layers size={20} />
+                <Layers size={18} />
               </div>
-              <div>
+              <div className="pmodal-hero-text">
                 <div className="pmodal-hero-title">Initiate New Project</div>
                 <div className="pmodal-hero-sub">
-                  Set up a project scope, leadership, and budget envelope
+                  Define scope, leadership, and budget for this engagement
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="pmodal-body">
-            <div className="pmodal-section-label">
-              <Hash size={11} />
-              <span>Identity</span>
+          <div className="pmodal-body pmodal-body-compact">
+            <div className="pmodal-step-band">
+              <span className="pmodal-step-num">01</span>
+              <span className="pmodal-step-icon"><Hash size={11} /></span>
+              <span className="pmodal-step-text">Identity</span>
             </div>
-            <Row gutter={20}>
+            <Row gutter={12}>
               <Col xs={24} sm={14}>
                 <Form.Item
                   label="Project name"
                   name="name"
                   rules={[{ required: true, message: "Required" }]}
+                  hasFeedback={false}
+                  extra={
+                    nameCheck.status === "available" ? (
+                      <span className="pmodal-check-hint ok">Name is available</span>
+                    ) : nameCheck.status === "checking" ? (
+                      <span className="pmodal-check-hint muted">Checking availability…</span>
+                    ) : null
+                  }
                 >
-                  <Input placeholder="e.g. Q3 Infrastructure Modernization" />
+                  <Input
+                    placeholder="e.g. Q3 Infrastructure Modernization"
+                    onChange={onNameChange}
+                    suffix={renderCheckSuffix(nameCheck)}
+                  />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={10}>
@@ -428,17 +561,30 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   label="Project code"
                   name="code"
                   rules={[{ required: true, message: "Required" }]}
+                  hasFeedback={false}
+                  extra={
+                    codeCheck.status === "available" ? (
+                      <span className="pmodal-check-hint ok">Code is available</span>
+                    ) : codeCheck.status === "checking" ? (
+                      <span className="pmodal-check-hint muted">Checking…</span>
+                    ) : null
+                  }
                 >
-                  <Input placeholder="e.g. PRJ-2024-001" />
+                  <Input
+                    placeholder="PRJ-2024-001"
+                    onChange={onCodeChange}
+                    suffix={renderCheckSuffix(codeCheck)}
+                  />
                 </Form.Item>
               </Col>
             </Row>
 
-            <div className="pmodal-section-label">
-              <User size={11} />
-              <span>Leadership &amp; Status</span>
+            <div className="pmodal-step-band">
+              <span className="pmodal-step-num">02</span>
+              <span className="pmodal-step-icon"><User size={11} /></span>
+              <span className="pmodal-step-text">Leadership &amp; Status</span>
             </div>
-            <Row gutter={20}>
+            <Row gutter={12}>
               <Col xs={24} sm={12}>
                 <Form.Item
                   label="Project manager"
@@ -446,7 +592,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   rules={[{ required: true, message: "Assignment required" }]}
                 >
                   <Select
-                    placeholder="Assign a project manager"
+                    placeholder="Assign a manager"
                     showSearch
                     optionFilterProp="children"
                   >
@@ -460,7 +606,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item
-                  label="Initial lifecycle status"
+                  label="Initial status"
                   name="status"
                   initialValue="Draft"
                   rules={[{ required: true }]}
@@ -476,11 +622,12 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
               </Col>
             </Row>
 
-            <div className="pmodal-section-label">
-              <Wallet size={11} />
-              <span>Billing &amp; Budget</span>
+            <div className="pmodal-step-band">
+              <span className="pmodal-step-num">03</span>
+              <span className="pmodal-step-icon"><Wallet size={11} /></span>
+              <span className="pmodal-step-text">Billing &amp; Budget</span>
             </div>
-            <Row gutter={20}>
+            <Row gutter={12}>
               <Col xs={24} sm={12}>
                 <Form.Item
                   label="Billing model"
@@ -510,18 +657,19 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
               </Col>
             </Row>
 
-            <div className="pmodal-section-label">
-              <Calendar size={11} />
-              <span>Timeline</span>
+            <div className="pmodal-step-band">
+              <span className="pmodal-step-num">04</span>
+              <span className="pmodal-step-icon"><Calendar size={11} /></span>
+              <span className="pmodal-step-text">Timeline</span>
             </div>
-            <Row gutter={20}>
+            <Row gutter={12}>
               <Col xs={24} sm={12}>
                 <Form.Item
                   label="Start date"
                   name="startDate"
                   rules={[{ required: true, message: "Required" }]}
                 >
-                  <DatePicker style={{ width: "100%" }} placeholder="Project commencement" />
+                  <DatePicker style={{ width: "100%" }} placeholder="Commencement" />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
@@ -532,11 +680,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </Row>
           </div>
 
-          <div className="pmodal-footer">
-            <span className="pmodal-footer-hint">
-              <Briefcase size={12} />
-              Project will be created under this client
-            </span>
+          <div className="pmodal-footer pmodal-footer-compact">
             <Button
               onClick={() => setIsModalVisible(false)}
               className="pmodal-btn-cancel"
@@ -547,7 +691,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
               type="primary"
               htmlType="submit"
               loading={submitting}
-              icon={<Plus size={15} />}
+              icon={<Plus size={14} />}
               className="pmodal-btn-primary"
             >
               Initialize Project

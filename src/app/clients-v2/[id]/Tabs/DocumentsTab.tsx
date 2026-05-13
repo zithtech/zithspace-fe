@@ -5,10 +5,12 @@ import {
   Table,
   Button,
   Upload,
-  Tag,
   Modal,
   Form,
+  Input,
   Select,
+  AutoComplete,
+  Segmented,
   Space,
   Popconfirm,
   notification,
@@ -29,7 +31,13 @@ import {
   Search,
   X,
   Folder,
+  FolderArchive,
   ShieldCheck,
+  Link2,
+  UploadCloud,
+  ExternalLink,
+  AlertTriangle,
+  Copy,
 } from "lucide-react";
 import { api } from "@/lib/axios";
 import { usePermission } from "@/hooks/usePermission";
@@ -76,6 +84,160 @@ export default function DocumentsTab({
   const [notify, contextHolder] = notification.useNotification();
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewingDocument, setViewingDocument] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [docSource, setDocSource] = useState<"upload" | "url">("upload");
+
+  type DocPreview =
+    | { kind: "image"; src: string }
+    | { kind: "iframe"; src: string; service: string }
+    | null;
+
+  const getDocPreview = (doc: any): DocPreview => {
+    const url: string | undefined = doc?.fileUrl;
+    if (!url) return null;
+
+    // Google Drive file → /preview
+    let m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
+    if (m) return { kind: "iframe", src: `https://drive.google.com/file/d/${m[1]}/preview`, service: "Google Drive" };
+
+    // Google Docs / Sheets / Slides → /preview
+    m = url.match(/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([^/?#]+)/);
+    if (m) return { kind: "iframe", src: `https://docs.google.com/${m[1]}/d/${m[2]}/preview`, service: "Google Workspace" };
+
+    // YouTube
+    m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?#]+)/);
+    if (m) return { kind: "iframe", src: `https://www.youtube.com/embed/${m[1]}`, service: "YouTube" };
+
+    // Image
+    if (/\.(png|jpe?g|gif|webp|svg|bmp)(\?|$|#)/i.test(url)) return { kind: "image", src: url };
+
+    // Office docs (publicly accessible) — gview wrapper
+    if (/\.(docx?|xlsx?|pptx?)(\?|$|#)/i.test(url)) {
+      return {
+        kind: "iframe",
+        src: `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`,
+        service: "Office viewer",
+      };
+    }
+
+    // PDF — modern browsers handle inline
+    if (/\.pdf(\?|$|#)/i.test(url)) return { kind: "iframe", src: url, service: "PDF" };
+
+    // Default: direct iframe (handles HTML pages, internal doc hub URLs, etc.)
+    return { kind: "iframe", src: url, service: "Web preview" };
+  };
+
+  const isExternalDoc = (doc: any) => {
+    if (!doc?.fileUrl) return false;
+    try {
+      const host = new URL(doc.fileUrl).hostname;
+      return !host.includes("r2.cloudflarestorage") && !host.includes("r2.dev");
+    } catch {
+      return false;
+    }
+  };
+
+  const copyDocLink = async (doc: any) => {
+    try {
+      await navigator.clipboard.writeText(doc?.fileUrl || "");
+      notify.success({ message: "Link copied", placement: "top" });
+    } catch {
+      notify.error({ message: "Couldn't copy link", placement: "top" });
+    }
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (!bytes && bytes !== 0) return "";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const filteredDocuments = documents.filter((d) => {
+    if (!searchTerm) return true;
+    const q = searchTerm.toLowerCase();
+    return (
+      (d.fileName || "").toLowerCase().includes(q) ||
+      (d.category || "").toLowerCase().includes(q) ||
+      (d.documentType || "").toLowerCase().includes(q)
+    );
+  });
+
+  // --- Category + subtype option lists (suggested + custom from prior uploads) ---
+  const uniq = (arr: (string | undefined | null)[]) =>
+    Array.from(new Set(arr.filter((x): x is string => !!x && x.trim().length > 0)));
+
+  const suggestedCategories = Object.keys(DOCUMENT_CATEGORIES);
+  const customCategories = uniq(documents.map((d) => d.category)).filter(
+    (c) => !suggestedCategories.includes(c),
+  );
+
+  const categoryOptions = [
+    {
+      label: <span className="doc-opt-group">Suggested</span>,
+      options: suggestedCategories.map((c) => ({
+        value: c,
+        label: (
+          <span className="doc-opt">
+            <span>{c}</span>
+            <span className="doc-opt-meta">{(DOCUMENT_CATEGORIES[c] || []).length} types</span>
+          </span>
+        ),
+      })),
+    },
+    ...(customCategories.length
+      ? [
+          {
+            label: <span className="doc-opt-group">Used before</span>,
+            options: customCategories.map((c) => ({
+              value: c,
+              label: (
+                <span className="doc-opt">
+                  <span>{c}</span>
+                  <span className="doc-opt-custom">Custom</span>
+                </span>
+              ),
+            })),
+          },
+        ]
+      : []),
+  ];
+
+  const buildSubtypeOptions = (cat: string | null) => {
+    if (!cat) return [];
+    const suggested = DOCUMENT_CATEGORIES[cat] || [];
+    const customForCat = uniq(
+      documents.filter((d) => d.category === cat).map((d) => d.documentType),
+    ).filter((t) => !suggested.includes(t));
+    return [
+      ...(suggested.length
+        ? [
+            {
+              label: <span className="doc-opt-group">Suggested</span>,
+              options: suggested.map((t) => ({ value: t, label: t })),
+            },
+          ]
+        : []),
+      ...(customForCat.length
+        ? [
+            {
+              label: <span className="doc-opt-group">Used before</span>,
+              options: customForCat.map((t) => ({
+                value: t,
+                label: (
+                  <span className="doc-opt">
+                    <span>{t}</span>
+                    <span className="doc-opt-custom">Custom</span>
+                  </span>
+                ),
+              })),
+            },
+          ]
+        : []),
+    ];
+  };
+
+  const subtypeOptions = buildSubtypeOptions(selectedCategory);
 
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split(".").pop()?.toLowerCase();
@@ -89,14 +251,27 @@ export default function DocumentsTab({
       title: "Document Name",
       dataIndex: "fileName",
       key: "fileName",
-      width: 300,
+      width: 420,
       render: (text: string, record: any) => (
         <Space size={12}>
           <div style={{ background: "var(--bg-slate-50)", padding: 8, borderRadius: 8, display: "flex" }}>
             {getFileIcon(text)}
           </div>
-          <div>
-            <div style={{ fontWeight: 600, color: "var(--text-slate-900)", fontSize: 14 }}>{text}</div>
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontWeight: 600,
+                color: "var(--text-slate-900)",
+                fontSize: 14,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: 340,
+              }}
+              title={text}
+            >
+              {text}
+            </div>
             <div style={{ fontSize: 11, color: "var(--text-slate-400)" }}>{record.documentType || "Unclassified"}</div>
           </div>
         </Space>
@@ -113,17 +288,46 @@ export default function DocumentsTab({
       ),
     },
     {
-      title: "Revision",
-      dataIndex: "version",
-      key: "version",
-      render: (v: number) => (
-        <Tag style={{ borderRadius: 6, fontWeight: 600, border: 0, background: "var(--bg-slate-50)", color: "var(--text-slate-500)" }}>
-          REV {v || 1}
-        </Tag>
-      ),
+      title: "Created By",
+      key: "uploadedByName",
+      render: (_: any, record: any) => {
+        const name: string | undefined = record.uploadedByName;
+        if (!name) return <span style={{ fontSize: 13, color: "var(--text-slate-400)" }}>—</span>;
+        const initials = name
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((p) => p[0]?.toUpperCase())
+          .join("");
+        return (
+          <Space size={8} align="center">
+            <div
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #8b5cf6, #6366f1)",
+                color: "#fff",
+                fontSize: 10.5,
+                fontWeight: 700,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                letterSpacing: "0.02em",
+                flexShrink: 0,
+              }}
+            >
+              {initials || "?"}
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-slate-700)" }}>
+              {name}
+            </span>
+          </Space>
+        );
+      },
     },
     {
-      title: "Ingestion Date",
+      title: "Create Date",
       dataIndex: "createdAt",
       key: "createdAt",
       render: (date: string) => (
@@ -209,43 +413,65 @@ export default function DocumentsTab({
   const handleUpload = async () => {
     try {
       const values = await form.validateFields();
-      if (fileList.length === 0) {
-        notify.error({
-          message: "Upload Error",
-          description: "No file selected for ingestion.",
-          placement: "top",
-        });
-        return;
-      }
 
-      setUploading(true);
-      try {
+      let payload: Record<string, any>;
+      if (docSource === "url") {
+        const externalUrl = (values.externalUrl || "").trim();
+        if (!externalUrl) {
+          notify.error({
+            message: "URL required",
+            description: "Paste a document URL or switch to file upload.",
+            placement: "top",
+          });
+          return;
+        }
+        payload = {
+          externalUrl,
+          fileName: (values.urlFileName || "").trim() || undefined,
+          category: values.category,
+          documentType: values.documentType,
+        };
+      } else {
+        if (fileList.length === 0) {
+          notify.error({
+            message: "File required",
+            description: "Select a file or switch to URL mode.",
+            placement: "top",
+          });
+          return;
+        }
         const fileObj = fileList[0].originFileObj as File;
         const base64Str = await getBase64(fileObj);
-
-        const payload = {
+        payload = {
           base64: base64Str,
           fileName: fileObj.name,
           category: values.category,
           documentType: values.documentType,
         };
+      }
 
+      setUploading(true);
+      try {
         await api.post(`/api/clients-v2/${clientId}/documents`, payload);
 
         notify.success({
-          message: "Ingestion Success",
-          description: "Document has been successfully archived.",
+          message: "Document added",
+          description:
+            docSource === "url"
+              ? "External link has been saved successfully."
+              : "Document has been uploaded successfully.",
           placement: "top",
         });
         setUploading(false);
         setIsUploadModalVisible(false);
         form.resetFields();
         setFileList([]);
+        setDocSource("upload");
         onRefresh();
       } catch (err: any) {
         notify.error({
-          message: "Upload Failed",
-          description: err.response?.data?.error || "Failed to process document upload.",
+          message: "Save Failed",
+          description: err.response?.data?.error || "Failed to save document.",
           placement: "top",
         });
         setUploading(false);
@@ -288,46 +514,61 @@ export default function DocumentsTab({
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
-      <Card
-        style={{
-          borderRadius: 16,
-          border: "1px solid var(--border-slate-100)",
-          background: "var(--bg-pure-white)"
-        }}
-        bodyStyle={{ padding: "0" }}
-      >
-        <div style={{ padding: "24px", borderBottom: "1px solid var(--border-slate-100)" }}>
-          <Row justify="space-between" align="middle" gutter={[16, 16]}>
-            <Col xs={24} md={18}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>Document Repository</div>
-                <div style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 4 }}>Centralized storage for all MSA, SOW, NDAs, and legal annexures</div>
+      <Card className="ptab-card" styles={{ body: { padding: 0 } }}>
+        <div className="ptab-header">
+          <div className="ptab-header-left">
+            <div className="ptab-header-icon amber">
+              <FolderArchive size={20} />
+            </div>
+            <div className="ptab-header-titlewrap">
+              <div className="ptab-header-title">
+                Document Repository
+                <span className="ptab-header-count">{documents.length}</span>
               </div>
-            </Col>
-            <Col xs={24} md={6} style={{ textAlign: "right" }}>
-              {canUpdateClient && (
-                <Button
-                  type="primary"
-                  size="large"
-                  icon={<FilePlus size={18} />}
-                  onClick={() => setIsUploadModalVisible(true)}
-                  style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", width: "100%", justifyContent: "center" }}
-                >
-                  Archive Document
-                </Button>
-              )}
-            </Col>
-          </Row>
+              <div className="ptab-header-desc">
+                Centralized storage for all MSA, SOW, NDAs, and legal annexures
+              </div>
+            </div>
+          </div>
+          <div className="ptab-header-right">
+            <Input
+              placeholder="Search by name or category..."
+              prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="ptab-search"
+              allowClear
+            />
+            <Button
+              type="primary"
+              icon={<FilePlus size={16} />}
+              onClick={() => setIsUploadModalVisible(true)}
+              className="ptab-primary-btn"
+            >
+              Add Document
+            </Button>
+          </div>
         </div>
 
         <Table
-          dataSource={documents}
+          dataSource={filteredDocuments}
           columns={columns}
           rowKey="id"
           pagination={{ pageSize: 8, hideOnSinglePage: true }}
           className="premium-table"
           scroll={{ x: "max-content" }}
-          locale={{ emptyText: <div style={{ padding: "40px 0", color: "var(--text-slate-500)" }}>No document archives available</div> }}
+          locale={{
+            emptyText: (
+              <div className="ptab-empty">
+                <div className="ptab-empty-icon">
+                  <FolderArchive size={26} />
+                </div>
+                <div className="ptab-empty-title">No documents yet</div>
+                <div className="ptab-empty-desc">
+                  Upload MSAs, SOWs, NDAs, and other legal annexures to keep a complete client record.
+                </div>
+              </div>
+            ),
+          }}
         />
       </Card>
 
@@ -355,9 +596,9 @@ export default function DocumentsTab({
                 <UploadIcon size={20} />
               </div>
               <div>
-                <div className="pmodal-hero-title">Archive New Document</div>
+                <div className="pmodal-hero-title">Add New Document</div>
                 <div className="pmodal-hero-sub">
-                  Upload an MSA, SOW, NDA or any compliance document
+                  Upload an MSA, SOW, NDA, or any compliance document
                 </div>
               </div>
             </div>
@@ -371,88 +612,184 @@ export default function DocumentsTab({
 
             <Form.Item
               name="category"
-              label="Primary category"
-              rules={[{ required: true, message: "Selection required" }]}
+              label={
+                <span className="doc-field-label">
+                  <span>Primary category</span>
+                  <span className="doc-field-help">
+                    Pick a suggested one or type to create new
+                  </span>
+                </span>
+              }
+              rules={[{ required: true, message: "Required" }]}
             >
-              <Select
-                placeholder="e.g. Legal, Sales"
+              <AutoComplete
+                placeholder="e.g. Legal, Sales, or type a new category"
+                options={categoryOptions}
                 onChange={handleCategoryChange}
-              >
-                {Object.keys(DOCUMENT_CATEGORIES).map((cat) => (
-                  <Option key={cat} value={cat}>
-                    {cat}
-                  </Option>
-                ))}
-              </Select>
+                filterOption={(input, option) => {
+                  const v = (option as any)?.value;
+                  if (typeof v !== "string") return false;
+                  return v.toLowerCase().includes((input || "").toLowerCase());
+                }}
+                popupClassName="doc-autocomplete-popup"
+                allowClear
+              />
             </Form.Item>
 
             <Form.Item
               name="documentType"
-              label="Document subtype"
-              rules={[{ required: true, message: "Selection required" }]}
+              label={
+                <span className="doc-field-label">
+                  <span>Document subtype</span>
+                  <span className="doc-field-help">
+                    {selectedCategory
+                      ? "Pick a known type or create your own"
+                      : "Choose a category first"}
+                  </span>
+                </span>
+              }
+              rules={[{ required: true, message: "Required" }]}
             >
-              <Select
-                placeholder={selectedCategory ? "Select specific type…" : "Choose a category first"}
+              <AutoComplete
+                placeholder={
+                  selectedCategory
+                    ? "e.g. Proposal, NDA, or type a new subtype"
+                    : "Choose a category first"
+                }
                 disabled={!selectedCategory}
-              >
-                {selectedCategory &&
-                  DOCUMENT_CATEGORIES[selectedCategory].map((type) => (
-                    <Option key={type} value={type}>
-                      {type}
-                    </Option>
-                  ))}
-              </Select>
+                options={subtypeOptions}
+                filterOption={(input, option) => {
+                  const v = (option as any)?.value;
+                  if (typeof v !== "string") return false;
+                  return v.toLowerCase().includes((input || "").toLowerCase());
+                }}
+                popupClassName="doc-autocomplete-popup"
+                allowClear
+              />
             </Form.Item>
 
             <div className="pmodal-section-label">
               <UploadIcon size={11} />
-              <span>File</span>
+              <span>Source</span>
             </div>
 
-            <Form.Item required>
-              <Upload.Dragger
-                fileList={fileList}
-                beforeUpload={(file) => {
-                  setFileList([{ ...file, originFileObj: file }]);
-                  return false;
-                }}
-                onRemove={() => setFileList([])}
-                maxCount={1}
-              >
-                <div style={{ padding: "20px 0" }}>
-                  <p
-                    className="ant-upload-drag-icon"
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      color: "#8b5cf6",
-                      marginBottom: 8,
+            <Segmented
+              block
+              value={docSource}
+              onChange={(v) => setDocSource(v as "upload" | "url")}
+              className="doc-source-toggle"
+              options={[
+                {
+                  value: "upload",
+                  label: (
+                    <span className="doc-source-opt">
+                      <UploadCloud size={14} /> Upload file
+                    </span>
+                  ),
+                },
+                {
+                  value: "url",
+                  label: (
+                    <span className="doc-source-opt">
+                      <Link2 size={14} /> Use URL
+                    </span>
+                  ),
+                },
+              ]}
+            />
+
+            {docSource === "upload" ? (
+              <Form.Item required style={{ marginTop: 14 }}>
+                {fileList.length === 0 ? (
+                  <Upload.Dragger
+                    className="doc-dragger"
+                    fileList={fileList}
+                    beforeUpload={(file) => {
+                      setFileList([{ ...file, originFileObj: file }]);
+                      return false;
                     }}
+                    onRemove={() => setFileList([])}
+                    maxCount={1}
+                    showUploadList={false}
                   >
-                    <FilePlus size={36} />
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 14,
-                      color: "var(--text-slate-900)",
-                      fontWeight: 700,
-                      margin: 0,
-                    }}
-                  >
-                    Click or drag file to upload
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 12,
-                      color: "var(--text-slate-500)",
-                      marginTop: 4,
-                    }}
-                  >
-                    PDF, DOCX, JPG · max one file at a time
-                  </p>
-                </div>
-              </Upload.Dragger>
-            </Form.Item>
+                    <div className="doc-dragger-content">
+                      <div className="doc-dragger-icon">
+                        <UploadCloud size={28} />
+                      </div>
+                      <div className="doc-dragger-title">
+                        Drop file here or click to browse
+                      </div>
+                      <div className="doc-dragger-sub">
+                        PDF, DOCX, JPG · single file · up to 25 MB
+                      </div>
+                    </div>
+                  </Upload.Dragger>
+                ) : (
+                  <div className="doc-file-card">
+                    <div className="doc-file-icon">
+                      <FileText size={20} />
+                    </div>
+                    <div className="doc-file-meta">
+                      <div className="doc-file-name">
+                        {(fileList[0]?.originFileObj as File)?.name || fileList[0]?.name}
+                      </div>
+                      <div className="doc-file-sub">
+                        <span className="doc-file-tag ok">
+                          <FileCheck size={11} /> Ready
+                        </span>
+                        <span className="doc-file-size">
+                          {formatBytes((fileList[0]?.originFileObj as File)?.size || 0)}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="doc-file-remove"
+                      onClick={() => setFileList([])}
+                      aria-label="Remove file"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+              </Form.Item>
+            ) : (
+              <div style={{ marginTop: 14 }}>
+                <Form.Item
+                  name="externalUrl"
+                  label={
+                    <span className="doc-field-label">
+                      <span>Document URL</span>
+                      <span className="doc-field-help">
+                        Paste a Drive, Dropbox, S3 or any HTTPS link
+                      </span>
+                    </span>
+                  }
+                  rules={[
+                    { required: true, message: "Required" },
+                    { type: "url", message: "Must be a valid URL" },
+                  ]}
+                >
+                  <Input
+                    placeholder="https://drive.google.com/file/d/…"
+                    prefix={<Link2 size={14} style={{ color: "var(--text-slate-400)" }} />}
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="urlFileName"
+                  label={
+                    <span className="doc-field-label">
+                      <span>Display name</span>
+                      <span className="doc-field-help">
+                        Optional — auto-detected from the URL if blank
+                      </span>
+                    </span>
+                  }
+                >
+                  <Input placeholder="e.g. Q3 MSA Final.pdf" />
+                </Form.Item>
+              </div>
+            )}
           </div>
 
           <div className="pmodal-footer">
@@ -477,7 +814,7 @@ export default function DocumentsTab({
               icon={<UploadIcon size={15} />}
               className="pmodal-btn-primary"
             >
-              Start Ingestion
+              Upload Document
             </Button>
           </div>
         </Form>
@@ -485,47 +822,122 @@ export default function DocumentsTab({
 
       {/* Preview Modal */}
       <Modal
-        title={
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ background: "#f0fdf4", padding: 8, borderRadius: 8, color: "#16a34a", display: "flex" }}>
-              <Eye size={20} />
-            </div>
-            <span style={{ fontWeight: 700, fontSize: 18, color: "var(--text-slate-900)" }}>Archive Preview: {viewingDocument?.fileName}</span>
-          </div>
-        }
         open={viewModalOpen}
         onCancel={() => {
           setViewModalOpen(false);
           setViewingDocument(null);
         }}
-        footer={[
-          <Button key="close" style={{ borderRadius: 8 }} onClick={() => setViewModalOpen(false)}>
-            Close View
-          </Button>,
-          <Button
-            key="download"
-            type="primary"
-            icon={<Download size={16} />}
-            onClick={() => handleDownload(viewingDocument)}
-            style={{ borderRadius: 8, fontWeight: 600 }}
-          >
-            Download Archive
-          </Button>,
-        ]}
-        width={900}
+        footer={null}
+        title={null}
+        width={"min(1100px, 92vw)"}
         centered
-        bodyStyle={{ height: "75vh", padding: 0 }}
-        className="premium-modal"
+        className="pmodal doc-preview-modal"
+        closeIcon={<X size={16} />}
+        styles={{ body: { padding: 0 } }}
       >
-        {viewingDocument && (
-          <iframe
-            src={`https://docs.google.com/gview?url=${encodeURIComponent(
-              viewingDocument.fileUrl,
-            )}&embedded=true`}
-            style={{ width: "100%", height: "100%", border: "none" }}
-            title="Document Preview"
-          />
-        )}
+        {viewingDocument && (() => {
+          const preview = getDocPreview(viewingDocument);
+          const external = isExternalDoc(viewingDocument);
+          return (
+            <>
+              <div className="doc-preview-head">
+                <div className="doc-preview-icon">
+                  <FileText size={20} />
+                </div>
+                <div className="doc-preview-info">
+                  <div className="doc-preview-name" title={viewingDocument.fileName}>
+                    {viewingDocument.fileName || "Untitled document"}
+                  </div>
+                  <div className="doc-preview-meta">
+                    {viewingDocument.category && (
+                      <span className="doc-preview-tag">{viewingDocument.category}</span>
+                    )}
+                    {viewingDocument.documentType && (
+                      <span className="doc-preview-tag">{viewingDocument.documentType}</span>
+                    )}
+                    <span className={`doc-preview-source ${external ? "external" : "uploaded"}`}>
+                      {external ? <Link2 size={11} /> : <UploadCloud size={11} />}
+                      {external ? "Linked source" : "Uploaded file"}
+                    </span>
+                    {preview?.kind === "iframe" && preview.service && (
+                      <span className="doc-preview-service">via {preview.service}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="doc-preview-actions">
+                  <Tooltip title="Copy link">
+                    <Button
+                      icon={<Copy size={14} />}
+                      onClick={() => copyDocLink(viewingDocument)}
+                      className="doc-preview-icon-btn"
+                    />
+                  </Tooltip>
+                  <Button
+                    icon={<ExternalLink size={14} />}
+                    onClick={() => window.open(viewingDocument.fileUrl, "_blank", "noopener,noreferrer")}
+                    className="doc-preview-btn"
+                  >
+                    Open
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<Download size={14} />}
+                    onClick={() => handleDownload(viewingDocument)}
+                    className="pmodal-btn-primary doc-preview-btn"
+                  >
+                    Download
+                  </Button>
+                </div>
+              </div>
+
+              <div className="doc-preview-pane">
+                {!preview ? (
+                  <div className="doc-preview-fallback">
+                    <div className="doc-preview-fb-icon">
+                      <AlertTriangle size={28} />
+                    </div>
+                    <div className="doc-preview-fb-title">Preview unavailable</div>
+                    <div className="doc-preview-fb-desc">
+                      No file source is attached to this record.
+                    </div>
+                  </div>
+                ) : preview.kind === "image" ? (
+                  <div className="doc-preview-image-wrap">
+                    <img
+                      src={preview.src}
+                      alt={viewingDocument.fileName || "Document"}
+                      className="doc-preview-image"
+                    />
+                  </div>
+                ) : (
+                  <iframe
+                    key={preview.src}
+                    src={preview.src}
+                    className="doc-preview-iframe"
+                    title="Document Preview"
+                    allow="fullscreen"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+              </div>
+
+              <div className="doc-preview-foot">
+                <span className="doc-preview-foot-hint">
+                  <ShieldCheck size={12} />
+                  Can't see the preview? Some sources block embedding — open it in a new tab.
+                </span>
+                <Button
+                  size="small"
+                  icon={<ExternalLink size={12} />}
+                  onClick={() => window.open(viewingDocument.fileUrl, "_blank", "noopener,noreferrer")}
+                  className="doc-preview-foot-link"
+                >
+                  Open in new tab
+                </Button>
+              </div>
+            </>
+          );
+        })()}
       </Modal>
 
       <style dangerouslySetInnerHTML={{

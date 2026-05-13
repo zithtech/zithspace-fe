@@ -311,48 +311,39 @@ export default function AllocationsTab({
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
-      <Card
-        style={{
-          borderRadius: 16,
-          border: "1px solid var(--border-slate-100)",
-          background: "var(--bg-pure-white)"
-        }}
-        bodyStyle={{ padding: "0" }}
-      >
-        <div style={{ padding: "24px", borderBottom: "1px solid var(--border-slate-100)" }}>
-          <Row justify="space-between" align="middle" gutter={[16, 16]}>
-            <Col xs={24} md={14}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>Resource Allocations</div>
-                <div style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 4 }}>Monitor and manage expert resources assigned to this client account</div>
+      <Card className="ptab-card" styles={{ body: { padding: 0 } }}>
+        <div className="ptab-header">
+          <div className="ptab-header-left">
+            <div className="ptab-header-icon green">
+              <Briefcase size={20} />
+            </div>
+            <div className="ptab-header-titlewrap">
+              <div className="ptab-header-title">
+                Resource Allocations
+                <span className="ptab-header-count">{allocations.length}</span>
               </div>
-            </Col>
-              <Col xs={24} md={10}>
-              <Row gutter={[12, 12]} justify="end">
-                <Col xs={24} sm={16} md={12} lg={14}>
-                  <Input
-                    placeholder="Search resource..."
-                    prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ borderRadius: 10, width: "100%", height: 40 }}
-                  />
-                </Col>
-                <Col xs={24} sm={8} md={12} lg={10}>
-                  {canUpdateClient && (
-                    <Button
-                      type="primary"
-                      size="large"
-                      icon={<Plus size={18} />}
-                      onClick={() => setIsModalOpen(true)}
-                      style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", width: "100%", justifyContent: "center" }}
-                    >
-                      Add Allocation
-                    </Button>
-                  )}
-                </Col>
-              </Row>
-            </Col>
-          </Row>
+              <div className="ptab-header-desc">
+                Monitor and manage expert resources assigned to this client account
+              </div>
+            </div>
+          </div>
+          <div className="ptab-header-right">
+            <Input
+              placeholder="Search resource..."
+              prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="ptab-search"
+              allowClear
+            />
+            <Button
+              type="primary"
+              icon={<Plus size={16} />}
+              onClick={() => setIsModalOpen(true)}
+              className="ptab-primary-btn"
+            >
+              Add Allocation
+            </Button>
+          </div>
         </div>
 
         <Table
@@ -362,7 +353,19 @@ export default function AllocationsTab({
           pagination={false}
           className="premium-table"
           scroll={{ x: "max-content" }}
-          locale={{ emptyText: <div style={{ padding: "40px 0", color: "var(--text-slate-500)" }}>No resource allocations found</div> }}
+          locale={{
+            emptyText: (
+              <div className="ptab-empty">
+                <div className="ptab-empty-icon">
+                  <Briefcase size={26} />
+                </div>
+                <div className="ptab-empty-title">No allocations yet</div>
+                <div className="ptab-empty-desc">
+                  Assign team members, set billing roles and budgets to start tracking work for this client.
+                </div>
+              </div>
+            ),
+          }}
         />
       </Card>
 

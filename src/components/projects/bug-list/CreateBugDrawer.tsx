@@ -90,6 +90,7 @@ export default function CreateBugDrawer({
   const [dragOver, setDragOver] = useState(false);
   const [descriptionTouched, setDescriptionTouched] = useState(false);
   const [enhancingDescription, setEnhancingDescription] = useState(false);
+  const [comments, setComments] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
@@ -106,6 +107,7 @@ export default function CreateBugDrawer({
       setAssigneeId(editingBug.assigneeId || undefined);
       setAttachments(editingBug.attachments || []);
       setLinks(editingBug.externalLinks || []);
+      setComments(editingBug.comments || "");
     } else {
       setTitle("");
       setDescription("");
@@ -122,6 +124,7 @@ export default function CreateBugDrawer({
       setAssigneeId(undefined);
       setAttachments([]);
       setLinks([]);
+      setComments("");
     }
     setTagInput("");
     setLinkUrl("");
@@ -277,6 +280,7 @@ export default function CreateBugDrawer({
         assigneeId: assigneeId || null,
         attachments,
         externalLinks: links,
+        comments: comments.trim() || null,
       });
     } else {
       if (!folderId || !sheetId) {
@@ -295,6 +299,7 @@ export default function CreateBugDrawer({
         assigneeId,
         attachments,
         externalLinks: links,
+        comments: comments.trim() || undefined,
       });
     }
   };
@@ -418,6 +423,18 @@ export default function CreateBugDrawer({
             {!isValid && descriptionTouched && (
               <div className="hb-cbd-errortext">Description is required</div>
             )}
+          </div>
+
+          {/* Comments */}
+          <div className="hb-cbd-fieldgroup">
+            <Label icon={<FileText size={11} />}>Comments</Label>
+            <textarea
+              className="hb-cbd-textarea"
+              rows={3}
+              placeholder="Any additional internal comments or notes…"
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+            />
           </div>
 
           {/* Severity + Type */}

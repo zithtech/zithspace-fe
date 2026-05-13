@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Avatar, Dropdown, Tooltip, message, Select } from "antd";
+import { Avatar, Dropdown, Tooltip, message, Select, Checkbox } from "antd";
 import {
   MoreHorizontal,
   Link as LinkIcon,
@@ -163,12 +163,9 @@ export default function HivebugTable({
         <thead>
           <tr>
             <th className="hb-th-check">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={allChecked}
-                ref={(el) => {
-                  if (el) el.indeterminate = someChecked;
-                }}
+                indeterminate={someChecked}
                 onChange={(e) => onToggleAll(e.target.checked)}
               />
             </th>
@@ -275,8 +272,7 @@ function BugRow({
         <Tooltip
           title={ticketLinked ? "Already linked to a ticket" : ""}
         >
-          <input
-            type="checkbox"
+          <Checkbox
             checked={checked}
             onChange={(e) => {
               if (ticketLinked) {
@@ -298,22 +294,7 @@ function BugRow({
               {bug.title || bug.description}
             </span>
           </div>
-          <div className="hb-title-indicators">
-            {bug.attachments && bug.attachments.length > 0 && (
-              <Tooltip title={`${bug.attachments.length} attachment${bug.attachments.length > 1 ? "s" : ""}`}>
-                <span className="hb-indicator">
-                  <Paperclip size={10} />
-                </span>
-              </Tooltip>
-            )}
-            {bug.externalLinks && bug.externalLinks.length > 0 && (
-              <Tooltip title={`${bug.externalLinks.length} external link${bug.externalLinks.length > 1 ? "s" : ""}`}>
-                <span className="hb-indicator">
-                  <Link2 size={10} />
-                </span>
-              </Tooltip>
-            )}
-          </div>
+
         </div>
       </td>
       <td>
@@ -493,7 +474,7 @@ function Pill({ label, dot, fg }: { label: string; dot: string; fg: string }) {
         borderColor: `${dot}33`,
       }}
     >
-      <span className="hb-pill-dot" style={{ background: dot }} />
+
       {label}
     </span>
   );
@@ -615,22 +596,9 @@ function BugStatusDropdown({
           e.currentTarget.style.boxShadow = "none";
         }}
       >
-        <span 
-          style={{ 
-            width: "6px", 
-            height: "6px", 
-            borderRadius: "50%", 
-            background: currentColors.dot,
-            flexShrink: 0
-          }} 
-        />
+
         <span>{currentOption?.label || currentStatus}</span>
-        <span style={{ 
-          marginLeft: "2px", 
-          opacity: 0.7, 
-          fontSize: "10px",
-          transition: "transform 0.15s ease"
-        }}>▼</span>
+
       </button>
     </Dropdown>
   );

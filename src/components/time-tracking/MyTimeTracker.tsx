@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { DeleteOutlined, PlayCircleOutlined, PauseCircleOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import { DeleteOutlined, PlayCircleOutlined, PauseCircleOutlined, ClockCircleOutlined, FileTextOutlined } from "@ant-design/icons";
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import dayjs from "dayjs";
@@ -265,23 +265,87 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
     return sessions.reverse();
   };
 
+  const runningCount = entries.filter(e => e.status === "RUNNING").length;
+  const pausedCount = entries.filter(e => e.status === "PAUSED").length;
+
   return (
-    <Card style={{
-      height: '100%',
-      background: "var(--bg-pure-white)",
-      borderRadius: 16,
-      border: "1px solid var(--border-slate-100)",
-      overflow: "hidden"
-    }}
+    <Card
+      className="mtt-tracker-card"
+      style={{
+        height: '100%',
+        background: "var(--bg-pure-white)",
+        borderRadius: 16,
+        border: "1px solid var(--border-slate-100)",
+        overflow: "hidden",
+        boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)"
+      }}
       styles={{ body: { padding: 0 } }}
     >
+      <div className="mtt-tracker-card__head">
+        <div className="mtt-tracker-card__title-wrap">
+          <div className="mtt-tracker-card__icon">
+            <FileTextOutlined />
+          </div>
+          <div>
+            <div className="mtt-tracker-card__title">Time Entries</div>
+            <div className="mtt-tracker-card__subtitle">
+              {entries.length} {entries.length === 1 ? "entry" : "entries"}
+              {runningCount > 0 && (
+                <>
+                  {" · "}
+                  <span className="mtt-tracker-card__chip mtt-tracker-card__chip--running">
+                    <span className="pulse-indicator" /> {runningCount} running
+                  </span>
+                </>
+              )}
+              {pausedCount > 0 && (
+                <>
+                  {" · "}
+                  <span className="mtt-tracker-card__chip mtt-tracker-card__chip--paused">
+                    {pausedCount} paused
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        {runningCount > 0 && (
+          <Popconfirm
+            title="Stop all running timers?"
+            description="This will stop every active timer for the day."
+            onConfirm={(e) => handleStopAll(e as any)}
+          >
+            <Button
+              size="small"
+              icon={<PauseCircleOutlined />}
+              className="mtt-tracker-card__action"
+            >
+              Stop All
+            </Button>
+          </Popconfirm>
+        )}
+      </div>
+
       <Table
         columns={columns}
         dataSource={entries}
         rowKey="id"
         loading={loading}
-        pagination={{ pageSize: 20 }}
+        pagination={{ pageSize: 20, hideOnSinglePage: true, showTotal: (total) => `${total} ${total === 1 ? 'entry' : 'entries'}` }}
         rowClassName={(record) => record.status === "RUNNING" ? "running-row" : ""}
+        locale={{
+          emptyText: loading ? <></> : (
+            <div className="mtt-tracker-card__empty">
+              <div className="mtt-tracker-card__empty-icon">
+                <ClockCircleOutlined />
+              </div>
+              <div className="mtt-tracker-card__empty-title">No time logged for this day</div>
+              <div className="mtt-tracker-card__empty-sub">
+                Start a timer or click <strong>Add Time</strong> to log a manual entry.
+              </div>
+            </div>
+          )
+        }}
         expandable={{
           expandedRowRender: (record) => {
             const sessions = processLogsToSessions(record.logs, record.startTime, record.endTime);

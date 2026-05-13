@@ -20,7 +20,7 @@ export default function TeamTimePage() {
   const [isManageModalOpen, setIsManageModalOpen] = React.useState(false);
   const [refreshKey, setRefreshKey] = React.useState(0);
 
-  const { canManageTimeTracking } = usePermission();
+  const { canReadTimeTrackingTeam } = usePermission();
   const { isLoading } = useAuth();
   const router = useRouter();
 
@@ -30,7 +30,7 @@ export default function TeamTimePage() {
 
   if (isLoading) return null;
 
-  if (!canManageTimeTracking) {
+  if (!canReadTimeTrackingTeam) {
     return (
       <MainLayout>
         <div style={{ padding: "100px 0", background: "var(--bg-pure-white)", minHeight: "calc(100vh - 64px)" }}>

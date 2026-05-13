@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
@@ -13,7 +13,6 @@ import {
   Trash2,
   Mail,
   Phone,
-  MapPin,
   Clock,
   Link as LinkIcon,
   Calendar,
@@ -36,11 +35,14 @@ import {
   Edit2,
   Flame,
   TrendingUp,
+  TrendingDown,
   Activity,
   Target,
+  Brain,
   CheckCircle,
   ArrowUpRight,
-  ListFilter
+  ListFilter,
+  Download
 } from "lucide-react";
 import {
   Card,
@@ -68,8 +70,14 @@ import {
   Dropdown,
   Modal,
   App,
+  Skeleton,
+  Popover,
+  Segmented,
+  Switch,
   type MenuProps
 } from "antd";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { TablePreferenceService } from "@/services/tablePreferenceService";
 import dayjs from "dayjs";
 import { useLeads } from "@/hooks/useLeads";
 import { useLeadSettings } from "@/hooks/useLeadSettings";
@@ -94,6 +102,21 @@ import { useRouter } from "next/navigation";
 const { TextArea } = Input;
 const { Text, Title } = Typography;
 
+// Table settings — density + column visibility, persisted per-user in DB.
+type LmDensity = "compact" | "comfortable" | "spacious";
+const LM_TABLE_KEY = "leads_v1";
+const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
+  { key: "platform",     label: "Platform" },
+  { key: "status",       label: "Status" },
+  { key: "actions_item", label: "Workflow Action" },
+  { key: "budget",       label: "Budget" },
+  { key: "ai_score",     label: "AI Score" },
+  { key: "bidiq",        label: "BidIq" },
+  { key: "proposal",     label: "Proposal" },
+  { key: "created_by",   label: "Created by" },
+  { key: "created_at",   label: "Created" },
+];
+
 export default function LeadsPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -106,7 +129,76 @@ export default function LeadsPage() {
   const [filterAction, setFilterAction] = useState<string | null>(null);
   const [filterPlatform, setFilterPlatform] = useState<string | null>(null);
   const [filterDateRange, setFilterDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+  const [filterCreatedBy, setFilterCreatedBy] = useState<string | null>(null);
   const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "week" | "won">("all");
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [statusEditId, setStatusEditId] = useState<string | null>(null);
+  const [actionEditId, setActionEditId] = useState<string | null>(null);
+  const [bidiqPreviewLead, setBidiqPreviewLead] = useState<Lead | null>(null);
+  const [tableDensity, setTableDensity] = useState<LmDensity>("comfortable");
+  const [hiddenCols, setHiddenCols] = useState<Record<string, boolean>>({});
+  // Gate persistence until the initial DB load completes; otherwise the persist
+  // effects fire on first mount with the empty defaults and clobber whatever
+  // the user previously saved.
+  const [tablePrefsLoaded, setTablePrefsLoaded] = useState(false);
+  const tablePrefsSaveTimer = useRef<number | null>(null);
+
+  // Load saved preferences from the backend on mount.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const saved = await TablePreferenceService.get<{
+          density?: LmDensity;
+          hiddenCols?: Record<string, boolean>;
+        }>(LM_TABLE_KEY);
+        if (cancelled) return;
+        if (saved?.density && ["compact", "comfortable", "spacious"].includes(saved.density)) {
+          setTableDensity(saved.density);
+        }
+        if (saved?.hiddenCols && typeof saved.hiddenCols === "object") {
+          setHiddenCols(saved.hiddenCols);
+        }
+      } catch (err) {
+        // 404 / no prefs yet is fine — keep defaults.
+        console.warn("Failed to load table preferences", err);
+      } finally {
+        if (!cancelled) setTablePrefsLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Persist any change (debounced) to the backend after the initial load.
+  useEffect(() => {
+    if (!tablePrefsLoaded) return;
+    if (tablePrefsSaveTimer.current !== null) {
+      window.clearTimeout(tablePrefsSaveTimer.current);
+    }
+    tablePrefsSaveTimer.current = window.setTimeout(() => {
+      TablePreferenceService.save(LM_TABLE_KEY, {
+        density: tableDensity,
+        hiddenCols,
+      }).catch((err) => console.warn("Failed to save table preferences", err));
+    }, 300);
+    return () => {
+      if (tablePrefsSaveTimer.current !== null) {
+        window.clearTimeout(tablePrefsSaveTimer.current);
+        tablePrefsSaveTimer.current = null;
+      }
+    };
+  }, [tablePrefsLoaded, tableDensity, hiddenCols]);
+
+  const openBidiqPreview = (lead: Lead) => setBidiqPreviewLead(lead);
+  const closeBidiqPreview = () => setBidiqPreviewLead(null);
+  const launchBidiq = () => {
+    if (!bidiqPreviewLead) return;
+    const id = bidiqPreviewLead.id;
+    setBidiqPreviewLead(null);
+    router.push(`/leads/bidiq/${id}`);
+  };
 
   // Use the custom hook for backend connectivity
   const { leads, loading: leadsLoading, error, fetchLeads, createLead, updateLead, deleteLead } = useLeads();
@@ -150,7 +242,7 @@ export default function LeadsPage() {
     }
   };
 
-  const renderActionIcon = (iconName: string) => {
+  const renderActionIcon = (iconName?: string): React.ReactElement => {
     switch (iconName) {
       case 'phone': return <PhoneOutlined />;
       case 'mail': return <MailOutlined />;
@@ -165,7 +257,7 @@ export default function LeadsPage() {
       case 'team': return <TeamOutlined />;
       case 'send': return <SendOutlined />;
       case 'link': return <LinkOutlined />;
-      default: return null;
+      default: return <ClockCircleOutlined />;
     }
   };
 
@@ -211,6 +303,13 @@ export default function LeadsPage() {
     if (days < 7) return `${days}d ago`;
     if (days < 30) return `${Math.floor(days / 7)}w ago`;
     return dayjs(date).format("MMM D");
+  };
+
+  // Resolve the creator name from any of the possible backend fields, falling
+  // back to the currently-signed-in user when no creator data exists yet.
+  const getLeadCreator = (lead: Lead): string => {
+    const r = lead as any;
+    return r.created_by_name || r.created_by || r.creator_name || r.owner_name || user?.name || "";
   };
 
   const columns = [
@@ -264,13 +363,47 @@ export default function LeadsPage() {
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                <Text
-                  strong
-                  ellipsis
-                  style={{ color: "var(--text-slate-900)", fontSize: 14, fontWeight: 700, maxWidth: 280 }}
-                >
-                  {text}
-                </Text>
+                {(() => {
+                  const fullTitle = text || "";
+                  const isLong = fullTitle.length > 28;
+                  const display = isLong ? `${fullTitle.slice(0, 28)}…` : fullTitle;
+                  const titleNode = (
+                    <Text
+                      strong
+                      style={{
+                        color: "var(--text-slate-900)",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        cursor: isLong ? "help" : "default",
+                      }}
+                    >
+                      {display}
+                    </Text>
+                  );
+                  if (!isLong) return titleNode;
+                  return (
+                    <Tooltip
+                      placement="topLeft"
+                      mouseEnterDelay={0.15}
+                      classNames={{ root: "lm-title-tooltip-overlay" }}
+                      title={
+                        <div className="lm-title-tooltip">
+                          <div className="lm-title-tooltip-eyebrow">Lead title</div>
+                          <div className="lm-title-tooltip-text">{fullTitle}</div>
+                          {(record.client_name || record.posted_on) && (
+                            <div className="lm-title-tooltip-sub">
+                              {record.client_name && <span>{record.client_name}</span>}
+                              {record.client_name && record.posted_on && <span className="lm-title-tooltip-dot" />}
+                              {record.posted_on && <span>Posted {formatRelativeTime(record.posted_on)}</span>}
+                            </div>
+                          )}
+                        </div>
+                      }
+                    >
+                      {titleNode}
+                    </Tooltip>
+                  );
+                })()}
                 {record.client_payment_verified && (
                   <span title="Payment Verified" style={{ display: "inline-flex", color: "#10b981" }}>
                     <CheckCircle size={13} />
@@ -279,15 +412,6 @@ export default function LeadsPage() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-slate-500)" }}>
                 <span style={{ fontWeight: 500 }}>{record.client_name}</span>
-                {record.client_location && (
-                  <>
-                    <span style={{ color: "#cbd5e1" }}>·</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-                      <MapPin size={10} />
-                      {record.client_location}
-                    </span>
-                  </>
-                )}
                 {record.posted_on && (
                   <>
                     <span style={{ color: "#cbd5e1" }}>·</span>
@@ -320,75 +444,200 @@ export default function LeadsPage() {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: 160,
-      render: (status: string, record: Lead) => (
-        <Select
-          value={status}
-          style={{ width: '100%' }}
-          bordered={false}
-          className="status-select-premium"
-          onChange={(value) => handleStatusChange(record.id, value)}
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          dropdownMatchSelectWidth={false}
-          suffixIcon={<ChevronRight size={14} color="#94a3b8" />}
-        >
-          {configStatuses.map(s => (
-            <Select.Option key={s.id} value={s.name}>
-              <Tag style={{
-                backgroundColor: `${s.color || '#6366f1'}12`,
-                color: s.color || '#6366f1',
-                border: `1px solid ${s.color || '#6366f1'}25`,
-                fontWeight: 800,
-                borderRadius: 8,
-                padding: "2px 12px",
-                fontSize: 10,
-                letterSpacing: "0.03em",
-                margin: 0,
-                textTransform: 'uppercase'
-              }}>
-                {s.name}
-              </Tag>
-            </Select.Option>
-          ))}
-        </Select>
-      ),
+      width: 130,
+      render: (status: string, record: Lead) => {
+        const cfg = configStatuses.find(s => s.name === status);
+        const color = cfg?.color || '#6366f1';
+        const isEditing = statusEditId === record.id;
+
+        if (isEditing) {
+          return (
+            <Select
+              value={status}
+              defaultOpen
+              autoFocus
+              style={{ width: '100%' }}
+              bordered={false}
+              className="status-select-premium lm-status-select"
+              classNames={{ popup: { root: "lm-status-dropdown" } }}
+              onChange={(value) => { handleStatusChange(record.id, value); setStatusEditId(null); }}
+              onBlur={() => setStatusEditId(null)}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              popupMatchSelectWidth={false}
+              suffixIcon={null}
+              optionLabelProp="label"
+              options={configStatuses.map(s => {
+                const c = s.color || "#6366f1";
+                return {
+                  value: s.name,
+                  label: (
+                    <span
+                      className="lm-status-pill"
+                      style={{
+                        backgroundColor: `${c}12`,
+                        color: c,
+                        border: `1px solid ${c}25`,
+                      }}
+                    >
+                      <span className="lm-status-pill-text">{s.name}</span>
+                    </span>
+                  ),
+                  data: { color: c, name: s.name },
+                };
+              })}
+              optionRender={(opt) => {
+                const d: any = (opt.data as any)?.data || (opt as any).data || {};
+                const c = d.color || "#6366f1";
+                const selected = (opt.value as string) === status;
+                return (
+                  <div className={`lm-dd-row${selected ? " is-selected" : ""}`}>
+                    <span className="lm-dd-dot" style={{ background: c, boxShadow: `0 0 0 3px ${c}26` }} />
+                    <span className="lm-dd-text" style={{ color: selected ? "var(--text-slate-900)" : "var(--text-slate-700)" }}>
+                      {d.name || (opt.value as string)}
+                    </span>
+                    {selected && <CheckCircle2 size={13} className="lm-dd-check" style={{ color: c }} />}
+                  </div>
+                );
+              }}
+            />
+          );
+        }
+
+        return (
+          <button
+            type="button"
+            className="lm-status-pill"
+            onClick={(e) => {
+              e.stopPropagation();
+              setStatusEditId(record.id);
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              ["--pill-color" as any]: color,
+              backgroundColor: `${color}12`,
+              color,
+              border: `1px solid ${color}25`,
+            }}
+            title="Click to change status"
+          >
+            <span className="lm-status-pill-text">{status || "—"}</span>
+            <Edit2 size={10} className="lm-status-pill-edit" />
+          </button>
+        );
+      },
     },
     {
-      title: "Action",
+      title: "Workflow Action",
       dataIndex: "actions_item",
-      key: "action",
-      width: 180,
-      render: (action: string, record: Lead) => (
-        <Select
-          value={action}
-          placeholder="Next Step"
-          style={{ width: '100%' }}
-          bordered={false}
-          className="action-select-premium"
-          onChange={(value) => handleActionChange(record.id, value)}
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          allowClear
-          suffixIcon={<MoreVertical size={14} color="#94a3b8" />}
-        >
-          {configActions.map(a => (
-            <Select.Option key={a.id} value={a.name}>
-              <Space size={8} style={{ padding: '2px 0' }}>
-                <div style={{
-                  width: 24, height: 24, borderRadius: 6,
-                  background: `${a.color || '#6366f1'}15`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: a.color || '#6366f1'
-                }}>
-                  {React.cloneElement(renderActionIcon(a.icon) as React.ReactElement, { style: { fontSize: 12 } })}
-                </div>
-                <span style={{ fontWeight: 600, color: '#475569', fontSize: 12 }}>{a.name}</span>
-              </Space>
-            </Select.Option>
-          ))}
-        </Select>
-      ),
+      key: "actions_item",
+      width: 150,
+      render: (action: string, record: Lead) => {
+        const cfg = configActions.find(a => a.name === action);
+        const color = cfg?.color || "#6366f1";
+        const isEditing = actionEditId === record.id;
+
+        if (isEditing) {
+          return (
+            <Select
+              defaultValue={action}
+              defaultOpen
+              autoFocus
+              allowClear
+              placeholder="Choose action"
+              style={{ width: "100%" }}
+              bordered={false}
+              className="status-select-premium lm-status-select"
+              classNames={{ popup: { root: "lm-status-dropdown" } }}
+              onChange={(value) => { handleActionChange(record.id, value || ""); setActionEditId(null); }}
+              onBlur={() => setActionEditId(null)}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              popupMatchSelectWidth={false}
+              suffixIcon={null}
+              optionLabelProp="label"
+              options={configActions.map(a => {
+                const c = a.color || "#6366f1";
+                return {
+                  value: a.name,
+                  label: (
+                    <span
+                      className="lm-status-pill lm-action-pill"
+                      style={{
+                        backgroundColor: `${c}12`,
+                        color: c,
+                        border: `1px solid ${c}25`,
+                      }}
+                    >
+                      <span className="lm-action-pill-icon" style={{ background: `${c}22`, color: c }}>
+                        {React.cloneElement(renderActionIcon(a.icon) as React.ReactElement, { style: { fontSize: 11 } })}
+                      </span>
+                      <span className="lm-status-pill-text">{a.name}</span>
+                    </span>
+                  ),
+                  data: { color: c, name: a.name, icon: a.icon },
+                };
+              })}
+              optionRender={(opt) => {
+                const d: any = (opt.data as any)?.data || (opt as any).data || {};
+                const c = d.color || "#6366f1";
+                const selected = (opt.value as string) === action;
+                return (
+                  <div className={`lm-dd-row${selected ? " is-selected" : ""}`}>
+                    <span className="lm-dd-icon" style={{ background: `${c}14`, color: c, border: `1px solid ${c}26` }}>
+                      {React.cloneElement(renderActionIcon(d.icon) as React.ReactElement, { style: { fontSize: 12 } })}
+                    </span>
+                    <span className="lm-dd-text" style={{ color: selected ? "var(--text-slate-900)" : "var(--text-slate-700)" }}>
+                      {d.name || (opt.value as string)}
+                    </span>
+                    {selected && <CheckCircle2 size={13} className="lm-dd-check" style={{ color: c }} />}
+                  </div>
+                );
+              }}
+            />
+          );
+        }
+
+        if (!action) {
+          return (
+            <button
+              type="button"
+              className="lm-status-pill lm-status-pill-empty"
+              onClick={(e) => { e.stopPropagation(); setActionEditId(record.id); }}
+              onMouseDown={(e) => e.stopPropagation()}
+              title="Click to set action"
+            >
+              <PlusCircle size={11} />
+              Set action
+            </button>
+          );
+        }
+
+        return (
+          <button
+            type="button"
+            className="lm-status-pill lm-action-pill"
+            onClick={(e) => { e.stopPropagation(); setActionEditId(record.id); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              ["--pill-color" as any]: color,
+              backgroundColor: `${color}12`,
+              color,
+              border: `1px solid ${color}25`,
+            }}
+            title="Click to change action"
+          >
+            <span
+              className="lm-action-pill-icon"
+              style={{ background: `${color}22`, color }}
+            >
+              {React.cloneElement(renderActionIcon(cfg?.icon || "") as React.ReactElement, { style: { fontSize: 11 } })}
+            </span>
+            <span className="lm-status-pill-text">{action}</span>
+            <Edit2 size={10} className="lm-status-pill-edit" />
+          </button>
+        );
+      },
     },
     {
       title: "Budget",
@@ -443,29 +692,43 @@ export default function LeadsPage() {
       },
     },
     {
-      title: "Bidiq",
+      title: "BidIq",
       key: "bidiq",
-      width: 100,
+      width: 120,
       align: "center" as const,
-      render: (_: unknown, record: Lead) => (
-        <Button
-          type="link"
-          icon={<Zap size={16} />}
-          onClick={(e) => { e.stopPropagation(); router.push(`/leads/bidiq/${record.id}`); }}
-          onMouseDown={(e) => e.stopPropagation()}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            color: "var(--premium-blue)",
-            fontWeight: 700,
-            fontSize: 13,
-            padding: 0
-          }}
-        >
-          Bidiq
-        </Button>
-      ),
+      render: (_: unknown, record: Lead) => {
+        const hasBidiq =
+          (record.ai_score && record.ai_score > 0) ||
+          !!record.skill_analysis ||
+          !!record.ai_summary;
+
+        return (
+          <Button
+            type="link"
+            icon={hasBidiq ? <Eye size={15} /> : <Zap size={16} />}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (hasBidiq) {
+                router.push(`/leads/bidiq/${record.id}`);
+              } else {
+                openBidiqPreview(record);
+              }
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              color: hasBidiq ? "#10b981" : "var(--premium-blue)",
+              fontWeight: 700,
+              fontSize: 13,
+              padding: 0,
+            }}
+          >
+            {hasBidiq ? "View BidIq" : "BidIq"}
+          </Button>
+        );
+      },
     },
     {
       title: "Proposal",
@@ -494,7 +757,7 @@ export default function LeadsPage() {
           <Button
             type="link"
             icon={<Sparkles size={16} />}
-            onClick={(e) => { e.stopPropagation(); router.push(`/leads/bidiq/${record.id}`); }}
+            onClick={(e) => { e.stopPropagation(); openBidiqPreview(record); }}
             onMouseDown={(e) => e.stopPropagation()}
             style={{
               display: "flex",
@@ -510,6 +773,62 @@ export default function LeadsPage() {
           </Button>
         )
       ),
+    },
+    {
+      title: "Created by",
+      key: "created_by",
+      width: 170,
+      render: (_: unknown, record: Lead) => {
+        const r = record as any;
+        const rawName: string | undefined =
+          r.created_by_name || r.created_by || r.creator_name || r.owner_name;
+        const name = rawName || user?.name || "—";
+        const isYou = !rawName && !!user?.name;
+        const initials = (name || "—")
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((w: string) => w[0]?.toUpperCase() || "")
+          .join("") || "—";
+        const palette = getAvatarStyle(name);
+        return (
+          <div className="lm-creator-cell">
+            <span
+              className="lm-creator-avatar"
+              style={{ background: palette.bg }}
+            >
+              {initials}
+            </span>
+            <div className="lm-creator-text">
+              <span className="lm-creator-name">
+                {name}
+                {isYou && <span className="lm-creator-you"> · you</span>}
+              </span>
+              {r.created_by_email && (
+                <span className="lm-creator-email">{r.created_by_email}</span>
+              )}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: "Created",
+      dataIndex: "created_at",
+      key: "created_at",
+      width: 130,
+      render: (value: string) => {
+        if (!value) return <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>;
+        const d = dayjs(value);
+        return (
+          <Tooltip title={d.format("MMM D, YYYY · h:mm A")} placement="topLeft">
+            <div className="lm-created-cell">
+              <span className="lm-created-date">{d.format("MMM D, YYYY")}</span>
+              <span className="lm-created-rel">{formatRelativeTime(value)}</span>
+            </div>
+          </Tooltip>
+        );
+      },
     },
     {
       title: "Actions",
@@ -622,6 +941,26 @@ export default function LeadsPage() {
     }
   };
 
+  const handleBulkDelete = () => {
+    if (selectedRowKeys.length === 0) return;
+    modal.confirm({
+      title: `Delete ${selectedRowKeys.length} lead${selectedRowKeys.length > 1 ? "s" : ""}?`,
+      content: "Selected leads will be moved to Trash. This action can be reverted from there.",
+      okText: "Move to Trash",
+      cancelText: "Cancel",
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await Promise.all(selectedRowKeys.map((id) => deleteLead(String(id))));
+          messageApi.success(`${selectedRowKeys.length} lead${selectedRowKeys.length > 1 ? "s" : ""} moved to Trash`);
+          setSelectedRowKeys([]);
+        } catch (err) {
+          // Error surfaced via hook
+        }
+      },
+    });
+  };
+
   const handleSaveLead = async (values: any) => {
     try {
       // Map custom platform if 'Other' is selected
@@ -671,6 +1010,11 @@ export default function LeadsPage() {
         matchesDateRange = postedOn.isAfter(start.startOf('day')) && postedOn.isBefore(end.endOf('day'));
       }
 
+      // Created-by matching
+      const matchesCreatedBy =
+        !filterCreatedBy ||
+        getLeadCreator(item) === filterCreatedBy;
+
       // Segment matching
       let matchesSegment = true;
       if (activeSegment === "hot") {
@@ -682,9 +1026,19 @@ export default function LeadsPage() {
         matchesSegment = status.includes("won") || status.includes("accept") || status.includes("close") || !!item.proposal_id;
       }
 
-      return matchesSearch && matchesStatus && matchesAction && matchesPlatform && matchesDateRange && matchesSegment;
+      return matchesSearch && matchesStatus && matchesAction && matchesPlatform && matchesDateRange && matchesCreatedBy && matchesSegment;
     });
-  }, [leads, searchText, filterStatus, filterAction, filterPlatform, filterDateRange, activeSegment]);
+  }, [leads, searchText, filterStatus, filterAction, filterPlatform, filterDateRange, filterCreatedBy, activeSegment, user]);
+
+  const creatorOptions = useMemo(() => {
+    const set = new Set<string>();
+    leads.forEach((l) => {
+      const name = getLeadCreator(l);
+      if (name) set.add(name);
+    });
+    return Array.from(set).sort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leads, user]);
 
   const segmentCounts = useMemo(() => {
     const weekAgo = dayjs().subtract(7, 'day');
@@ -709,9 +1063,14 @@ export default function LeadsPage() {
       label: `${filterDateRange[0].format("MMM D")} – ${filterDateRange[1].format("MMM D")}`,
       onClear: () => setFilterDateRange(null),
     });
+    if (filterCreatedBy) chips.push({
+      key: "createdBy",
+      label: `Created by: ${filterCreatedBy}`,
+      onClear: () => setFilterCreatedBy(null),
+    });
     if (searchText) chips.push({ key: "search", label: `“${searchText}”`, onClear: () => setSearchText("") });
     return chips;
-  }, [filterStatus, filterPlatform, filterAction, filterDateRange, searchText]);
+  }, [filterStatus, filterPlatform, filterAction, filterDateRange, filterCreatedBy, searchText]);
 
   const leadsToday = useMemo(() => {
     const today = dayjs().startOf('day');
@@ -737,186 +1096,143 @@ export default function LeadsPage() {
     return new Set(leads.map(l => l.client_name)).size;
   }, [leads]);
 
-  const StatCard = ({ label, value, icon: Icon, color, trend, trendLabel, suffix }: any) => (
-    <Card
-      bodyStyle={{ padding: "16px 18px" }}
-      className="stat-card-premium"
-      style={{
-        borderRadius: 16,
-        border: "1px solid #f1f5f9",
-        background: "#fff",
-        boxShadow: "0 1px 3px 0 rgba(0,0,0,0.02), 0 1px 2px -1px rgba(0,0,0,0.02)",
-        overflow: "hidden",
-        position: "relative",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: `radial-gradient(120% 100% at 100% 0%, ${color}10 0%, transparent 55%)`,
-          pointerEvents: "none",
-        }}
-      />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            className="premium-text-sec"
-            style={{
-              color: "#94a3b8",
-              fontSize: 10,
-              fontWeight: 800,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-            }}
-          >
-            {label}
-          </Text>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 4 }}>
-            <div
-              className="premium-title"
-              style={{
-                fontSize: 26,
-                fontWeight: 800,
-                color: "#1e293b",
-                lineHeight: 1,
-                letterSpacing: "-0.025em",
-              }}
-            >
-              {value}
-            </div>
-            {suffix && (
-              <span style={{ color: "#94a3b8", fontSize: 14, fontWeight: 700 }}>{suffix}</span>
-            )}
-          </div>
-          {trendLabel && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 3,
-                  padding: "2px 7px",
-                  borderRadius: 999,
-                  background: trend === "up" ? "rgba(16, 185, 129, 0.1)" : trend === "down" ? "rgba(239, 68, 68, 0.1)" : "rgba(100, 116, 139, 0.08)",
-                  color: trend === "up" ? "#059669" : trend === "down" ? "#dc2626" : "#64748b",
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.02em",
-                }}
-              >
-                {trend === "up" && <ArrowUpRight size={10} />}
-                {trendLabel}
-              </span>
-            </div>
-          )}
-        </div>
+  interface LmStatCardProps {
+    label: string;
+    value: React.ReactNode;
+    icon: React.ComponentType<any>;
+    accent: string;
+    trend?: { value: number; label: string; positive?: boolean };
+    subtle?: string;
+    loading?: boolean;
+    chart?: React.ReactNode;
+  }
+
+  const StatCard: React.FC<LmStatCardProps> = ({
+    label,
+    value,
+    icon: Icon,
+    accent,
+    trend,
+    subtle,
+    loading,
+    chart,
+  }) => (
+    <div className="lm-stat-card" style={{ ["--lm-accent" as any]: accent }}>
+      <div className="lm-stat-head">
         <div
+          className="lm-stat-icon"
           style={{
-            color: "#fff",
-            background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
-            padding: 10,
-            borderRadius: 12,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: `0 4px 12px ${color}30`,
-            flexShrink: 0,
+            background: `${accent}12`,
+            color: accent,
+            boxShadow: `inset 0 0 0 1px ${accent}26`,
           }}
         >
-          <Icon size={18} />
+          <Icon size={16} color={accent} />
+        </div>
+        <Text className="lm-stat-label">{label}</Text>
+        <div className="lm-stat-value-wrap">
+          {loading ? (
+            <Skeleton.Input active size="small" style={{ width: 64, height: 22 }} />
+          ) : (
+            <span className="lm-stat-value">{value}</span>
+          )}
+          {trend && (
+            <span className={`lm-trend ${trend.positive ? "up" : "down"}`}>
+              {trend.positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+              <span className="lm-trend-value">
+                {trend.value > 0 ? "+" : ""}
+                {trend.value}%
+              </span>
+            </span>
+          )}
         </div>
       </div>
-    </Card>
+      {subtle && <Text className="lm-stat-subtle">{subtle}</Text>}
+      {chart && <div className="lm-stat-chart">{chart}</div>}
+      <span
+        className="lm-stat-accent"
+        style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
+      />
+    </div>
   );
+
+  interface LmMiniBarProps {
+    segments: { value: number; color: string; label: string }[];
+  }
+  const MiniBar: React.FC<LmMiniBarProps> = ({ segments }) => {
+    const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+    return (
+      <div className="lm-minibar">
+        <div className="lm-minibar-track">
+          {segments.map((s, i) => (
+            <Tooltip key={i} title={`${s.label}: ${s.value}`}>
+              <span
+                className="lm-minibar-seg"
+                style={{ width: `${(s.value / total) * 100}%`, background: s.color }}
+              />
+            </Tooltip>
+          ))}
+        </div>
+        <div className="lm-minibar-legend">
+          {segments.map((s, i) => (
+            <span key={i} className="lm-minibar-legend-item">
+              <span className="lm-minibar-dot" style={{ background: s.color }} />
+              {s.label}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div className="leads-page-wrapper" style={{
-          margin: "0 -24px",
-          padding: "12px 24px",
-          background: "var(--bg-pure-white)",
-          minHeight: "calc(100vh - 64px)"
-        }}>
+        <div className="lm-page">
+          <TimeTrackingHeader
+            icon={<Layers size={20} color="#6366f1" />}
+            title="Leads Management"
+            description="Track, manage and convert your potential business opportunities."
+            extra={
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <Input
+                  placeholder="Search leads…"
+                  prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
+                  className="lm-search-input"
+                  onChange={(e) => setSearchText(e.target.value)}
+                  value={searchText}
+                  allowClear
+                />
+                <Button icon={<Download size={15} />} className="lm-secondary-btn">
+                  Export
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<Plus size={16} />}
+                  className="lm-primary-btn"
+                  onClick={() => {
+                    setEditingKey(null);
+                    form.resetFields();
+                    form.setFieldsValue({ platform: 'Upwork', customPlatform: '' });
+                    const defaultStatus = configStatuses.find(s => s.is_default);
+                    if (defaultStatus) {
+                      form.setFieldsValue({ status: defaultStatus.name });
+                    }
+                    setIsDrawerVisible(true);
+                  }}
+                >
+                  New Lead
+                </Button>
+              </div>
+            }
+          />
 
-          {/* Header Section */}
-          <div style={{ marginBottom: 0, paddingBottom: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ flex: 1 }}>
-              <Space size={12} align="center">
-                <div style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background: 'rgba(99, 102, 241, 0.08)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: "#6366f1"
-                }}>
-                  <Layers size={20} />
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Title level={4} className="premium-title" style={{ margin: 0, fontWeight: 800, color: "var(--text-primary)", fontSize: 18, letterSpacing: "-0.01em" }}>Leads Management</Title>
-                  <span style={{ width: 1, height: 18, background: "var(--border-slate-200)", display: "inline-block" }} />
-                  <Text type="secondary" className="premium-text-sec" style={{ fontSize: '11px', color: "var(--text-secondary)" }}>
-                    Track, manage and convert your potential business opportunities
-                  </Text>
-                </div>
-              </Space>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Input
-                placeholder="Search leads..."
-                prefix={<Search size={14} style={{ color: "#94a3b8" }} />}
-                className="premium-input-search"
-                style={{
-                  width: 220,
-                  borderRadius: 8,
-                  height: 32,
-                  border: "1px solid #e2e8f0",
-                  background: "#f8fafc",
-                  fontSize: 13,
-                  fontWeight: 500
-                }}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
-              <Button
-                type="primary"
-                size="small"
-                icon={<Plus size={14} />}
-                style={{
-                  borderRadius: 6,
-                  height: 32,
-                  fontWeight: 700,
-                  display: "flex",
-                  alignItems: "center",
-                  background: "#6366f1",
-                  border: "none",
-                  boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
-                  padding: "0 12px",
-                  fontSize: 13
-                }}
-                onClick={() => {
-                  setEditingKey(null);
-                  form.resetFields();
-                  form.setFieldsValue({ platform: 'Upwork', customPlatform: '' });
-                  const defaultStatus = configStatuses.find(s => s.is_default);
-                  if (defaultStatus) {
-                    form.setFieldsValue({ status: defaultStatus.name });
-                  }
-                  setIsDrawerVisible(true);
-                }}
-              >
-                New Lead
-              </Button>
-            </div>
-          </div>
+          <div className="lm-ambient" />
 
-          <Divider className="hub-divider-premium" style={{ margin: '0 -24px 16px -24px', width: 'calc(100% + 48px)', borderTop: '1px solid #e2e8f0' }} />
+          <div className="lm-body">
 
           {/* Saved-View Segments */}
-          <div className="lead-segments" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+          {/* <div className="lead-segments" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
             {([
               { key: "all", label: "All Leads", icon: <Layers size={13} />, count: segmentCounts.all },
               { key: "hot", label: "Hot", icon: <Flame size={13} />, count: segmentCounts.hot, accent: "#ef4444" },
@@ -969,159 +1285,287 @@ export default function LeadsPage() {
                 </button>
               );
             })}
+          </div> */}
+
+          <div className="lm-stat-grid">
+            <StatCard
+              label="Total Leads"
+              value={leads.length}
+              icon={Layers}
+              accent="#6366f1"
+              subtle={leads.length > 0 ? `${leadsThisWeek} added in the last 7 days` : "No leads yet"}
+              loading={leads.length === 0 && loading}
+              chart={
+                leads.length > 0 ? (
+                  <MiniBar
+                    segments={[
+                      { value: hotLeadsCount, color: "#ef4444", label: `${hotLeadsCount} hot` },
+                      { value: Math.max(0, leads.length - hotLeadsCount), color: "#94a3b8", label: `${Math.max(0, leads.length - hotLeadsCount)} warm` },
+                    ]}
+                  />
+                ) : null
+              }
+            />
+            <StatCard
+              label="New Today"
+              value={leadsToday}
+              icon={Zap}
+              accent="#f59e0b"
+              subtle={leadsToday > 0 ? "Fresh activity in the last 24h" : "No new leads today"}
+              loading={leads.length === 0 && loading}
+              chart={
+                leadsThisWeek > 0 ? (
+                  <MiniBar
+                    segments={[
+                      { value: leadsToday, color: "#f59e0b", label: `${leadsToday} today` },
+                      { value: Math.max(0, leadsThisWeek - leadsToday), color: "#94a3b8", label: `${Math.max(0, leadsThisWeek - leadsToday)} earlier this week` },
+                    ]}
+                  />
+                ) : null
+              }
+            />
+            <StatCard
+              label="Hot Leads"
+              value={hotLeadsCount}
+              icon={Flame}
+              accent="#ef4444"
+              subtle={
+                leads.length > 0
+                  ? `${Math.round((hotLeadsCount / leads.length) * 100)}% of pipeline · ${totalClients} clients`
+                  : "AI score ≥ 80"
+              }
+              loading={leads.length === 0 && loading}
+              chart={
+                leads.length > 0 ? (
+                  <div className="lm-progress-row">
+                    <div className="lm-progress-track">
+                      <span
+                        className="lm-progress-fill"
+                        style={{
+                          width: `${Math.round((hotLeadsCount / leads.length) * 100)}%`,
+                          background: "linear-gradient(90deg, #ef4444, #f97316)",
+                        }}
+                      />
+                    </div>
+                    <span className="lm-progress-label">
+                      {Math.round((hotLeadsCount / leads.length) * 100)}%
+                    </span>
+                  </div>
+                ) : null
+              }
+            />
+            <StatCard
+              label="Pipeline Rate"
+              value={`${pipelineRate}%`}
+              icon={Target}
+              accent="#10b981"
+              subtle={leads.length > 0 ? "Leads with proposals out" : "Send your first proposal"}
+              loading={leads.length === 0 && loading}
+              chart={
+                leads.length > 0 ? (
+                  <div className="lm-progress-row">
+                    <div className="lm-progress-track">
+                      <span
+                        className="lm-progress-fill"
+                        style={{
+                          width: `${pipelineRate}%`,
+                          background: "linear-gradient(90deg, #10b981, #34d399)",
+                        }}
+                      />
+                    </div>
+                    <span className="lm-progress-label">{pipelineRate}%</span>
+                  </div>
+                ) : null
+              }
+            />
           </div>
 
-          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-            <Col xs={24} sm={12} md={6}>
-              <StatCard
-                label="Total Leads"
-                value={leads.length}
-                icon={Layers}
-                color="#6366f1"
-                trend={leadsThisWeek > 0 ? "up" : "neutral"}
-                trendLabel={`${leadsThisWeek} this week`}
-              />
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <StatCard
-                label="New Today"
-                value={leadsToday}
-                icon={Zap}
-                color="#f59e0b"
-                trend={leadsToday > 0 ? "up" : "neutral"}
-                trendLabel={leadsToday > 0 ? "Fresh activity" : "No new today"}
-              />
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <StatCard
-                label="Hot Leads"
-                value={hotLeadsCount}
-                icon={Flame}
-                color="#ef4444"
-                trend={hotLeadsCount > 0 ? "up" : "neutral"}
-                trendLabel={`${totalClients} clients`}
-              />
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <StatCard
-                label="Pipeline Rate"
-                value={pipelineRate}
-                suffix="%"
-                icon={Target}
-                color="#10b981"
-                trend={pipelineRate >= 50 ? "up" : "neutral"}
-                trendLabel="With proposal"
-              />
-            </Col>
-          </Row>
+          
 
-          {/* Filter Bar Section */}
-          <Card
-            bodyStyle={{ padding: "8px 16px" }}
-            className="leads-filter-card"
-            style={{
-              marginBottom: 16,
-              borderRadius: 12,
-              border: "1px solid #e2e8f0",
-              background: "#fff",
-              boxShadow: "0 2px 4px 0 rgb(0 0 0 / 0.05)"
-            }}
-          >
-            <Row gutter={[16, 16]} align="middle">
-              <Col>
-                <Space size={8} style={{ color: "var(--text-slate-500)", fontWeight: 600 }}>
-                  <Filter size={18} />
-                  <span>Filters</span>
-                </Space>
-              </Col>
-              <Col flex="auto">
-                <Row gutter={12}>
-                  <Col span={5}>
-                    <Select
-                      placeholder="Filter by Status"
-                      style={{ width: '100%' }}
-                      allowClear
-                      value={filterStatus}
-                      onChange={setFilterStatus}
-                      dropdownStyle={{ borderRadius: 8 }}
-                    >
-                      {configStatuses.map(s => (
-                        <Select.Option key={s.id} value={s.name}>
-                          <Tag style={{
-                            backgroundColor: `${s.color}15`,
-                            color: s.color,
-                            border: `1px solid ${s.color}30`,
-                            fontWeight: 700,
-                            borderRadius: 6,
-                            padding: "2px 10px",
-                            fontSize: 10,
-                            margin: 0
-                          }}>
-                            {s.name.toUpperCase()}
-                          </Tag>
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Col>
-                  <Col span={5}>
-                    <Select
-                      placeholder="Filter by Platform"
-                      style={{ width: '100%' }}
-                      allowClear
-                      value={filterPlatform}
-                      onChange={setFilterPlatform}
-                    >
-                      <Select.Option value="Upwork">Upwork</Select.Option>
-                      <Select.Option value="LinkedIn">LinkedIn</Select.Option>
-                      <Select.Option value="Freelancer">Freelancer</Select.Option>
-                      <Select.Option value="Fiverr">Fiverr</Select.Option>
-                    </Select>
-                  </Col>
-                  <Col span={5}>
-                    <Select
-                      placeholder="Filter by Action"
-                      style={{ width: '100%' }}
-                      allowClear
-                      value={filterAction}
-                      onChange={setFilterAction}
-                    >
-                      {configActions.map(a => (
-                        <Select.Option key={a.id} value={a.name}>
-                          <Space>
-                            {renderActionIcon(a.icon)}
-                            {a.name}
-                          </Space>
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Col>
-                  <Col span={6}>
-                    <DatePicker.RangePicker
-                      style={{ width: '100%' }}
-                      value={filterDateRange}
-                      onChange={(dates) => setFilterDateRange(dates as any)}
-                    />
-                  </Col>
-                  <Col span={3}>
-                    <Button
-                      icon={<RefreshCw size={14} />}
+          {/* Filter bar — flat, compact, with inline Table Settings */}
+          <div className="lm-filter-bar">
+            <span className="lm-filter-bar-label">
+              <Filter size={13} />
+              Filters
+            </span>
+
+            <Select
+              placeholder="Status"
+              className="lm-filter-select"
+              style={{ width: 140 }}
+              allowClear
+              value={filterStatus}
+              onChange={setFilterStatus}
+            >
+              {configStatuses.map(s => (
+                <Select.Option key={s.id} value={s.name}>
+                  <span
+                    className="lm-filter-status-chip"
+                    style={{
+                      backgroundColor: `${s.color}15`,
+                      color: s.color,
+                      border: `1px solid ${s.color}30`,
+                    }}
+                  >
+                    {s.name}
+                  </span>
+                </Select.Option>
+              ))}
+            </Select>
+
+            <Select
+              placeholder="Platform"
+              className="lm-filter-select"
+              style={{ width: 130 }}
+              allowClear
+              value={filterPlatform}
+              onChange={setFilterPlatform}
+            >
+              <Select.Option value="Upwork">Upwork</Select.Option>
+              <Select.Option value="LinkedIn">LinkedIn</Select.Option>
+              <Select.Option value="Freelancer">Freelancer</Select.Option>
+              <Select.Option value="Fiverr">Fiverr</Select.Option>
+            </Select>
+
+            <Select
+              placeholder="Workflow"
+              className="lm-filter-select"
+              style={{ width: 160 }}
+              allowClear
+              value={filterAction}
+              onChange={setFilterAction}
+            >
+              {configActions.map(a => (
+                <Select.Option key={a.id} value={a.name}>
+                  <Space size={6}>
+                    {renderActionIcon(a.icon)}
+                    {a.name}
+                  </Space>
+                </Select.Option>
+              ))}
+            </Select>
+
+            <Select
+              placeholder="Created by"
+              className="lm-filter-select"
+              style={{ width: 160 }}
+              allowClear
+              value={filterCreatedBy}
+              onChange={setFilterCreatedBy}
+              showSearch
+              filterOption={(input, option) =>
+                String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {creatorOptions.map((name) => {
+                const palette = getAvatarStyle(name);
+                return (
+                  <Select.Option key={name} value={name}>
+                    <Space size={8}>
+                      <span
+                        className="lm-creator-avatar"
+                        style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
+                      >
+                        {getInitials(name)}
+                      </span>
+                      <span style={{ fontSize: 12.5 }}>{name}</span>
+                    </Space>
+                  </Select.Option>
+                );
+              })}
+            </Select>
+
+            <DatePicker.RangePicker
+              className="lm-filter-date"
+              style={{ width: 230 }}
+              value={filterDateRange}
+              onChange={(dates) => setFilterDateRange(dates as any)}
+            />
+
+            <Button
+              icon={<RefreshCw size={13} />}
+              className="lm-filter-clear-btn"
+              onClick={() => {
+                setFilterStatus(null);
+                setFilterAction(null);
+                setFilterPlatform(null);
+                setFilterDateRange(null);
+                setFilterCreatedBy(null);
+                setSearchText("");
+              }}
+            >
+              Clear
+            </Button>
+
+            <span className="lm-filter-bar-spacer" />
+
+            <span className="lm-filter-bar-count">
+              <b>{filteredLeads.length}</b> of <b>{leads.length}</b>
+            </span>
+
+            <Popover
+              trigger={["click"]}
+              placement="bottomRight"
+              classNames={{ root: "lm-table-settings-popover" }}
+              content={
+                <div style={{ width: 240 }}>
+                  <div className="lm-popover-section-label">
+                    <Settings2 size={11} />
+                    <span>Density</span>
+                  </div>
+                  <Segmented
+                    block
+                    value={tableDensity}
+                    onChange={(v) => setTableDensity(v as LmDensity)}
+                    options={[
+                      { label: "Compact", value: "compact" },
+                      { label: "Cozy", value: "comfortable" },
+                      { label: "Roomy", value: "spacious" },
+                    ]}
+                  />
+                  <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                    <Layers size={11} />
+                    <span>Columns</span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {TOGGLEABLE_COLUMNS.map((c) => (
+                      <label key={c.key} className="lm-col-toggle-row">
+                        <span>{c.label}</span>
+                        <Switch
+                          size="small"
+                          checked={!hiddenCols[c.key]}
+                          onChange={(checked) =>
+                            setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <div className="lm-popover-footer">
+                    <button
+                      type="button"
+                      className="lm-popover-reset"
                       onClick={() => {
-                        setFilterStatus(null);
-                        setFilterAction(null);
-                        setFilterPlatform(null);
-                        setFilterDateRange(null);
-                        setSearchText("");
+                        setHiddenCols({});
+                        setTableDensity("comfortable");
                       }}
-                      block
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                     >
-                      Clear
-                    </Button>
-                  </Col>
-                </Row>
-              </Col>
-            </Row>
-          </Card>
+                      Reset to defaults
+                    </button>
+                    <span className="lm-popover-saved">Saved automatically</span>
+                  </div>
+                </div>
+              }
+            >
+              <Tooltip title="Table settings">
+                <Button
+                  icon={<Settings2 size={14} />}
+                  className="lm-filter-settings-btn"
+                  aria-label="Table settings"
+                />
+              </Tooltip>
+            </Popover>
+          </div>
 
           {/* Active filter chips */}
           {activeFilterChips.length > 0 && (
@@ -1173,16 +1617,40 @@ export default function LeadsPage() {
             </div>
           )}
 
-          <Card
-            bodyStyle={{ padding: 0 }}
-            style={{
-              borderRadius: 20,
-              border: "1px solid #f1f5f9",
-              overflow: "hidden",
-              boxShadow: "0 10px 25px -5px rgba(0,0,0,0.04)"
-            }}
-            className="leads-table-container"
-          >
+          {selectedRowKeys.length > 0 && (
+            <div className="lm-bulk-bar">
+              <div className="lm-bulk-bar-left">
+                <span className="lm-bulk-count">
+                  <span className="lm-bulk-count-dot" />
+                  {selectedRowKeys.length} selected
+                </span>
+                <span className="lm-bulk-divider" />
+                <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
+                  Apply a bulk action or clear the selection.
+                </Text>
+              </div>
+              <div className="lm-bulk-bar-right">
+                <Button
+                  size="small"
+                  className="lm-bulk-btn"
+                  onClick={() => setSelectedRowKeys([])}
+                >
+                  Clear
+                </Button>
+                <Button
+                  size="small"
+                  danger
+                  icon={<Trash2 size={13} />}
+                  className="lm-bulk-btn lm-bulk-btn-danger"
+                  onClick={handleBulkDelete}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="lm-table-card" data-density={tableDensity}>
             {loading && leads.length === 0 ? (
               <div className="leads-skeleton" style={{ padding: "8px 0" }}>
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -1193,9 +1661,10 @@ export default function LeadsPage() {
                       alignItems: "center",
                       gap: 12,
                       padding: "16px 20px",
-                      borderBottom: "1px solid #f8fafc",
+                      borderBottom: "1px solid var(--border-slate-100)",
                     }}
                   >
+                    <div className="sk-shimmer" style={{ width: 18, height: 18, borderRadius: 4 }} />
                     <div className="sk-shimmer" style={{ width: 38, height: 38, borderRadius: 12 }} />
                     <div style={{ flex: 1 }}>
                       <div className="sk-shimmer" style={{ width: "55%", height: 12, borderRadius: 6, marginBottom: 8 }} />
@@ -1209,17 +1678,23 @@ export default function LeadsPage() {
               </div>
             ) : (
               <Table
-                columns={columns}
+                columns={columns.filter((c: any) => !hiddenCols[c.key as string])}
                 dataSource={filteredLeads}
                 rowKey="id"
                 size="middle"
+                rowSelection={{
+                  selectedRowKeys,
+                  onChange: (keys) => setSelectedRowKeys(keys),
+                  columnWidth: 48,
+                }}
                 pagination={{
                   pageSize: 10,
                   position: ["bottomRight"],
                   showSizeChanger: false,
                   className: "premium-pagination"
                 }}
-                className="premium-table"
+                className="lm-table premium-table"
+                rowClassName={() => "lm-row"}
                 onRow={(record) => ({
                   onClick: () => handleView(record),
                   style: { cursor: 'pointer' }
@@ -1294,8 +1769,167 @@ export default function LeadsPage() {
                 }}
               />
             )}
-          </Card>
+          </div>
+          </div>
         </div>
+
+        {/* BidIq Preview Modal */}
+        <Modal
+          open={!!bidiqPreviewLead}
+          onCancel={closeBidiqPreview}
+          footer={null}
+          width={680}
+          centered
+          closable={false}
+          className="lm-bidiq-modal"
+        >
+          {bidiqPreviewLead && (
+            <div className="lm-bidiq-content">
+              {/* Header */}
+              <div className="lm-bidiq-head">
+                <div className="lm-bidiq-icon">
+                  <Zap size={20} />
+                </div>
+                <div className="lm-bidiq-head-text">
+                  <div className="lm-bidiq-eyebrow">
+                    <Sparkles size={11} /> AI Win-Rate Engine
+                  </div>
+                  <h2 className="lm-bidiq-title">BidIq · Pre-flight check</h2>
+                  <p className="lm-bidiq-sub">
+                    Before you spend time crafting a proposal, BidIq runs a smart
+                    analysis on this lead and shows you whether it's worth the bid.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="lm-bidiq-close"
+                  onClick={closeBidiqPreview}
+                  aria-label="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Lead snapshot */}
+              <div className="lm-bidiq-snapshot">
+                <div className="lm-bidiq-snapshot-head">
+                  <Layers size={11} /> Lead snapshot
+                </div>
+                <div className="lm-bidiq-snapshot-title" title={bidiqPreviewLead.title}>
+                  {bidiqPreviewLead.title}
+                </div>
+                <div className="lm-bidiq-snapshot-grid">
+                  <div className="lm-bidiq-snapshot-item">
+                    <span className="lm-bidiq-snapshot-label">
+                      <DollarSign size={10} /> Budget
+                    </span>
+                    <span className="lm-bidiq-snapshot-value">
+                      {bidiqPreviewLead.budget ||
+                        (bidiqPreviewLead.hour_based_amount
+                          ? `$${bidiqPreviewLead.hour_based_amount}/hr`
+                          : "—")}
+                    </span>
+                  </div>
+                  <div className="lm-bidiq-snapshot-item">
+                    <span className="lm-bidiq-snapshot-label">
+                      <Clock size={10} /> Duration
+                    </span>
+                    <span className="lm-bidiq-snapshot-value">
+                      {bidiqPreviewLead.duration || "Flexible"}
+                    </span>
+                  </div>
+                  <div className="lm-bidiq-snapshot-item">
+                    <span className="lm-bidiq-snapshot-label">
+                      <Layers size={10} /> Platform
+                    </span>
+                    <span className="lm-bidiq-snapshot-value">
+                      {bidiqPreviewLead.platform || "—"}
+                    </span>
+                  </div>
+                  <div className="lm-bidiq-snapshot-item">
+                    <span className="lm-bidiq-snapshot-label">
+                      <ShieldCheck size={10} /> Experience
+                    </span>
+                    <span className="lm-bidiq-snapshot-value">
+                      {bidiqPreviewLead.experience_level || "Any"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Capabilities */}
+              <div className="lm-bidiq-caps">
+                <div className="lm-bidiq-caps-head">What BidIq will do for you</div>
+                <div className="lm-bidiq-caps-grid">
+                  <div className="lm-bidiq-cap" style={{ ["--cap-accent" as any]: "#6366f1" }}>
+                    <div className="lm-bidiq-cap-icon">
+                      <Target size={14} />
+                    </div>
+                    <div className="lm-bidiq-cap-body">
+                      <span className="lm-bidiq-cap-title">Win-probability score</span>
+                      <span className="lm-bidiq-cap-text">
+                        Predicts your chance of winning based on fit, history, and lead signals.
+                      </span>
+                    </div>
+                  </div>
+                  <div className="lm-bidiq-cap" style={{ ["--cap-accent" as any]: "#10b981" }}>
+                    <div className="lm-bidiq-cap-icon">
+                      <DollarSign size={14} />
+                    </div>
+                    <div className="lm-bidiq-cap-body">
+                      <span className="lm-bidiq-cap-title">Smart pricing &amp; effort</span>
+                      <span className="lm-bidiq-cap-text">
+                        Recommended quote and estimated hours, anchored to the brief and budget.
+                      </span>
+                    </div>
+                  </div>
+                  <div className="lm-bidiq-cap" style={{ ["--cap-accent" as any]: "#ef4444" }}>
+                    <div className="lm-bidiq-cap-icon">
+                      <AlertCircle size={14} />
+                    </div>
+                    <div className="lm-bidiq-cap-body">
+                      <span className="lm-bidiq-cap-title">Risk &amp; red-flag detection</span>
+                      <span className="lm-bidiq-cap-text">
+                        Aggressive timelines, scope creep, low-trust clients — all surfaced.
+                      </span>
+                    </div>
+                  </div>
+                  <div className="lm-bidiq-cap" style={{ ["--cap-accent" as any]: "#8b5cf6" }}>
+                    <div className="lm-bidiq-cap-icon">
+                      <Brain size={14} />
+                    </div>
+                    <div className="lm-bidiq-cap-body">
+                      <span className="lm-bidiq-cap-title">Proposal-ready draft</span>
+                      <span className="lm-bidiq-cap-text">
+                        Tailored proposal with deliverables, milestones, and a tight scope.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="lm-bidiq-footer">
+                <span className="lm-bidiq-footnote">
+                  <ShieldCheck size={12} /> No data leaves your workspace.
+                </span>
+                <div className="lm-bidiq-footer-actions">
+                  <Button onClick={closeBidiqPreview} className="lm-bidiq-cancel">
+                    Maybe later
+                  </Button>
+                  <Button
+                    type="primary"
+                    onClick={launchBidiq}
+                    className="lm-bidiq-launch"
+                    icon={<Zap size={14} />}
+                  >
+                    Launch BidIq
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal>
 
         {/* Lead Form Drawer */}
         <Drawer
@@ -1706,6 +2340,1202 @@ export default function LeadsPage() {
 
         <style dangerouslySetInnerHTML={{
           __html: `
+            /* ====================================================== */
+            /*                Leads Management — Premium               */
+            /* ====================================================== */
+            .lm-page {
+              position: relative;
+              margin: 0 -24px;
+              background: var(--bg-primary);
+              min-height: calc(100vh - 64px);
+            }
+            .lm-ambient {
+              position: absolute;
+              top: 0; left: 0; right: 0;
+              height: 320px;
+              pointer-events: none;
+              background:
+                radial-gradient(900px 240px at 12% 0%, rgba(99, 102, 241, 0.07), transparent 60%),
+                radial-gradient(700px 220px at 90% 0%, rgba(239, 68, 68, 0.05), transparent 60%);
+              z-index: 0;
+            }
+            [data-theme='dark'] .lm-ambient {
+              background:
+                radial-gradient(900px 240px at 12% 0%, rgba(99, 102, 241, 0.12), transparent 60%),
+                radial-gradient(700px 220px at 90% 0%, rgba(239, 68, 68, 0.08), transparent 60%);
+            }
+            .lm-body {
+              position: relative;
+              z-index: 1;
+              padding: 8px 32px 40px 32px;
+            }
+
+            /* ---------- Header buttons / search ---------- */
+            .lm-search-input.ant-input-affix-wrapper {
+              width: 280px !important;
+              height: 38px !important;
+              border-radius: 10px !important;
+              background: var(--bg-slate-50) !important;
+              border: 1px solid var(--border-slate-100) !important;
+              transition: all .2s ease;
+            }
+            .lm-search-input.ant-input-affix-wrapper:focus-within {
+              border-color: #6366f1 !important;
+              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+              background: var(--bg-pure-white) !important;
+            }
+            .lm-search-input .ant-input {
+              background: transparent !important;
+              font-size: 13px;
+              font-weight: 500;
+            }
+            .lm-secondary-btn {
+              height: 38px !important;
+              border-radius: 10px !important;
+              border: 1px solid var(--border-slate-100) !important;
+              background: var(--bg-pure-white) !important;
+              color: var(--text-slate-700) !important;
+              font-weight: 600 !important;
+              display: inline-flex !important;
+              align-items: center !important;
+              gap: 6px !important;
+            }
+            .lm-secondary-btn:hover {
+              border-color: var(--border-slate-200) !important;
+              color: var(--text-slate-900) !important;
+            }
+            .lm-primary-btn {
+              height: 38px !important;
+              border-radius: 10px !important;
+              padding: 0 18px !important;
+              font-weight: 700 !important;
+              display: inline-flex !important;
+              align-items: center !important;
+              gap: 6px !important;
+              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+              border: 0 !important;
+              box-shadow: 0 6px 16px -8px rgba(99, 102, 241, 0.6) !important;
+            }
+            .lm-primary-btn:hover {
+              filter: brightness(1.05);
+              transform: translateY(-1px);
+              transition: all .2s ease;
+            }
+
+            /* ---------- Stat grid ---------- */
+            .lm-stat-grid {
+              display: grid;
+              grid-template-columns: repeat(4, minmax(0, 1fr));
+              gap: 16px;
+              margin-bottom: 22px;
+            }
+            @media (max-width: 1100px) {
+              .lm-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            }
+            @media (max-width: 600px) {
+              .lm-stat-grid { grid-template-columns: 1fr; }
+            }
+            .lm-stat-card {
+              position: relative;
+              background: var(--bg-pure-white);
+              border: 1px solid var(--border-slate-100);
+              border-radius: 14px;
+              padding: 14px 16px 14px;
+              overflow: hidden;
+              transition: transform .25s cubic-bezier(.2,.8,.2,1),
+                          box-shadow .25s cubic-bezier(.2,.8,.2,1),
+                          border-color .25s ease;
+              box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+            }
+            .lm-stat-card:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 18px 36px -22px rgba(15,23,42,0.22);
+              border-color: var(--border-slate-200);
+            }
+            .lm-stat-card:hover .lm-stat-accent { opacity: 1; }
+            .lm-stat-accent {
+              position: absolute;
+              left: 0; right: 0; bottom: 0;
+              height: 2px;
+              opacity: 0.55;
+              transition: opacity .25s ease;
+              pointer-events: none;
+            }
+            .lm-stat-head {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              min-width: 0;
+            }
+            .lm-stat-icon {
+              width: 32px; height: 32px;
+              border-radius: 9px;
+              display: flex; align-items: center; justify-content: center;
+              flex-shrink: 0;
+            }
+            .lm-stat-label {
+              flex: 1;
+              min-width: 0;
+              font-size: 13px;
+              font-weight: 600;
+              color: var(--text-slate-700);
+              letter-spacing: -0.005em;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .lm-stat-value-wrap {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              flex-shrink: 0;
+            }
+            .lm-stat-value {
+              font-size: 22px;
+              font-weight: 800;
+              color: var(--text-slate-900);
+              letter-spacing: -0.025em;
+              line-height: 1;
+              font-variant-numeric: tabular-nums;
+            }
+            .lm-trend {
+              display: inline-flex;
+              align-items: center;
+              gap: 4px;
+              padding: 3px 7px;
+              border-radius: 999px;
+              font-size: 10.5px;
+              font-weight: 700;
+              line-height: 1;
+              white-space: nowrap;
+            }
+            .lm-trend.up { background: rgba(16,185,129,0.1); color: #047857; }
+            .lm-trend.down { background: rgba(239,68,68,0.1); color: #b91c1c; }
+            .lm-trend-value { letter-spacing: 0.01em; }
+            .lm-stat-subtle {
+              display: block;
+              font-size: 11.5px;
+              color: var(--text-slate-500);
+              margin-top: 8px;
+              padding-left: 42px;
+              font-weight: 500;
+              line-height: 1.4;
+            }
+            .lm-stat-chart {
+              margin-top: 10px;
+              padding-top: 10px;
+              padding-left: 42px;
+              border-top: 1px dashed var(--border-slate-100);
+            }
+
+            /* MiniBar */
+            .lm-minibar { display: flex; flex-direction: column; gap: 7px; }
+            .lm-minibar-track {
+              height: 6px;
+              background: var(--bg-slate-50);
+              border-radius: 999px;
+              display: flex;
+              overflow: hidden;
+              border: 1px solid var(--border-slate-100);
+            }
+            .lm-minibar-seg {
+              display: block;
+              height: 100%;
+              transition: width .4s ease;
+            }
+            .lm-minibar-seg + .lm-minibar-seg {
+              border-left: 1px solid var(--bg-pure-white);
+            }
+            .lm-minibar-legend {
+              display: flex;
+              gap: 12px;
+              flex-wrap: wrap;
+            }
+            .lm-minibar-legend-item {
+              display: inline-flex;
+              align-items: center;
+              gap: 5px;
+              font-size: 11px;
+              color: var(--text-slate-600);
+              font-weight: 500;
+            }
+            .lm-minibar-dot {
+              width: 7px; height: 7px;
+              border-radius: 2px;
+              display: inline-block;
+            }
+
+            /* Inline progress (hot / pipeline) */
+            .lm-progress-row {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            }
+            .lm-progress-track {
+              flex: 1;
+              height: 6px;
+              background: var(--bg-slate-50);
+              border-radius: 999px;
+              overflow: hidden;
+              border: 1px solid var(--border-slate-100);
+            }
+            .lm-progress-fill {
+              display: block;
+              height: 100%;
+              border-radius: 999px;
+              transition: width .4s ease;
+            }
+            .lm-progress-label {
+              font-size: 11px;
+              font-weight: 700;
+              color: var(--text-slate-700);
+              font-variant-numeric: tabular-nums;
+              white-space: nowrap;
+            }
+
+            /* ---------- Section divider ---------- */
+            .lm-section-divider {
+              position: relative;
+              margin: 4px 0 16px;
+              height: 18px;
+              display: flex;
+              align-items: center;
+            }
+            .lm-section-divider::before {
+              content: "";
+              position: absolute;
+              left: 0; right: 0;
+              top: 50%;
+              height: 1px;
+              background: linear-gradient(
+                90deg,
+                transparent 0%,
+                var(--border-slate-100) 18%,
+                var(--border-slate-100) 82%,
+                transparent 100%
+              );
+              transform: translateY(-0.5px);
+              pointer-events: none;
+            }
+            .lm-section-divider-label {
+              position: relative;
+              z-index: 1;
+              background: var(--bg-primary);
+              padding: 0 12px;
+              margin-left: 4px;
+              font-size: 10.5px;
+              font-weight: 700;
+              letter-spacing: 0.1em;
+              text-transform: uppercase;
+              color: var(--text-slate-500);
+            }
+
+            /* ---------- Inline-edit status pill ---------- */
+            .lm-status-pill {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              padding: 4px 10px 4px 12px;
+              border-radius: 999px;
+              font-size: 10.5px;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: 0.04em;
+              cursor: pointer;
+              transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+              font-family: inherit;
+              outline: none;
+              max-width: 100%;
+            }
+            .lm-status-pill:hover {
+              filter: brightness(0.97);
+              transform: translateY(-0.5px);
+              box-shadow: 0 4px 10px -4px rgba(15, 23, 42, 0.12);
+            }
+            .lm-status-pill:focus-visible {
+              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+            }
+            .lm-status-pill-text {
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              line-height: 1;
+            }
+            .lm-status-pill-edit {
+              opacity: 0;
+              transform: translateX(-3px);
+              transition: opacity 0.15s ease, transform 0.15s ease;
+              flex-shrink: 0;
+            }
+            .lm-status-pill:hover .lm-status-pill-edit {
+              opacity: 0.75;
+              transform: translateX(0);
+            }
+            .lm-status-select.ant-select .ant-select-selector {
+              padding: 0 !important;
+              height: auto !important;
+              background: transparent !important;
+            }
+
+            /* ---------- Bulk action bar ---------- */
+            .lm-bulk-bar {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 12px;
+              padding: 10px 14px;
+              margin-bottom: 12px;
+              background: linear-gradient(
+                90deg,
+                rgba(99, 102, 241, 0.08) 0%,
+                rgba(139, 92, 246, 0.05) 100%
+              );
+              border: 1px solid rgba(99, 102, 241, 0.2);
+              border-radius: 12px;
+              animation: lmBulkSlide 0.2s ease-out;
+            }
+            @keyframes lmBulkSlide {
+              from { opacity: 0; transform: translateY(-4px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            .lm-bulk-bar-left,
+            .lm-bulk-bar-right {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            }
+            .lm-bulk-count {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              padding: 4px 10px;
+              border-radius: 999px;
+              background: #fff;
+              border: 1px solid rgba(99, 102, 241, 0.3);
+              color: #4f46e5;
+              font-size: 12px;
+              font-weight: 700;
+              letter-spacing: 0.01em;
+            }
+            .lm-bulk-count-dot {
+              width: 6px; height: 6px;
+              border-radius: 50%;
+              background: #6366f1;
+              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+            }
+            .lm-bulk-divider {
+              width: 1px; height: 16px;
+              background: rgba(99, 102, 241, 0.2);
+            }
+            .lm-bulk-btn {
+              height: 30px !important;
+              border-radius: 8px !important;
+              font-weight: 600 !important;
+              font-size: 12px !important;
+              padding: 0 12px !important;
+              display: inline-flex !important;
+              align-items: center !important;
+              gap: 5px !important;
+            }
+            .lm-bulk-btn-danger {
+              background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+              border: 0 !important;
+              color: #fff !important;
+              box-shadow: 0 4px 12px -4px rgba(239, 68, 68, 0.5) !important;
+            }
+            .lm-bulk-btn-danger:hover {
+              filter: brightness(1.05);
+              transform: translateY(-1px);
+              transition: all .15s ease;
+            }
+            [data-theme='dark'] .lm-bulk-bar {
+              background: linear-gradient(
+                90deg,
+                rgba(99, 102, 241, 0.12) 0%,
+                rgba(139, 92, 246, 0.08) 100%
+              );
+              border-color: rgba(99, 102, 241, 0.3);
+            }
+            [data-theme='dark'] .lm-bulk-count {
+              background: #161b22;
+              color: #a5b4fc;
+              border-color: rgba(99, 102, 241, 0.4);
+            }
+
+            /* ---------- Premium table card ---------- */
+            .lm-table-card {
+              position: relative;
+              background: var(--bg-pure-white);
+              border-radius: 16px;
+              border: 1px solid var(--border-slate-100);
+              overflow: hidden;
+              box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.06);
+            }
+            .lm-table.ant-table-wrapper .ant-table {
+              background: transparent !important;
+            }
+            .lm-table.ant-table-wrapper .ant-table-thead > tr > th {
+              background: var(--bg-slate-50) !important;
+              color: var(--text-slate-500) !important;
+              font-weight: 700 !important;
+              text-transform: uppercase !important;
+              font-size: 10.5px !important;
+              letter-spacing: 0.08em !important;
+              padding: 14px 16px !important;
+              border-bottom: 1px solid var(--border-slate-100) !important;
+            }
+            .lm-table.ant-table-wrapper .ant-table-thead > tr > th::before { display: none !important; }
+            .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
+              padding: 16px 16px !important;
+              border-bottom: 1px solid var(--border-slate-100) !important;
+              transition: background .15s ease;
+              position: relative;
+            }
+            .lm-table.ant-table-wrapper .lm-row > td:nth-child(2)::before {
+              content: "";
+              position: absolute;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 3px;
+              background: linear-gradient(180deg, #6366f1, #8b5cf6);
+              opacity: 0;
+              transition: opacity .2s ease;
+              pointer-events: none;
+            }
+            .lm-table.ant-table-wrapper .lm-row:hover > td {
+              background: var(--bg-slate-50) !important;
+            }
+            .lm-table.ant-table-wrapper .lm-row:hover > td:nth-child(2)::before {
+              opacity: 1;
+            }
+            .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td {
+              background: rgba(99, 102, 241, 0.06) !important;
+            }
+            .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected:hover > td {
+              background: rgba(99, 102, 241, 0.1) !important;
+            }
+            .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td:nth-child(2)::before {
+              opacity: 1;
+            }
+
+            /* Selection checkbox column */
+            .lm-table.ant-table-wrapper .ant-table-selection-column {
+              padding-left: 16px !important;
+              padding-right: 8px !important;
+            }
+            .lm-table.ant-table-wrapper .ant-checkbox-wrapper .ant-checkbox-inner {
+              border-radius: 5px !important;
+              border-color: #cbd5e1 !important;
+              transition: all 0.15s ease;
+              width: 17px;
+              height: 17px;
+            }
+            .lm-table.ant-table-wrapper .ant-checkbox-wrapper:hover .ant-checkbox-inner {
+              border-color: #8b5cf6 !important;
+            }
+            .lm-table.ant-table-wrapper .ant-checkbox-checked .ant-checkbox-inner {
+              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+              border-color: #6366f1 !important;
+              box-shadow: 0 2px 6px -2px rgba(99, 102, 241, 0.45);
+            }
+            .lm-table.ant-table-wrapper .ant-checkbox-indeterminate .ant-checkbox-inner::after {
+              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+            }
+            .lm-table.ant-table-wrapper .ant-checkbox-checked::after {
+              border-color: #8b5cf6 !important;
+            }
+
+            /* Pagination polish */
+            .lm-table.ant-table-wrapper .ant-pagination {
+              padding: 12px 16px;
+              margin: 0 !important;
+            }
+
+            /* Dark theme — table */
+            [data-theme='dark'] .lm-table-card {
+              background: var(--bg-secondary);
+              border-color: var(--border-slate-100);
+            }
+            [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-thead > tr > th {
+              background: var(--bg-primary) !important;
+              color: var(--text-slate-400) !important;
+              border-bottom-color: var(--border-slate-100) !important;
+            }
+            [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
+              border-bottom-color: var(--border-slate-100) !important;
+            }
+            [data-theme='dark'] .lm-table.ant-table-wrapper .lm-row:hover > td {
+              background: var(--bg-primary) !important;
+            }
+            [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td {
+              background: rgba(99, 102, 241, 0.12) !important;
+            }
+            [data-theme='dark'] .lm-table.ant-table-wrapper .ant-checkbox-wrapper .ant-checkbox-inner {
+              background: var(--bg-primary) !important;
+              border-color: #30363d !important;
+            }
+
+            /* ---------- Flat filter bar (replaces the boxy filter card) ---------- */
+            .lm-filter-bar {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              padding: 10px 14px;
+              margin-bottom: 16px;
+              background: var(--bg-pure-white);
+              border: 1px solid var(--border-slate-100);
+              border-radius: 12px;
+              flex-wrap: wrap;
+            }
+            .lm-filter-bar-label {
+              display: inline-flex; align-items: center; gap: 5px;
+              font-size: 11px;
+              font-weight: 800;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              color: var(--text-slate-500);
+              padding-right: 4px;
+            }
+            .lm-filter-bar-label svg { color: var(--text-slate-400); }
+            .lm-filter-bar-spacer { flex: 1 1 auto; }
+            .lm-filter-bar-count {
+              font-size: 12px;
+              color: var(--text-slate-500);
+              font-weight: 500;
+              padding: 0 4px;
+            }
+            .lm-filter-bar-count b {
+              color: var(--text-slate-900);
+              font-weight: 700;
+              font-variant-numeric: tabular-nums;
+            }
+
+            /* Filter selects */
+            .lm-filter-select.ant-select .ant-select-selector {
+              height: 32px !important;
+              border-radius: 8px !important;
+              border: 1px solid var(--border-slate-100) !important;
+              background: var(--bg-slate-50) !important;
+              padding: 0 10px !important;
+              display: flex; align-items: center;
+              font-size: 12.5px;
+            }
+            .lm-filter-select.ant-select:hover .ant-select-selector {
+              border-color: rgba(99, 102, 241, 0.35) !important;
+            }
+            .lm-filter-select.ant-select-focused .ant-select-selector {
+              border-color: #6366f1 !important;
+              background: var(--bg-pure-white) !important;
+              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+            }
+            .lm-filter-select .ant-select-selection-placeholder,
+            .lm-filter-select .ant-select-selection-item {
+              line-height: 30px !important;
+              font-size: 12.5px;
+              font-weight: 500;
+            }
+            .lm-filter-status-chip {
+              display: inline-block;
+              padding: 2px 9px;
+              border-radius: 999px;
+              font-weight: 700;
+              font-size: 10px;
+              letter-spacing: 0.04em;
+              text-transform: uppercase;
+            }
+
+            /* Date range picker */
+            .lm-filter-date.ant-picker {
+              height: 32px !important;
+              border-radius: 8px !important;
+              border: 1px solid var(--border-slate-100) !important;
+              background: var(--bg-slate-50) !important;
+            }
+            .lm-filter-date.ant-picker:hover {
+              border-color: rgba(99, 102, 241, 0.35) !important;
+            }
+            .lm-filter-date.ant-picker-focused {
+              border-color: #6366f1 !important;
+              background: var(--bg-pure-white) !important;
+              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+            }
+            .lm-filter-date.ant-picker input { font-size: 12.5px !important; }
+
+            /* Clear button */
+            .lm-filter-clear-btn.ant-btn {
+              height: 32px !important;
+              border-radius: 8px !important;
+              padding: 0 12px !important;
+              border: 1px solid var(--border-slate-100) !important;
+              background: var(--bg-pure-white) !important;
+              color: var(--text-slate-600) !important;
+              font-weight: 600 !important;
+              font-size: 12.5px !important;
+              display: inline-flex !important;
+              align-items: center !important;
+              gap: 5px !important;
+            }
+            .lm-filter-clear-btn.ant-btn:hover {
+              border-color: var(--border-slate-200) !important;
+              color: var(--text-slate-900) !important;
+            }
+
+            /* Settings button inside the filter bar */
+            .lm-filter-settings-btn.ant-btn {
+              height: 32px !important;
+              width: 32px !important;
+              padding: 0 !important;
+              border-radius: 8px !important;
+              border: 1px solid var(--border-slate-100) !important;
+              background: var(--bg-pure-white) !important;
+              color: var(--text-slate-500) !important;
+              display: inline-flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              transition: color .15s ease, border-color .15s ease;
+            }
+            .lm-filter-settings-btn.ant-btn:hover {
+              color: #4f46e5 !important;
+              border-color: rgba(99, 102, 241, 0.35) !important;
+            }
+
+            /* ---------- Enhanced inline-edit dropdowns (Status / Workflow) ---------- */
+            .lm-status-dropdown.ant-select-dropdown {
+              padding: 6px !important;
+              border-radius: 12px !important;
+              border: 1px solid var(--border-slate-100);
+              background: var(--bg-pure-white);
+              box-shadow: 0 16px 36px -16px rgba(15, 23, 42, 0.18), 0 2px 6px rgba(15, 23, 42, 0.05) !important;
+              min-width: 220px;
+            }
+            .lm-status-dropdown .ant-select-item {
+              padding: 0 !important;
+              border-radius: 8px !important;
+              margin-bottom: 2px !important;
+              background: transparent !important;
+            }
+            .lm-status-dropdown .ant-select-item:last-child { margin-bottom: 0 !important; }
+            .lm-status-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+              background: var(--bg-slate-50) !important;
+            }
+            .lm-status-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+              background: rgba(99, 102, 241, 0.06) !important;
+            }
+            .lm-status-dropdown .ant-select-item-option-content {
+              padding: 0 !important;
+            }
+
+            .lm-dd-row {
+              display: flex;
+              align-items: center;
+              gap: 9px;
+              padding: 8px 10px;
+              border-radius: 8px;
+              min-height: 34px;
+              cursor: pointer;
+            }
+            .lm-dd-dot {
+              width: 8px; height: 8px;
+              border-radius: 50%;
+              flex-shrink: 0;
+            }
+            .lm-dd-icon {
+              width: 22px; height: 22px;
+              border-radius: 6px;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+            }
+            .lm-dd-text {
+              flex: 1;
+              min-width: 0;
+              font-size: 12.5px;
+              font-weight: 600;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .lm-dd-row.is-selected .lm-dd-text { font-weight: 700; }
+            .lm-dd-check { flex-shrink: 0; }
+
+            [data-theme='dark'] .lm-status-dropdown.ant-select-dropdown {
+              background: var(--bg-secondary);
+              border-color: var(--border-slate-100);
+            }
+            [data-theme='dark'] .lm-status-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+              background: var(--bg-primary) !important;
+            }
+
+            /* Created by + Created cells */
+            .lm-creator-cell {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              min-width: 0;
+            }
+            .lm-creator-avatar {
+              width: 26px; height: 26px;
+              border-radius: 8px;
+              color: #fff;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 10.5px;
+              font-weight: 800;
+              letter-spacing: 0.02em;
+              flex-shrink: 0;
+            }
+            .lm-creator-text {
+              display: flex; flex-direction: column;
+              min-width: 0;
+            }
+            .lm-creator-name {
+              font-size: 12.5px;
+              font-weight: 600;
+              color: var(--text-slate-900);
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              max-width: 130px;
+            }
+            .lm-creator-you {
+              font-size: 10px;
+              color: var(--text-slate-500);
+              font-weight: 600;
+              letter-spacing: 0.02em;
+              text-transform: uppercase;
+            }
+            .lm-creator-email {
+              font-size: 10.5px;
+              color: var(--text-slate-500);
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              max-width: 130px;
+            }
+
+            .lm-created-cell {
+              display: flex; flex-direction: column;
+              gap: 1px;
+            }
+            .lm-created-date {
+              font-size: 12.5px;
+              font-weight: 600;
+              color: var(--text-slate-900);
+              font-variant-numeric: tabular-nums;
+            }
+            .lm-created-rel {
+              font-size: 10.5px;
+              color: var(--text-slate-500);
+              font-weight: 500;
+            }
+
+            /* Workflow Action pill — small icon prefix */
+            .lm-action-pill {
+              padding: 4px 10px 4px 6px;
+              gap: 7px;
+            }
+            .lm-action-pill-icon {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 18px;
+              height: 18px;
+              border-radius: 6px;
+              flex-shrink: 0;
+            }
+
+            /* ---------- Table settings popover (used inline now) ---------- */
+
+            .lm-table-settings-popover .ant-popover-inner {
+              padding: 14px !important;
+              border-radius: 14px !important;
+              border: 1px solid var(--border-slate-100) !important;
+            }
+            .lm-popover-section-label {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 10.5px;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.08em;
+              color: var(--text-slate-500);
+              margin-bottom: 8px;
+            }
+            .lm-popover-section-label svg { color: var(--text-slate-400); }
+            .lm-col-toggle-row {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 8px;
+              padding: 5px 8px;
+              border-radius: 7px;
+              transition: background .12s ease;
+              font-size: 12.5px;
+              color: var(--text-slate-700);
+              cursor: pointer;
+            }
+            .lm-col-toggle-row:hover { background: var(--bg-slate-50); }
+            .lm-popover-footer {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 8px;
+              margin-top: 12px;
+              padding-top: 12px;
+              border-top: 1px solid var(--border-slate-100);
+            }
+            .lm-popover-reset {
+              background: none;
+              border: 0;
+              padding: 0;
+              cursor: pointer;
+              color: #4f46e5;
+              font-size: 11.5px;
+              font-weight: 700;
+              font-family: inherit;
+            }
+            .lm-popover-reset:hover { color: #4338ca; }
+            .lm-popover-saved {
+              font-size: 10.5px;
+              color: var(--text-slate-400);
+              font-weight: 500;
+            }
+
+            /* Density — vertical row padding inside the table card */
+            .lm-table-card[data-density='compact'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
+              padding: 8px 14px !important;
+            }
+            .lm-table-card[data-density='comfortable'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
+              padding: 14px 16px !important;
+            }
+            .lm-table-card[data-density='spacious'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
+              padding: 20px 18px !important;
+            }
+            /* Avatar / row visual scales down a bit on compact */
+            .lm-table-card[data-density='compact'] .lead-avatar {
+              transform: scale(0.92);
+            }
+
+            [data-theme='dark'] .lm-table-settings-btn.ant-btn {
+              background: var(--bg-secondary) !important;
+              border-color: var(--border-slate-100) !important;
+            }
+            [data-theme='dark'] .lm-table-settings-popover .ant-popover-inner {
+              background: var(--bg-secondary) !important;
+            }
+            [data-theme='dark'] .lm-col-toggle-row:hover {
+              background: var(--bg-primary);
+            }
+
+            /* ---------- Lead title tooltip (Document Hub style) ---------- */
+            .lm-title-tooltip-overlay .ant-tooltip-inner {
+              background: rgba(15, 23, 42, 0.96) !important;
+              border-radius: 10px !important;
+              padding: 10px 12px !important;
+              box-shadow: 0 10px 32px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+              min-width: 220px;
+              max-width: 360px;
+            }
+            .lm-title-tooltip-overlay .ant-tooltip-arrow::before,
+            .lm-title-tooltip-overlay .ant-tooltip-arrow::after {
+              background: rgba(15, 23, 42, 0.96) !important;
+            }
+            .lm-title-tooltip { padding: 2px 0; }
+            .lm-title-tooltip-eyebrow {
+              font-size: 9.5px;
+              font-weight: 800;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: rgba(255, 255, 255, 0.62);
+              margin-bottom: 5px;
+            }
+            .lm-title-tooltip-text {
+              font-size: 13px;
+              font-weight: 700;
+              color: rgba(255, 255, 255, 0.95);
+              line-height: 1.4;
+              letter-spacing: -0.005em;
+              word-break: break-word;
+            }
+            .lm-title-tooltip-sub {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              margin-top: 6px;
+              padding-top: 6px;
+              border-top: 1px solid rgba(255, 255, 255, 0.1);
+              font-size: 10.5px;
+              color: rgba(255, 255, 255, 0.62);
+              font-weight: 500;
+            }
+            .lm-title-tooltip-dot {
+              width: 3px; height: 3px;
+              border-radius: 50%;
+              background: rgba(255, 255, 255, 0.3);
+            }
+
+            /* ---------- BidIq preview modal ---------- */
+            .lm-bidiq-modal .ant-modal-content {
+              padding: 0 !important;
+              border-radius: 16px !important;
+              border: 1px solid var(--border-slate-100);
+              overflow: hidden;
+              background: var(--bg-pure-white);
+              box-shadow: none !important;
+            }
+            .lm-bidiq-modal .ant-modal-body { padding: 0 !important; }
+
+            .lm-bidiq-content { display: flex; flex-direction: column; }
+
+            .lm-bidiq-head {
+              display: flex;
+              align-items: flex-start;
+              gap: 14px;
+              padding: 22px 24px 18px;
+              position: relative;
+              border-bottom: 1px solid var(--border-slate-100);
+            }
+            .lm-bidiq-icon {
+              width: 44px; height: 44px;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+              color: #fff;
+              display: flex; align-items: center; justify-content: center;
+              flex-shrink: 0;
+            }
+            .lm-bidiq-head-text { flex: 1; min-width: 0; padding-right: 40px; }
+            .lm-bidiq-eyebrow {
+              display: inline-flex; align-items: center; gap: 5px;
+              padding: 3px 8px;
+              border-radius: 999px;
+              background: rgba(99, 102, 241, 0.08);
+              color: #4f46e5;
+              font-size: 10px;
+              font-weight: 800;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              border: 1px solid rgba(99, 102, 241, 0.2);
+              margin-bottom: 8px;
+            }
+            .lm-bidiq-title {
+              margin: 0 0 4px;
+              font-size: 18px;
+              font-weight: 800;
+              color: var(--text-slate-900);
+              letter-spacing: -0.015em;
+            }
+            .lm-bidiq-sub {
+              margin: 0;
+              font-size: 12.5px;
+              color: var(--text-slate-500);
+              line-height: 1.5;
+            }
+            .lm-bidiq-close {
+              position: absolute;
+              top: 16px; right: 16px;
+              width: 30px; height: 30px;
+              border-radius: 8px;
+              border: 1px solid var(--border-slate-100);
+              background: var(--bg-pure-white);
+              color: var(--text-slate-500);
+              cursor: pointer;
+              display: flex; align-items: center; justify-content: center;
+              transition: color .15s ease, border-color .15s ease;
+            }
+            .lm-bidiq-close:hover {
+              color: var(--text-slate-900);
+              border-color: var(--border-slate-200);
+            }
+
+            .lm-bidiq-snapshot {
+              margin: 18px 24px 0;
+              padding: 14px 16px;
+              border: 1px solid var(--border-slate-100);
+              border-radius: 12px;
+              background: var(--bg-slate-50);
+            }
+            .lm-bidiq-snapshot-head {
+              display: inline-flex; align-items: center; gap: 5px;
+              font-size: 10px;
+              font-weight: 800;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: var(--text-slate-500);
+              margin-bottom: 8px;
+            }
+            .lm-bidiq-snapshot-title {
+              font-size: 14px;
+              font-weight: 700;
+              color: var(--text-slate-900);
+              letter-spacing: -0.005em;
+              margin-bottom: 12px;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              overflow: hidden;
+            }
+            .lm-bidiq-snapshot-grid {
+              display: grid;
+              grid-template-columns: repeat(4, minmax(0, 1fr));
+              gap: 10px 14px;
+            }
+            @media (max-width: 560px) {
+              .lm-bidiq-snapshot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            }
+            .lm-bidiq-snapshot-item {
+              display: flex; flex-direction: column; gap: 3px;
+              min-width: 0;
+            }
+            .lm-bidiq-snapshot-label {
+              display: inline-flex; align-items: center; gap: 4px;
+              font-size: 10px;
+              font-weight: 700;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              color: var(--text-slate-500);
+            }
+            .lm-bidiq-snapshot-value {
+              font-size: 13px;
+              font-weight: 700;
+              color: var(--text-slate-900);
+              letter-spacing: -0.005em;
+              font-variant-numeric: tabular-nums;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+
+            .lm-bidiq-caps {
+              padding: 18px 24px 0;
+            }
+            .lm-bidiq-caps-head {
+              font-size: 11px;
+              font-weight: 800;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: var(--text-slate-500);
+              margin-bottom: 12px;
+            }
+            .lm-bidiq-caps-grid {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 10px;
+            }
+            @media (max-width: 560px) {
+              .lm-bidiq-caps-grid { grid-template-columns: 1fr; }
+            }
+            .lm-bidiq-cap {
+              display: flex;
+              align-items: flex-start;
+              gap: 10px;
+              padding: 12px 14px;
+              border: 1px solid var(--border-slate-100);
+              border-radius: 11px;
+              background: var(--bg-pure-white);
+              transition: border-color .15s ease;
+            }
+            .lm-bidiq-cap:hover {
+              border-color: color-mix(in oklab, var(--cap-accent) 30%, var(--border-slate-100));
+            }
+            .lm-bidiq-cap-icon {
+              width: 28px; height: 28px;
+              border-radius: 8px;
+              background: color-mix(in oklab, var(--cap-accent) 12%, transparent);
+              color: var(--cap-accent);
+              display: flex; align-items: center; justify-content: center;
+              flex-shrink: 0;
+            }
+            .lm-bidiq-cap-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+            .lm-bidiq-cap-title {
+              font-size: 12.5px;
+              font-weight: 700;
+              color: var(--text-slate-900);
+              letter-spacing: -0.005em;
+            }
+            .lm-bidiq-cap-text {
+              font-size: 11.5px;
+              color: var(--text-slate-500);
+              line-height: 1.45;
+            }
+
+            .lm-bidiq-footer {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 10px;
+              padding: 18px 24px 22px;
+              margin-top: 18px;
+              border-top: 1px solid var(--border-slate-100);
+              flex-wrap: wrap;
+            }
+            .lm-bidiq-footnote {
+              display: inline-flex; align-items: center; gap: 6px;
+              font-size: 11.5px;
+              color: var(--text-slate-500);
+              font-weight: 500;
+            }
+            .lm-bidiq-footnote svg { color: #10b981; }
+            .lm-bidiq-footer-actions { display: flex; gap: 8px; }
+            .lm-bidiq-cancel.ant-btn {
+              height: 36px !important;
+              border-radius: 9px !important;
+              font-weight: 600 !important;
+              padding: 0 14px !important;
+              border: 1px solid var(--border-slate-100) !important;
+              background: var(--bg-pure-white) !important;
+              color: var(--text-slate-700) !important;
+            }
+            .lm-bidiq-cancel.ant-btn:hover {
+              border-color: var(--border-slate-200) !important;
+              color: var(--text-slate-900) !important;
+            }
+            .lm-bidiq-launch.ant-btn {
+              height: 36px !important;
+              border-radius: 9px !important;
+              font-weight: 700 !important;
+              padding: 0 16px !important;
+              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+              border: 0 !important;
+              color: #fff !important;
+              display: inline-flex !important;
+              align-items: center !important;
+              gap: 6px !important;
+            }
+            .lm-bidiq-launch.ant-btn:hover {
+              filter: brightness(1.05);
+            }
+
+            [data-theme='dark'] .lm-bidiq-modal .ant-modal-content {
+              background: var(--bg-secondary) !important;
+              border-color: var(--border-slate-100) !important;
+            }
+            [data-theme='dark'] .lm-bidiq-snapshot,
+            [data-theme='dark'] .lm-bidiq-cap,
+            [data-theme='dark'] .lm-bidiq-close,
+            [data-theme='dark'] .lm-bidiq-cancel.ant-btn {
+              background: var(--bg-primary) !important;
+              border-color: var(--border-slate-100) !important;
+            }
+
+            /* ---------- Dark theme overrides for new lm-* ---------- */
+            [data-theme='dark'] .lm-stat-card {
+              background: var(--bg-secondary);
+              border-color: var(--border-slate-100);
+            }
+            [data-theme='dark'] .lm-search-input.ant-input-affix-wrapper {
+              background: var(--bg-secondary) !important;
+            }
+            [data-theme='dark'] .lm-secondary-btn {
+              background: var(--bg-secondary) !important;
+            }
+            [data-theme='dark'] .lm-section-divider-label {
+              background: var(--bg-primary);
+            }
+
             .premium-table .ant-table { background: transparent; }
             .premium-table .ant-table-thead > tr > th { 
               background: #f8fafc; 

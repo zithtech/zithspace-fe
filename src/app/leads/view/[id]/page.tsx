@@ -1,25 +1,19 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Card,
-  Typography,
-  Tabs,
   Button,
-  Tag,
-  Space,
-  Spin,
-  Row,
-  Col,
-  Divider,
-  Breadcrumb,
   Empty,
-  Tooltip,
-  message,
-  Modal,
-  Steps,
   Form,
   Input,
+  Modal,
+  Skeleton,
+  Steps,
+  Typography,
+  Row,
+  Col,
+  Select,
+  message as messageStatic,
 } from "antd";
 import {
   ArrowLeft,
@@ -27,58 +21,96 @@ import {
   FileText,
   ShieldCheck,
   ShieldAlert,
-  Zap,
   Mail,
   Phone,
-  MapPin,
   Calendar,
   ExternalLink,
-  CheckCircle2,
-  AlertCircle,
   Briefcase,
   Globe,
   Star,
   Sparkles,
-  Search,
-  Brain,
-  Clock,
-  DollarSign,
-  UserCheck,
-  BarChart3,
-  Terminal,
-  Copy,
-  RotateCcw,
-  ChevronDown,
   Rocket,
   Info,
+  ChevronDown,
+  ChevronRight,
+  DollarSign,
+  UserCheck,
+  Clock,
+  Flame,
+  TrendingUp,
+  Activity,
+  Target,
+  Edit2,
+  Zap,
+  X,
+  Brain,
+  CheckCircle2,
+  FolderOpen,
+  ArrowUpRight,
   Layout as LayoutIcon,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useLeads } from "@/hooks/useLeads";
+import { useLeadSettings } from "@/hooks/useLeadSettings";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import dayjs from "dayjs";
-import { useAuth } from "@/context/AuthContext";
 import relativeTime from "dayjs/plugin/relativeTime";
 
 dayjs.extend(relativeTime);
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
+
+const PLATFORM_COLORS: Record<string, { bg: string; color: string; border: string }> = {
+  Upwork: { bg: "rgba(16, 185, 129, 0.08)", color: "#047857", border: "rgba(16, 185, 129, 0.22)" },
+  LinkedIn: { bg: "rgba(59, 130, 246, 0.08)", color: "#1d4ed8", border: "rgba(59, 130, 246, 0.22)" },
+  Freelancer: { bg: "rgba(6, 182, 212, 0.08)", color: "#0e7490", border: "rgba(6, 182, 212, 0.22)" },
+  Fiverr: { bg: "rgba(245, 158, 11, 0.08)", color: "#b45309", border: "rgba(245, 158, 11, 0.22)" },
+};
+
+const getPlatformChip = (platform?: string) =>
+  PLATFORM_COLORS[platform || ""] || {
+    bg: "rgba(99, 102, 241, 0.08)",
+    color: "#4f46e5",
+    border: "rgba(99, 102, 241, 0.22)",
+  };
+
+const getInitials = (name?: string) =>
+  (name || "—")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() || "")
+    .join("") || "—";
+
+interface AiScoreLevel {
+  label: string;
+  color: string;
+  bg: string;
+  icon: React.ReactNode;
+}
+
+const getAIScoreLevel = (score?: number): AiScoreLevel | null => {
+  if (score === undefined || score === null) return null;
+  if (score >= 80) return { label: "Hot", color: "#ef4444", bg: "rgba(239, 68, 68, 0.08)", icon: <Flame size={12} /> };
+  if (score >= 60) return { label: "Warm", color: "#f59e0b", bg: "rgba(245, 158, 11, 0.08)", icon: <TrendingUp size={12} /> };
+  if (score >= 40) return { label: "Mild", color: "#6366f1", bg: "rgba(99, 102, 241, 0.08)", icon: <Activity size={12} /> };
+  return { label: "Cold", color: "#64748b", bg: "rgba(100, 116, 139, 0.08)", icon: <Activity size={12} /> };
+};
 
 export default function LeadProfilePage() {
   const router = useRouter();
   const params = useParams();
-  const { lead, loading, error, fetchLeadById, onboardLead, analyzeLead, updateLead } = useLeads();
-  const { user } = useAuth();
+  const { lead, loading, error, fetchLeadById, onboardLead, updateLead } = useLeads();
+  const { statuses: configStatuses, fetchStatuses } = useLeadSettings();
   const [onboarding, setOnboarding] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [activeTab, setActiveTab] = useState("1");
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSkillsExpanded, setIsSkillsExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [statusEditing, setStatusEditing] = useState(false);
+  const [onboardedProjectId, setOnboardedProjectId] = useState<string | null>(null);
   const [initForm] = Form.useForm();
-
 
   useEffect(() => {
     if (params.id) {
@@ -86,40 +118,91 @@ export default function LeadProfilePage() {
     }
   }, [params.id, fetchLeadById]);
 
+  useEffect(() => {
+    fetchStatuses();
+  }, [fetchStatuses]);
+
   const handleOnboard = async (values: any) => {
     try {
       setOnboarding(true);
-      // message.loading({ content: 'Initializing...', key: 'onboard' });
-      
-      // Trigger onboarding process with the edited values directly
-      // This creates the project/client with overrides but keeps the lead record as is
-      const res = await onboardLead(params.id as string, values);
+      const res: any = await onboardLead(params.id as string, values);
       if (res) {
-        message.success({ content: 'PROJECT INITIALIZED SUCCESSFULLY', key: 'onboard' });
+        // Backend returns { success, message, data: { project, clientId } }; axios wraps in res.data
+        const projectId =
+          res?.data?.data?.project?.id ||
+          res?.data?.project?.id ||
+          res?.project?.id ||
+          null;
+        if (projectId) setOnboardedProjectId(projectId);
+        messageStatic.success({ content: "Project initialized successfully", key: "onboard" });
         setIsModalOpen(false);
-        setTimeout(() => {
-          router.push('/projects/manage');
-        }, 800);
+        // Refresh the lead so its status reflects the new 'Onboarded' state.
+        fetchLeadById(params.id as string);
       }
     } catch (err: any) {
-      console.error("Onboard Error:", err);
-      message.error({ content: err.message || "Failed to initialize project", key: 'onboard' });
+      messageStatic.error({ content: err.message || "Failed to initialize project", key: "onboard" });
     } finally {
       setOnboarding(false);
     }
   };
 
+  const isOnboarded = useMemo(() => {
+    const s = (lead?.status || "").toLowerCase();
+    return s === "onboarded" || !!onboardedProjectId;
+  }, [lead?.status, onboardedProjectId]);
+
+  const openOnboardedProject = () => {
+    if (onboardedProjectId) {
+      router.push(`/projects/${onboardedProjectId}/overview`);
+    } else {
+      router.push("/projects/manage");
+    }
+  };
+
+  const handleStatusChange = async (next: string) => {
+    if (!lead) return;
+    try {
+      await updateLead(lead.id, { status: next });
+      messageStatic.success("Status updated");
+    } catch (err: any) {
+      messageStatic.error(err?.message || "Failed to update status");
+    } finally {
+      setStatusEditing(false);
+    }
+  };
+
+  const statusConfig = useMemo(
+    () => configStatuses.find((s) => s.name === lead?.status),
+    [configStatuses, lead?.status]
+  );
+
+  const aiScoreLevel = useMemo(() => getAIScoreLevel(lead?.ai_score), [lead?.ai_score]);
+
   if (loading && !lead) {
     return (
       <ProtectedRoute>
         <MainLayout>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-primary)' }}>
-            <div style={{ textAlign: 'center' }}>
-              <Spin size="large" />
-              <div style={{ marginTop: 24, fontSize: 16, fontWeight: 500, color: 'var(--text-slate-400)', letterSpacing: '0.05em' }}>
-                SYNTHESIZING LEAD INTELLIGENCE...
+          <div className="lv-page">
+            <div className="lv-topbar">
+              <div className="lv-topbar-left">
+                <Skeleton.Button active size="small" shape="circle" />
+                <Skeleton.Input active size="small" style={{ width: 220 }} />
               </div>
             </div>
+            <div className="lv-body">
+              <div className="lv-hero">
+                <Skeleton active paragraph={{ rows: 2 }} />
+              </div>
+              <div className="lv-grid">
+                <div className="lv-main">
+                  <Skeleton active paragraph={{ rows: 6 }} />
+                </div>
+                <aside className="lv-side">
+                  <Skeleton active paragraph={{ rows: 4 }} />
+                </aside>
+              </div>
+            </div>
+            {leadViewStyles}
           </div>
         </MainLayout>
       </ProtectedRoute>
@@ -130,19 +213,23 @@ export default function LeadProfilePage() {
     return (
       <ProtectedRoute>
         <MainLayout>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+          <div className="lv-page lv-empty-page">
             <Empty
-              description={<span style={{ color: 'var(--text-slate-500)' }}>{error || "Lead Intelligence Not Found"}</span>}
-              image={Empty.PRESENTED_IMAGE_DEFAULT}
+              description={
+                <span style={{ color: "var(--text-slate-500)" }}>
+                  {error || "Lead not found"}
+                </span>
+              }
             >
               <Button
                 type="primary"
-                onClick={() => router.push('/leads')}
-                style={{ borderRadius: 8, height: 40, padding: '0 24px' }}
+                className="lv-primary-btn"
+                onClick={() => router.push("/leads")}
               >
-                Return to Lead Management
+                Back to leads
               </Button>
             </Empty>
+            {leadViewStyles}
           </div>
         </MainLayout>
       </ProtectedRoute>
@@ -151,893 +238,1891 @@ export default function LeadProfilePage() {
 
   if (!lead) return null;
 
+  const platformChip = getPlatformChip(lead.platform);
+  const statusColor = statusConfig?.color || "#6366f1";
+  const skillsList: string[] = Array.isArray(lead.skills) ? lead.skills : [];
+  const matchPercentage = lead.skill_analysis?.matchPercentage || 0;
+  const winProb = Math.round(lead.ai_score || 0);
+
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div className="lead-intelligence-hub">
-          {/* Top Header - Minimal */}
-          <div className="hub-header">
-            <Row justify="space-between" align="middle">
-              <Col>
-                <Space size={16}>
-                  <Button
-                    icon={<ArrowLeft size={16} />}
-                    onClick={() => router.push("/leads")}
-                    className="hub-back-btn"
-                  />
-                  <div>
-                    <Text className="hub-category">JOB DETAIL</Text>
-                    <Title level={3} className="hub-main-title">{lead.title}</Title>
-                  </div>
-                </Space>
-              </Col>
-              <Col>
-                <Space size={12}>
-                  {lead.status && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: 'var(--bg-blue-50)',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(59, 130, 246, 0.2)'
-                    }}>
-                      <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.05em' }}>STATUS:</span>
-                      <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--premium-blue)', textTransform: 'uppercase' }}>
-                        {lead.status}
-                      </span>
-                    </div>
-                  )}
-                  {lead.job_link && (
-                    <Button
-                      type="primary"
-                      icon={<ExternalLink size={16} />}
-                      href={lead.job_link}
-                      target="_blank"
-                      style={{
-                        borderRadius: '10px',
-                        height: '40px',
-                        padding: '0 20px',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        background: 'var(--premium-blue)',
-                        border: 'none',
-                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
-                      }}
-                    >
-                      Redirect {lead.platform || 'Upwork'}
-                    </Button>
-                  )}
-                  {/* <Button
-                    type="primary"
-                    icon={<Brain size={18} />}
-                    loading={analyzing}
-                    onClick={async () => {
-                      try {
-                        setAnalyzing(true);
-                        await analyzeLead(params.id as string);
-                        message.success('AI ANALYSIS COMPLETE');
-                        fetchLeadById(params.id as string);
-                      } catch (err: any) {
-                        message.error(err.message);
-                      } finally {
-                        setAnalyzing(false);
-                      }
-                    }}
-                    style={{
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'rgba(59, 130, 246, 0.1)',
-                      color: 'var(--premium-blue)',
-                      border: '1px solid rgba(59, 130, 246, 0.2)',
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    Analyze Lead
-                  </Button> */}
-                  <Button
-                    type="primary"
-                    icon={<Rocket size={18} />}
-                    loading={onboarding}
-                    onClick={() => {
-                      initForm.setFieldsValue({
-                        client_name: lead.client_name,
-                        client_mail: lead.client_mail,
-                        client_phone: lead.client_phone,
-                        client_location: lead.client_location,
-                        summary: lead.summary,
-                        budget: lead.budget,
-                        experience_level: lead.experience_level,
-                      });
-                      setIsModalOpen(true);
-                      setCurrentStep(0);
-                    }}
-                    style={{
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                      border: 'none',
-                      fontWeight: 700,
-                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
-                      padding: '0 20px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    Initialize Project
-                  </Button>
-                </Space>
-              </Col>
-            </Row>
-          </div>
-
-          <div className="hub-content">
-            <Row gutter={[16, 16]}>
-              {/* LEFT COLUMN: IDENTITY & PERSONA */}
-              <Col xs={24} xl={6}>
-                <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                  <div className="identity-section-hub" style={{ padding: '0 0 24px 0' }}>
-                    <div className="client-profile-header">
-                      <div className="avatar-hub">
-                        {lead.client_name?.split(' ').map((n: string) => n[0]).join('')}
-                      </div>
-                      <div className="client-details-hub">
-                        <Title level={4} className="client-name-hub">{lead.client_name}</Title>
-                        <Space className="client-meta-hub">
-                          <MapPin size={12} /> <Text>{lead.client_location || 'Global Territory'}</Text>
-                        </Space>
-                      </div>
-                    </div>
-                    <Space wrap style={{ marginTop: 16 }}>
-                      <Tag className="platform-tag-hub">{lead.platform || 'UPWORK'}</Tag>
-                      <Tag className="rating-tag-hub"><Star size={12} fill="#fbbf24" color="#fbbf24" /> {lead.client_rating || '5.0'}</Tag>
-                    </Space>
-                    <div className="spend-box-hub">
-                      <Text className="spend-label">ESTIMATED BUDGET</Text>
-                      <Title level={3} className="spend-value" style={{ color: '#10b981', fontWeight: 800 }}>{lead.budget || 'N/A'}</Title>
-                    </div>
-                  </div>
-
-                  <Divider className="hub-divider spend-divider" />
-
-                  <Card bordered={false} className="borderless-card" title="Contact info">
-                    <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                      <div className="contact-badge-v2">
-                        <Mail size={16} />
-                        <Text ellipsis className="contact-text">{lead.client_mail || 'N/A'}</Text>
-                      </div>
-                      <div className="contact-badge-v2">
-                        <Phone size={16} />
-                        <span className="contact-text">{lead.client_phone || 'N/A'}</span>
-                      </div>
-                    </Space>
-                  </Card>
-
-                  <Divider className="hub-divider" />
-
-                  <Card bordered={false} className="borderless-card" title="Trust & verification">
-                    <Space direction="vertical" size={10} style={{ width: '100%' }}>
-                      <div className={`trust-badge-v2 ${lead.client_payment_verified ? 'verified' : 'unverified'}`}>
-                        {lead.client_payment_verified ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
-                        <Text className="trust-text">Payment {lead.client_payment_verified ? 'Verified' : 'Unverified'}</Text>
-                      </div>
-                      <div className={`trust-badge-v2 ${lead.client_phone_verified ? 'verified' : 'unverified'}`}>
-                        {lead.client_phone_verified ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
-                        <Text className="trust-text">Phone {lead.client_phone_verified ? 'Verified' : 'Unverified'}</Text>
-                      </div>
-                    </Space>
-                  </Card>
-
-                  <Divider className="hub-divider" />
-
-                  <Card bordered={false} className="borderless-card" title="Documents vault">
-                    <Space direction="vertical" size={10} style={{ width: '100%' }}>
-                      {lead.documents && lead.documents.length > 0 ? (
-                        lead.documents.map((doc: any, i: number) => {
-                          const docObj = typeof doc === 'string' ? { name: doc, url: doc } : doc;
-                          return (
-                            <div key={i} className="doc-item-hub">
-                              <FileText size={14} color="var(--premium-blue)" />
-                              <Text ellipsis className="doc-name-hub">{docObj.name || 'Attachment'}</Text>
-                              <Button type="link" size="small" href={docObj.url} target="_blank" icon={<ExternalLink size={12} />} />
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <Text type="secondary" style={{ fontSize: 12 }}>No documents found</Text>
-                      )}
-                    </Space>
-                  </Card>
-                </Space>
-              </Col>
-
-              {/* CENTER COLUMN: MAIN DATA & STRATEGY */}
-              <Col xs={24} xl={12} className="hub-center-col-border">
-                <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                  {/* Job Specification Card */}
-                  <Card bordered={false} className="main-spec-card borderless-card">
-                    <Space className="spec-meta" size={12}>
-                      <Tag className="spec-tag">{lead.experience_level || 'Expert'}</Tag>
-                      <Space className="spec-posted"><Clock size={12} /> Posted {dayjs(lead.posted_on).fromNow()}</Space>
-                      <Space className="spec-posted"><Calendar size={12} /> {lead.duration || 'Flexible'}</Space>
-                    </Space>
-
-                    <Title level={2} className="spec-title">{lead.title}</Title>
-
-                    <div className="spec-summary-hub">
-                      <Title level={5} className="hub-section-titles">Job Summary</Title>
-                      <Text className={`spec-text-flow ${!isExpanded ? 'clamped' : ''}`}>
-                        {lead.summary || 'Awaiting detailed brief...'}
-                      </Text>
-                      <Button
-                        type="link"
-                        onClick={() => setIsExpanded(!isExpanded)}
-                        className="description-toggle-btn"
-                        icon={<ChevronDown size={14} style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }} />}
-                      >
-                        {isExpanded ? 'Show less' : 'Read full description'}
-                      </Button>
-                    </div>
-
-                    <Divider className="hub-divider-light" />
-
-                    <Row gutter={[16, 16]}>
-                      <Col span={14}>
-                        <div className="architecture-hub">
-                          <Text className="arch-label">SKILLS</Text>
-                          <Space wrap size={8} style={{ marginTop: 12 }}>
-                            {(lead.skills || []).slice(0, isSkillsExpanded ? undefined : 6).map((skill: string) => (
-                              <Tag key={skill} className="arch-tag">{skill}</Tag>
-                            ))}
-                          </Space>
-                          {lead.skills && lead.skills.length > 6 && (
-                            <div style={{ marginTop: 8 }}>
-                              <Button
-                                type="link"
-                                size="small"
-                                onClick={() => setIsSkillsExpanded(!isSkillsExpanded)}
-                                className="description-toggle-btn"
-                                style={{ padding: 0, height: 'auto', fontSize: 11 }}
-                              >
-                                {isSkillsExpanded ? 'Show less' : `+${lead.skills.length - 6} more`}
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </Col>
-                      <Col span={10}>
-                        <div className="skill-alignment-box">
-                          <Text className="arch-label">SKILL MATCHING</Text>
-                          <div className="alignment-stats">
-                            <div className="alignment-score">{lead.skill_analysis?.matchPercentage || 0}%</div>
-                          </div>
-                          {lead.skill_analysis?.missingSkills && (
-                            <Space size={4} wrap style={{ marginTop: 8 }}>
-                              {lead.skill_analysis.missingSkills.slice(0, 2).map((s: string) => <Tag color="error" key={s} style={{ fontSize: 9 }}>Gap: {s}</Tag>)}
-                            </Space>
-                          )}
-                        </div>
-                      </Col>
-                    </Row>
-                  </Card>
-
-                  <Divider className="hub-divider" />
-
-                  {/* Sequence Timeline Node (Previously in Overview) */}
-                  <Card bordered={false} className="timeline-hub-card borderless-card" title="Sequence Timeline">
-                    <Row gutter={24}>
-                      <Col span={12}>
-                        <div className="timeline-hub-item">
-                          <Calendar size={16} color="var(--premium-blue)" />
-                          <div>
-                            <Text className="hub-label">IMPLEMENTATION CYCLE</Text>
-                            <Text className="hub-value">
-                              {lead.timeline_start ? `${dayjs(lead.timeline_start).format('MMM DD')} — ${dayjs(lead.timeline_end).format('MMM DD')}` : 'Pending Schedule'}
-                            </Text>
-                          </div>
-                        </div>
-                      </Col>
-                      <Col span={12}>
-                        <div className="timeline-hub-item">
-                          {/* <Zap size={16} color="#f59e0b" /> */}
-                          {/* <div>
-                            <Text className="hub-label">STATUS</Text>
-                            <Text className="hub-value">{lead.actions_item || 'Manual Orchestration'}</Text>
-                          </div> */}
-                        </div>
-                      </Col>
-                    </Row>
-                  </Card>
-                  {/* 
-                  <Divider className="hub-divider spend-divider" />
-                  <Card bordered={false} className="strategy-canvas-hub borderless-card"
-                    title={<Space><div className="engine-pulse"></div> AI Strategy Canvas</Space>}
-                    extra={<Text className="canvas-meta">Template: {lead.template_used || 'AUTO'}</Text>}
-                  >
-                    <div className="canvas-content-hub">
-                      <Text className="canvas-proposal-text">
-                        {lead.proposal_text || "Initialize generator for strategic synthesis..."}
-                      </Text>
-                    </div>
-                    <div className="canvas-footer-hub">
-                      <Space size={20}>
-                        <div><Text className="arch-label">CONFIDENCE</Text><Text strong>98.4%</Text></div>
-                        <div><Text className="arch-label">EST. EFFORT</Text><Text strong>{lead.hour_based_amount || '--'} hrs</Text></div>
-                      </Space>
-                      <Button type="primary" icon={<ExternalLink size={14} />} onClick={() => router.push(`/proposals/create?leadId=${lead.id}`)}>Open Builder</Button>
-                    </div>
-                  </Card>
-                  */}
-
-                </Space>
-              </Col>
-
-              {/* RIGHT COLUMN: METRICS & NOTES */}
-              <Col xs={24} xl={6} className="hub-right-col-border">
-                <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                  <Card bordered={false} className="insights-card-hub borderless-card"
-                    title="Smart insights"
-                    extra={<Sparkles size={16} color="var(--premium-blue)" />}
-                  >
-                    <div className="win-prob-wrapper-hub" style={{ margin: '8px 0' }}>
-                      <div className="donut-hub-v2">
-                        <Text className="donut-val-v2">{Math.round(lead.ai_score || 0)}%</Text>
-                        <Text className="donut-sub-v2">WIN PROB.</Text>
-                        <svg viewBox="0 0 100 100">
-                          <circle cx="50" cy="50" r="45" fill="transparent" stroke="var(--border-color)" strokeWidth="6" />
-                          <circle cx="50" cy="50" r="45" fill="transparent" stroke="var(--premium-blue)" strokeWidth="6"
-                            strokeDasharray={`${(lead.ai_score || 0) * 2.82} 282`} strokeLinecap="round" transform="rotate(-90 50 50)" />
-                        </svg>
-                      </div>
-                    </div>
-
-                    <div className="insight-row-hub">
-                      <Text type="secondary">Competition</Text>
-                      <Tag color="orange" style={{ borderRadius: 6, fontWeight: 700 }}>MEDIUM</Tag>
-                    </div>
-                    <div className="insight-score-hub">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <Text style={{ fontSize: 11, fontWeight: 600 }}>Client Quality Score</Text>
-                        <Text style={{ fontSize: 11, fontWeight: 800, color: 'var(--premium-blue)' }}>8.2/10</Text>
-                      </div>
-                      <div className="score-track-hub"><div className="score-fill-hub blue" style={{ width: '82%' }}></div></div>
-                    </div>
-                  </Card>
-
-                  <Divider className="hub-divider" />
-
-                  {/* Budget Card (Requirements Tab) */}
-                  <Card bordered={false} className="budget-card-hub borderless-card" title="Financial breakdown">
-                    <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                      <div className="budget-metrics-grid">
-                        <div className="budget-metric-item">
-                          <Text className="arch-label">TOTAL SPENT</Text>
-                          <Title level={5} style={{ margin: 0, fontWeight: 600, color: '#1e293b' }}>{lead.client_spend || 'N/A'}</Title>
-                        </div>
-                        <div className="metric-divider-v-small"></div>
-                        <div className="budget-metric-item">
-                          <Text className="arch-label">ESTIMATED BUDGET</Text>
-                          <Title level={4} style={{ margin: 0, fontWeight: 600, color: '#1e293b' }}>{lead.budget || 'N/A'}</Title>
-                        </div>
-                      </div>
-                      <Row gutter={12}>
-                        <Col span={12}>
-                          <Text className="arch-label">RATE ($)</Text>
-                          <Text className="hub-value-v2">{lead.hourly_rate || lead.hour_based_amount || 'Fix'}</Text>
-                        </Col>
-                        <Col span={12}>
-                          <Text className="arch-label">JOB TYPE</Text>
-                          <Text className="hub-value-v2">{lead.job_type || 'Hourly'}</Text>
-                        </Col>
-                      </Row>
-                      {/* {lead.job_link && (
-                        <Button block icon={<ExternalLink size={14} />} href={lead.job_link} target="_blank" className="hub-action-btn">
-                          Platform Direct
-                        </Button>
-                      )} */}
-                    </Space>
-                  </Card>
-
-                  <Divider className="hub-divider" />
-
-                  {/* Internal Notes (Intelligence Tab) */}
-                  <Card bordered={false} className="notes-card-hub borderless-card" title={<Space><FileText size={14} /> Internal notes</Space>}>
-                    <div className="notes-display-hub" style={{ minHeight: 60 }}>
-                      <Text style={{ fontStyle: 'italic', color: '#64748b' }}>
-                        {lead.internal_notes || "No internal strategic notes recorded for this entity."}
-                      </Text>
-                    </div>
-                  </Card>
-                </Space>
-              </Col>
-            </Row>
-          </div>
-
-          <Modal
-            title={
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px 0' }}>
-                <div style={{ 
-                  width: '36px', 
-                  height: '36px', 
-                  borderRadius: '10px', 
-                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)'
-                }}>
-                  <Rocket size={18} color="#fff" />
-                </div>
-                <div>
-                  <Title level={4} style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>Initialize Project</Title>
-                  <Text style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>Convert lead to active client & project</Text>
-                </div>
+        <div className="lv-page">
+          {/* ----------------------- Top bar ----------------------- */}
+          <div className="lv-topbar">
+            <div className="lv-topbar-left">
+              <Button
+                icon={<ArrowLeft size={15} />}
+                className="lv-back-btn"
+                onClick={() => router.push("/leads")}
+                aria-label="Back to leads"
+              />
+              <div className="lv-breadcrumbs">
+                <button
+                  type="button"
+                  className="lv-crumb"
+                  onClick={() => router.push("/leads")}
+                >
+                  <Layers size={13} /> Leads
+                </button>
+                <ChevronRight size={13} className="lv-crumb-sep" />
+                <span className="lv-crumb-current" title={lead.title}>
+                  {lead.title}
+                </span>
               </div>
-            }
-            open={isModalOpen}
-            onCancel={() => setIsModalOpen(false)}
-            footer={[
-              <Button 
-                key="cancel" 
-                onClick={() => setIsModalOpen(false)} 
-                style={{ 
-                  borderRadius: '10px', 
-                  height: '42px', 
-                  padding: '0 20px',
-                  fontWeight: 600,
-                  border: '1px solid #e2e8f0'
-                }}
-              >
-                Cancel
-              </Button>,
-              currentStep > 0 && (
-                <Button 
-                  key="back" 
-                  onClick={() => setCurrentStep(currentStep - 1)} 
-                  style={{ 
-                    borderRadius: '10px', 
-                    height: '42px', 
-                    padding: '0 20px',
-                    fontWeight: 600
+            </div>
+
+            <div className="lv-topbar-right">
+              {/* Inline-edit status pill */}
+              {statusEditing ? (
+                <Select
+                  defaultValue={lead.status}
+                  defaultOpen
+                  autoFocus
+                  size="middle"
+                  className="lv-status-select"
+                  popupMatchSelectWidth={false}
+                  onChange={(value) => handleStatusChange(value)}
+                  onBlur={() => setStatusEditing(false)}
+                  suffixIcon={null}
+                  bordered={false}
+                  options={configStatuses.map((s) => ({
+                    value: s.name,
+                    label: (
+                      <span
+                        className="lv-status-opt"
+                        style={{
+                          color: s.color || "#6366f1",
+                          backgroundColor: `${s.color || "#6366f1"}12`,
+                          border: `1px solid ${s.color || "#6366f1"}25`,
+                        }}
+                      >
+                        {s.name}
+                      </span>
+                    ),
+                  }))}
+                />
+              ) : lead.status ? (
+                <button
+                  type="button"
+                  className="lv-status-pill"
+                  style={{
+                    color: statusColor,
+                    backgroundColor: `${statusColor}12`,
+                    border: `1px solid ${statusColor}25`,
                   }}
+                  onClick={() => setStatusEditing(true)}
+                  title="Click to change status"
                 >
-                  Back
+                  <span className="lv-status-dot" style={{ background: statusColor }} />
+                  <span className="lv-status-text">{lead.status}</span>
+                  <Edit2 size={11} className="lv-status-edit" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="lv-status-pill lv-status-pill-empty"
+                  onClick={() => setStatusEditing(true)}
+                >
+                  Set status
+                </button>
+              )}
+
+              {lead.job_link && (
+                <Button
+                  icon={<ExternalLink size={14} />}
+                  className="lv-secondary-btn"
+                  href={lead.job_link}
+                  target="_blank"
+                >
+                  Open on {lead.platform || "platform"}
                 </Button>
-              ),
-              currentStep < 1 ? (
-                <Button 
-                  key="next"
-                  type="primary" 
-                  onClick={async () => {
-                    try {
-                      await initForm.validateFields(['client_name', 'client_mail']);
-                      setCurrentStep(1);
-                    } catch (err) {}
-                  }}
-                  style={{ 
-                    borderRadius: '10px', 
-                    height: '42px', 
-                    padding: '0 24px',
-                    fontWeight: 700,
-                    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                    border: 'none',
-                    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)'
-                  }}
+              )}
+
+              {isOnboarded ? (
+                <Button
+                  type="primary"
+                  icon={<CheckCircle2 size={14} />}
+                  className="lv-primary-btn lv-primary-btn-success"
+                  onClick={openOnboardedProject}
+                  title={onboardedProjectId ? "Open project workspace" : "Open in projects"}
                 >
-                  Next Step
+                  <FolderOpen size={13} style={{ marginLeft: 2 }} />
+                  Project initiated
+                  <ArrowUpRight size={13} />
                 </Button>
               ) : (
-                <Button 
-                  key="create"
-                  type="primary" 
+                <Button
+                  type="primary"
+                  icon={<Rocket size={14} />}
+                  className="lv-primary-btn"
                   loading={onboarding}
-                  onClick={() => initForm.submit()}
-                  style={{ 
-                    borderRadius: '10px', 
-                    height: '42px', 
-                    padding: '0 28px',
-                    fontWeight: 700,
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    border: 'none',
-                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
+                  onClick={() => {
+                    initForm.setFieldsValue({
+                      client_name: lead.client_name,
+                      client_mail: lead.client_mail,
+                      client_phone: lead.client_phone,
+                      client_location: lead.client_location,
+                      title: lead.title,
+                      summary: lead.summary,
+                      budget: lead.budget,
+                      experience_level: lead.experience_level,
+                    });
+                    setIsModalOpen(true);
+                    setCurrentStep(0);
                   }}
                 >
-                  Create Project
+                  Initialize Project
                 </Button>
-              )
-            ]}
-            width={580}
+              )}
+            </div>
+          </div>
+
+          {/* ----------------------- Body ----------------------- */}
+          <div className="lv-body">
+            {/* Hero section */}
+            <section className="lv-hero">
+              <div className="lv-hero-top">
+                <div className="lv-hero-platform" style={{ background: platformChip.bg, color: platformChip.color, borderColor: platformChip.border }}>
+                  <Globe size={11} />
+                  {lead.platform || "Upwork"}
+                </div>
+                <span className="lv-hero-divider" />
+                <div className="lv-hero-meta">
+                  <Clock size={12} />
+                  Posted {lead.posted_on ? dayjs(lead.posted_on).fromNow() : "recently"}
+                </div>
+                {lead.experience_level && (
+                  <>
+                    <span className="lv-hero-divider" />
+                    <div className="lv-hero-meta">
+                      <Star size={12} />
+                      {lead.experience_level}
+                    </div>
+                  </>
+                )}
+                {lead.duration && (
+                  <>
+                    <span className="lv-hero-divider" />
+                    <div className="lv-hero-meta">
+                      <Calendar size={12} />
+                      {lead.duration}
+                    </div>
+                  </>
+                )}
+                {aiScoreLevel && (
+                  <>
+                    <span className="lv-hero-divider" />
+                    <div
+                      className="lv-hero-score"
+                      style={{
+                        background: aiScoreLevel.bg,
+                        color: aiScoreLevel.color,
+                        borderColor: `${aiScoreLevel.color}33`,
+                      }}
+                    >
+                      {aiScoreLevel.icon}
+                      <span>{aiScoreLevel.label}</span>
+                      <span className="lv-hero-score-val">{lead.ai_score}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <h1 className="lv-hero-title">{lead.title}</h1>
+
+              {lead.summary && (
+                <p className="lv-hero-sub">
+                  {(lead.summary || "").split("\n")[0].slice(0, 220)}
+                  {(lead.summary || "").length > 220 ? "…" : ""}
+                </p>
+              )}
+
+              <div className="lv-kpi-grid">
+                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#10b981" }}>
+                  <div className="lv-kpi-icon">
+                    <DollarSign size={14} />
+                  </div>
+                  <div className="lv-kpi-body">
+                    <span className="lv-kpi-label">Budget</span>
+                    <span className="lv-kpi-value">{lead.budget || "—"}</span>
+                  </div>
+                </div>
+                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#6366f1" }}>
+                  <div className="lv-kpi-icon">
+                    <Target size={14} />
+                  </div>
+                  <div className="lv-kpi-body">
+                    <span className="lv-kpi-label">Win probability</span>
+                    <span className="lv-kpi-value">{winProb}%</span>
+                  </div>
+                </div>
+                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#0ea5e9" }}>
+                  <div className="lv-kpi-icon">
+                    <Sparkles size={14} />
+                  </div>
+                  <div className="lv-kpi-body">
+                    <span className="lv-kpi-label">Skill match</span>
+                    <span className="lv-kpi-value">{matchPercentage}%</span>
+                  </div>
+                </div>
+                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#f59e0b" }}>
+                  <div className="lv-kpi-icon">
+                    <Briefcase size={14} />
+                  </div>
+                  <div className="lv-kpi-body">
+                    <span className="lv-kpi-label">Job type</span>
+                    <span className="lv-kpi-value">{lead.job_type || "Hourly"}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 2-column grid */}
+            <div className="lv-grid">
+              <main className="lv-main">
+                {/* ------- Job description ------- */}
+                <section className="lv-section">
+                  <header className="lv-section-head">
+                    <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#6366f1" }}>
+                      <FileText size={14} />
+                    </div>
+                    <h3 className="lv-section-title">Job description</h3>
+                  </header>
+                  <div className="lv-section-body">
+                    <div className={`lv-prose ${!isExpanded ? "is-clamped" : ""}`}>
+                      {lead.summary || "No summary provided for this opportunity."}
+                    </div>
+                    {(lead.summary || "").length > 280 && (
+                      <button
+                        type="button"
+                        className="lv-link-btn"
+                        onClick={() => setIsExpanded(!isExpanded)}
+                      >
+                        <ChevronDown
+                          size={13}
+                          style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0)", transition: "transform .15s ease" }}
+                        />
+                        {isExpanded ? "Show less" : "Read full description"}
+                      </button>
+                    )}
+                  </div>
+                </section>
+
+                {/* ------- Skills + Timeline row (60 / 40) ------- */}
+                <div className="lv-row-60-40">
+                  <section className="lv-section">
+                    <header className="lv-section-head">
+                      <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#0ea5e9" }}>
+                        <Layers size={14} />
+                      </div>
+                      <h3 className="lv-section-title">Required skills</h3>
+                      {skillsList.length > 0 && (
+                        <span className="lv-section-count">{skillsList.length}</span>
+                      )}
+                    </header>
+                    <div className="lv-section-body">
+                      {skillsList.length > 0 ? (
+                        <>
+                          <div className="lv-skills">
+                            {skillsList.slice(0, isSkillsExpanded ? undefined : 10).map((s) => (
+                              <span key={s} className="lv-skill-tag">
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                          {skillsList.length > 10 && (
+                            <button
+                              type="button"
+                              className="lv-link-btn"
+                              onClick={() => setIsSkillsExpanded(!isSkillsExpanded)}
+                            >
+                              {isSkillsExpanded ? "Collapse" : `+${skillsList.length - 10} more`}
+                            </button>
+                          )}
+
+                          {lead.skill_analysis?.missingSkills && lead.skill_analysis.missingSkills.length > 0 && (
+                            <div className="lv-skill-gaps">
+                              <span className="lv-skill-gaps-label">Gaps detected</span>
+                              <div className="lv-skill-gaps-list">
+                                {lead.skill_analysis.missingSkills.map((s: string) => (
+                                  <span key={s} className="lv-skill-gap">{s}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <Text className="lv-muted">No skills listed yet.</Text>
+                      )}
+                    </div>
+                  </section>
+
+                  <section className="lv-section">
+                    <header className="lv-section-head">
+                      <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#8b5cf6" }}>
+                        <Calendar size={14} />
+                      </div>
+                      <h3 className="lv-section-title">Project timeline</h3>
+                    </header>
+                    <div className="lv-section-body">
+                      <div className="lv-timeline-grid">
+                        <div className="lv-timeline-item">
+                          <span className="lv-meta-label">Posted on</span>
+                          <span className="lv-meta-value">
+                            {lead.posted_on ? dayjs(lead.posted_on).format("MMM D, YYYY") : "—"}
+                          </span>
+                        </div>
+                        <div className="lv-timeline-item">
+                          <span className="lv-meta-label">Duration</span>
+                          <span className="lv-meta-value">{lead.duration || "Flexible"}</span>
+                        </div>
+                        <div className="lv-timeline-item">
+                          <span className="lv-meta-label">Start date</span>
+                          <span className="lv-meta-value">
+                            {lead.timeline_start ? dayjs(lead.timeline_start).format("MMM D, YYYY") : "Pending"}
+                          </span>
+                        </div>
+                        <div className="lv-timeline-item">
+                          <span className="lv-meta-label">End date</span>
+                          <span className="lv-meta-value">
+                            {lead.timeline_end ? dayjs(lead.timeline_end).format("MMM D, YYYY") : "Pending"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                {/* ------- Internal notes ------- */}
+                <section className="lv-section">
+                  <header className="lv-section-head">
+                    <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#64748b" }}>
+                      <Edit2 size={13} />
+                    </div>
+                    <h3 className="lv-section-title">Internal notes</h3>
+                  </header>
+                  <div className="lv-section-body">
+                    <div className="lv-notes">
+                      {lead.internal_notes ? (
+                        <Paragraph style={{ margin: 0, color: "var(--text-slate-700)" }}>
+                          {lead.internal_notes}
+                        </Paragraph>
+                      ) : (
+                        <Text className="lv-muted">No notes recorded. Add context for your team.</Text>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              </main>
+
+              {/* ------- Sidebar ------- */}
+              <aside className="lv-side">
+                {/* Client card */}
+                <section className="lv-side-card">
+                  <header className="lv-side-head">About the client</header>
+                  <div className="lv-client-id">
+                    <div className="lv-avatar">{getInitials(lead.client_name)}</div>
+                    <div className="lv-client-id-text">
+                      <div className="lv-client-name">{lead.client_name || "Unknown client"}</div>
+                      <div className="lv-client-meta">
+                        <Globe size={11} />
+                        <span>{lead.client_location || "Global"}</span>
+                        {lead.client_rating && (
+                          <>
+                            <span className="lv-dot" />
+                            <Star size={11} fill="#fbbf24" color="#fbbf24" />
+                            <span>{lead.client_rating}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="lv-client-contact">
+                    <div className="lv-contact-row">
+                      <Mail size={13} />
+                      <span title={lead.client_mail || ""}>{lead.client_mail || "—"}</span>
+                    </div>
+                    <div className="lv-contact-row">
+                      <Phone size={13} />
+                      <span>{lead.client_phone || "—"}</span>
+                    </div>
+                  </div>
+
+                  <div className="lv-verify-row">
+                    <div className={`lv-verify ${lead.client_payment_verified ? "ok" : "off"}`}>
+                      {lead.client_payment_verified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
+                      <span>Payment</span>
+                    </div>
+                    <div className={`lv-verify ${lead.client_phone_verified ? "ok" : "off"}`}>
+                      {lead.client_phone_verified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
+                      <span>Phone</span>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Win probability */}
+                <section className="lv-side-card">
+                  <header className="lv-side-head">
+                    <Sparkles size={12} /> Win probability
+                  </header>
+                  <div className="lv-donut-wrap">
+                    <div className="lv-donut">
+                      <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="42" fill="transparent" stroke="var(--border-slate-100)" strokeWidth="8" />
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="42"
+                          fill="transparent"
+                          stroke="#6366f1"
+                          strokeWidth="8"
+                          strokeLinecap="round"
+                          strokeDasharray={`${(winProb / 100) * 264} 264`}
+                          transform="rotate(-90 50 50)"
+                        />
+                      </svg>
+                      <div className="lv-donut-text">
+                        <span className="lv-donut-val">{winProb}<span className="lv-donut-pct">%</span></span>
+                        <span className="lv-donut-cap">Predicted</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="lv-insight-row">
+                    <span className="lv-meta-label">Competition</span>
+                    <span className="lv-pill lv-pill-warn">
+                      <Activity size={10} /> Medium
+                    </span>
+                  </div>
+                  <div className="lv-insight-row lv-insight-progress">
+                    <div className="lv-progress-meta">
+                      <span className="lv-meta-label">Skill match</span>
+                      <span className="lv-progress-val">{matchPercentage}%</span>
+                    </div>
+                    <div className="lv-progress-track">
+                      <div
+                        className="lv-progress-fill"
+                        style={{ width: `${matchPercentage}%`, background: "linear-gradient(90deg, #6366f1, #8b5cf6)" }}
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Financial */}
+                <section className="lv-side-card">
+                  <header className="lv-side-head">Financial breakdown</header>
+                  <div className="lv-fin-grid">
+                    <div className="lv-fin-item">
+                      <span className="lv-meta-label">Budget</span>
+                      <span className="lv-fin-value">{lead.budget || "—"}</span>
+                    </div>
+                    <div className="lv-fin-item">
+                      <span className="lv-meta-label">Total client spend</span>
+                      <span className="lv-fin-value">{lead.client_spend || "—"}</span>
+                    </div>
+                    <div className="lv-fin-item">
+                      <span className="lv-meta-label">Rate</span>
+                      <span className="lv-fin-value">
+                        {lead.hourly_rate || lead.hour_based_amount
+                          ? `$${lead.hourly_rate || lead.hour_based_amount}`
+                          : "Fixed"}
+                      </span>
+                    </div>
+                    <div className="lv-fin-item">
+                      <span className="lv-meta-label">Job type</span>
+                      <span className="lv-fin-value">{lead.job_type || "Hourly"}</span>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Documents */}
+                <section className="lv-side-card">
+                  <header className="lv-side-head">Documents</header>
+                  <div className="lv-docs">
+                    {lead.documents && lead.documents.length > 0 ? (
+                      lead.documents.map((doc: any, i: number) => {
+                        const d = typeof doc === "string" ? { name: doc, url: doc } : doc;
+                        return (
+                          <a
+                            key={i}
+                            href={d.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="lv-doc-row"
+                          >
+                            <FileText size={13} />
+                            <span className="lv-doc-name" title={d.name}>{d.name || "Attachment"}</span>
+                            <ExternalLink size={11} className="lv-doc-ext" />
+                          </a>
+                        );
+                      })
+                    ) : (
+                      <Text className="lv-muted">No documents attached.</Text>
+                    )}
+                  </div>
+                </section>
+              </aside>
+            </div>
+          </div>
+
+          {/* ----------------------- Initialize Project modal ----------------------- */}
+          <Modal
+            open={isModalOpen}
+            onCancel={() => { if (!onboarding) setIsModalOpen(false); }}
+            footer={null}
+            width={680}
             centered
-            className="premium-modal-v2"
+            closable={false}
+            className="lv-init-modal"
+            maskClosable={!onboarding}
           >
-            <div style={{ padding: '4px 0' }}>
-              <Steps
-                current={currentStep}
-                items={[
-                  { 
-                    title: <span style={{ fontWeight: 700 }}>Client Profile</span>, 
-                    icon: <UserCheck size={20} />,
-                    description: <span style={{ fontSize: '11px' }}>Identify identity</span>
-                  },
-                  { 
-                    title: <span style={{ fontWeight: 700 }}>Project Scope</span>, 
-                    icon: <Briefcase size={20} />,
-                    description: <span style={{ fontSize: '11px' }}>Define requirements</span>
-                  },
-                ]}
-                style={{ marginBottom: 24 }}
-                className="premium-steps"
-              />
-              
-              <Form
-                form={initForm}
-                layout="vertical"
-                onFinish={handleOnboard}
-                onFinishFailed={(errorInfo) => {
-                  console.error('Validation Failed:', errorInfo);
-                  message.error("Please fill all required fields correctly");
-                }}
-                requiredMark={false}
-              >
-                {currentStep === 0 && (
-                  <div className="step-content animate-fade-in">
-                    <div style={{ marginBottom: 16, padding: '12px', background: 'var(--bg-blue-50)', borderRadius: '12px', border: '1px solid var(--border-blue-200)' }}>
-                      <Space align="start" size={12}>
-                        <div style={{ color: 'var(--premium-blue)', marginTop: '2px' }}><Info size={16} /></div>
-                        <div>
-                          <Text strong style={{ display: 'block', fontSize: '13px' }}>Client Verification</Text>
-                          <Text style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Confirm the client's contact information. This will be used for invoicing and communication.</Text>
-                        </div>
-                      </Space>
-                    </div>
-
-                    <Row gutter={12}>
-                      <Col span={24}>
-                        <Form.Item 
-                          name="client_name" 
-                          label={<span className="form-label-premium">Full Name / Company</span>} 
-                          rules={[{ required: true, message: 'Please enter client name' }]}
-                        >
-                          <Input prefix={<UserCheck size={14} color="var(--text-secondary)" />} placeholder="e.g. John Doe / Acme Corp" className="premium-input-v2" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={24}>
-                        <Form.Item 
-                          name="client_mail" 
-                          label={<span className="form-label-premium">Primary Email Address</span>} 
-                          rules={[{ required: true, type: 'email', message: 'Please enter valid email' }]}
-                        >
-                          <Input prefix={<Mail size={14} color="var(--text-secondary)" />} placeholder="client@example.com" className="premium-input-v2" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={12}>
-                        <Form.Item 
-                          name="client_phone" 
-                          label={<span className="form-label-premium">Contact Number</span>}
-                        >
-                          <Input prefix={<Phone size={14} color="var(--text-secondary)" />} placeholder="+1 (555) 000-0000" className="premium-input-v2" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={12}>
-                        <Form.Item 
-                          name="client_location" 
-                          label={<span className="form-label-premium">Client Location</span>}
-                        >
-                          <Input prefix={<Globe size={14} color="var(--text-secondary)" />} placeholder="e.g. New York, USA" className="premium-input-v2" />
-                        </Form.Item>
-                      </Col>
-                    </Row>
+            <div className="lv-init-content">
+              {/* Header — stays constant across all steps */}
+              <div className="lv-init-head">
+                <div className="lv-init-icon">
+                  <Rocket size={20} />
+                </div>
+                <div className="lv-init-head-text">
+                  <div className="lv-init-eyebrow">
+                    <Sparkles size={11} /> AI Project Bootstrap
                   </div>
-                )}
-                {currentStep === 1 && (
-                  <div className="step-content animate-fade-in">
-                    <div style={{ marginBottom: 16, padding: '12px', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
-                      <Space align="start" size={8}>
-                        <div style={{ color: '#10b981', marginTop: '2px' }}><Zap size={14} /></div>
-                        <div>
-                          <Text strong style={{ display: 'block', fontSize: '13px' }}>Project Definition</Text>
-                          <Text style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Define the scope and budget for this project. These details can be refined later in the project dashboard.</Text>
-                        </div>
-                      </Space>
-                    </div>
-
-                    <Form.Item 
-                      name="title" 
-                      label={<span className="form-label-premium">Project Title</span>} 
-                      rules={[{ required: true, message: 'Please enter project title' }]}
-                    >
-                      <Input prefix={<LayoutIcon size={14} color="var(--text-secondary)" />} placeholder="e.g. Full Stack Dashboard Development" className="premium-input-v2" />
-                    </Form.Item>
-                    
-                    <Form.Item 
-                      name="summary" 
-                      label={<span className="form-label-premium">Strategic Summary</span>}
-                    >
-                      <Input.TextArea rows={4} placeholder="Briefly describe the project goals and delivery expectations..." className="premium-input-v2" />
-                    </Form.Item>
-                    
-                    <Row gutter={20}>
-                      <Col span={12}>
-                        <Form.Item 
-                          name="budget" 
-                          label={<span className="form-label-premium">Estimated Budget</span>}
-                        >
-                          <Input prefix={<DollarSign size={16} color="var(--text-secondary)" />} placeholder="e.g. $5,000" className="premium-input-v2" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={12}>
-                        <Form.Item 
-                          name="experience_level" 
-                          label={<span className="form-label-premium">Expertise Level</span>}
-                        >
-                          <Input prefix={<Star size={16} color="var(--text-secondary)" />} placeholder="e.g. Expert / Senior" className="premium-input-v2" />
-                        </Form.Item>
-                      </Col>
-                    </Row>
+                  <h2 className="lv-init-title">Initialize Project</h2>
+                  <p className="lv-init-sub">
+                    Three quick steps — review what we'll create, confirm the client, and set up the project.
+                  </p>
+                  <div className="lv-init-steps">
+                    <span className={`lv-init-step ${currentStep === 0 ? "is-active" : currentStep > 0 ? "is-done" : ""}`}>
+                      <span className="lv-init-step-dot">1</span>
+                      <span>Review</span>
+                    </span>
+                    <span className="lv-init-step-sep" />
+                    <span className={`lv-init-step ${currentStep === 1 ? "is-active" : currentStep > 1 ? "is-done" : ""}`}>
+                      <span className="lv-init-step-dot">2</span>
+                      <span>Client</span>
+                    </span>
+                    <span className="lv-init-step-sep" />
+                    <span className={`lv-init-step ${currentStep === 2 ? "is-active" : ""}`}>
+                      <span className="lv-init-step-dot">3</span>
+                      <span>Project</span>
+                    </span>
                   </div>
-                )}
-              </Form>
+                </div>
+                <button
+                  type="button"
+                  className="lv-init-close"
+                  onClick={() => { if (!onboarding) setIsModalOpen(false); }}
+                  aria-label="Close"
+                  disabled={onboarding}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              {/* Body */}
+              {currentStep === 0 ? (
+                <>
+                  {/* Lead snapshot */}
+                  <div className="lv-init-snapshot">
+                    <div className="lv-init-snapshot-head">
+                      <Layers size={11} /> Lead snapshot
+                    </div>
+                    <div className="lv-init-snapshot-title" title={lead.title}>{lead.title}</div>
+                    <div className="lv-init-snapshot-grid">
+                      <div className="lv-init-snapshot-item">
+                        <span className="lv-init-snapshot-label">
+                          <UserCheck size={10} /> Client
+                        </span>
+                        <span className="lv-init-snapshot-value">{lead.client_name || "—"}</span>
+                      </div>
+                      <div className="lv-init-snapshot-item">
+                        <span className="lv-init-snapshot-label">
+                          <DollarSign size={10} /> Budget
+                        </span>
+                        <span className="lv-init-snapshot-value">{lead.budget || "—"}</span>
+                      </div>
+                      <div className="lv-init-snapshot-item">
+                        <span className="lv-init-snapshot-label">
+                          <Clock size={10} /> Duration
+                        </span>
+                        <span className="lv-init-snapshot-value">{lead.duration || "Flexible"}</span>
+                      </div>
+                      <div className="lv-init-snapshot-item">
+                        <span className="lv-init-snapshot-label">
+                          <ShieldCheck size={10} /> Status
+                        </span>
+                        <span className="lv-init-snapshot-value">{lead.status || "—"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Capabilities */}
+                  <div className="lv-init-caps">
+                    <div className="lv-init-caps-head">What we'll create for you</div>
+                    <div className="lv-init-caps-grid">
+                      <div className="lv-init-cap" style={{ ["--cap-accent" as any]: "#6366f1" }}>
+                        <div className="lv-init-cap-icon">
+                          <UserCheck size={14} />
+                        </div>
+                        <div className="lv-init-cap-body">
+                          <span className="lv-init-cap-title">Client record</span>
+                          <span className="lv-init-cap-text">
+                            First-class client profile with contact and billing info.
+                          </span>
+                        </div>
+                      </div>
+                      <div className="lv-init-cap" style={{ ["--cap-accent" as any]: "#8b5cf6" }}>
+                        <div className="lv-init-cap-icon">
+                          <Briefcase size={14} />
+                        </div>
+                        <div className="lv-init-cap-body">
+                          <span className="lv-init-cap-title">Project workspace</span>
+                          <span className="lv-init-cap-text">
+                            A new project tied to this lead with status and scope.
+                          </span>
+                        </div>
+                      </div>
+                      <div className="lv-init-cap" style={{ ["--cap-accent" as any]: "#10b981" }}>
+                        <div className="lv-init-cap-icon">
+                          <Activity size={14} />
+                        </div>
+                        <div className="lv-init-cap-body">
+                          <span className="lv-init-cap-title">Pipeline tracking</span>
+                          <span className="lv-init-cap-text">
+                            Move from prospect to active engagement automatically.
+                          </span>
+                        </div>
+                      </div>
+                      <div className="lv-init-cap" style={{ ["--cap-accent" as any]: "#f59e0b" }}>
+                        <div className="lv-init-cap-icon">
+                          <Brain size={14} />
+                        </div>
+                        <div className="lv-init-cap-body">
+                          <span className="lv-init-cap-title">AI-ready setup</span>
+                          <span className="lv-init-cap-text">
+                            Proposals, time tracking, and docs wired in from day one.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="lv-init-form-wrap">
+                  <Form
+                    form={initForm}
+                    layout="vertical"
+                    onFinish={handleOnboard}
+                    requiredMark={false}
+                    className="lv-form"
+                  >
+                    {currentStep === 1 && (
+                      <div className="lv-init-pane">
+                        <div className="lv-init-callout">
+                          <Info size={13} />
+                          <div>
+                            <strong>Client verification</strong>
+                            <span>Confirm contact details — used for invoicing and communication.</span>
+                          </div>
+                        </div>
+
+                        <Row gutter={12}>
+                          <Col span={24}>
+                            <Form.Item
+                              name="client_name"
+                              label="Full name / company"
+                              rules={[{ required: true, message: "Please enter client name" }]}
+                            >
+                              <Input prefix={<UserCheck size={13} />} placeholder="e.g. Acme Corp" className="lv-input" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={24}>
+                            <Form.Item
+                              name="client_mail"
+                              label="Primary email"
+                              rules={[{ required: true, type: "email", message: "Please enter a valid email" }]}
+                            >
+                              <Input prefix={<Mail size={13} />} placeholder="client@example.com" className="lv-input" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item name="client_phone" label="Contact number">
+                              <Input prefix={<Phone size={13} />} placeholder="+1 555 000 0000" className="lv-input" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item name="client_location" label="Client location">
+                              <Input prefix={<Globe size={13} />} placeholder="New York, USA" className="lv-input" />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      </div>
+                    )}
+
+                    {currentStep === 2 && (
+                      <div className="lv-init-pane">
+                        <div className="lv-init-callout lv-init-callout-success">
+                          <Zap size={13} />
+                          <div>
+                            <strong>Project scope</strong>
+                            <span>Set up scope and budget — refine these later in the project dashboard.</span>
+                          </div>
+                        </div>
+
+                        <Form.Item
+                          name="title"
+                          label="Project title"
+                          rules={[{ required: true, message: "Please enter project title" }]}
+                        >
+                          <Input prefix={<LayoutIcon size={13} />} placeholder="e.g. Full Stack Dashboard" className="lv-input" />
+                        </Form.Item>
+
+                        <Form.Item name="summary" label="Strategic summary">
+                          <Input.TextArea rows={4} placeholder="Briefly describe goals and delivery expectations…" className="lv-input lv-input-textarea" />
+                        </Form.Item>
+
+                        <Row gutter={12}>
+                          <Col span={12}>
+                            <Form.Item name="budget" label="Estimated budget">
+                              <Input prefix={<DollarSign size={13} />} placeholder="$5,000" className="lv-input" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item name="experience_level" label="Expertise level">
+                              <Input prefix={<Star size={13} />} placeholder="Expert / Senior" className="lv-input" />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      </div>
+                    )}
+                  </Form>
+                </div>
+              )}
+
+              {/* Footer */}
+              <div className="lv-init-footer">
+                <span className="lv-init-footnote">
+                  <ShieldCheck size={12} />
+                  {currentStep === 0
+                    ? "Editable end-to-end in the project dashboard."
+                    : currentStep === 1
+                      ? "Used for invoicing and client comms."
+                      : "Scope can be refined any time post-create."}
+                </span>
+                <div className="lv-init-footer-actions">
+                  {currentStep === 0 ? (
+                    <>
+                      <Button onClick={() => setIsModalOpen(false)} className="lv-secondary-btn">
+                        Cancel
+                      </Button>
+                      <Button
+                        type="primary"
+                        className="lv-primary-btn"
+                        onClick={() => setCurrentStep(1)}
+                        icon={<Rocket size={13} />}
+                      >
+                        Continue
+                        <ChevronRight size={13} />
+                      </Button>
+                    </>
+                  ) : currentStep === 1 ? (
+                    <>
+                      <Button
+                        onClick={() => setCurrentStep(0)}
+                        className="lv-secondary-btn"
+                        disabled={onboarding}
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        type="primary"
+                        className="lv-primary-btn"
+                        onClick={async () => {
+                          try {
+                            await initForm.validateFields(["client_name", "client_mail"]);
+                            setCurrentStep(2);
+                          } catch {
+                            /* validation failure shown inline */
+                          }
+                        }}
+                      >
+                        Next step
+                        <ChevronRight size={13} />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => setCurrentStep(1)}
+                        className="lv-secondary-btn"
+                        disabled={onboarding}
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        type="primary"
+                        loading={onboarding}
+                        className="lv-primary-btn lv-primary-btn-success"
+                        onClick={() => initForm.submit()}
+                        icon={<Sparkles size={13} />}
+                      >
+                        Create project
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </Modal>
 
-          <style dangerouslySetInnerHTML={{
-            __html: `
-            .premium-modal-v2 .ant-modal-content {
-              border-radius: 16px;
-              padding: 20px;
-              box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-              border: 1px solid var(--border-color);
-              background: var(--bg-pure-white);
-            }
-            .premium-modal-v2 .ant-modal-header {
-              margin-bottom: 16px;
-              border-bottom: none;
-            }
-            .form-label-premium {
-              font-size: 11px;
-              font-weight: 800;
-              color: var(--text-secondary);
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-              margin-bottom: 6px;
-              display: block;
-            }
-            .premium-input-v2 {
-              border-radius: 12px !important;
-              padding: 10px 16px !important;
-              border: 1.5px solid var(--border-color) !important;
-              background: var(--bg-pure-white) !important;
-              transition: all 0.2s ease !important;
-            }
-            .premium-input-v2:hover {
-              border-color: var(--border-hover) !important;
-            }
-            .premium-input-v2:focus, .premium-input-v2-focused {
-              border-color: var(--premium-blue) !important;
-              box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
-              background: var(--bg-pure-white) !important;
-            }
-            .premium-steps .ant-steps-item-icon {
-              width: 38px !important;
-              height: 38px !important;
-              display: flex !important;
-              align-items: center !important;
-              justify-content: center !important;
-              border-radius: 10px !important;
-              font-size: 16px !important;
-              position: relative !important;
-            }
-            .premium-steps .ant-steps-item-icon svg {
-              width: 18px !important;
-              height: 18px !important;
-              position: absolute !important;
-              top: 50% !important;
-              left: 50% !important;
-              transform: translate(-50%, -50%) !important;
-            }
-            .premium-steps .ant-steps-item-process .ant-steps-item-icon {
-              background: var(--premium-blue) !important;
-              border-color: var(--premium-blue) !important;
-            }
-            .premium-steps .ant-steps-item-process .ant-steps-item-icon svg {
-              color: #fff !important;
-              stroke: #fff !important;
-            }
-            .premium-steps .ant-steps-item-finish .ant-steps-item-icon {
-              border-color: #10b981 !important;
-              color: #10b981 !important;
-            }
-            .premium-steps .ant-steps-item-finish .ant-steps-item-icon svg {
-              color: #10b981 !important;
-              stroke: #10b981 !important;
-            }
-            .premium-steps .ant-steps-item-wait .ant-steps-item-icon svg {
-              color: var(--text-secondary) !important;
-              stroke: var(--text-secondary) !important;
-            }
-            .premium-steps .ant-steps-item-title {
-              font-weight: 700 !important;
-              line-height: 1.2 !important;
-            }
-            .animate-fade-in {
-              animation: modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            }
-            @keyframes modalFadeIn {
-              from { opacity: 0; transform: translateY(15px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-            .lead-intelligence-hub {
-              background: var(--bg-pure-white); /* Match layout to remove top/bottom bars */
-              min-height: 100%; 
-              padding-bottom: 60px;
-              font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
-              margin: 0 -8px -60px -8px; /* Cancel layout padding and bottom gap */
-            }
-
-
-            .hub-header {
-              background: var(--bg-pure-white); padding: 12px 24px; border-bottom: 1px solid var(--border-color);
-              position: sticky; top: 0; z-index: 100; margin-bottom: 16px;
-            }
-
-            .hub-category { font-size: 10px; font-weight: 800; color: var(--text-slate-400); letter-spacing: 0.1em; display: block; }
-            .hub-main-title { margin: 4px 0 0 0 !important; font-size: 18px !important; font-weight: 700 !important; color: #1e293b; }
-
-            .hub-content { padding: 0 24px; background: var(--bg-pure-white); }
-            
-            .borderless-card { border: none !important; box-shadow: none !important; background: transparent !important; border-radius: 0 !important; }
-            .ant-card-head { border-bottom: none !important; padding: 0 !important; min-height: auto !important; margin-bottom: 16px !important; }
-            .ant-card-head-title { font-size: 11px !important; font-weight: 800 !important; color: #94a3b8 !important; letter-spacing: 0.1em; text-transform: uppercase; }
-            .ant-card-body { padding: 0 !important; }
-
-            .hub-divider { margin: 12px 0 16px 0 !important; border-top: 2px solid var(--border-color) !important; }
-            .hub-divider-light { margin: 8px 0 12px 0 !important; border-top: 1.5px solid var(--border-color) !important; }
-            .spend-divider { margin: -15px 0 12px 0 !important; }
-            
-            .hub-center-col-border {
-              border-left: 2px solid var(--border-color);
-              border-right: 2px solid var(--border-color);
-              padding: 0 24px !important;
-            }
-            .hub-right-col-border {
-              padding-left: 24px !important;
-            }
-
-            .avatar-hub { width: 50px; height: 50px; border-radius: 12px; background: #3b82f6; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; }
-            .client-profile-header { display: flex; gap: 16px; align-items: center; }
-            .client-name-hub { margin: 0 !important; font-size: 16px !important; font-weight: 800; }
-            .client-meta-hub { font-size: 12px; color: #94a3b8; }
-            
-            .platform-tag-hub {
-              padding: 4px 12px !important; border-radius: 8px !important; border: 1px solid #e2e8f0 !important;
-              background: #f8fafc !important; font-size: 12px !important; font-weight: 700 !important; color: #334155 !important;
-              height: auto !important; margin: 0 !important;
-            }
-            .rating-tag-hub {
-              display: flex !important; align-items: center !important; gap: 6px !important; 
-              padding: 4px 10px !important; border-radius: 8px !important; border: 1px solid #e2e8f0 !important; 
-              background: #fff !important; color: #334155 !important; font-weight: 700 !important; font-size: 12px !important;
-              background: #fff !important; color: #334155 !important; font-weight: 600 !important; font-size: 12px !important;
-              height: auto !important; margin: 0 !important;
-            }
-
-            .spend-box-hub { margin-top: 8px; padding-top: 8px; }
-            .spend-label { font-size: 9px; font-weight: 600; color: #94a3b8; text-transform: uppercase; }
-            .spend-value { margin: 4px 0 0 0 !important; color: #10b981 !important; font-weight: 600 !important; font-size: 20px !important; margin-bottom: 0 !important; }
-
-            .budget-metrics-grid { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
-            .budget-metric-item { flex: 1; }
-            .metric-divider-v-small { width: 1px; height: 25px; background: var(--border-color); }
-
-            .contact-badge-v2 { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; font-size: 13px; font-weight: 600; background: #f0f7ff; color: #2563eb; border: 1px solid #dbeafe; }
-            .contact-text { color: #1e293b !important; font-size: 13px !important; font-weight: 600 !important; }
-            .trust-badge-v2 { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; transition: all 0.2s ease; }
-            .trust-badge-v2.verified { background: rgba(16, 185, 129, 0.05); color: #059669; border-color: rgba(16, 185, 129, 0.1); }
-            .trust-badge-v2.unverified { background: #f8fafc; color: #94a3b8; border-color: #f1f5f9; }
-            .trust-text { color: inherit !important; font-size: 13px !important; font-weight: 600 !important; }
-
-            .doc-item-hub { display: flex; align-items: center; gap: 8px; padding: 12px; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9; }
-            .doc-name-hub { flex: 1; font-size: 12px; font-weight: 600; }
-
-            /* CENTER COLUMN */
-            .spec-tag { background: #eff6ff; color: #2563eb; border: none; font-weight: 700; border-radius: 12px; padding: 2px 12px; font-size: 11px; }
-            .spec-posted { font-size: 11px; color: #94a3b8; font-weight: 600; display: flex; align-items: center; gap: 4px; }
-            .spec-title { margin: 12px 0 !important; font-size: 22px !important; font-weight: 700 !important; line-height: 1.3; color: #1e293b; }
-            .hub-section-titles { font-size: 11px !important; font-weight: 800; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px !important; }
-            .spec-text-flow { font-size: 15px; color: #475569; line-height: 1.7; display: block; transition: all 0.3s ease; }
-            .spec-text-flow.clamped {
-              display: -webkit-box;
-              -webkit-line-clamp: 3;
-              -webkit-box-orient: vertical;
-              overflow: hidden;
-            }
-            .description-toggle-btn {
-              padding: 0 !important;
-              height: auto !important;
-              font-weight: 700 !important;
-              font-size: 14px !important;
-              color: var(--premium-blue) !important;
-              margin-top: 12px !important;
-              display: flex !important;
-              align-items: center !important;
-              gap: 4px !important;
-            }
-
-            .arch-label { font-size: 9px; font-weight: 800; color: #94a3b8; letter-spacing: 0.1em; text-transform: uppercase; display: block; }
-            .arch-tag { background: #fff; border: 1px solid #e2e8f0; color: #475569; font-weight: 600; border-radius: 8px; padding: 4px 12px; font-size: 12px; }
-
-            .skill-alignment-box { padding: 12px; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9; margin-left: auto; width: 100%; max-width: 200px; text-align: right; }
-            .alignment-stats { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 4px; }
-            .alignment-score { font-size: 24px; font-weight: 800; color: #3b82f6; }
-            .alignment-track { flex: 1; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden; }
-            .alignment-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); }
-
-            .timeline-hub-item { display: flex; gap: 12px; align-items: center; }
-            .hub-label { font-size: 9px; font-weight: 800; color: #94a3b8; letter-spacing: 0.05em; }
-            .hub-value { font-size: 13px; font-weight: 600; color: #1e293b; display: block; }
-
-            .canvas-proposal-text { font-size: 14px; line-height: 1.8; color: #334155; white-space: pre-wrap; display: block; max-height: 240px; overflow-y: auto; padding-right: 8px; }
-            .canvas-footer-hub { margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(59, 130, 246, 0.1); display: flex; justify-content: space-between; align-items: center; }
-
-            /* RIGHT COLUMN */
-            .win-prob-wrapper-hub { display: flex; justify-content: center; margin: 12px 0; }
-            .donut-hub-v2 { width: 100px; height: 100px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-            .donut-val-v2 { font-size: 24px; font-weight: 700; color: #1e293b; line-height: 1; }
-            .donut-sub-v2 { font-size: 9px; font-weight: 800; color: #94a3b8; }
-            .donut-hub-v2 svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-
-            .insight-row-hub { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 12px; font-weight: 600; }
-            .score-track-hub { width: 100%; height: 6px; background: #f1f5f9; border-radius: 10px; margin-top: 4px; }
-            .score-fill-hub { height: 100%; background: #3b82f6; border-radius: 10px; }
-
-            .hub-value-v2 { font-size: 14px; font-weight: 600; color: #1e293b; display: block; margin-top: 4px; }
-            .hub-action-btn { margin-top: 12px; height: 40px; border-radius: 8px; background: #fff; border: 1px solid #e2e8f0; font-weight: 700; color: #475569; }
-
-            .notes-display-hub { padding: 12px; background: var(--bg-blue-50); border: 1px solid var(--border-blue-200); border-radius: 12px; min-height: 60px; font-size: 13px; line-height: 1.6; }
-
-            [data-theme='dark'] .lead-intelligence-hub { background: var(--bg-pure-white) !important; }
-            [data-theme='dark'] .hub-header { background: var(--bg-pure-white) !important; border-color: #1F2937 !important; }
-            [data-theme='dark'] .hub-content { background: var(--bg-pure-white) !important; }
-            [data-theme='dark'] .identity-section-hub, 
-            [data-theme='dark'] .borderless-card,
-            [data-theme='dark'] .ant-card-head { background: transparent !important; }
-            
-            [data-theme='dark'] .ant-card-head-title { color: #94A3B8 !important; }
-            [data-theme='dark'] .hub-divider { border-top-color: #1F2937 !important; }
-            [data-theme='dark'] .hub-divider-light { border-top-color: #161B22 !important; }
-            [data-theme='dark'] .hub-center-col-border { border-left-color: #1F2937 !important; border-right-color: #1F2937 !important; }
-
-            [data-theme='dark'] .doc-item-hub { background: #161B22 !important; border-color: #1F2937 !important; }
-            [data-theme='dark'] .skill-alignment-box { background: #161B22 !important; border-color: #1F2937 !important; }
-            [data-theme='dark'] .notes-display-hub { background: rgba(59, 130, 246, 0.05) !important; border-color: rgba(59, 130, 246, 0.2) !important; color: #CBD5E1 !important; }
-            
-            [data-theme='dark'] .spec-title { color: #F1F5F9 !important; }
-            [data-theme='dark'] .spec-text-flow { color: #94A3B8 !important; }
-            [data-theme='dark'] .hub-label { color: #64748B !important; }
-            [data-theme='dark'] .hub-value { color: #F1F5F9 !important; }
-            [data-theme='dark'] .hub-value-v2 { color: #F1F5F9 !important; }
-            [data-theme='dark'] .arch-label { color: #64748B !important; }
-            [data-theme='dark'] .arch-tag { background: #161B22 !important; border-color: #374151 !important; color: #CBD5E1 !important; }
-            [data-theme='dark'] .donut-val-v2 { color: #F1F5F9 !important; }
-            
-            /* Action Button Dark Mode */
-            [data-theme='dark'] .hub-action-btn { background: #161B22 !important; border-color: #374151 !important; color: #CBD5E1 !important; }
-            [data-theme='dark'] .hub-action-btn:hover { border-color: var(--premium-blue) !important; color: var(--premium-blue) !important; }
-            
-            /* Contact Info Dark Mode */
-            [data-theme='dark'] .contact-badge-v2 { background: rgba(59, 130, 246, 0.1) !important; color: var(--premium-blue) !important; border-color: rgba(59, 130, 246, 0.2) !important; }
-            [data-theme='dark'] .contact-text { color: #CBD5E1 !important; }
-            `}} />
-          </div>
-        </MainLayout>
-      </ProtectedRoute>
-    );
+          {leadViewStyles}
+        </div>
+      </MainLayout>
+    </ProtectedRoute>
+  );
 }
 
+/* ---------------------------------------------------------------- */
+/*                          Scoped styles                            */
+/* ---------------------------------------------------------------- */
+const leadViewStyles = (
+  <style dangerouslySetInnerHTML={{
+    __html: `
+      /* Page shell */
+      .lv-page {
+        background: var(--bg-primary);
+        min-height: calc(100vh - 64px);
+        margin: 0 -24px;
+        font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+      }
+      .lv-empty-page {
+        display: flex; align-items: center; justify-content: center;
+        min-height: calc(100vh - 64px);
+      }
+
+      /* ===================== Top bar ===================== */
+      .lv-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: var(--bg-pure-white);
+        border-bottom: 1px solid var(--border-slate-100);
+        padding: 12px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .lv-topbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+      .lv-topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+      .lv-back-btn.ant-btn {
+        width: 34px !important;
+        height: 34px !important;
+        padding: 0 !important;
+        border-radius: 9px !important;
+        border: 1px solid var(--border-slate-100) !important;
+        background: var(--bg-pure-white) !important;
+        color: var(--text-slate-700) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      .lv-back-btn.ant-btn:hover {
+        border-color: var(--border-slate-200) !important;
+        color: var(--text-slate-900) !important;
+      }
+
+      .lv-breadcrumbs {
+        display: flex; align-items: center; gap: 6px; min-width: 0;
+      }
+      .lv-crumb {
+        background: none; border: 0; padding: 0; cursor: pointer;
+        font: inherit;
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: 12px; font-weight: 600;
+        color: var(--text-slate-500);
+        transition: color .15s ease;
+      }
+      .lv-crumb:hover { color: var(--text-slate-900); }
+      .lv-crumb-sep { color: var(--text-slate-400); }
+      .lv-crumb-current {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-slate-900);
+        max-width: 480px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Status pill */
+      .lv-status-pill {
+        display: inline-flex; align-items: center; gap: 7px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        font-family: inherit;
+        transition: filter .15s ease, transform .15s ease;
+      }
+      .lv-status-pill:hover { filter: brightness(0.97); }
+      .lv-status-pill:hover .lv-status-edit { opacity: 0.85; transform: translateX(0); }
+      .lv-status-pill-empty {
+        color: var(--text-slate-500);
+        background: var(--bg-slate-50);
+        border: 1px dashed var(--border-slate-200) !important;
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 600;
+      }
+      .lv-status-dot {
+        width: 6px; height: 6px; border-radius: 50%;
+      }
+      .lv-status-text { line-height: 1; }
+      .lv-status-edit {
+        opacity: 0;
+        transform: translateX(-2px);
+        transition: opacity .15s ease, transform .15s ease;
+      }
+      .lv-status-select.ant-select .ant-select-selector {
+        padding: 4px 10px !important;
+        height: 30px !important;
+        border-radius: 999px !important;
+        border: 1px dashed var(--border-slate-200) !important;
+        background: var(--bg-slate-50) !important;
+      }
+      .lv-status-opt {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      /* Buttons */
+      .lv-secondary-btn.ant-btn {
+        height: 34px !important;
+        border-radius: 9px !important;
+        padding: 0 14px !important;
+        border: 1px solid var(--border-slate-100) !important;
+        background: var(--bg-pure-white) !important;
+        color: var(--text-slate-700) !important;
+        font-weight: 600 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+      }
+      .lv-secondary-btn.ant-btn:hover {
+        border-color: var(--border-slate-200) !important;
+        color: var(--text-slate-900) !important;
+      }
+      .lv-primary-btn.ant-btn {
+        height: 34px !important;
+        border-radius: 9px !important;
+        padding: 0 16px !important;
+        background: #4f46e5 !important;
+        border: 0 !important;
+        color: #fff !important;
+        font-weight: 700 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+      }
+      .lv-primary-btn.ant-btn:hover {
+        background: #4338ca !important;
+      }
+      .lv-primary-btn-success.ant-btn {
+        background: #059669 !important;
+      }
+      .lv-primary-btn-success.ant-btn:hover {
+        background: #047857 !important;
+      }
+
+      /* ===================== Body ===================== */
+      .lv-body {
+        padding: 24px 32px 60px;
+      }
+
+      /* Hero */
+      .lv-hero {
+        background: var(--bg-pure-white);
+        border: 1px solid var(--border-slate-100);
+        border-radius: 14px;
+        padding: 22px 24px;
+        margin-bottom: 16px;
+      }
+      .lv-hero-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-slate-500);
+      }
+      .lv-hero-divider {
+        width: 3px; height: 3px; border-radius: 50%;
+        background: var(--border-slate-200);
+      }
+      .lv-hero-platform {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        border: 1px solid;
+      }
+      .lv-hero-meta {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: 12px;
+        color: var(--text-slate-500);
+        font-weight: 500;
+      }
+      .lv-hero-score {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        border: 1px solid;
+      }
+      .lv-hero-score-val {
+        opacity: 0.6;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .lv-hero-title {
+        margin: 0 0 8px;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text-slate-900);
+        letter-spacing: -0.02em;
+      }
+      .lv-hero-sub {
+        margin: 0 0 18px;
+        font-size: 13.5px;
+        color: var(--text-slate-600);
+        line-height: 1.55;
+        max-width: 820px;
+      }
+
+      /* KPI strip */
+      .lv-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+      @media (max-width: 900px) {
+        .lv-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 520px) {
+        .lv-kpi-grid { grid-template-columns: 1fr; }
+      }
+      .lv-kpi {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        background: var(--bg-slate-50);
+        border: 1px solid var(--border-slate-100);
+        border-radius: 12px;
+      }
+      .lv-kpi-icon {
+        width: 32px; height: 32px;
+        border-radius: 9px;
+        display: flex; align-items: center; justify-content: center;
+        background: color-mix(in oklab, var(--lv-kpi-accent) 14%, transparent);
+        color: var(--lv-kpi-accent);
+        flex-shrink: 0;
+      }
+      .lv-kpi-body { display: flex; flex-direction: column; min-width: 0; }
+      .lv-kpi-label {
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-slate-500);
+      }
+      .lv-kpi-value {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text-slate-900);
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* ===================== Grid ===================== */
+      .lv-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 20px;
+        align-items: start;
+      }
+      @media (max-width: 1100px) {
+        .lv-grid { grid-template-columns: 1fr; }
+      }
+      .lv-main {
+        display: flex; flex-direction: column; gap: 16px;
+        min-width: 0;
+      }
+      .lv-side {
+        display: flex; flex-direction: column; gap: 16px;
+      }
+
+      /* Skills (60%) + Timeline (40%) row */
+      .lv-row-60-40 {
+        display: grid;
+        grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);
+        gap: 16px;
+        min-width: 0;
+      }
+      .lv-row-60-40 > .lv-section { min-width: 0; }
+      @media (max-width: 900px) {
+        .lv-row-60-40 { grid-template-columns: 1fr; }
+      }
+
+      /* Section card */
+      .lv-section {
+        background: var(--bg-pure-white);
+        border: 1px solid var(--border-slate-100);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .lv-section-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-slate-100);
+      }
+      .lv-section-icon {
+        width: 26px; height: 26px;
+        border-radius: 7px;
+        display: flex; align-items: center; justify-content: center;
+        background: color-mix(in oklab, var(--lv-section-accent) 12%, transparent);
+        color: var(--lv-section-accent);
+        flex-shrink: 0;
+      }
+      .lv-section-title {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-slate-900);
+        letter-spacing: -0.005em;
+      }
+      .lv-section-count {
+        margin-left: auto;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-slate-500);
+        background: var(--bg-slate-50);
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border-slate-100);
+      }
+      .lv-section-body { padding: 16px 18px 18px; }
+
+      /* Prose / description */
+      .lv-prose {
+        color: var(--text-slate-700);
+        font-size: 14px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+      }
+      .lv-prose.is-clamped {
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .lv-link-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 10px;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: #6366f1;
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .lv-link-btn:hover { color: #4f46e5; }
+
+      /* Skills */
+      .lv-skills {
+        display: flex; flex-wrap: wrap; gap: 6px;
+      }
+      .lv-skill-tag {
+        display: inline-flex; align-items: center;
+        padding: 4px 11px;
+        background: var(--bg-slate-50);
+        border: 1px solid var(--border-slate-100);
+        color: var(--text-slate-700);
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 999px;
+        line-height: 1.4;
+      }
+      .lv-skill-gaps {
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px dashed var(--border-slate-100);
+      }
+      .lv-skill-gaps-label {
+        display: block;
+        font-size: 10.5px;
+        font-weight: 700;
+        color: #b45309;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+      .lv-skill-gaps-list { display: flex; flex-wrap: wrap; gap: 6px; }
+      .lv-skill-gap {
+        display: inline-flex; align-items: center;
+        padding: 3px 10px;
+        background: rgba(245, 158, 11, 0.08);
+        color: #b45309;
+        border: 1px solid rgba(245, 158, 11, 0.22);
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 999px;
+      }
+
+      /* Timeline grid */
+      .lv-timeline-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 20px;
+      }
+      .lv-timeline-item { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+      .lv-meta-label {
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-slate-500);
+      }
+      .lv-meta-value {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--text-slate-900);
+        letter-spacing: -0.005em;
+      }
+
+      /* Notes */
+      .lv-notes {
+        padding: 12px 14px;
+        background: var(--bg-slate-50);
+        border: 1px solid var(--border-slate-100);
+        border-radius: 10px;
+        font-size: 13px;
+      }
+
+      /* Sidebar cards */
+      .lv-side-card {
+        background: var(--bg-pure-white);
+        border: 1px solid var(--border-slate-100);
+        border-radius: 14px;
+        padding: 14px 16px 16px;
+      }
+      .lv-side-head {
+        display: flex; align-items: center; gap: 6px;
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--text-slate-500);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 14px;
+      }
+
+      .lv-client-id { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+      .lv-avatar {
+        width: 42px; height: 42px;
+        border-radius: 11px;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: #fff;
+        font-weight: 800;
+        font-size: 14px;
+        letter-spacing: 0.02em;
+        flex-shrink: 0;
+      }
+      .lv-client-id-text { min-width: 0; flex: 1; }
+      .lv-client-name {
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--text-slate-900);
+        letter-spacing: -0.005em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .lv-client-meta {
+        display: flex; align-items: center; gap: 5px;
+        margin-top: 2px;
+        font-size: 11.5px;
+        color: var(--text-slate-500);
+        font-weight: 500;
+      }
+      .lv-dot {
+        width: 3px; height: 3px; border-radius: 50%;
+        background: var(--border-slate-200);
+      }
+
+      .lv-client-contact {
+        display: flex; flex-direction: column; gap: 6px;
+        margin-bottom: 14px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border-slate-100);
+      }
+      .lv-contact-row {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 12.5px;
+        color: var(--text-slate-700);
+        font-weight: 500;
+        min-width: 0;
+      }
+      .lv-contact-row > span {
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .lv-contact-row svg { color: var(--text-slate-400); flex-shrink: 0; }
+
+      .lv-verify-row { display: flex; gap: 8px; }
+      .lv-verify {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 700;
+        flex: 1;
+        justify-content: center;
+      }
+      .lv-verify.ok {
+        background: rgba(16, 185, 129, 0.08);
+        color: #047857;
+        border: 1px solid rgba(16, 185, 129, 0.22);
+      }
+      .lv-verify.off {
+        background: var(--bg-slate-50);
+        color: var(--text-slate-500);
+        border: 1px solid var(--border-slate-100);
+      }
+
+      /* Win prob donut */
+      .lv-donut-wrap { display: flex; justify-content: center; padding: 4px 0 14px; }
+      .lv-donut {
+        position: relative;
+        width: 130px; height: 130px;
+      }
+      .lv-donut svg {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+      }
+      .lv-donut-text {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+      }
+      .lv-donut-val {
+        font-size: 26px;
+        font-weight: 800;
+        color: var(--text-slate-900);
+        letter-spacing: -0.02em;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+      .lv-donut-pct { font-size: 14px; opacity: 0.5; margin-left: 2px; }
+      .lv-donut-cap {
+        margin-top: 4px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        color: var(--text-slate-500);
+        text-transform: uppercase;
+      }
+      .lv-insight-row {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-top: 10px;
+      }
+      .lv-pill {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .lv-pill-warn {
+        background: rgba(245, 158, 11, 0.1);
+        color: #b45309;
+        border: 1px solid rgba(245, 158, 11, 0.22);
+      }
+      .lv-insight-progress { flex-direction: column; align-items: stretch; gap: 6px; }
+      .lv-progress-meta { display: flex; justify-content: space-between; align-items: center; }
+      .lv-progress-val {
+        font-size: 11.5px;
+        font-weight: 800;
+        color: #6366f1;
+        font-variant-numeric: tabular-nums;
+      }
+      .lv-progress-track {
+        height: 6px;
+        background: var(--bg-slate-50);
+        border-radius: 999px;
+        overflow: hidden;
+        border: 1px solid var(--border-slate-100);
+      }
+      .lv-progress-fill {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        transition: width .4s ease;
+      }
+
+      /* Financial */
+      .lv-fin-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 16px;
+      }
+      .lv-fin-item { display: flex; flex-direction: column; gap: 3px; }
+      .lv-fin-value {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-slate-900);
+        letter-spacing: -0.005em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Documents */
+      .lv-docs { display: flex; flex-direction: column; gap: 6px; }
+      .lv-doc-row {
+        display: flex; align-items: center; gap: 8px;
+        padding: 9px 11px;
+        background: var(--bg-slate-50);
+        border: 1px solid var(--border-slate-100);
+        border-radius: 9px;
+        color: var(--text-slate-700);
+        font-size: 12.5px;
+        font-weight: 600;
+        transition: border-color .15s ease, color .15s ease;
+        text-decoration: none;
+      }
+      .lv-doc-row:hover {
+        border-color: rgba(99, 102, 241, 0.35);
+        color: #4f46e5;
+      }
+      .lv-doc-name {
+        flex: 1; min-width: 0;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .lv-doc-ext { color: var(--text-slate-400); }
+
+      .lv-muted { color: var(--text-slate-500) !important; font-size: 12.5px; }
+
+      /* ===================== Initialize Project modal ===================== */
+      .lv-init-modal .ant-modal-content {
+        padding: 0 !important;
+        border-radius: 16px !important;
+        border: 1px solid var(--border-slate-100);
+        overflow: hidden;
+        background: var(--bg-pure-white);
+        box-shadow: none !important;
+      }
+      .lv-init-modal .ant-modal-body { padding: 0 !important; }
+
+      .lv-init-content { display: flex; flex-direction: column; }
+
+      .lv-init-head {
+        display: flex; align-items: flex-start; gap: 14px;
+        padding: 22px 24px 18px;
+        position: relative;
+        border-bottom: 1px solid var(--border-slate-100);
+      }
+      .lv-init-icon {
+        width: 44px; height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+      }
+      .lv-init-head-text { flex: 1; min-width: 0; padding-right: 40px; }
+      .lv-init-eyebrow {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: rgba(99, 102, 241, 0.08);
+        color: #4f46e5;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        margin-bottom: 8px;
+      }
+      .lv-init-title {
+        margin: 0 0 4px;
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--text-slate-900);
+        letter-spacing: -0.015em;
+      }
+      .lv-init-sub {
+        margin: 0;
+        font-size: 12.5px;
+        color: var(--text-slate-500);
+        line-height: 1.5;
+      }
+      .lv-init-close {
+        position: absolute;
+        top: 16px; right: 16px;
+        width: 30px; height: 30px;
+        border-radius: 8px;
+        border: 1px solid var(--border-slate-100);
+        background: var(--bg-pure-white);
+        color: var(--text-slate-500);
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: color .15s ease, border-color .15s ease;
+      }
+      .lv-init-close:hover {
+        color: var(--text-slate-900);
+        border-color: var(--border-slate-200);
+      }
+      .lv-init-close:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      /* Step indicator */
+      .lv-init-steps {
+        display: flex; align-items: center; gap: 8px;
+        margin-top: 10px;
+      }
+      .lv-init-step {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 11px; font-weight: 700;
+        color: var(--text-slate-400);
+        letter-spacing: 0.02em;
+        transition: color .15s ease;
+      }
+      .lv-init-step-dot {
+        width: 18px; height: 18px;
+        border-radius: 999px;
+        background: var(--bg-slate-50);
+        border: 1px solid var(--border-slate-100);
+        color: var(--text-slate-500);
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 10px; font-weight: 800; line-height: 1;
+      }
+      .lv-init-step.is-active { color: var(--text-slate-900); }
+      .lv-init-step.is-active .lv-init-step-dot {
+        background: #4f46e5;
+        border-color: #4f46e5;
+        color: #fff;
+      }
+      .lv-init-step.is-done { color: #047857; }
+      .lv-init-step.is-done .lv-init-step-dot {
+        background: rgba(16, 185, 129, 0.12);
+        border-color: rgba(16, 185, 129, 0.25);
+        color: #047857;
+      }
+      .lv-init-step-sep {
+        width: 28px; height: 1px;
+        background: var(--border-slate-100);
+      }
+
+      /* Snapshot */
+      .lv-init-snapshot {
+        margin: 18px 24px 0;
+        padding: 14px 16px;
+        border: 1px solid var(--border-slate-100);
+        border-radius: 12px;
+        background: var(--bg-slate-50);
+      }
+      .lv-init-snapshot-head {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-slate-500);
+        margin-bottom: 8px;
+      }
+      .lv-init-snapshot-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-slate-900);
+        letter-spacing: -0.005em;
+        margin-bottom: 12px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .lv-init-snapshot-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px 14px;
+      }
+      @media (max-width: 560px) {
+        .lv-init-snapshot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      .lv-init-snapshot-item {
+        display: flex; flex-direction: column; gap: 3px;
+        min-width: 0;
+      }
+      .lv-init-snapshot-label {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-slate-500);
+      }
+      .lv-init-snapshot-value {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-slate-900);
+        letter-spacing: -0.005em;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Capabilities */
+      .lv-init-caps { padding: 18px 24px 0; }
+      .lv-init-caps-head {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-slate-500);
+        margin-bottom: 12px;
+      }
+      .lv-init-caps-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      @media (max-width: 560px) {
+        .lv-init-caps-grid { grid-template-columns: 1fr; }
+      }
+      .lv-init-cap {
+        display: flex; align-items: flex-start; gap: 10px;
+        padding: 12px 14px;
+        border: 1px solid var(--border-slate-100);
+        border-radius: 11px;
+        background: var(--bg-pure-white);
+        transition: border-color .15s ease;
+      }
+      .lv-init-cap:hover {
+        border-color: color-mix(in oklab, var(--cap-accent) 30%, var(--border-slate-100));
+      }
+      .lv-init-cap-icon {
+        width: 28px; height: 28px;
+        border-radius: 8px;
+        background: color-mix(in oklab, var(--cap-accent) 12%, transparent);
+        color: var(--cap-accent);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+      }
+      .lv-init-cap-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+      .lv-init-cap-title {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--text-slate-900);
+        letter-spacing: -0.005em;
+      }
+      .lv-init-cap-text {
+        font-size: 11.5px;
+        color: var(--text-slate-500);
+        line-height: 1.45;
+      }
+
+      /* Form steps */
+      .lv-init-form-wrap { padding: 18px 24px 0; }
+      .lv-init-pane { display: flex; flex-direction: column; }
+      .lv-init-callout {
+        display: flex; align-items: flex-start; gap: 10px;
+        padding: 11px 13px;
+        background: rgba(99, 102, 241, 0.06);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 11px;
+        color: var(--text-slate-700);
+        margin-bottom: 14px;
+      }
+      .lv-init-callout svg { color: #4f46e5; margin-top: 2px; flex-shrink: 0; }
+      .lv-init-callout > div { display: flex; flex-direction: column; gap: 2px; }
+      .lv-init-callout strong { font-size: 13px; color: var(--text-slate-900); font-weight: 700; }
+      .lv-init-callout span { font-size: 12px; color: var(--text-slate-500); }
+      .lv-init-callout-success {
+        background: rgba(16, 185, 129, 0.06);
+        border-color: rgba(16, 185, 129, 0.22);
+      }
+      .lv-init-callout-success svg { color: #059669; }
+
+      /* Footer */
+      .lv-init-footer {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px;
+        padding: 18px 24px 22px;
+        margin-top: 18px;
+        border-top: 1px solid var(--border-slate-100);
+        flex-wrap: wrap;
+      }
+      .lv-init-footnote {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 11.5px;
+        color: var(--text-slate-500);
+        font-weight: 500;
+      }
+      .lv-init-footnote svg { color: #10b981; }
+      .lv-init-footer-actions { display: flex; gap: 8px; }
+
+      /* Dark theme */
+      [data-theme='dark'] .lv-init-modal .ant-modal-content {
+        background: var(--bg-secondary) !important;
+        border-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-init-snapshot {
+        background: var(--bg-primary);
+        border-color: var(--border-slate-100);
+      }
+      [data-theme='dark'] .lv-init-cap,
+      [data-theme='dark'] .lv-init-close {
+        background: var(--bg-primary);
+        border-color: var(--border-slate-100);
+      }
+
+      /* ===================== Legacy modal styles (kept for compat) ===================== */
+      .lv-modal .ant-modal-content {
+        border-radius: 16px !important;
+        padding: 20px 22px !important;
+        background: var(--bg-pure-white);
+        border: 1px solid var(--border-slate-100);
+      }
+      .lv-modal .ant-modal-header { background: transparent; margin-bottom: 16px; padding: 0; border-bottom: 0; }
+      .lv-modal .ant-modal-footer { padding-top: 16px; border-top: 1px solid var(--border-slate-100); margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px; }
+
+      .lv-modal-head { display: flex; align-items: center; gap: 12px; }
+      .lv-modal-icon {
+        width: 38px; height: 38px;
+        border-radius: 10px;
+        background: rgba(99, 102, 241, 0.1);
+        color: #4f46e5;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .lv-modal-head-text { display: flex; flex-direction: column; }
+      .lv-modal-title {
+        font-size: 16px; font-weight: 800; color: var(--text-slate-900);
+        letter-spacing: -0.01em;
+      }
+      .lv-modal-sub { font-size: 12px; color: var(--text-slate-500); font-weight: 500; }
+
+      .lv-steps.ant-steps {
+        margin-bottom: 18px;
+      }
+      .lv-steps .ant-steps-item-icon {
+        width: 32px !important; height: 32px !important;
+        border-radius: 9px !important;
+        display: flex !important; align-items: center !important; justify-content: center !important;
+      }
+      .lv-steps .ant-steps-item-process .ant-steps-item-icon {
+        background: #4f46e5 !important;
+        border-color: #4f46e5 !important;
+      }
+      .lv-steps .ant-steps-item-process .ant-steps-item-icon svg { color: #fff !important; }
+      .lv-steps .ant-steps-item-finish .ant-steps-item-icon {
+        background: rgba(16, 185, 129, 0.12) !important;
+        border-color: rgba(16, 185, 129, 0.25) !important;
+      }
+      .lv-steps .ant-steps-item-finish .ant-steps-item-icon svg { color: #059669 !important; }
+      .lv-steps .ant-steps-item-wait .ant-steps-item-icon {
+        background: var(--bg-slate-50) !important;
+        border-color: var(--border-slate-100) !important;
+      }
+      .lv-steps .ant-steps-item-wait .ant-steps-item-icon svg { color: var(--text-slate-500) !important; }
+      .lv-steps .ant-steps-item-title { font-size: 13px !important; font-weight: 700 !important; }
+
+      .lv-callout {
+        display: flex; align-items: flex-start; gap: 10px;
+        padding: 11px 13px;
+        background: rgba(99, 102, 241, 0.06);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 11px;
+        color: var(--text-slate-700);
+        margin-bottom: 14px;
+      }
+      .lv-callout svg { color: #4f46e5; margin-top: 2px; flex-shrink: 0; }
+      .lv-callout > div { display: flex; flex-direction: column; gap: 2px; }
+      .lv-callout strong { font-size: 13px; color: var(--text-slate-900); font-weight: 700; }
+      .lv-callout span { font-size: 12px; color: var(--text-slate-500); }
+      .lv-callout-success {
+        background: rgba(16, 185, 129, 0.06);
+        border-color: rgba(16, 185, 129, 0.22);
+      }
+      .lv-callout-success svg { color: #059669; }
+
+      .lv-form .ant-form-item { margin-bottom: 14px; }
+      .lv-form .ant-form-item-label > label {
+        font-size: 11.5px !important;
+        font-weight: 700 !important;
+        color: var(--text-slate-700) !important;
+        letter-spacing: -0.005em !important;
+      }
+      .lv-input.ant-input,
+      .lv-input.ant-input-affix-wrapper {
+        border-radius: 10px !important;
+        border: 1px solid var(--border-slate-100) !important;
+        background: var(--bg-pure-white) !important;
+        padding: 8px 12px !important;
+        font-size: 13px !important;
+      }
+      .lv-input.ant-input:focus,
+      .lv-input.ant-input-affix-wrapper-focused,
+      .lv-input.ant-input-affix-wrapper:focus-within {
+        border-color: #6366f1 !important;
+      }
+      .lv-input.ant-input-affix-wrapper > .ant-input { padding: 0 !important; }
+      .lv-input.lv-input-textarea.ant-input { padding: 10px 12px !important; }
+
+      /* ===================== Dark theme ===================== */
+      [data-theme='dark'] .lv-topbar { background: var(--bg-secondary); border-bottom-color: var(--border-slate-100); }
+      [data-theme='dark'] .lv-back-btn.ant-btn,
+      [data-theme='dark'] .lv-secondary-btn.ant-btn,
+      [data-theme='dark'] .lv-hero,
+      [data-theme='dark'] .lv-section,
+      [data-theme='dark'] .lv-side-card,
+      [data-theme='dark'] .lv-modal .ant-modal-content {
+        background: var(--bg-secondary) !important;
+        border-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-kpi,
+      [data-theme='dark'] .lv-notes,
+      [data-theme='dark'] .lv-doc-row,
+      [data-theme='dark'] .lv-skill-tag {
+        background: var(--bg-primary);
+        border-color: var(--border-slate-100);
+      }
+      [data-theme='dark'] .lv-verify.off { background: var(--bg-primary); border-color: var(--border-slate-100); }
+      [data-theme='dark'] .lv-section-count { background: var(--bg-primary); border-color: var(--border-slate-100); }
+    `,
+  }} />
+);

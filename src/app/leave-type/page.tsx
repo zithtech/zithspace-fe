@@ -50,6 +50,7 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useLeaveTypes } from "@/hooks/useLeaveTypes";
+import { usePermission } from "@/hooks/usePermission";
 
 const { TextArea } = Input;
 const { Text, Title } = Typography;

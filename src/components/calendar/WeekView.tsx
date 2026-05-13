@@ -9,7 +9,7 @@ interface WeekViewProps {
     currentDate: Dayjs;
     events: CalendarEvent[];
     onEventClick: (event: CalendarEvent, occurrenceDate?: Dayjs) => void;
-    onTimeSlotClick: (date: Dayjs) => void;
+    onTimeSlotClick?: (date: Dayjs) => void;
 }
 
 const PALETTE_KEYS = [1, 2, 3, 4, 5, 6] as const;
@@ -187,7 +187,7 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeSlot
                             {hours.map(hour => (
                                 <div
                                     key={hour}
-                                    onClick={() => onTimeSlotClick(day.hour(hour).minute(0))}
+                                    onClick={() => onTimeSlotClick?.(day.hour(hour).minute(0))}
                                     style={{
                                         height: HOUR_HEIGHT,
                                         borderBottom: '1px solid var(--cal-border-soft)',

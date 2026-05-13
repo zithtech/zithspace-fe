@@ -9,7 +9,7 @@ interface DayViewProps {
     currentDate: Dayjs;
     events: CalendarEvent[];
     onEventClick: (event: CalendarEvent, occurrenceDate?: Dayjs) => void;
-    onTimeSlotClick: (date: Dayjs) => void;
+    onTimeSlotClick?: (date: Dayjs) => void;
 }
 
 const PALETTE_KEYS = [1, 2, 3, 4, 5, 6] as const;
@@ -183,7 +183,7 @@ export default function DayView({ currentDate, events, onEventClick, onTimeSlotC
                     {hours.map(hour => (
                         <div
                             key={hour}
-                            onClick={() => onTimeSlotClick(currentDate.hour(hour).minute(0))}
+                            onClick={() => onTimeSlotClick?.(currentDate.hour(hour).minute(0))}
                             style={{
                                 height: HOUR_HEIGHT,
                                 borderBottom: '1px solid var(--cal-border-soft)',

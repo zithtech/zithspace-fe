@@ -362,6 +362,7 @@ function CalendarPageContent() {
             />
 
             <EventDrawer
+                event={selectedEvent}
                 open={showDrawer}
                 onClose={() => setShowDrawer(false)}
                  onEdit={handleEditFromDrawer}

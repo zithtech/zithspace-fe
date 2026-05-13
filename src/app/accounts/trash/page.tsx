@@ -93,7 +93,7 @@ export default function AccountTrashPage() {
       render: (text: string, record: Transaction) => (
         <Space direction="vertical" size={0}>
           <Text strong>{text}</Text>
-          <Text type="secondary" size="small">
+          <Text type="secondary" className="text-xs">
             {record.category || "No category"}
           </Text>
         </Space>

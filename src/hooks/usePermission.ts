@@ -244,6 +244,7 @@ export const usePermission = () => {
     canCreateTimesheet:  hasPermission(Permissions.TIMESHEET_CREATE),
     canReadTimesheet:    hasPermission(Permissions.TIMESHEET_READ),
     canUpdateTimesheet:  hasPermission(Permissions.TIMESHEET_UPDATE),
+    canDeleteTimesheet:  hasPermission(Permissions.TIMESHEET_DELETE),
     canApproveTimesheet: hasPermission(Permissions.TIMESHEET_APPROVE),
     canManageTimesheets: hasPermission(Permissions.TIMESHEET_MANAGE),
 

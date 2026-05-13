@@ -260,6 +260,12 @@ function BugRow({
   isNestedInFolder,
 }: BugRowProps) {
   const { open: openTicketDrawer } = useTicketDrawer();
+  const { 
+    canUpdateBug, 
+    canDeleteBug, 
+    canCreateTicket, 
+    canManageBugs 
+  } = usePermission();
   const severity = bug.severity;
   const status = toDisplayStatus(bug.status);
   const creatorName = bug.createdBy?.name || "Unknown";

@@ -700,71 +700,71 @@ export default function LeavesPage() {
               if (key === "apply-leave") router.push("/apply-leave");
             }}
             items={[
-              canReadLeaveDashboard && {
+              ...(canReadLeaveDashboard ? [{
                 key: "dashboard",
                 label: (
                   <span>
                     <AppstoreOutlined /> Dashboard
                   </span>
                 ),
-              },
-              canReadLeave && {
+              }] : []),
+              ...(canReadLeave ? [{
                 key: "leaves",
                 label: (
                   <span>
                     <ClockCircleOutlined /> Apply Leave
                   </span>
                 ),
-              },
-              canReadLeave && {
+              }] : []),
+              ...(canReadLeave ? [{
                 key: "holidays",
                 label: (
                   <span>
                     <ScheduleOutlined /> Government Holidays
                   </span>
                 ),
-              },
-              canManageLeaves && {
+              }] : []),
+              ...(canManageLeaves ? [{
                 key: "adjustments",
                 label: (
                   <span>
                     <EditOutlined /> Leave Adjustment
                   </span>
                 ),
-              },
-              canReadLeaveType && {
+              }] : []),
+              ...(canReadLeaveType ? [{
                 key: "configuration",
                 label: (
                   <span>
                     <SettingOutlined /> Leave Types
                   </span>
                 ),
-              },
-              canReadLeavePolicy && {
+              }] : []),
+              ...(canReadLeavePolicy ? [{
                 key: "positions",
                 label: (
                   <span>
                     <ApartmentOutlined /> Leave Policy
                   </span>
                 ),
-              },
-              canManageLeaves && {
+              }] : []),
+              ...(canManageLeaves ? [{
                 key: "addLeaves",
                 label: (
                   <span>
                     <PlusOutlined /> Add Government Leaves
                   </span>
                 ),
-              },
-              canCreateLeave && {
+              }] : []),
+              ...(canCreateLeave ? [{
                 key: "apply-leave",
                 label: (
                   <span>
                     <PlusOutlined /> apply leave
                   </span>
                 ),
-              },
-            ].filter(Boolean)}
+              }] : []),
+            ]}
           />
           </div>
           {/* My Leave Status Section */}

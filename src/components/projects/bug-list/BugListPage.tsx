@@ -154,7 +154,7 @@ export default function BugListPage() {
     canDeleteBugTrash,
     canReadBugArchive,
     canRestoreBugArchive,
-    canManageBug,
+    canManageBugs,
     canCreateTicket,
   } = usePermission();
 

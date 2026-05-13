@@ -40,11 +40,26 @@ import { usePermission } from '@/hooks/usePermission'
 interface TreeItem extends DocumentTreeNode {
     children?: TreeItem[]
 }
-
-    isDescendantOfDragged: boolean
-    canCreate?: boolean
-    canUpdate?: boolean
-    canDelete?: boolean
+function TreeNode({
+    item,
+    selectedId,
+    onSelect,
+    expandedIds,
+    onToggleExpand,
+    onAddNode,
+    onRenameNode,
+    onDeleteDocument,
+    draggedNodeId,
+    dropTargetId,
+    onDragStartNode,
+    onDragEndNode,
+    onDragOverNode,
+    onDragLeaveNode,
+    onDropNode,
+    isDescendantOfDragged,
+    canCreate,
+    canUpdate,
+    canDelete,
 }: {
     item: TreeItem
     selectedId: string

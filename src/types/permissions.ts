@@ -230,6 +230,7 @@ export const Permissions = {
   TIMESHEET_CREATE:  'timesheet.create',
   TIMESHEET_READ:    'timesheet.read',
   TIMESHEET_UPDATE:  'timesheet.update',
+  TIMESHEET_DELETE:  'timesheet.delete',
   TIMESHEET_APPROVE: 'timesheet.approve',
   TIMESHEET_MANAGE:  'timesheet.manage', // overriding timesheets, setting billing rates, and reporting
 

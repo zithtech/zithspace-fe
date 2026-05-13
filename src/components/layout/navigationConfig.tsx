@@ -180,9 +180,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
       Permissions.TICKET_READ,
+      Permissions.TICKET_PLAN_READ,
+      Permissions.TICKET_BUCKET_READ,
+      Permissions.BUG_READ,
       Permissions.TIMESHEET_READ,
       Permissions.DAILY_UPDATE_READ,
       Permissions.DOCUMENT_READ,
+      Permissions.ESCALATION_READ,
+      Permissions.LEAD_READ,
     ],
     items: [
       {
@@ -192,6 +197,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredAnyPermission: [
           Permissions.PROJECT_READ,
           Permissions.TICKET_READ,
+          Permissions.TICKET_PLAN_READ,
+          Permissions.TICKET_BUCKET_READ,
+          Permissions.BUG_READ,
+          Permissions.TICKET_SETTING_READ,
+          Permissions.TICKET_TRASH_READ,
+          Permissions.TICKET_ARCHIVE_READ,
         ],
         children: [
           {
@@ -825,7 +836,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/salary", "/payouts"],
     defaultPath: "/accounts/accounts-dashboard",
     requiredAnyPermission: [
-      Permissions.TRANSACTION_READ,
+      Permissions.ACCOUNT_READ,
       Permissions.INVOICE_READ,
       Permissions.SALARY_READ,
     ],
@@ -834,22 +845,23 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "/accounts",
         label: "Accounts",
         icon: I(Landmark),
-        requiredPermission: Permissions.TRANSACTION_READ,
+        requiredPermission: Permissions.ACCOUNT_READ,
         children: [
           {
             key: "/accounts",
             label: "Dashboard",
             icon: I(BarChart3),
             path: "/accounts/accounts-dashboard",
-            requiredPermission: Permissions.TRANSACTION_READ,
+            requiredPermission: Permissions.ACCOUNT_READ,
           },
           {
             key: "/accounts/settings",
             label: "Settings",
             icon: I(Settings),
             path: "/accounts/settings",
-            requiredPermission: Permissions.TRANSACTION_MANAGE,
+            requiredPermission: Permissions.ACCOUNT_SETTING_READ,
           },
+
         ],
       },
       {

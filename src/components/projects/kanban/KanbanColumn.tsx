@@ -17,6 +17,12 @@ interface KanbanColumnProps {
   kanbanScope?: 'active' | 'backlog';
   onSprintAssignment?: (ticketId: string, action: 'add' | 'remove') => void;
   onTicketClick?: (ticketId: string) => void;
+  permissions?: {
+    canUpdateTicket: boolean;
+    canDeleteTicket: boolean;
+    canAssignTicket: boolean;
+    canManageTickets: boolean;
+  };
 }
 
 const STATUS_ACCENT: Record<string, string> = {
@@ -57,6 +63,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   kanbanScope,
   onSprintAssignment,
   onTicketClick,
+  permissions,
 }) => {
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -95,6 +102,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
                 kanbanScope={kanbanScope}
                 onSprintAssignment={onSprintAssignment}
                 onClick={onTicketClick ? () => onTicketClick(ticket.id) : undefined}
+                permissions={permissions}
               />
             ))
           )}

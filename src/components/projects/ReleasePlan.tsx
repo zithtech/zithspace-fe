@@ -48,6 +48,7 @@ import ReleasePlanService, {
 } from "@/services/releasePlanService";
 import { ProjectService } from "@/services/projectService";
 import { SprintCompletionModal } from "./sprint-completion";
+import { usePermission } from "@/hooks/usePermission";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -60,6 +61,12 @@ export default function ReleasePlanComponent() {
   const [api, contextHolder] = notification.useNotification({
     placement: 'top',
   });
+  const {
+    canCreateTicketPlan,
+    canReadTicketPlan,
+    canUpdateTicketPlan,
+    canDeleteTicketPlan
+  } = usePermission();
 
   // State management
   const [releasePlans, setReleasePlans] = useState<ReleasePlan[]>([]);
@@ -543,7 +550,7 @@ export default function ReleasePlanComponent() {
       width: 180,
       render: (_: any, record: ReleasePlan) => (
         <Space size="small">
-          {activeTab === 'sprint_plan' && record.status === 'planning' && (
+          {activeTab === 'sprint_plan' && record.status === 'planning' && canUpdateTicketPlan && (
              <Popconfirm
                 title="Start Sprint"
                 description="Are you sure you want to start this sprint? This will be the active sprint for the project."
@@ -560,7 +567,7 @@ export default function ReleasePlanComponent() {
               </Tooltip>
             </Popconfirm>
           )}
-          {activeTab === 'sprint_plan' && record.status === 'active' && (
+          {activeTab === 'sprint_plan' && record.status === 'active' && canUpdateTicketPlan && (
             <Tooltip title="Complete Sprint">
               <Button
                 type="text"
@@ -571,14 +578,16 @@ export default function ReleasePlanComponent() {
             </Tooltip>
           )}
 
-          <Tooltip title="Edit">
-            <Button
-              type="link"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
+          {canUpdateTicketPlan && (
+            <Tooltip title="Edit">
+              <Button
+                type="link"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => handleEdit(record)}
+              />
+            </Tooltip>
+          )}
           <Tooltip title="View Tickets">
             <Button
               type="link"
@@ -587,22 +596,24 @@ export default function ReleasePlanComponent() {
               onClick={() => handleViewTickets(record)}
             />
           </Tooltip>
-          <Popconfirm
-            title="Delete Plans"
-            description="Are you sure you want to delete this Plans?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Tooltip title="Delete">
-              <Button
-                type="link"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-              />
-            </Tooltip>
-          </Popconfirm>
+          {canDeleteTicketPlan && (
+            <Popconfirm
+              title="Delete Plans"
+              description="Are you sure you want to delete this Plans?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Yes"
+              cancelText="No"
+            >
+              <Tooltip title="Delete">
+                <Button
+                  type="link"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -627,13 +638,15 @@ export default function ReleasePlanComponent() {
             >
               Refresh
             </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setShowCreateModal(true)}
-            >
-              Create Plans
-            </Button>
+            {canCreateTicketPlan && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setShowCreateModal(true)}
+              >
+                Create Plans
+              </Button>
+            )}
           </Space>
         </Col>
       </Row>

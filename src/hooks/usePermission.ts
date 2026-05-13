@@ -48,12 +48,18 @@ export const usePermission = () => {
     canUpdateTicketBucket: hasPermission(Permissions.TICKET_BUCKET_UPDATE),
     canDeleteTicketBucket: hasPermission(Permissions.TICKET_BUCKET_DELETE),
     canReadTicketSetting:   hasPermission(Permissions.TICKET_SETTING_READ),
+    canCreateTicketSetting: hasPermission(Permissions.TICKET_SETTING_CREATE),
     canUpdateTicketSetting: hasPermission(Permissions.TICKET_SETTING_UPDATE),
+    canDeleteTicketSetting: hasPermission(Permissions.TICKET_SETTING_DELETE),
     canReadTicketTrash:    hasPermission(Permissions.TICKET_TRASH_READ),
     canRestoreTicketTrash: hasPermission(Permissions.TICKET_TRASH_RESTORE),
     canDeleteTicketTrash:  hasPermission(Permissions.TICKET_TRASH_DELETE),
     canReadTicketArchive:    hasPermission(Permissions.TICKET_ARCHIVE_READ),
     canRestoreTicketArchive: hasPermission(Permissions.TICKET_ARCHIVE_RESTORE),
+    canCreateTicketPlan: hasPermission(Permissions.TICKET_PLAN_CREATE),
+    canReadTicketPlan:   hasPermission(Permissions.TICKET_PLAN_READ),
+    canUpdateTicketPlan: hasPermission(Permissions.TICKET_PLAN_UPDATE),
+    canDeleteTicketPlan: hasPermission(Permissions.TICKET_PLAN_DELETE),
     canManageTickets: hasPermission(Permissions.TICKET_MANAGE),
 
     // ─── Attendance ─────────────────────────────────────────────────
@@ -131,14 +137,15 @@ export const usePermission = () => {
     canReadAccount:          hasPermission(Permissions.ACCOUNT_READ),
     canUpdateAccount:        hasPermission(Permissions.ACCOUNT_UPDATE),
     canDeleteAccount:        hasPermission(Permissions.ACCOUNT_DELETE),
-    canCreateAccountConfig:  hasPermission(Permissions.ACCOUNT_CONFIG_CREATE),
-    canReadAccountConfig:    hasPermission(Permissions.ACCOUNT_CONFIG_READ),
-    canUpdateAccountConfig:  hasPermission(Permissions.ACCOUNT_CONFIG_UPDATE),
-    canDeleteAccountConfig:  hasPermission(Permissions.ACCOUNT_CONFIG_DELETE),
-    canReadAccountTrash:     hasPermission(Permissions.ACCOUNT_TRASH_READ),
-    canUpdateAccountTrash:   hasPermission(Permissions.ACCOUNT_TRASH_UPDATE),
-    canRestoreAccountTrash:  hasPermission(Permissions.ACCOUNT_TRASH_UPDATE),
-    canDeleteAccountTrash:   hasPermission(Permissions.ACCOUNT_TRASH_DELETE),
+    canCreateAccountConfig:  hasPermission(Permissions.ACCOUNT_SETTING_CREATE),
+    canReadAccountConfig:    hasPermission(Permissions.ACCOUNT_SETTING_READ),
+    canUpdateAccountConfig:  hasPermission(Permissions.ACCOUNT_SETTING_UPDATE),
+    canDeleteAccountConfig:  hasPermission(Permissions.ACCOUNT_SETTING_DELETE),
+    canCreateAccountSetting:  hasPermission(Permissions.ACCOUNT_SETTING_CREATE),
+    canReadAccountSetting:    hasPermission(Permissions.ACCOUNT_SETTING_READ),
+    canUpdateAccountSetting:  hasPermission(Permissions.ACCOUNT_SETTING_UPDATE),
+    canDeleteAccountSetting:  hasPermission(Permissions.ACCOUNT_SETTING_DELETE),
+
 
     // ─── Clients ────────────────────────────────────────────────────
     canCreateClient: hasPermission(Permissions.CLIENT_CREATE),
@@ -347,6 +354,13 @@ export const usePermission = () => {
     canManageProfile: hasPermission(Permissions.PROFILE_MANAGE),
 
     // ─── Squads ─────────────────────────────────────────────────────
+    canCreateSquad: hasPermission(Permissions.SQUAD_CREATE),
+    canReadSquad:   hasPermission(Permissions.SQUAD_READ),
+    canUpdateSquad: hasPermission(Permissions.SQUAD_UPDATE),
+    canDeleteSquad: hasPermission(Permissions.SQUAD_DELETE),
+    canManageSquads: hasPermission(Permissions.SQUAD_MANAGE),
+
+    // ─── Bug List (QA workspace; converts to tickets) ────────────────
     canCreateBug: hasPermission(Permissions.BUG_CREATE),
     canReadBug:   hasPermission(Permissions.BUG_READ),
     canUpdateBug: hasPermission(Permissions.BUG_UPDATE),

@@ -74,7 +74,10 @@ import type {
   UpdateBugInput,
 } from "@/services/bugListService";
 import { useTheme } from "@/context/ThemeContext";
+import { usePermission } from "@/hooks/usePermission";
 import { hivebugStyles } from "./hivebug-styles";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 const SEVERITY_OPTS: BugSeverity[] = ["blocker", "critical", "major", "minor"];
 const STATUS_OPTS: BugStatus[] = ["new", "converted", "ignored", "verified", "reopened"];
@@ -105,6 +108,27 @@ export default function BugListPage() {
   const [limit, setLimit] = useState(25);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { theme } = useTheme();
+  const router = useRouter();
+  const { isLoading: authLoading } = useAuth();
+  const {
+    canCreateBug,
+    canReadBug,
+    canUpdateBug,
+    canDeleteBug,
+    canReadBugTrash,
+    canRestoreBugTrash,
+    canDeleteBugTrash,
+    canReadBugArchive,
+    canRestoreBugArchive,
+    canManageBug,
+    canCreateTicket,
+  } = usePermission();
+
+  useEffect(() => {
+    if (!authLoading && !canReadBug) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, canReadBug, router]);
 
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState<BugFolder | null>(null);
@@ -341,6 +365,10 @@ export default function BugListPage() {
     [bugs, selectedIds]
   );
 
+  if (authLoading || !canReadBug) {
+    return null;
+  }
+
   return (
     <div className={`hb-root ${theme === "dark" ? "hb-dark" : "hb-light"}`}>
       <style>{hivebugStyles}</style>
@@ -476,7 +504,7 @@ export default function BugListPage() {
               </button>
             </Tooltip>
 
-            {selectedSheetId && (
+            {selectedSheetId && canCreateBug && (
               <button
                 className="hb-btn hb-btn-primary"
                 onClick={openCreateBug}
@@ -724,7 +752,7 @@ export default function BugListPage() {
         </div>
         )}
 
-        {selectedSheetId && (
+        {selectedSheetId && canCreateBug && (
           <div className="hb-quickadd">
             <Plus size={14} />
             <input
@@ -767,13 +795,15 @@ export default function BugListPage() {
                 </>
               ) : (
                 <>
-                  <button
-                    className="hb-btn hb-btn-primary"
-                    onClick={() => setBulkTicketOpen(true)}
-                  >
-                    <Sparkles size={13} />
-                    Create ticket{selectedIds.size === 1 ? "" : "s"}
-                  </button>
+                  {canCreateTicket && (
+                    <button
+                      className="hb-btn hb-btn-primary"
+                      onClick={() => setBulkTicketOpen(true)}
+                    >
+                      <Sparkles size={13} />
+                      Create ticket{selectedIds.size === 1 ? "" : "s"}
+                    </button>
+                  )}
                   <button
                     className="hb-btn hb-btn-ghost"
                     onClick={() =>
@@ -791,8 +821,13 @@ export default function BugListPage() {
                     okText="Move to Trash"
                     okButtonProps={{ danger: true }}
                     onConfirm={() => bulkDelete.mutate(Array.from(selectedIds))}
+                    disabled={!canDeleteBug}
                   >
-                    <button className="hb-btn hb-btn-danger">
+                    <button 
+                      className="hb-btn hb-btn-danger"
+                      disabled={!canDeleteBug}
+                      style={{ opacity: canDeleteBug ? 1 : 0.5, cursor: canDeleteBug ? 'pointer' : 'not-allowed' }}
+                    >
                       <Trash2 size={13} />
                       Move to Trash
                     </button>

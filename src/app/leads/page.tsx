@@ -98,7 +98,14 @@ const { Text, Title } = Typography;
 export default function LeadsPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const { canReadLead } = usePermission();
+  const { 
+    canReadLead, 
+    canCreateLead, 
+    canUpdateLead, 
+    canDeleteLead, 
+    canManageLeads,
+    canCreateProposal 
+  } = usePermission();
 
   const [form] = Form.useForm();
   const { message: messageApi, modal } = App.useApp();
@@ -458,52 +465,10 @@ export default function LeadsPage() {
       width: 100,
       align: "center" as const,
       render: (_: unknown, record: Lead) => (
-        <Button
-          type="link"
-          icon={<Zap size={16} />}
-          onClick={(e) => { e.stopPropagation(); router.push(`/leads/bidiq/${record.id}`); }}
-          onMouseDown={(e) => e.stopPropagation()}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            color: "var(--premium-blue)",
-            fontWeight: 700,
-            fontSize: 13,
-            padding: 0
-          }}
-        >
-          Bidiq
-        </Button>
-      ),
-    },
-    {
-      title: "Proposal",
-      key: "proposal",
-      width: 140,
-      render: (_: unknown, record: Lead) => (
-        record.proposal_id ? (
+        canManageLeads && (
           <Button
             type="link"
-            icon={<FileText size={16} />}
-            onClick={(e) => { e.stopPropagation(); router.push(`/proposals/${record.proposal_id}`); }}
-            onMouseDown={(e) => e.stopPropagation()}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              color: "#10b981",
-              fontWeight: 700,
-              fontSize: 13,
-              padding: 0
-            }}
-          >
-            View Proposal
-          </Button>
-        ) : (
-          <Button
-            type="link"
-            icon={<Sparkles size={16} />}
+            icon={<Zap size={16} />}
             onClick={(e) => { e.stopPropagation(); router.push(`/leads/bidiq/${record.id}`); }}
             onMouseDown={(e) => e.stopPropagation()}
             style={{
@@ -516,8 +481,54 @@ export default function LeadsPage() {
               padding: 0
             }}
           >
-            Generate
+            Bidiq
           </Button>
+        )
+      ),
+    },
+    {
+      title: "Proposal",
+      key: "proposal",
+      width: 140,
+      render: (_: unknown, record: Lead) => (
+        canCreateProposal && (
+          record.proposal_id ? (
+            <Button
+              type="link"
+              icon={<FileText size={16} />}
+              onClick={(e) => { e.stopPropagation(); router.push(`/proposals/${record.proposal_id}`); }}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                color: "#10b981",
+                fontWeight: 700,
+                fontSize: 13,
+                padding: 0
+              }}
+            >
+              View Proposal
+            </Button>
+          ) : (
+            <Button
+              type="link"
+              icon={<Sparkles size={16} />}
+              onClick={(e) => { e.stopPropagation(); router.push(`/leads/bidiq/${record.id}`); }}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                color: "var(--premium-blue)",
+                fontWeight: 700,
+                fontSize: 13,
+                padding: 0
+              }}
+            >
+              Generate
+            </Button>
+          )
         )
       ),
     },
@@ -533,21 +544,21 @@ export default function LeadsPage() {
             label: 'View Details',
             icon: <Eye size={16} />,
           },
-          {
+          canUpdateLead && {
             key: 'edit',
             label: 'Edit Lead',
             icon: <Settings2 size={16} />,
           },
-          {
+          (canUpdateLead || canDeleteLead) && {
             type: 'divider',
           },
-          {
+          canDeleteLead && {
             key: 'delete',
             label: 'Delete Lead',
             danger: true,
             icon: <Trash2 size={16} />,
           }
-        ];
+        ].filter(Boolean) as MenuProps['items'];
 
         return (
           <Dropdown
@@ -891,35 +902,37 @@ export default function LeadsPage() {
                 }}
                 onChange={(e) => setSearchText(e.target.value)}
               />
-              <Button
-                type="primary"
-                size="small"
-                icon={<Plus size={14} />}
-                style={{
-                  borderRadius: 6,
-                  height: 32,
-                  fontWeight: 700,
-                  display: "flex",
-                  alignItems: "center",
-                  background: "#6366f1",
-                  border: "none",
-                  boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
-                  padding: "0 12px",
-                  fontSize: 13
-                }}
-                onClick={() => {
-                  setEditingKey(null);
-                  form.resetFields();
-                  form.setFieldsValue({ platform: 'Upwork', customPlatform: '' });
-                  const defaultStatus = configStatuses.find(s => s.is_default);
-                  if (defaultStatus) {
-                    form.setFieldsValue({ status: defaultStatus.name });
-                  }
-                  setIsDrawerVisible(true);
-                }}
-              >
-                New Lead
-              </Button>
+              {canCreateLead && (
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<Plus size={14} />}
+                  style={{
+                    borderRadius: 6,
+                    height: 32,
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    background: "#6366f1",
+                    border: "none",
+                    boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
+                    padding: "0 12px",
+                    fontSize: 13
+                  }}
+                  onClick={() => {
+                    setEditingKey(null);
+                    form.resetFields();
+                    form.setFieldsValue({ platform: 'Upwork', customPlatform: '' });
+                    const defaultStatus = configStatuses.find(s => s.is_default);
+                    if (defaultStatus) {
+                      form.setFieldsValue({ status: defaultStatus.name });
+                    }
+                    setIsDrawerVisible(true);
+                  }}
+                >
+                  New Lead
+                </Button>
+              )}
             </div>
           </div>
 
@@ -1387,27 +1400,29 @@ export default function LeadsPage() {
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <Button onClick={() => setIsDrawerVisible(false)} style={{ borderRadius: 10, height: 40, fontWeight: 600, padding: "0 18px" }} className="premium-btn-cancel">Cancel</Button>
-                <Button
-                  type="primary"
-                  loading={loading}
-                  onClick={() => form.submit()}
-                  className="lead-drawer-submit"
-                  style={{
-                    borderRadius: 10,
-                    height: 40,
-                    padding: "0 22px",
-                    background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                    border: "none",
-                    fontWeight: 700,
-                    boxShadow: "0 6px 16px -4px rgba(99, 102, 241, 0.45)",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  {editingKey ? "Update Lead" : "Create Lead"}
-                  <ArrowUpRight size={15} />
-                </Button>
+                  {((editingKey && canUpdateLead) || (!editingKey && canCreateLead)) && (
+                    <Button
+                      type="primary"
+                      loading={loading}
+                      onClick={() => form.submit()}
+                      className="lead-drawer-submit"
+                      style={{
+                        borderRadius: 10,
+                        height: 40,
+                        padding: "0 22px",
+                        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                        border: "none",
+                        fontWeight: 700,
+                        boxShadow: "0 6px 16px -4px rgba(99, 102, 241, 0.45)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      {editingKey ? "Update Lead" : "Create Lead"}
+                      <ArrowUpRight size={15} />
+                    </Button>
+                  )}
               </div>
             </div>
           }

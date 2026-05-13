@@ -65,6 +65,8 @@ import {
   CloseCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import dayjs from "dayjs";
 import TicketService, { Ticket } from "@/services/ticketService";
 import { ProjectService } from "@/services/projectService";
@@ -112,6 +114,16 @@ interface TicketListProps {
 }
 
 export default function TicketList({ projectId, projectName, projectCode }: TicketListProps) {
+  const { user } = useAuth();
+  const { 
+    canCreateTicket, 
+    canReadTicket, 
+    canUpdateTicket, 
+    canDeleteTicket, 
+    canAssignTicket,
+    canManageTickets,
+    canCreateTicketPlan 
+  } = usePermission();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { message, modal, notification } = App.useApp();
@@ -789,8 +801,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         return (
           <div
             className="group"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', minHeight: 24 }}
-            onClick={() => setEditingField({ ticketId: record.id, field: "title" })}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: canUpdateTicket ? 'pointer' : 'default', minHeight: 24 }}
+            onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "title" })}
             title={text}
           >
             <Text
@@ -805,10 +817,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             >
               {text}
             </Text>
-            <EditOutlined
-              className="opacity-0 group-hover:opacity-40 transition-opacity"
-              style={{ color: 'var(--premium-blue)', fontSize: 12 }}
-            />
+            {canUpdateTicket && (
+              <EditOutlined
+                className="opacity-0 group-hover:opacity-40 transition-opacity"
+                style={{ color: 'var(--premium-blue)', fontSize: 12 }}
+              />
+            )}
           </div>
         );
 
@@ -844,9 +858,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         return (
           <Tag
             className={`saas-tag ${getStatusColorClass(status)}`}
-            style={{ cursor: "pointer", display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 80 }}
+            style={{ cursor: canUpdateTicket ? "pointer" : "default", display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 80 }}
             onClick={() =>
-              setEditingField({ ticketId: record.id, field: "status" })
+              canUpdateTicket && setEditingField({ ticketId: record.id, field: "status" })
             }
           >
             {getStatusLabel(status, finalStatusOptions)}
@@ -888,8 +902,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         return (
           <Tag
             className={`saas-tag ${getPriorityColorClass(priority)}`}
-            style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-            onClick={() => setEditingField({ ticketId: record.id, field: "priority" })}
+            style={{ cursor: canUpdateTicket ? 'pointer' : 'default', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "priority" })}
           >
             <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'currentColor' }} />
             {priority}
@@ -946,10 +960,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         return (
           <Space
-            style={{ cursor: "pointer", transition: 'all 0.2s' }}
-            className="hover:translate-x-1"
+            style={{ cursor: canUpdateTicket ? "pointer" : "default", transition: 'all 0.2s' }}
+            className={canUpdateTicket ? "hover:translate-x-1" : ""}
             onClick={() =>
-              setEditingField({ ticketId: record.id, field: "assignee" })
+              canUpdateTicket && setEditingField({ ticketId: record.id, field: "assignee" })
             }
           >
             <Avatar
@@ -997,13 +1011,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         }
 
         if (!type) {
-          return <Text type="secondary" style={{ cursor: 'pointer', fontSize: 13 }} onClick={() => setEditingField({ ticketId: record.id, field: "type" })}>-</Text>;
+          return <Text type="secondary" style={{ cursor: canUpdateTicket ? 'pointer' : 'default', fontSize: 13 }} onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "type" })}>-</Text>;
         }
         return (
           <Tag
             className={`saas-tag ${getTypeColorClass(type)}`}
-            style={{ cursor: 'pointer' }}
-            onClick={() => setEditingField({ ticketId: record.id, field: "type" })}
+            style={{ cursor: canUpdateTicket ? 'pointer' : 'default' }}
+            onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "type" })}
           >
             {type}
           </Tag>
@@ -1074,7 +1088,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         return (
           <Space size={4}>
             {/* Context based actions */}
-            {context === 'backlog' && (
+            {context === 'backlog' && canUpdateTicket && (
               <Tooltip title="Add to Sprint">
                 <Button
                   type="text"
@@ -1085,7 +1099,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 />
               </Tooltip>
             )}
-            {context === 'active' && (
+            {context === 'active' && canUpdateTicket && (
               <Tooltip title="Remove from Sprint">
                 <Button
                   type="text"
@@ -1119,7 +1133,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     icon: <ShareAltOutlined />,
                     onClick: handleShare
                   },
-                  {
+                  canDeleteTicket && {
                     key: 'delete',
                     label: 'Delete Ticket',
                     icon: <DeleteOutlined />,
@@ -1144,7 +1158,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       });
                     }
                   }
-                ]
+                ].filter(Boolean) as any
               }}
               trigger={['click']}
             >
@@ -1366,54 +1380,56 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             />
           </Tooltip>
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'manual',
-                  label: 'Manual Creation',
-                  icon: <FileTextOutlined />,
-                  onClick: () => setManualModalOpen(true)
-                },
-                {
-                  key: 'instant',
-                  label: 'Instant Creation',
-                  icon: <ThunderboltOutlined />,
-                  onClick: () => setShowCreateForm(true)
-                },
-                {
-                  key: 'zai',
-                  label: (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
-                      Create with Zai
-                      <Tag color="purple" bordered={false} style={{ margin: 0, fontSize: 9 }}>AI</Tag>
-                    </div>
-                  ),
-                  icon: <ThunderboltOutlined style={{ color: '#722ed1' }} />,
-                  onClick: () => setAiModalOpen(true)
-                }
-              ],
-              style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
-            }}
-            trigger={['hover', 'click']}
-            placement="bottomRight"
-          >
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              style={{
-                height: 36,
-                borderRadius: 8,
-                fontWeight: 700,
-                padding: '0 16px',
-                background: 'var(--premium-gradient)',
-                border: 'none',
-                boxShadow: 'var(--premium-shadow-lg)'
+          {canCreateTicket && (
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'manual',
+                    label: 'Manual Creation',
+                    icon: <FileTextOutlined />,
+                    onClick: () => setManualModalOpen(true)
+                  },
+                  {
+                    key: 'instant',
+                    label: 'Instant Creation',
+                    icon: <ThunderboltOutlined />,
+                    onClick: () => setShowCreateForm(true)
+                  },
+                  {
+                    key: 'zai',
+                    label: (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                        Create with Zai
+                        <Tag color="purple" bordered={false} style={{ margin: 0, fontSize: 9 }}>AI</Tag>
+                      </div>
+                    ),
+                    icon: <ThunderboltOutlined style={{ color: '#722ed1' }} />,
+                    onClick: () => setAiModalOpen(true)
+                  }
+                ],
+                style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
               }}
+              trigger={['hover', 'click']}
+              placement="bottomRight"
             >
-              Create Ticket <CaretDownOutlined style={{ fontSize: 10, marginLeft: 4 }} />
-            </Button>
-          </Dropdown>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                style={{
+                  height: 36,
+                  borderRadius: 8,
+                  fontWeight: 700,
+                  padding: '0 16px',
+                  background: 'var(--premium-gradient)',
+                  border: 'none',
+                  boxShadow: 'var(--premium-shadow-lg)'
+                }}
+              >
+                Create Ticket <CaretDownOutlined style={{ fontSize: 10, marginLeft: 4 }} />
+              </Button>
+            </Dropdown>
+          )}
         </Space>
       </div>
 
@@ -1640,46 +1656,50 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     <Space size={12} split={<Divider type="vertical" style={{ height: 20, margin: 0, opacity: 1, borderColor: '#e2e8f0', borderWidth: 1 }} />}>
                       {activeSelectedRowKeys.length > 0 ? (
                         <>
-                          <Button
-                            type="primary"
-                            size="small"
-                            icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
-                            onClick={() => bulkArchiveMutation.mutate(activeSelectedRowKeys as string[])}
-                            style={{ 
-                              background: 'var(--premium-blue)', 
-                              borderColor: 'var(--premium-blue)', 
-                              fontWeight: 800, 
-                              borderRadius: 4, 
-                              height: 24, 
-                              fontSize: 10,
-                              textTransform: 'uppercase'
-                            }}
-                          >
-                            Move to Archive
-                          </Button>
-                          <Button
-                            danger
-                            size="small"
-                            icon={<DeleteOutlined style={{ fontSize: 11 }} />}
-                            onClick={() => {
-                              modal.confirm({
-                                title: 'Move to Trash',
-                                content: `Are you sure you want to move ${activeSelectedRowKeys.length} selected tickets to trash?`,
-                                okText: 'Move to Trash',
-                                okType: 'danger',
-                                onOk: () => bulkDeleteMutation.mutate(activeSelectedRowKeys as string[])
-                              });
-                            }}
-                            style={{ 
-                              fontWeight: 800, 
-                              borderRadius: 4, 
-                              height: 24, 
-                              fontSize: 10,
-                              textTransform: 'uppercase'
-                            }}
-                          >
-                            Delete
-                          </Button>
+                          {canManageTickets && (
+                            <Button
+                              type="primary"
+                              size="small"
+                              icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
+                              onClick={() => bulkArchiveMutation.mutate(activeSelectedRowKeys as string[])}
+                              style={{ 
+                                background: 'var(--premium-blue)', 
+                                borderColor: 'var(--premium-blue)', 
+                                fontWeight: 800, 
+                                borderRadius: 4, 
+                                height: 24, 
+                                fontSize: 10,
+                                textTransform: 'uppercase'
+                              }}
+                            >
+                              Move to Archive
+                            </Button>
+                          )}
+                          {canDeleteTicket && (
+                            <Button
+                              danger
+                              size="small"
+                              icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                              onClick={() => {
+                                modal.confirm({
+                                  title: 'Move to Trash',
+                                  content: `Are you sure you want to move ${activeSelectedRowKeys.length} selected tickets to trash?`,
+                                  okText: 'Move to Trash',
+                                  okType: 'danger',
+                                  onOk: () => bulkDeleteMutation.mutate(activeSelectedRowKeys as string[])
+                                });
+                              }}
+                              style={{ 
+                                fontWeight: 800, 
+                                borderRadius: 4, 
+                                height: 24, 
+                                fontSize: 10,
+                                textTransform: 'uppercase'
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          )}
                         </>
                       ) : (
                         <>
@@ -1744,16 +1764,18 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       >
                         Go To Backlogs
                       </Button>
-                      <Button
-                        type="primary"
-                        size="middle"
-                        icon={<CheckCircleOutlined />}
-                        onClick={handleCompleteSprint}
-                        className="saas-button-item"
-                        style={{ height: 32, background: '#10b981', borderColor: '#10b981' }}
-                      >
-                        Complete Sprint
-                      </Button>
+                      {canManageTickets && (
+                        <Button
+                          type="primary"
+                          size="middle"
+                          icon={<CheckCircleOutlined />}
+                          onClick={handleCompleteSprint}
+                          className="saas-button-item"
+                          style={{ height: 32, background: '#10b981', borderColor: '#10b981' }}
+                        >
+                          Complete Sprint
+                        </Button>
+                      )}
                     </Space>
                   </div>
                 }
@@ -1815,46 +1837,50 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     />
                     {backlogSelectedRowKeys.length > 0 && (
                       <Space size={8}>
-                        <Button
-                          type="primary"
-                          size="small"
-                          icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
-                          onClick={() => bulkArchiveMutation.mutate(backlogSelectedRowKeys as string[])}
-                          style={{ 
-                            background: 'var(--premium-blue)', 
-                            borderColor: 'var(--premium-blue)', 
-                            fontWeight: 800, 
-                            height: 24, 
-                            fontSize: 10, 
-                            borderRadius: 4,
-                            textTransform: 'uppercase'
-                          }}
-                        >
-                          Move to Archive
-                        </Button>
-                        <Button
-                          danger
-                          size="small"
-                          icon={<DeleteOutlined style={{ fontSize: 11 }} />}
-                          onClick={() => {
-                            modal.confirm({
-                              title: 'Move to Trash',
-                              content: `Are you sure you want to move ${backlogSelectedRowKeys.length} selected tickets to trash?`,
-                              okText: 'Move to Trash',
-                              okType: 'danger',
-                              onOk: () => bulkDeleteMutation.mutate(backlogSelectedRowKeys as string[])
-                            });
-                          }}
-                          style={{ 
-                            fontWeight: 800, 
-                            height: 24, 
-                            fontSize: 10, 
-                            borderRadius: 4,
-                            textTransform: 'uppercase'
-                          }}
-                        >
-                          Delete
-                        </Button>
+                        {canManageTickets && (
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
+                            onClick={() => bulkArchiveMutation.mutate(backlogSelectedRowKeys as string[])}
+                            style={{ 
+                              background: 'var(--premium-blue)', 
+                              borderColor: 'var(--premium-blue)', 
+                              fontWeight: 800, 
+                              height: 24, 
+                              fontSize: 10, 
+                              borderRadius: 4,
+                              textTransform: 'uppercase'
+                            }}
+                          >
+                            Move to Archive
+                          </Button>
+                        )}
+                        {canDeleteTicket && (
+                          <Button
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                            onClick={() => {
+                              modal.confirm({
+                                title: 'Move to Trash',
+                                content: `Are you sure you want to move ${backlogSelectedRowKeys.length} selected tickets to trash?`,
+                                okText: 'Move to Trash',
+                                okType: 'danger',
+                                onOk: () => bulkDeleteMutation.mutate(backlogSelectedRowKeys as string[])
+                              });
+                            }}
+                            style={{ 
+                              fontWeight: 800, 
+                              height: 24, 
+                              fontSize: 10, 
+                              borderRadius: 4,
+                              textTransform: 'uppercase'
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        )}
                       </Space>
                     )}
                     <Input
@@ -1876,15 +1902,17 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     >
                       Go To Sprint
                     </Button>
-                    <Button
-                      type="default"
-                      icon={<PlusOutlined />}
-                      onClick={() => setCreateSprintModalOpen(true)}
-                      className="saas-button-item"
-                      style={{ height: 32, fontWeight: 600 }}
-                    >
-                      New Sprint
-                    </Button>
+                    {canCreateTicketPlan && (
+                      <Button
+                        type="default"
+                        icon={<PlusOutlined />}
+                        onClick={() => setCreateSprintModalOpen(true)}
+                        className="saas-button-item"
+                        style={{ height: 32, fontWeight: 600 }}
+                      >
+                        New Sprint
+                      </Button>
+                    )}
                   </Space>
 
                 </div>
@@ -1928,6 +1956,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               filters={filters}
               onFilterChange={handleFilterChange}
               onTicketClick={setSelectedTicketId}
+              permissions={{ canUpdateTicket, canDeleteTicket, canAssignTicket, canManageTickets }}
             />
           ) : (
             <Card className="saas-card"><Empty description="No tickets found" /></Card>

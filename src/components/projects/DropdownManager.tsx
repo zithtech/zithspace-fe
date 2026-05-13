@@ -45,6 +45,7 @@ import {
 } from "@ant-design/icons";
 import { SettingsService, DropdownOption, CreateDropdownOptionData, UpdateDropdownOptionData } from '@/services/settingsService';
 import { useSocket } from "@/providers/SocketProvider";
+import { usePermission } from "@/hooks/usePermission";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -63,6 +64,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'hidden'>('all');
   const { socket, connected } = useSocket();
+  const { canCreateTicketSetting, canUpdateTicketSetting, canDeleteTicketSetting } = usePermission();
 
   // State for dropdown options grouped by type
   const [dropdownOptions, setDropdownOptions] = useState<Record<string, DropdownOption[]>>({});
@@ -118,6 +120,10 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   };
 
   const handleCreate = () => {
+    if (!canCreateTicketSetting) {
+      message.error("You don't have permission to create configurations");
+      return;
+    }
     setEditingOption(null);
     form.resetFields();
     form.setFieldsValue({ type: activeTab, isActive: true, order: getNextOrder(activeTab) });
@@ -125,6 +131,10 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   };
 
   const handleEdit = (option: DropdownOption) => {
+    if (!canUpdateTicketSetting) {
+      message.error("You don't have permission to update configurations");
+      return;
+    }
     setEditingOption(option);
     form.setFieldsValue({
       ...option,
@@ -646,6 +656,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           checked={isActive}
           onChange={() => handleToggleStatus(record)}
           loading={loading}
+          disabled={!canUpdateTicketSetting}
           className="premium-switch"
         />
       )
@@ -662,6 +673,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               type="text"
               icon={<EditOutlined />}
               onClick={() => handleEdit(record)}
+              disabled={!canUpdateTicketSetting}
               className="action-btn-edit"
             />
           </Tooltip>
@@ -678,6 +690,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               type="text"
               icon={<DeleteOutlined />}
               danger
+              disabled={!canDeleteTicketSetting}
               className="action-btn-delete"
             />
           </Popconfirm>
@@ -816,7 +829,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                     </div>
                     <div className="dm-hero-right">
                       <Space size={8}>
-                        {type.key === 'status' && (
+                        {type.key === 'status' && canUpdateTicketSetting && (
                           <Button
                             icon={<ThunderboltOutlined />}
                             onClick={handleStandardizeLifecycles}
@@ -826,18 +839,20 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                             Synchronize
                           </Button>
                         )}
-                        <Button
-                          type="primary"
-                          icon={<PlusOutlined />}
-                          onClick={handleCreate}
-                          className="dm-primary-btn"
-                          style={{
-                            background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}d9 100%)`,
-                            boxShadow: `0 6px 14px ${type.color}40`,
-                          }}
-                        >
-                          New Definition
-                        </Button>
+                        {canCreateTicketSetting && (
+                          <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            onClick={handleCreate}
+                            className="dm-primary-btn"
+                            style={{
+                              background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}d9 100%)`,
+                              boxShadow: `0 6px 14px ${type.color}40`,
+                            }}
+                          >
+                            New Definition
+                          </Button>
+                        )}
                       </Space>
                     </div>
                   </div>
@@ -919,7 +934,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                               ? 'Try a different search term or clear your filters.'
                               : `Create your first ${type.label.toLowerCase().replace(/s$/, '')} definition to get started.`}
                           </div>
-                          {!(searchQuery || filterStatus !== 'all') && (
+                          {canCreateTicketSetting && (
                             <Button
                               type="primary"
                               icon={<PlusOutlined />}

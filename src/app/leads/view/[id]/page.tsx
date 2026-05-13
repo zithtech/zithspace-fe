@@ -59,8 +59,8 @@ import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import dayjs from "dayjs";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import relativeTime from "dayjs/plugin/relativeTime";
-
 dayjs.extend(relativeTime);
 
 const { Title, Text } = Typography;
@@ -79,6 +79,15 @@ export default function LeadProfilePage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [initForm] = Form.useForm();
 
+
+  const { canReadLead, canManageLeads } = usePermission();
+
+  // ─── Route Guard ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!loading && user && !canReadLead) {
+      router.push("/dashboard");
+    }
+  }, [user, loading, canReadLead, router]);
 
   useEffect(() => {
     if (params.id) {
@@ -241,38 +250,40 @@ export default function LeadProfilePage() {
                   >
                     Analyze Lead
                   </Button> */}
-                  <Button
-                    type="primary"
-                    icon={<Rocket size={18} />}
-                    loading={onboarding}
-                    onClick={() => {
-                      initForm.setFieldsValue({
-                        client_name: lead.client_name,
-                        client_mail: lead.client_mail,
-                        client_phone: lead.client_phone,
-                        client_location: lead.client_location,
-                        summary: lead.summary,
-                        budget: lead.budget,
-                        experience_level: lead.experience_level,
-                      });
-                      setIsModalOpen(true);
-                      setCurrentStep(0);
-                    }}
-                    style={{
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                      border: 'none',
-                      fontWeight: 700,
-                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
-                      padding: '0 20px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    Initialize Project
-                  </Button>
+                  {canManageLeads && (
+                    <Button
+                      type="primary"
+                      icon={<Rocket size={18} />}
+                      loading={onboarding}
+                      onClick={() => {
+                        initForm.setFieldsValue({
+                          client_name: lead.client_name,
+                          client_mail: lead.client_mail,
+                          client_phone: lead.client_phone,
+                          client_location: lead.client_location,
+                          summary: lead.summary,
+                          budget: lead.budget,
+                          experience_level: lead.experience_level,
+                        });
+                        setIsModalOpen(true);
+                        setCurrentStep(0);
+                      }}
+                      style={{
+                        height: '40px',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                        border: 'none',
+                        fontWeight: 700,
+                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+                        padding: '0 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      Initialize Project
+                    </Button>
+                  )}
                 </Space>
               </Col>
             </Row>

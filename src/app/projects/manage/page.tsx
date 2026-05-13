@@ -57,7 +57,7 @@ import {
 } from "@/services/projectService";
 import { MembersService } from "@/services/membersService";
 import { useAuth } from "@/context/AuthContext";
-import { RBAC } from "@/lib/rbac";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import { ColumnsType } from "antd/es/table";
 
@@ -80,6 +80,7 @@ const ProjectsManagePage: React.FC = () => {
   const { notification, message } = App.useApp();
   const [form] = Form.useForm();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { canReadProject, canCreateProject, canUpdateProject, canDeleteProject } = usePermission();
   const router = useRouter();
 
   // State management
@@ -475,8 +476,7 @@ const ProjectsManagePage: React.FC = () => {
               }}
             />
           </Tooltip>
-          {user?.role &&
-            RBAC.hasPermission(user.role as any, "projects", "update") && (
+          {canUpdateProject && (
               <Tooltip title="Edit">
                 <Button
                   type="text"
@@ -489,8 +489,7 @@ const ProjectsManagePage: React.FC = () => {
                 />
               </Tooltip>
             )}
-          {user?.role &&
-            RBAC.hasPermission(user.role as any, "projects", "delete") && (
+          {canDeleteProject && (
               <Popconfirm
                 title="Delete project?"
                 description="Are you sure you want to delete this project?"
@@ -525,7 +524,7 @@ const ProjectsManagePage: React.FC = () => {
   // Check permissions
   if (
     user &&
-    (!user.role || !RBAC.hasPermission(user.role as any, "projects", "read"))
+    !canReadProject
   ) {
     return (
       <MainLayout>
@@ -669,19 +668,21 @@ const ProjectsManagePage: React.FC = () => {
               ]}
               className="saas-segmented-premium"
             />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleAdd}
-              style={{
-                height: 34,
-                padding: "0 14px",
-                borderRadius: 8,
-                fontWeight: 600,
-              }}
-            >
-              Add Project
-            </Button>
+            {canCreateProject && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleAdd}
+                style={{
+                  height: 34,
+                  padding: "0 14px",
+                  borderRadius: 8,
+                  fontWeight: 600,
+                }}
+              >
+                Add Project
+              </Button>
+            )}
           </Space>
         </div>
 
@@ -1112,31 +1113,35 @@ const ProjectsManagePage: React.FC = () => {
                           {memberCount} {memberCount === 1 ? "member" : "members"}
                         </Text>
                         <Space size={4}>
-                          {user?.role && RBAC.hasPermission(user.role as any, "projects", "update") && (
+                          {canUpdateProject && (
                             <Tooltip title="Edit">
                               <Button
-                                type="text"
                                 size="small"
-                                icon={<EditOutlined style={{ fontSize: 13 }} />}
-                                onClick={(e) => { e.stopPropagation(); handleEdit(project); }}
+                                type="text"
+                                icon={<EditOutlined style={{ color: "var(--premium-blue)" }} />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEdit(project);
+                                }}
                               />
                             </Tooltip>
                           )}
-                          {user?.role && RBAC.hasPermission(user.role as any, "projects", "delete") && (
+                          {canDeleteProject && (
                             <Popconfirm
                               title="Delete project?"
-                              description="Are you sure you want to delete this project?"
-                              onConfirm={(e) => { e?.stopPropagation(); handleDelete(project.id); }}
+                              onConfirm={(e) => {
+                                e?.stopPropagation();
+                                handleDelete(project.id);
+                              }}
                               okText="Yes"
                               cancelText="No"
-                              placement="topRight"
                             >
                               <Tooltip title="Delete">
                                 <Button
-                                  type="text"
                                   size="small"
+                                  type="text"
                                   danger
-                                  icon={<DeleteOutlined style={{ fontSize: 13 }} />}
+                                  icon={<DeleteOutlined />}
                                   onClick={(e) => e.stopPropagation()}
                                 />
                               </Tooltip>

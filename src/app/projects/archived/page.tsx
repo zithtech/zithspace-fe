@@ -51,14 +51,14 @@ export default function ArchivedTicketsPage() {
   const { message } = App.useApp();
   const { data: projects } = useUserProjects();
   const { isLoading: authLoading } = useAuth();
-  const { canReadProject } = usePermission();
+  const { canReadTicketArchive, canRestoreTicketArchive, canDeleteTicket } = usePermission();
   const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading && !canReadProject) {
+    if (!authLoading && !canReadTicketArchive) {
       router.push('/dashboard');
     }
-  }, [authLoading, canReadProject, router]);
+  }, [authLoading, canReadTicketArchive, router]);
 
   const [searchText, setSearchText] = useState('');
   const [selectedProject, setSelectedProject] = useState<string | undefined>(undefined);
@@ -264,52 +264,56 @@ export default function ArchivedTicketsPage() {
       fixed: 'right' as const,
       render: (_: any, record: Ticket) => (
         <div className="ar-action-cell">
-          <Popconfirm
-            title="Restore Ticket"
-            description="Move this ticket back to active status?"
-            onConfirm={() => handleRestore([record.id])}
-            okText="Restore"
-            cancelText="Cancel"
-          >
-            <Tooltip title="Restore">
-              <Button
-                type="text"
-                shape="circle"
-                size="small"
-                icon={<UndoOutlined />}
-                style={{ color: '#10b981' }}
-                className="ar-icon-btn restore"
-                loading={isRestoring && selectedRowKeys.includes(record.id)}
-              />
-            </Tooltip>
-          </Popconfirm>
+          {canRestoreTicketArchive && (
+            <Popconfirm
+              title="Restore Ticket"
+              description="Move this ticket back to active status?"
+              onConfirm={() => handleRestore([record.id])}
+              okText="Restore"
+              cancelText="Cancel"
+            >
+              <Tooltip title="Restore">
+                <Button
+                  type="text"
+                  shape="circle"
+                  size="small"
+                  icon={<UndoOutlined />}
+                  style={{ color: '#10b981' }}
+                  className="ar-icon-btn restore"
+                  loading={isRestoring && selectedRowKeys.includes(record.id)}
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
 
-          <Popconfirm
-            title="Delete Ticket"
-            description="Move this ticket to trash?"
-            onConfirm={async () => {
-              try {
-                await moveToTrash([record.id]);
-                refetch();
-              } catch {}
-            }}
-            okText="Delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-          >
-            <Tooltip title="Delete">
-              <Button
-                type="text"
-                shape="circle"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                style={{ color: '#ef4444' }}
-                className="ar-icon-btn delete"
-                loading={isDeleting && selectedRowKeys.includes(record.id)}
-              />
-            </Tooltip>
-          </Popconfirm>
+          {canDeleteTicket && (
+            <Popconfirm
+              title="Delete Ticket"
+              description="Move this ticket to trash?"
+              onConfirm={async () => {
+                try {
+                  await moveToTrash([record.id]);
+                  refetch();
+                } catch {}
+              }}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="Delete">
+                <Button
+                  type="text"
+                  shape="circle"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  style={{ color: '#ef4444' }}
+                  className="ar-icon-btn delete"
+                  loading={isDeleting && selectedRowKeys.includes(record.id)}
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
         </div>
       ),
     },
@@ -335,7 +339,7 @@ export default function ArchivedTicketsPage() {
     );
   }
 
-  if (!canReadProject) {
+  if (!canReadTicketArchive) {
     return null;
   }
 
@@ -526,35 +530,39 @@ export default function ArchivedTicketsPage() {
                 </Text>
               </div>
               <div className="ar-bulk-actions">
-                <Button
-                  size="small"
-                  type="primary"
-                  icon={<UndoOutlined />}
-                  onClick={() => handleRestore()}
-                  loading={isRestoring}
-                  className="ar-bulk-btn restore"
-                >
-                  Restore
-                </Button>
-                <Popconfirm
-                  title="Move to Trash"
-                  description={`Move ${selectedRowKeys.length} ticket${selectedRowKeys.length === 1 ? '' : 's'
-                    } to trash?`}
-                  onConfirm={handleDelete}
-                  okText="Move to Trash"
-                  cancelText="Cancel"
-                  okButtonProps={{ danger: true }}
-                >
+                {canRestoreTicketArchive && (
                   <Button
                     size="small"
-                    danger
-                    icon={<DeleteOutlined />}
-                    loading={isDeleting}
-                    className="ar-bulk-btn purge"
+                    type="primary"
+                    icon={<UndoOutlined />}
+                    onClick={() => handleRestore()}
+                    loading={isRestoring}
+                    className="ar-bulk-btn restore"
                   >
-                    Move to Trash
+                    Restore
                   </Button>
-                </Popconfirm>
+                )}
+                {canDeleteTicket && (
+                  <Popconfirm
+                    title="Move to Trash"
+                    description={`Move ${selectedRowKeys.length} ticket${selectedRowKeys.length === 1 ? '' : 's'
+                      } to trash?`}
+                    onConfirm={handleDelete}
+                    okText="Move to Trash"
+                    cancelText="Cancel"
+                    okButtonProps={{ danger: true }}
+                  >
+                    <Button
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      loading={isDeleting}
+                      className="ar-bulk-btn purge"
+                    >
+                      Move to Trash
+                    </Button>
+                  </Popconfirm>
+                )}
                 <Button
                   type="text"
                   size="small"

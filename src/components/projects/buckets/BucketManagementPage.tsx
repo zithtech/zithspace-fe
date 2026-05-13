@@ -53,6 +53,7 @@ import { MoveToSprintAction } from "./MoveToSprintAction";
 import type { Bucket } from "@/services/bucketService";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useRouter } from "next/navigation";
+import { usePermission } from "@/hooks/usePermission";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
@@ -76,6 +77,7 @@ export default function BucketManagementPage() {
   const { message: messageApi } = App.useApp();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { canCreateTicketBucket, canUpdateTicketBucket, canDeleteTicketBucket } = usePermission();
 
   // State
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -281,15 +283,17 @@ export default function BucketManagementPage() {
           </div>
 
           <div className="bh-card-actions" onClick={(e) => e.stopPropagation()}>
-            <Tooltip title="Configure">
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                className="bh-icon-btn"
-                onClick={() => handleEdit(bucket)}
-              />
-            </Tooltip>
+            {canUpdateTicketBucket && (
+              <Tooltip title="Configure">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EditOutlined />}
+                  className="bh-icon-btn"
+                  onClick={() => handleEdit(bucket)}
+                />
+              </Tooltip>
+            )}
             <MoveToSprintAction
               bucket={bucket}
               onMove={(sprintId) =>
@@ -348,26 +352,28 @@ export default function BucketManagementPage() {
                 disabled={ticketCount === 0}
               />
             </Popconfirm>
-            <Popconfirm
-              title="Decommission Hub"
-              description="This permanently removes the hub."
-              onConfirm={() => handleDelete(bucket.id)}
-              okText="Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
-            >
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                className="bh-icon-btn bh-icon-btn-danger"
-                loading={
-                  deleteBucket.isPending &&
-                  deleteBucket.variables === bucket.id
-                }
-              />
-            </Popconfirm>
+            {canDeleteTicketBucket && (
+              <Popconfirm
+                title="Decommission Hub"
+                description="This permanently removes the hub."
+                onConfirm={() => handleDelete(bucket.id)}
+                okText="Delete"
+                cancelText="Cancel"
+                okButtonProps={{ danger: true }}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  className="bh-icon-btn bh-icon-btn-danger"
+                  loading={
+                    deleteBucket.isPending &&
+                    deleteBucket.variables === bucket.id
+                  }
+                />
+              </Popconfirm>
+            )}
             <Button
               type="text"
               size="small"
@@ -516,14 +522,16 @@ export default function BucketManagementPage() {
               disabled={record._count?.tickets === 0}
             />
           </Tooltip>
-          <Tooltip title="Configure">
-            <Button
-              type="text"
-              icon={<EditOutlined style={{ fontSize: 14 }} />}
-              onClick={() => handleEdit(record)}
-              className="saas-action-btn"
-            />
-          </Tooltip>
+          {canUpdateTicketBucket && (
+            <Tooltip title="Configure">
+              <Button
+                type="text"
+                icon={<EditOutlined style={{ fontSize: 14 }} />}
+                onClick={() => handleEdit(record)}
+                className="saas-action-btn"
+              />
+            </Tooltip>
+          )}
           <MoveToSprintAction
             bucket={record}
             onMove={(sprintId) =>
@@ -581,22 +589,24 @@ export default function BucketManagementPage() {
               disabled={record._count?.tickets === 0}
             />
           </Popconfirm>
-          <Popconfirm
-            title="Decommission Hub"
-            description="Proceed with hard delete?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-          >
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined style={{ fontSize: 14 }} />}
-              loading={deleteBucket.isPending && deleteBucket.variables === record.id}
-              className="saas-action-btn"
-            />
-          </Popconfirm>
+          {canDeleteTicketBucket && (
+            <Popconfirm
+              title="Decommission Hub"
+              description="Proceed with hard delete?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined style={{ fontSize: 14 }} />}
+                loading={deleteBucket.isPending && deleteBucket.variables === record.id}
+                className="saas-action-btn"
+              />
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -626,14 +636,16 @@ export default function BucketManagementPage() {
               className="bh-header-btn"
               style={{ width: 38, padding: 0 }}
             />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreate}
-              className="bh-create-btn"
-            >
-              Create New Bucket
-            </Button>
+            {canCreateTicketBucket && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreate}
+                className="bh-create-btn"
+              >
+                Create New Bucket
+              </Button>
+            )}
           </div>
         }
       />

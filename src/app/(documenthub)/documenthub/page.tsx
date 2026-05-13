@@ -784,26 +784,30 @@ const DocumentHubPage = (props: Props) => {
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             />
           </Tooltip>
-          <Tooltip title="Share">
-            <Button
-              type="text"
-              icon={<ShareAltOutlined style={{ fontSize: '14px', color: 'var(--text-slate-400)' }} />}
-              onClick={(e) => handleShareHub(e, record)}
-              className="flex items-center justify-center p-0 w-8 h-8 rounded-lg"
-              style={{ transition: 'background 0.15s' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-blue-50)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-            />
-          </Tooltip>
-          <Tooltip title="Move to trash">
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined style={{ fontSize: '14px' }} />}
-              onClick={(e) => handleDeleteHub(e, record.id, record.name)}
-              className="flex items-center justify-center p-0 w-8 h-8 rounded-lg hover:bg-red-50"
-            />
-          </Tooltip>
+          {canUpdateDocument && (
+            <Tooltip title="Share">
+              <Button
+                type="text"
+                icon={<ShareAltOutlined style={{ fontSize: '14px', color: 'var(--text-slate-400)' }} />}
+                onClick={(e) => handleShareHub(e, record)}
+                className="flex items-center justify-center p-0 w-8 h-8 rounded-lg"
+                style={{ transition: 'background 0.15s' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-blue-50)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              />
+            </Tooltip>
+          )}
+          {canDeleteDocument && (
+            <Tooltip title="Move to trash">
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined style={{ fontSize: '14px' }} />}
+                onClick={(e) => handleDeleteHub(e, record.id, record.name)}
+                className="flex items-center justify-center p-0 w-8 h-8 rounded-lg hover:bg-red-50"
+              />
+            </Tooltip>
+          )}
         </Space>
       ),
     },
@@ -869,120 +873,124 @@ const DocumentHubPage = (props: Props) => {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              icon={<RestOutlined />}
-              onClick={() => setTrashVisible(true)}
-              className="trash-action-btn"
-              style={{
-                height: 38,
-                borderRadius: 10,
-                fontWeight: 500,
-                background: 'var(--bg-slate-50)',
-                border: '1px solid var(--border-slate-200)',
-                color: 'var(--text-slate-700)',
-              }}
-            >
-              Trash
-            </Button>
-            <Dropdown
-              trigger={['hover', 'click']}
-              placement="bottomRight"
-              overlayClassName="create-document-menu"
-              menu={{
-                items: [
-                  {
-                    key: 'manual',
-                    label: (
-                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 260 }}>
-                        <div
-                          className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white"
-                          style={{
-                            background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                            boxShadow: '0 2px 6px rgba(59, 130, 246, 0.25)',
-                          }}
-                        >
-                          <FileTextOutlined style={{ fontSize: 15 }} />
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <span
-                            className="text-[13px] font-semibold leading-tight"
-                            style={{ color: 'var(--text-slate-900)' }}
+            {canDeleteDocument && (
+              <Button
+                icon={<RestOutlined />}
+                onClick={() => setTrashVisible(true)}
+                className="trash-action-btn"
+                style={{
+                  height: 38,
+                  borderRadius: 10,
+                  fontWeight: 500,
+                  background: 'var(--bg-slate-50)',
+                  border: '1px solid var(--border-slate-200)',
+                  color: 'var(--text-slate-700)',
+                }}
+              >
+                Trash
+              </Button>
+            )}
+            {canCreateDocument && (
+              <Dropdown
+                trigger={['hover', 'click']}
+                placement="bottomRight"
+                overlayClassName="create-document-menu"
+                menu={{
+                  items: [
+                    {
+                      key: 'manual',
+                      label: (
+                        <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 260 }}>
+                          <div
+                            className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white"
+                            style={{
+                              background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                              boxShadow: '0 2px 6px rgba(59, 130, 246, 0.25)',
+                            }}
                           >
-                            Manual creation
-                          </span>
-                          <span
-                            className="text-[11.5px] leading-snug mt-0.5"
-                            style={{ color: 'var(--text-slate-400)' }}
-                          >
-                            Start from a blank document hub
-                          </span>
-                        </div>
-                      </div>
-                    ),
-                    onClick: () => setModalVisible(true),
-                  },
-                  {
-                    key: 'zai',
-                    label: (
-                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 260 }}>
-                        <div
-                          className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white relative"
-                          style={{
-                            background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
-                            boxShadow: '0 2px 6px rgba(139, 92, 246, 0.3)',
-                          }}
-                        >
-                          <span style={{ fontSize: 15, lineHeight: 1 }}>✨</span>
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <div className="flex items-center gap-1.5">
+                            <FileTextOutlined style={{ fontSize: 15 }} />
+                          </div>
+                          <div className="flex flex-col min-w-0">
                             <span
                               className="text-[13px] font-semibold leading-tight"
                               style={{ color: 'var(--text-slate-900)' }}
                             >
-                              Create with Zai
+                              Manual creation
                             </span>
                             <span
-                              className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-[1px] rounded"
-                              style={{
-                                background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
-                                color: '#fff',
-                              }}
+                              className="text-[11.5px] leading-snug mt-0.5"
+                              style={{ color: 'var(--text-slate-400)' }}
                             >
-                              AI
+                              Start from a blank document hub
                             </span>
                           </div>
-                          <span
-                            className="text-[11.5px] leading-snug mt-0.5"
-                            style={{ color: 'var(--text-slate-400)' }}
-                          >
-                            Generate a hub from a prompt
-                          </span>
                         </div>
-                      </div>
-                    ),
-                    onClick: () => setAiModalVisible(true),
-                  },
-                ] as MenuProps['items'],
-              }}
-            >
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                className="create-document-btn"
-                style={{
-                  height: 38,
-                  borderRadius: 10,
-                  fontWeight: 600,
-                  paddingInline: 16,
-                  background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                  border: 'none',
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+                      ),
+                      onClick: () => setModalVisible(true),
+                    },
+                    {
+                      key: 'zai',
+                      label: (
+                        <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 260 }}>
+                          <div
+                            className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white relative"
+                            style={{
+                              background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
+                              boxShadow: '0 2px 6px rgba(139, 92, 246, 0.3)',
+                            }}
+                          >
+                            <span style={{ fontSize: 15, lineHeight: 1 }}>✨</span>
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className="text-[13px] font-semibold leading-tight"
+                                style={{ color: 'var(--text-slate-900)' }}
+                              >
+                                Create with Zai
+                              </span>
+                              <span
+                                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-[1px] rounded"
+                                style={{
+                                  background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
+                                  color: '#fff',
+                                }}
+                              >
+                                AI
+                              </span>
+                            </div>
+                            <span
+                              className="text-[11.5px] leading-snug mt-0.5"
+                              style={{ color: 'var(--text-slate-400)' }}
+                            >
+                              Generate a hub from a prompt
+                            </span>
+                          </div>
+                        </div>
+                      ),
+                      onClick: () => setAiModalVisible(true),
+                    },
+                  ] as MenuProps['items'],
                 }}
               >
-                Create Document
-              </Button>
-            </Dropdown>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  className="create-document-btn"
+                  style={{
+                    height: 38,
+                    borderRadius: 10,
+                    fontWeight: 600,
+                    paddingInline: 16,
+                    background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+                  }}
+                >
+                  Create Document
+                </Button>
+              </Dropdown>
+            )}
           </div>
         </div>
 

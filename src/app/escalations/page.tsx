@@ -60,7 +60,7 @@ const BLUE_PRIMARY = 'var(--premium-blue)';
 export default function EscalationListPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
-  const { canReadEscalation } = usePermission();
+  const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation } = usePermission();
   const [searchText, setSearchText] = useState('');
   const [activeTab, setActiveTab] = useState('1');
   const [escalations, setEscalations] = useState<any[]>([]);
@@ -320,35 +320,39 @@ export default function EscalationListPage() {
       key: 'action',
       render: (_: any, record: any) => (
         <Space size={4} onClick={(e) => e.stopPropagation()}>
-          <Tooltip title="Edit / View Details">
-            <Button
-              type="text"
-              icon={<EditOutlined style={{ color: BLUE_PRIMARY }} />}
-              onClick={() => {
-                setSelectedEscalation(record);
-                setTempStatus(record.statusId || record.status);
-                setIsEditing(true);
-                setDrawerVisible(true);
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Popconfirm
-              title="Delete Escalation"
-              description="Are you sure you want to delete this escalation? This action cannot be undone."
-              onConfirm={() => handleDelete(record.id)}
-              okText="Yes, Delete"
-              cancelText="No"
-              okButtonProps={{ danger: true, loading: deleting === record.id }}
-            >
+          {canUpdateEscalation && (
+            <Tooltip title="Edit / View Details">
               <Button
                 type="text"
-                danger
-                icon={<DeleteOutlined />}
-                loading={deleting === record.id}
+                icon={<EditOutlined style={{ color: BLUE_PRIMARY }} />}
+                onClick={() => {
+                  setSelectedEscalation(record);
+                  setTempStatus(record.statusId || record.status);
+                  setIsEditing(true);
+                  setDrawerVisible(true);
+                }}
               />
-            </Popconfirm>
-          </Tooltip>
+            </Tooltip>
+          )}
+          {canDeleteEscalation && (
+            <Tooltip title="Delete">
+              <Popconfirm
+                title="Delete Escalation"
+                description="Are you sure you want to delete this escalation? This action cannot be undone."
+                onConfirm={() => handleDelete(record.id)}
+                okText="Yes, Delete"
+                cancelText="No"
+                okButtonProps={{ danger: true, loading: deleting === record.id }}
+              >
+                <Button
+                  type="text"
+                  danger
+                  icon={<DeleteOutlined />}
+                  loading={deleting === record.id}
+                />
+              </Popconfirm>
+            </Tooltip>
+          )}
         </Space>
       ),
     },
@@ -407,15 +411,17 @@ export default function EscalationListPage() {
                 Monitor and resolve manual escalations related to deployment quality and team regressions.
               </Text>
             </div>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              size="large"
-              onClick={() => router.push('/escalations/create')}
-              style={{ borderRadius: 8, height: 44, fontWeight: 600, background: BLUE_PRIMARY, border: 'none' }}
-            >
-              Raise Manual Escalation
-            </Button>
+            {canCreateEscalation && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                size="large"
+                onClick={() => router.push('/escalations/create')}
+                style={{ borderRadius: 8, height: 44, fontWeight: 600, background: BLUE_PRIMARY, border: 'none' }}
+              >
+                Raise Manual Escalation
+              </Button>
+            )}
           </div>
 
           {/* Stats Cards */}
@@ -530,13 +536,15 @@ export default function EscalationListPage() {
               ) : (
                 <>
                   <Button onClick={() => setDrawerVisible(false)}>Close</Button>
-                  <Button
-                    type="primary"
-                    onClick={() => setIsEditing(true)}
-                    style={{ background: BLUE_PRIMARY }}
-                  >
-                    Edit
-                  </Button>
+                  {canUpdateEscalation && (
+                    <Button
+                      type="primary"
+                      onClick={() => setIsEditing(true)}
+                      style={{ background: BLUE_PRIMARY }}
+                    >
+                      Edit
+                    </Button>
+                  )}
                 </>
               )}
             </div>

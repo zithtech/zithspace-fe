@@ -30,6 +30,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { globalDataKeys } from '@/hooks/useGlobalData';
 import DropdownManager from './DropdownManager';
 import BugListConfigManager from './BugListConfigManager';
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -54,7 +55,7 @@ export default function TicketSettings() {
   ];
 
   const renderIntegrationTab = () => (
-    <div style={{ padding: '0 48px 32px', height: '100%', overflowY: 'auto' }}>
+    <div className="no-scrollbar" style={{ padding: '0 48px 32px', height: '100%', overflowY: 'auto' }}>
       <Row gutter={[24, 24]}>
         {/* Main Integration Hero */}
         <Col span={24}>
@@ -263,71 +264,58 @@ export default function TicketSettings() {
       flexDirection: 'column',
     }}>
       {/* Workstation Header */}
-      <div className="saas-header-container ts-header" style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        backdropFilter: 'blur(12px)',
-        padding: '0 48px',
-        margin: '-24px -24px 20px',
-        height: 58,
-        display: 'flex',
-        alignItems: 'center'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', height: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div className="ts-header-icon-box">
-              <ControlOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em', lineHeight: 'normal' }}>
-                Ticket Settings
-              </Title>
-              <div className="ts-divider" />
-              <Text className="ts-header-subtitle">
-                Strategic task organization and cross-project categorization
-              </Text>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-            <Tabs
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              className="premium-nav-tabs"
-              style={{ marginBottom: 0 }}
-              items={[
-                {
-                  key: 'integration',
-                  label: (
-                    <Space size={8}>
-                      <ShareAltOutlined />
-                      <span>Integration</span>
-                    </Space>
-                  ),
-                },
-                {
-                  key: 'dropdown-management',
-                  label: (
-                    <Space size={8}>
-                      <DatabaseOutlined />
-                      <span>Configuration</span>
-                    </Space>
-                  ),
-                },
-                {
-                  key: 'bug-list',
-                  label: (
-                    <Space size={8}>
-                      <BugOutlined />
-                      <span>Bug List</span>
-                    </Space>
-                  ),
-                }
-              ]}
-            />
-          </div>
-        </div>
-      </div>
+      <TimeTrackingHeader
+        icon={<ControlOutlined style={{ fontSize: 18, color: '#8b5cf6' }} />}
+        title="Ticket Settings"
+        description="Strategic task organization and cross-project categorization"
+        style={{
+          padding: '10.5px 32px',
+          borderBottom: '1px solid var(--border-slate-200)',
+          marginBottom: 20,
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          background: "var(--bg-pure-white)",
+          margin: '-24px -24px 20px'
+        }}
+        extra={
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            className="premium-nav-tabs"
+            style={{ marginBottom: -11 }}
+            items={[
+              {
+                key: 'integration',
+                label: (
+                  <Space size={8}>
+                    <ShareAltOutlined />
+                    <span>Integration</span>
+                  </Space>
+                ),
+              },
+              {
+                key: 'dropdown-management',
+                label: (
+                  <Space size={8}>
+                    <DatabaseOutlined />
+                    <span>Configuration</span>
+                  </Space>
+                ),
+              },
+              {
+                key: 'bug-list',
+                label: (
+                  <Space size={8}>
+                    <BugOutlined />
+                    <span>Bug List</span>
+                  </Space>
+                ),
+              },
+            ]}
+          />
+        }
+      />
 
       {/* Content Area */}
       <div className="no-scrollbar" style={{ marginTop: 0, flex: 1, minHeight: 0, overflow: 'hidden' }}>

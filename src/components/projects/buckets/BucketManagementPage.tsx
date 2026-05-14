@@ -18,6 +18,8 @@ import {
   Avatar,
   App,
   message,
+  theme as antdTheme,
+  ConfigProvider,
 } from "antd";
 import {
   PlusOutlined,
@@ -54,6 +56,7 @@ import type { Bucket } from "@/services/bucketService";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useRouter } from "next/navigation";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { useTheme } from "@/context/ThemeContext";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -73,6 +76,7 @@ const initialsOf = (name?: string) =>
     .toUpperCase();
 
 export default function BucketManagementPage() {
+  const { theme } = useTheme();
   const { message: messageApi } = App.useApp();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -703,6 +707,15 @@ export default function BucketManagementPage() {
         </div>
 
         {/* ── Control bar ───────────────────────────────────────────── */}
+        <ConfigProvider 
+          theme={{ 
+            algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+            token: {
+              colorBgContainer: theme === 'dark' ? '#161B22' : '#ffffff',
+              colorText: theme === 'dark' ? '#F1F5F9' : '#1E293B',
+            }
+          }}
+        >
         <div className="bh-control-bar">
           <div className="bh-control-bar-left">
             <div className="bh-filter-select-wrap">
@@ -808,7 +821,7 @@ export default function BucketManagementPage() {
             />
           </div>
         </div>
-
+        </ConfigProvider>
         {/* ── Content ───────────────────────────────────────────────── */}
         {isLoading ? (
           viewMode === "grid" ? (
@@ -871,6 +884,7 @@ export default function BucketManagementPage() {
               loading={false}
               rowKey="id"
               className="bh-table"
+              scroll={{ x: 1000 }}
               pagination={{
                 pageSize: 10,
                 showSizeChanger: true,
@@ -1094,6 +1108,24 @@ export default function BucketManagementPage() {
             width: 240px;
             height: 36px;
             transition: all 0.2s ease;
+          }
+
+          @media (max-width: 800px) {
+            .bh-control-bar {
+              flex-wrap: wrap;
+              gap: 12px;
+              justify-content: center;
+            }
+            .bh-control-bar-right {
+              width: 100%;
+              justify-content: center;
+              flex-wrap: wrap;
+            }
+            .bh-search-box {
+              flex: 1;
+              min-width: 200px;
+              max-width: 460px;
+            }
           }
           .bh-search-box.active {
             border-color: #8b5cf6;
@@ -1494,6 +1526,7 @@ export default function BucketManagementPage() {
             text-transform: uppercase;
             letter-spacing: 0.08em;
             padding: 14px 16px !important;
+            white-space: nowrap;
             border-bottom: 1px solid var(--border-slate-200) !important;
             border-radius: 0 !important;
           }

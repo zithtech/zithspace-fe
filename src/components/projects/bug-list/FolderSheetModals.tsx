@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Form, Input, Modal, Select } from "antd";
+import { Form, Input, Modal, Select, ConfigProvider, theme as antdTheme } from "antd";
 import {
   FolderPlus,
   FileSpreadsheet,
@@ -20,7 +20,7 @@ import {
   useUpdateBugSheet,
 } from "@/hooks/useBugList";
 import type { BugFolder, BugSheet } from "@/services/bugListService";
-import { useUserProjects } from "@/hooks/useGlobalData";
+import { useAllProjects, useUserProjects } from "@/hooks/useGlobalData";
 import { useTheme } from "@/context/ThemeContext";
 
 const FOLDER_COLORS = [
@@ -38,14 +38,15 @@ const FOLDER_COLORS = [
 interface FolderModalProps {
   open: boolean;
   editing: BugFolder | null;
+  defaultProjectId?: string | null;
   onClose: () => void;
 }
 
-export function FolderModal({ open, editing, onClose }: FolderModalProps) {
+export function FolderModal({ open, editing, defaultProjectId, onClose }: FolderModalProps) {
   const [form] = Form.useForm();
   const createMut = useCreateBugFolder();
   const updateMut = useUpdateBugFolder();
-  const { data: projects } = useUserProjects();
+  const { data: projects } = useAllProjects();
   const { theme } = useTheme();
   const [color, setColor] = useState<string>(FOLDER_COLORS[0]);
   const [name, setName] = useState("");
@@ -57,16 +58,20 @@ export function FolderModal({ open, editing, onClose }: FolderModalProps) {
         name: editing.name,
         description: editing.description || "",
         color: editing.color || FOLDER_COLORS[0],
+        projectId: editing.projectId || undefined,
       });
       setColor(editing.color || FOLDER_COLORS[0]);
       setName(editing.name || "");
     } else {
       form.resetFields();
-      form.setFieldsValue({ color: FOLDER_COLORS[0] });
+      form.setFieldsValue({ 
+        color: FOLDER_COLORS[0],
+        projectId: defaultProjectId || undefined,
+      });
       setColor(FOLDER_COLORS[0]);
       setName("");
     }
-  }, [open, editing, form]);
+  }, [open, editing, defaultProjectId, form]);
 
   const handleOk = async () => {
     const values = await form.validateFields();
@@ -98,7 +103,16 @@ export function FolderModal({ open, editing, onClose }: FolderModalProps) {
         body: { padding: 0 },
       }}
     >
-      <div className="hb-fsm">
+      <ConfigProvider
+        theme={{
+          algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+          token: {
+            colorBgContainer: theme === 'dark' ? '#0d1426' : '#ffffff',
+            colorText: theme === 'dark' ? '#e8ecf5' : '#0f172a',
+          }
+        }}
+      >
+        <div className="hb-fsm">
         {/* Hero */}
         <div className="hb-fsm-hero" style={{ ["--hb-fsm-accent" as any]: color }}>
           <div className="hb-fsm-hero-bg" />
@@ -273,6 +287,7 @@ export function FolderModal({ open, editing, onClose }: FolderModalProps) {
           </button>
         </div>
       </div>
+      </ConfigProvider>
     </Modal>
   );
 }
@@ -336,7 +351,16 @@ export function SheetModal({ open, folderId, editing, onClose }: SheetModalProps
         body: { padding: 0 },
       }}
     >
-      <div className="hb-fsm">
+      <ConfigProvider
+        theme={{
+          algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+          token: {
+            colorBgContainer: theme === 'dark' ? '#0d1426' : '#ffffff',
+            colorText: theme === 'dark' ? '#e8ecf5' : '#0f172a',
+          }
+        }}
+      >
+        <div className="hb-fsm">
         {/* Hero */}
         <div className="hb-fsm-hero">
           <div className="hb-fsm-hero-bg" />
@@ -460,6 +484,7 @@ export function SheetModal({ open, folderId, editing, onClose }: SheetModalProps
           </button>
         </div>
       </div>
+      </ConfigProvider>
     </Modal>
   );
 }

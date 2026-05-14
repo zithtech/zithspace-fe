@@ -813,7 +813,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
     <div style={{ padding: '0 0 24px 0' }}>
       {/* KPI Strip */}
       <div className="mtt-kpi-strip">
-        <Row gutter={16}>
+        <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} lg={6}>
             <div className="mtt-kpi mtt-kpi--emerald">
               <div className="mtt-kpi__head">
@@ -989,6 +989,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           expandable={{ expandedRowRender }}
           pagination={{ pageSize: 20, hideOnSinglePage: true, showTotal: (total) => `${total} ${total === 1 ? 'row' : 'rows'}` }}
           size="middle"
+          scroll={{ x: 900 }}
           locale={{
             emptyText: loading ? <></> : (
               <div className="mtt-tracker-card__empty">

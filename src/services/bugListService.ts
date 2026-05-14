@@ -41,6 +41,7 @@ export type BugSheetStatus = "active" | "current" | "completed" | "archived";
 export interface BugSheet {
   id: string;
   folderId: string;
+  folderName?: string; // Added for project-wide views
   name: string;
   description?: string | null;
   status?: BugSheetStatus;
@@ -64,6 +65,7 @@ export interface BugListItem {
   status: BugStatus;
   bugStatus?: "not started" | "pending" | "completed" | null;
   tags: string[];
+  comments?: string | null;
   attachments: BugAttachment[];
   externalLinks: BugExternalLink[];
   ticketId?: string | null;
@@ -100,6 +102,7 @@ export interface CreateBugInput {
   assigneeId?: string;
   attachments?: BugAttachment[];
   externalLinks?: BugExternalLink[];
+  comments?: string;
 }
 
 export interface UpdateBugInput {
@@ -111,6 +114,7 @@ export interface UpdateBugInput {
   status?: BugStatus;
   bugStatus?: "not started" | "pending" | "completed" | null;
   tags?: string[];
+  comments?: string | null;
   assigneeId?: string | null;
   attachments?: BugAttachment[];
   externalLinks?: BugExternalLink[];
@@ -119,6 +123,7 @@ export interface UpdateBugInput {
 export interface BugListFilters {
   folderId?: string;
   sheetId?: string;
+  projectId?: string;
   page?: number;
   limit?: number;
   search?: string;
@@ -206,9 +211,10 @@ export interface ConvertedTicket {
 
 class BugListService {
   // ==================== Folders ====================
-  static async getFolders(): Promise<BugFolder[]> {
+  static async getFolders(projectId?: string): Promise<BugFolder[]> {
     const res = await apiClient.get<{ success: boolean; data: BugFolder[] }>(
-      "/api/bug-list/folders"
+      "/api/bug-list/folders",
+      { params: { projectId } }
     );
     return res.data.data;
   }
@@ -288,6 +294,14 @@ class BugListService {
   static async getSheets(folderId: string): Promise<BugSheet[]> {
     const res = await apiClient.get<{ success: boolean; data: BugSheet[] }>(
       `/api/bug-list/folders/${folderId}/sheets`
+    );
+    return res.data.data;
+  }
+
+  static async getProjectSheets(projectId: string): Promise<BugSheet[]> {
+    const res = await apiClient.get<{ success: boolean; data: BugSheet[] }>(
+      `/api/bug-list/sheets/project`,
+      { params: { projectId } }
     );
     return res.data.data;
   }
@@ -466,6 +480,7 @@ class BugListService {
     folderId?: string;
     sheetId?: string;
     scope?: "all" | "mine" | "trash" | "archived";
+    projectId?: string;
   }): Promise<{
     total: number;
     open: number;
@@ -475,6 +490,9 @@ class BugListService {
     linked: number;
     totalFolders: number;
     totalSheets: number;
+    mineTotal?: number;
+    trashTotal?: number;
+    archivedTotal?: number;
   }> {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {

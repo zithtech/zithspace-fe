@@ -8,7 +8,7 @@ import { CalendarEvent } from '@/services/calendarService';
 interface MonthViewProps {
     currentDate: Dayjs;
     events: CalendarEvent[];
-    onDayClick: (date: Dayjs) => void;
+    onTimeSlotClick?: (date: Dayjs) => void;
     onEventClick: (event: CalendarEvent, occurrenceDate?: Dayjs) => void;
 }
 
@@ -20,7 +20,7 @@ const colorIndex = (e: CalendarEvent) => {
     return PALETTE_KEYS[hash % PALETTE_KEYS.length];
 };
 
-export default function MonthView({ currentDate, events, onDayClick, onEventClick }: MonthViewProps) {
+export default function MonthView({ currentDate, events, onTimeSlotClick, onEventClick }: MonthViewProps) {
     const startOfMonth = currentDate.startOf('month');
     const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
@@ -115,7 +115,7 @@ export default function MonthView({ currentDate, events, onDayClick, onEventClic
                             return (
                                 <div
                                     key={date.toString()}
-                                    onClick={() => onDayClick(date)}
+                                    onClick={() => onTimeSlotClick?.(date)}
                                     className="month-cell"
                                     style={{
                                         borderRight: colIndex < 6 ? '1px solid var(--cal-border-soft)' : 'none',

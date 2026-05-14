@@ -13,6 +13,7 @@ interface EditableTagsProps {
     maxTagLength?: number;
     /** Existing tags across the workspace, shown in the searchable dropdown. */
     suggestions?: string[];
+    disabled?: boolean;
 }
 
 const TAG_PALETTE = [
@@ -49,6 +50,7 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
     emptyText = 'No tags',
     maxTagLength = 32,
     suggestions = [],
+    disabled = false,
 }) => {
     const tags = value ?? [];
     const [isAdding, setIsAdding] = useState(false);
@@ -167,7 +169,7 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
                     <Tag
                         key={tag}
                         bordered={false}
-                        closable={!loading}
+                        closable={!loading && !disabled}
                         closeIcon={<CloseOutlined style={{ fontSize: 10 }} />}
                         onClose={(e) => {
                             e.preventDefault();
@@ -193,7 +195,7 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
                 );
             })}
 
-            {isAdding ? (
+            {isAdding && !disabled ? (
                 <AutoComplete
                     ref={inputRef}
                     size="small"
@@ -214,37 +216,39 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
                     }}
                 />
             ) : (
-                <Tooltip title="Add tag">
-                    <span
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => !loading && setIsAdding(true)}
-                        onKeyDown={(e) => {
-                            if ((e.key === 'Enter' || e.key === ' ') && !loading) {
-                                e.preventDefault();
-                                setIsAdding(true);
-                            }
-                        }}
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            padding: '1px 8px',
-                            fontSize: 12,
-                            fontWeight: 500,
-                            color: 'var(--text-secondary)',
-                            border: '1px dashed var(--border-color)',
-                            borderRadius: 10,
-                            background: 'transparent',
-                            cursor: loading ? 'not-allowed' : 'pointer',
-                            lineHeight: '18px',
-                            opacity: loading ? 0.5 : 1,
-                        }}
-                    >
-                        <PlusOutlined style={{ fontSize: 10 }} />
-                        {tags.length === 0 ? 'Add' : ''}
-                    </span>
-                </Tooltip>
+                !disabled && (
+                    <Tooltip title="Add tag">
+                        <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => !loading && setIsAdding(true)}
+                            onKeyDown={(e) => {
+                                if ((e.key === 'Enter' || e.key === ' ') && !loading) {
+                                    e.preventDefault();
+                                    setIsAdding(true);
+                                }
+                            }}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                padding: '1px 8px',
+                                fontSize: 12,
+                                fontWeight: 500,
+                                color: 'var(--text-secondary)',
+                                border: '1px dashed var(--border-color)',
+                                borderRadius: 10,
+                                background: 'transparent',
+                                cursor: loading ? 'not-allowed' : 'pointer',
+                                lineHeight: '18px',
+                                opacity: loading ? 0.5 : 1,
+                            }}
+                        >
+                            <PlusOutlined style={{ fontSize: 10 }} />
+                            {tags.length === 0 ? 'Add' : ''}
+                        </span>
+                    </Tooltip>
+                )
             )}
 
             {loading && <Spin size="small" style={{ marginLeft: 4 }} />}

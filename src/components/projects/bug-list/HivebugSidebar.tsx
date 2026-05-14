@@ -35,6 +35,7 @@ import {
   useUpdateBugSheetStatus,
   useUpdateBugSheet,
 } from "@/hooks/useBugList";
+import { usePermission } from "@/hooks/usePermission";
 import type {
   BugFolder,
   BugSheet,
@@ -93,6 +94,7 @@ export default function HivebugSidebar({
     [allProjects, selectedProjectId]
   );
 
+  const { canCreateBug, canUpdateBug, canDeleteBug, canManageBugs } = usePermission();
   const updateSheet = useUpdateBugSheet();
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -306,6 +308,7 @@ function FolderNode({
   const { data: sheets, isLoading } = useBugSheets(isOpen ? folder.id : null);
   const deleteFolder = useDeleteBugFolder();
   const archiveFolder = useArchiveFolder();
+  const { canCreateBug, canUpdateBug, canDeleteBug } = usePermission();
 
   const { setNodeRef, isOver } = useDroppable({
     id: folder.id,
@@ -358,11 +361,11 @@ function FolderNode({
           trigger={["click"]}
           menu={{
             items: [
-              { key: "add-sheet", label: "Add sheet" },
-              { key: "edit", label: "Edit" },
+              { key: "add-sheet", label: "Add sheet", disabled: !canCreateBug },
+              { key: "edit", label: "Edit", disabled: !canUpdateBug },
               { type: "divider" },
-              { key: "archive", label: "Move to Archive" },
-              { key: "delete", label: "Move to Trash", danger: true },
+              { key: "archive", label: "Move to Archive", disabled: !canUpdateBug },
+              { key: "delete", label: "Move to Trash", danger: true, disabled: !canDeleteBug },
             ],
             onClick: ({ key, domEvent }) => {
               domEvent.stopPropagation();
@@ -390,10 +393,12 @@ function FolderNode({
               <Skeleton active paragraph={{ rows: 1 }} title={false} />
             </div>
           ) : !sheets || sheets.length === 0 ? (
-            <button className="hb-row hb-row-sub hb-row-muted" onClick={onAddSheet}>
-              <Plus size={12} />
-              <span className="hb-row-label">Add sheet</span>
-            </button>
+            canCreateBug ? (
+              <button className="hb-row hb-row-sub hb-row-muted" onClick={onAddSheet}>
+                <Plus size={12} />
+                <span className="hb-row-label">Add sheet</span>
+              </button>
+            ) : null
           ) : (
             sheets.map((s) => (
               <SheetNode
@@ -424,6 +429,7 @@ function SheetNode({
 }) {
   const deleteSheet = useDeleteBugSheet();
   const updateSheetStatus = useUpdateBugSheetStatus();
+  const { canUpdateBug, canDeleteBug } = usePermission();
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: sheet.id,
@@ -478,9 +484,9 @@ function SheetNode({
               }] : []),
             ]),
             { type: "divider" },
-            { key: "edit", label: "Edit", disabled: isArchived },
+            { key: "edit", label: "Edit", disabled: isArchived || !canUpdateBug },
             { type: "divider" },
-            { key: "delete", label: "Move to Trash", danger: true },
+            { key: "delete", label: "Move to Trash", danger: true, disabled: !canDeleteBug },
           ],
           onClick: ({ key, domEvent }) => {
             domEvent.stopPropagation();

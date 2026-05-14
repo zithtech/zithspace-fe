@@ -97,14 +97,19 @@ export default function AccountsPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [form] = Form.useForm();
-  const { canReadTransaction, canManageTransactions: canManage, canDeleteTransaction } = usePermission();
+  const {
+    canReadAccount,
+    canCreateAccount,
+    canUpdateAccount,
+    canDeleteAccount
+  } = usePermission();
 
-  // Protect route - requires transaction.read permission
+  // Protect route - requires account.read permission
   useEffect(() => {
-    if (!isLoading && user && !canReadTransaction) {
+    if (!isLoading && user && !canReadAccount) {
       router.push('/dashboard');
     }
-  }, [user, isLoading, canReadTransaction, router]);
+  }, [user, isLoading, canReadAccount, router]);
 
   // State management
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -517,19 +522,21 @@ export default function AccountsPage() {
       width: 100,
       align: 'center',
       render: (_, record: Transaction) => {
-        if (!canManage) return null;
+        if (!canUpdateAccount && !canDeleteAccount) return null;
 
         return (
           <Space size={4} className="accounts-row-actions">
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => showEditModal(record)}
-              className="accounts-row-actions__btn accounts-row-actions__edit"
-              aria-label="Edit transaction"
-            />
-            {canDeleteTransaction && (
+            {canUpdateAccount && (
+              <Button
+                type="text"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => showEditModal(record)}
+                className="accounts-row-actions__btn accounts-row-actions__edit"
+                aria-label="Edit transaction"
+              />
+            )}
+            {canDeleteAccount && (
               <Button
                 type="text"
                 size="small"
@@ -586,7 +593,7 @@ export default function AccountsPage() {
               >
                 Breakdown
               </Button>
-              {canManage && (
+              {canCreateAccount && (
                 <Button
                   type="primary"
                   size="middle"
@@ -749,7 +756,7 @@ export default function AccountsPage() {
               </Select>
             </div>
 
-            {canManage && (
+            {(canCreateAccount || canUpdateAccount || canDeleteAccount) && (
               <div style={{ width: 140 }}>
                 <Select
                   placeholder="Member"

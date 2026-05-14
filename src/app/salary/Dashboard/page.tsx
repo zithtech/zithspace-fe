@@ -11,15 +11,15 @@ import { useAuth } from "@/context/AuthContext";
 const { Title, Text } = Typography;
 
 const page = () => {
-  const { canReadSalary } = usePermission();
+  const { canReadPayrollDashboard } = usePermission();
   const { isLoading: authLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading && !canReadSalary) {
+    if (!authLoading && !canReadPayrollDashboard) {
       router.push("/dashboard");
     }
-  }, [authLoading, canReadSalary, router]);
+  }, [authLoading, canReadPayrollDashboard, router]);
 
   if (authLoading) {
     return (
@@ -35,7 +35,7 @@ const page = () => {
     );
   }
 
-  if (!canReadSalary) return null;
+  if (!canReadPayrollDashboard) return null;
 
   return (
     <MainLayout>

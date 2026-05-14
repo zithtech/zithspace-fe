@@ -24,6 +24,8 @@ interface EventDrawerProps {
     onEdit: (event: CalendarEvent) => void;
     onDelete: (event: CalendarEvent) => void;
     loading?: boolean;
+    canEdit?: boolean;
+    canDelete?: boolean;
 }
 
 export default function EventDrawer({
@@ -32,7 +34,9 @@ export default function EventDrawer({
     event,
     onEdit,
     onDelete,
-    loading
+    loading,
+    canEdit = true,
+    canDelete = true,
 }: EventDrawerProps) {
     const [deleteAction, setDeleteAction] = useState<number>(0);
 
@@ -58,69 +62,73 @@ export default function EventDrawer({
             closable={false}
             footer={
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
-                    <Popconfirm
-                        title="Delete Event"
-                        description={event.isRecurring ? (
-                            <div style={{ padding: '12px 0' }}>
-                                <Radio.Group onChange={(e) => setDeleteAction(e.target.value)} value={deleteAction}>
-                                    <Space direction="vertical" size="middle">
-                                        <Radio value={0}>
-                                            <Text strong style={{ color: 'var(--cal-text-strong)' }}>Delete for one day</Text>
-                                            <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginLeft: '24px', color: 'var(--cal-text-muted)' }}>
-                                                Only this occurrence will be removed
-                                            </Text>
-                                        </Radio>
-                                        <Radio value={2}>
-                                            <Text strong style={{ color: 'var(--cal-text-strong)' }}>Delete for all days</Text>
-                                            <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginLeft: '24px', color: 'var(--cal-text-muted)' }}>
-                                                The entire recurring series will be removed
-                                            </Text>
-                                        </Radio>
-                                    </Space>
-                                </Radio.Group>
-                            </div>
-                        ) : "Are you sure you want to delete this event?"}
-                        onConfirm={() => {
-                            if (event.isRecurring) {
-                                // If recurring, pass the selected action
-                                (onDelete as any)(event, deleteAction);
-                            } else {
-                                onDelete(event);
-                            }
-                        }}
-                        okText="Delete"
-                        cancelText="Cancel"
-                        okButtonProps={{ danger: true }}
-                    >
-                        <Button 
-                            danger 
-                            type="text" 
-                            icon={<DeleteOutlined />}
-                            style={{ fontWeight: 600, borderRadius: '8px' }}
+                    {canDelete ? (
+                        <Popconfirm
+                            title="Delete Event"
+                            description={event.isRecurring ? (
+                                <div style={{ padding: '12px 0' }}>
+                                    <Radio.Group onChange={(e) => setDeleteAction(e.target.value)} value={deleteAction}>
+                                        <Space direction="vertical" size="middle">
+                                            <Radio value={0}>
+                                                <Text strong style={{ color: 'var(--cal-text-strong)' }}>Delete for one day</Text>
+                                                <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginLeft: '24px', color: 'var(--cal-text-muted)' }}>
+                                                    Only this occurrence will be removed
+                                                </Text>
+                                            </Radio>
+                                            <Radio value={2}>
+                                                <Text strong style={{ color: 'var(--cal-text-strong)' }}>Delete for all days</Text>
+                                                <Text type="secondary" style={{ display: 'block', fontSize: '12px', marginLeft: '24px', color: 'var(--cal-text-muted)' }}>
+                                                    The entire recurring series will be removed
+                                                </Text>
+                                            </Radio>
+                                        </Space>
+                                    </Radio.Group>
+                                </div>
+                            ) : "Are you sure you want to delete this event?"}
+                            onConfirm={() => {
+                                if (event.isRecurring) {
+                                    // If recurring, pass the selected action
+                                    (onDelete as any)(event, deleteAction);
+                                } else {
+                                    onDelete(event);
+                                }
+                            }}
+                            okText="Delete"
+                            cancelText="Cancel"
+                            okButtonProps={{ danger: true }}
                         >
-                            Delete
-                        </Button>
-                    </Popconfirm>
+                            <Button 
+                                danger 
+                                type="text" 
+                                icon={<DeleteOutlined />}
+                                style={{ fontWeight: 600, borderRadius: '8px' }}
+                            >
+                                Delete
+                            </Button>
+                        </Popconfirm>
+                    ) : <div />}
                     <Space size={12}>
                         <Button onClick={onClose} style={{ borderRadius: '10px', fontWeight: 600, height: '38px', padding: '0 20px' }}>
                             Close
                         </Button>
-                        <Button 
-                            type="primary" 
-                            icon={<EditOutlined />} 
-                            onClick={() => onEdit(event)}
-                            style={{ 
-                                borderRadius: '10px', 
-                                fontWeight: 700, 
-                                background: 'var(--cal-brand)', 
-                                border: 'none',
-                                height: '38px', 
-                                padding: '0 20px',
-                                boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)' 
-                            }}
-                        >
-                            Edit Event
-                        </Button>
+                        {canEdit && (
+                            <Button 
+                                type="primary" 
+                                icon={<EditOutlined />} 
+                                onClick={() => onEdit(event)}
+                                style={{ 
+                                    borderRadius: '10px', 
+                                    fontWeight: 700, 
+                                    background: 'var(--cal-brand)', 
+                                    border: 'none',
+                                    height: '38px', 
+                                    padding: '0 20px',
+                                    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)' 
+                                }}
+                            >
+                                Edit Event
+                            </Button>
+                        )}
                     </Space>
                 </div>
             }

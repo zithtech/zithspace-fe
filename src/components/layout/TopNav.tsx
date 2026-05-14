@@ -46,9 +46,11 @@ interface ShortcutItem {
   path: string;
 }
 import { Inbox } from '@novu/nextjs';
+import { Permissions } from '@/types/permissions';
 import { ModuleType, NAVIGATION_CONFIG, NAV_MOBILE_BREAKPOINT } from './navigationConfig';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import { useIsBreakpoint } from '@/hooks/use-is-breakpoint';
 import { TimeTrackerPopover } from '@/components/time-tracking/TimeTrackerPopover';
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
@@ -76,6 +78,17 @@ export default function TopNav({
 }: TopNavProps) {
   const router = useRouter();
   const { hasPermission, hasAnyPermission } = useAuth();
+  const { 
+    canReadMail, 
+    canReadCalendar, 
+    canReadSkills, 
+    canReadChat, 
+    canReadNotification, 
+    canReadBookmark,
+    canCreateBookmark,
+    canDeleteBookmark,
+    canReadTimeTracking
+  } = usePermission();
   const { token } = theme.useToken();
   const { theme: appTheme } = useTheme();
   const isDark = appTheme === "dark";
@@ -413,17 +426,19 @@ export default function TopNav({
               </div>
 
               {hoveredShortcutId === item.id ? (
-                <Tooltip title="Delete Bookmark">
-                  <Button
-                    type="text"
-                    shape="circle"
-                    icon={
-                      <Trash2 size={14} strokeWidth={1.75} color="#8c8c8c" />
-                    }
-                    size="small"
-                    onClick={(e) => handleDeleteBookmark(item.id, e)}
-                  />
-                </Tooltip>
+                canDeleteBookmark && (
+                  <Tooltip title="Delete Bookmark">
+                    <Button
+                      type="text"
+                      shape="circle"
+                      icon={
+                        <Trash2 size={14} strokeWidth={1.75} color="#8c8c8c" />
+                      }
+                      size="small"
+                      onClick={(e) => handleDeleteBookmark(item.id, e)}
+                    />
+                  </Tooltip>
+                )
               ) : (
                 <ChevronRight size={12} strokeWidth={2} color="#bfbfbf" />
               )}
@@ -478,18 +493,20 @@ export default function TopNav({
             </Space>
           </Space>
         ) : (
-          <Button
-            type="text"
-            icon={<Plus size={14} strokeWidth={2} />}
-            onClick={() => setIsAddMode(true)}
-            style={{
-              width: "100%",
-              textAlign: "left",
-              padding: "4px 0",
-            }}
-          >
-            Add Bookmark
-          </Button>
+          canCreateBookmark && (
+            <Button
+              type="text"
+              icon={<Plus size={14} strokeWidth={2} />}
+              onClick={() => setIsAddMode(true)}
+              style={{
+                width: "100%",
+                textAlign: "left",
+                padding: "4px 0",
+              }}
+            >
+              Add Bookmark
+            </Button>
+          )
         )}
       </div>
     </div>
@@ -622,94 +639,159 @@ export default function TopNav({
         {!isCustomBreakpoint ? (
           <>
             <ThemeToggle />
-            <TimeTrackerPopover />
+            {canReadTimeTracking && <TimeTrackerPopover />}
 
 
-            <Tooltip
-              title={
-                <div className="navbar-tooltip">
-                  <span className="navbar-tooltip-title">Mail</span>
-                  <span className="navbar-tooltip-sub">Inbox & messages</span>
-                </div>
-              }
-              placement="bottom"
-              classNames={{ root: "navbar-icon-tooltip" }}
-              mouseEnterDelay={0.1}
-              zIndex={1100}
-            >
-              <Button
-                type="text"
-                icon={<Mail size={18} strokeWidth={1.75} />}
-                onClick={() => router.push('/mail')}
-              />
-            </Tooltip>
-            <Tooltip
-              title={
-                <div className="navbar-tooltip">
-                  <span className="navbar-tooltip-title">Calendar</span>
-                  <span className="navbar-tooltip-sub">Schedule & events</span>
-                </div>
-              }
-              placement="bottom"
-              classNames={{ root: "navbar-icon-tooltip" }}
-              mouseEnterDelay={0.1}
-              zIndex={1100}
-            >
-              <Button
-                type="text"
-                icon={<CalendarDays size={18} strokeWidth={1.75} />}
-                onClick={() => router.push('/calendar')}
-              />
-            </Tooltip>
-            <Tooltip
-              title={
-                <div className="navbar-tooltip">
-                  <span className="navbar-tooltip-title">Skills</span>
-                  <span className="navbar-tooltip-sub">Learning & growth</span>
-                </div>
-              }
-              placement="bottom"
-              classNames={{ root: "navbar-icon-tooltip" }}
-              mouseEnterDelay={0.1}
-              zIndex={1100}
-            >
-              <Button
-                type="text"
-                icon={<Sparkles size={18} strokeWidth={1.75} />}
-                onClick={() => router.push('/skills')}
-              />
-            </Tooltip>
+            {canReadMail && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Mail</span>
+                    <span className="navbar-tooltip-sub">Inbox & messages</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <Button
+                  type="text"
+                  icon={<Mail size={18} strokeWidth={1.75} />}
+                  onClick={() => router.push('/mail')}
+                />
+              </Tooltip>
+            )}
+            {canReadCalendar && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Calendar</span>
+                    <span className="navbar-tooltip-sub">Schedule & events</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <Button
+                  type="text"
+                  icon={<CalendarDays size={18} strokeWidth={1.75} />}
+                  onClick={() => router.push('/calendar')}
+                />
+              </Tooltip>
+            )}
+            {canReadSkills && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Skills</span>
+                    <span className="navbar-tooltip-sub">Learning & growth</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <Button
+                  type="text"
+                  icon={<Sparkles size={18} strokeWidth={1.75} />}
+                  onClick={() => router.push('/skills')}
+                />
+              </Tooltip>
+            )}
 
-            <Tooltip
-              title={
-                <div className="navbar-tooltip">
-                  <span className="navbar-tooltip-title">Messages</span>
-                  <span className="navbar-tooltip-sub">Team chat</span>
+            {canReadChat && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Messages</span>
+                    <span className="navbar-tooltip-sub">Team chat</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <Button
+                  type="text"
+                  icon={<MessageSquareText size={18} strokeWidth={1.75} />}
+                  onClick={() => router.push('/chat')}
+                />
+              </Tooltip>
+            )}
+            {canReadNotification && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Notifications</span>
+                    <span className="navbar-tooltip-sub">Alerts & updates</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <div className={`novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
+                  <Inbox
+                    applicationIdentifier="67g_5lVLFWvd"
+                    subscriberId={user?.id}
+                    socketUrl="wss://socket.novu.co"
+                    appearance={novuAppearance}
+                  />
                 </div>
-              }
-              placement="bottom"
-              classNames={{ root: "navbar-icon-tooltip" }}
-              mouseEnterDelay={0.1}
-              zIndex={1100}
-            >
-              <Button
-                type="text"
-                icon={<MessageSquareText size={18} strokeWidth={1.75} />}
-                onClick={() => router.push('/chat')}
-              />
-            </Tooltip>
-            <Tooltip
-              title={
-                <div className="navbar-tooltip">
-                  <span className="navbar-tooltip-title">Notifications</span>
-                  <span className="navbar-tooltip-sub">Alerts & updates</span>
-                </div>
-              }
-              placement="bottom"
-              classNames={{ root: "navbar-icon-tooltip" }}
-              mouseEnterDelay={0.1}
-              zIndex={1100}
-            >
+              </Tooltip>
+            )}
+            {canReadBookmark && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Bookmarks</span>
+                    <span className="navbar-tooltip-sub">Saved shortcuts</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+                open={shortcutPopoverVisible ? false : undefined}
+              >
+                <Dropdown
+                  open={shortcutPopoverVisible && !isCustomBreakpoint}
+                  onOpenChange={(visible) => {
+                    if (!visible && deleteModalOpen) return;
+                    setShortcutPopoverVisible(visible);
+                    if (!visible) {
+                      setIsAddMode(false);
+                      setNewShortcutName("");
+                      setNewShortcutPath("");
+                    }
+                  }}
+                  popupRender={() => renderShortcutsDropdownContent(false)}
+                  trigger={["click"]}
+                >
+                  <Button
+                    type="text"
+                    icon={
+                      (shortcutPopoverVisible && !isCustomBreakpoint) ? (
+                        <Bookmark size={18} strokeWidth={1.75} fill="#1677ff" color="#1677ff" />
+                      ) : (
+                        <Bookmark size={18} strokeWidth={1.75} />
+                      )
+                    }
+                  />
+                </Dropdown>
+              </Tooltip>
+            )}
+          </>
+        ) : (
+          <Space size={isSmallMobile ? 4 : 8}>
+            <ThemeToggle />
+            {canReadNotification && (
               <div className={`novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
                 <Inbox
                   applicationIdentifier="67g_5lVLFWvd"
@@ -718,93 +800,42 @@ export default function TopNav({
                   appearance={novuAppearance}
                 />
               </div>
-            </Tooltip>
-            <Tooltip
-              title={
-                <div className="navbar-tooltip">
-                  <span className="navbar-tooltip-title">Bookmarks</span>
-                  <span className="navbar-tooltip-sub">Saved shortcuts</span>
-                </div>
-              }
-              placement="bottom"
-              classNames={{ root: "navbar-icon-tooltip" }}
-              mouseEnterDelay={0.1}
-              zIndex={1100}
-              open={shortcutPopoverVisible ? false : undefined}
-            >
-              <Dropdown
-                open={shortcutPopoverVisible && !isCustomBreakpoint}
-                onOpenChange={(visible) => {
-                  if (!visible && deleteModalOpen) return;
-                  setShortcutPopoverVisible(visible);
-                  if (!visible) {
-                    setIsAddMode(false);
-                    setNewShortcutName("");
-                    setNewShortcutPath("");
-                  }
-                }}
-                popupRender={() => renderShortcutsDropdownContent(false)}
-                trigger={["click"]}
-              >
-                <Button
-                  type="text"
-                  icon={
-                    (shortcutPopoverVisible && !isCustomBreakpoint) ? (
-                      <Bookmark size={18} strokeWidth={1.75} fill="#1677ff" color="#1677ff" />
-                    ) : (
-                      <Bookmark size={18} strokeWidth={1.75} />
-                    )
-                  }
-                />
-              </Dropdown>
-            </Tooltip>
-          </>
-        ) : (
-          <Space size={isSmallMobile ? 4 : 8}>
-            <ThemeToggle />
-            <div className={`novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
-              <Inbox
-                applicationIdentifier="67g_5lVLFWvd"
-                subscriberId={user?.id}
-                socketUrl="wss://socket.novu.co"
-                appearance={novuAppearance}
-              />
-            </div>
+            )}
             <Dropdown
               menu={{
                 items: [
-                  {
+                  ...(hasPermission(Permissions.TIME_TRACKING_READ) ? [{
                     key: 'timer',
                     label: <TimeTrackerPopover isMenuItem />,
                     onClick: () => setPopoverOpen(true)
-                  },
-                  {
+                  }] : []),
+                  ...(hasPermission(Permissions.MAIL_READ) ? [{
                     key: 'mail',
                     label: 'Mail',
                     icon: <Mail size={16} strokeWidth={1.75} />,
                     onClick: () => router.push('/mail')
-                  },
-                  {
+                  }] : []),
+                  ...(hasPermission(Permissions.CALENDAR_READ) ? [{
                     key: 'calendar',
                     label: 'Calendar',
                     icon: <CalendarDays size={16} strokeWidth={1.75} />,
                     onClick: () => router.push('/calendar')
-                  },
-                  {
+                  }] : []),
+                  ...(hasPermission(Permissions.CHAT_READ) ? [{
                     key: 'chat',
                     label: 'Messages',
                     icon: <MessageSquareText size={16} strokeWidth={1.75} />,
                     onClick: () => router.push('/chat')
-                  },
-                  {
+                  }] : []),
+                  ...(hasPermission(Permissions.BOOKMARK_READ) ? [{
                     key: 'bookmarks',
                     label: 'Bookmarks',
                     icon: <Bookmark size={16} strokeWidth={1.75} />,
-                    onClick: (e) => {
+                    onClick: (e: any) => {
                       e.domEvent.stopPropagation();
                       setShortcutPopoverVisible(true);
                     }
-                  }
+                  }] : [])
                 ]
               }}
               trigger={['click']}

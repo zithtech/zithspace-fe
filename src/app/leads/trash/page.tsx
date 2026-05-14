@@ -28,6 +28,8 @@ import {
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { useLeads } from "@/hooks/useLeads";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import LeadService, { Lead } from "@/services/leadService";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -37,7 +39,6 @@ import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeade
 dayjs.extend(relativeTime);
 
 const { Text } = Typography;
-
 export default function LeadsTrashPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,6 +46,16 @@ export default function LeadsTrashPage() {
   const { leads, loading, fetchTrashLeads, emptyTrash, bulkRestoreLeads, bulkDeleteLeads } = useLeads();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { canReadLeadTrash, canRestoreLeadTrash, canDeleteLeadTrash } = usePermission();
+
+  // ─── Route Guard ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isAuthLoading && user && !canReadLeadTrash) {
+      router.push("/dashboard");
+    }
+  }, [user, isAuthLoading, canReadLeadTrash, router]);
 
   useEffect(() => {
     fetchTrashLeads();
@@ -129,29 +140,33 @@ export default function LeadsTrashPage() {
       width: 120,
       render: (record: Lead) => (
         <Space size={8}>
-          <Tooltip title="Restore Lead">
-            <Button
-              type="text"
-              icon={<UndoOutlined style={{ color: "#52c41a" }} />}
-              onClick={() => handleRestore(record.id)}
-            />
-          </Tooltip>
-          <Popconfirm
-            title="Permanently delete lead?"
-            description="This action cannot be undone."
-            onConfirm={() => handlePermanentDelete(record.id)}
-            okText="Yes, delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-            icon={<ExclamationCircleOutlined style={{ color: "red" }} />}
-          >
-            <Tooltip title="Permanent Delete">
+          {canRestoreLeadTrash && (
+            <Tooltip title="Restore Lead">
               <Button
                 type="text"
-                icon={<DeleteOutlined style={{ color: "#ff4d4f" }} />}
+                icon={<UndoOutlined style={{ color: "#52c41a" }} />}
+                onClick={() => handleRestore(record.id)}
               />
             </Tooltip>
-          </Popconfirm>
+          )}
+          {canDeleteLeadTrash && (
+            <Popconfirm
+              title="Permanently delete lead?"
+              description="This action cannot be undone."
+              onConfirm={() => handlePermanentDelete(record.id)}
+              okText="Yes, delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+              icon={<ExclamationCircleOutlined style={{ color: "red" }} />}
+            >
+              <Tooltip title="Permanent Delete">
+                <Button
+                  type="text"
+                  icon={<DeleteOutlined style={{ color: "#ff4d4f" }} />}
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -203,34 +218,36 @@ export default function LeadsTrashPage() {
                   />
                 </Tooltip>
 
-                <Popconfirm
-                  title="Empty lead trash repository?"
-                  description="This will permanently delete all leads currently in the trash. This action cannot be undone."
-                  onConfirm={async () => {
-                    try {
-                      await emptyTrash();
-                      message.success("Leads trash emptied successfully");
-                    } catch (error: any) {
-                      message.error(error.message || "Failed to empty trash");
-                    }
-                  }}
-                  okText="Yes, empty all"
-                  cancelText="Cancel"
-                  okButtonProps={{ danger: true, loading }}
-                  icon={<DeleteOutlined style={{ color: "red" }} />}
-                  disabled={filteredLeads.length === 0 || loading}
-                >
-                  <Button
-                    danger
-                    type="primary"
-                    icon={<DeleteOutlined />}
-                    loading={loading && !isRefreshing}
-                    style={{ borderRadius: 8, height: 32 }}
+                {canDeleteLeadTrash && (
+                  <Popconfirm
+                    title="Empty lead trash repository?"
+                    description="This will permanently delete all leads currently in the trash. This action cannot be undone."
+                    onConfirm={async () => {
+                      try {
+                        await emptyTrash();
+                        message.success("Leads trash emptied successfully");
+                      } catch (error: any) {
+                        message.error(error.message || "Failed to empty trash");
+                      }
+                    }}
+                    okText="Yes, empty all"
+                    cancelText="Cancel"
+                    okButtonProps={{ danger: true, loading }}
+                    icon={<DeleteOutlined style={{ color: "red" }} />}
                     disabled={filteredLeads.length === 0 || loading}
                   >
-                    Empty Trash
-                  </Button>
-                </Popconfirm>
+                    <Button
+                      danger
+                      type="primary"
+                      icon={<DeleteOutlined />}
+                      loading={loading && !isRefreshing}
+                      style={{ borderRadius: 8, height: 32 }}
+                      disabled={filteredLeads.length === 0 || loading}
+                    >
+                      Empty Trash
+                    </Button>
+                  </Popconfirm>
+                )}
               </div>
             }
           />
@@ -243,50 +260,54 @@ export default function LeadsTrashPage() {
                   <Text strong style={{ marginLeft: 8 }}>Leads Selected</Text>
                 </div>
                 <div className="saas-bulk-buttons">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<UndoOutlined />}
-                    onClick={async () => {
-                      try {
-                        await bulkRestoreLeads(selectedRowKeys as string[]);
-                        setSelectedRowKeys([]);
-                        message.success("Selected leads restored");
-                      } catch (err: any) {
-                        message.error("Failed to restore leads");
-                      }
-                    }}
-                    loading={loading}
-                    className="saas-bulk-btn restore"
-                  >
-                    Restore
-                  </Button>
-                  <Popconfirm
-                    title={`Purge ${selectedRowKeys.length} leads?`}
-                    description="This will permanently delete the selected leads. This action cannot be undone."
-                    onConfirm={async () => {
-                      try {
-                        await bulkDeleteLeads(selectedRowKeys as string[]);
-                        setSelectedRowKeys([]);
-                        message.success("Selected leads purged");
-                      } catch (err: any) {
-                        message.error("Failed to purge leads");
-                      }
-                    }}
-                    okText="Purge Selected"
-                    cancelText="Cancel"
-                    okButtonProps={{ danger: true, loading }}
-                  >
+                  {canRestoreLeadTrash && (
                     <Button
                       type="text"
                       size="small"
-                      icon={<DeleteOutlined />}
+                      icon={<UndoOutlined />}
+                      onClick={async () => {
+                        try {
+                          await bulkRestoreLeads(selectedRowKeys as string[]);
+                          setSelectedRowKeys([]);
+                          message.success("Selected leads restored");
+                        } catch (err: any) {
+                          message.error("Failed to restore leads");
+                        }
+                      }}
                       loading={loading}
-                      className="saas-bulk-btn purge"
+                      className="saas-bulk-btn restore"
                     >
-                      Purge
+                      Restore
                     </Button>
-                  </Popconfirm>
+                  )}
+                  {canDeleteLeadTrash && (
+                    <Popconfirm
+                      title={`Purge ${selectedRowKeys.length} leads?`}
+                      description="This will permanently delete the selected leads. This action cannot be undone."
+                      onConfirm={async () => {
+                        try {
+                          await bulkDeleteLeads(selectedRowKeys as string[]);
+                          setSelectedRowKeys([]);
+                          message.success("Selected leads purged");
+                        } catch (err: any) {
+                          message.error("Failed to purge leads");
+                        }
+                      }}
+                      okText="Purge Selected"
+                      cancelText="Cancel"
+                      okButtonProps={{ danger: true, loading }}
+                    >
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        loading={loading}
+                        className="saas-bulk-btn purge"
+                      >
+                        Purge
+                      </Button>
+                    </Popconfirm>
+                  )}
                   <Button
                     type="text"
                     size="small"

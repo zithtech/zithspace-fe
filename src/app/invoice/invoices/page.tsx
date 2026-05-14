@@ -157,7 +157,16 @@ const getStatusIcon = (status: InvoiceStatus) => {
 export default function InvoiceInvoicesPage() {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
-  const { canReadInvoice, canCreateInvoice, canUpdateInvoice, canDeleteInvoice } = usePermission();
+  const {
+    canReadInvoice,
+    canCreateInvoice,
+    canUpdateInvoice,
+    canDeleteInvoice,
+    canUpdateInvoiceStatus,
+    canSendInvoiceMail,
+    canReadInvoiceHistory,
+    canDeleteInvoiceTrash
+  } = usePermission();
   const { isLoading: authLoading } = useAuth();
 
   /* ================= STAT TILE (accent strip) ================= */
@@ -644,13 +653,13 @@ export default function InvoiceInvoicesPage() {
         downloadInvoice(record.id);
       },
     },
-    {
+    canSendInvoiceMail && {
       key: "send_quick",
       icon: <Mail size={16} />,
       label: "Quick Send Email",
       onClick: () => handleQuickSend(record),
     },
-    {
+    canSendInvoiceMail && {
       key: "compose_email",
       icon: <Edit2 size={16} />,
       label: "Compose & Send",
@@ -659,7 +668,7 @@ export default function InvoiceInvoicesPage() {
         setEmailDrawerOpen(true);
       },
     },
-    {
+    canReadInvoiceHistory && {
       key: "transactions",
       icon: <DollarSign size={16} />,
       label: "Transaction History",
@@ -668,8 +677,8 @@ export default function InvoiceInvoicesPage() {
         setTransactionDrawerOpen(true);
       },
     },
-    (canUpdateInvoice || canDeleteInvoice) && { type: "divider" },
-    canDeleteInvoice && {
+    (canUpdateInvoice || canDeleteInvoice || canDeleteInvoiceTrash) && { type: "divider" },
+    (canDeleteInvoice || canDeleteInvoiceTrash) && {
       key: "delete",
       icon: <Trash2 size={16} />,
       label: deletingId === record.id && deleteMutation.isPending ? "Moving to Trash..." : "Move to Trash",
@@ -888,19 +897,21 @@ export default function InvoiceInvoicesPage() {
         const frontendStatus = fromBackendStatus(status);
         return (
           <div
-            className="cursor-pointer"
+            className={canUpdateInvoiceStatus ? "cursor-pointer" : ""}
             onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              handleStatusChange(record);
+              if (canUpdateInvoiceStatus) {
+                e.stopPropagation();
+                e.preventDefault();
+                handleStatusChange(record);
+              }
             }}
           >
-            <Tooltip title="Click to change status">
+            <Tooltip title={canUpdateInvoiceStatus ? "Click to change status" : ""}>
               <Badge
                 count={
                   <Tag
                     color={getStatusColor(frontendStatus)}
-                    className="hover:opacity-80 transition-opacity m-0"
+                    className={canUpdateInvoiceStatus ? "hover:opacity-80 transition-opacity m-0" : "m-0"}
                     style={{
                       padding: "4px 10px",
                       borderRadius: 12,
@@ -1279,7 +1290,7 @@ export default function InvoiceInvoicesPage() {
               >
                 Download
               </Button>
-              {canDeleteInvoice && (
+              {(canDeleteInvoice || canDeleteInvoiceTrash) && (
                 <Button
                   size="small"
                   danger

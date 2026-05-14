@@ -38,6 +38,8 @@ import {
 import MainLayout from '@/components/layout/MainLayout';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/axios';
+import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import { EscalationServiceV2 } from '@/services/escalationServiceV2';
 import { EscalationSettingsService } from '@/services/escalationSettings';
 
@@ -94,10 +96,19 @@ interface Project {
 
 export default function CreateEscalationPage() {
   const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canCreateEscalation } = usePermission();
   const [form] = Form.useForm();
 
   const [loading, setLoading] = useState(false);
   const [notify, contextHolder] = notification.useNotification();
+
+  // ─── Route Guard ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!authLoading && user && !canCreateEscalation) {
+      router.push("/escalations");
+    }
+  }, [user, authLoading, canCreateEscalation, router]);
 
   const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
     notify[type]({

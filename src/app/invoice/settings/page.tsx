@@ -101,14 +101,19 @@ const DEFAULT_DRAFT: Draft = {
 
 export default function InvoiceSettingPage() {
   const router = useRouter();
-  const { canUpdateSettings } = usePermission();
+  const {
+    canReadInvoiceSetting,
+    canCreateInvoiceSetting,
+    canUpdateInvoiceSetting,
+    canDeleteInvoiceSetting
+  } = usePermission();
   const { isLoading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!authLoading && !canUpdateSettings) {
-      router.push("/dashboard");
+    if (!authLoading && !canReadInvoiceSetting) {
+      router.push("/invoice/invoices");
     }
-  }, [authLoading, canUpdateSettings, router]);
+  }, [authLoading, canReadInvoiceSetting, router]);
 
   const [mode, setMode] = useState<"view" | "create">("view");
   const { data: savedSettingsData, isLoading, isError, error, refetch } =
@@ -381,16 +386,16 @@ export default function InvoiceSettingPage() {
     );
   }
 
-  if (!canUpdateSettings) {
+  if (!canReadInvoiceSetting) {
     return (
       <MainLayout>
         <div className="flex h-[60vh] items-center justify-center flex-col gap-3">
           <ShieldAlert size={40} className="text-red-400" />
           <Typography.Text style={{ color: "var(--text-secondary)" }}>
-            Verifying profile access permissions...
+            Access denied.
           </Typography.Text>
-          <Button type="link" onClick={() => router.push("/dashboard")}>
-            Back to dashboard
+          <Button type="link" onClick={() => router.push("/invoice/invoices")}>
+            Back to invoices
           </Button>
         </div>
       </MainLayout>
@@ -503,23 +508,25 @@ export default function InvoiceSettingPage() {
 
             <div className="flex items-center gap-2">
               {mode === "view" ? (
-                <Button
-                  type="primary"
-                  icon={<Plus size={14} />}
-                  onClick={() => {
-                    resetDraft();
-                    setMode("create");
-                    setCurrentStep(0);
-                  }}
-                  style={{
-                    borderRadius: 8,
-                    height: 36,
-                    fontWeight: 600,
-                    background: "#2563eb",
-                  }}
-                >
-                  New profile
-                </Button>
+                canCreateInvoiceSetting && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={14} />}
+                    onClick={() => {
+                      resetDraft();
+                      setMode("create");
+                      setCurrentStep(0);
+                    }}
+                    style={{
+                      borderRadius: 8,
+                      height: 36,
+                      fontWeight: 600,
+                      background: "#2563eb",
+                    }}
+                  >
+                    New profile
+                  </Button>
+                )
               ) : (
                 <Button
                   icon={<ArrowLeft size={14} />}
@@ -743,22 +750,24 @@ export default function InvoiceSettingPage() {
                   >
                     Create a profile to start generating invoices.
                   </Typography.Text>
-                  <Button
-                    type="primary"
-                    icon={<Plus size={14} />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMode("create");
-                    }}
-                    style={{
-                      borderRadius: 8,
-                      height: 38,
-                      fontWeight: 600,
-                      background: "#2563eb",
-                    }}
-                  >
-                    Create profile
-                  </Button>
+                  {canCreateInvoiceSetting && (
+                    <Button
+                      type="primary"
+                      icon={<Plus size={14} />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMode("create");
+                      }}
+                      style={{
+                        borderRadius: 8,
+                        height: 38,
+                        fontWeight: 600,
+                        background: "#2563eb",
+                      }}
+                    >
+                      Create profile
+                    </Button>
+                  )}
                 </div>
               ) : filteredSettings.length === 0 ? (
                 <div
@@ -953,45 +962,51 @@ export default function InvoiceSettingPage() {
                             className="flex items-center gap-1"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <Tooltip title="Edit">
-                              <button
-                                type="button"
-                                onClick={() => handleEdit(record.id)}
-                                className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
-                                style={{ color: "var(--text-secondary)" }}
-                              >
-                                <Edit size={13} />
-                              </button>
-                            </Tooltip>
-                            <Tooltip
-                              title={
-                                record.isActive ? "Deactivate" : "Set active"
-                              }
-                            >
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  activateMutation.mutate({
-                                    id: record.id,
-                                    isActive: !record.isActive,
-                                  })
+                            {canUpdateInvoiceSetting && (
+                              <Tooltip title="Edit">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEdit(record.id)}
+                                  className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  <Edit size={13} />
+                                </button>
+                              </Tooltip>
+                            )}
+                            {canUpdateInvoiceSetting && (
+                              <Tooltip
+                                title={
+                                  record.isActive ? "Deactivate" : "Set active"
                                 }
-                                className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
-                                style={{ color: "var(--text-secondary)" }}
                               >
-                                <Power size={13} />
-                              </button>
-                            </Tooltip>
-                            <Tooltip title="Delete">
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(record.id)}
-                                className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
-                                style={{ color: "#dc2626" }}
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </Tooltip>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    activateMutation.mutate({
+                                      id: record.id,
+                                      isActive: !record.isActive,
+                                    })
+                                  }
+                                  className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  <Power size={13} />
+                                </button>
+                              </Tooltip>
+                            )}
+                            {canDeleteInvoiceSetting && (
+                              <Tooltip title="Delete">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(record.id)}
+                                  className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
+                                  style={{ color: "#dc2626" }}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </Tooltip>
+                            )}
                           </div>
                         ),
                       },
@@ -1161,36 +1176,41 @@ export default function InvoiceSettingPage() {
                                 <Eye size={14} />
                               </button>
                             </Tooltip>
-                            <Tooltip title="Edit profile">
-                              <button
-                                type="button"
-                                onClick={() => handleEdit(setting.id)}
-                                className="w-8 h-8 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-secondary)]"
-                                style={{ color: "var(--text-secondary)" }}
-                              >
-                                <Edit size={14} />
-                              </button>
-                            </Tooltip>
-                            <Tooltip title="Delete">
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(setting.id)}
-                                className="w-8 h-8 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-secondary)]"
-                                style={{ color: "#dc2626" }}
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </Tooltip>
+                             {canUpdateInvoiceSetting && (
+                               <Tooltip title="Edit profile">
+                                 <button
+                                   type="button"
+                                   onClick={() => handleEdit(setting.id)}
+                                   className="w-8 h-8 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-secondary)]"
+                                   style={{ color: "var(--text-secondary)" }}
+                                 >
+                                   <Edit size={14} />
+                                 </button>
+                               </Tooltip>
+                             )}
+                             {canDeleteInvoiceSetting && (
+                               <Tooltip title="Delete">
+                                 <button
+                                   type="button"
+                                   onClick={() => handleDelete(setting.id)}
+                                   className="w-8 h-8 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-secondary)]"
+                                   style={{ color: "#dc2626" }}
+                                 >
+                                   <Trash2 size={14} />
+                                 </button>
+                               </Tooltip>
+                             )}
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              activateMutation.mutate({
-                                id: setting.id,
-                                isActive: !setting.isActive,
-                              });
-                            }}
+                          {canUpdateInvoiceSetting && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                activateMutation.mutate({
+                                  id: setting.id,
+                                  isActive: !setting.isActive,
+                                });
+                              }}
                             className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[11.5px] font-semibold transition-colors"
                             style={
                               setting.isActive
@@ -1209,6 +1229,7 @@ export default function InvoiceSettingPage() {
                             <Power size={12} strokeWidth={2.25} />
                             {setting.isActive ? "Deactivate" : "Set active"}
                           </button>
+                        )}
                         </div>
                       </div>
                     );

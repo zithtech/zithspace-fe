@@ -35,11 +35,36 @@ import MainLayout from '@/components/layout/MainLayout';
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useSalaryApprovals } from '@/hooks/useSalaryApprovals';
+import { usePermission } from '@/hooks/usePermission';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { Spin } from 'antd';
 
 const { Title, Text, Paragraph } = Typography;
 
 const ApprovalsPage = () => {
   const [activeTab, setActiveTab] = useState('pending');
+  const { canReadPayroll, canProcessPayroll } = usePermission();
+  const { isLoading: authLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && !canReadPayroll) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, canReadPayroll, router]);
+
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+          <Spin size="large" tip="Loading" />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canReadPayroll) return null;
   
   const { 
     data, 
@@ -161,7 +186,7 @@ const ApprovalsPage = () => {
               />
             </Link>
           </Tooltip>
-          {activeTab === 'pending' && (
+          {activeTab === 'pending' && canProcessPayroll && (
             <>
               <Button 
                 type="primary" 

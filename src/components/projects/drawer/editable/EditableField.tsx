@@ -13,6 +13,7 @@ interface EditableFieldProps {
     textStyle?: React.CSSProperties;
     emptyText?: string;
     editIconVisibility?: 'hover' | 'always' | 'visible';
+    disabled?: boolean;
 }
 
 export const EditableField: React.FC<EditableFieldProps> = ({
@@ -24,6 +25,7 @@ export const EditableField: React.FC<EditableFieldProps> = ({
     textStyle,
     emptyText = 'Click to edit',
     editIconVisibility = 'hover',
+    disabled = false,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentValue, setCurrentValue] = useState<string | number>('');
@@ -118,9 +120,9 @@ export const EditableField: React.FC<EditableFieldProps> = ({
 
     return (
         <div
-            onClick={() => setIsEditing(true)}
+            onClick={() => !disabled && setIsEditing(true)}
             style={{
-                cursor: 'pointer',
+                cursor: disabled ? 'default' : 'pointer',
                 padding: '4px 8px',
                 margin: '-4px -8px',
                 borderRadius: '4px',
@@ -143,7 +145,8 @@ export const EditableField: React.FC<EditableFieldProps> = ({
             <EditOutlined
                 style={{
                     marginLeft: 8,
-                    opacity: editIconVisibility === 'always' || editIconVisibility === 'visible' ? 0.6 : 0,
+                    opacity: (disabled || editIconVisibility === 'hover') ? 0 : 0.6,
+                    display: disabled ? 'none' : 'inline-block',
                     transition: 'opacity 0.2s'
                 }}
                 className="edit-icon"

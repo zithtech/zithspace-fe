@@ -85,7 +85,10 @@ import type {
   UpdateBugInput,
 } from "@/services/bugListService";
 import { useTheme } from "@/context/ThemeContext";
+import { usePermission } from "@/hooks/usePermission";
 import { hivebugStyles } from "./hivebug-styles";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 const SEVERITY_OPTS: BugSeverity[] = ["blocker", "critical", "major", "minor"];
 const STATUS_OPTS: BugStatus[] = ["new", "converted", "ignored", "verified", "reopened"];
@@ -139,6 +142,27 @@ export default function BugListPage() {
   const [limit, setLimit] = useState(25);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { theme } = useTheme();
+  const router = useRouter();
+  const { isLoading: authLoading } = useAuth();
+  const {
+    canCreateBug,
+    canReadBug,
+    canUpdateBug,
+    canDeleteBug,
+    canReadBugTrash,
+    canRestoreBugTrash,
+    canDeleteBugTrash,
+    canReadBugArchive,
+    canRestoreBugArchive,
+    canManageBugs,
+    canCreateTicket,
+  } = usePermission();
+
+  useEffect(() => {
+    if (!authLoading && !canReadBug) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, canReadBug, router]);
 
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState<BugFolder | null>(null);
@@ -435,6 +459,10 @@ export default function BugListPage() {
     () => bugs.filter((b) => selectedIds.has(b.id)),
     [bugs, selectedIds]
   );
+
+  if (authLoading || !canReadBug) {
+    return null;
+  }
 
   return (
     <div className={`hb-root ${theme === "dark" ? "hb-dark" : "hb-light"}`}>
@@ -1011,8 +1039,13 @@ export default function BugListPage() {
                     okText="Move to Trash"
                     okButtonProps={{ danger: true }}
                     onConfirm={() => bulkDelete.mutate(Array.from(selectedIds))}
+                    disabled={!canDeleteBug}
                   >
-                    <button className="hb-btn hb-btn-danger">
+                    <button 
+                      className="hb-btn hb-btn-danger"
+                      disabled={!canDeleteBug}
+                      style={{ opacity: canDeleteBug ? 1 : 0.5, cursor: canDeleteBug ? 'pointer' : 'not-allowed' }}
+                    >
                       <Trash2 size={13} />
                       Move to Trash
                     </button>

@@ -69,15 +69,15 @@ const STATUS_DATA = [
 
 export default function InvoiceproReportsPage() {
   const router = useRouter();
-  const { canReadInvoice } = usePermission();
+  const { canReadInvoiceReport } = usePermission();
   const { isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !canReadInvoice) {
-      router.push('/dashboard');
+    if (!authLoading && !canReadInvoiceReport) {
+      router.push('/invoice/invoices');
     }
-  }, [authLoading, canReadInvoice, router]);
+  }, [authLoading, canReadInvoiceReport, router]);
 
   const StatCard = ({ label, value, icon: Icon, color, trend, trendValue }: any) => (
     <Card 
@@ -119,7 +119,7 @@ export default function InvoiceproReportsPage() {
   );
 
   if (authLoading) return <MainLayout><div className="flex justify-center items-center h-screen"><Spin size="large" /></div></MainLayout>;
-  if (!canReadInvoice) return null;
+  if (!canReadInvoiceReport) return null;
 
   return (
     <MainLayout>

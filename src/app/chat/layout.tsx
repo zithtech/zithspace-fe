@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useChatStore } from '@/store/chatStore';
 import { channelService } from '@/services/channelService';
 import { streamClient } from '@/services/streamClient';
+import { usePermission } from '@/hooks/usePermission';
 
 const { Sider } = Layout;
 const { Title } = Typography;
@@ -19,10 +20,12 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
     const router = useRouter();
     const { setChannels, channels } = useChatStore();
     const { token } = theme.useToken();
+    const { canCreateChat, canReadChat } = usePermission();
     const [loading, setLoading] = useState(true);
     const [browseOpen, setBrowseOpen] = useState(false);
 
     useEffect(() => {
+        if (!canReadChat) return;
         const loadChannels = async () => {
             try {
                 const data = await channelService.getChannels();
@@ -84,22 +87,26 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                                     onClick={() => setBrowseOpen(true)}
                                 />
                             </Tooltip>
-                            <Tooltip title="New message">
-                                <Button
-                                    type="text"
-                                    size="small"
-                                    icon={<EditOutlined />}
-                                    onClick={() => router.push('/chat/new')}
-                                />
-                            </Tooltip>
-                            <Tooltip title="Create channel">
-                                <Button
-                                    type="text"
-                                    size="small"
-                                    icon={<PlusOutlined />}
-                                    onClick={() => router.push('/chat/create')}
-                                />
-                            </Tooltip>
+                            {canCreateChat && (
+                                <Tooltip title="New message">
+                                    <Button
+                                        type="text"
+                                        size="small"
+                                        icon={<EditOutlined />}
+                                        onClick={() => router.push('/chat/new')}
+                                    />
+                                </Tooltip>
+                            )}
+                            {canCreateChat && (
+                                <Tooltip title="Create channel">
+                                    <Button
+                                        type="text"
+                                        size="small"
+                                        icon={<PlusOutlined />}
+                                        onClick={() => router.push('/chat/create')}
+                                    />
+                                </Tooltip>
+                            )}
                             {/* <Tooltip title="Start Meeting">
                                 <Button
                                     type="text"

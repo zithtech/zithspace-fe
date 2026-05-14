@@ -18,6 +18,7 @@ import MessageList from '@/features/chat/MessageList';
 import MessageInput from '@/features/chat/MessageInput';
 import { useMessages } from '@/hooks/useMessages';
 import ChannelSettingsModal from '@/features/chat/ChannelSettingsModal';
+import { usePermission } from '@/hooks/usePermission';
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
@@ -57,6 +58,8 @@ export default function ChannelPage() {
     }, []);
 
     const { data: messages, isLoading: messagesLoading } = useMessages(channelId);
+
+    const { canCreateChat } = usePermission();
 
     // Sync messages to store when loaded
     useEffect(() => {
@@ -154,7 +157,7 @@ export default function ChannelPage() {
                 ) : (
                     <MessageList channelId={channelId} />
                 )}
-                <MessageInput channelId={channelId} />
+                {canCreateChat && <MessageInput channelId={channelId} />}
             </Content>
 
             <ChannelSettingsModal

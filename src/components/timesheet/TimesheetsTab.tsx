@@ -47,6 +47,7 @@ import {
   useTimesheetById,
 } from "@/hooks/useTimesheet";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import utc from "dayjs/plugin/utc";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
@@ -92,11 +93,10 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
   const deleteMutation = useDeleteTimesheet();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { canCreateTimesheet, canUpdateTimesheet, canDeleteTimesheet, canManageTimesheets } = usePermission();
   const { message } = App.useApp();
   const [isDescModalOpen, setIsDescModalOpen] = useState(false);
   const [selectedDesc, setSelectedDesc] = useState("");
@@ -353,7 +353,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
                   key: "edit",
                   icon: <EditOutlined />,
                   label: "Edit",
-                  disabled: ["APPROVED", "REJECTED"].includes(record.status),
+                  disabled: !canUpdateTimesheet || ["APPROVED", "REJECTED"].includes(record.status),
                   onClick: () => {
                     goToSubmitTimesheet(record.key, "edit");
                   },
@@ -362,6 +362,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
                   key: "resubmit",
                   icon: <RedoOutlined />,
                   label: "Resubmit",
+                  disabled: !canUpdateTimesheet,
                   onClick: () => {
                     goToSubmitTimesheet?.(record.key, "resubmit");
                   },
@@ -371,6 +372,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
                   icon: <DeleteOutlined />,
                   label: "Delete",
                   danger: true,
+                  disabled: !canDeleteTimesheet && !canManageTimesheets,
                   onClick: () => {
                     setDeleteId(record.key);
                     setShowDeleteModal(true);
@@ -448,15 +450,17 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
                 {statusFilter ? statusFilter.charAt(0) + statusFilter.slice(1).toLowerCase() : "Filter"}
               </Button>
             </Dropdown>
-            <Button
-              type="primary"
-              size="middle"
-              icon={<PlusOutlined />}
-              style={{ borderRadius: 10, height: 38, fontWeight: 500 }}
-              onClick={() => goToSubmitTimesheet()}
-            >
-              Create Timesheet
-            </Button>
+            {canCreateTimesheet && (
+              <Button
+                type="primary"
+                size="middle"
+                icon={<PlusOutlined />}
+                style={{ borderRadius: 10, height: 38, fontWeight: 500 }}
+                onClick={() => goToSubmitTimesheet()}
+              >
+                Create Timesheet
+              </Button>
+            )}
           </div>
         }
       />

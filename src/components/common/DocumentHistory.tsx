@@ -32,6 +32,8 @@ interface DocumentHistoryProps {
     onRestoreVersion?: (entry: HistoryEntry) => void;
     /** Permanently delete a version from history. */
     onDeleteVersion?: (entry: HistoryEntry) => void;
+    canRestore?: boolean;
+    canDelete?: boolean;
 }
 
 const dayBucket = (iso: string): string => {
@@ -54,6 +56,8 @@ const DocumentHistory: React.FC<DocumentHistoryProps> = ({
     onSelectVersion,
     onRestoreVersion,
     onDeleteVersion,
+    canRestore = true,
+    canDelete = true,
 }) => {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [messageApi, contextHolder] = message.useMessage();
@@ -303,7 +307,7 @@ const DocumentHistory: React.FC<DocumentHistoryProps> = ({
                                                 <EyeOutlined style={{ fontSize: 12 }} />
                                                 Preview
                                             </button>
-                                            {!isLatest && onRestoreVersion && (
+                                            {!isLatest && onRestoreVersion && canRestore && (
                                                 <button
                                                     onClick={() => confirmRestore(entry)}
                                                     className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11.5px] font-medium transition-colors"
@@ -325,7 +329,7 @@ const DocumentHistory: React.FC<DocumentHistoryProps> = ({
                                                 </button>
                                             )}
                                             <div className="ml-auto" />
-                                            {!isLatest && onDeleteVersion && (
+                                            {!isLatest && onDeleteVersion && canDelete && (
                                                 <button
                                                     onClick={() => confirmDelete(entry)}
                                                     className="flex items-center justify-center w-7 h-7 rounded-md transition-colors"

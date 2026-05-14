@@ -23,6 +23,9 @@ import {
   Popconfirm,
   Switch,
   Select,
+  Card,
+  Empty,
+  Tag,
 } from "antd";
 
 import {
@@ -35,6 +38,7 @@ import {
   AlertCircle,
   Filter as FilterIcon,
   Check,
+  History,
 } from "lucide-react";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
@@ -55,8 +59,6 @@ const PRESET_COLORS = [
 ];
 
 export default function AccountsSettingsPage() {
-  const { can } = usePermission();
-
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ExpenseCategory | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -65,10 +67,14 @@ export default function AccountsSettingsPage() {
   const isActiveValue = Form.useWatch("isActive", form);
   const colorValue = Form.useWatch("color", form);
 
-  const canReadAccounts = can("ACCOUNTS_READ");
-  const canCreateAccounts = can("ACCOUNTS_CREATE");
-  const canUpdateAccounts = can("ACCOUNTS_UPDATE");
-  const canDeleteAccounts = can("ACCOUNTS_DELETE");
+  const {
+    canReadAccountConfig,
+    canCreateAccountConfig,
+    canUpdateAccountConfig,
+    canDeleteAccountConfig,
+  } = usePermission();
+
+
 
   const { data: categories = [], isLoading: loading } = useExpenseCategories();
   const createMutation = useCreateExpenseCategory();
@@ -188,7 +194,7 @@ export default function AccountsSettingsPage() {
       align: "center" as const,
       render: (_: any, record: ExpenseCategory) => (
         <Space size={4} className="settings-row-actions">
-          {canUpdateAccounts && (
+          {canUpdateAccountConfig && (
             <Tooltip title="Edit">
               <Button
                 type="text"
@@ -200,7 +206,7 @@ export default function AccountsSettingsPage() {
               />
             </Tooltip>
           )}
-          {canDeleteAccounts && (
+          {canDeleteAccountConfig && (
             <Popconfirm
               title="Delete Category"
               description="Are you sure you want to delete this category?"
@@ -225,7 +231,7 @@ export default function AccountsSettingsPage() {
     },
   ];
 
-  if (!canReadAccounts) {
+  if (!canReadAccountConfig) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-96">
@@ -259,7 +265,7 @@ export default function AccountsSettingsPage() {
           description="Manage your expense categories and account settings."
           extra={
             <div className="flex items-center gap-3">
-              {canCreateAccounts && (
+              {canCreateAccountConfig && (
                 <Button
                   type="primary"
                   size="middle"
@@ -324,73 +330,74 @@ export default function AccountsSettingsPage() {
             </div>
           </div>
 
-          {/* Content */}
-          {loading ? (
-            <div className="settings-state-card">
-              <Spin
-                indicator={
-                  <FolderOpen
-                    size={32}
-                    className="animate-pulse"
-                    style={{ color: "var(--text-sky-500)" }}
-                  />
-                }
-              />
-            </div>
-          ) : filteredCategories.length === 0 ? (
-            <div className="settings-empty">
-              <div className="settings-empty__icon">
-                <FolderOpen size={28} />
+          <div className="settings-content-area">
+            {loading ? (
+              <div className="settings-state-card">
+                <Spin
+                  indicator={
+                    <FolderOpen
+                      size={32}
+                      className="animate-pulse"
+                      style={{ color: "var(--text-sky-500)" }}
+                    />
+                  }
+                />
               </div>
-              <div className="settings-empty__title">No categories found</div>
-              <div className="settings-empty__desc">
-                {searchText || statusFilter !== "all"
-                  ? "Try adjusting your filters or search term"
-                  : "Create your first category to start organizing your transactions"}
-              </div>
-              {!searchText && statusFilter === "all" && canCreateAccounts && (
-                <Button
-                  type="primary"
-                  size="large"
-                  icon={<Plus size={18} />}
-                  onClick={handleCreate}
-                  style={{ borderRadius: 12, height: 44, padding: "0 20px", fontWeight: 600 }}
-                >
-                  Create First Category
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="settings-table-card">
-              <div className="settings-table-card__header">
-                <div className="settings-table-card__title">
-                  <TagIcon size={14} style={{ color: "#3b82f6" }} />
-                  <span>Expense Categories</span>
+            ) : filteredCategories.length === 0 ? (
+              <div className="settings-empty">
+                <div className="settings-empty__icon">
+                  <FolderOpen size={28} />
                 </div>
-                <div className="settings-table-card__count">
-                  {filteredCategories.length.toLocaleString()}{" "}
-                  {filteredCategories.length === 1 ? "category" : "categories"}
+                <div className="settings-empty__title">No categories found</div>
+                <div className="settings-empty__desc">
+                  {searchText || statusFilter !== "all"
+                    ? "Try adjusting your filters or search term"
+                    : "Create your first category to start organizing your transactions"}
                 </div>
+                {!searchText && statusFilter === "all" && canCreateAccountConfig && (
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<Plus size={18} />}
+                    onClick={handleCreate}
+                    style={{ borderRadius: 12, height: 44, padding: "0 20px", fontWeight: 600 }}
+                  >
+                    Create First Category
+                  </Button>
+                )}
               </div>
-              <Table
-                size="middle"
-                columns={columns}
-                dataSource={filteredCategories}
-                rowKey="id"
-                loading={loading}
-                pagination={{
-                  pageSize: 10,
-                  showSizeChanger: true,
-                  showQuickJumper: true,
-                  style: { padding: "12px 20px" },
-                  showTotal: (total, range) =>
-                    `${range[0]}-${range[1]} of ${total} categories`,
-                }}
-                scroll={{ x: 800 }}
-                rowClassName={() => "settings-table-row"}
-              />
-            </div>
-          )}
+            ) : (
+              <div className="settings-table-card">
+                <div className="settings-table-card__header">
+                  <div className="settings-table-card__title">
+                    <TagIcon size={14} style={{ color: "#3b82f6" }} />
+                    <span>Expense Categories</span>
+                  </div>
+                  <div className="settings-table-card__count">
+                    {filteredCategories.length.toLocaleString()}{" "}
+                    {filteredCategories.length === 1 ? "category" : "categories"}
+                  </div>
+                </div>
+                <Table
+                  size="middle"
+                  columns={columns}
+                  dataSource={filteredCategories}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={{
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    style: { padding: "12px 20px" },
+                    showTotal: (total, range) =>
+                      `${range[0]}-${range[1]} of ${total} categories`,
+                  }}
+                  scroll={{ x: 800 }}
+                  rowClassName={() => "settings-table-row"}
+                />
+              </div>
+            )}
+          </div>
 
           {/* Add/Edit Category Drawer */}
           <Drawer

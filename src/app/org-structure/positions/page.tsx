@@ -17,7 +17,12 @@ const { Text } = Typography;
 export default function PositionsPage() {
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
-  const { canReadOrg, canManageOrg } = usePermission();
+  const { 
+    canReadOrgPosition, 
+    canCreateOrgPosition, 
+    canUpdateOrgPosition, 
+    canDeleteOrgPosition 
+  } = usePermission();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -42,10 +47,10 @@ export default function PositionsPage() {
   } = usePositions();
 
   useEffect(() => {
-    if (!authLoading && !canReadOrg) {
+    if (!authLoading && !canReadOrgPosition) {
       router.push("/dashboard");
     }
-  }, [authLoading, canReadOrg, router]);
+  }, [authLoading, canReadOrgPosition, router]);
 
   if (authLoading) {
     return (
@@ -59,7 +64,7 @@ export default function PositionsPage() {
     );
   }
 
-  if (!canReadOrg) return null;
+  if (!canReadOrgPosition) return null;
 
   const validPositions = Array.isArray(positions) ? positions : [];
   const totalPositions = validPositions.length;
@@ -227,32 +232,35 @@ export default function PositionsPage() {
       align: "right" as const,
       width: 120,
       render: (_: any, record: PositionViewData) => {
-        if (!canManageOrg) return null;
         return (
           <Space size={8}>
-            <Tooltip title="Edit Position">
-              <Button
-                type="text"
-                icon={<Edit size={18} style={{ color: "#64748b" }} />}
-                onClick={() => handleEdit(record)}
-                className="action-btn"
-              />
-            </Tooltip>
-            <Popconfirm
-              title="Remove Position"
-              description="Are you sure you want to delete this role?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
-            >
-              <Button
-                type="text"
-                danger
-                icon={<Trash2 size={18} />}
-                className="action-btn-danger"
-              />
-            </Popconfirm>
+            {canUpdateOrgPosition && (
+              <Tooltip title="Edit Position">
+                <Button
+                  type="text"
+                  icon={<Edit size={18} style={{ color: "#64748b" }} />}
+                  onClick={() => handleEdit(record)}
+                  className="action-btn"
+                />
+              </Tooltip>
+            )}
+            {canDeleteOrgPosition && (
+              <Popconfirm
+                title="Remove Position"
+                description="Are you sure you want to delete this role?"
+                onConfirm={() => handleDelete(record.id)}
+                okText="Delete"
+                cancelText="Cancel"
+                okButtonProps={{ danger: true }}
+              >
+                <Button
+                  type="text"
+                  danger
+                  icon={<Trash2 size={18} />}
+                  className="action-btn-danger"
+                />
+              </Popconfirm>
+            )}
           </Space>
         );
       },
@@ -308,7 +316,7 @@ export default function PositionsPage() {
                 style={{ width: 220, borderRadius: 10, height: 44 }}
                 onChange={(e) => setSearchText(e.target.value)}
               />
-              {canManageOrg && (
+              {canCreateOrgPosition && (
                 <Button 
                   type="primary" size="large" icon={<Plus size={18} />} 
                   style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}

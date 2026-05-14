@@ -42,6 +42,7 @@ import {
   Hash,
 } from "lucide-react";
 import { api } from "@/lib/axios";
+import { usePermission } from "@/hooks/usePermission";
 import dayjs from "dayjs";
 
 const currencyOptions = [
@@ -61,6 +62,7 @@ interface ProjectsTabProps {
 }
 
 export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
+  const { canUpdateClient } = usePermission();
   const router = useRouter();
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -411,18 +413,11 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
               }}
             />
           </Tooltip>
-          <Tooltip title="Edit Configuration">
-            <Button
-              type="text"
-              className="premium-action-btn"
-              icon={<Edit2 size={16} />}
-              style={{ color: "var(--text-slate-400)" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                openEditModal(record);
-              }}
-            />
-          </Tooltip>
+          {canUpdateClient && (
+            <Tooltip title="Edit Configuration">
+              <Button type="text" className="premium-action-btn" icon={<Edit2 size={16} />} style={{ color: "var(--text-slate-400)" }} onClick={() => openEditModal(record)} />
+            </Tooltip>
+          )}
         </Space>
       ),
     },
@@ -460,14 +455,17 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
               className="ptab-search"
               allowClear
             />
-            <Button
-              type="primary"
-              icon={<Plus size={16} />}
-              onClick={() => setIsModalVisible(true)}
-              className="ptab-primary-btn"
-            >
-              Initiate Project
-            </Button>
+            {canUpdateClient && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<Plus size={18} />}
+                onClick={() => setIsModalVisible(true)}
+                style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
+              >
+                Initiate Project
+              </Button>
+            )}
           </div>
         </div>
 

@@ -35,6 +35,7 @@ import {
   X,
 } from "lucide-react";
 import { useTenant } from "@/context/TenantContext";
+import { usePermission } from "@/hooks/usePermission";
 import { api } from "@/lib/axios";
 
 const { Option } = Select;
@@ -47,6 +48,7 @@ interface Props {
 
 export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
   const { tenantId } = useTenant();
+  const { canUpdateClient } = usePermission();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -223,6 +225,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                 checked={isActive}
                 onChange={(checked) => handleStatusChange(record.id, checked)}
                 style={{ backgroundColor: isActive ? "#10b981" : "var(--border-slate-200)" }}
+                disabled={!canUpdateClient}
               />
             </Tooltip>
             <Tag
@@ -241,13 +244,15 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       align: "right" as const,
       render: (_: any, record: any) => (
         <Space>
-          <Button
-            type="text"
-            className="premium-action-btn"
-            icon={<Edit2 size={16} />}
-            onClick={() => openEditModal(record)}
-            style={{ color: "var(--text-slate-500)" }}
-          />
+          {canUpdateClient && (
+            <Button
+              type="text"
+              className="premium-action-btn"
+              icon={<Edit2 size={16} />}
+              onClick={() => openEditModal(record)}
+              style={{ color: "var(--text-slate-500)" }}
+            />
+          )}
         </Space>
       ),
     },

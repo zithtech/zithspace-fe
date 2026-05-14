@@ -27,6 +27,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import DocumentHubService, { DocumentHub } from "@/services/documentHub";
 import { format, formatDistanceToNow } from "date-fns";
+import { usePermission } from "@/hooks/usePermission";
 
 interface TrashDrawerProps {
     open: boolean;
@@ -59,6 +60,7 @@ const tabAccent: Record<TabKey, { gradient: string; shadow: string; tint: string
 const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
     const [activeTab, setActiveTab] = useState<TabKey>("hubs");
     const [searchValue, setSearchValue] = useState("");
+    const { canUpdateDocument } = usePermission();
     const queryClient = useQueryClient();
     const [messageApi, contextHolder] = message.useMessage();
     const [modal, modalContextHolder] = Modal.useModal();
@@ -318,29 +320,31 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                 </div>
 
                 {/* Action row */}
-                <div
-                    className="flex items-center justify-end mt-3 pt-3"
-                    style={{ borderTop: "1px solid var(--border-slate-200)" }}
-                >
-                    <Button
-                        size="small"
-                        icon={<UndoOutlined />}
-                        onClick={onRestore}
-                        style={{
-                            borderRadius: 8,
-                            height: 30,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            paddingInline: 12,
-                            background: accent.gradient,
-                            color: "#fff",
-                            border: "none",
-                            boxShadow: `0 2px 8px ${accent.shadow}, inset 0 1px 0 rgba(255,255,255,0.18)`,
-                        }}
+                {canUpdateDocument && (
+                    <div
+                        className="flex items-center justify-end mt-3 pt-3"
+                        style={{ borderTop: "1px solid var(--border-slate-200)" }}
                     >
-                        Restore
-                    </Button>
-                </div>
+                        <Button
+                            size="small"
+                            icon={<UndoOutlined />}
+                            onClick={onRestore}
+                            style={{
+                                borderRadius: 8,
+                                height: 30,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                paddingInline: 12,
+                                background: accent.gradient,
+                                color: "#fff",
+                                border: "none",
+                                boxShadow: `0 2px 8px ${accent.shadow}, inset 0 1px 0 rgba(255,255,255,0.18)`,
+                            }}
+                        >
+                            Restore
+                        </Button>
+                    </div>
+                )}
             </div>
         );
     };

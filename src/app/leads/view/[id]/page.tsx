@@ -68,7 +68,8 @@ import ProtectedRoute from "@/components/common/ProtectedRoute";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { apiClient } from "@/lib/axios";
-
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 dayjs.extend(relativeTime);
 
 const { Title, Text, Paragraph } = Typography;
@@ -113,6 +114,7 @@ const getAIScoreLevel = (score?: number): AiScoreLevel | null => {
 export default function LeadProfilePage() {
   const router = useRouter();
   const params = useParams();
+  const { user, isLoading: authLoading } = useAuth();
   const { lead, loading, error, fetchLeadById, onboardLead, updateLead } = useLeads();
   const { statuses: configStatuses, fetchStatuses } = useLeadSettings();
   const [onboarding, setOnboarding] = useState(false);
@@ -224,6 +226,15 @@ export default function LeadProfilePage() {
       if (messageStatic) messageStatic.error({ content: `Failed to ${mode === 'inline' ? 'open' : 'download'} document`, key: loadingKey });
     }
   };
+
+  const { canReadLead, canManageLeads } = usePermission();
+
+  // ─── Route Guard ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!authLoading && user && !canReadLead) {
+      router.push("/dashboard");
+    }
+  }, [user, authLoading, canReadLead, router]);
 
   useEffect(() => {
     if (params.id) {
@@ -465,7 +476,7 @@ export default function LeadProfilePage() {
                   Project initiated
                   <ArrowUpRight size={13} />
                 </Button>
-              ) : (
+              ) : canManageLeads && (
                 <Button
                   type="primary"
                   icon={<Rocket size={14} />}

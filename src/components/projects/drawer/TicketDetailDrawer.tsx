@@ -62,8 +62,8 @@ import { useMembers, useTicketConfig, useUserProjects } from "@/hooks/useGlobalD
 import { useAvailableSprints } from "@/hooks/useAvailableSprints";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import { useAuth } from "@/context/AuthContext";
-import {
-  PRIORITY_OPTIONS,
+import { usePermission } from "@/hooks/usePermission";
+import {  PRIORITY_OPTIONS,
   TYPE_OPTIONS,
   STATUS_OPTIONS,
   getStatusColor,
@@ -138,6 +138,15 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       .trim();
     return stripped.length > 0;
   };
+
+  const {
+    canCreateTicket,
+    canReadTicket,
+    canUpdateTicket,
+    canDeleteTicket,
+    canAssignTicket,
+    canManageTickets
+  } = usePermission();
 
   const [enhanceZaiOpen, setEnhanceZaiOpen] = useState(false);
   const [zaiHint, setZaiHint] = useState('');
@@ -601,7 +610,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
          
 
           <Space size={8}>
-            {isInBacklog && activeSprint && (
+            {isInBacklog && activeSprint && (canUpdateTicket || canManageTickets) && (
               <Tooltip title={`Add to ${activeSprint.version || activeSprint.name || "sprint"}`}>
                 <Button
                   type="default"
@@ -623,7 +632,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 </Button>
               </Tooltip>
             )}
-            {isInActiveSprint && (
+            {isInActiveSprint && (canUpdateTicket || canManageTickets) && (
               <Tooltip title="Remove from sprint, return to backlog">
                 <Button
                   danger
@@ -840,6 +849,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   type="textarea"
                   placeholder="Untitled ticket — add a clear, action-oriented title"
                   editIconVisibility="hover"
+                  disabled={!canUpdateTicket}
                 />
               </div>
             </div>
@@ -1150,7 +1160,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                             size="small"
                             icon={isEnhancingDescription ? <LoadingOutlined /> : <ThunderboltOutlined />}
                             loading={isEnhancingDescription}
-                            disabled={!canGenerate || isEnhancingDescription}
+                            disabled={!canGenerate || isEnhancingDescription || !canUpdateTicket}
                             onClick={handleEnhanceWithZai}
                             style={{
                               borderRadius: 8,
@@ -1218,7 +1228,8 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 ) : (
                   <div
                     className={`description-viewer-v2 ${!ticket.description ? 'is-empty' : ''}`}
-                    onClick={() => setDescriptionEditorOpen(true)}
+                    onClick={() => canUpdateTicket && setDescriptionEditorOpen(true)}
+                    style={{ cursor: canUpdateTicket ? 'pointer' : 'default' }}
                   >
                     {ticket.description ? (
                       <div
@@ -1453,6 +1464,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       mode="text"
                       plain
                       textStyle={{ fontWeight: 700, fontSize: 12, color: 'var(--text-primary)' }}
+                      disabled={!canUpdateTicket}
                     />
                   </div>
                   {(() => {

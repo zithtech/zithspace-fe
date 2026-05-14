@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { apiClient } from "@/lib/axios";
 import { useRouter } from "next/navigation";
+import { usePermission } from "@/hooks/usePermission";
 import {
   Mail,
   RefreshCw,
@@ -168,6 +169,12 @@ const FILTERS: { label: string; value: any; icon?: any }[] = [
 ];
 
 export default function MailPage() {
+  const { 
+    canCreateMail, 
+    canUpdateMail, 
+    canDeleteMail, 
+    canManageMail 
+  } = usePermission();
   const { user, logout } = useAuth();
   const router = useRouter();
   const [selectedFolder, setSelectedFolder] = useState("INBOX");
@@ -923,17 +930,19 @@ export default function MailPage() {
             </div>
           </div>
 
-          <button
-            className="mail-compose-btn"
-            onClick={() => {
-              setComposeVisible(true);
-              setCurrentDraftId(null);
-              setTimeout(() => form.resetFields(), 0);
-            }}
-          >
-            <PenSquare size={16} strokeWidth={2.4} />
-            Compose
-          </button>
+          {canCreateMail && (
+            <button
+              className="mail-compose-btn"
+              onClick={() => {
+                setComposeVisible(true);
+                setCurrentDraftId(null);
+                setTimeout(() => form.resetFields(), 0);
+              }}
+            >
+              <PenSquare size={16} strokeWidth={2.4} />
+              Compose
+            </button>
+          )}
 
           <div style={{ marginTop: 24, padding: "0 4px 8px", fontSize: 11, fontWeight: 600, color: PALETTE.slate400, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Folders
@@ -1017,7 +1026,7 @@ export default function MailPage() {
             </div>
 
             <Space size={10}>
-              {selectedFolder === "TRASH" && threads.length > 0 && (
+              {selectedFolder === "TRASH" && threads.length > 0 && canDeleteMail && (
                 <Popconfirm
                   title="Empty Trash?"
                   description="All conversations in Trash will be permanently deleted."
@@ -1038,21 +1047,23 @@ export default function MailPage() {
                   </button>
                 </Popconfirm>
               )}
-              <Tooltip title="Sync mail">
-                <button
-                  className="mail-icon-btn"
-                  onClick={() => syncMail()}
-                  disabled={isSyncing}
-                  style={{ opacity: isSyncing ? 0.5 : 1 }}
-                >
-                  <RefreshCw
-                    size={16}
-                    style={{
-                      animation: isSyncing ? "spin 1s linear infinite" : "none",
-                    }}
-                  />
-                </button>
-              </Tooltip>
+              {canManageMail && (
+                <Tooltip title="Sync mail">
+                  <button
+                    className="mail-icon-btn"
+                    onClick={() => syncMail()}
+                    disabled={isSyncing}
+                    style={{ opacity: isSyncing ? 0.5 : 1 }}
+                  >
+                    <RefreshCw
+                      size={16}
+                      style={{
+                        animation: isSyncing ? "spin 1s linear infinite" : "none",
+                      }}
+                    />
+                  </button>
+                </Tooltip>
+              )}
               <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
             </Space>
           </div>
@@ -1113,25 +1124,27 @@ export default function MailPage() {
             {selectedThreadIds.length > 0 && (
               <div className="bulk-bar">
                 <span className="count">{selectedThreadIds.length} selected</span>
-                <button
-                  className="bulk-action-btn danger"
-                  disabled={isDestroyingThreads || isDeletingThreads}
-                  onClick={async () => {
-                    if (selectedFolder === "TRASH") {
-                      await bulkDestroyThreads(selectedThreadIds);
-                      message.success("Selected items deleted permanently");
-                    } else {
-                      await deleteThreads(selectedThreadIds);
-                      message.success("Selected items moved to trash");
-                    }
-                    setSelectedThreadIds([]);
-                  }}
-                >
-                  <Trash2 size={14} />
-                  {selectedFolder === "TRASH" ? "Delete" : "Trash"}
-                </button>
+                {canDeleteMail && (
+                  <button
+                    className="bulk-action-btn danger"
+                    disabled={isDestroyingThreads || isDeletingThreads}
+                    onClick={async () => {
+                      if (selectedFolder === "TRASH") {
+                        await bulkDestroyThreads(selectedThreadIds);
+                        message.success("Selected items deleted permanently");
+                      } else {
+                        await deleteThreads(selectedThreadIds);
+                        message.success("Selected items moved to trash");
+                      }
+                      setSelectedThreadIds([]);
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    {selectedFolder === "TRASH" ? "Delete" : "Trash"}
+                  </button>
+                )}
 
-                {(selectedFolder === "TRASH" || selectedFolder === "ARCHIVE") && (
+                {canUpdateMail && (selectedFolder === "TRASH" || selectedFolder === "ARCHIVE") && (
                   <button
                     className="bulk-action-btn"
                     disabled={isRestoringThreads}
@@ -1311,7 +1324,7 @@ export default function MailPage() {
                   </button>
                 </Tooltip>
               )}
-              {selectedFolder !== "ARCHIVE" && selectedFolder !== "TRASH" && (
+              {selectedFolder !== "ARCHIVE" && selectedFolder !== "TRASH" && canUpdateMail && (
                 <Tooltip title="Archive">
                   <button
                     className="mail-icon-btn"
@@ -1328,34 +1341,36 @@ export default function MailPage() {
                   </button>
                 </Tooltip>
               )}
-              <Popconfirm
-                title={selectedFolder === "TRASH" ? "Permanently delete?" : "Move to trash?"}
-                description={
-                  selectedFolder === "TRASH"
-                    ? "This action cannot be undone."
-                    : "You can restore it later from the Trash folder."
-                }
-                onConfirm={async () => {
-                  if (selectedThreadId) {
-                    await deleteThread(selectedThreadId);
-                    message.success(
-                      selectedFolder === "TRASH"
-                        ? "Thread permanently deleted"
-                        : "Thread moved to trash"
-                    );
-                    setDrawerVisible(false);
-                    setSelectedThreadId(null);
+              {canDeleteMail && (
+                <Popconfirm
+                  title={selectedFolder === "TRASH" ? "Permanently delete?" : "Move to trash?"}
+                  description={
+                    selectedFolder === "TRASH"
+                      ? "This action cannot be undone."
+                      : "You can restore it later from the Trash folder."
                   }
-                }}
-                okText="Delete"
-                cancelText="Cancel"
-              >
-                <Tooltip title="Delete">
-                  <button className="mail-icon-btn" style={{ color: PALETTE.rose }}>
-                    <Trash2 size={16} />
-                  </button>
-                </Tooltip>
-              </Popconfirm>
+                  onConfirm={async () => {
+                    if (selectedThreadId) {
+                      await deleteThread(selectedThreadId);
+                      message.success(
+                        selectedFolder === "TRASH"
+                          ? "Thread permanently deleted"
+                          : "Thread moved to trash"
+                      );
+                      setDrawerVisible(false);
+                      setSelectedThreadId(null);
+                    }
+                  }}
+                  okText="Delete"
+                  cancelText="Cancel"
+                >
+                  <Tooltip title="Delete">
+                    <button className="mail-icon-btn" style={{ color: PALETTE.rose }}>
+                      <Trash2 size={16} />
+                    </button>
+                  </Tooltip>
+                </Popconfirm>
+              )}
               <button className="mail-icon-btn">
                 <MoreHorizontal size={16} />
               </button>
@@ -1450,18 +1465,20 @@ export default function MailPage() {
                                 <Clock size={12} />
                                 {dayjs(msg.receivedAt).format("MMM D, h:mm A")}
                               </span>
-                              <Tooltip title="Reply">
-                                <button
-                                  className="mail-icon-btn"
-                                  style={{ width: 30, height: 30 }}
-                                  onClick={() => {
-                                    const ta = document.getElementById("quick-reply-textarea");
-                                    if (ta) ta.focus();
-                                  }}
-                                >
-                                  <Reply size={14} />
-                                </button>
-                              </Tooltip>
+                              {canCreateMail && (
+                                <Tooltip title="Reply">
+                                  <button
+                                    className="mail-icon-btn"
+                                    style={{ width: 30, height: 30 }}
+                                    onClick={() => {
+                                      const ta = document.getElementById("quick-reply-textarea");
+                                      if (ta) ta.focus();
+                                    }}
+                                  >
+                                    <Reply size={14} />
+                                  </button>
+                                </Tooltip>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1569,69 +1586,71 @@ export default function MailPage() {
                 })}
               </div>
 
-              <div className="quick-reply-wrap">
-                <div className="quick-reply-box">
-                  <TextArea
-                    id="quick-reply-textarea"
-                    placeholder="Reply to this conversation…"
-                    autoSize={{ minRows: 2, maxRows: 8 }}
-                    value={quickReply}
-                    onChange={(e) => setQuickReply(e.target.value)}
-                    bordered={false}
-                    style={{ background: "transparent", padding: 0, resize: "none" }}
-                  />
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginTop: 10,
-                      paddingTop: 10,
-                      borderTop: `1px solid ${PALETTE.slate200}`,
-                    }}
-                  >
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <Tooltip title="Attach">
-                        <button className="mail-icon-btn" style={{ width: 32, height: 32 }}>
-                          <Paperclip size={14} />
-                        </button>
-                      </Tooltip>
-                    </div>
-                    <Button
-                      type="primary"
-                      icon={<SendOutlined />}
-                      loading={isSendingReply}
-                      disabled={!quickReply.trim()}
-                      className="send-gradient-btn"
-                      onClick={async () => {
-                        const lastMsg = messages[messages.length - 1];
-                        if (!lastMsg) return;
-
-                        setIsSendingReply(true);
-                        const result = await sendMessage({
-                          to: [lastMsg.fromEmail],
-                          subject: lastMsg.subject.startsWith("Re:")
-                            ? lastMsg.subject
-                            : `Re: ${lastMsg.subject}`,
-                          body: quickReply,
-                          threadId: selectedThreadId || undefined,
-                        });
-
-                        if (result) {
-                          message.success("Reply sent");
-                          setQuickReply("");
-                          if (selectedThreadId) await syncMail();
-                        } else {
-                          message.error("Failed to send reply");
-                        }
-                        setIsSendingReply(false);
+              {canCreateMail && (
+                <div className="quick-reply-wrap">
+                  <div className="quick-reply-box">
+                    <TextArea
+                      id="quick-reply-textarea"
+                      placeholder="Reply to this conversation…"
+                      autoSize={{ minRows: 2, maxRows: 8 }}
+                      value={quickReply}
+                      onChange={(e) => setQuickReply(e.target.value)}
+                      bordered={false}
+                      style={{ background: "transparent", padding: 0, resize: "none" }}
+                    />
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginTop: 10,
+                        paddingTop: 10,
+                        borderTop: `1px solid ${PALETTE.slate200}`,
                       }}
                     >
-                      Send Reply
-                    </Button>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <Tooltip title="Attach">
+                          <button className="mail-icon-btn" style={{ width: 32, height: 32 }}>
+                            <Paperclip size={14} />
+                          </button>
+                        </Tooltip>
+                      </div>
+                      <Button
+                        type="primary"
+                        icon={<SendOutlined />}
+                        loading={isSendingReply}
+                        disabled={!quickReply.trim()}
+                        className="send-gradient-btn"
+                        onClick={async () => {
+                          const lastMsg = messages[messages.length - 1];
+                          if (!lastMsg) return;
+
+                          setIsSendingReply(true);
+                          const result = await sendMessage({
+                            to: [lastMsg.fromEmail],
+                            subject: lastMsg.subject.startsWith("Re:")
+                              ? lastMsg.subject
+                              : `Re: ${lastMsg.subject}`,
+                            body: quickReply,
+                            threadId: selectedThreadId || undefined,
+                          });
+
+                          if (result) {
+                            message.success("Reply sent");
+                            setQuickReply("");
+                            if (selectedThreadId) await syncMail();
+                          } else {
+                            message.error("Failed to send reply");
+                          }
+                          setIsSendingReply(false);
+                        }}
+                      >
+                        Send Reply
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </div>
@@ -1676,46 +1695,50 @@ export default function MailPage() {
         }
         extra={
           <Space>
-            <Button
-              onClick={async () => {
-                const values = form.getFieldsValue();
-                const cleanedAttachments = values.attachments
-                  ?.map((file: any) => ({
-                    filename: file.name || file.fileName,
-                    url: file.url || file.response?.fileUrl || file.response?.url,
-                    size: file.size,
-                    contentType: file.type || file.contentType,
-                  }))
-                  .filter((a: any) => a.url);
+            {canCreateMail && (
+              <Button
+                onClick={async () => {
+                  const values = form.getFieldsValue();
+                  const cleanedAttachments = values.attachments
+                    ?.map((file: any) => ({
+                      filename: file.name || file.fileName,
+                      url: file.url || file.response?.fileUrl || file.response?.url,
+                      size: file.size,
+                      contentType: file.type || file.contentType,
+                    }))
+                    .filter((a: any) => a.url);
 
-                const draftData = {
-                  ...values,
-                  to: values.to || [],
-                  attachments: cleanedAttachments,
-                  id: currentDraftId || undefined,
-                };
-                const result = await saveDraft(draftData);
-                if (result) {
-                  message.success("Draft saved");
-                  setComposeVisible(false);
-                  setCurrentDraftId(null);
-                  setSelectedThreadId(null);
-                }
-              }}
-              loading={isSavingDraft}
-              style={{ borderRadius: 10, height: 38, fontWeight: 600 }}
-            >
-              Save Draft
-            </Button>
-            <Button
-              type="primary"
-              onClick={() => form.submit()}
-              loading={isSending}
-              icon={<SendOutlined />}
-              className="send-gradient-btn"
-            >
-              Send
-            </Button>
+                  const draftData = {
+                    ...values,
+                    to: values.to || [],
+                    attachments: cleanedAttachments,
+                    id: currentDraftId || undefined,
+                  };
+                  const result = await saveDraft(draftData);
+                  if (result) {
+                    message.success("Draft saved");
+                    setComposeVisible(false);
+                    setCurrentDraftId(null);
+                    setSelectedThreadId(null);
+                  }
+                }}
+                loading={isSavingDraft}
+                style={{ borderRadius: 10, height: 38, fontWeight: 600 }}
+              >
+                Save Draft
+              </Button>
+            )}
+            {canCreateMail && (
+              <Button
+                type="primary"
+                onClick={() => form.submit()}
+                loading={isSending}
+                icon={<SendOutlined />}
+                className="send-gradient-btn"
+              >
+                Send
+              </Button>
+            )}
           </Space>
         }
       >

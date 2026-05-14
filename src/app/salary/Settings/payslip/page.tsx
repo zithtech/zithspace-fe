@@ -39,7 +39,12 @@ interface PayslipField {
 const { Title, Text } = Typography;
 
 export default function PayslipSettings() {
-  const { canManageSalary } = usePermission();
+  const {
+    canReadPayrollSetting,
+    canCreatePayrollSetting,
+    canUpdatePayrollSetting,
+    canDeletePayrollSetting
+  } = usePermission();
   
   const [fields, setFields] = useState<PayslipField[]>([
     {
@@ -132,22 +137,26 @@ export default function PayslipSettings() {
     </div>
 
     <Space>
-      {canManageSalary && (
+      {(canCreatePayrollSetting || canUpdatePayrollSetting || canDeletePayrollSetting) && (
         <>
-          <Button
-            icon={<CheckOutlined />}
-            onClick={() => console.log("Save payslip settings")}
-          >
-            Save Payslip Details
-          </Button>
+            {canUpdatePayrollSetting && (
+              <Button
+                icon={<CheckOutlined />}
+                onClick={() => console.log("Save payslip settings")}
+              >
+                Save Payslip Details
+              </Button>
+            )}
 
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsModalOpen(true)}
-          >
-            Add Field
-          </Button>
+            {canCreatePayrollSetting && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setIsModalOpen(true)}
+              >
+                Add Field
+              </Button>
+            )}
         </>
       )}
     </Space>
@@ -185,25 +194,29 @@ export default function PayslipSettings() {
               </div>
             </div>
 
-            {canManageSalary && (
+            {(canUpdatePayrollSetting || canDeletePayrollSetting) && (
               <Space>
-                <Button
-                  type="text"
-                  icon={<EditOutlined />}
-                  onClick={() => {
-                    setEditField(field);
-                    editForm.setFieldsValue({
-                      label: field.label,
-                      value: field.value,
-                    });
-                  }}
-                />
-                <Button
-                  type="text"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => handleDeleteField(field.id)}
-                />
+                {canUpdatePayrollSetting && (
+                  <Button
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={() => {
+                      setEditField(field);
+                      editForm.setFieldsValue({
+                        label: field.label,
+                        value: field.value,
+                      });
+                    }}
+                  />
+                )}
+                {canDeletePayrollSetting && (
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleDeleteField(field.id)}
+                  />
+                )}
               </Space>
             )}
           </div>

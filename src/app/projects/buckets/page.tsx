@@ -10,15 +10,15 @@ import BucketManagementPage from "@/components/projects/buckets/BucketManagement
 
 export default function BucketsPage() {
   const { isLoading: authLoading } = useAuth();
-  const { canReadProject, canManageProjects } = usePermission();
+  const { canReadTicketBucket } = usePermission();
   const router = useRouter();
 
   // Route guard
   useEffect(() => {
-    if (!authLoading && !canReadProject) {
+    if (!authLoading && !canReadTicketBucket) {
       router.push('/dashboard');
     }
-  }, [authLoading, canReadProject, router]);
+  }, [authLoading, canReadTicketBucket, router]);
 
   // Loading state
   if (authLoading) {
@@ -32,7 +32,7 @@ export default function BucketsPage() {
   }
 
   // Permission check
-  if (!canReadProject) {
+  if (!canReadTicketBucket) {
     return null;
   }
 

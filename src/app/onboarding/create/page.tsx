@@ -17,18 +17,21 @@ const { Step } = Steps;
 
 const OnboardingContent = () => {
   const { isLoading: authLoading } = useAuth();
-  const { canCreateOnboarding } = usePermission();
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   const isEdit = !!id;
+  const { canCreateOnboarding, canUpdateOnboarding } = usePermission();
 
   // Route guard
   useEffect(() => {
-    if (!authLoading && !canCreateOnboarding) {
-      router.push('/dashboard');
+    if (!authLoading) {
+      const allowed = isEdit ? canUpdateOnboarding : canCreateOnboarding;
+      if (!allowed) {
+        router.push('/onboarding/onboarded');
+      }
     }
-  }, [authLoading, canCreateOnboarding, router]);
+  }, [authLoading, canCreateOnboarding, canUpdateOnboarding, isEdit, router]);
 
   const [current, setCurrent] = useState(0);
   const [dataLoading, setDataLoading] = useState(false);
@@ -105,7 +108,8 @@ const OnboardingContent = () => {
     );
   }
 
-  if (!canCreateOnboarding) {
+  const allowed = isEdit ? canUpdateOnboarding : canCreateOnboarding;
+  if (!allowed) {
     return null;
   }
 

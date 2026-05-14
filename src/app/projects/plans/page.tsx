@@ -10,15 +10,15 @@ import SprintPlan from '@/components/projects/SprintPlan';
 
 export default function ProjectsSprintPlanPage() {
   const { isLoading: authLoading } = useAuth();
-  const { canReadProject } = usePermission();
+  const { canReadTicketPlan } = usePermission();
   const router = useRouter();
 
   // Route guard
   useEffect(() => {
-    if (!authLoading && !canReadProject) {
+    if (!authLoading && !canReadTicketPlan) {
       router.push('/dashboard');
     }
-  }, [authLoading, canReadProject, router]);
+  }, [authLoading, canReadTicketPlan, router]);
 
   // Loading state
   if (authLoading) {
@@ -40,7 +40,7 @@ export default function ProjectsSprintPlanPage() {
   }
 
   // Permission check
-  if (!canReadProject) {
+  if (!canReadTicketPlan) {
     return null;
   }
 

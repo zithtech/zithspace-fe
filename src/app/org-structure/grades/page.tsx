@@ -15,13 +15,17 @@ const { Text } = Typography;
 export default function GradesPage() {
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
-  const { canReadOrg, canManageOrg } = usePermission();
+  const {
+    canReadOrgGrade,
+    canCreateOrgGrade,
+    canUpdateOrgGrade
+  } = usePermission();
   // Route guard
   useEffect(() => {
-    if (!authLoading && !canReadOrg) {
+    if (!authLoading && !canReadOrgGrade) {
       router.push('/dashboard');
     }
-  }, [authLoading, canReadOrg, router]);
+  }, [authLoading, canReadOrgGrade, router]);
 
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -170,17 +174,17 @@ export default function GradesPage() {
     );
   }
 
-  if (!canReadOrg) {
+  if (!canReadOrgGrade) {
     return null;
   }
 
 
   const StatCard = ({ label, value, icon: Icon, color }: any) => (
-    <Card 
-      bodyStyle={{ padding: "16px 20px" }} 
-      style={{ 
-        borderRadius: 12, 
-        border: "1px solid #f1f5f9", 
+    <Card
+      bodyStyle={{ padding: "16px 20px" }}
+      style={{
+        borderRadius: 12,
+        border: "1px solid #f1f5f9",
         boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
       }}
     >
@@ -209,11 +213,11 @@ export default function GradesPage() {
       }),
       render: (_: any, record: GradeViewData) => (
         <Space size={12}>
-          <div style={{ 
-            width: 36, 
-            height: 36, 
-            borderRadius: 10, 
-            background: "rgba(22, 119, 255, 0.08)", 
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: "rgba(22, 119, 255, 0.08)",
             color: "#1677ff",
             display: "flex",
             alignItems: "center",
@@ -277,7 +281,7 @@ export default function GradesPage() {
       align: "right" as const,
       width: 100,
       render: (_: any, record: GradeViewData) => {
-        if (!canManageOrg) return null;
+        if (!canUpdateOrgGrade) return null;
         return (
           <Space size={4}>
             <Tooltip title="Edit Grade">
@@ -306,18 +310,18 @@ export default function GradesPage() {
     );
   }
 
-  if (!canReadOrg) {
+  if (!canReadOrgGrade) {
     return null;
   }
 
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ 
-          margin: "0 -24px", 
-          padding: "24px 32px", 
-          background: "#ffffff", 
-          minHeight: "calc(100vh - 64px)" 
+        <div style={{
+          margin: "0 -24px",
+          padding: "24px 32px",
+          background: "#ffffff",
+          minHeight: "calc(100vh - 64px)"
         }}>
           {contextHolder}
 
@@ -325,10 +329,10 @@ export default function GradesPage() {
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <div style={{ flex: 1 }}>
               <Space size={12} align="center">
-                <div style={{ 
-                  background: "rgba(22, 119, 255, 0.08)", 
-                  padding: 10, 
-                  borderRadius: 12, 
+                <div style={{
+                  background: "rgba(22, 119, 255, 0.08)",
+                  padding: 10,
+                  borderRadius: 12,
                   color: "#1677ff",
                   display: "flex"
                 }}>
@@ -341,17 +345,17 @@ export default function GradesPage() {
               </Space>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
-              <Input 
-                placeholder="Search grades..." 
+              <Input
+                placeholder="Search grades..."
                 prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
                 style={{ width: 280, borderRadius: 10, height: 44 }}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              {canManageOrg && (
-                <Button 
-                  type="primary" 
-                  size="large" 
-                  icon={<Plus size={18} />} 
+              {canCreateOrgGrade && (
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<Plus size={18} />}
                   style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
                   onClick={handleAdd}
                 >
@@ -364,34 +368,34 @@ export default function GradesPage() {
           {/* Metrics Grid */}
           <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
             <Col xs={24} sm={8}>
-              <StatCard 
-                label="Total Grades" 
-                value={totalGrades} 
-                icon={Layers} 
-                color="#3b82f6" 
+              <StatCard
+                label="Total Grades"
+                value={totalGrades}
+                icon={Layers}
+                color="#3b82f6"
               />
             </Col>
             <Col xs={24} sm={8}>
-              <StatCard 
-                label="Active Status" 
-                value={activeGrades} 
-                icon={ShieldCheck} 
-                color="#10b981" 
+              <StatCard
+                label="Active Status"
+                value={activeGrades}
+                icon={ShieldCheck}
+                color="#10b981"
               />
             </Col>
             <Col xs={24} sm={8}>
-              <StatCard 
-                label="Inactive Grades" 
-                value={inactiveGrades} 
-                icon={User} 
-                color="#f59e0b" 
+              <StatCard
+                label="Inactive Grades"
+                value={inactiveGrades}
+                icon={User}
+                color="#f59e0b"
               />
             </Col>
           </Row>
 
           {/* Table Card */}
-          <Card 
-            bodyStyle={{ padding: 0 }} 
+          <Card
+            bodyStyle={{ padding: 0 }}
             style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}
           >
             <Table
@@ -428,10 +432,10 @@ export default function GradesPage() {
           footer={
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "8px 0" }}>
               <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
-              <Button 
-                type="primary" 
-                loading={submitting} 
-                onClick={handleSave} 
+              <Button
+                type="primary"
+                loading={submitting}
+                onClick={handleSave}
                 style={{ borderRadius: 8, height: 40, padding: "0 24px", fontWeight: 600 }}
               >
                 {editingKey ? "Update Grade" : "Create Grade"}
@@ -443,14 +447,14 @@ export default function GradesPage() {
           <Form form={form} layout="vertical" requiredMark={false}>
             <div style={{ marginBottom: 24 }}>
               <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 16 }}>Identity & Label</Text>
-              
+
               <Form.Item
                 name="name"
                 label={<Text strong style={{ fontSize: 13 }}>Grade Name</Text>}
                 rules={[{ required: true, message: "Please enter grade name" }]}
               >
-                <Input 
-                  placeholder="e.g. Senior Manager" 
+                <Input
+                  placeholder="e.g. Senior Manager"
                   onChange={(e) => {
                     if (!editingKey) {
                       const codes = generateCodeFromName(e.target.value);
@@ -500,7 +504,7 @@ export default function GradesPage() {
 
             <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #f1f5f9" }}>
               <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 20 }}>Operations & Visibility</Text>
-              
+
               <Form.Item name="status" valuePropName="checked" initialValue={true}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
@@ -520,7 +524,8 @@ export default function GradesPage() {
           </Form>
         </Drawer>
 
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .action-btn:hover {
             background: #f1f5f9 !important;
             color: #1677ff !important;

@@ -10,15 +10,15 @@ import TrashManagementPage from "@/components/projects/trash/TrashManagementPage
 
 export default function TrashPage() {
   const { isLoading: authLoading } = useAuth();
-  const { canReadTicket } = usePermission();
+  const { canReadTicketTrash } = usePermission();
   const router = useRouter();
 
   // Route guard
   useEffect(() => {
-    if (!authLoading && !canReadTicket) {
+    if (!authLoading && !canReadTicketTrash) {
       router.push('/dashboard');
     }
-  }, [authLoading, canReadTicket, router]);
+  }, [authLoading, canReadTicketTrash, router]);
 
   // Loading state
   if (authLoading) {
@@ -40,7 +40,7 @@ export default function TrashPage() {
   }
 
   // Permission check
-  if (!canReadTicket) {
+  if (!canReadTicketTrash) {
     return null;
   }
 

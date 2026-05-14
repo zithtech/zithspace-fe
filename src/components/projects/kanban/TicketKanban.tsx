@@ -35,6 +35,12 @@ interface TicketKanbanProps {
   filters?: any;
   onFilterChange?: (key: string, value: any) => void;
   onTicketClick?: (ticketId: string) => void;
+  permissions?: {
+    canUpdateTicket: boolean;
+    canDeleteTicket: boolean;
+    canAssignTicket: boolean;
+    canManageTickets: boolean;
+  };
 }
 
 const COLUMNS = STATUS_OPTIONS.map((status) => ({
@@ -55,7 +61,15 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
   filters,
   onFilterChange,
   onTicketClick,
+  permissions,
 }) => {
+  const { canUpdateTicket, canDeleteTicket, canAssignTicket, canManageTickets } = permissions || {
+    canUpdateTicket: true,
+    canDeleteTicket: true,
+    canAssignTicket: true,
+    canManageTickets: true,
+  };
+
   const [activeId, setActiveId] = useState<string | null>(null);
 
   // Mouse uses a small distance threshold so clicks vs. drags don't fight.
@@ -138,7 +152,7 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
 
   const activeTicket = activeId ? tickets.find((t) => t.id === activeId) : null;
 
-  const showToolbar = !!onFilterChange || !!onScopeChange || (kanbanScope === 'active' && activeSprint && onCompleteSprint);
+  const showToolbar = !!onFilterChange || !!onScopeChange || (kanbanScope === 'active' && activeSprint && onCompleteSprint && canManageTickets);
   const totalTickets = tickets.length;
 
   return (
@@ -228,7 +242,7 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
                 className="saas-segmented-premium"
               />
             )}
-            {kanbanScope === 'active' && activeSprint && onCompleteSprint && (
+            {kanbanScope === 'active' && activeSprint && onCompleteSprint && canManageTickets && (
               <Button
                 type="primary"
                 icon={<CheckCircleOutlined />}
@@ -249,6 +263,9 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
         autoScroll={{ threshold: { x: 0.05, y: 0.18 }, acceleration: 12 }}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
+        accessibility={{
+          container: typeof document !== 'undefined' ? document.body : undefined,
+        }}
       >
         {totalTickets === 0 ? (
           <div
@@ -280,6 +297,7 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
                 kanbanScope={kanbanScope}
                 onSprintAssignment={onSprintAssignment}
                 onTicketClick={onTicketClick}
+                permissions={permissions}
               />
             ))}
           </div>

@@ -37,6 +37,9 @@ import {
   CloseCircleFilled
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
+import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
+import { useRouter } from 'next/navigation';
 import { EscalationSettingsService } from '@/services/escalationSettings';
 
 const { Title, Text, Paragraph } = Typography;
@@ -61,6 +64,9 @@ interface EscalationPriority {
 }
 
 export default function EscalationSettingsPage() {
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canManageEscalations } = usePermission();
   const [activeTab, setActiveTab] = useState('1');
   const [categories, setCategories] = useState<EscalationCategory[]>([]);
   const [priorities, setPriorities] = useState<EscalationPriority[]>([]);
@@ -120,11 +126,20 @@ export default function EscalationSettingsPage() {
     }
   };
 
+  // ─── Route Guard ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (activeTab === '1') fetchCategories();
-    else if (activeTab === '2') fetchPriorities();
-    else fetchStatuses();
-  }, [activeTab]);
+    if (!authLoading && user && !canManageEscalations) {
+      router.push("/escalations");
+    }
+  }, [user, authLoading, canManageEscalations, router]);
+
+  useEffect(() => {
+    if (canManageEscalations) {
+      if (activeTab === '1') fetchCategories();
+      else if (activeTab === '2') fetchPriorities();
+      else fetchStatuses();
+    }
+  }, [activeTab, canManageEscalations]);
 
   const handleOpenModal = (item: any = null) => {
     setEditingItem(item);
@@ -236,14 +251,18 @@ export default function EscalationSettingsPage() {
       align: 'right' as const,
       render: (_: any, record: EscalationCategory) => (
         <Space>
-          <Tooltip title="Edit">
-            <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
-          </Tooltip>
-          <Popconfirm title="Are you sure you want to retire this category?" onConfirm={() => handleDelete(record.id)}>
-            <Tooltip title="Retire">
-              <Button type="text" danger icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
+          {canManageEscalations && (
+            <>
+              <Tooltip title="Edit">
+                <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
+              </Tooltip>
+              <Popconfirm title="Are you sure you want to retire this category?" onConfirm={() => handleDelete(record.id)}>
+                <Tooltip title="Retire">
+                  <Button type="text" danger icon={<DeleteOutlined />} />
+                </Tooltip>
+              </Popconfirm>
+            </>
+          )}
         </Space>
       )
     }
@@ -282,14 +301,18 @@ export default function EscalationSettingsPage() {
       align: 'right' as const,
       render: (_: any, record: EscalationPriority) => (
         <Space>
-          <Tooltip title="Edit">
-            <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
-          </Tooltip>
-          <Popconfirm title="Are you sure you want to retire this priority?" onConfirm={() => handleDelete(record.id)}>
-            <Tooltip title="Retire">
-              <Button type="text" danger icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
+          {canManageEscalations && (
+            <>
+              <Tooltip title="Edit">
+                <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
+              </Tooltip>
+              <Popconfirm title="Are you sure you want to retire this priority?" onConfirm={() => handleDelete(record.id)}>
+                <Tooltip title="Retire">
+                  <Button type="text" danger icon={<DeleteOutlined />} />
+                </Tooltip>
+              </Popconfirm>
+            </>
+          )}
         </Space>
       )
     }
@@ -339,14 +362,18 @@ export default function EscalationSettingsPage() {
       align: 'right' as const,
       render: (_: any, record: any) => (
         <Space>
-          <Tooltip title="Edit">
-            <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
-          </Tooltip>
-          <Popconfirm title="Are you sure you want to retire this status?" onConfirm={() => handleDelete(record.id)}>
-            <Tooltip title="Retire">
-              <Button type="text" danger icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
+          {canManageEscalations && (
+            <>
+              <Tooltip title="Edit">
+                <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
+              </Tooltip>
+              <Popconfirm title="Are you sure you want to retire this status?" onConfirm={() => handleDelete(record.id)}>
+                <Tooltip title="Retire">
+                  <Button type="text" danger icon={<DeleteOutlined />} />
+                </Tooltip>
+              </Popconfirm>
+            </>
+          )}
         </Space>
       )
     }
@@ -375,22 +402,24 @@ export default function EscalationSettingsPage() {
               <Title level={2} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-slate-900)' }}>Escalation Settings</Title>
               <Text type="secondary" style={{ fontSize: 14, color: 'var(--text-slate-400)' }}>Manage master data for categories, priorities, and statuses.</Text>
             </Space>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              size="large"
-              onClick={() => handleOpenModal()}
-              style={{
-                borderRadius: 10,
-                background: BLUE_PRIMARY,
-                fontWeight: 600,
-                height: 44,
-                padding: '0 24px',
-                boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)'
-              }}
-            >
-              Add {activeTab === '1' ? 'Category' : activeTab === '2' ? 'Priority' : 'Status'}
-            </Button>
+            {canManageEscalations && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                size="large"
+                onClick={() => handleOpenModal()}
+                style={{
+                  borderRadius: 10,
+                  background: BLUE_PRIMARY,
+                  fontWeight: 600,
+                  height: 44,
+                  padding: '0 24px',
+                  boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)'
+                }}
+              >
+                Add {activeTab === '1' ? 'Category' : activeTab === '2' ? 'Priority' : 'Status'}
+              </Button>
+            )}
           </div>
 
           <Card

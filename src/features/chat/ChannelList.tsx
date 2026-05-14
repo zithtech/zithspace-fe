@@ -5,6 +5,7 @@ import { Typography, Tooltip, theme } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useChatStore } from '@/store/chatStore';
 import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import {
     CaretRightOutlined,
     CaretDownOutlined,
@@ -18,6 +19,7 @@ const { Text } = Typography;
 export default function ChannelList() {
     const router = useRouter();
     const { user } = useAuth();
+    const { canCreateChat } = usePermission();
     const { channels, activeChannelId } = useChatStore();
     const { token } = theme.useToken();
     const [channelsExpanded, setChannelsExpanded] = useState(true);
@@ -142,7 +144,7 @@ export default function ChannelList() {
                 title="Channels"
                 expanded={channelsExpanded}
                 onToggle={() => setChannelsExpanded(!channelsExpanded)}
-                onAdd={() => router.push('/chat/create')}
+                onAdd={canCreateChat ? () => router.push('/chat/create') : undefined}
             />
             {channelsExpanded && (
                 <div>
@@ -168,7 +170,7 @@ export default function ChannelList() {
                 title="Direct Messages"
                 expanded={dmsExpanded}
                 onToggle={() => setDmsExpanded(!dmsExpanded)}
-                onAdd={() => router.push('/chat/new')}
+                onAdd={canCreateChat ? () => router.push('/chat/new') : undefined}
             />
             {dmsExpanded && (
                 <div>

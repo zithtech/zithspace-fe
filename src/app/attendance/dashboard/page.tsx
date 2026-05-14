@@ -67,7 +67,7 @@ export default function AttendanceDashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { notification } = App.useApp();
   const router = useRouter();
-  const { canReadAttendance } = usePermission();
+  const { canReadAttendanceDashboard } = usePermission();
 
   const [loading, setLoading] = useState(true);
   const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
@@ -76,10 +76,10 @@ export default function AttendanceDashboardPage() {
   const [customDateRange, setCustomDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 
   useEffect(() => {
-    if (!authLoading && !canReadAttendance) {
+    if (!authLoading && !canReadAttendanceDashboard) {
       router.push('/dashboard');
     }
-  }, [authLoading, canReadAttendance, router]);
+  }, [authLoading, canReadAttendanceDashboard, router]);
 
   const fetchData = async () => {
     try {
@@ -103,10 +103,10 @@ export default function AttendanceDashboardPage() {
   };
 
   useEffect(() => {
-    if (user && canReadAttendance) {
+    if (user && canReadAttendanceDashboard) {
       fetchData();
     }
-  }, [user, canReadAttendance]);
+  }, [user, canReadAttendanceDashboard]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -132,7 +132,7 @@ export default function AttendanceDashboardPage() {
     return `${hours}h ${mins}m`;
   };
 
-  if (authLoading || !canReadAttendance) return null;
+  if (authLoading || !canReadAttendanceDashboard) return null;
 
   return (
     <MainLayout>

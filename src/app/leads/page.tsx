@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
@@ -307,8 +308,17 @@ const DEFAULT_HIDDEN_COLS: Record<string, boolean> = {
 };
 
 export default function LeadsPage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
+  const { 
+    canReadLead, 
+    canCreateLead, 
+    canUpdateLead, 
+    canDeleteLead, 
+    canManageLeads,
+    canCreateProposal 
+  } = usePermission();
+
   const [form] = Form.useForm();
   const { message: messageApi, modal } = App.useApp();
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
@@ -423,6 +433,13 @@ export default function LeadsPage() {
     setBidiqPreviewLead(null);
     router.push(`/leads/bidiq/${id}`);
   };
+
+  // ─── Route Guard ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isLoading && user && !canReadLead) {
+      router.push("/dashboard");
+    }
+  }, [user, isLoading, canReadLead, router]);
 
   // Use the custom hook for backend connectivity
   const { leads, loading: leadsLoading, error, fetchLeads, createLead, updateLead, deleteLead } = useLeads();
@@ -927,30 +944,32 @@ export default function LeadsPage() {
           !!record.ai_summary;
 
         return (
-          <Button
-            type="link"
-            icon={hasBidiq ? <Eye size={15} /> : <Zap size={16} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (hasBidiq) {
-                router.push(`/leads/bidiq/${record.id}`);
-              } else {
-                openBidiqPreview(record);
-              }
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              color: hasBidiq ? "#10b981" : "var(--premium-blue)",
-              fontWeight: 700,
-              fontSize: 13,
-              padding: 0,
-            }}
-          >
-            {hasBidiq ? "View BidIq" : "BidIq"}
-          </Button>
+          canManageLeads && (
+            <Button
+              type="link"
+              icon={hasBidiq ? <Eye size={15} /> : <Zap size={16} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (hasBidiq) {
+                  router.push(`/leads/bidiq/${record.id}`);
+                } else {
+                  openBidiqPreview(record);
+                }
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                color: hasBidiq ? "#10b981" : "var(--premium-blue)",
+                fontWeight: 700,
+                fontSize: 13,
+                padding: 0,
+              }}
+            >
+              {hasBidiq ? "View BidIq" : "BidIq"}
+            </Button>
+          )
         );
       },
     },
@@ -959,42 +978,44 @@ export default function LeadsPage() {
       key: "proposal",
       width: 140,
       render: (_: unknown, record: Lead) => (
-        record.proposal_id ? (
-          <Button
-            type="link"
-            icon={<FileText size={16} />}
-            onClick={(e) => { e.stopPropagation(); router.push(`/proposals/${record.proposal_id}`); }}
-            onMouseDown={(e) => e.stopPropagation()}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              color: "#10b981",
-              fontWeight: 700,
-              fontSize: 13,
-              padding: 0
-            }}
-          >
-            View Proposal
-          </Button>
-        ) : (
-          <Button
-            type="link"
-            icon={<Sparkles size={16} />}
-            onClick={(e) => { e.stopPropagation(); openBidiqPreview(record); }}
-            onMouseDown={(e) => e.stopPropagation()}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              color: "var(--premium-blue)",
-              fontWeight: 700,
-              fontSize: 13,
-              padding: 0
-            }}
-          >
-            Generate
-          </Button>
+        canCreateProposal && (
+          record.proposal_id ? (
+            <Button
+              type="link"
+              icon={<FileText size={16} />}
+              onClick={(e) => { e.stopPropagation(); router.push(`/proposals/${record.proposal_id}`); }}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                color: "#10b981",
+                fontWeight: 700,
+                fontSize: 13,
+                padding: 0
+              }}
+            >
+              View Proposal
+            </Button>
+          ) : (
+            <Button
+              type="link"
+              icon={<Sparkles size={16} />}
+              onClick={(e) => { e.stopPropagation(); openBidiqPreview(record); }}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                color: "var(--premium-blue)",
+                fontWeight: 700,
+                fontSize: 13,
+                padding: 0
+              }}
+            >
+              Generate
+            </Button>
+          )
         )
       ),
     },
@@ -1106,7 +1127,7 @@ export default function LeadsPage() {
             label: 'View Details',
             icon: <Eye size={16} />,
           },
-          {
+          canUpdateLead && {
             key: 'edit',
             label: 'Edit Lead',
             icon: <Settings size={16} />,
@@ -1116,16 +1137,16 @@ export default function LeadsPage() {
             label: 'View Timeline',
             icon: <History size={16} />,
           },
-          {
+          (canUpdateLead || canDeleteLead) && {
             type: 'divider',
           },
-          {
+          canDeleteLead && {
             key: 'delete',
             label: 'Delete Lead',
             danger: true,
             icon: <Trash2 size={16} />,
           }
-        ];
+        ].filter(Boolean) as MenuProps['items'];
 
         return (
           <Dropdown
@@ -2325,27 +2346,29 @@ export default function LeadsPage() {
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <Button onClick={() => setIsDrawerVisible(false)} style={{ borderRadius: 10, height: 40, fontWeight: 600, padding: "0 18px" }} className="premium-btn-cancel">Cancel</Button>
-                <Button
-                  type="primary"
-                  loading={loading}
-                  onClick={() => form.submit()}
-                  className="lead-drawer-submit"
-                  style={{
-                    borderRadius: 10,
-                    height: 40,
-                    padding: "0 22px",
-                    background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                    border: "none",
-                    fontWeight: 700,
-                    boxShadow: "0 6px 16px -4px rgba(99, 102, 241, 0.45)",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  {editingKey ? "Update Lead" : "Create Lead"}
-                  <ArrowUpRight size={15} />
-                </Button>
+                  {((editingKey && canUpdateLead) || (!editingKey && canCreateLead)) && (
+                    <Button
+                      type="primary"
+                      loading={loading}
+                      onClick={() => form.submit()}
+                      className="lead-drawer-submit"
+                      style={{
+                        borderRadius: 10,
+                        height: 40,
+                        padding: "0 22px",
+                        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                        border: "none",
+                        fontWeight: 700,
+                        boxShadow: "0 6px 16px -4px rgba(99, 102, 241, 0.45)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      {editingKey ? "Update Lead" : "Create Lead"}
+                      <ArrowUpRight size={15} />
+                    </Button>
+                  )}
               </div>
             </div>
           }

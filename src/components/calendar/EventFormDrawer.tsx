@@ -22,6 +22,8 @@ interface EventFormDrawerProps {
     initialDate?: Dayjs;
     loading: boolean;
     error?: string | null;
+    canSave?: boolean;
+    canDelete?: boolean;
 }
 
 export default function EventFormDrawer({
@@ -32,7 +34,9 @@ export default function EventFormDrawer({
     editEvent,
     initialDate,
     loading,
-    error
+    error,
+    canSave = true,
+    canDelete = true,
 }: EventFormDrawerProps) {
     const { modal, message } = App.useApp();
     const [form] = Form.useForm();
@@ -725,7 +729,7 @@ export default function EventFormDrawer({
                     zIndex: 10
                 }}>
                     <div>
-                        {editEvent && (
+                        {editEvent && canDelete && (
                             <Popconfirm
                                 title={`Delete ${editEvent.isRecurring ? 'Series' : 'Event'}`}
                                 description={editEvent.isRecurring ? deleteContent : "Remove this event permanently?"}
@@ -762,22 +766,24 @@ export default function EventFormDrawer({
                         >
                             Cancel
                         </Button>
-                        <Button
-                            type="primary"
-                            onClick={handleSubmit}
-                            loading={loading}
-                            style={{
-                                borderRadius: '10px',
-                                height: '40px',
-                                padding: '0 24px',
-                                fontWeight: 700,
-                                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)',
-                                background: 'var(--cal-brand)',
-                                border: 'none'
-                            }}
-                        >
-                            {editEvent ? "Save Changes" : "Create Event"}
-                        </Button>
+                        {canSave && (
+                            <Button
+                                type="primary"
+                                onClick={handleSubmit}
+                                loading={loading}
+                                style={{
+                                    borderRadius: '10px',
+                                    height: '40px',
+                                    padding: '0 24px',
+                                    fontWeight: 700,
+                                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)',
+                                    background: 'var(--cal-brand)',
+                                    border: 'none'
+                                }}
+                            >
+                                {editEvent ? "Save Changes" : "Create Event"}
+                            </Button>
+                        )}
                     </Space>
                 </div>
 

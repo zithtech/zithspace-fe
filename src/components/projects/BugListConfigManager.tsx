@@ -42,6 +42,7 @@ import {
 } from "@/hooks/useBugList";
 import type { BugConfigOption } from "@/services/bugListService";
 import { useTheme } from "@/context/ThemeContext";
+import { usePermission } from "@/hooks/usePermission";
 
 const { Text } = Typography;
 
@@ -100,6 +101,7 @@ export default function BugListConfigManager() {
   const createType = useCreateBugType();
   const updateType = useUpdateBugType();
   const deleteType = useDeleteBugType();
+  const { canCreateTicketSetting, canUpdateTicketSetting, canDeleteTicketSetting } = usePermission();
 
   const [editing, setEditing] = useState<EditState>(null);
   const [activeKey, setActiveKey] = useState<SectionKey>("severity");
@@ -286,6 +288,7 @@ function ConfigSection({
   onDelete,
   onToggleActive,
 }: ConfigSectionProps) {
+  const { canCreateTicketSetting, canUpdateTicketSetting, canDeleteTicketSetting } = usePermission();
   const columns: ColumnsType<BugConfigOption> = [
     {
       title: "Label",
@@ -343,7 +346,7 @@ function ConfigSection({
       width: 90,
       align: "center",
       render: (val: boolean, row) => (
-        <Switch checked={val} size="small" onChange={() => onToggleActive(row)} />
+        <Switch checked={val} size="small" onChange={() => onToggleActive(row)} disabled={!canUpdateTicketSetting} />
       ),
     },
     {
@@ -362,6 +365,7 @@ function ConfigSection({
               size="small"
               icon={<EditOutlined />}
               onClick={() => onEdit(row)}
+              disabled={!canUpdateTicketSetting}
             />
           </Tooltip>
           <Popconfirm
@@ -374,9 +378,10 @@ function ConfigSection({
             okText="Delete"
             okButtonProps={{ danger: true }}
             onConfirm={() => onDelete(row.id)}
+            disabled={!canDeleteTicketSetting}
           >
             <Tooltip title="Delete">
-              <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} disabled={!canDeleteTicketSetting} />
             </Tooltip>
           </Popconfirm>
         </div>
@@ -415,20 +420,22 @@ function ConfigSection({
         <span className="bcm-count">
           {options.length} option{options.length === 1 ? "" : "s"}
         </span>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={onCreate}
-          style={{
-            background: accent,
-            borderColor: accent,
-            borderRadius: 8,
-            fontWeight: 600,
-            boxShadow: `0 1px 2px ${accent}40`,
-          }}
-        >
-          Add option
-        </Button>
+        {canCreateTicketSetting && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={onCreate}
+            style={{
+              background: accent,
+              borderColor: accent,
+              borderRadius: 8,
+              fontWeight: 600,
+              boxShadow: `0 1px 2px ${accent}40`,
+            }}
+          >
+            Add option
+          </Button>
+        )}
       </div>
       <div className="bcm-card-body">
         {loading ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Table, Button, Space, Typography, Tag, Tooltip, Row, Col, Drawer, Divider, Modal, Input, Form, Alert, Card, Empty, DatePicker } from 'antd';
 import { 
   BankOutlined, 
@@ -17,10 +17,35 @@ import {
 import MainLayout from '@/components/layout/MainLayout';
 import { useApprovedPayouts } from '@/hooks/useApprovedPayouts';
 import dayjs from 'dayjs';
+import { usePermission } from '@/hooks/usePermission';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { Spin } from 'antd';
 
 const { Title, Text } = Typography;
 
 const ApprovedPayoutsPage: React.FC = () => {
+  const { canReadPayroll, canPayPayroll } = usePermission();
+  const { isLoading: authLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && !canReadPayroll) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, canReadPayroll, router]);
+
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+          <Spin size="large" tip="Loading" />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canReadPayroll) return null;
   const { 
     data, 
     loading, 
@@ -151,56 +176,60 @@ const ApprovedPayoutsPage: React.FC = () => {
               />
             </div>
 
-            {!bankFile ? (
-              <Button
-                type="primary"
-                icon={<SyncOutlined spin={isGenerating} />}
-                style={{ backgroundColor: '#1677ff', height: '40px', borderRadius: '8px', marginTop: 20 }}
-                onClick={generateBankFile}
-                loading={isGenerating}
-                disabled={data.length === 0}
-              >
-                Generate Bank File
-              </Button>
-            ) : (
-              <Space style={{ marginTop: 20 }}>
-                <Button
-                  icon={<DownloadOutlined />}
-                  style={{ height: '40px', borderRadius: '8px' }}
-                  onClick={downloadBankFile}
-                >
-                  Download File
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<SendOutlined />}
-                  style={{ backgroundColor: bankFile.status === 'SENT' ? '#52c41a' : '#1677ff', borderColor: bankFile.status === 'SENT' ? '#52c41a' : '#1677ff', height: '40px', borderRadius: '8px' }}
-                  onClick={() => setIsMailModalVisible(true)}
-                >
-                  {bankFile.status === 'SENT' ? 'Resend to Bank' : 'Send to Bank'}
-                </Button>
-                {bankFile.status === 'SENT' && (
+            {canPayPayroll && (
+              <>
+                {!bankFile ? (
                   <Button
                     type="primary"
-                    icon={<CheckCircleOutlined />}
-                    style={{ backgroundColor: '#722ed1', borderColor: '#722ed1', height: '40px', borderRadius: '8px' }}
-                    onClick={() => {
-                      Modal.confirm({
-                        title: 'Mark as Paid?',
-                        icon: <CheckCircleOutlined style={{ color: '#722ed1' }} />,
-                        content: `This will mark all payouts for ${dayjs(`${year}-${month}-01`).format('MMMM YYYY')} as PAID. This action will update the status of all employees in this period.`,
-                        okText: 'Yes, Mark as Paid',
-                        cancelText: 'Cancel',
-                        onOk: markAsPaid,
-                        okButtonProps: { style: { backgroundColor: '#722ed1', borderColor: '#722ed1' } }
-                      });
-                    }}
-                    loading={markingPaid}
+                    icon={<SyncOutlined spin={isGenerating} />}
+                    style={{ backgroundColor: '#1677ff', height: '40px', borderRadius: '8px', marginTop: 20 }}
+                    onClick={generateBankFile}
+                    loading={isGenerating}
+                    disabled={data.length === 0}
                   >
-                    Mark as Paid
+                    Generate Bank File
                   </Button>
+                ) : (
+                  <Space style={{ marginTop: 20 }}>
+                    <Button
+                      icon={<DownloadOutlined />}
+                      style={{ height: '40px', borderRadius: '8px' }}
+                      onClick={downloadBankFile}
+                    >
+                      Download File
+                    </Button>
+                    <Button
+                      type="primary"
+                      icon={<SendOutlined />}
+                      style={{ backgroundColor: bankFile.status === 'SENT' ? '#52c41a' : '#1677ff', borderColor: bankFile.status === 'SENT' ? '#52c41a' : '#1677ff', height: '40px', borderRadius: '8px' }}
+                      onClick={() => setIsMailModalVisible(true)}
+                    >
+                      {bankFile.status === 'SENT' ? 'Resend to Bank' : 'Send to Bank'}
+                    </Button>
+                    {bankFile.status === 'SENT' && (
+                      <Button
+                        type="primary"
+                        icon={<CheckCircleOutlined />}
+                        style={{ backgroundColor: '#722ed1', borderColor: '#722ed1', height: '40px', borderRadius: '8px' }}
+                        onClick={() => {
+                          Modal.confirm({
+                            title: 'Mark as Paid?',
+                            icon: <CheckCircleOutlined style={{ color: '#722ed1' }} />,
+                            content: `This will mark all payouts for ${dayjs(`${year}-${month}-01`).format('MMMM YYYY')} as PAID. This action will update the status of all employees in this period.`,
+                            okText: 'Yes, Mark as Paid',
+                            cancelText: 'Cancel',
+                            onOk: markAsPaid,
+                            okButtonProps: { style: { backgroundColor: '#722ed1', borderColor: '#722ed1' } }
+                          });
+                        }}
+                        loading={markingPaid}
+                      >
+                        Mark as Paid
+                      </Button>
+                    )}
+                  </Space>
                 )}
-              </Space>
+              </>
             )}
           </Space>
         </div>

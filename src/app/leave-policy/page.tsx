@@ -64,6 +64,7 @@ import { useDepartments } from "@/hooks/useDepartments";
 import { useSubDepartments } from "@/hooks/useSubDepartments";
 import { usePositions } from "@/hooks/usePositions";
 import { useLeaveTypes } from "@/hooks/useLeaveTypes";
+import { usePermission } from "@/hooks/usePermission";
 
 const { TextArea } = Input;
 const { Text, Title } = Typography;
@@ -247,6 +248,16 @@ export default function LeavePolicyPage() {
   const router = useRouter();
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
+  const { 
+    canReadLeavePolicy, 
+    canManageLeaves 
+  } = usePermission();
+
+  useEffect(() => {
+    if (!canReadLeavePolicy) {
+      router.push('/dashboard');
+    }
+  }, [canReadLeavePolicy, router]);
 
   const [viewType, setViewType] = useState<string>("table");
   const [searchText, setSearchText] = useState("");
@@ -396,12 +407,16 @@ export default function LeavePolicyPage() {
           <Tooltip title="View Details">
             <Button type="text" icon={<Maximize2 size={18} color="#64748b" />} onClick={() => { setCurrentRecord(record); setIsDetailVisible(true); }} className="action-btn" />
           </Tooltip>
-          <Tooltip title="Edit Config">
-            <Button type="text" icon={<Edit2 size={18} color="#64748b" />} onClick={() => handleEdit(record)} className="action-btn" />
-          </Tooltip>
-          <Popconfirm title="Delete configuration?" onConfirm={() => handleDeleteOrigin(record)} okButtonProps={{ danger: true }}>
-            <Button type="text" danger icon={<Trash2 size={18} />} className="action-btn-danger" />
-          </Popconfirm>
+          {canManageLeaves && (
+            <Tooltip title="Edit Config">
+              <Button type="text" icon={<Edit2 size={18} color="#64748b" />} onClick={() => handleEdit(record)} className="action-btn" />
+            </Tooltip>
+          )}
+          {canManageLeaves && (
+            <Popconfirm title="Delete configuration?" onConfirm={() => handleDeleteOrigin(record)} okButtonProps={{ danger: true }}>
+              <Button type="text" danger icon={<Trash2 size={18} />} className="action-btn-danger" />
+            </Popconfirm>
+          )}
         </Space>
       )
     }
@@ -537,15 +552,17 @@ export default function LeavePolicyPage() {
                   style={{ background: "transparent", border: "none" }}
                 />
               </div>
-              <Button
-                type="primary"
-                size="large"
-                icon={<Plus size={18} />}
-                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600, background: "var(--premium-blue)" }}
-                onClick={() => { setEditingKey(null); form.resetFields(); setIsDrawerVisible(true); }}
-              >
-                Add Mapping
-              </Button>
+              {canManageLeaves && (
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<Plus size={18} />}
+                  style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600, background: "var(--premium-blue)" }}
+                  onClick={() => { setEditingKey(null); form.resetFields(); setIsDrawerVisible(true); }}
+                >
+                  Add Mapping
+                </Button>
+              )}
             </div>
           </div>
 

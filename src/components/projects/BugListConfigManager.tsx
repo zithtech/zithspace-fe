@@ -16,6 +16,8 @@ import {
   Tooltip,
   Typography,
   message,
+  theme as antdTheme,
+  ConfigProvider,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -582,6 +584,15 @@ function OptionEditor({
           </div>
 
           <div className="bcm-modal-body">
+            <ConfigProvider
+              theme={{
+                algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+                token: {
+                  colorBgContainer: isDark ? '#161B22' : '#ffffff',
+                  colorText: isDark ? '#F1F5F9' : '#1E293B',
+                }
+              }}
+            >
             <Form
               form={form}
               layout="vertical"
@@ -675,6 +686,7 @@ function OptionEditor({
                 <Switch />
               </Form.Item>
             </Form>
+            </ConfigProvider>
           </div>
 
           <div className="bcm-drawer-foot">
@@ -865,6 +877,13 @@ function BcmStyles() {
         min-width: 0;
         overflow-y: auto;
         padding-right: 4px;
+      }
+      .bcm-pane::-webkit-scrollbar {
+        display: none;
+      }
+      .bcm-pane {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
       }
 
       .bcm-card {

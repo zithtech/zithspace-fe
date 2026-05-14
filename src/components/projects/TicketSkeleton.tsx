@@ -233,7 +233,7 @@ const TicketSkeleton: React.FC<TicketSkeletonProps> = ({ viewMode = 'list', full
         {renderTopNavSkeleton()}
         <Layout>
           {renderSideNavSkeleton()}
-          <Content style={{ overflow: 'auto' }}>
+          <Content style={{ overflowY: 'auto', overflowX: 'hidden' }}>
             {pageContent}
           </Content>
         </Layout>

@@ -23,6 +23,8 @@ import {
   Divider,
   Segmented,
   Empty,
+  theme as antdTheme,
+  ConfigProvider,
 } from "antd";
 import {
   PlusOutlined,
@@ -58,9 +60,11 @@ import {
   ProjectsFilters,
 } from "@/services/projectService";
 import { MembersService } from "@/services/membersService";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
+import { useTheme } from "@/context/ThemeContext";
 import { ColumnsType } from "antd/es/table";
 
 // Extend dayjs with relativeTime plugin
@@ -154,6 +158,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
 };
 
 const ProjectsManagePage: React.FC = () => {
+  const { theme } = useTheme();
   const { user, isLoading } = useAuth();
   const { notification, message } = App.useApp();
   const [form] = Form.useForm();
@@ -632,117 +637,77 @@ const ProjectsManagePage: React.FC = () => {
   return (
     <MainLayout>
       <div style={{
-        margin: "0 -16px",
-        padding: "0 24px 24px",
+        margin: "0 -24px",
         background: "var(--bg-pure-white)",
         minHeight: "calc(100vh - 64px)"
       }}>
         {/* Premium Header */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 16,
-          flexWrap: "wrap",
-          height: 56,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 8,
-                background: "rgba(59, 130, 246, 0.10)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <ApartmentOutlined style={{ fontSize: 15, color: "var(--premium-blue)" }} />
-            </div>
-            <Text
-              style={{
-                margin: 0,
-                fontSize: 16,
-                fontWeight: 700,
-                letterSpacing: "-0.01em",
-                color: "var(--text-slate-900)",
-                lineHeight: 1.2,
-                whiteSpace: "nowrap",
-              }}
-            >
-              Projects Management
-            </Text>
-            <Divider
-              type="vertical"
-              style={{ height: 20, margin: "0 6px", borderColor: "var(--border-color)" }}
-            />
-            <Text style={{ fontSize: 12.5, color: "var(--text-slate-500)", fontWeight: 500 }}>
-              Oversee and orchestrate every initiative across your organization
-            </Text>
-          </div>
-
-          <Space size={10} align="center">
-            <Tooltip title="Refresh view">
-              <Button
-                icon={<ReloadOutlined spin={isRefreshing} />}
-                onClick={async () => {
-                  setIsRefreshing(true);
-                  await loadProjects();
-                  setIsRefreshing(false);
-                  message.success("Projects view synchronized");
-                }}
-                loading={loading}
-                style={{ 
-                  width: 34, 
-                  height: 34, 
-                  borderRadius: 8, 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center",
-                  background: "transparent",
-                  borderColor: "var(--border-color)"
-                }}
-              />
-            </Tooltip>
-            <Segmented
-              value={viewMode}
-              onChange={(v) => setViewMode(v as "card" | "table")}
-              options={[
-                { label: "Card", value: "card", icon: <AppstoreOutlined style={{ fontSize: 12 }} /> },
-                { label: "List", value: "table", icon: <BarsOutlined style={{ fontSize: 12 }} /> },
-              ]}
-              className="saas-segmented-premium"
-            />
-            {canCreateProject && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleAdd}
-                style={{
-                  height: 34,
-                  padding: "0 14px",
-                  borderRadius: 8,
-                  fontWeight: 600,
-                }}
-              >
-                Add Project
-              </Button>
-            )}
-          </Space>
-        </div>
-
-        {/* Full-bleed divider — aligned flush with sidebar's horizontal divider line */}
-        <div
+        <TimeTrackingHeader
+          icon={<ApartmentOutlined style={{ fontSize: 18, color: "var(--premium-blue)" }} />}
+          title="Projects Management"
+          description="Oversee and orchestrate every initiative across your organization"
           style={{
-            height: 1,
-            background: "var(--border-color)",
-            marginLeft: -24,
-            marginRight: -24,
+            padding: '10.5px 32px',
+            borderBottom: '1px solid var(--border-slate-200)',
             marginBottom: 20,
+            position: "sticky",
+            top: 0,
+            zIndex: 100,
+            background: "var(--bg-pure-white)"
           }}
+          extra={
+            <Space size={10} align="center">
+              <Tooltip title="Refresh view">
+                <Button
+                  icon={<ReloadOutlined spin={isRefreshing} />}
+                  onClick={async () => {
+                    setIsRefreshing(true);
+                    await loadProjects();
+                    setIsRefreshing(false);
+                    message.success("Projects view synchronized");
+                  }}
+                  loading={loading}
+                  style={{ 
+                    width: 34, 
+                    height: 34, 
+                    borderRadius: 8, 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center",
+                    background: "transparent",
+                    borderColor: "var(--border-color)"
+                  }}
+                />
+              </Tooltip>
+              <Segmented
+                value={viewMode}
+                onChange={(v) => setViewMode(v as "card" | "table")}
+                options={[
+                  { label: "Card", value: "card", icon: <AppstoreOutlined style={{ fontSize: 12 }} /> },
+                  { label: "List", value: "table", icon: <BarsOutlined style={{ fontSize: 12 }} /> },
+                ]}
+                className="saas-segmented-premium"
+              />
+              {canCreateProject && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleAdd}
+                  style={{
+                    height: 34,
+                    padding: "0 14px",
+                    borderRadius: 8,
+                    fontWeight: 600,
+                  }}
+                >
+                  Add Project
+                </Button>
+              )}
+            </Space>
+          }
         />
+
+        <div style={{ padding: "0 32px 32px" }}>
 
         {/* Stats Row */}
         <div className="pm-stat-grid">
@@ -1274,456 +1239,461 @@ const ProjectsManagePage: React.FC = () => {
           </Card>
         )}
 
-        {/* Create/Edit Project Drawer */}
-        <Drawer
-          title={null}
-          open={drawerVisible}
-          onClose={() => {
-            setDrawerVisible(false);
-            setEditingProject(null);
-            form.resetFields();
-          }}
-          width={720}
-          closable={false}
-          maskClosable={true}
-          styles={{
-            body: { padding: 0, background: "var(--bg-pure-white)" },
-            header: { display: "none" },
-            mask: { backdropFilter: "blur(2px)", background: "rgba(15, 23, 42, 0.45)" },
-          }}
-        >
-          <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg-pure-white)" }}>
-            {/* Drawer Header */}
-            <div
-              style={{
-                padding: "20px 28px",
-                borderBottom: "1px solid var(--border-color)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                background: "var(--bg-pure-white)",
-                position: "sticky",
-                top: 0,
-                zIndex: 10,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 10,
-                    background: editingProject ? "rgba(245, 158, 11, 0.10)" : "rgba(59, 130, 246, 0.10)",
-                    color: editingProject ? "#f59e0b" : "var(--premium-blue)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 18,
-                    flexShrink: 0,
-                  }}
-                >
-                  {editingProject ? <EditOutlined /> : <PlusOutlined />}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <Title
-                    level={5}
+
+          <Drawer
+            title={null}
+            open={drawerVisible}
+            onClose={() => {
+              setDrawerVisible(false);
+              setEditingProject(null);
+              form.resetFields();
+            }}
+            width={720}
+            closable={false}
+            maskClosable={true}
+            styles={{
+              body: { padding: 0, background: "var(--bg-pure-white)" },
+              header: { display: "none" },
+              mask: { backdropFilter: "blur(2px)", background: "rgba(15, 23, 42, 0.45)" },
+            }}
+          >
+            <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg-pure-white)" }}>
+              {/* Drawer Header */}
+              <div
+                style={{
+                  padding: "20px 28px",
+                  borderBottom: "1px solid var(--border-color)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  background: "var(--bg-pure-white)",
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 10,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+                  <div
                     style={{
-                      margin: 0,
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: "var(--text-slate-900)",
-                      letterSpacing: "-0.01em",
-                      lineHeight: 1.2,
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      background: editingProject ? "rgba(245, 158, 11, 0.10)" : "rgba(59, 130, 246, 0.10)",
+                      color: editingProject ? "#f59e0b" : "var(--premium-blue)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 18,
+                      flexShrink: 0,
                     }}
                   >
-                    {editingProject ? "Edit Project" : "Create New Project"}
-                  </Title>
-                  <Text style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
-                    {editingProject
-                      ? `Update details for ${editingProject.name}`
-                      : "Set up a new workspace for your team"}
-                  </Text>
-                </div>
-              </div>
-              <Button
-                type="text"
-                shape="circle"
-                icon={<CloseOutlined />}
-                onClick={() => {
-                  setDrawerVisible(false);
-                  setEditingProject(null);
-                  form.resetFields();
-                }}
-                style={{ color: "var(--text-slate-500)" }}
-              />
-            </div>
-
-            {/* Drawer Form Content */}
-            <div
-              style={{
-                padding: "24px 28px",
-                flex: 1,
-                overflowY: "auto",
-                background: "var(--bg-secondary, #f8fafc)",
-              }}
-            >
-              <Form
-                form={form}
-                layout="vertical"
-                onFinish={handleSubmit}
-                initialValues={{
-                  status: "planning",
-                  defaultPriority: "medium",
-                }}
-                requiredMark="optional"
-              >
-                {/* Section: Basic Information */}
-                <div
-                  style={{
-                    background: "var(--bg-pure-white)",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: 12,
-                    padding: "20px 22px",
-                    marginBottom: 16,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 9,
-                        background: "rgba(59, 130, 246, 0.10)",
-                        color: "var(--premium-blue)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 14,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <InfoCircleOutlined />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
-                        Basic Information
-                      </Title>
-                      <Text style={{ fontSize: 11.5, color: "var(--text-slate-500)", fontWeight: 500 }}>
-                        The essential details that identify this project
-                      </Text>
-                    </div>
-                    <span
-                      style={{
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        background: "var(--bg-secondary, #f1f5f9)",
-                        color: "var(--text-slate-500)",
-                        fontSize: 10,
-                        fontWeight: 700,
-                        letterSpacing: "0.04em",
-                      }}
-                    >
-                      STEP 1
-                    </span>
+                    {editingProject ? <EditOutlined /> : <PlusOutlined />}
                   </div>
-
-                  <Row gutter={16}>
-                    <Col span={24}>
-                      <Form.Item
-                        name="name"
-                        label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Project Name</span>}
-                        rules={[
-                          { required: true, message: "Please enter project name" },
-                          { min: 2, message: "Name must be at least 2 characters" },
-                        ]}
-                      >
-                        <Input placeholder="e.g. Website Redesign" size="large" style={{ borderRadius: 10 }} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        name="code"
-                        label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Project Code</span>}
-                        rules={[{ required: true, message: "Please enter code" }]}
-                      >
-                        <Input placeholder="e.g. WEB" size="large" style={{ borderRadius: 10, textTransform: "uppercase" }} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        name="status"
-                        label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Project Status</span>}
-                        rules={[{ required: true, message: "Please select status" }]}
-                      >
-                        <Select placeholder="Select status" size="large" style={{ borderRadius: 10 }}>
-                          <Option value="planning">Planning</Option>
-                          <Option value="active">Active</Option>
-                          <Option value="on-hold">On Hold</Option>
-                          <Option value="completed">Completed</Option>
-                          <Option value="cancelled">Cancelled</Option>
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                    <Col span={24}>
-                      <Form.Item
-                        name="description"
-                        label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Project Description</span>}
-                        rules={[{ required: true, message: "Please enter description" }]}
-                      >
-                        <Input.TextArea
-                          rows={4}
-                          placeholder="What is this project about?"
-                          style={{ borderRadius: 10 }}
-                        />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
-
-                {/* Section: Team & Responsibility */}
-                <div
-                  style={{
-                    background: "var(--bg-pure-white)",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: 12,
-                    padding: "20px 22px",
-                    marginBottom: 16,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                    <div
+                  <div style={{ minWidth: 0 }}>
+                    <Title
+                      level={5}
                       style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 9,
-                        background: "rgba(16, 185, 129, 0.10)",
-                        color: "#10b981",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 14,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <TeamOutlined />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
-                        Team & Responsibility
-                      </Title>
-                      <Text style={{ fontSize: 11.5, color: "var(--text-slate-500)", fontWeight: 500 }}>
-                        Assign a lead and the people who will contribute
-                      </Text>
-                    </div>
-                    <span
-                      style={{
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        background: "var(--bg-secondary, #f1f5f9)",
-                        color: "var(--text-slate-500)",
-                        fontSize: 10,
+                        margin: 0,
+                        fontSize: 16,
                         fontWeight: 700,
-                        letterSpacing: "0.04em",
+                        color: "var(--text-slate-900)",
+                        letterSpacing: "-0.01em",
+                        lineHeight: 1.2,
                       }}
                     >
-                      STEP 2
-                    </span>
+                      {editingProject ? "Edit Project" : "Create New Project"}
+                    </Title>
+                    <Text style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
+                      {editingProject
+                        ? `Update details for ${editingProject.name}`
+                        : "Set up a new workspace for your team"}
+                    </Text>
                   </div>
-
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item
-                        name="projectManagerId"
-                        label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Project Manager</span>}
-                        rules={[{ required: true, message: "Please select manager" }]}
-                      >
-                        <Select
-                          placeholder="Select lead"
-                          size="large"
-                          onChange={handleProjectManagerChange}
-                          showSearch
-                          style={{ borderRadius: 10 }}
-                          filterOption={(input, option) => {
-                            const member = members.find((m) => m.value === option?.value);
-                            return member ? String(member.label ?? "").toLowerCase().includes(input.toLowerCase()) : false;
-                          }}
-                        >
-                          {members.map((member) => (
-                            <Option key={member.value} value={member.value}>
-                              {member.label}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        name="defaultPriority"
-                        label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Default Priority</span>}
-                        rules={[{ required: true, message: "Please select priority" }]}
-                      >
-                        <Select placeholder="Priority" size="large" style={{ borderRadius: 10 }}>
-                          <Option value="high">High</Option>
-                          <Option value="medium">Medium</Option>
-                          <Option value="low">Low</Option>
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                    <Col span={24}>
-                      <Form.Item
-                        name="teamMemberIds"
-                        label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Team Members</span>}
-                        help={<span style={{ fontSize: 11, color: "var(--text-slate-400)" }}>The Project Manager is automatically included</span>}
-                      >
-                        <Select
-                          mode="multiple"
-                          placeholder="Add contributors"
-                          size="large"
-                          onChange={handleTeamMembersChange}
-                          showSearch
-                          style={{ borderRadius: 10 }}
-                          filterOption={(input, option) => {
-                            const member = members.find((m) => m.value === option?.value);
-                            return member ? member.label.toLowerCase().includes(input.toLowerCase()) : false;
-                          }}
-                        >
-                          {members.map((member) => (
-                            <Option key={member.value} value={member.value}>
-                              {member.label}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                  </Row>
                 </div>
-
-                {/* Section: Timeline & Resources */}
-                <div
-                  style={{
-                    background: "var(--bg-pure-white)",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: 12,
-                    padding: "20px 22px",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 9,
-                        background: "rgba(139, 92, 246, 0.10)",
-                        color: "#8b5cf6",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 14,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <CalendarOutlined />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
-                        Timeline & Resources
-                      </Title>
-                      <Text style={{ fontSize: 11.5, color: "var(--text-slate-500)", fontWeight: 500 }}>
-                        Set the schedule and link any external resources
-                      </Text>
-                    </div>
-                    <span
-                      style={{
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        background: "var(--bg-secondary, #f1f5f9)",
-                        color: "var(--text-slate-500)",
-                        fontSize: 10,
-                        fontWeight: 700,
-                        letterSpacing: "0.04em",
-                      }}
-                    >
-                      STEP 3
-                    </span>
-                  </div>
-
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item
-                        name="startDate"
-                        label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Estimated Start</span>}
-                        rules={[{ required: true, message: "Required" }]}
-                      >
-                        <DatePicker size="large" style={{ width: "100%", borderRadius: 10 }} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        name="endDate"
-                        label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Estimated Completion</span>}
-                      >
-                        <DatePicker size="large" style={{ width: "100%", borderRadius: 10 }} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={24}>
-                      <Form.Item
-                        name="repositories"
-                        label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Repository URL <span style={{ fontWeight: 500, color: "var(--text-slate-400)" }}>(optional)</span></span>}
-                      >
-                        <Input placeholder="e.g. https://github.com/org/repo" size="large" style={{ borderRadius: 10 }} />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
-              </Form>
-            </div>
-
-            {/* Drawer Footer */}
-            <div
-              style={{
-                padding: "14px 28px",
-                borderTop: "1px solid var(--border-color)",
-                background: "var(--bg-pure-white)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                position: "sticky",
-                bottom: 0,
-              }}
-            >
-              <Text style={{ fontSize: 11.5, color: "var(--text-slate-400)", fontWeight: 500 }}>
-                {editingProject ? "Changes will be saved immediately" : "All fields marked required must be filled"}
-              </Text>
-              <Space size={10}>
                 <Button
+                  type="text"
+                  shape="circle"
+                  icon={<CloseOutlined />}
                   onClick={() => {
                     setDrawerVisible(false);
                     setEditingProject(null);
                     form.resetFields();
                   }}
-                  style={{ borderRadius: 8, height: 38, fontWeight: 600, padding: "0 18px" }}
+                  style={{ color: "var(--text-slate-500)" }}
+                />
+              </div>
+
+              {/* Drawer Form Content */}
+              <div
+                style={{
+                  padding: "24px 28px",
+                  flex: 1,
+                  overflowY: "auto",
+                  background: "var(--bg-secondary, #f8fafc)",
+                }}
+              >
+                <ConfigProvider
+                  theme={{
+                    algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+                    token: {
+                      colorBgContainer: theme === 'dark' ? '#161B22' : '#ffffff',
+                      colorText: theme === 'dark' ? '#F1F5F9' : '#1E293B',
+                    }
+                  }}
                 >
-                  Cancel
-                </Button>
-                <Button
-                  type="primary"
-                  onClick={() => form.submit()}
-                  icon={editingProject ? <EditOutlined /> : <PlusOutlined />}
-                  style={{ borderRadius: 8, height: 38, fontWeight: 600, padding: "0 18px" }}
+                <Form
+                  form={form}
+                  layout="vertical"
+                  onFinish={handleSubmit}
+                  initialValues={{
+                    status: "planning",
+                    defaultPriority: "medium",
+                  }}
+                  requiredMark="optional"
                 >
-                  {editingProject ? "Save Changes" : "Create Project"}
-                </Button>
-              </Space>
+                  {/* Section: Basic Information */}
+                  <div
+                    style={{
+                      background: "var(--bg-pure-white)",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: 12,
+                      padding: "20px 22px",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 9,
+                          background: "rgba(59, 130, 246, 0.10)",
+                          color: "var(--premium-blue)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 14,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <InfoCircleOutlined />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
+                          Basic Information
+                        </Title>
+                        <Text style={{ fontSize: 11.5, color: "var(--text-slate-500)", fontWeight: 500 }}>
+                          The essential details that identify this project
+                        </Text>
+                      </div>
+                      <span
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          background: "var(--bg-secondary, #f1f5f9)",
+                          color: "var(--text-slate-500)",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: "0.04em",
+                        }}
+                      >
+                        STEP 1
+                      </span>
+                    </div>
+
+                    <Row gutter={16}>
+                      <Col span={24}>
+                        <Form.Item
+                          name="name"
+                          label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Project Name</span>}
+                          rules={[
+                            { required: true, message: "Please enter project name" },
+                            { min: 2, message: "Name must be at least 2 characters" },
+                          ]}
+                        >
+                          <Input placeholder="e.g. Website Redesign" size="large" style={{ borderRadius: 10 }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          name="code"
+                          label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Project Code</span>}
+                          rules={[{ required: true, message: "Please enter code" }]}
+                        >
+                          <Input placeholder="e.g. WEB" size="large" style={{ borderRadius: 10, textTransform: "uppercase" }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          name="status"
+                          label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Project Status</span>}
+                          rules={[{ required: true, message: "Please select status" }]}
+                        >
+                          <Select placeholder="Select status" size="large" style={{ borderRadius: 10 }}>
+                            <Option value="planning">Planning</Option>
+                            <Option value="active">Active</Option>
+                            <Option value="on-hold">On Hold</Option>
+                            <Option value="completed">Completed</Option>
+                            <Option value="cancelled">Cancelled</Option>
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                      <Col span={24}>
+                        <Form.Item
+                          name="description"
+                          label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Project Description</span>}
+                          rules={[{ required: true, message: "Please enter description" }]}
+                        >
+                          <Input.TextArea
+                            rows={4}
+                            placeholder="What is this project about?"
+                            style={{ borderRadius: 10 }}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+
+                  {/* Section: Team & Responsibility */}
+                  <div
+                    style={{
+                      background: "var(--bg-pure-white)",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: 12,
+                      padding: "20px 22px",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 9,
+                          background: "rgba(16, 185, 129, 0.10)",
+                          color: "#10b981",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 14,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <TeamOutlined />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
+                          Team & Responsibility
+                        </Title>
+                        <Text style={{ fontSize: 11.5, color: "var(--text-slate-500)", fontWeight: 500 }}>
+                          Assign a lead and the people who will contribute
+                        </Text>
+                      </div>
+                      <span
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          background: "var(--bg-secondary, #f1f5f9)",
+                          color: "var(--text-slate-500)",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: "0.04em",
+                        }}
+                      >
+                        STEP 2
+                      </span>
+                    </div>
+
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item
+                          name="projectManagerId"
+                          label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Project Manager</span>}
+                          rules={[{ required: true, message: "Please select manager" }]}
+                        >
+                          <Select
+                            placeholder="Select lead"
+                            size="large"
+                            onChange={handleProjectManagerChange}
+                            showSearch
+                            style={{ borderRadius: 10 }}
+                            filterOption={(input, option) => {
+                              const member = members.find((m) => m.value === option?.value);
+                              return member ? String(member.label ?? "").toLowerCase().includes(input.toLowerCase()) : false;
+                            }}
+                          >
+                            {members.map((member) => (
+                              <Option key={member.value} value={member.value}>
+                                {member.label}
+                              </Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          name="defaultPriority"
+                          label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Default Priority</span>}
+                          rules={[{ required: true, message: "Please select priority" }]}
+                        >
+                          <Select placeholder="Priority" size="large" style={{ borderRadius: 10 }}>
+                            <Option value="high">High</Option>
+                            <Option value="medium">Medium</Option>
+                            <Option value="low">Low</Option>
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                      <Col span={24}>
+                        <Form.Item
+                          name="teamMemberIds"
+                          label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Team Members</span>}
+                          help={<span style={{ fontSize: 11, color: "var(--text-slate-400)" }}>The Project Manager is automatically included</span>}
+                        >
+                          <Select
+                            mode="multiple"
+                            placeholder="Add contributors"
+                            size="large"
+                            onChange={handleTeamMembersChange}
+                            showSearch
+                            style={{ borderRadius: 10 }}
+                            filterOption={(input, option) => {
+                              const member = members.find((m) => m.value === option?.value);
+                              return member ? member.label.toLowerCase().includes(input.toLowerCase()) : false;
+                            }}
+                          >
+                            {members.map((member) => (
+                              <Option key={member.value} value={member.value}>
+                                {member.label}
+                              </Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+
+                  {/* Section: Timeline & Resources */}
+                  <div
+                    style={{
+                      background: "var(--bg-pure-white)",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: 12,
+                      padding: "20px 22px",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 9,
+                          background: "rgba(139, 92, 246, 0.10)",
+                          color: "#8b5cf6",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 14,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <CalendarOutlined />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
+                          Timeline & Resources
+                        </Title>
+                        <Text style={{ fontSize: 11.5, color: "var(--text-slate-500)", fontWeight: 500 }}>
+                          Set the schedule and link any external resources
+                        </Text>
+                      </div>
+                      <span
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          background: "var(--bg-secondary, #f1f5f9)",
+                          color: "var(--text-slate-500)",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: "0.04em",
+                        }}
+                      >
+                        STEP 3
+                      </span>
+                    </div>
+
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item
+                          name="startDate"
+                          label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Estimated Start</span>}
+                          rules={[{ required: true, message: "Required" }]}
+                        >
+                          <DatePicker size="large" style={{ width: "100%", borderRadius: 10 }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          name="endDate"
+                          label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Estimated Completion</span>}
+                        >
+                          <DatePicker size="large" style={{ width: "100%", borderRadius: 10 }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={24}>
+                        <Form.Item
+                          name="repositories"
+                          label={<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>Repository URL <span style={{ fontWeight: 500, color: "var(--text-slate-400)" }}>(optional)</span></span>}
+                        >
+                          <Input placeholder="e.g. https://github.com/org/repo" size="large" style={{ borderRadius: 10 }} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+                </Form>
+              </ConfigProvider>
+              </div>
+
+              {/* Drawer Footer */}
+              <div
+                style={{
+                  padding: "14px 28px",
+                  borderTop: "1px solid var(--border-color)",
+                  background: "var(--bg-pure-white)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  position: "sticky",
+                  bottom: 0,
+                }}
+              >
+                <Text style={{ fontSize: 11.5, color: "var(--text-slate-400)", fontWeight: 500 }}>
+                  {editingProject ? "Changes will be saved immediately" : "All fields marked required must be filled"}
+                </Text>
+                <Space size={10}>
+                  <Button
+                    onClick={() => {
+                      setDrawerVisible(false);
+                      setEditingProject(null);
+                      form.resetFields();
+                    }}
+                    style={{ borderRadius: 8, height: 38, fontWeight: 600, padding: "0 18px" }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="primary"
+                    onClick={() => form.submit()}
+                    icon={editingProject ? <EditOutlined /> : <PlusOutlined />}
+                    style={{ borderRadius: 8, height: 38, fontWeight: 600, padding: "0 18px" }}
+                  >
+                    {editingProject ? "Save Changes" : "Create Project"}
+                  </Button>
+                </Space>
+              </div>
             </div>
-          </div>
-        </Drawer>
-        {/* <Button
-          block
-          style={{ height: 44, borderRadius: 10, fontWeight: 600 }}
-          onClick={() => setViewDrawerOpen(false)}
-        >
-          Close
-        </Button> */}
+          </Drawer>
+
+        </div>
       </div>
 
       <style jsx global>{`

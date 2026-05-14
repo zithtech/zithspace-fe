@@ -322,6 +322,11 @@ export default function SquadManagement() {
           icon={<TeamOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
           title="Squad Management"
           description="Configure and manage project teams, leadership roles, and member allocations."
+          style={{
+            borderBottom: '1px solid var(--border-slate-200)',
+            padding: '8.5px 32px',
+            marginBottom: 20
+          }}
           extra={
             canCreateSquad && (
               <Button

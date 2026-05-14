@@ -973,6 +973,25 @@ export default function ArchivedTicketsPage() {
           .ar-filter-search {
             width: 280px;
           }
+
+          @media (max-width: 900px) {
+            .ar-control-bar {
+              flex-wrap: wrap;
+              gap: 10px;
+            }
+            .ar-filter-cluster {
+              flex-wrap: wrap;
+              width: 100%;
+            }
+            .ar-filter-search {
+              width: 100%;
+              flex: 1;
+              min-width: 160px;
+            }
+            .ar-result-count {
+              width: 100%;
+            }
+          }
           .ar-filter-search .ant-input,
           .ar-filter-search .ant-input-affix-wrapper,
           .ar-filter-search .ant-input-affix-wrapper-focused,

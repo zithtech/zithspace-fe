@@ -24,7 +24,7 @@ export default function ProjectTrashPage() {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ 
+        <div style={{
           margin: "0 -24px",
           padding: "24px 32px",
           background: "var(--bg-pure-white)",

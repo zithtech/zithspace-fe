@@ -55,6 +55,11 @@ export default function TeamTimePage() {
         }}
       >
         <TimeTrackingHeader
+          style={{ 
+            padding: '9.5px 32px', 
+            borderBottom: '1px solid var(--border-slate-200)',
+            marginBottom: 20
+          }}
           icon={<TeamOutlined style={{ fontSize: 18, color: "#8b5cf6" }} />}
           title="Team Tracking"
           description="Monitor team productivity, work sessions, and daily capacity in real-time."

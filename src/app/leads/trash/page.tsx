@@ -480,6 +480,21 @@ export default function LeadsTrashPage() {
           [data-theme='dark'] .ant-empty-description {
             color: #94A3B8 !important;
           }
+
+          /* Autofill fix for dark mode */
+          [data-theme='dark'] input:-webkit-autofill,
+          [data-theme='dark'] input:-webkit-autofill:hover,
+          [data-theme='dark'] input:-webkit-autofill:focus,
+          [data-theme='dark'] textarea:-webkit-autofill,
+          [data-theme='dark'] textarea:-webkit-autofill:hover,
+          [data-theme='dark'] textarea:-webkit-autofill:focus,
+          [data-theme='dark'] select:-webkit-autofill,
+          [data-theme='dark'] select:-webkit-autofill:hover,
+          [data-theme='dark'] select:-webkit-autofill:focus {
+            -webkit-text-fill-color: #c9d1d9 !important;
+            -webkit-box-shadow: 0 0 0px 1000px #0d1117 inset !important;
+            transition: background-color 5000s ease-in-out 0s;
+          }
         `}</style>
       </MainLayout>
     </ProtectedRoute>

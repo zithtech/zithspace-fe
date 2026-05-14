@@ -3,16 +3,21 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
+  Drawer,
   Empty,
   Form,
   Input,
   Modal,
   Skeleton,
   Steps,
+  Timeline,
+  Tag,
+  Tooltip,
   Typography,
   Row,
   Col,
   Select,
+  Spin,
   message as messageStatic,
 } from "antd";
 import {
@@ -48,6 +53,12 @@ import {
   FolderOpen,
   ArrowUpRight,
   Layout as LayoutIcon,
+  Download,
+  History,
+  UserPlus,
+  FolderPlus,
+  FileEdit,
+  Send,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useLeads } from "@/hooks/useLeads";
@@ -56,6 +67,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { apiClient } from "@/lib/axios";
 
 dayjs.extend(relativeTime);
 
@@ -112,9 +124,111 @@ export default function LeadProfilePage() {
   const [onboardedProjectId, setOnboardedProjectId] = useState<string | null>(null);
   const [initForm] = Form.useForm();
 
+  // Timeline state
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [timelineData, setTimelineData] = useState<any[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+
+  // Mailing history state
+  const [mails, setMails] = useState<any[]>([]);
+  const [mailsLoading, setMailsLoading] = useState(false);
+
+  const fetchMails = async () => {
+    if (!params?.id) return;
+    setMailsLoading(true);
+    try {
+      const res = await apiClient.get(`/api/leads/${params.id}/mails`);
+      setMails(res.data?.data || []);
+    } catch {
+      messageStatic.error('Failed to load mailing history');
+    } finally {
+      setMailsLoading(false);
+    }
+  };
+
+  const openTimeline = async () => {
+    setTimelineOpen(true);
+    if (!params?.id) return;
+    setTimelineLoading(true);
+    try {
+      const res = await apiClient.get(`/api/leads/${params.id}/timeline`);
+      setTimelineData(res.data?.data || []);
+    } catch {
+      messageStatic.error('Failed to load timeline');
+    } finally {
+      setTimelineLoading(false);
+    }
+  };
+
+  const handleDownload = async (url: string, fileName: string, mode: 'inline' | 'attachment' = 'attachment') => {
+    if (!url) {
+      return messageStatic.warning('No file to download');
+    }
+
+    // Handle Base64 downloads
+    if (url.startsWith('data:')) {
+      if (mode === 'inline') {
+        try {
+          const parts = url.split(',');
+          const mime = parts[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
+          const b64 = parts[1];
+          const bin = atob(b64);
+          const u8 = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+          const blob = new Blob([u8], { type: mime });
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank');
+        } catch (e) {
+          window.open(url, '_blank');
+        }
+      } else {
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName || 'attachment');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+      return;
+    }
+
+    // Handle remote downloads via proxy
+    const loadingKey = mode === 'inline' ? 'view-doc' : 'download-doc';
+    try {
+      if (messageStatic && messageStatic.loading) {
+        messageStatic.loading({ content: mode === 'inline' ? 'Opening...' : 'Downloading...', key: loadingKey });
+      }
+      
+      const response = await apiClient.get(`/api/leads/attachments/download`, {
+        params: { url, filename: fileName || 'attachment', mode },
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+      const blobUrl = URL.createObjectURL(blob);
+      
+      if (mode === 'inline') {
+        window.open(blobUrl, '_blank');
+        if (messageStatic) messageStatic.destroy(loadingKey);
+      } else {
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.setAttribute('download', fileName || 'attachment');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(blobUrl);
+        if (messageStatic) messageStatic.success({ content: 'Download started', key: loadingKey });
+      }
+    } catch (err) {
+      if (messageStatic) messageStatic.error({ content: `Failed to ${mode === 'inline' ? 'open' : 'download'} document`, key: loadingKey });
+    }
+  };
+
   useEffect(() => {
     if (params.id) {
       fetchLeadById(params.id as string);
+      fetchMails();
     }
   }, [params.id, fetchLeadById]);
 
@@ -375,10 +489,97 @@ export default function LeadProfilePage() {
                   Initialize Project
                 </Button>
               )}
+              <Button
+                icon={<History size={14} />}
+                className="lv-secondary-btn"
+                onClick={openTimeline}
+              >
+                View Timeline
+              </Button>
             </div>
           </div>
 
-          {/* ----------------------- Body ----------------------- */}
+          {/* ----------------------- Timeline Drawer ----------------------- */}
+          <Drawer
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <History size={16} style={{ color: '#6366f1' }} />
+                <span>Lead Activity Timeline</span>
+              </div>
+            }
+            open={timelineOpen}
+            onClose={() => setTimelineOpen(false)}
+            width={480}
+            styles={{ body: { padding: '24px 20px' } }}
+          >
+            {timelineLoading ? (
+              <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                <Spin size="large" />
+              </div>
+            ) : timelineData.length === 0 ? (
+              <Empty description="No activity recorded yet" />
+            ) : (
+              <Timeline
+                mode="left"
+                items={timelineData.map((item: any) => {
+                  const actionMeta: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+                    CREATED_LEAD:    { label: 'Lead Created',      color: '#6366f1', icon: <Layers size={13} /> },
+                    UPDATED_LEAD:    { label: 'Lead Updated',      color: '#f59e0b', icon: <FileEdit size={13} /> },
+                    CREATED_BIDIQ:   { label: 'BidIQ Analyzed',   color: '#8b5cf6', icon: <Zap size={13} /> },
+                    CREATED_PROPOSAL:{ label: 'Proposal Created',  color: '#10b981', icon: <FileText size={13} /> },
+                    CLIENT_CREATED:  { label: 'Client Created',    color: '#3b82f6', icon: <UserPlus size={13} /> },
+                    PROJECT_CREATED: { label: 'Project Created',   color: '#06b6d4', icon: <FolderPlus size={13} /> },
+                    MAIL_SENT:       { label: 'Email Sent',        color: '#ec4899', icon: <Send size={13} /> },
+                  };
+                  const meta = actionMeta[item.action] || { label: item.action, color: '#94a3b8', icon: <Activity size={13} /> };
+                  const user = item.performedByUser;
+                  const userName = user?.name || user?.email || 'System';
+
+                  return {
+                    color: meta.color,
+                    dot: (
+                      <div style={{
+                        width: 26, height: 26, borderRadius: '50%',
+                        background: `${meta.color}18`,
+                        border: `1.5px solid ${meta.color}50`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: meta.color
+                      }}>
+                        {meta.icon}
+                      </div>
+                    ),
+                    children: (
+                      <div style={{ paddingBottom: 16 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-slate-900, #0f172a)' }}>
+                            {meta.label}
+                          </span>
+                          <Tag color={meta.color} style={{ fontSize: 10, padding: '0 6px', lineHeight: '18px', border: 'none', background: `${meta.color}18`, color: meta.color }}>
+                            {item.action}
+                          </Tag>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>by <strong style={{ color: '#475569' }}>{userName}</strong></span>
+                          <span>·</span>
+                          <span>{dayjs(item.createdAt).format('DD MMM YYYY, h:mm A')}</span>
+                        </div>
+                        {item.metadata && (
+                          <div style={{ marginTop: 6, fontSize: 11, color: '#94a3b8', background: 'rgba(0,0,0,0.03)', borderRadius: 6, padding: '4px 8px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                            {item.action === 'MAIL_SENT' && `To: ${(item.metadata.to || []).join(', ')} · Subject: ${item.metadata.subject || ''}`}
+                            {item.action === 'CLIENT_CREATED' && `Client: ${item.metadata.clientName || item.metadata.clientId}`}
+                            {item.action === 'PROJECT_CREATED' && `Project: ${item.metadata.projectName || item.metadata.projectId}`}
+                            {item.action === 'CREATED_PROPOSAL' && `${item.metadata.ai_generated ? '✨ AI Generated · ' : ''}${item.metadata.title || ''}`}
+                            {item.action === 'CREATED_BIDIQ' && `BidIQ Score: ${item.metadata.score ?? '—'}`}
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  };
+                })}
+              />
+            )}
+          </Drawer>
+
           <div className="lv-body">
             {/* Hero section */}
             <section className="lv-hero">
@@ -614,6 +815,42 @@ export default function LeadProfilePage() {
                     </div>
                   </div>
                 </section>
+
+                {/* ------- Mailing History ------- */}
+                <section className="lv-section">
+                  <header className="lv-section-head">
+                    <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#ec4899" }}>
+                      <Mail size={14} />
+                    </div>
+                    <h3 className="lv-section-title">Mailing History</h3>
+                    {mails.length > 0 && <span className="lv-section-count">{mails.length}</span>}
+                  </header>
+                  <div className="lv-section-body">
+                    {mailsLoading ? (
+                      <Skeleton active paragraph={{ rows: 2 }} />
+                    ) : mails.length > 0 ? (
+                      <div className="lv-mailing-history">
+                        {mails.map((mail) => (
+                          <div key={mail.id} className="lv-mail-item">
+                            <div className="lv-mail-item-head">
+                              <span className="lv-mail-subject">{mail.subject}</span>
+                              <span className="lv-mail-date">{dayjs(mail.sent_at).format("MMM D, YYYY · h:mm A")}</span>
+                            </div>
+                            <div className="lv-mail-recipient">To: {mail.recipient_email}</div>
+                            <div className="lv-mail-excerpt">
+                              {mail.body.replace(/<[^>]*>?/gm, '').slice(0, 120)}...
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="lv-empty-state">
+                        <Mail size={24} style={{ color: '#cbd5e1', marginBottom: 8 }} />
+                        <Text className="lv-muted">No emails sent yet.</Text>
+                      </div>
+                    )}
+                  </div>
+                </section>
               </main>
 
               {/* ------- Sidebar ------- */}
@@ -745,17 +982,40 @@ export default function LeadProfilePage() {
                       lead.documents.map((doc: any, i: number) => {
                         const d = typeof doc === "string" ? { name: doc, url: doc } : doc;
                         return (
-                          <a
-                            key={i}
-                            href={d.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="lv-doc-row"
-                          >
-                            <FileText size={13} />
-                            <span className="lv-doc-name" title={d.name}>{d.name || "Attachment"}</span>
-                            <ExternalLink size={11} className="lv-doc-ext" />
-                          </a>
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                            <button
+                              type="button"
+                              onClick={() => handleDownload(d.url, d.name, 'inline')}
+                              className="lv-doc-row"
+                              style={{ 
+                                flex: 1, 
+                                minWidth: 0, 
+                                marginBottom: 0, 
+                                textAlign: 'left',
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <FileText size={13} />
+                              <span className="lv-doc-name" title={d.name}>{d.name || "Attachment"}</span>
+                              <ExternalLink size={11} className="lv-doc-ext" />
+                            </button>
+                            <Button 
+                              type="text" 
+                              size="small" 
+                              icon={<Download size={14} />} 
+                              onClick={() => handleDownload(d.url, d.name, 'attachment')}
+                              style={{ 
+                                color: '#6366f1', 
+                                background: 'rgba(99, 102, 241, 0.05)',
+                                borderRadius: '6px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            />
+                          </div>
                         );
                       })
                     ) : (
@@ -1536,6 +1796,67 @@ const leadViewStyles = (
         font-size: 13px;
       }
 
+      /* Mailing History */
+      .lv-mailing-history {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .lv-mail-item {
+        padding: 14px 16px;
+        background: var(--bg-slate-50);
+        border: 1px solid var(--border-slate-100);
+        border-radius: 12px;
+        transition: all 0.2s ease;
+      }
+      .lv-mail-item:hover {
+        border-color: rgba(236, 72, 153, 0.3);
+        background: var(--bg-pure-white);
+        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+      }
+      .lv-mail-item-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+      .lv-mail-subject {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-slate-900);
+        letter-spacing: -0.01em;
+      }
+      .lv-mail-date {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-slate-500);
+      }
+      .lv-mail-recipient {
+        font-size: 12px;
+        font-weight: 600;
+        color: #ec4899;
+        margin-bottom: 8px;
+      }
+      .lv-mail-excerpt {
+        font-size: 13px;
+        color: var(--text-slate-600);
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .lv-empty-state {
+        padding: 40px 20px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: var(--bg-slate-50);
+        border: 1px dashed var(--border-slate-200);
+        border-radius: 12px;
+      }
+
       /* Sidebar cards */
       .lv-side-card {
         background: var(--bg-pure-white);
@@ -2123,6 +2444,21 @@ const leadViewStyles = (
       }
       [data-theme='dark'] .lv-verify.off { background: var(--bg-primary); border-color: var(--border-slate-100); }
       [data-theme='dark'] .lv-section-count { background: var(--bg-primary); border-color: var(--border-slate-100); }
+
+      /* Autofill fix for dark mode */
+      [data-theme='dark'] input:-webkit-autofill,
+      [data-theme='dark'] input:-webkit-autofill:hover,
+      [data-theme='dark'] input:-webkit-autofill:focus,
+      [data-theme='dark'] textarea:-webkit-autofill,
+      [data-theme='dark'] textarea:-webkit-autofill:hover,
+      [data-theme='dark'] textarea:-webkit-autofill:focus,
+      [data-theme='dark'] select:-webkit-autofill,
+      [data-theme='dark'] select:-webkit-autofill:hover,
+      [data-theme='dark'] select:-webkit-autofill:focus {
+        -webkit-text-fill-color: #c9d1d9 !important;
+        -webkit-box-shadow: 0 0 0px 1000px #0d1117 inset !important;
+        transition: background-color 5000s ease-in-out 0s;
+      }
     `,
   }} />
 );

@@ -9262,3 +9262,23 @@ body {
   border-color: var(--qa-accent, var(--border-slate-200)) !important;
 }
 
+
+/* Autofill Fix for Dark Theme */
+[data-theme='dark'] input:-webkit-autofill,
+[data-theme='dark'] input:-webkit-autofill:hover,
+[data-theme='dark'] input:-webkit-autofill:focus,
+[data-theme='dark'] textarea:-webkit-autofill,
+[data-theme='dark'] textarea:-webkit-autofill:hover,
+[data-theme='dark'] textarea:-webkit-autofill:focus,
+[data-theme='dark'] select:-webkit-autofill,
+[data-theme='dark'] select:-webkit-autofill:hover,
+[data-theme='dark'] select:-webkit-autofill:focus {
+  -webkit-text-fill-color: #F1F5F9 !important;
+  -webkit-box-shadow: 0 0 0px 1000px #161B22 inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* General autofill refinement */
+input:-webkit-autofill {
+  transition: background-color 5000s ease-in-out 0s;
+}

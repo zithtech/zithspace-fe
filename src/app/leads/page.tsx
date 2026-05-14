@@ -9,7 +9,7 @@ import {
   Plus,
   Search,
   CheckCircle2,
-  Settings2,
+  Settings,
   Trash2,
   Mail,
   Phone,
@@ -42,7 +42,18 @@ import {
   CheckCircle,
   ArrowUpRight,
   ListFilter,
-  Download
+  Download,
+  Info,
+  UploadCloud,
+  FileUp,
+  Link2,
+  File,
+  Paperclip,
+  History,
+  UserPlus,
+  FolderPlus,
+  FileEdit,
+  Send
 } from "lucide-react";
 import {
   Card,
@@ -74,6 +85,8 @@ import {
   Popover,
   Segmented,
   Switch,
+  Upload,
+  Timeline,
   type MenuProps
 } from "antd";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
@@ -98,6 +111,170 @@ import {
   LinkOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import { MailService } from "@/services/mailService";
+import { api, apiClient } from "@/lib/axios";
+
+const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
+  const { name, ...restField } = field;
+  
+  // Use useWatch to make the row reactive to form changes
+  const docType = Form.useWatch(['documents', name, 'type']) || 'link';
+  const url = Form.useWatch(['documents', name, 'url']);
+  const fileName = Form.useWatch(['documents', name, 'name']);
+
+  return (
+    <div className="doc-row-container">
+      <Row gutter={16} align="middle">
+        <Col span={24} style={{ marginBottom: 12 }}>
+          <Form.Item name={[name, 'type']} initialValue="file" noStyle>
+            <Segmented
+              size="small"
+              options={[
+                { label: 'File', value: 'file', icon: <File size={12} /> },
+                { label: 'Link', value: 'link', icon: <Link2 size={12} /> },
+              ]}
+              className="doc-type-segmented"
+            />
+          </Form.Item>
+        </Col>
+
+        <Col span={21}>
+          <Form.Item {...restField} name={[name, 'name']} rules={[{ required: true, message: 'Missing name' }]} style={{ marginBottom: 8 }}>
+            <Input 
+              placeholder="Document Title (e.g. Project Brief)" 
+              className="premium-input"
+            />
+          </Form.Item>
+
+          {docType === 'link' ? (
+            <Form.Item {...restField} name={[name, 'url']} rules={[{ required: true, message: 'Missing URL' }]} style={{ marginBottom: 0 }}>
+              <Input 
+                prefix={<Link2 size={14} style={{ color: '#94a3b8' }} />}
+                placeholder="https://example.com/document" 
+                className="premium-input"
+              />
+            </Form.Item>
+          ) : (
+            <div className="doc-upload-area">
+              {url ? (
+                <div style={{ textAlign: 'center', width: '100%' }}>
+                  <div className="doc-file-icon-box">
+                    <FileText size={24} style={{ color: '#6366f1' }} />
+                  </div>
+                  <div className="doc-file-name">
+                    {fileName || 'Document Uploaded'}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                    <Tooltip title="View">
+                      <Button 
+                        size="small" 
+                        icon={<Eye size={14} />} 
+                        onClick={async () => {
+                          if (!url) return messageApi.warning('No file to view');
+                          if (url.startsWith('data:')) {
+                            try {
+                              const parts = url.split(',');
+                              const mime = parts[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
+                              const b64 = parts[1];
+                              const bin = atob(b64);
+                              const u8 = new Uint8Array(bin.length);
+                              for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+                              const blob = new Blob([u8], { type: mime });
+                              const blobUrl = URL.createObjectURL(blob);
+                              window.open(blobUrl, '_blank');
+                            } catch (e) {
+                              window.open(url, '_blank');
+                            }
+                            return;
+                          }
+                          const loadingKey = 'view-doc';
+                          try {
+                            messageApi.loading({ content: 'Preparing document...', key: loadingKey });
+                            const response = await apiClient.get(`/api/leads/attachments/download`, {
+                              params: { url, filename: fileName || 'document', mode: 'inline' },
+                              responseType: 'blob'
+                            });
+                            const blobUrl = URL.createObjectURL(new Blob([response.data], { type: response.headers['content-type'] }));
+                            window.open(blobUrl, '_blank');
+                            messageApi.destroy(loadingKey);
+                          } catch (err) {
+                            console.error('View error:', err);
+                            messageApi.error({ content: 'Failed to open document', key: loadingKey });
+                          }
+                        }}
+                        className="doc-action-btn"
+                      />
+                    </Tooltip>
+                    
+                    <Upload
+                      beforeUpload={(file) => {
+                        const isLt10M = file.size / 1024 / 1024 < 10;
+                        if (!isLt10M) {
+                          messageApi.error('File must be smaller than 10MB!');
+                          return Upload.LIST_IGNORE;
+                        }
+                        handleFileUpload(file, name);
+                        return false;
+                      }}
+                      showUploadList={false}
+                    >
+                      <Tooltip title="Change File">
+                        <Button 
+                          size="small" 
+                          icon={<RefreshCw size={14} />} 
+                          className="doc-action-btn"
+                        />
+                      </Tooltip>
+                    </Upload>
+                  </div>
+                </div>
+              ) : (
+                <Upload
+                  beforeUpload={(file) => {
+                    const isLt10M = file.size / 1024 / 1024 < 10;
+                    if (!isLt10M) {
+                      messageApi.error('File must be smaller than 10MB!');
+                      return Upload.LIST_IGNORE;
+                    }
+                    handleFileUpload(file, name);
+                    return false;
+                  }}
+                  showUploadList={false}
+                >
+                  <div className="doc-upload-label">
+                    <div className="doc-upload-icon-circle">
+                      <UploadCloud size={24} />
+                    </div>
+                    <div className="doc-upload-text">
+                      <span className="doc-upload-primary">Click to upload document</span>
+                      <span className="doc-upload-secondary">PDF, DOCX, Images up to 10MB</span>
+                    </div>
+                  </div>
+                </Upload>
+              )}
+              <Form.Item {...restField} name={[name, 'url']} rules={[{ required: true, message: 'Please upload a file' }]} hidden noStyle>
+                <Input hidden />
+              </Form.Item>
+            </div>
+          )}
+        </Col>
+        
+        <Col span={3} style={{ display: 'flex', justifyContent: 'center' }}>
+          <Tooltip title="Remove Document">
+            <Button 
+              type="text" 
+              danger 
+              icon={<Trash2 size={18} />} 
+              onClick={() => remove(name)}
+              className="doc-remove-btn"
+            />
+          </Tooltip>
+        </Col>
+      </Row>
+    </div>
+  );
+};
+import { LeadMailDrawer } from "@/components/leads/LeadMailDrawer";
 
 const { TextArea } = Input;
 const { Text, Title } = Typography;
@@ -106,6 +283,7 @@ const { Text, Title } = Typography;
 type LmDensity = "compact" | "comfortable" | "spacious";
 const LM_TABLE_KEY = "leads_v1";
 const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
+  { key: "title",        label: "Lead Title" },
   { key: "platform",     label: "Platform" },
   { key: "status",       label: "Status" },
   { key: "actions_item", label: "Workflow Action" },
@@ -113,9 +291,20 @@ const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
   { key: "ai_score",     label: "AI Score" },
   { key: "bidiq",        label: "BidIq" },
   { key: "proposal",     label: "Proposal" },
+  { key: "mail",         label: "Mail" },
   { key: "created_by",   label: "Created by" },
   { key: "created_at",   label: "Created" },
+  { key: "table-actions", label: "Actions" },
 ];
+
+const DEFAULT_HIDDEN_COLS: Record<string, boolean> = {
+  status: true,
+  actions_item: true,
+  budget: true,
+  ai_score: true,
+  created_by: true,
+  created_at: true,
+};
 
 export default function LeadsPage() {
   const { user } = useAuth();
@@ -130,13 +319,38 @@ export default function LeadsPage() {
   const [filterPlatform, setFilterPlatform] = useState<string | null>(null);
   const [filterDateRange, setFilterDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const [filterCreatedBy, setFilterCreatedBy] = useState<string | null>(null);
+  const [filterMailStatus, setFilterMailStatus] = useState<string | null>(null);
   const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "week" | "won">("all");
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [statusEditId, setStatusEditId] = useState<string | null>(null);
   const [actionEditId, setActionEditId] = useState<string | null>(null);
   const [bidiqPreviewLead, setBidiqPreviewLead] = useState<Lead | null>(null);
   const [tableDensity, setTableDensity] = useState<LmDensity>("comfortable");
-  const [hiddenCols, setHiddenCols] = useState<Record<string, boolean>>({});
+  const [hiddenCols, setHiddenCols] = useState<Record<string, boolean>>(DEFAULT_HIDDEN_COLS);
+  const [isMailDrawerVisible, setIsMailDrawerVisible] = useState(false);
+  const [selectedLeadForMail, setSelectedLeadForMail] = useState<Lead | null>(null);
+  const [invoiceMailSettings, setInvoiceMailSettings] = useState<any>(null);
+
+  // Timeline state
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [timelineData, setTimelineData] = useState<any[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [activeTimelineLead, setActiveTimelineLead] = useState<Lead | null>(null);
+
+  const openTimeline = async (lead: Lead) => {
+    setActiveTimelineLead(lead);
+    setTimelineOpen(true);
+    setTimelineLoading(true);
+    try {
+      const res = await apiClient.get(`/api/leads/${lead.id}/timeline`);
+      setTimelineData(res.data?.data || []);
+    } catch {
+      messageApi.error('Failed to load timeline');
+    } finally {
+      setTimelineLoading(false);
+    }
+  };
+
   // Gate persistence until the initial DB load completes; otherwise the persist
   // effects fire on first mount with the empty defaults and clobber whatever
   // the user previously saved.
@@ -148,20 +362,30 @@ export default function LeadsPage() {
     let cancelled = false;
     (async () => {
       try {
-        const saved = await TablePreferenceService.get<{
-          density?: LmDensity;
-          hiddenCols?: Record<string, boolean>;
-        }>(LM_TABLE_KEY);
+        const [saved, invoiceSettings] = await Promise.all([
+          TablePreferenceService.get<{
+            density?: LmDensity;
+            hiddenCols?: Record<string, boolean>;
+          }>(LM_TABLE_KEY),
+          MailService.getInvoiceMailSettings()
+        ]);
+
         if (cancelled) return;
+        
         if (saved?.density && ["compact", "comfortable", "spacious"].includes(saved.density)) {
           setTableDensity(saved.density);
         }
         if (saved?.hiddenCols && typeof saved.hiddenCols === "object") {
           setHiddenCols(saved.hiddenCols);
         }
+
+        if (invoiceSettings) {
+          const settings = invoiceSettings.settings || [];
+          setInvoiceMailSettings(settings.find((s: any) => s.is_default_invoice_mail) || settings[0] || null);
+        }
       } catch (err) {
         // 404 / no prefs yet is fine — keep defaults.
-        console.warn("Failed to load table preferences", err);
+        console.warn("Failed to load table preferences or invoice settings", err);
       } finally {
         if (!cancelled) setTablePrefsLoaded(true);
       }
@@ -775,6 +999,46 @@ export default function LeadsPage() {
       ),
     },
     {
+      title: "Mail",
+      key: "mail",
+      width: 140,
+      render: (_: unknown, record: Lead) => {
+        const isSent = !!record.last_mail_at || !!record.is_mail_sent;
+        const lastMailAt = record.last_mail_at;
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Button
+              type="link"
+              icon={isSent ? <CheckCircle size={16} /> : <Mail size={16} />}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                setSelectedLeadForMail(record);
+                setIsMailDrawerVisible(true);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                color: isSent ? "#10b981" : "var(--premium-blue)",
+                fontWeight: 700,
+                fontSize: 13,
+                padding: 0,
+                height: "auto"
+              }}
+            >
+              {isSent ? "Sent" : "Send Mail"}
+            </Button>
+            {lastMailAt && (
+              <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 500, paddingLeft: 20, marginTop: -2 }}>
+                {dayjs(lastMailAt).format("MMM D, YYYY")}
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       title: "Created by",
       key: "created_by",
       width: 170,
@@ -845,7 +1109,12 @@ export default function LeadsPage() {
           {
             key: 'edit',
             label: 'Edit Lead',
-            icon: <Settings2 size={16} />,
+            icon: <Settings size={16} />,
+          },
+          {
+            key: 'timeline',
+            label: 'View Timeline',
+            icon: <History size={16} />,
           },
           {
             type: 'divider',
@@ -866,6 +1135,9 @@ export default function LeadsPage() {
                 domEvent.stopPropagation();
                 if (key === 'view') handleView(record);
                 if (key === 'edit') handleEdit(record);
+                if (key === 'timeline') {
+                  openTimeline(record);
+                }
                 if (key === 'delete') {
                   modal.confirm({
                     title: "Are you sure you want to delete this lead?",
@@ -985,6 +1257,20 @@ export default function LeadsPage() {
     }
   };
 
+  const handleFileUpload = async (file: any, index: number) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result;
+      form.setFieldValue(['documents', index, 'url'], base64);
+      form.setFieldValue(['documents', index, 'type'], 'file');
+      if (!form.getFieldValue(['documents', index, 'name'])) {
+        form.setFieldValue(['documents', index, 'name'], file.name);
+      }
+      messageApi.success(`${file.name} attached locally`);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const filteredLeads = useMemo(() => {
     const weekAgo = dayjs().subtract(7, 'day');
     return leads.filter(item => {
@@ -1014,6 +1300,14 @@ export default function LeadsPage() {
       const matchesCreatedBy =
         !filterCreatedBy ||
         getLeadCreator(item) === filterCreatedBy;
+      
+      // Mail status matching
+      let matchesMailStatus = true;
+      if (filterMailStatus === 'sent') {
+        matchesMailStatus = !!item.last_mail_at || !!item.is_mail_sent;
+      } else if (filterMailStatus === 'not_sent') {
+        matchesMailStatus = !item.last_mail_at && !item.is_mail_sent;
+      }
 
       // Segment matching
       let matchesSegment = true;
@@ -1026,9 +1320,9 @@ export default function LeadsPage() {
         matchesSegment = status.includes("won") || status.includes("accept") || status.includes("close") || !!item.proposal_id;
       }
 
-      return matchesSearch && matchesStatus && matchesAction && matchesPlatform && matchesDateRange && matchesCreatedBy && matchesSegment;
+      return matchesSearch && matchesStatus && matchesAction && matchesPlatform && matchesDateRange && matchesCreatedBy && matchesSegment && matchesMailStatus;
     });
-  }, [leads, searchText, filterStatus, filterAction, filterPlatform, filterDateRange, filterCreatedBy, activeSegment, user]);
+  }, [leads, searchText, filterStatus, filterAction, filterPlatform, filterDateRange, filterCreatedBy, activeSegment, user, filterMailStatus]);
 
   const creatorOptions = useMemo(() => {
     const set = new Set<string>();
@@ -1474,6 +1768,22 @@ export default function LeadsPage() {
                 );
               })}
             </Select>
+            
+            <Select
+              placeholder="Mail Status"
+              className="lm-filter-select"
+              style={{ width: 130 }}
+              allowClear
+              value={filterMailStatus}
+              onChange={setFilterMailStatus}
+            >
+              <Select.Option value="sent">
+                <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
+              </Select.Option>
+              <Select.Option value="not_sent">
+                <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
+              </Select.Option>
+            </Select>
 
             <DatePicker.RangePicker
               className="lm-filter-date"
@@ -1491,6 +1801,7 @@ export default function LeadsPage() {
                 setFilterPlatform(null);
                 setFilterDateRange(null);
                 setFilterCreatedBy(null);
+                setFilterMailStatus(null);
                 setSearchText("");
               }}
             >
@@ -1510,7 +1821,7 @@ export default function LeadsPage() {
               content={
                 <div style={{ width: 240 }}>
                   <div className="lm-popover-section-label">
-                    <Settings2 size={11} />
+                    <Settings size={11} />
                     <span>Density</span>
                   </div>
                   <Segmented
@@ -1526,6 +1837,9 @@ export default function LeadsPage() {
                   <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
                     <Layers size={11} />
                     <span>Columns</span>
+                    <span style={{ marginLeft: 'auto', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                      {TOGGLEABLE_COLUMNS.length - TOGGLEABLE_COLUMNS.filter(c => hiddenCols[c.key]).length} of {TOGGLEABLE_COLUMNS.length}
+                    </span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     {TOGGLEABLE_COLUMNS.map((c) => (
@@ -1546,7 +1860,7 @@ export default function LeadsPage() {
                       type="button"
                       className="lm-popover-reset"
                       onClick={() => {
-                        setHiddenCols({});
+                        setHiddenCols(DEFAULT_HIDDEN_COLS);
                         setTableDensity("comfortable");
                       }}
                     >
@@ -1559,7 +1873,7 @@ export default function LeadsPage() {
             >
               <Tooltip title="Table settings">
                 <Button
-                  icon={<Settings2 size={14} />}
+                  icon={<Settings size={14} />}
                   className="lm-filter-settings-btn"
                   aria-label="Table settings"
                 />
@@ -2311,24 +2625,22 @@ export default function LeadsPage() {
               <Form.List name="documents">
                 {(fields, { add, remove }) => (
                   <>
-                    {fields.map(({ key, name, ...restField }) => (
-                      <Row key={key} gutter={12} align="middle" style={{ marginBottom: 12 }}>
-                        <Col span={10}>
-                          <Form.Item {...restField} name={[name, 'name']} rules={[{ required: true, message: 'Missing name' }]} noStyle>
-                            <Input placeholder="Document Name" style={{ borderRadius: 8 }} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={10}>
-                          <Form.Item {...restField} name={[name, 'url']} rules={[{ required: true, message: 'Missing URL' }]} noStyle>
-                            <Input placeholder="URL" style={{ borderRadius: 8 }} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={4} style={{ textAlign: 'right' }}>
-                          <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => remove(name)} style={{ borderRadius: 6 }} />
-                        </Col>
-                      </Row>
+                    {fields.map((field) => (
+                      <DocumentRow 
+                        key={field.key} 
+                        field={field} 
+                        remove={remove} 
+                        handleFileUpload={handleFileUpload}
+                        messageApi={messageApi}
+                      />
                     ))}
-                    <Button type="dashed" onClick={() => add()} block icon={<PlusCircle size={16} />} style={{ marginTop: 8, borderRadius: 10, height: 40, color: '#6366f1', borderColor: '#e0e7ff', background: '#f5f7ff' }}>
+                    <Button 
+                      type="dashed" 
+                      onClick={() => add({ type: 'file' })} 
+                      block 
+                      icon={<PlusCircle size={16} />} 
+                      className="doc-add-btn"
+                    >
                       Add Supporting Document
                     </Button>
                   </>
@@ -2336,6 +2648,98 @@ export default function LeadsPage() {
               </Form.List>
             </div>
           </Form>
+        </Drawer>
+
+        <LeadMailDrawer
+          visible={isMailDrawerVisible}
+          onClose={() => {
+            setIsMailDrawerVisible(false);
+            setSelectedLeadForMail(null);
+          }}
+          lead={selectedLeadForMail}
+          fromEmail={invoiceMailSettings?.email}
+          onSuccess={fetchLeads}
+        />
+
+        {/* ----------------------- Timeline Drawer ----------------------- */}
+        <Drawer
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <History size={16} style={{ color: '#6366f1' }} />
+              <span>Lead Activity Timeline: {activeTimelineLead?.client_name || activeTimelineLead?.title}</span>
+            </div>
+          }
+          open={timelineOpen}
+          onClose={() => setTimelineOpen(false)}
+          width={480}
+          styles={{ body: { padding: '24px 20px' } }}
+        >
+          {timelineLoading ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <Spin size="large" />
+            </div>
+          ) : timelineData.length === 0 ? (
+            <Empty description="No activity recorded yet" />
+          ) : (
+            <Timeline
+              mode="left"
+              items={timelineData.map((item: any) => {
+                const actionMeta: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+                  CREATED_LEAD:    { label: 'Lead Created',      color: '#6366f1', icon: <Layers size={13} /> },
+                  UPDATED_LEAD:    { label: 'Lead Updated',      color: '#f59e0b', icon: <FileEdit size={13} /> },
+                  CREATED_BIDIQ:   { label: 'BidIQ Analyzed',   color: '#8b5cf6', icon: <Zap size={13} /> },
+                  CREATED_PROPOSAL:{ label: 'Proposal Created',  color: '#10b981', icon: <FileText size={13} /> },
+                  CLIENT_CREATED:  { label: 'Client Created',    color: '#3b82f6', icon: <UserPlus size={13} /> },
+                  PROJECT_CREATED: { label: 'Project Created',   color: '#06b6d4', icon: <FolderPlus size={13} /> },
+                  MAIL_SENT:       { label: 'Email Sent',        color: '#ec4899', icon: <Send size={13} /> },
+                };
+                const meta = actionMeta[item.action] || { label: item.action, color: '#94a3b8', icon: <Activity size={13} /> };
+                const user = item.performedByUser;
+                const userName = user?.name || user?.email || 'System';
+
+                return {
+                  color: meta.color,
+                  dot: (
+                    <div style={{
+                      width: 26, height: 26, borderRadius: '50%',
+                      background: `${meta.color}18`,
+                      border: `1.5px solid ${meta.color}50`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: meta.color
+                    }}>
+                      {meta.icon}
+                    </div>
+                  ),
+                  children: (
+                    <div style={{ paddingBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-slate-900, #0f172a)' }}>
+                          {meta.label}
+                        </span>
+                        <Tag color={meta.color} style={{ fontSize: 10, padding: '0 6px', lineHeight: '18px', border: 'none', background: `${meta.color}18`, color: meta.color }}>
+                          {item.action}
+                        </Tag>
+                      </div>
+                      <div style={{ fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>by <strong style={{ color: '#475569' }}>{userName}</strong></span>
+                        <span>·</span>
+                        <span>{dayjs(item.createdAt).format('DD MMM YYYY, h:mm A')}</span>
+                      </div>
+                      {item.metadata && (
+                        <div style={{ marginTop: 6, fontSize: 11, color: '#94a3b8', background: 'rgba(0,0,0,0.03)', borderRadius: 6, padding: '4px 8px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                          {item.action === 'MAIL_SENT' && `To: ${(item.metadata.to || []).join(', ')} · Subject: ${item.metadata.subject || ''}`}
+                          {item.action === 'CLIENT_CREATED' && `Client: ${item.metadata.clientName || item.metadata.clientId}`}
+                          {item.action === 'PROJECT_CREATED' && `Project: ${item.metadata.projectName || item.metadata.projectId}`}
+                          {item.action === 'CREATED_PROPOSAL' && `${item.metadata.ai_generated ? '✨ AI Generated · ' : ''}${item.metadata.title || ''}`}
+                          {item.action === 'CREATED_BIDIQ' && `BidIQ Score: ${item.metadata.score ?? '—'}`}
+                        </div>
+                      )}
+                    </div>
+                  ),
+                };
+              })}
+            />
+          )}
         </Drawer>
 
         <style dangerouslySetInnerHTML={{
@@ -3802,6 +4206,257 @@ export default function LeadsPage() {
             [data-theme='dark'] .premium-drawer .ant-input,
             [data-theme='dark'] .premium-drawer .ant-input-number,
             [data-theme='dark'] .premium-drawer .ant-picker {
+              background: #0d1117 !important;
+              border-color: #30363d !important;
+              color: #c9d1d9 !important;
+            }
+
+            /* Autofill fix for dark mode */
+            [data-theme='dark'] .premium-drawer .ant-input:-webkit-autofill,
+            [data-theme='dark'] .premium-drawer .ant-input:-webkit-autofill:hover,
+            [data-theme='dark'] .premium-drawer .ant-input:-webkit-autofill:focus,
+            [data-theme='dark'] .premium-drawer input:-webkit-autofill,
+            [data-theme='dark'] .premium-drawer input:-webkit-autofill:hover,
+            [data-theme='dark'] .premium-drawer input:-webkit-autofill:focus,
+            [data-theme='dark'] .premium-drawer textarea:-webkit-autofill,
+            [data-theme='dark'] .premium-drawer textarea:-webkit-autofill:hover,
+            [data-theme='dark'] .premium-drawer textarea:-webkit-autofill:focus,
+            [data-theme='dark'] .premium-drawer select:-webkit-autofill,
+            [data-theme='dark'] .premium-drawer select:-webkit-autofill:hover,
+            [data-theme='dark'] .premium-drawer select:-webkit-autofill:focus {
+              -webkit-text-fill-color: #c9d1d9 !important;
+              -webkit-box-shadow: 0 0 0px 1000px #0d1117 inset !important;
+              transition: background-color 5000s ease-in-out 0s;
+            }
+
+            /* Supporting Documents Section */
+            .doc-row-container {
+              margin-bottom: 16px;
+              padding: 16px;
+              background: #fff;
+              border-radius: 16px;
+              border: 1px solid #eef2f6;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            }
+            .doc-type-segmented.ant-segmented {
+              background: var(--bg-slate-50) !important;
+              padding: 3px !important;
+              border-radius: 10px !important;
+              border: 1px solid var(--border-slate-100) !important;
+              transition: all 0.2s ease;
+            }
+            .doc-type-segmented .ant-segmented-item {
+              border-radius: 7px !important;
+              transition: all 0.2s ease !important;
+            }
+            .doc-type-segmented .ant-segmented-item-label {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              gap: 6px !important;
+              padding: 0 16px !important;
+              min-height: 28px !important;
+              font-weight: 700 !important;
+              font-size: 11px !important;
+              text-transform: uppercase !important;
+              letter-spacing: 0.03em !important;
+              color: var(--text-slate-500) !important;
+            }
+            .doc-type-segmented .ant-segmented-item-selected {
+              background: #fff !important;
+              box-shadow: 0 2px 8px -2px rgba(99, 102, 241, 0.15) !important;
+            }
+            .doc-type-segmented .ant-segmented-item-selected .ant-segmented-item-label {
+              color: #6366f1 !important;
+            }
+            .doc-type-segmented .ant-segmented-thumb {
+              border-radius: 7px !important;
+              background: #fff !important;
+              box-shadow: 0 2px 8px -2px rgba(99, 102, 241, 0.15) !important;
+            }
+            .doc-upload-area {
+              border: 1px dashed #cbd5e1;
+              border-radius: 12px;
+              padding: 16px;
+              background: #f8fafc;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              min-height: 120px;
+              position: relative;
+              transition: all 0.3s ease;
+            }
+            .doc-upload-area:hover {
+              border-color: #6366f1;
+              background: rgba(99, 102, 241, 0.02);
+            }
+            .doc-file-icon-box {
+              width: 48px;
+              height: 48px;
+              border-radius: 10px;
+              background: #fff;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin: 0 auto 12px;
+              box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            }
+            .doc-file-name {
+              font-size: 13px;
+              font-weight: 600;
+              color: #1e293b;
+              margin-bottom: 12px;
+              max-width: 100%;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+            .doc-action-btn {
+              border-radius: 6px !important;
+            }
+            .doc-change-label {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 32px;
+              height: 32px;
+              border-radius: 6px;
+              border: 1px solid #e2e8f0;
+              cursor: pointer;
+              color: #64748b;
+              background: #fff;
+              transition: all 0.2s ease;
+            }
+            .doc-change-label:hover {
+              border-color: #6366f1;
+              color: #6366f1;
+            }
+            .doc-upload-label {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              width: 100%;
+              height: 100%;
+            }
+            .doc-upload-icon-circle {
+              width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              background: rgba(99, 102, 241, 0.08);
+              color: #6366f1;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin-bottom: 10px;
+            }
+            .doc-upload-text {
+              text-align: center;
+            }
+            .doc-upload-primary {
+              display: block;
+              font-size: 13px;
+              font-weight: 700;
+              color: #475569;
+              margin-bottom: 2px;
+            }
+            .doc-upload-secondary {
+              display: block;
+              font-size: 11px;
+              color: #94a3b8;
+            }
+            .doc-remove-btn {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              width: 36px !important;
+              height: 36px !important;
+              border-radius: 8px !important;
+            }
+            .doc-add-btn {
+              margin-top: 4px !important;
+              border-radius: 12px !important;
+              height: 44px !important;
+              color: #6366f1 !important;
+              border-color: #e0e7ff !important;
+              background: #f8faff !important;
+              font-weight: 600 !important;
+              font-size: 14px !important;
+              transition: all 0.2s ease !important;
+            }
+            .doc-add-btn:hover {
+              color: #4f46e5 !important;
+              background: #f0f4ff !important;
+              border-color: #c7d2fe !important;
+              transform: translateY(-1px);
+            }
+
+            .premium-input {
+              border-radius: 10px !important;
+              border: 1px solid #e2e8f0 !important;
+            }
+
+            /* Dark mode for Supporting Documents */
+            [data-theme='dark'] .doc-row-container {
+              background: #161b22;
+              border-color: #30363d;
+            }
+            [data-theme='dark'] .doc-type-segmented.ant-segmented {
+              background: #0d1117 !important;
+              border-color: #30363d !important;
+            }
+            [data-theme='dark'] .doc-type-segmented .ant-segmented-item-selected,
+            [data-theme='dark'] .doc-type-segmented .ant-segmented-thumb {
+              background: #1c2128 !important;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+            }
+            [data-theme='dark'] .doc-type-segmented .ant-segmented-item-selected .ant-segmented-item-label {
+              color: #a5b4fc !important;
+            }
+            [data-theme='dark'] .doc-type-segmented .ant-segmented-item-label {
+              color: #8b949e !important;
+            }
+            [data-theme='dark'] .doc-upload-area {
+              border-color: #30363d;
+              background: #0d1117;
+            }
+            [data-theme='dark'] .doc-upload-area:hover {
+              border-color: #6366f1;
+              background: rgba(99, 102, 241, 0.05);
+            }
+            [data-theme='dark'] .doc-file-icon-box {
+              background: #1c2128;
+            }
+            [data-theme='dark'] .doc-file-name {
+              color: #f0f6fc;
+            }
+            [data-theme='dark'] .doc-change-label {
+              background: #161b22;
+              border-color: #30363d;
+              color: #8b949e;
+            }
+            [data-theme='dark'] .doc-change-label:hover {
+              border-color: #6366f1;
+              color: #a5b4fc;
+            }
+            [data-theme='dark'] .doc-upload-primary {
+              color: #c9d1d9;
+            }
+            [data-theme='dark'] .doc-upload-secondary {
+              color: #6e7681;
+            }
+            [data-theme='dark'] .doc-add-btn {
+              background: rgba(99, 102, 241, 0.05) !important;
+              border-color: rgba(99, 102, 241, 0.2) !important;
+              color: #a5b4fc !important;
+            }
+            [data-theme='dark'] .doc-add-btn:hover {
+              background: rgba(99, 102, 241, 0.1) !important;
+              border-color: rgba(99, 102, 241, 0.3) !important;
+            }
+            [data-theme='dark'] .premium-input {
               background: #0d1117 !important;
               border-color: #30363d !important;
               color: #c9d1d9 !important;

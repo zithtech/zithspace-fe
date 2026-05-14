@@ -1063,8 +1063,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     {
       title: "Actions",
       key: "actions",
-      fixed: 'right',
-      width: 160,
+      width: 180,
       render: (_: any, record: Ticket) => {
         const handleShare = () => {
           const url = `${window.location.origin}/public/tickets/${record.id}`;
@@ -1576,8 +1575,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               <Card
                 className="saas-card saas-card-sticky"
                 title={
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Space size={12}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    padding: '8px 0'
+                  }}>
+                    <Space size={[12, 8]} wrap>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)' }} />
                       <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)' }}>
                         {activeSprint?.version || 'Active Sprint'}
@@ -1637,7 +1643,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                         </Tag>
                       </Space>
                     </Space>
-                    <Space size={12} split={<Divider type="vertical" style={{ height: 20, margin: 0, opacity: 1, borderColor: '#e2e8f0', borderWidth: 1 }} />}>
+                    <Space size={[16, 8]} wrap>
                       {activeSelectedRowKeys.length > 0 ? (
                         <>
                           <Button
@@ -1645,12 +1651,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                             size="small"
                             icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
                             onClick={() => bulkArchiveMutation.mutate(activeSelectedRowKeys as string[])}
-                            style={{ 
-                              background: 'var(--premium-blue)', 
-                              borderColor: 'var(--premium-blue)', 
-                              fontWeight: 800, 
-                              borderRadius: 4, 
-                              height: 24, 
+                            style={{
+                              background: 'var(--premium-blue)',
+                              borderColor: 'var(--premium-blue)',
+                              fontWeight: 800,
+                              borderRadius: 4,
+                              height: 24,
                               fontSize: 10,
                               textTransform: 'uppercase'
                             }}
@@ -1670,10 +1676,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                                 onOk: () => bulkDeleteMutation.mutate(activeSelectedRowKeys as string[])
                               });
                             }}
-                            style={{ 
-                              fontWeight: 800, 
-                              borderRadius: 4, 
-                              height: 24, 
+                            style={{
+                              fontWeight: 800,
+                              borderRadius: 4,
+                              height: 24,
                               fontSize: 10,
                               textTransform: 'uppercase'
                             }}
@@ -1742,7 +1748,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                         className="saas-button-item"
                         style={{ height: 32, fontWeight: 600 }}
                       >
-                        Go To Backlogs
+                        Go To Backlog
                       </Button>
                       <Button
                         type="primary"
@@ -1767,6 +1773,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   pagination={false}
                   scroll={{ x: 'max-content' }}
                   sticky={{ offsetHeader: activeSprintHeadOffset }}
+                  tableLayout="fixed"
                   className="saas-table"
                   size="middle"
                 />
@@ -1777,10 +1784,17 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           {/* Backlog Section */}
           <div id="backlog-section" style={{ scrollMarginTop: '100px' }}>
             <Card
-              className="saas-card"
+              className="saas-card saas-card-sticky"
               title={
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Space size={12}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  padding: '8px 0'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px', flex: '1' }}>
                     <ProjectOutlined style={{ color: 'var(--text-slate-500)', fontSize: 18 }} />
                     <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)' }}>Backlog</Text>
                     <Tag bordered={false} style={{
@@ -1800,93 +1814,95 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     }}>
                       {totalBacklog} Tickets
                     </Tag>
-                  </Space>
-                  <Space size={12}>
-                    <Select
-                      mode="multiple"
-                      placeholder="Filter Status"
-                      style={{ width: 160 }}
-                      value={backlogStatusFilter}
-                      onChange={setBacklogStatusFilter}
-                      options={finalStatusOptions}
-                      allowClear
-                      maxTagCount={1}
-                      className="saas-select-minimal"
-                    />
-                    {backlogSelectedRowKeys.length > 0 && (
-                      <Space size={8}>
-                        <Button
-                          type="primary"
-                          size="small"
-                          icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
-                          onClick={() => bulkArchiveMutation.mutate(backlogSelectedRowKeys as string[])}
-                          style={{ 
-                            background: 'var(--premium-blue)', 
-                            borderColor: 'var(--premium-blue)', 
-                            fontWeight: 800, 
-                            height: 24, 
-                            fontSize: 10, 
-                            borderRadius: 4,
-                            textTransform: 'uppercase'
-                          }}
-                        >
-                          Move to Archive
-                        </Button>
-                        <Button
-                          danger
-                          size="small"
-                          icon={<DeleteOutlined style={{ fontSize: 11 }} />}
-                          onClick={() => {
-                            modal.confirm({
-                              title: 'Move to Trash',
-                              content: `Are you sure you want to move ${backlogSelectedRowKeys.length} selected tickets to trash?`,
-                              okText: 'Move to Trash',
-                              okType: 'danger',
-                              onOk: () => bulkDeleteMutation.mutate(backlogSelectedRowKeys as string[])
-                            });
-                          }}
-                          style={{ 
-                            fontWeight: 800, 
-                            height: 24, 
-                            fontSize: 10, 
-                            borderRadius: 4,
-                            textTransform: 'uppercase'
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      </Space>
-                    )}
-                    <Input
-                      placeholder="Search backlog..."
-                      prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
-                      className="saas-input"
-                      style={{ width: 220, borderRadius: 6, height: 32, fontSize: 12, background: 'transparent' }}
-                      value={backlogSearchValue}
-                      onChange={(e) => setBacklogSearchValue(e.target.value)}
-                      allowClear
-                    />
-                    <Divider type="vertical" style={{ height: 20, margin: 0 }} />
-                    <Button
-                      type="default"
-                      icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
-                      onClick={() => document.getElementById('active-section')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="saas-button-item"
-                      style={{ height: 32, fontWeight: 600 }}
-                    >
-                      Go To Sprint
-                    </Button>
-                    <Button
-                      type="default"
-                      icon={<PlusOutlined />}
-                      onClick={() => setCreateSprintModalOpen(true)}
-                      className="saas-button-item"
-                      style={{ height: 32, fontWeight: 600 }}
-                    >
-                      New Sprint
-                    </Button>
-                  </Space>
+                  </div>
 
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <Space size={[12, 8]} wrap>
+                      <Select
+                        mode="multiple"
+                        placeholder="Filter Status"
+                        style={{ width: 160 }}
+                        value={backlogStatusFilter}
+                        onChange={setBacklogStatusFilter}
+                        options={finalStatusOptions}
+                        allowClear
+                        maxTagCount={1}
+                        className="saas-select-minimal"
+                      />
+                      {backlogSelectedRowKeys.length > 0 && (
+                        <Space size={8}>
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
+                            onClick={() => bulkArchiveMutation.mutate(backlogSelectedRowKeys as string[])}
+                            style={{
+                              background: 'var(--premium-blue)',
+                              borderColor: 'var(--premium-blue)',
+                              fontWeight: 800,
+                              height: 24,
+                              fontSize: 10,
+                              borderRadius: 4,
+                              textTransform: 'uppercase'
+                            }}
+                          >
+                            Move to Archive
+                          </Button>
+                          <Button
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                            onClick={() => {
+                              modal.confirm({
+                                title: 'Move to Trash',
+                                content: `Are you sure you want to move ${backlogSelectedRowKeys.length} selected tickets to trash?`,
+                                okText: 'Move to Trash',
+                                okType: 'danger',
+                                onOk: () => bulkDeleteMutation.mutate(backlogSelectedRowKeys as string[])
+                              });
+                            }}
+                            style={{
+                              fontWeight: 800,
+                              height: 24,
+                              fontSize: 10,
+                              borderRadius: 4,
+                              textTransform: 'uppercase'
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </Space>
+                      )}
+                      <Input
+                        placeholder="Search backlog..."
+                        prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
+                        className="saas-input"
+                        style={{ width: 220, borderRadius: 6, height: 32, fontSize: 12, background: 'transparent' }}
+                        value={backlogSearchValue}
+                        onChange={(e) => setBacklogSearchValue(e.target.value)}
+                        allowClear
+                      />
+                      <Divider type="vertical" style={{ height: 20, margin: 0 }} />
+                      <Button
+                        type="default"
+                        icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
+                        onClick={() => document.getElementById('active-section')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="saas-button-item"
+                        style={{ height: 32, fontWeight: 600 }}
+                      >
+                        Go To Sprint
+                      </Button>
+                      <Button
+                        type="default"
+                        icon={<PlusOutlined />}
+                        onClick={() => setCreateSprintModalOpen(true)}
+                        className="saas-button-item"
+                        style={{ height: 32, fontWeight: 600 }}
+                      >
+                        New Sprint
+                      </Button>
+                    </Space>
+                  </div>
                 </div>
               }
             >

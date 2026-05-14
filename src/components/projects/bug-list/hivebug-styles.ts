@@ -38,6 +38,24 @@ export const hivebugStyles = `
   box-sizing: border-box;
 }
 
+/* Fix for browser autofill white background in dark mode */
+.hb-root input:-webkit-autofill,
+.hb-root textarea:-webkit-autofill,
+.hb-root select:-webkit-autofill,
+.hb-cbd-dark input:-webkit-autofill,
+.hb-cbd-dark textarea:-webkit-autofill,
+.hb-cbd-dark select:-webkit-autofill,
+.hb-aimodal-dark input:-webkit-autofill,
+.hb-aimodal-dark textarea:-webkit-autofill,
+.hb-aimodal-dark select:-webkit-autofill,
+.hb-fsm-dark input:-webkit-autofill,
+.hb-fsm-dark textarea:-webkit-autofill,
+.hb-fsm-dark select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px var(--hb-bg-soft) inset !important;
+  -webkit-text-fill-color: var(--hb-text) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 .hb-light {
   --hb-bg: #ffffff;
   --hb-bg-elev: #fafbfc;

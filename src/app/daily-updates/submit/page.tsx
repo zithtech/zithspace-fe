@@ -793,7 +793,11 @@ function SubmitDailyUpdateContent() {
       `}} />
 
       <TimeTrackingHeader
-        style={{ padding: '4px 32px' }}
+        style={{
+          padding: '5px 32px',
+          borderBottom: '1px solid var(--border-slate-200)',
+          marginBottom: 20
+        }}
         icon={<FileText size={20} color="#8b5cf6" />}
         title={alreadySubmitted ? "Edit Status Update" : "Submit Daily Update"}
         subTitle={

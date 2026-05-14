@@ -987,6 +987,25 @@ export default function TrashManagementPage() {
         .tr-filter-search {
           width: 280px;
         }
+
+        @media (max-width: 800px) {
+          .tr-control-bar {
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+          .tr-filter-cluster {
+            flex-wrap: wrap;
+            width: 100%;
+          }
+          .tr-filter-search {
+            width: 100%;
+            flex: 1;
+            min-width: 160px;
+          }
+          .tr-result-count {
+            width: 100%;
+          }
+        }
         .tr-filter-search .ant-input,
         .tr-filter-search .ant-input-affix-wrapper,
         .tr-filter-search .ant-input-affix-wrapper-focused,
@@ -1513,7 +1532,9 @@ export default function TrashManagementPage() {
             width: 100%;
           }
         }
-      `}</style>
+      `
+      }</style>
+
     </div>
   );
 }

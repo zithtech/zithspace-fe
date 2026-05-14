@@ -35,6 +35,11 @@ export default function MyTimePage() {
         }}
       >
         <TimeTrackingHeader
+          style={{
+            padding: '9.5px 32px',
+            borderBottom: '1px solid var(--border-slate-200)',
+            marginBottom: 20
+          }}
           icon={<ClockCircleOutlined style={{ fontSize: 18, color: "#8b5cf6" }} />}
           title="My Time Tracking"
           description="Monitor and manage your daily task sessions and work logs."
@@ -82,9 +87,11 @@ export default function MyTimePage() {
         />
 
         <div style={{ padding: "0 32px 32px 32px" }}>
-          <MyTimeStatsStrip refreshKey={refreshKey} />
+          <div style={{ marginTop: 4 }}>
+            <MyTimeStatsStrip refreshKey={refreshKey} />
+          </div>
 
-          <Row gutter={24} align="stretch" style={{ marginTop: 20 }}>
+          <Row gutter={[24, 20]} align="stretch" style={{ marginTop: 20 }}>
             <Col xs={24} lg={17}>
               <MyTimeTracker
                 selectedDate={selectedDate}

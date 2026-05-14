@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, Input, Select, Skeleton, Tooltip, message } from "antd";
+import { Modal, Input, Select, Skeleton, Tooltip, message, ConfigProvider, theme as antdTheme } from "antd";
 import {
   Sparkles,
   Wand2,
@@ -157,7 +157,16 @@ export default function AiReviewModal({ open, onClose, bugs }: Props) {
       className={`hb-aimodal ${theme === "dark" ? "hb-aimodal-dark" : "hb-aimodal-light"}`}
       maskClosable={false}
     >
-      <div className="hb-aim">
+      <ConfigProvider
+        theme={{
+          algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+          token: {
+            colorBgContainer: theme === 'dark' ? '#0a0f1c' : '#ffffff',
+            colorText: theme === 'dark' ? '#e6e8ee' : '#111827',
+          }
+        }}
+      >
+        <div className="hb-aim">
         <ModalHeader
           step={step}
           bugCount={bugs.length}
@@ -207,6 +216,7 @@ export default function AiReviewModal({ open, onClose, bugs }: Props) {
           onClose={onClose}
         />
       </div>
+      </ConfigProvider>
     </Modal>
   );
 }

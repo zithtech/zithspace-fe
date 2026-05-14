@@ -126,7 +126,8 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
             marginLeft: collapsed ? 65 : 200,
             transition: "all 0.2s",
             height: "calc(100vh - 64px)",
-            overflow: "auto",
+            overflowY: "auto",
+            overflowX: "hidden",
             position: "relative",
           }}
         >

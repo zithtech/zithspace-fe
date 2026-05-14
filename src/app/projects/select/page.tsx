@@ -73,7 +73,7 @@ function ProjectSelectContent() {
 
   const handleDelete = (e: React.MouseEvent, id: string, name: string) => {
     e.stopPropagation(); // Don't trigger card click
-    
+
     Modal.confirm({
       title: 'Are you sure you want to delete this project?',
       icon: <ExclamationCircleFilled style={{ color: '#ef4444' }} />,
@@ -95,7 +95,7 @@ function ProjectSelectContent() {
   useEffect(() => {
     // Wait until auth and projects are loaded
     if (authLoading || projectsLoading) return;
-    
+
     // If explicitly selecting, don't redirect
     const isExplicitSelect = searchParams.get('select') === 'true';
     if (isExplicitSelect) {
@@ -107,7 +107,7 @@ function ProjectSelectContent() {
     if (lastProjectId) {
       // Verify the ID belongs to an accessible project
       const isValid = projects.some((p: any) => p.id === lastProjectId || p.value === lastProjectId);
-      
+
       if (isValid) {
         router.replace(`/projects/${lastProjectId}/tickets`);
         return;
@@ -116,7 +116,7 @@ function ProjectSelectContent() {
         localStorage.removeItem('lastProjectId');
       }
     }
-    
+
     setIsRedirecting(false);
   }, [authLoading, projectsLoading, projects, router, searchParams]);
 
@@ -314,10 +314,10 @@ function ProjectSelectContent() {
                                 danger
                                 icon={<DeleteOutlined />}
                                 onClick={(e) => project?.id && handleDelete(e, project.id, project.name || 'Untitled Project')}
-                                style={{ 
-                                  marginLeft: 8, 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
+                                style={{
+                                  marginLeft: 8,
+                                  display: 'flex',
+                                  alignItems: 'center',
                                   justifyContent: 'center',
                                   borderRadius: 8
                                 }}

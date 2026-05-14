@@ -125,7 +125,7 @@ export function MyTimeStatsStrip({ refreshKey }: { refreshKey?: number }) {
   if (loading) {
     return (
       <div className="mtt-kpi-strip">
-        <Row gutter={16}>
+        <Row gutter={[16, 16]}>
           {[0, 1, 2, 3].map((i) => (
             <Col xs={24} sm={12} lg={6} key={i}>
               <div className="mtt-kpi mtt-kpi--skeleton">
@@ -146,7 +146,7 @@ export function MyTimeStatsStrip({ refreshKey }: { refreshKey?: number }) {
 
   return (
     <div className="mtt-kpi-strip">
-      <Row gutter={16}>
+      <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
           <KPITile
             tone="violet"

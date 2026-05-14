@@ -14,6 +14,8 @@ import {
   Col,
   Space,
   App,
+  theme as antdTheme,
+  ConfigProvider,
 } from "antd";
 import {
   FolderOutlined,
@@ -26,6 +28,7 @@ import {
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useCreateBucket, useUpdateBucket } from "@/hooks/useBuckets";
 import type { Bucket } from "@/services/bucketService";
+import { useTheme } from "@/context/ThemeContext";
 import type { Color } from "antd/es/color-picker";
 
 const { Title, Text } = Typography;
@@ -44,6 +47,7 @@ export function CreateBucketModal({
   onClose,
   onSuccess,
 }: CreateBucketModalProps) {
+  const { theme } = useTheme();
   const { message: messageApi } = App.useApp();
   const [form] = Form.useForm();
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
@@ -160,7 +164,16 @@ export function CreateBucketModal({
           requiredMark={false}
           initialValues={{ color: "#1890ff" }}
         >
-          <Form.Item
+          <ConfigProvider 
+            theme={{ 
+              algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+              token: {
+                colorBgContainer: theme === 'dark' ? '#161B22' : '#ffffff',
+                colorText: theme === 'dark' ? '#F1F5F9' : '#1E293B',
+              }
+            }}
+          >
+            <Form.Item
             label={<Text strong style={{ fontSize: 13, color: 'var(--text-slate-600)' }}>REPOSITORY IDENTIFIER</Text>}
             name="name"
             rules={[
@@ -255,6 +268,7 @@ export function CreateBucketModal({
               </Col>
             </Row>
           </div>
+          </ConfigProvider>
         </Form>
       </Modal>
 

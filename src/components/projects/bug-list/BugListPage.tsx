@@ -278,7 +278,7 @@ export default function BugListPage() {
   const bulkDelete = useBulkDeleteBugs();
   const bulkPermanentDelete = useBulkPermanentDeleteBugs();
   const bulkRestore = useBulkRestoreBugs();
-  
+
   const verifyBug = useVerifyBug();
   const reopenBug = useReopenBug();
   const restoreBug = useRestoreBug();
@@ -406,9 +406,9 @@ export default function BugListPage() {
 
   const handleBugStatusUpdate = async (bugId: string, bugStatus: "not started" | "pending" | "completed") => {
     try {
-      await updateBug.mutateAsync({ 
-        id: bugId, 
-        input: { bugStatus } 
+      await updateBug.mutateAsync({
+        id: bugId,
+        input: { bugStatus }
       });
     } catch {
       // hook handles error toast
@@ -596,7 +596,6 @@ export default function BugListPage() {
                     setFilters((f) => ({ ...f, search: e.target.value }))
                   }
                 />
-
               </div>
 
               <button
@@ -685,7 +684,7 @@ export default function BugListPage() {
               const percentage = workspaceStats && workspaceStats.total > 0
                 ? Math.round((workspaceStats.completed / workspaceStats.total) * 100)
                 : 0;
-              
+
               let tone: "default" | "success" | "danger" | "warning" | "info" = "default";
               if (workspaceStats && workspaceStats.total > 0) {
                 if (percentage < 30) tone = "danger";
@@ -706,7 +705,7 @@ export default function BugListPage() {
           </div>
         )}
 
-        {filtersVisible && (folders?.length || 0) > 0 && (
+        {filtersVisible && (
         <div className="hb-filterbar">
           <div className="hb-filterbar-lead">
             <SlidersHorizontal size={14} strokeWidth={2.5} />
@@ -716,18 +715,17 @@ export default function BugListPage() {
                 {activeFilterCount}
               </span>
             )}
-          </div>
-          <div className="hb-filterbar-divider" />
-          
-          
-          {!selectedSheetId && (
+            </div>
+            <div className="hb-filterbar-divider" />
+
+            {!selectedSheetId && (
             <>
-              <div className={`hb-filter-group ${selectedFolderId ? "active" : ""}`}>
-                <span className="hb-filter-label"><Folder size={12} /></span>
+                <div className={`hb-filter-group ${selectedFolderId ? "active" : ""}`}>
+                  <span className="hb-filter-label"><Folder size={12} /></span>
                 <Select
                   allowClear
                   showSearch
-                  placeholder="Folder"
+                    placeholder="Folder"
                   size="small"
                   variant="borderless"
                   value={selectedFolderId || undefined}
@@ -742,12 +740,12 @@ export default function BugListPage() {
                   style={{ width: 140 }}
                 />
               </div>
-              <div className={`hb-filter-group ${selectedSheetId ? "active" : ""}`}>
-                <span className="hb-filter-label"><Layers size={12} /></span>
+                <div className={`hb-filter-group ${selectedSheetId ? "active" : ""}`}>
+                  <span className="hb-filter-label"><Layers size={12} /></span>
                 <Select
                   allowClear
-                  showSearch
-                  placeholder="Sheet"
+                    showSearch
+                    placeholder="Sheet"
                   size="small"
                   variant="borderless"
                   value={selectedSheetId || undefined}
@@ -763,7 +761,6 @@ export default function BugListPage() {
             </>
           )}
           
-            <>
           <div className={`hb-filter-group ${filters.createdById ? "active" : ""}`}>
             <span className="hb-filter-label"><User size={12} /></span>
             <Select
@@ -783,6 +780,7 @@ export default function BugListPage() {
               style={{ width: 140 }}
             />
           </div>
+
           <div className={`hb-filter-group ${filters.assigneeId ? "active" : ""}`}>
             <span className="hb-filter-label"><UserCheck size={12} /></span>
             <Select
@@ -802,6 +800,7 @@ export default function BugListPage() {
               style={{ width: 140 }}
             />
           </div>
+
           <div className={`hb-filter-group ${filters.status ? "active" : ""}`}>
             <span className="hb-filter-label"><CircleDot size={12} /></span>
             <Select
@@ -815,6 +814,7 @@ export default function BugListPage() {
               style={{ width: 110 }}
             />
           </div>
+
           <div className={`hb-filter-group ${filters.severity ? "active" : ""}`}>
             <span className="hb-filter-label"><AlertTriangle size={12} /></span>
             <Select
@@ -828,83 +828,82 @@ export default function BugListPage() {
               style={{ width: 110 }}
             />
           </div>
-            <>
-              <div className={`hb-filter-group ${filters.bugType ? "active" : ""}`}>
-                <span className="hb-filter-label"><Tag size={12} /></span>
-                <Select
-                  allowClear
-                  placeholder="Type"
+
+                <div className={`hb-filter-group ${filters.bugType ? "active" : ""}`}>
+                  <span className="hb-filter-label"><Tag size={12} /></span>
+                  <Select
+                    allowClear
+                    placeholder="Type"
+                    size="small"
+                    variant="borderless"
+                    value={filters.bugType}
+                    onChange={(v) => setFilters((f) => ({ ...f, bugType: v }))}
+                    options={TYPE_OPTS.map((s) => ({
+                      value: s,
+                      label: s.toUpperCase(),
+                    }))}
+                    style={{ width: 100 }}
+                  />
+                </div>
+
+                <div className={`hb-filter-group ${filters.module ? "active" : ""}`}>
+                  <span className="hb-filter-label"><Box size={12} /></span>
+                  <Select
+                    allowClear
+                    showSearch
+                    placeholder="Module"
+                    size="small"
+                    variant="borderless"
+                    value={filters.module}
+                    onChange={(v) => setFilters((f) => ({ ...f, module: v }))}
+                    options={moduleOptions.map((m) => ({ value: m, label: m }))}
+                    style={{ width: 120 }}
+                  />
+                </div>
+
+              <div className={`hb-filter-group ${filters.createdRange ? "active" : ""}`}>
+                <span className="hb-filter-label"><Calendar size={12} /> Created</span>
+                <RangePicker
                   size="small"
                   variant="borderless"
-                  value={filters.bugType}
-                  onChange={(v) => setFilters((f) => ({ ...f, bugType: v }))}
-                  options={TYPE_OPTS.map((s) => ({
-                    value: s,
-                    label: s.toUpperCase(),
-                  }))}
-                  style={{ width: 100 }}
+                  value={filters.createdRange}
+                  onChange={(v) => setFilters((f) => ({ ...f, createdRange: v as any }))}
+                  style={{ width: 200 }}
                 />
               </div>
-              <div className={`hb-filter-group ${filters.module ? "active" : ""}`}>
-                <span className="hb-filter-label"><Box size={12} /></span>
-                <Select
-                  allowClear
-                  showSearch
-                  placeholder="Module"
+
+              <div className={`hb-filter-group ${filters.updatedRange ? "active" : ""}`}>
+                <span className="hb-filter-label"><Calendar size={12} /> Updated</span>
+                <RangePicker
                   size="small"
                   variant="borderless"
-                  value={filters.module}
-                  onChange={(v) => setFilters((f) => ({ ...f, module: v }))}
-                  options={moduleOptions.map((m) => ({ value: m, label: m }))}
-                  style={{ width: 120 }}
+                  value={filters.updatedRange}
+                  onChange={(v) => setFilters((f) => ({ ...f, updatedRange: v as any }))}
+                  style={{ width: 200 }}
                 />
               </div>
-            </>
-          
-          <div className={`hb-filter-group ${filters.createdRange ? "active" : ""}`}>
-            <span className="hb-filter-label"><Calendar size={12} /> Created</span>
-            <RangePicker
-              size="small"
-              variant="borderless"
-              value={filters.createdRange}
-              onChange={(v) => setFilters((f) => ({ ...f, createdRange: v as any }))}
-              style={{ width: 200 }}
-            />
-          </div>
 
-          <div className={`hb-filter-group ${filters.updatedRange ? "active" : ""}`}>
-            <span className="hb-filter-label"><Calendar size={12} /> Updated</span>
-            <RangePicker
-              size="small"
-              variant="borderless"
-              value={filters.updatedRange}
-              onChange={(v) => setFilters((f) => ({ ...f, updatedRange: v as any }))}
-              style={{ width: 200 }}
-            />
+            {activeFilterCount > 0 && (
+              <button
+                className="hb-filter-reset"
+                onClick={() => setFilters(DEFAULT_FILTERS)}
+                title="Reset filters"
+              >
+                <RotateCcw size={13} />
+                Reset
+              </button>
+            )}
+            <div className="hb-filterbar-spacer" />
+            <Tooltip title="Hide filters">
+              <button
+                className="hb-icon-btn hb-filterbar-close"
+                onClick={() => setFiltersVisible(false)}
+                aria-label="Hide filters"
+              >
+                <X size={16} />
+              </button>
+            </Tooltip>
           </div>
-
-        </>
-        {activeFilterCount > 0 && (
-            <button
-              className="hb-filter-reset"
-              onClick={() => setFilters(DEFAULT_FILTERS)}
-              title="Reset filters"
-            >
-              <RotateCcw size={13} />
-              Reset
-            </button>
-          )}
-          <div className="hb-filterbar-spacer" />
-          <Tooltip title="Hide filters">
-            <button
-              className="hb-icon-btn hb-filterbar-close"
-              onClick={() => setFiltersVisible(false)}
-              aria-label="Hide filters"
-            >
-              <X size={16} />
-            </button>
-          </Tooltip>
-        </div>
         )}
 
         {selectedSheetId && (scope === "all" || scope === "mine") && (
@@ -1313,15 +1312,15 @@ function StatCard({
   tone?: "default" | "success" | "danger" | "warning" | "info";
 }) {
   const toneClass =
-    tone === "success" 
-      ? "hb-stat-success" 
-      : tone === "danger" 
-      ? "hb-stat-danger" 
-      : tone === "warning"
-      ? "hb-stat-warning"
-      : tone === "info"
-      ? "hb-stat-info"
-      : "";
+    tone === "success"
+      ? "hb-stat-success"
+      : tone === "danger"
+        ? "hb-stat-danger"
+        : tone === "warning"
+          ? "hb-stat-warning"
+          : tone === "info"
+            ? "hb-stat-info"
+            : "";
   return (
     <div className={`hb-stat-card ${toneClass}`}>
       <div className="hb-stat-icon">{icon}</div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Avatar, Drawer, Select, Tooltip, message } from "antd";
+import { Avatar, Drawer, Select, Tooltip, message, ConfigProvider, theme as antdTheme } from "antd";
 import {
   X,
   UploadCloud,
@@ -332,6 +332,15 @@ export default function CreateBugDrawer({
         onDragOver={onDragOver}
         onDrop={onDrop}
       >
+        <ConfigProvider
+          theme={{
+            algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+            token: {
+              colorBgContainer: theme === 'dark' ? '#0f1524' : '#ffffff',
+              colorText: theme === 'dark' ? '#e6e8ee' : '#111827',
+            }
+          }}
+        >
         {/* Drag overlay */}
         {dragOver && (
           <div className="hb-cbd-dropoverlay">
@@ -725,6 +734,7 @@ export default function CreateBugDrawer({
             </button>
           </div>
         </div>
+        </ConfigProvider>
       </div>
     </Drawer>
   );

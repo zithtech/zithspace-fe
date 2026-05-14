@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Form, Input, Modal, Select } from "antd";
+import { Form, Input, Modal, Select, ConfigProvider, theme as antdTheme } from "antd";
 import {
   FolderPlus,
   FileSpreadsheet,
@@ -103,7 +103,16 @@ export function FolderModal({ open, editing, defaultProjectId, onClose }: Folder
         body: { padding: 0 },
       }}
     >
-      <div className="hb-fsm">
+      <ConfigProvider
+        theme={{
+          algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+          token: {
+            colorBgContainer: theme === 'dark' ? '#0d1426' : '#ffffff',
+            colorText: theme === 'dark' ? '#e8ecf5' : '#0f172a',
+          }
+        }}
+      >
+        <div className="hb-fsm">
         {/* Hero */}
         <div className="hb-fsm-hero" style={{ ["--hb-fsm-accent" as any]: color }}>
           <div className="hb-fsm-hero-bg" />
@@ -278,6 +287,7 @@ export function FolderModal({ open, editing, defaultProjectId, onClose }: Folder
           </button>
         </div>
       </div>
+      </ConfigProvider>
     </Modal>
   );
 }
@@ -341,7 +351,16 @@ export function SheetModal({ open, folderId, editing, onClose }: SheetModalProps
         body: { padding: 0 },
       }}
     >
-      <div className="hb-fsm">
+      <ConfigProvider
+        theme={{
+          algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+          token: {
+            colorBgContainer: theme === 'dark' ? '#0d1426' : '#ffffff',
+            colorText: theme === 'dark' ? '#e8ecf5' : '#0f172a',
+          }
+        }}
+      >
+        <div className="hb-fsm">
         {/* Hero */}
         <div className="hb-fsm-hero">
           <div className="hb-fsm-hero-bg" />
@@ -465,6 +484,7 @@ export function SheetModal({ open, folderId, editing, onClose }: SheetModalProps
           </button>
         </div>
       </div>
+      </ConfigProvider>
     </Modal>
   );
 }

@@ -211,7 +211,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
         const projByDay = { ...hubsByDay };
         const usersByDay = { ...hubsByDay };
         documentHubs.forEach((hub) => {
-            const k = dayKey(new Date(hub.createdAt));
+            const k = dayKey(new Date(hub.updatedAt || hub.createdAt));
             if (k in hubsByDay) hubsByDay[k] += 1;
             if (k in projByDay && hub.projectId) projByDay[k] += 1;
             if (k in usersByDay) usersByDay[k] += 1;
@@ -292,7 +292,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
             {stats.map((s, i) => (
                 <div
                     key={s.key}
-                    className={`dh-stats-cell flex-1 flex items-center gap-3 px-5 py-3 transition-colors ${i < stats.length - 1 ? 'dh-stats-cell-divider' : ''}`}
+                    className={`dh-stats-cell flex-1 flex items-center gap-2 lg:gap-3 px-3 lg:px-5 py-3 transition-colors ${i < stats.length - 1 ? 'dh-stats-cell-divider' : ''}`}
                     style={{ minWidth: 0 }}
                 >
                     <div
@@ -309,14 +309,14 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">
                         <span
-                            className="text-[10.5px] font-semibold uppercase tracking-[0.08em] truncate"
+                            className="text-[9.5px] lg:text-[10.5px] font-semibold uppercase tracking-[0.08em] truncate"
                             style={{ color: 'var(--text-slate-400)' }}
                         >
                             {s.title}
                         </span>
-                        <div className="flex items-baseline gap-2">
+                        <div className="flex flex-wrap items-baseline gap-1.5 lg:gap-2">
                             <span
-                                className="text-[22px] font-bold leading-none tracking-tight"
+                                className="text-[16px] lg:text-[22px] font-bold leading-none tracking-tight"
                                 style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}
                             >
                                 {s.value}
@@ -333,7 +333,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                             )}
                         </div>
                     </div>
-                    <div className="shrink-0 hidden md:block">
+                    <div className="shrink-0 hidden lg:block">
                         <WeekRing
                             title={s.title}
                             weekCount={s.trend.reduce((a, b) => a + b, 0)}

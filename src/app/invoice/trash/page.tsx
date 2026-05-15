@@ -55,15 +55,19 @@ export default function InvoiceTrashPage() {
   const router = useRouter();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
-  const { canReadInvoice, canDeleteInvoice } = usePermission();
+  const {
+    canReadInvoiceTrash,
+    canRestoreInvoiceTrash,
+    canDeleteInvoiceTrash
+  } = usePermission();
   const { isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!authLoading && !canReadInvoice) {
-      router.push("/dashboard");
+    if (!authLoading && !canReadInvoiceTrash) {
+      router.push("/invoice/invoices");
     }
-  }, [authLoading, canReadInvoice, router]);
+  }, [authLoading, canReadInvoiceTrash, router]);
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);
@@ -413,22 +417,24 @@ export default function InvoiceTrashPage() {
           className="flex items-center justify-end gap-1.5"
           onClick={(e) => e.stopPropagation()}
         >
-          <Tooltip title="Restore invoice">
-            <button
-              type="button"
-              onClick={() => handleRestore(record)}
-              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11.5px] font-semibold transition-colors"
-              style={{
-                background: "var(--bg-secondary)",
-                color: "#047857",
-                border: "1px solid var(--border-color)",
-              }}
-            >
-              <RotateCcw size={12} strokeWidth={2.25} />
-              Restore
-            </button>
-          </Tooltip>
-          {canDeleteInvoice && (
+          {canRestoreInvoiceTrash && (
+            <Tooltip title="Restore invoice">
+              <button
+                type="button"
+                onClick={() => handleRestore(record)}
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11.5px] font-semibold transition-colors"
+                style={{
+                  background: "var(--bg-secondary)",
+                  color: "#047857",
+                  border: "1px solid var(--border-color)",
+                }}
+              >
+                <RotateCcw size={12} strokeWidth={2.25} />
+                Restore
+              </button>
+            </Tooltip>
+          )}
+          {canDeleteInvoiceTrash && (
             <Tooltip title="Delete permanently">
               <button
                 type="button"
@@ -470,7 +476,7 @@ export default function InvoiceTrashPage() {
         </div>
       </MainLayout>
     );
-  if (!canReadInvoice) return null;
+  if (!canReadInvoiceTrash) return null;
 
   return (
     <MainLayout>
@@ -743,20 +749,22 @@ export default function InvoiceTrashPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    size="small"
-                    icon={<RotateCcw size={13} />}
-                    onClick={handleBulkRestore}
-                    loading={bulkRestoreMutation.isPending}
-                    style={{
-                      borderRadius: 8,
-                      height: 32,
-                      fontWeight: 600,
-                    }}
-                  >
-                    Restore
-                  </Button>
-                  {canDeleteInvoice && (
+                  {canRestoreInvoiceTrash && (
+                    <Button
+                      size="small"
+                      icon={<RotateCcw size={13} />}
+                      onClick={handleBulkRestore}
+                      loading={bulkRestoreMutation.isPending}
+                      style={{
+                        borderRadius: 8,
+                        height: 32,
+                        fontWeight: 600,
+                      }}
+                    >
+                      Restore
+                    </Button>
+                  )}
+                  {canDeleteInvoiceTrash && (
                     <Button
                       size="small"
                       danger

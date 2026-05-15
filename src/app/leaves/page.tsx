@@ -99,7 +99,10 @@ export default function LeavesPage() {
     canCreateLeave,
     canUpdateLeave,
     canApproveLeave,
-    canManageLeaves
+    canManageLeaves,
+    canReadLeaveDashboard,
+    canReadLeaveType,
+    canReadLeavePolicy
   } = usePermission();
   
   // Determine if user has approval rights
@@ -697,70 +700,70 @@ export default function LeavesPage() {
               if (key === "apply-leave") router.push("/apply-leave");
             }}
             items={[
-              {
+              ...(canReadLeaveDashboard ? [{
                 key: "dashboard",
                 label: (
                   <span>
                     <AppstoreOutlined /> Dashboard
                   </span>
                 ),
-              },
-              {
+              }] : []),
+              ...(canReadLeave ? [{
                 key: "leaves",
                 label: (
                   <span>
                     <ClockCircleOutlined /> Apply Leave
                   </span>
                 ),
-              },
-              {
+              }] : []),
+              ...(canReadLeave ? [{
                 key: "holidays",
                 label: (
                   <span>
                     <ScheduleOutlined /> Government Holidays
                   </span>
                 ),
-              },
-              {
+              }] : []),
+              ...(canManageLeaves ? [{
                 key: "adjustments",
                 label: (
                   <span>
                     <EditOutlined /> Leave Adjustment
                   </span>
                 ),
-              },
-              {
+              }] : []),
+              ...(canReadLeaveType ? [{
                 key: "configuration",
                 label: (
                   <span>
                     <SettingOutlined /> Leave Types
                   </span>
                 ),
-              },
-              {
+              }] : []),
+              ...(canReadLeavePolicy ? [{
                 key: "positions",
                 label: (
                   <span>
                     <ApartmentOutlined /> Leave Policy
                   </span>
                 ),
-              },
-              {
+              }] : []),
+              ...(canManageLeaves ? [{
                 key: "addLeaves",
                 label: (
                   <span>
                     <PlusOutlined /> Add Government Leaves
                   </span>
                 ),
-              },
-              {
+              }] : []),
+              ...(canCreateLeave ? [{
                 key: "apply-leave",
                 label: (
                   <span>
                     <PlusOutlined /> apply leave
                   </span>
                 ),
-              },
+              }] : []),
             ]}
           />
           </div>

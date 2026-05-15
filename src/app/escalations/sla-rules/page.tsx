@@ -29,6 +29,10 @@ import {
   SlidersOutlined
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
+import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -36,7 +40,17 @@ const { Panel } = Collapse;
 const BLUE_PRIMARY = 'var(--premium-blue)';
 
 export default function SLARulesEnginePage() {
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canManageEscalations } = usePermission();
   const [activeTab, setActiveTab] = useState('1');
+
+  // ─── Route Guard ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!authLoading && user && !canManageEscalations) {
+      router.push("/escalations");
+    }
+  }, [user, authLoading, canManageEscalations, router]);
 
   const slaPolicies = [
     {
@@ -148,14 +162,16 @@ export default function SLARulesEnginePage() {
               </Space>
               <Text type="secondary" style={{ color: 'var(--text-slate-400)' }}>Define automation rules, response times, and escalation workflows to keep your team on track.</Text>
             </div>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              size="large" 
-              style={{ borderRadius: 8, height: 44, fontWeight: 600, background: BLUE_PRIMARY }}
-            >
-              Create New Policy
-            </Button>
+            {canManageEscalations && (
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                size="large" 
+                style={{ borderRadius: 8, height: 44, fontWeight: 600, background: BLUE_PRIMARY }}
+              >
+                Create New Policy
+              </Button>
+            )}
           </div>
 
           <Tabs 

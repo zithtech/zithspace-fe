@@ -44,6 +44,7 @@ import {
   formatHours,
 } from "@/types/dailyUpdate";
 import { useRouter } from "next/navigation";
+import { usePermission } from "@/hooks/usePermission";
 import DailyUpdateService from "@/services/dailyUpdateService";
 
 const { Text } = Typography;
@@ -63,6 +64,7 @@ export default function UpdateCard({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const router = useRouter();
+  const { canUpdateDailyUpdate, canDeleteDailyUpdate } = usePermission();
 
   const projectUpdates = (update.projectUpdates || []) as ProjectUpdate[];
   const totalHours = projectUpdates.reduce((sum, p) => sum + (p.hoursWorked || 0), 0);
@@ -156,8 +158,8 @@ export default function UpdateCard({
                   trigger={["click"]}
                   menu={{
                     items: [
-                      { key: "edit", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Edit3 size={14} /> Edit</span>, disabled: !isEditable },
-                      { key: "delete", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Trash2 size={14} /> Delete</span>, danger: true },
+                      { key: "edit", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Edit3 size={14} /> Edit</span>, disabled: !isEditable || !canUpdateDailyUpdate },
+                      { key: "delete", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Trash2 size={14} /> Delete</span>, danger: true, disabled: !canDeleteDailyUpdate },
                     ],
                     onClick: (info) => {
                       info.domEvent.stopPropagation();

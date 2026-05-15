@@ -50,6 +50,7 @@ import {
 } from "@/services/membersService";
 import { SettingsService, Shift } from "@/services/settingsService";
 import { ApiError } from "@/lib/axios";
+import { RBACService, RBACRole } from "@/services/rbacService";
 import type { ColumnsType } from "antd/es/table";
 import { usePermission } from "@/hooks/usePermission";
 import { usePositions } from "@/hooks/usePositions";
@@ -158,6 +159,7 @@ interface MemberDrawerContentProps {
   positionsLoading: boolean;
   managers: Member[];
   shifts: Shift[];
+  availableRoles: RBACRole[];
 }
 
 const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
@@ -171,6 +173,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
   positionsLoading,
   managers,
   shifts,
+  availableRoles,
 }) => {
   const watchedRole =
     Form.useWatch("role", form) || selectedMember?.role || "user";
@@ -197,6 +200,15 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
       desc: "Full org-wide control",
       color: "#e11d48",
     },
+    ...availableRoles
+      .filter((r) => !["user", "admin", "super_admin"].includes(r.slug))
+      .map((r) => ({
+        value: r.slug,
+        icon: <UserOutlined />,
+        title: r.name,
+        desc: r.description || "Custom organization role",
+        color: "#6366f1",
+      })),
   ];
 
   return (
@@ -344,7 +356,23 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             rules={[{ required: true, message: "Please select role" }]}
             initialValue="user"
           >
-            <RoleCardGroup options={ROLE_OPTIONS} />
+            <Select placeholder="Select a role" optionLabelProp="label">
+              {ROLE_OPTIONS.map((opt) => (
+                <Select.Option key={opt.value} value={opt.value} label={opt.title}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ color: opt.color, display: "flex", alignItems: "center" }}>
+                      {opt.icon}
+                    </span>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{opt.title}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-slate-500)" }}>
+                        {opt.desc}
+                      </div>
+                    </div>
+                  </div>
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <div
@@ -488,75 +516,6 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
   );
 };
 
-const RoleCardGroup = ({
-  value,
-  onChange,
-  options,
-}: {
-  value?: string;
-  onChange?: (v: string) => void;
-  options: { value: string; icon: React.ReactNode; title: string; desc: string; color: string }[];
-}) => (
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(3, 1fr)",
-      gap: 10,
-    }}
-  >
-    {options.map((opt) => {
-      const active = value === opt.value;
-      return (
-        <button
-          type="button"
-          key={opt.value}
-          onClick={() => onChange?.(opt.value)}
-          className={`mm-role-card${active ? " active" : ""}`}
-          style={{
-            ["--role-color" as any]: opt.color,
-          }}
-        >
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 7,
-              background: `${opt.color}14`,
-              color: opt.color,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 13,
-              marginBottom: 8,
-            }}
-          >
-            {opt.icon}
-          </div>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--text-slate-900)",
-              lineHeight: 1.2,
-            }}
-          >
-            {opt.title}
-          </div>
-          <div
-            style={{
-              fontSize: 11,
-              color: "var(--text-slate-500)",
-              marginTop: 2,
-              lineHeight: 1.35,
-            }}
-          >
-            {opt.desc}
-          </div>
-        </button>
-      );
-    })}
-  </div>
-);
 
 const StatCard = ({
   label,
@@ -665,6 +624,7 @@ export default function MembersPage() {
 
   const [managers, setManagers] = useState<Member[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<RBACRole[]>([]);
 
   const memberStats = React.useMemo(() => {
     return {
@@ -732,6 +692,15 @@ export default function MembersPage() {
     }
   };
 
+  const fetchRoles = async () => {
+    try {
+      const roles = await RBACService.listRoles();
+      setAvailableRoles(roles || []);
+    } catch (error) {
+      console.error("Failed to fetch roles:", error);
+    }
+  };
+
   useEffect(() => {
     if (!isLoading && !canReadUser) {
       router.push("/dashboard");
@@ -743,6 +712,7 @@ export default function MembersPage() {
       fetchMembers();
       fetchManagers();
       fetchShifts();
+      fetchRoles();
     }
   }, [
     user,
@@ -979,8 +949,16 @@ export default function MembersPage() {
       dataIndex: "role",
       key: "role",
       width: 140,
-      render: (role: string) => {
-        const meta = ROLE_META[role] || ROLE_META.user;
+      render: (role: string, record: any) => {
+        // Use RBAC role name if available, otherwise use legacy label
+        const rbacRole = record.userRoles?.[0]?.role;
+        const label = rbacRole ? rbacRole.name : (ROLE_META[role]?.label || role);
+        const meta = ROLE_META[role] || {
+          bg: "rgba(99,102,241,0.10)",
+          color: "#6366f1",
+          dot: "#6366f1",
+        };
+
         return (
           <span
             style={{
@@ -1005,7 +983,7 @@ export default function MembersPage() {
                 boxShadow: `0 0 0 2px ${meta.bg}`,
               }}
             />
-            {meta.label}
+            {label}
           </span>
         );
       },
@@ -1289,6 +1267,13 @@ export default function MembersPage() {
                   <Option value="super_admin">Super Admin</Option>
                   <Option value="admin">Admin</Option>
                   <Option value="user">User</Option>
+                  {availableRoles
+                    .filter((r) => !["user", "admin", "super_admin"].includes(r.slug))
+                    .map((r) => (
+                      <Option key={r.id} value={r.slug}>
+                        {r.name}
+                      </Option>
+                    ))}
                 </Select>
 
                 <Select
@@ -1454,6 +1439,7 @@ export default function MembersPage() {
             positionsLoading={positionsLoading}
             managers={managers}
             shifts={shifts}
+            availableRoles={availableRoles}
           />
         </Drawer>
 
@@ -1605,34 +1591,6 @@ export default function MembersPage() {
           .mm-drawer .ant-input-affix-wrapper:focus-within {
             border-color: #8b5cf6 !important;
             box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12) !important;
-          }
-          .mm-role-card {
-            text-align: left;
-            padding: 12px 12px 12px 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border-slate-200);
-            background: var(--bg-pure-white);
-            cursor: pointer;
-            transition: all 0.15s ease;
-            position: relative;
-          }
-          .mm-role-card:hover {
-            border-color: var(--role-color, #8b5cf6);
-            background: var(--bg-slate-50);
-          }
-          .mm-role-card.active {
-            border-color: var(--role-color, #8b5cf6);
-            background: color-mix(in srgb, var(--role-color, #8b5cf6) 6%, var(--bg-pure-white));
-            box-shadow: 0 0 0 3px color-mix(in srgb, var(--role-color, #8b5cf6) 12%, transparent);
-          }
-          .mm-role-card.active::after {
-            content: "";
-            position: absolute;
-            top: 10px; right: 10px;
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: var(--role-color, #8b5cf6);
-            box-shadow: 0 0 0 3px color-mix(in srgb, var(--role-color, #8b5cf6) 22%, transparent);
           }
           .mm-day-pill {
             width: 38px; height: 38px;

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, Select, Tooltip, message } from "antd";
+import { Modal, Select, Tooltip, message, ConfigProvider, theme as antdTheme } from "antd";
 import {
   Sparkles,
   Wand2,
@@ -242,7 +242,16 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
         body: { padding: 0 },
       }}
     >
-      <div className="hb-btm">
+      <ConfigProvider
+        theme={{
+          algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+          token: {
+            colorBgContainer: theme === 'dark' ? '#0a0f1c' : '#ffffff',
+            colorText: theme === 'dark' ? '#e6e8ee' : '#111827',
+          }
+        }}
+      >
+        <div className="hb-btm">
         {mode === null && (
           <ModePicker
             count={pool.length}
@@ -288,6 +297,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
           />
         )}
       </div>
+      </ConfigProvider>
     </Modal>
   );
 }

@@ -56,8 +56,8 @@ export default function ProjectTicketsPage({ params }: PageProps) {
             type="error"
             showIcon
             action={
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 onClick={() => router.push('/projects/select?select=true')}
               >
                 Back to Projects
@@ -80,8 +80,8 @@ export default function ProjectTicketsPage({ params }: PageProps) {
 
   return (
     <MainLayout>
-      <TicketList 
-        projectId={project.id} 
+      <TicketList
+        projectId={project.id}
         projectName={project.name}
         projectCode={project.code}
       />

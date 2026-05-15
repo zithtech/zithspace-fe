@@ -18,6 +18,8 @@ import {
   Avatar,
   App,
   message,
+  theme as antdTheme,
+  ConfigProvider,
 } from "antd";
 import {
   PlusOutlined,
@@ -53,7 +55,9 @@ import { MoveToSprintAction } from "./MoveToSprintAction";
 import type { Bucket } from "@/services/bucketService";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useRouter } from "next/navigation";
+import { usePermission } from "@/hooks/usePermission";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { useTheme } from "@/context/ThemeContext";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -73,9 +77,11 @@ const initialsOf = (name?: string) =>
     .toUpperCase();
 
 export default function BucketManagementPage() {
+  const { theme } = useTheme();
   const { message: messageApi } = App.useApp();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { canCreateTicketBucket, canUpdateTicketBucket, canDeleteTicketBucket } = usePermission();
 
   // State
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -281,15 +287,17 @@ export default function BucketManagementPage() {
           </div>
 
           <div className="bh-card-actions" onClick={(e) => e.stopPropagation()}>
-            <Tooltip title="Configure">
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                className="bh-icon-btn"
-                onClick={() => handleEdit(bucket)}
-              />
-            </Tooltip>
+            {canUpdateTicketBucket && (
+              <Tooltip title="Configure">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EditOutlined />}
+                  className="bh-icon-btn"
+                  onClick={() => handleEdit(bucket)}
+                />
+              </Tooltip>
+            )}
             <MoveToSprintAction
               bucket={bucket}
               onMove={(sprintId) =>
@@ -348,26 +356,28 @@ export default function BucketManagementPage() {
                 disabled={ticketCount === 0}
               />
             </Popconfirm>
-            <Popconfirm
-              title="Decommission Hub"
-              description="This permanently removes the hub."
-              onConfirm={() => handleDelete(bucket.id)}
-              okText="Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
-            >
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                className="bh-icon-btn bh-icon-btn-danger"
-                loading={
-                  deleteBucket.isPending &&
-                  deleteBucket.variables === bucket.id
-                }
-              />
-            </Popconfirm>
+            {canDeleteTicketBucket && (
+              <Popconfirm
+                title="Decommission Hub"
+                description="This permanently removes the hub."
+                onConfirm={() => handleDelete(bucket.id)}
+                okText="Delete"
+                cancelText="Cancel"
+                okButtonProps={{ danger: true }}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  className="bh-icon-btn bh-icon-btn-danger"
+                  loading={
+                    deleteBucket.isPending &&
+                    deleteBucket.variables === bucket.id
+                  }
+                />
+              </Popconfirm>
+            )}
             <Button
               type="text"
               size="small"
@@ -516,14 +526,16 @@ export default function BucketManagementPage() {
               disabled={record._count?.tickets === 0}
             />
           </Tooltip>
-          <Tooltip title="Configure">
-            <Button
-              type="text"
-              icon={<EditOutlined style={{ fontSize: 14 }} />}
-              onClick={() => handleEdit(record)}
-              className="saas-action-btn"
-            />
-          </Tooltip>
+          {canUpdateTicketBucket && (
+            <Tooltip title="Configure">
+              <Button
+                type="text"
+                icon={<EditOutlined style={{ fontSize: 14 }} />}
+                onClick={() => handleEdit(record)}
+                className="saas-action-btn"
+              />
+            </Tooltip>
+          )}
           <MoveToSprintAction
             bucket={record}
             onMove={(sprintId) =>
@@ -581,22 +593,24 @@ export default function BucketManagementPage() {
               disabled={record._count?.tickets === 0}
             />
           </Popconfirm>
-          <Popconfirm
-            title="Decommission Hub"
-            description="Proceed with hard delete?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-          >
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined style={{ fontSize: 14 }} />}
-              loading={deleteBucket.isPending && deleteBucket.variables === record.id}
-              className="saas-action-btn"
-            />
-          </Popconfirm>
+          {canDeleteTicketBucket && (
+            <Popconfirm
+              title="Decommission Hub"
+              description="Proceed with hard delete?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined style={{ fontSize: 14 }} />}
+                loading={deleteBucket.isPending && deleteBucket.variables === record.id}
+                className="saas-action-btn"
+              />
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -626,14 +640,16 @@ export default function BucketManagementPage() {
               className="bh-header-btn"
               style={{ width: 38, padding: 0 }}
             />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreate}
-              className="bh-create-btn"
-            >
-              Create New Bucket
-            </Button>
+            {canCreateTicketBucket && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreate}
+                className="bh-create-btn"
+              >
+                Create New Bucket
+              </Button>
+            )}
           </div>
         }
       />
@@ -703,6 +719,15 @@ export default function BucketManagementPage() {
         </div>
 
         {/* ── Control bar ───────────────────────────────────────────── */}
+        <ConfigProvider 
+          theme={{ 
+            algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+            token: {
+              colorBgContainer: theme === 'dark' ? '#161B22' : '#ffffff',
+              colorText: theme === 'dark' ? '#F1F5F9' : '#1E293B',
+            }
+          }}
+        >
         <div className="bh-control-bar">
           <div className="bh-control-bar-left">
             <div className="bh-filter-select-wrap">
@@ -808,7 +833,7 @@ export default function BucketManagementPage() {
             />
           </div>
         </div>
-
+        </ConfigProvider>
         {/* ── Content ───────────────────────────────────────────────── */}
         {isLoading ? (
           viewMode === "grid" ? (
@@ -871,6 +896,7 @@ export default function BucketManagementPage() {
               loading={false}
               rowKey="id"
               className="bh-table"
+              scroll={{ x: 1000 }}
               pagination={{
                 pageSize: 10,
                 showSizeChanger: true,
@@ -1094,6 +1120,24 @@ export default function BucketManagementPage() {
             width: 240px;
             height: 36px;
             transition: all 0.2s ease;
+          }
+
+          @media (max-width: 800px) {
+            .bh-control-bar {
+              flex-wrap: wrap;
+              gap: 12px;
+              justify-content: center;
+            }
+            .bh-control-bar-right {
+              width: 100%;
+              justify-content: center;
+              flex-wrap: wrap;
+            }
+            .bh-search-box {
+              flex: 1;
+              min-width: 200px;
+              max-width: 460px;
+            }
           }
           .bh-search-box.active {
             border-color: #8b5cf6;
@@ -1494,6 +1538,7 @@ export default function BucketManagementPage() {
             text-transform: uppercase;
             letter-spacing: 0.08em;
             padding: 14px 16px !important;
+            white-space: nowrap;
             border-bottom: 1px solid var(--border-slate-200) !important;
             border-radius: 0 !important;
           }

@@ -35,6 +35,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
+import { usePermission } from "@/hooks/usePermission";
 import AttachmentUploader from "@/components/common/AttachmentUploader";
 import dayjs from "dayjs";
 import {
@@ -87,6 +88,9 @@ function CreateReimbursementPageInner() {
   const { user, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const reimbursementId = searchParams.get("id");
+  const router = useRouter();
+
+  const { canCreateReimbursement, canUpdateReimbursement } = usePermission();
 
   if (isLoading) {
     return (
@@ -97,6 +101,14 @@ function CreateReimbursementPageInner() {
   }
 
   if (!user) {
+    return null;
+  }
+
+  const isEditing = !!reimbursementId;
+  const hasPermission = isEditing ? canUpdateReimbursement : canCreateReimbursement;
+
+  if (!hasPermission) {
+    router.push("/reimbursement");
     return null;
   }
 

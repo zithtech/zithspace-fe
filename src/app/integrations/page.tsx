@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Space, Typography, Card, Button, Badge, Row, Col, message, Modal, Input, Tabs, Tag, Dropdown, Avatar } from "antd";
+import { Space, Typography, Card, Button, Badge, Row, Col, message, Modal, Input, Tabs, Tag, Dropdown, Avatar, Tooltip, App } from "antd";
 const { Title, Text, Paragraph } = Typography;
 import {
   GoogleOutlined,
@@ -15,9 +15,11 @@ import {
 import { Blocks, Search, Users, CheckCircle2, Link2, Plug, ChevronDown } from "lucide-react";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { useAuth } from "@/context/AuthContext";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 // StatCard removed
 import { CalendarService, CalendarProvider, CalendarStatus } from "@/services/calendarService";
+import { useRouter } from "next/navigation";
 
 interface ProviderConfig {
   key: CalendarProvider;
@@ -51,8 +53,13 @@ const PROVIDERS: ProviderConfig[] = [
   }
 ];
 
+import { usePermission } from "@/hooks/usePermission";
+import { AlertCircle } from "lucide-react";
+
 export default function IntegrationPage() {
-  const { user } = useAuth();
+  const { modal, message: messageApi } = App.useApp();
+  const { canReadMail, canReadCalendar } = usePermission();
+  const { user, isLoading: authLoading } = useAuth();
   const [statuses, setStatuses] = useState<Record<string, CalendarStatus | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [searchText, setSearchText] = useState("");
@@ -80,7 +87,6 @@ export default function IntegrationPage() {
         const status = await CalendarService.getStatus(provider.key);
         newStatuses[provider.key] = status;
       } catch (error) {
-        console.error(`Failed to get status for ${provider.key}:`, error);
         newStatuses[provider.key] = { connected: false, provider: provider.key, lastSync: null };
       }
     }
@@ -88,25 +94,47 @@ export default function IntegrationPage() {
   };
 
   useEffect(() => {
-    fetchStatuses();
-  }, []);
+    if (canReadMail || canReadCalendar) {
+      fetchStatuses();
+    }
+  }, [canReadMail, canReadCalendar]);
+
+  const router = useRouter();
+
+  const hasShownError = React.useRef(false);
+  useEffect(() => {
+    if (!authLoading && user && !canReadMail && !canReadCalendar && !hasShownError.current) {
+      messageApi.error("Access Denied: You don't have the required permissions (Mail or Calendar) to manage integrations. Please contact your administrator.");
+      hasShownError.current = true;
+    }
+  }, [canReadMail, canReadCalendar, authLoading, user, messageApi]);
 
   const handleConnect = async (provider: CalendarProvider) => {
+    // Check for both mail and calendar permissions as integrations usually cover both
+    if (!canReadCalendar && !canReadMail) {
+      messageApi.error("Permission Denied: You don't have the required permissions (Mail or Calendar) to connect this integration.");
+      return;
+    }
+
+    if (!canReadCalendar) {
+      messageApi.error("Calendar Permission Required: You don't have permission to connect calendars.");
+      return;
+    }
     const token = localStorage.getItem('accessToken');
     if (!token) {
-      message.warning('Please log in to connect your calendar');
+      messageApi.warning('Please log in to connect your calendar');
       window.location.href = '/login?redirect=/integrations';
       return;
     }
 
     const anyConnected = Object.values(statuses).some(s => s?.connected);
     const currentProviderConnected = statuses[provider]?.connected;
-    
+
     if (currentProviderConnected) {
-      message.info(`${provider} is already connected`);
+      messageApi.info(`${provider} is already connected`);
       return;
     }
-    
+
     if (anyConnected) {
       Modal.confirm({
         title: 'Switch Calendar Provider?',
@@ -128,19 +156,23 @@ export default function IntegrationPage() {
       const url = await CalendarService.getConnectUrl(provider);
       window.location.href = url;
     } catch (error: any) {
-      message.error(error.message || `Failed to connect to ${provider}`);
+      messageApi.error(error.message || `Failed to connect to ${provider}`);
       setLoading(prev => ({ ...prev, [provider]: false }));
     }
   };
 
   const handleDisconnect = async (provider: CalendarProvider) => {
+    if (!canReadCalendar && !canReadMail) {
+      messageApi.error("Permission Denied: You don't have permission to manage integrations.");
+      return;
+    }
     setLoading(prev => ({ ...prev, [provider]: true }));
     try {
       await CalendarService.disconnect(provider);
-      message.success(`${provider} disconnected successfully`);
+      messageApi.success(`${provider} disconnected successfully`);
       await fetchStatuses();
     } catch (error: any) {
-      message.error(error.message || `Failed to disconnect ${provider}`);
+      messageApi.error(error.message || `Failed to disconnect ${provider}`);
     } finally {
       setLoading(prev => ({ ...prev, [provider]: false }));
     }
@@ -150,26 +182,36 @@ export default function IntegrationPage() {
   const filteredProviders = PROVIDERS.filter((provider) => {
     const matchesSearch = provider.name.toLowerCase().includes(searchText.toLowerCase()) || provider.description.toLowerCase().includes(searchText.toLowerCase());
     const isConnected = statuses[provider.key]?.connected;
-    
+
     if (activeTab === "connected") return matchesSearch && isConnected;
     if (activeTab === "disconnected") return matchesSearch && !isConnected;
     return matchesSearch;
   });
 
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <LoadingSpinner size="large" message="Loading permissions..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
-      <div style={{ 
-        margin: "0 -24px", 
-        background: "var(--bg-pure-white)", 
-        minHeight: "calc(100vh - 64px)" 
+      <div style={{
+        margin: "0 -24px",
+        background: "var(--bg-pure-white)",
+        minHeight: "calc(100vh - 64px)"
       }}>
         <TimeTrackingHeader
           icon={<Blocks size={20} color="#8b5cf6" />}
           title="Integrations"
           description="Connect your favorite tools to Zithspace to streamline your workflow and sync your schedule."
           extra={
-            <Input 
-              placeholder="Search integrations..." 
+            <Input
+              placeholder="Search integrations..."
               prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
               style={{ width: 280, borderRadius: 10, height: 38, background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}
               onChange={(e) => setSearchText(e.target.value)}
@@ -178,9 +220,9 @@ export default function IntegrationPage() {
         />
 
         <div style={{ padding: "0 32px 32px 32px" }}>
-          
-          <Tabs 
-            activeKey={activeTab} 
+
+          <Tabs
+            activeKey={activeTab}
             onChange={setActiveTab}
             style={{ marginBottom: 24 }}
             items={[
@@ -198,16 +240,16 @@ export default function IntegrationPage() {
                 const status = statuses[provider.key];
                 const isConnected = status?.connected;
                 const isLoading = loading[provider.key];
-                
+
                 // Check if ANY provider is connected
                 const anyProviderConnected = Object.values(statuses).some(s => s?.connected);
-                
+
                 return (
                   <Col xs={24} sm={12} md={8} lg={6} key={provider.key}>
                     <Card
                       hoverable
-                      style={{ 
-                        borderRadius: 12, 
+                      style={{
+                        borderRadius: 12,
                         border: '1px solid var(--border-color)',
                         background: 'var(--bg-pure-white)',
                         height: '100%',
@@ -243,8 +285,8 @@ export default function IntegrationPage() {
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                         {isConnected ? (
-                          <Dropdown 
-                            menu={{ items: mockConnectedUsers }} 
+                          <Dropdown
+                            menu={{ items: mockConnectedUsers }}
                             trigger={['click']}
                             placement="bottomLeft"
                           >
@@ -259,46 +301,47 @@ export default function IntegrationPage() {
                             No accounts
                           </Tag>
                         )}
-
-                        {isConnected ? (
-                          <Button
-                            onClick={() => handleDisconnect(provider.key)}
-                            loading={isLoading}
-                            size="small"
-                            style={{ 
-                              borderRadius: 6, 
-                              fontWeight: 500, 
-                              height: 28, 
-                              padding: '0 12px',
-                              background: 'rgba(239, 68, 68, 0.1)',
-                              color: '#ef4444',
-                              borderColor: 'transparent'
-                            }}
-                          >
-                            Disconnect
-                          </Button>
-                        ) : (
-                          <Button
-                            type={anyProviderConnected ? "default" : "primary"}
-                            icon={<Plug size={14} />}
-                            onClick={() => handleConnect(provider.key)}
-                            loading={isLoading}
-                            size="small"
-                            style={{ 
-                              borderRadius: 6, 
-                              fontWeight: 500, 
-                              background: anyProviderConnected ? 'var(--bg-primary)' : provider.color,
-                              color: anyProviderConnected ? 'var(--text-primary)' : '#fff',
-                              borderColor: anyProviderConnected ? 'var(--border-color)' : 'transparent',
-                              display: 'flex', 
-                              alignItems: 'center',
-                              height: 28,
-                              padding: '0 12px'
-                            }}
-                          >
-                            {anyProviderConnected ? 'Switch' : 'Connect'}
-                          </Button>
-                        )}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {isConnected ? (
+                            <Button
+                              onClick={() => handleDisconnect(provider.key)}
+                              loading={isLoading}
+                              size="small"
+                              style={{
+                                borderRadius: 6,
+                                fontWeight: 500,
+                                height: 28,
+                                padding: '0 12px',
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                color: '#ef4444',
+                                borderColor: 'transparent'
+                              }}
+                            >
+                              Disconnect
+                            </Button>
+                          ) : (
+                            <Button
+                              type={anyProviderConnected ? "default" : "primary"}
+                              icon={<Plug size={14} />}
+                              onClick={() => handleConnect(provider.key)}
+                              loading={isLoading}
+                              size="small"
+                              style={{
+                                borderRadius: 6,
+                                fontWeight: 500,
+                                background: anyProviderConnected ? 'var(--bg-primary)' : provider.color,
+                                color: anyProviderConnected ? 'var(--text-primary)' : '#fff',
+                                borderColor: anyProviderConnected ? 'var(--border-color)' : 'transparent',
+                                display: 'flex',
+                                alignItems: 'center',
+                                height: 28,
+                                padding: '0 12px'
+                              }}
+                            >
+                              {anyProviderConnected ? 'Switch' : 'Connect'}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </Card>
                   </Col>
@@ -307,7 +350,8 @@ export default function IntegrationPage() {
             </Row>
           </div>
         </div>
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .connected-users-hover:hover {
             background: var(--bg-primary);
           }

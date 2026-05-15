@@ -62,7 +62,12 @@ export default function ManageAttendancePage() {
   const { user, isLoading: authLoading } = useAuth();
   const { notification } = App.useApp();
   const router = useRouter();
-  const { canManageAttendance } = usePermission();
+  const { 
+    canManageAttendance, 
+    canCreateAttendance, 
+    canUpdateAttendance, 
+    canDeleteAttendance 
+  } = usePermission();
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -307,24 +312,29 @@ export default function ManageAttendancePage() {
       width: 120,
       render: (_, record) => (
         <Space>
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            style={{ color: '#1677ff' }}
-            onClick={() => {
-              setEditingRecord(record);
-              editForm.setFieldsValue({
-                date: dayjs(record.date),
-                clockIn: record.clockIn ? dayjs(record.clockIn) : null,
-                clockOut: record.clockOut ? dayjs(record.clockOut) : null,
-                status: record.status,
-              });
-              setIsEditModalVisible(true);
-            }}
-          />
-          <Popconfirm title="Delete record?" onConfirm={() => handleDelete(record.id)}>
-            <Button type="text" icon={<DeleteOutlined />} danger />
-          </Popconfirm>
+          {canUpdateAttendance && (
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              style={{ color: '#1677ff' }}
+              onClick={() => {
+                setEditingRecord(record);
+                editForm.setFieldsValue({
+                  date: dayjs(record.date),
+                  clockIn: record.clockIn ? dayjs(record.clockIn) : null,
+                  clockOut: record.clockOut ? dayjs(record.clockOut) : null,
+                  status: record.status,
+                });
+                setIsEditModalVisible(true);
+              }}
+            />
+          )}
+          {canDeleteAttendance && (
+            <Popconfirm title="Delete record?" onConfirm={() => handleDelete(record.id)}>
+              <Button type="text" icon={<DeleteOutlined />} danger />
+            </Popconfirm>
+          )}
+          {!canUpdateAttendance && !canDeleteAttendance && <Text type="secondary">-</Text>}
         </Space>
       ),
     },
@@ -360,14 +370,16 @@ export default function ManageAttendancePage() {
             </div>
           </Space>
 
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsAddModalVisible(true)}
-            style={{ height: '40px', borderRadius: '8px', fontWeight: 600, background: 'var(--premium-blue)', boxShadow: '0 4px 12px rgba(22, 119, 255, 0.2)' }}
-          >
-            Add Record
-          </Button>
+          {canCreateAttendance && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setIsAddModalVisible(true)}
+              style={{ height: '40px', borderRadius: '8px', fontWeight: 600, background: 'var(--premium-blue)', boxShadow: '0 4px 12px rgba(22, 119, 255, 0.2)' }}
+            >
+              Add Record
+            </Button>
+          )}
         </div>
 
         {/* Filters Panel */}

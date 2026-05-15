@@ -23,6 +23,7 @@ import {
   ConfigProvider,
   Divider,
   App,
+  theme as antdTheme,
 } from "antd";
 import {
   PlusOutlined,
@@ -61,6 +62,8 @@ import ReleasePlanService, {
 import { ProjectService } from "@/services/projectService";
 import { SprintCompletionModal } from "./sprint-completion";
 import { useSocket } from "@/providers/SocketProvider";
+import { usePermission } from "@/hooks/usePermission";
+import { useTheme } from "@/context/ThemeContext";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -72,6 +75,7 @@ const BulbDot = () => (
 );
 
 export default function SprintPlanComponent() {
+  const { theme } = useTheme();
   const router = useRouter();
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification({
@@ -79,6 +83,12 @@ export default function SprintPlanComponent() {
   });
   const { message } = App.useApp();
   const { socket, connected } = useSocket();
+  const { 
+    canCreateTicketPlan, 
+    canUpdateTicketPlan, 
+    canDeleteTicketPlan, 
+    canReadTicketPlan 
+  } = usePermission();
 
   // State management
   const [sprintPlans, setSprintPlans] = useState<ReleasePlan[]>([]);
@@ -147,30 +157,31 @@ export default function SprintPlanComponent() {
     try {
       setLoading(true);
       const activeFilters = filtersOverride || tableFilters;
-      // Only fetch sprint_plan type
+      
+      // Fetch plans respecting search and project, but NOT status
+      // This allows us to calculate accurate status counts in JS
       const data = await ReleasePlanService.getReleasePlans({
         type: "sprint_plan",
         search: activeFilters.search || undefined,
         projectId: activeFilters.projectId || undefined,
-        status: activeFilters.status || undefined,
+        // We omit status here to get the full set for metrics
+        limit: 100, // Increased limit to ensure we get all plans for the current view
       });
-      setSprintPlans(data?.data || []);
-      // Also fetch all plans for metrics if this is the first load or filters cleared
-      if (!activeFilters.search && !activeFilters.projectId && !activeFilters.status) {
-        setAllPlans(data?.data || []);
-      } else if (allPlans.length === 0) {
-        // Fallback for first load with filters
-        const allData = await ReleasePlanService.getReleasePlans({ type: "sprint_plan" });
-        setAllPlans(allData?.data || []);
+
+      const plans = data?.data || [];
+      setAllPlans(plans);
+
+      // Now filter by status for the display table
+      if (activeFilters.status) {
+        setSprintPlans(plans.filter(p => p.status === activeFilters.status));
+      } else {
+        setSprintPlans(plans);
       }
-
-
     } catch (error) {
       console.error("Failed to load sprint plans:", error);
       api.error({
         message: "Error",
         description: "Failed to load sprint plans",
-
       });
     } finally {
       setLoading(false);
@@ -311,7 +322,7 @@ export default function SprintPlanComponent() {
     } catch (error: any) {
       console.error("Failed to save Sprint Plan:", error);
       const errorMessage = error?.message || "Failed to save Sprint Plan";
-      
+
       if (errorMessage.includes("already exists")) {
         message.error(errorMessage);
       } else {
@@ -483,7 +494,7 @@ export default function SprintPlanComponent() {
       title: "Sprint",
       dataIndex: "name",
       key: "name",
-      width: 450,
+      width: 380,
       render: (text: string, record: ReleasePlan) => {
         const project = typeof record.project === 'object' ? record.project : null;
         const initial = (text || '?').charAt(0).toUpperCase();
@@ -681,14 +692,14 @@ export default function SprintPlanComponent() {
       width: 180,
       render: (_: any, record: ReleasePlan) => (
         <div className="sp-row-actions">
-          {record.status === 'planning' && (
+          {record.status === 'planning' && canUpdateTicketPlan && (
             <Popconfirm title="Activate this sprint?" onConfirm={() => handleStartSprint(record)}>
               <Tooltip title="Start sprint">
                 <Button type="text" size="small" icon={<PlayCircleOutlined style={{ color: '#10b981' }} />} className="sp-row-action-btn" />
               </Tooltip>
             </Popconfirm>
           )}
-          {record.status === 'active' && (
+          {record.status === 'active' && canUpdateTicketPlan && (
             <Tooltip title="Complete sprint">
               <Button type="text" size="small" icon={<CheckCircleOutlined style={{ color: '#3b82f6' }} />} onClick={() => handleCompleteSprint(record)} className="sp-row-action-btn" />
             </Tooltip>
@@ -696,14 +707,18 @@ export default function SprintPlanComponent() {
           <Tooltip title="View details">
             <Button type="text" size="small" icon={<EyeOutlined style={{ color: '#64748b' }} />} onClick={() => handleViewTickets(record)} className="sp-row-action-btn" />
           </Tooltip>
-          <Tooltip title="Edit">
-            <Button type="text" size="small" icon={<EditOutlined style={{ color: '#64748b' }} />} onClick={() => handleEdit(record)} className="sp-row-action-btn" />
-          </Tooltip>
-          <Popconfirm title="Delete this sprint?" onConfirm={() => handleDelete(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
-            <Tooltip title="Delete">
-              <Button type="text" size="small" danger icon={<DeleteOutlined />} className="sp-row-action-btn" />
+          {canUpdateTicketPlan && (
+            <Tooltip title="Edit">
+              <Button type="text" size="small" icon={<EditOutlined style={{ color: '#64748b' }} />} onClick={() => handleEdit(record)} className="sp-row-action-btn" />
             </Tooltip>
-          </Popconfirm>
+          )}
+          {canDeleteTicketPlan && (
+            <Popconfirm title="Delete this sprint?" onConfirm={() => handleDelete(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
+              <Tooltip title="Delete">
+                <Button type="text" size="small" danger icon={<DeleteOutlined />} className="sp-row-action-btn" />
+              </Tooltip>
+            </Popconfirm>
+          )}
         </div>
       ),
     },
@@ -719,28 +734,33 @@ export default function SprintPlanComponent() {
         top: 0,
         zIndex: 100,
         backdropFilter: 'blur(12px)',
-        padding: '10.5px 48px',
+        padding: '13px 48px 6px 48px',
         margin: '0 -24px 24px',
         marginBottom: 24
       }}>
-        <Row justify="space-between" align="middle" gutter={[16, 16]}>
-          <Col>
-            <Space size={16}>
-              <div className="sp-header-icon-box">
-                <CalendarOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
-              </div>
-              <Space split={<Divider type="vertical" className="sp-header-divider" />} size={16}>
+        <Row justify="space-between" align="middle" gutter={[16, 16]} className="sp-header-responsive-row">
+          <Col flex="1 1 auto" style={{ minWidth: 0 }} className="sp-header-left-col">
+            <div className="sp-header-main-flex">
+              <div className="sp-header-title-row">
+                <div className="sp-header-icon-box">
+                  <CalendarOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
+                </div>
                 <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
                   Sprint Cycles
                 </Title>
+              </div>
+
+              <Divider type="vertical" className="sp-header-divider" />
+              
+              <div className="sp-header-description-box">
                 <Text style={{ fontSize: 12, color: 'var(--text-slate-600)', fontWeight: 600 }}>
                   Engineered for continuous delivery and milestone tracking
                 </Text>
-              </Space>
-            </Space>
+              </div>
+            </div>
           </Col>
-          <Col>
-            <Space size={12}>
+          <Col flex="0 0 auto" className="sp-header-extra-col">
+            <Space size={12} className="sp-header-extra-space">
               <Button
                 icon={<ReloadOutlined spin={isRefreshing} />}
                 onClick={async () => {
@@ -756,20 +776,22 @@ export default function SprintPlanComponent() {
                 className="saas-button-item"
                 style={{ height: 36, fontWeight: 600 }}
               />
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setShowCreateModal(true)}
-                className="saas-button-item"
-                style={{
-                  height: 36,
-                  fontWeight: 700,
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                  border: 'none'
-                }}
-              >
-                Plan New Sprint
-              </Button>
+              {canCreateTicketPlan && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setShowCreateModal(true)}
+                  className="saas-button-item"
+                  style={{
+                    height: 36,
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    border: 'none'
+                  }}
+                >
+                  Plan New Sprint
+                </Button>
+              )}
             </Space>
           </Col>
         </Row>
@@ -1018,6 +1040,7 @@ export default function SprintPlanComponent() {
               style: { padding: '16px 24px', margin: 0 }
             }}
             className="sp-premium-table"
+            scroll={{ x: 1200 }}
             locale={{
               emptyText: (
                 <div className="sp-empty-state">
@@ -1093,7 +1116,20 @@ export default function SprintPlanComponent() {
           }}
         >
           <Form form={form} layout="vertical" requiredMark={false}>
-            <ConfigProvider theme={{ components: { Input: { borderRadius: 0 }, Select: { borderRadius: 0 }, DatePicker: { borderRadius: 0 } } }}>
+            <ConfigProvider 
+              theme={{ 
+                algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+                token: {
+                  colorBgContainer: theme === 'dark' ? '#161B22' : '#ffffff',
+                  colorText: theme === 'dark' ? '#F1F5F9' : '#1E293B',
+                },
+                components: { 
+                  Input: { borderRadius: 0 }, 
+                  Select: { borderRadius: 0 }, 
+                  DatePicker: { borderRadius: 0 } 
+                } 
+              }}
+            >
               {/* Section: Basic Information */}
               <div className="sp-form-section">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
@@ -1818,10 +1854,39 @@ export default function SprintPlanComponent() {
         .sp-header-divider {
           height: 18px;
           border-left: 1.5px solid var(--border-slate-200);
-          margin: 0;
+          margin: 0 !important;
         }
         [data-theme='dark'] .sp-header-divider {
           border-left-color: #1f2937 !important;
+        }
+        .sp-header-main-flex {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        .sp-header-title-row {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        @media (max-width: 836px) {
+          .sp-header-main-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 8px !important;
+          }
+          .sp-header-divider {
+            display: none !important;
+          }
+          .sp-header-extra-col {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            margin-top: 4px;
+          }
+          .sp-header-extra-space {
+            width: 100%;
+            justify-content: flex-start !important;
+          }
         }
 
         /* ── KPI Cards ─────────────────────────────────────────── */
@@ -2347,6 +2412,7 @@ export default function SprintPlanComponent() {
           text-transform: uppercase;
           letter-spacing: 0.06em;
           padding: 12px 16px;
+          white-space: nowrap;
           border-bottom: 1px solid var(--border-slate-200);
         }
         .sp-premium-table .ant-table-thead > tr > th::before { display: none; }

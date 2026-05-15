@@ -19,7 +19,10 @@ import {
   Typography,
   InputNumber,
   Badge,
-  Tooltip
+  Tooltip,
+  theme as antdTheme,
+  ConfigProvider,
+  Grid,
 } from 'antd';
 import {
   PlusOutlined,
@@ -45,6 +48,8 @@ import {
 } from "@ant-design/icons";
 import { SettingsService, DropdownOption, CreateDropdownOptionData, UpdateDropdownOptionData } from '@/services/settingsService';
 import { useSocket } from "@/providers/SocketProvider";
+import { usePermission } from "@/hooks/usePermission";
+import { useTheme } from "@/context/ThemeContext";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -54,6 +59,7 @@ interface DropdownManagerProps {
 }
 
 export default function DropdownManager({ onDataChange }: DropdownManagerProps) {
+  const { theme } = useTheme();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
@@ -63,6 +69,8 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'hidden'>('all');
   const { socket, connected } = useSocket();
+  const { canCreateTicketSetting, canUpdateTicketSetting, canDeleteTicketSetting } = usePermission();
+  const screens = Grid.useBreakpoint();
 
   // State for dropdown options grouped by type
   const [dropdownOptions, setDropdownOptions] = useState<Record<string, DropdownOption[]>>({});
@@ -118,6 +126,10 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   };
 
   const handleCreate = () => {
+    if (!canCreateTicketSetting) {
+      message.error("You don't have permission to create configurations");
+      return;
+    }
     setEditingOption(null);
     form.resetFields();
     form.setFieldsValue({ type: activeTab, isActive: true, order: getNextOrder(activeTab) });
@@ -125,6 +137,10 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   };
 
   const handleEdit = (option: DropdownOption) => {
+    if (!canUpdateTicketSetting) {
+      message.error("You don't have permission to update configurations");
+      return;
+    }
     setEditingOption(option);
     form.setFieldsValue({
       ...option,
@@ -162,214 +178,6 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
       setLoading(false);
     }
   };
-
-  // const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
-  //   try {
-  //     setLoading(true);
-  //     const currentOptions = dropdownOptions[option.type] || [];
-  //     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-
-  //     if (direction === 'up' && currentIndex > 0) {
-  //       const newOrder = currentOptions[currentIndex - 1].order;
-  //       await SettingsService.updateDropdownOption(option.id, { order: newOrder });
-  //     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
-  //       const newOrder = currentOptions[currentIndex + 1].order;
-  //       await SettingsService.updateDropdownOption(option.id, { order: newOrder });
-  //     }
-
-  //     message.success('Sequence updated');
-  //     await loadDropdownOptions();
-  //     onDataChange?.();
-  //   } catch (error) {
-  //     console.error('Error updating order:', error);
-  //     message.error('Failed to update sequence');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-
-
-
-
-  // const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
-  //   try {
-  //     setLoading(true);
-  //     const currentOptions = [...(dropdownOptions[option.type] || [])];
-  //     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-
-  //     if (direction === 'up' && currentIndex > 0) {
-  //       const prevOption = currentOptions[currentIndex - 1];
-
-  //       // ✅ Store the orders properly
-  //       const currentOrder = option.order;
-  //       const prevOrder = prevOption.order;
-
-  //       console.log('Swapping orders:', { currentOrder, prevOrder }); // Debug
-
-  //       // Swap orders - current gets prev's order, prev gets current's order
-  //       await SettingsService.updateDropdownOption(option.id, { 
-  //         order: prevOrder,  // Current item gets PREV item's order
-  //         value: option.value,
-  //         label: option.label,
-  //         isActive: option.isActive,
-  //         description: option.description,
-  //         color: option.color
-  //       });
-  //      const result1 = await SettingsService.updateDropdownOption(option.id, { 
-  //   order: prevOrder,
-  //   value: option.value,
-  //   label: option.label,
-  //   isActive: option.isActive,
-  //   description: option.description,
-  //   color: option.color
-  // });
-  // console.log('RESULT 1 - New order:', result1.order); // 👈 ADD THIS
-
-  //       await SettingsService.updateDropdownOption(prevOption.id, { 
-  //         order: currentOrder,  // PREV item gets CURRENT item's order
-  //         value: prevOption.value,
-  //         label: prevOption.label,
-  //         isActive: prevOption.isActive,
-  //         description: prevOption.description,
-  //         color: prevOption.color
-  //       });
-  //       const result2 = await SettingsService.updateDropdownOption(prevOption.id, { 
-  //   order: currentOrder,
-  //   value: prevOption.value,
-  //   label: prevOption.label,
-  //   isActive: prevOption.isActive,
-  //   description: prevOption.description,
-  //   color: prevOption.color
-  // });
-  // console.log('RESULT 2 - New order:', result2.order); // 👈 ADD THIS
-
-  //     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
-  //       const nextOption = currentOptions[currentIndex + 1];
-
-  //       // ✅ Store the orders properly
-  //       const currentOrder = option.order;
-  //       const nextOrder = nextOption.order;
-
-  //       console.log('Swapping orders:', { currentOrder, nextOrder }); // Debug
-
-  //       // Swap orders - current gets next's order, next gets current's order
-  //       await SettingsService.updateDropdownOption(option.id, { 
-  //         order: nextOrder,  // Current item gets NEXT item's order
-  //         value: option.value,
-  //         label: option.label,
-  //         isActive: option.isActive,
-  //         description: option.description,
-  //         color: option.color
-  //       });
-
-  //       await SettingsService.updateDropdownOption(nextOption.id, { 
-  //         order: currentOrder,  // NEXT item gets CURRENT item's order
-  //         value: nextOption.value,
-  //         label: nextOption.label,
-  //         isActive: nextOption.isActive,
-  //         description: nextOption.description,
-  //         color: nextOption.color
-  //       });
-  //     }
-
-  //     // ✅ Force refresh to see changes
-  //     await loadDropdownOptions();
-  //     message.success('Order updated successfully');
-
-  //   } catch (error) {
-  //     console.error('Error:', error);
-  //     message.error('Failed to update order');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-
-
-
-
-  // const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
-  //   try {
-  //     setLoading(true);
-  //     const currentOptions = [...(dropdownOptions[option.type] || [])];
-  //     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
-
-  //     if (direction === 'up' && currentIndex > 0) {
-  //       const prevOption = currentOptions[currentIndex - 1];
-
-  //       // Swap orders - Update BOTH items
-  //       await SettingsService.updateDropdownOption(option.id, { 
-  //         order: prevOption.order,
-  //         value: option.value,
-  //         label: option.label,
-  //         isActive: option.isActive
-  //       });
-
-  //       await SettingsService.updateDropdownOption(prevOption.id, { 
-  //         order: option.order,
-  //         value: prevOption.value,
-  //         label: prevOption.label,
-  //         isActive: prevOption.isActive
-  //       });
-
-  //       // Update UI immediately
-  //       const newOptions = [...currentOptions];
-  //       newOptions[currentIndex - 1] = { ...newOptions[currentIndex - 1], order: option.order };
-  //       newOptions[currentIndex] = { ...newOptions[currentIndex], order: prevOption.order };
-
-  //       setDropdownOptions({
-  //         ...dropdownOptions,
-  //         [option.type]: newOptions
-  //       });
-
-  //       message.success('Order updated');
-
-  //     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
-  //       const nextOption = currentOptions[currentIndex + 1];
-
-  //       await SettingsService.updateDropdownOption(option.id, { 
-  //         order: nextOption.order,
-  //         value: option.value,
-  //         label: option.label,
-  //         isActive: option.isActive
-  //       });
-
-  //       await SettingsService.updateDropdownOption(nextOption.id, { 
-  //         order: option.order,
-  //         value: nextOption.value,
-  //         label: nextOption.label,
-  //         isActive: nextOption.isActive
-  //       });
-
-  //       // Update UI immediately
-  //       const newOptions = [...currentOptions];
-  //       newOptions[currentIndex] = { ...newOptions[currentIndex], order: nextOption.order };
-  //       newOptions[currentIndex + 1] = { ...newOptions[currentIndex + 1], order: option.order };
-
-  //       setDropdownOptions({
-  //         ...dropdownOptions,
-  //         [option.type]: newOptions
-  //       });
-
-  //       message.success('Order updated');
-  //     }
-
-  //     // Refresh from database in background
-  //     setTimeout(async () => {
-  //       await loadDropdownOptions();
-  //     }, 500);
-
-  //   } catch (error) {
-  //     console.error('Error:', error);
-  //     message.error('Failed to update order');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-
-
 
 
   const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
@@ -646,6 +454,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           checked={isActive}
           onChange={() => handleToggleStatus(record)}
           loading={loading}
+          disabled={!canUpdateTicketSetting}
           className="premium-switch"
         />
       )
@@ -662,6 +471,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               type="text"
               icon={<EditOutlined />}
               onClick={() => handleEdit(record)}
+              disabled={!canUpdateTicketSetting}
               className="action-btn-edit"
             />
           </Tooltip>
@@ -678,6 +488,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               type="text"
               icon={<DeleteOutlined />}
               danger
+              disabled={!canDeleteTicketSetting}
               className="action-btn-delete"
             />
           </Popconfirm>
@@ -692,7 +503,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}
-        tabPosition="left"
+        tabPosition={!screens.lg ? 'top' : 'left'}
         className="manager-tabs"
         style={{ flex: 1, height: '100%' }}
         items={dropdownTypes.map(type => ({
@@ -816,7 +627,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                     </div>
                     <div className="dm-hero-right">
                       <Space size={8}>
-                        {type.key === 'status' && (
+                        {type.key === 'status' && canUpdateTicketSetting && (
                           <Button
                             icon={<ThunderboltOutlined />}
                             onClick={handleStandardizeLifecycles}
@@ -826,18 +637,20 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                             Synchronize
                           </Button>
                         )}
-                        <Button
-                          type="primary"
-                          icon={<PlusOutlined />}
-                          onClick={handleCreate}
-                          className="dm-primary-btn"
-                          style={{
-                            background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}d9 100%)`,
-                            boxShadow: `0 6px 14px ${type.color}40`,
-                          }}
-                        >
-                          New Definition
-                        </Button>
+                        {canCreateTicketSetting && (
+                          <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            onClick={handleCreate}
+                            className="dm-primary-btn"
+                            style={{
+                              background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}d9 100%)`,
+                              boxShadow: `0 6px 14px ${type.color}40`,
+                            }}
+                          >
+                            New Definition
+                          </Button>
+                        )}
                       </Space>
                     </div>
                   </div>
@@ -902,7 +715,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                     pagination={false}
                     size="middle"
                     className="premium-table workstation-grid"
-                    scroll={{ y: 'calc(100vh - 420px)' }}
+                    scroll={{ x: 800, y: screens.lg ? 'calc(100vh - 420px)' : 'calc(100vh - 520px)' }}
                     locale={{
                       emptyText: (
                         <div className="dm-empty-state">
@@ -919,7 +732,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                               ? 'Try a different search term or clear your filters.'
                               : `Create your first ${type.label.toLowerCase().replace(/s$/, '')} definition to get started.`}
                           </div>
-                          {!(searchQuery || filterStatus !== 'all') && (
+                          {canCreateTicketSetting && (
                             <Button
                               type="primary"
                               icon={<PlusOutlined />}
@@ -1035,6 +848,15 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         }
       >
         <div className="dm-drawer-body">
+          <ConfigProvider
+            theme={{
+              algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+              token: {
+                colorBgContainer: theme === 'dark' ? '#161B22' : '#ffffff',
+                colorText: theme === 'dark' ? '#F1F5F9' : '#1E293B',
+              }
+            }}
+          >
           <Form
             form={form}
             layout="vertical"
@@ -1165,6 +987,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               </Form.Item>
             </div>
           </Form>
+          </ConfigProvider>
         </div>
       </Drawer>
 
@@ -1177,17 +1000,36 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           height: 100% !important;
         }
 
-        /* ── Left sidebar nav ─────────────────────────────────────── */
-        .manager-tabs .ant-tabs-nav {
+        /* ── Desktop Left Sidebar Nav ──────────────────────────────────────── */
+        .manager-tabs.ant-tabs-left > .ant-tabs-nav {
           width: 264px;
           background: linear-gradient(180deg, #fafbff 0%, var(--bg-pure-white) 100%);
           margin-bottom: 0 !important;
           border-right: 1px solid var(--border-slate-100);
           padding: 20px 10px;
         }
-        [data-theme='dark'] .manager-tabs .ant-tabs-nav {
+        [data-theme='dark'] .manager-tabs.ant-tabs-left > .ant-tabs-nav {
           background: linear-gradient(180deg, #0a0e17 0%, #0d1117 100%) !important;
           border-right-color: #1f2937 !important;
+        }
+        
+        /* ── Mobile/Tablet Top Nav ─────────────────────────────────────────── */
+        .manager-tabs.ant-tabs-top > .ant-tabs-nav {
+          width: 100%;
+          background: linear-gradient(180deg, #fafbff 0%, var(--bg-pure-white) 100%);
+          margin-bottom: 0 !important;
+          border-bottom: 1px solid var(--border-slate-100);
+          padding: 10px 16px 0;
+        }
+        [data-theme='dark'] .manager-tabs.ant-tabs-top > .ant-tabs-nav {
+          background: linear-gradient(180deg, #0a0e17 0%, #0d1117 100%) !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .manager-tabs.ant-tabs-top .tab-label-container {
+          width: auto;
+        }
+        .manager-tabs.ant-tabs-top .tab-subtitle-count span:last-child {
+          display: none; /* Hide "Definitions" text to save space on mobile */
         }
 
         .manager-tabs .ant-tabs-tab {
@@ -1198,9 +1040,13 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           border: 1px solid transparent !important;
           position: relative;
         }
-        .manager-tabs .ant-tabs-tab:hover {
+        .manager-tabs.ant-tabs-left .ant-tabs-tab:hover {
           background: rgba(15, 23, 42, 0.03) !important;
           transform: translateX(2px);
+        }
+        .manager-tabs.ant-tabs-top .ant-tabs-tab:hover {
+          background: rgba(15, 23, 42, 0.03) !important;
+          transform: translateY(-2px);
         }
         [data-theme='dark'] .manager-tabs .ant-tabs-tab:hover {
           background: rgba(255, 255, 255, 0.04) !important;
@@ -1210,7 +1056,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           border-color: rgba(59, 130, 246, 0.18) !important;
           box-shadow: 0 6px 20px rgba(59, 130, 246, 0.08), 0 1px 0 rgba(255,255,255,0.6) inset !important;
         }
-        .manager-tabs .ant-tabs-tab-active::before {
+        .manager-tabs.ant-tabs-left .ant-tabs-tab-active::before {
           content: '';
           position: absolute;
           left: -10px;
@@ -1287,6 +1133,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           overflow: hidden;
           margin-bottom: 12px;
           backdrop-filter: blur(8px);
+          flex-shrink: 0;
         }
         [data-theme='dark'] .dm-hero {
           background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%) !important;
@@ -1465,6 +1312,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           gap: 16px;
           margin-bottom: 16px;
           flex-wrap: wrap;
+          flex-shrink: 0;
         }
         .dm-search-box {
           display: flex;

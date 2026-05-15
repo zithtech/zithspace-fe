@@ -39,6 +39,8 @@ import {
 import { Sparkles } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
+import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 
@@ -82,6 +84,10 @@ const Sparkline = ({ values, color }: { values: number[]; color: string }) => {
 };
 
 export default function ProposalsListPage() {
+  const { user, isLoading } = useAuth();
+  const { canReadProposal, canCreateProposal, canUpdateProposal, canDeleteProposal } = usePermission();
+  const router = useRouter();
+
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
@@ -90,8 +96,14 @@ export default function ProposalsListPage() {
   const [creatorFilter, setCreatorFilter] = useState<string | null>(null);
   const [view, setView] = useState<'list' | 'grid'>('list');
 
-  const router = useRouter();
   const [messageApi, messageHolder] = message.useMessage();
+
+  // ─── Route Guard ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isLoading && user && !canReadProposal) {
+      router.push("/dashboard");
+    }
+  }, [user, isLoading, canReadProposal, router]);
 
   const fetchProposals = async () => {
     try {
@@ -431,34 +443,40 @@ export default function ProposalsListPage() {
           <Tooltip title="View">
             <Button type="text" className="prop-icon-btn" icon={<EyeOutlined />} onClick={() => router.push(`/proposals/${record.id}`)} />
           </Tooltip>
-          <Tooltip title="Edit">
-            <Button type="text" className="prop-icon-btn" icon={<EditOutlined />} onClick={() => router.push(`/proposals/builder?id=${record.id}`)} />
-          </Tooltip>
-          <Dropdown
-            menu={{
-              items: [
-                { key: 'pdf', label: 'Export PDF', icon: <FilePdfOutlined style={{ color: '#ef4444' }} /> },
-                { key: 'word', label: 'Export Word', icon: <FileWordOutlined style={{ color: '#2563eb' }} /> },
-              ],
-              onClick: ({ key }) => {
-                if (key === 'pdf') handleExport(record.id, 'pdf');
-                else if (key === 'word') handleExport(record.id, 'word');
-              },
-            }}
-            trigger={['click']}
-          >
-            <Button type="text" className="prop-icon-btn" icon={<DownloadOutlined />} />
-          </Dropdown>
-          <Popconfirm
-            title="Delete Proposal"
-            description="Are you sure you want to delete this proposal?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Yes, Delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-          >
-            <Button type="text" className="prop-icon-btn prop-icon-btn--danger" icon={<DeleteOutlined />} />
-          </Popconfirm>
+          {canUpdateProposal && (
+            <Tooltip title="Edit">
+              <Button type="text" className="prop-icon-btn" icon={<EditOutlined />} onClick={() => router.push(`/proposals/builder?id=${record.id}`)} />
+            </Tooltip>
+          )}
+          {canUpdateProposal && (
+            <Dropdown
+              menu={{
+                items: [
+                  { key: 'pdf', label: 'Export PDF', icon: <FilePdfOutlined style={{ color: '#ef4444' }} /> },
+                  { key: 'word', label: 'Export Word', icon: <FileWordOutlined style={{ color: '#2563eb' }} /> },
+                ],
+                onClick: ({ key }) => {
+                  if (key === 'pdf') handleExport(record.id, 'pdf');
+                  else if (key === 'word') handleExport(record.id, 'word');
+                },
+              }}
+              trigger={['click']}
+            >
+              <Button type="text" className="prop-icon-btn" icon={<DownloadOutlined />} />
+            </Dropdown>
+          )}
+          {canDeleteProposal && (
+            <Popconfirm
+              title="Delete Proposal"
+              description="Are you sure you want to delete this proposal?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Yes, Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Button type="text" className="prop-icon-btn prop-icon-btn--danger" icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -491,6 +509,7 @@ export default function ProposalsListPage() {
             >
               Refresh
             </Button>
+            {canCreateProposal && (
             <Button
               type="primary"
               className="prop-cta-primary"
@@ -499,6 +518,7 @@ export default function ProposalsListPage() {
             >
               New Proposal
             </Button>
+            )}
           </div>
         </div>
 
@@ -674,15 +694,17 @@ export default function ProposalsListPage() {
                     </div>
                     <div className="prop-empty__title">No proposals yet</div>
                     <div className="prop-empty__sub">Start by creating your first premium proposal.</div>
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      className="prop-cta-primary"
-                      onClick={() => router.push('/proposals/builder')}
-                      style={{ marginTop: 14 }}
-                    >
-                      New Proposal
-                    </Button>
+                    {canCreateProposal && (
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        className="prop-cta-primary"
+                        onClick={() => router.push('/proposals/builder')}
+                        style={{ marginTop: 14 }}
+                      >
+                        New Proposal
+                      </Button>
+                    )}
                   </div>
                 ),
               }}
@@ -698,15 +720,17 @@ export default function ProposalsListPage() {
                   </div>
                   <div className="prop-empty__title">No proposals yet</div>
                   <div className="prop-empty__sub">Start by creating your first premium proposal.</div>
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    className="prop-cta-primary"
-                    onClick={() => router.push('/proposals/builder')}
-                    style={{ marginTop: 14 }}
-                  >
-                    New Proposal
-                  </Button>
+                  {canCreateProposal && (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      className="prop-cta-primary"
+                      onClick={() => router.push('/proposals/builder')}
+                      style={{ marginTop: 14 }}
+                    >
+                      New Proposal
+                    </Button>
+                  )}
                 </div>
               ) : (
                 filteredProposals.map((p) => (

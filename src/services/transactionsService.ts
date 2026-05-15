@@ -156,4 +156,46 @@ export class TransactionsService {
       throw new Error('Failed to fetch transaction summary');
     }
   }
+
+  /**
+   * Get trashed transactions
+   */
+  static async getTrashTransactions(filters: { page?: number; limit?: number; search?: string } = {}): Promise<PaginatedResponse<Transaction>> {
+    try {
+      return await apiUtils.getPaginated<Transaction>('/api/transactions/trash/all', filters);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to fetch trash transactions');
+    }
+  }
+
+  /**
+   * Restore a trashed transaction
+   */
+  static async restoreTransaction(id: string): Promise<void> {
+    try {
+      await api.post(`/api/transactions/${id}/restore`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to restore transaction');
+    }
+  }
+
+  /**
+   * Permanently delete a trashed transaction
+   */
+  static async permanentlyDeleteTransaction(id: string): Promise<void> {
+    try {
+      await api.delete(`/api/transactions/${id}/permanent`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to permanently delete transaction');
+    }
+  }
 }

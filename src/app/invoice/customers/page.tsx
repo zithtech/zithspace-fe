@@ -56,8 +56,12 @@ type StatusFilter = "all" | "active" | "inactive";
 
 export default function InvoiceproCustomerPage() {
   const router = useRouter();
-  const { canReadInvoice, canCreateInvoice, canUpdateInvoice, canDeleteInvoice } =
-    usePermission();
+  const {
+    canReadInvoiceCustomer,
+    canCreateInvoiceCustomer,
+    canUpdateInvoiceCustomer,
+    canDeleteInvoiceCustomer
+  } = usePermission();
   const { isLoading: authLoading } = useAuth();
 
   const { data: customersData, isLoading } = useCustomers();
@@ -82,10 +86,10 @@ export default function InvoiceproCustomerPage() {
 
   // Route guard
   useEffect(() => {
-    if (!authLoading && !canReadInvoice) {
-      router.push("/dashboard");
+    if (!authLoading && !canReadInvoiceCustomer) {
+      router.push("/invoice/invoices");
     }
-  }, [authLoading, canReadInvoice, router]);
+  }, [authLoading, canReadInvoiceCustomer, router]);
 
   const counts = useMemo(() => {
     const all = customers.length;
@@ -418,8 +422,6 @@ export default function InvoiceproCustomerPage() {
       width: 60,
       align: "center" as const,
       render: (_: any, record: ServiceCustomer) => {
-        if (!canUpdateInvoice && !canDeleteInvoice && !canReadInvoice) return null;
-
         const menuItems: any[] = [
           {
             key: "view",
@@ -430,8 +432,8 @@ export default function InvoiceproCustomerPage() {
               setViewDrawerVisible(true);
             },
           },
-          { type: "divider" },
-          canUpdateInvoice
+          (canUpdateInvoiceCustomer || canDeleteInvoiceCustomer) && { type: "divider" },
+          canUpdateInvoiceCustomer
             ? {
                 key: "status_toggle",
                 icon: record.isActive ? <Ban size={14} /> : <ShieldCheck size={14} />,
@@ -451,7 +453,7 @@ export default function InvoiceproCustomerPage() {
                 },
               }
             : null,
-          canUpdateInvoice
+          canUpdateInvoiceCustomer
             ? {
                 key: "edit",
                 icon: <Edit2 size={14} />,
@@ -459,10 +461,10 @@ export default function InvoiceproCustomerPage() {
                 onClick: () => handleEdit(record),
               }
             : null,
-          canDeleteInvoice
+          canDeleteInvoiceCustomer
             ? { type: "divider" }
             : null,
-          canDeleteInvoice
+          canDeleteInvoiceCustomer
             ? {
                 key: "delete",
                 danger: true,
@@ -500,7 +502,7 @@ export default function InvoiceproCustomerPage() {
   ];
 
   if (authLoading) return <MainLayout><Spin /></MainLayout>;
-  if (!canReadInvoice) return null;
+  if (!canReadInvoiceCustomer) return null;
 
   return (
     <MainLayout>
@@ -561,7 +563,7 @@ export default function InvoiceproCustomerPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              {canCreateInvoice && (
+              {canCreateInvoiceCustomer && (
                 <>
                   <Button
                     icon={<Import size={14} />}
@@ -799,7 +801,7 @@ export default function InvoiceproCustomerPage() {
                     ? "Try adjusting your search or filter"
                     : "Get started by adding your first customer."}
                 </Text>
-                {!search && statusFilter === "all" && canCreateInvoice && (
+                {!search && statusFilter === "all" && canCreateInvoiceCustomer && (
                   <Button
                     type="primary"
                     icon={<Plus size={14} />}
@@ -937,7 +939,7 @@ export default function InvoiceproCustomerPage() {
                       style={{ borderTop: "1px solid var(--border-color)" }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {canUpdateInvoice && (
+                      {canUpdateInvoiceCustomer && (
                         <Tooltip title="Edit customer">
                           <button
                             type="button"
@@ -957,7 +959,7 @@ export default function InvoiceproCustomerPage() {
                           </button>
                         </Tooltip>
                       )}
-                      {canUpdateInvoice && (
+                      {canUpdateInvoiceCustomer && (
                         <Tooltip
                           title={
                             customer.isActive ? "Deactivate" : "Activate"
@@ -1004,7 +1006,7 @@ export default function InvoiceproCustomerPage() {
                           </button>
                         </Tooltip>
                       )}
-                      {canDeleteInvoice && (
+                      {canDeleteInvoiceCustomer && (
                         <Tooltip title="Delete customer">
                           <button
                             type="button"

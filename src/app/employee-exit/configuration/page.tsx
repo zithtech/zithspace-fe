@@ -2,7 +2,10 @@
 
 import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
-import { Typography, Tabs, Space } from 'antd';
+import { Typography, Tabs, Space, Spin } from 'antd';
+import { usePermission } from '@/hooks/usePermission';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 import { 
   Settings2, 
   Clock, 
@@ -18,7 +21,26 @@ import ReasonForExitPage from '@/components/employee-exit/configuration/ReasonFo
 const { Title, Text, Paragraph } = Typography;
 
 export default function EmployeeExitConfigurationPage() {
+  const { isLoading: authLoading } = useAuth();
+  const { canReadExitConfig } = usePermission();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('notice-period-policy');
+
+  React.useEffect(() => {
+    if (!authLoading && !canReadExitConfig) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadExitConfig, router]);
+
+  if (authLoading || !canReadExitConfig) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 100, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>

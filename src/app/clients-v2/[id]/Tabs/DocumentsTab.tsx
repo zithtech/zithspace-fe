@@ -40,6 +40,7 @@ import {
   Copy,
 } from "lucide-react";
 import { api } from "@/lib/axios";
+import { usePermission } from "@/hooks/usePermission";
 
 const { Option } = Select;
 
@@ -74,6 +75,7 @@ export default function DocumentsTab({
   documents,
   onRefresh,
 }: Props) {
+  const { canUpdateClient, canDeleteClient } = usePermission();
   const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -370,23 +372,25 @@ export default function DocumentsTab({
             />
           </Tooltip>
 
-          <Popconfirm
-            title="Purge Document"
-            description="Are you sure you want to permanently delete this document archive?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Purge"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-          >
-            <Tooltip title="Delete Archive">
-              <Button
-                type="text"
-                danger
-                className="premium-action-btn"
-                icon={<Trash2 size={16} />}
-              />
-            </Tooltip>
-          </Popconfirm>
+          {canDeleteClient && (
+            <Popconfirm
+              title="Purge Document"
+              description="Are you sure you want to permanently delete this document archive?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Purge"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="Delete Archive">
+                <Button
+                  type="text"
+                  danger
+                  className="premium-action-btn"
+                  icon={<Trash2 size={16} />}
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },

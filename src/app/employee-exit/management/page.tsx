@@ -40,6 +40,8 @@ import {
 
 // Components
 import MainLayout from '@/components/layout/MainLayout';
+import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 
 // Services
@@ -89,6 +91,8 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
 
 export default function EmployeeExitManagementPage() {
   const router = useRouter();
+  const { user, isLoading } = useAuth();
+  const { canManageExits } = usePermission();
   const [notificationApi, notificationContextHolder] = notification.useNotification();
   const [form] = Form.useForm();
 
@@ -151,9 +155,18 @@ export default function EmployeeExitManagementPage() {
     }
   }, [notificationApi]);
 
+  // ─── Route Guard ────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!isLoading && user && !canManageExits) {
+      router.push("/dashboard");
+    }
+  }, [user, isLoading, canManageExits, router]);
+
+  useEffect(() => {
+    if (canManageExits) {
+      fetchData();
+    }
+  }, [fetchData, canManageExits]);
 
   useEffect(() => {
     if (!searchText) {

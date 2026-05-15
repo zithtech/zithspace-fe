@@ -593,7 +593,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                         backgroundClip: 'text',
                     }}
                 >
-                    ZithSpace
+                    Zukvo
                 </span>
             </footer>
 

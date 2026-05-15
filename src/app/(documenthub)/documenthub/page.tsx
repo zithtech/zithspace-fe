@@ -699,9 +699,8 @@ const HubCard: React.FC<{
             </span>
           </div>
           <div
-            className={`flex items-center gap-0.5 transition-opacity ${
-              isRail ? '' : 'opacity-0 group-hover:opacity-100'
-            }`}
+            className={`flex items-center gap-0.5 transition-opacity ${isRail ? '' : 'opacity-0 group-hover:opacity-100'
+              }`}
           >
             <Tooltip title="Share">
               <button
@@ -1265,12 +1264,12 @@ const DocumentHubPage = () => {
   );
   const lastUpdated = documentHubs.length
     ? formatDistanceToNow(
-        documentHubs.reduce(
-          (acc, h) => (new Date(h.updatedAt) > acc ? new Date(h.updatedAt) : acc),
-          new Date(0),
-        ),
-        { addSuffix: true },
-      )
+      documentHubs.reduce(
+        (acc, h) => (new Date(h.updatedAt) > acc ? new Date(h.updatedAt) : acc),
+        new Date(0),
+      ),
+      { addSuffix: true },
+    )
     : null;
 
   const sortedKey = sortedInfo.key;
@@ -1669,9 +1668,9 @@ const DocumentHubPage = () => {
     const showRecent = railVisibility.recent && recentHubs.length > 0;
     if (!showPinned && !showRecent) return null;
 
-    // Cap rail card counts based on viewport so the rails don't become long
-    // horizontal scrolls on small screens. Desktop 5, tablet 4, mobile 3.
-    const railCap = isMobile ? 3 : isTablet ? 4 : 5;
+    // Cap rail card counts to 5. We now use a responsive auto-fit grid so cards 
+    // wrap gracefully on small screens without being hidden.
+    const railCap = 5;
     const visiblePinned = pinnedHubs.slice(0, railCap);
     const visibleRecent = recentHubs.slice(0, railCap);
 
@@ -1860,12 +1859,12 @@ const DocumentHubPage = () => {
 
   const renderTable = () => (
     <div
-      className="overflow-hidden dh-table-shell"
+      className="dh-table-shell"
       data-density={density}
       style={{
         borderRadius: 16,
-        border: '1px solid var(--border-slate-200)',
         background: 'var(--bg-pure-white)',
+        border: 'none',
       }}
     >
       <Table
@@ -1887,7 +1886,7 @@ const DocumentHubPage = () => {
         size="small"
         className="premium-table dh-table"
         scroll={{ x: 1300 }}
-        sticky={{ offsetHeader: 0 }}
+        sticky={{ offsetHeader: 142 }}
         locale={{ emptyText: renderEmpty() }}
         components={{
           header: { cell: ResizableHeaderCell },
@@ -1963,52 +1962,69 @@ const DocumentHubPage = () => {
       }}>
         {/* === #1 Hero Header (Team-View pattern + live pulse) === */}
         <div
-          className="dh-hero flex flex-wrap justify-between items-center gap-4 flex-shrink-0"
+          className="dh-hero sticky top-0 flex flex-wrap justify-between items-center gap-y-3 gap-x-4 flex-shrink-0"
           style={{
-            margin: '0 -24px 16px -24px',
-            padding: '10px 32px',
-            background: 'var(--bg-pure-white)',
+            margin: '0 -24px 0 -24px',
+            padding: '8px 32px',
+            minHeight: 58,
+            background: 'var(--bg-pure-white) !important',
             borderBottom: '1px solid var(--border-slate-200)',
-            backdropFilter: 'blur(12px)',
+            zIndex: 110,
           }}
         >
-          <div className="flex items-center gap-3 min-w-0">
+          {/* Row 1: Hub name and content */}
+          <div className="dh-hero-section-title flex items-center gap-3 min-w-0">
             <div className="dh-hero-icon-box">
               <FileZipOutlined style={{ fontSize: 18, color: '#3B82F6' }} />
             </div>
-            <div className="flex flex-row min-w-0 gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <h1
-                  className="text-[18px] font-extrabold m-0 tracking-tight leading-tight"
-                  style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}
-                >
-                  Document Hub
-                </h1>
-                <Divider type="vertical" className="hidden sm:block" style={{ height: 18, margin: 0, backgroundColor: 'var(--border-slate-200)' }} />
-                <p className="m-0 text-[12.5px] hidden sm:block font-medium" style={{ color: 'var(--text-slate-600)' }}>
-                  Wiki, specs, runbooks — all linked to the work they belong to
-                </p>
-              </div>
-              {/* Live pulse line */}
-              <div className="flex items-center gap-2 mt-1 text-[11px]">
-                <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-slate-500)' }}>
-                  <span className="dh-pulse-dot" />
-                  <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{documentHubs.length}</span> hubs
-                </span>
-                <span style={{ color: 'var(--text-slate-300)' }}>·</span>
-                <span style={{ color: 'var(--text-slate-500)' }}>
-                  <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{totalDocCount}</span> docs
-                </span>
-                {lastUpdated && (
-                  <>
-                    <span style={{ color: 'var(--text-slate-300)' }}>·</span>
-                    <span style={{ color: 'var(--text-slate-500)' }}>Updated {lastUpdated}</span>
-                  </>
-                )}
-              </div>
+            <div className="dh-hero-title-content flex items-center gap-3 min-w-0">
+              <h1
+                className="text-[18px] font-extrabold m-0 tracking-tight leading-tight"
+                style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}
+              >
+                Document Hub
+              </h1>
+              <Divider type="vertical" className="dh-hero-divider hidden sm:block" style={{ height: 18, margin: 0, backgroundColor: 'var(--border-slate-200)' }} />
+              <p className="dh-hero-description m-0 text-[12.5px] hidden sm:block font-medium" style={{ color: 'var(--text-slate-600)' }}>
+                Wiki, specs, runbooks — all linked to the work they belong to
+              </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+
+          {/* Row 2: Stats */}
+          <div className="dh-hero-section-stats flex items-center gap-2 mt-1 text-[11px]">
+            <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-slate-500)' }}>
+              <span className="dh-pulse-dot" />
+              <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{documentHubs.length}</span> hubs
+            </span>
+            <span style={{ color: 'var(--text-slate-300)' }}>·</span>
+            <span style={{ color: 'var(--text-slate-500)' }}>
+              <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{totalDocCount}</span> docs
+            </span>
+            {lastUpdated && (
+              <>
+                <span style={{ color: 'var(--text-slate-300)' }}>·</span>
+                <span style={{ color: 'var(--text-slate-500)' }}>Updated {lastUpdated}</span>
+              </>
+            )}
+          </div>
+
+          {/* Row 3: Actions */}
+          <div className="dh-hero-section-actions flex flex-wrap items-center gap-2">
+            <Tooltip title="Refresh hubs">
+              <Button
+                icon={<ReloadOutlined spin={hubsFetching} />}
+                onClick={handleReload}
+                className="dh-header-icon-btn"
+                style={{
+                  height: 38, width: 38,
+                  borderRadius: 10,
+                  background: 'var(--bg-slate-50)',
+                  border: '1px solid var(--border-slate-200)',
+                  color: 'var(--text-slate-700)',
+                }}
+              />
+            </Tooltip>
             <Popover
               trigger={['click']}
               placement="bottomRight"
@@ -2197,7 +2213,7 @@ const DocumentHubPage = () => {
                               className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-[1px] rounded"
                               style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)', color: '#fff' }}
                             >
-                              AI
+                              Start from a blank document hub
                             </span>
                           </div>
                           <span className="text-[11.5px] leading-snug mt-0.5" style={{ color: 'var(--text-slate-400)' }}>
@@ -2230,6 +2246,15 @@ const DocumentHubPage = () => {
             </Dropdown>
           </div>
         </div>
+
+        {/* Opaque sticky spacer to create visual gap while preventing content leakage */}
+        <div className="dh-sticky-gap sticky" style={{
+          top: 58,
+          height: 16,
+          background: 'var(--bg-pure-white) !important',
+          zIndex: 105,
+          margin: '0 -24px'
+        }} />
 
         <div>
           {/* === #2 Compact stats strip === */}
@@ -2285,14 +2310,22 @@ const DocumentHubPage = () => {
           )}
 
           {/* === #6 Filter bar — single row: search · filters · views · settings · refresh === */}
-          <div className="sticky top-0 z-20" style={{ background: 'var(--bg-pure-white)', zIndex: 100 }}>
+          <div className="dh-toolbar-wrapper sticky" style={{
+            top: 74,
+            background: 'var(--bg-pure-white) !important',
+            zIndex: 100,
+            margin: '0 -24px',
+            padding: '0 24px',
+            height: 68,
+            display: 'flex',
+            alignItems: 'center'
+          }}>
             <div
-              className="dh-toolbar flex items-center gap-2 rounded-2xl"
+              className="dh-toolbar flex items-center gap-2 rounded-2xl w-full"
               style={{
                 padding: '10px 14px',
                 background: 'var(--bg-secondary)',
                 border: '1px solid var(--border-slate-200)',
-                marginBottom: 12,
                 overflowX: 'auto',
               }}
             >
@@ -2501,6 +2534,7 @@ const DocumentHubPage = () => {
                 </Tooltip>
               </div>
             </div>
+            <div style={{ height: 10, background: 'var(--bg-pure-white)' }} />
           </div>
 
           {/* === #5 View body === */}
@@ -2510,7 +2544,7 @@ const DocumentHubPage = () => {
             </div>
           ) : viewMode === 'table' ? renderTable()
             : viewMode === 'grid' ? renderGrid()
-            : renderKanban()}
+              : renderKanban()}
         </div>
       </div>
 
@@ -3182,6 +3216,120 @@ const DocumentHubPage = () => {
 
         /* Pills */
         .dh-pills-row::-webkit-scrollbar { height: 0; display: none; }
+        .dh-hero, .dh-toolbar-wrapper, .dh-sticky-gap {
+          background: var(--bg-pure-white) !important;
+        }
+        .dh-toolbar-wrapper { border-bottom: none !important; }
+        [data-theme='dark'] .dh-hero, [data-theme='dark'] .dh-toolbar-wrapper, [data-theme='dark'] .dh-sticky-gap {
+          background: #0f172a !important;
+        }
+
+        .dh-table-shell {
+          border: none !important;
+        }
+        
+        .premium-table {
+          border-collapse: separate !important;
+          border-spacing: 0 !important;
+        }
+
+        /* Top border and corners (sticky) */
+        .premium-table .ant-table-thead > tr > th {
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
+          background: #0f172a !important;
+          border-top-color: rgba(255, 255, 255, 0.08) !important;
+          border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        
+        .premium-table .ant-table-thead > tr > th:first-child {
+          border-left: 1px solid var(--border-slate-200) !important;
+          border-top-left-radius: 16px !important;
+        }
+        .premium-table .ant-table-thead > tr > th:last-child {
+          border-right: 1px solid var(--border-slate-200) !important;
+          border-top-right-radius: 16px !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th:first-child,
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th:last-child {
+          border-left-color: rgba(255, 255, 255, 0.08) !important;
+          border-right-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        /* Side borders for body rows */
+        .premium-table .ant-table-tbody > tr > td:first-child {
+          border-left: 1px solid var(--border-slate-200) !important;
+        }
+        .premium-table .ant-table-tbody > tr > td:last-child {
+          border-right: 1px solid var(--border-slate-200) !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td:first-child,
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td:last-child {
+          border-left-color: rgba(255, 255, 255, 0.08) !important;
+          border-right-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        /* Bottom border and corners for the last row */
+        .premium-table .ant-table-tbody > tr:last-child > td {
+          border-bottom: 1px solid var(--border-slate-200) !important;
+        }
+        .premium-table .ant-table-tbody > tr:last-child > td:first-child {
+          border-bottom-left-radius: 16px !important;
+        }
+        .premium-table .ant-table-tbody > tr:last-child > td:last-child {
+          border-bottom-right-radius: 16px !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr:last-child > td {
+          border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .dh-hero {
+          transform: translateY(0);
+          transition: all 0.3s ease;
+        }
+
+        @media (max-width: 1064px) {
+          .dh-hero {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 12px !important;
+            padding: 16px 32px !important;
+            height: auto !important;
+          }
+          .dh-hero-section-title,
+          .dh-hero-section-stats, 
+          .dh-hero-section-actions {
+            width: 100%;
+          }
+          .dh-hero-section-stats {
+            margin-top: -4px !important;
+            padding-left: 51px; /* Align with title text (38px icon + 13px gap) */
+          }
+          .dh-hero-section-actions {
+            padding-left: 51px;
+            margin-top: 4px;
+            justify-content: flex-start !important;
+          }
+        }
+
+        @media (max-width: 810px) {
+          .dh-hero-title-content {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 4px !important;
+          }
+          .dh-hero-divider {
+            display: none !important;
+          }
+          .dh-hero-description {
+            display: block !important;
+            margin-top: -2px !important;
+          }
+        }
+
         .dh-pill:hover {
           transform: translateY(-1px);
         }
@@ -3266,14 +3414,17 @@ const DocumentHubPage = () => {
         .dh-rail-track {
           display: grid;
           gap: 12px;
-          grid-template-columns: repeat(5, minmax(0, 1fr));
+          grid-template-columns: repeat(5, 1fr);
           padding-bottom: 4px;
         }
-        @media (max-width: 991px) {
-          .dh-rail-track { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        @media (max-width: 1200px) {
+          .dh-rail-track { grid-template-columns: repeat(4, 1fr); }
         }
-        @media (max-width: 767px) {
-          .dh-rail-track { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        @media (max-width: 900px) {
+          .dh-rail-track { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .dh-rail-track { grid-template-columns: repeat(1, 1fr); }
         }
 
         /* Keyboard shortcut chip */

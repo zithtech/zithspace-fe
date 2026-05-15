@@ -37,6 +37,7 @@ import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeade
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
+import { usePermission } from '@/hooks/usePermission';
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -54,6 +55,7 @@ interface StatCardConfig {
 
 export default function SquadManagement() {
   const { user, isLoading: authLoading } = useAuth();
+  const { canReadSquad, canCreateSquad, canUpdateSquad, canDeleteSquad } = usePermission();
   const [loading, setLoading] = useState(false);
   const [squads, setSquads] = useState<Squad[]>([]);
   const [filteredSquads, setFilteredSquads] = useState<Squad[]>([]);
@@ -67,14 +69,28 @@ export default function SquadManagement() {
   const [currentSquad, setCurrentSquad] = useState<Squad | null>(null);
 
   useEffect(() => {
-    if (user) {
+    if (user && canReadSquad) {
       fetchSquads();
     }
-  }, [user]);
+  }, [user, canReadSquad]);
 
   useEffect(() => {
     filterSquads();
   }, [squads, searchTerm, statusFilter]);
+
+  if (!authLoading && !canReadSquad) {
+    return (
+      <MainLayout>
+        <div style={{ padding: '80px 20px', textAlign: 'center' }}>
+          <InboxOutlined style={{ fontSize: 48, color: 'var(--text-slate-300)', marginBottom: 20 }} />
+          <Typography.Title level={4}>Access Denied</Typography.Title>
+          <Typography.Text type="secondary">
+            You do not have permission to view squad information. Please contact your administrator.
+          </Typography.Text>
+        </div>
+      </MainLayout>
+    );
+  }
 
   const fetchSquads = async () => {
     try {
@@ -258,9 +274,11 @@ export default function SquadManagement() {
           <Tooltip title="View details">
             <Button size="small" type="text" icon={<EyeOutlined />} onClick={() => handleOpen(record)} />
           </Tooltip>
-          <Tooltip title="Manage squad">
-            <Button size="small" type="text" icon={<EditOutlined />} onClick={() => handleManage(record)} />
-          </Tooltip>
+          {canUpdateSquad && (
+            <Tooltip title="Manage squad">
+              <Button size="small" type="text" icon={<EditOutlined />} onClick={() => handleManage(record)} />
+            </Tooltip>
+          )}
         </Space>
       ),
     },
@@ -304,26 +322,33 @@ export default function SquadManagement() {
           icon={<TeamOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
           title="Squad Management"
           description="Configure and manage project teams, leadership roles, and member allocations."
+          style={{
+            borderBottom: '1px solid var(--border-slate-200)',
+            padding: '8.5px 32px',
+            marginBottom: 20
+          }}
           extra={
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreate}
-              style={{
-                borderRadius: '10px',
-                height: '40px',
-                padding: '0 22px',
-                fontWeight: 600,
-                background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                border: 'none',
-                boxShadow: '0 8px 18px -8px rgba(37, 99, 235, 0.55)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              Create Squad
-            </Button>
+            canCreateSquad && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreate}
+                style={{
+                  borderRadius: '10px',
+                  height: '40px',
+                  padding: '0 22px',
+                  fontWeight: 600,
+                  background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                  border: 'none',
+                  boxShadow: '0 8px 18px -8px rgba(37, 99, 235, 0.55)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                Create Squad
+              </Button>
+            )
           }
         />
 
@@ -415,7 +440,7 @@ export default function SquadManagement() {
                     ? 'Try adjusting your search or status filter to find what you’re looking for.'
                     : 'Create your first squad to start organising teams, leadership, and project allocations.'}
                 </div>
-                {!searchTerm && statusFilter === 'all' && (
+                {!searchTerm && statusFilter === 'all' && canCreateSquad && (
                   <Button
                     type="primary"
                     icon={<PlusOutlined />}

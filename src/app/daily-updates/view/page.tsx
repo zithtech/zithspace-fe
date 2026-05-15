@@ -102,7 +102,7 @@ export default function ViewDailyUpdatesPage() {
 
 function ViewDailyUpdatesContent({ user }: { user: any }) {
   const router = useRouter();
-  const { canManageDailyUpdates } = usePermission();
+  const { canCreateDailyUpdate, canUpdateDailyUpdate, canDeleteDailyUpdate, canManageDailyUpdateTime } = usePermission();
 
   const [api, contextHolder] = notification.useNotification();
   const [loading, setLoading] = useState(true);
@@ -113,6 +113,10 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
 
   // 🔹 Delete a daily update and remove it from the UI
   const handleDeleteUpdate = async (updateId: string) => {
+    if (!canDeleteDailyUpdate) {
+      api.error({ message: "Forbidden", description: "You don't have permission to delete updates" });
+      return;
+    }
     try {
       console.log("updateId", updateId);
       await DailyUpdateService.deleteUpdate(updateId);
@@ -153,7 +157,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [manageTimeOpen, setManageTimeOpen] = useState(false);
 
-  const canViewTeam = canManageDailyUpdates || user?.position === "Project Manager";
+  const canViewTeam = canManageDailyUpdateTime || user?.position === "Project Manager";
 
   useEffect(() => {
     fetchProjects();
@@ -280,7 +284,11 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
       `}} />
 
       <TimeTrackingHeader
-        style={{ padding: '4px 32px' }}
+        style={{ 
+          padding: '5px 32px', 
+          borderBottom: '1px solid var(--border-slate-200)',
+          marginBottom: 20
+        }}
         icon={<FileText size={20} color="#8b5cf6" />}
         title="Daily Status Updates"
         subTitle={
@@ -323,24 +331,26 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             >
               Refresh
             </Button>
-            <Button
-              type="primary"
-              icon={<Plus size={16} />}
-              onClick={handleSubmitNew}
-              style={{
-                height: 38,
-                padding: "0 20px",
-                borderRadius: 10,
-                fontWeight: 600,
-                background: '#1677ff',
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                border: 'none'
-              }}
-            >
-              Submit Update
-            </Button>
+            {canCreateDailyUpdate && (
+              <Button
+                type="primary"
+                icon={<Plus size={16} />}
+                onClick={handleSubmitNew}
+                style={{
+                  height: 38,
+                  padding: "0 20px",
+                  borderRadius: 10,
+                  fontWeight: 600,
+                  background: '#1677ff',
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  border: 'none'
+                }}
+              >
+                Submit Update
+              </Button>
+            )}
           </Space>
         }
       />
@@ -477,9 +487,11 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                   </Space>
                 }
               >
-                <Button type="primary" onClick={handleSubmitNew} style={{ borderRadius: 8, marginTop: 8 }}>
-                  Submit First Update
-                </Button>
+                {canCreateDailyUpdate && (
+                  <Button type="primary" onClick={handleSubmitNew} style={{ borderRadius: 8, marginTop: 8 }}>
+                    Submit First Update
+                  </Button>
+                )}
               </Empty>
             </Card>
           ) : viewMode === "card" ? (

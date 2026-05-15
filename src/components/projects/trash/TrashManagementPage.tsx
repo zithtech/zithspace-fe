@@ -42,6 +42,7 @@ import {
   useEmptyTrash,
   trashKeys,
 } from "@/hooks/useTrash";
+import { usePermission } from "@/hooks/usePermission";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -69,6 +70,7 @@ const calculatePurgeProgress = (deletedAt: string) => {
 
 export default function TrashManagementPage() {
   const queryClient = useQueryClient();
+  const { canRestoreTicketTrash, canDeleteTicketTrash } = usePermission();
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");
@@ -271,46 +273,50 @@ export default function TrashManagementPage() {
       fixed: "right" as const,
       render: (_: any, record: any) => (
         <div className="tr-action-cell">
-          <Popconfirm
-            title="Restore Ticket"
-            description="Move this ticket back to active status?"
-            onConfirm={() => handleRestore(record.id)}
-            okText="Restore"
-            cancelText="Cancel"
-          >
-            <Tooltip title="Restore">
-              <Button
-                type="text"
-                shape="circle"
-                size="small"
-                icon={<UndoOutlined />}
-                loading={restoreTicket.isPending && restoreTicket.variables?.[0] === record.id}
-                className="tr-icon-btn restore"
-              />
-            </Tooltip>
-          </Popconfirm>
-          <Popconfirm
-            title="Purge Permanently"
-            description="This action is irreversible. Continue?"
-            onConfirm={() => handlePermanentDelete(record.id)}
-            okText="Purge"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-          >
-            <Tooltip title="Purge Permanently">
-              <Button
-                type="text"
-                shape="circle"
-                size="small"
-                icon={<DeleteOutlined />}
-                loading={
-                  permanentlyDelete.isPending &&
-                  permanentlyDelete.variables?.[0] === record.id
-                }
-                className="tr-icon-btn purge"
-              />
-            </Tooltip>
-          </Popconfirm>
+          {canRestoreTicketTrash && (
+            <Popconfirm
+              title="Restore Ticket"
+              description="Move this ticket back to active status?"
+              onConfirm={() => handleRestore(record.id)}
+              okText="Restore"
+              cancelText="Cancel"
+            >
+              <Tooltip title="Restore">
+                <Button
+                  type="text"
+                  shape="circle"
+                  size="small"
+                  icon={<UndoOutlined />}
+                  loading={restoreTicket.isPending && restoreTicket.variables?.[0] === record.id}
+                  className="tr-icon-btn restore"
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
+          {canDeleteTicketTrash && (
+            <Popconfirm
+              title="Purge Permanently"
+              description="This action is irreversible. Continue?"
+              onConfirm={() => handlePermanentDelete(record.id)}
+              okText="Purge"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="Purge Permanently">
+                <Button
+                  type="text"
+                  shape="circle"
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  loading={
+                    permanentlyDelete.isPending &&
+                    permanentlyDelete.variables?.[0] === record.id
+                  }
+                  className="tr-icon-btn purge"
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
         </div>
       ),
     },
@@ -356,25 +362,27 @@ export default function TrashManagementPage() {
                 className="tr-hero-ghost"
               />
             </Tooltip>
-            <Popconfirm
-              title="Empty Trash"
-              description="This will permanently purge ALL items. This action cannot be undone."
-              onConfirm={handleEmptyTrash}
-              okText="Purge All"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
-              disabled={!hasItems}
-            >
-              <Button
-                danger
-                icon={<ClearOutlined />}
-                loading={emptyTrash.isPending}
+            {canDeleteTicketTrash && (
+              <Popconfirm
+                title="Empty Trash"
+                description="This will permanently purge ALL items. This action cannot be undone."
+                onConfirm={handleEmptyTrash}
+                okText="Purge All"
+                cancelText="Cancel"
+                okButtonProps={{ danger: true }}
                 disabled={!hasItems}
-                className="tr-hero-danger"
               >
-                Empty Trash
-              </Button>
-            </Popconfirm>
+                <Button
+                  danger
+                  icon={<ClearOutlined />}
+                  loading={emptyTrash.isPending}
+                  disabled={!hasItems}
+                  className="tr-hero-danger"
+                >
+                  Empty Trash
+                </Button>
+              </Popconfirm>
+            )}
           </div>
         </div>
 
@@ -527,33 +535,37 @@ export default function TrashManagementPage() {
               </Text>
             </div>
             <div className="tr-bulk-actions">
-              <Button
-                size="small"
-                type="primary"
-                icon={<UndoOutlined />}
-                onClick={handleBulkRestore}
-                loading={bulkRestore.isPending}
-                className="tr-bulk-btn restore"
-              >
-                Restore
-              </Button>
-              <Popconfirm
-                title="Purge Selected?"
-                description="This action is irreversible."
-                onConfirm={handleBulkDelete}
-                okText="Purge"
-                okButtonProps={{ danger: true }}
-              >
+              {canRestoreTicketTrash && (
                 <Button
                   size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  loading={bulkDelete.isPending}
-                  className="tr-bulk-btn purge"
+                  type="primary"
+                  icon={<UndoOutlined />}
+                  onClick={handleBulkRestore}
+                  loading={bulkRestore.isPending}
+                  className="tr-bulk-btn restore"
                 >
-                  Purge
+                  Restore
                 </Button>
-              </Popconfirm>
+              )}
+              {canDeleteTicketTrash && (
+                <Popconfirm
+                  title="Purge Selected?"
+                  description="This action is irreversible."
+                  onConfirm={handleBulkDelete}
+                  okText="Purge"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Button
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined />}
+                    loading={bulkDelete.isPending}
+                    className="tr-bulk-btn purge"
+                  >
+                    Purge
+                  </Button>
+                </Popconfirm>
+              )}
               <Button
                 type="text"
                 size="small"
@@ -986,6 +998,25 @@ export default function TrashManagementPage() {
         }
         .tr-filter-search {
           width: 280px;
+        }
+
+        @media (max-width: 800px) {
+          .tr-control-bar {
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+          .tr-filter-cluster {
+            flex-wrap: wrap;
+            width: 100%;
+          }
+          .tr-filter-search {
+            width: 100%;
+            flex: 1;
+            min-width: 160px;
+          }
+          .tr-result-count {
+            width: 100%;
+          }
         }
         .tr-filter-search .ant-input,
         .tr-filter-search .ant-input-affix-wrapper,
@@ -1513,7 +1544,9 @@ export default function TrashManagementPage() {
             width: 100%;
           }
         }
-      `}</style>
+      `
+      }</style>
+
     </div>
   );
 }

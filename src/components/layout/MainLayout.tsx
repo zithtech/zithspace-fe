@@ -7,7 +7,7 @@ import { Layout, App as AntApp, theme } from "antd";
 import LoadingSpinner from "../common/LoadingSpinner";
 import TopNav from "./TopNav";
 import SideNav from "./SideNav";
-import { NAVIGATION_CONFIG, ModuleType } from "./navigationConfig";
+import { NAVIGATION_CONFIG, ModuleType, STANDALONE_PAGES } from "./navigationConfig";
 import { useLayout } from "@/context/LayoutContext";
 import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
 import { useDocumentSocketEvents } from "@/hooks/useDocumentSocketEvents";
@@ -21,7 +21,7 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, noPadding }: MainLayoutProps) {
   const { token } = theme.useToken();
-  const { user, logout, isLoading: authLoading } = useAuth();
+  const { user, logout, isLoading: authLoading, hasPermission, hasAnyPermission } = useAuth();
   const { notification } = AntApp.useApp();
 
   const router = useRouter();
@@ -43,9 +43,54 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
     );
 
     if (foundModule) {
+      // Check if user has permission for this module
+      const hasAccess = !foundModule.requiredPermission && !foundModule.requiredAnyPermission 
+        ? true 
+        : foundModule.requiredPermission 
+          ? hasPermission(foundModule.requiredPermission)
+          : foundModule.requiredAnyPermission ? hasAnyPermission(...foundModule.requiredAnyPermission) : true;
+
+      if (foundModule.key !== "HOME" && !hasAccess && pathname !== "/dashboard") {
+        router.push("/dashboard");
+        return;
+      }
+
+      // Deep check for specific item permission
+      const checkItemAccess = (items: any[]): boolean => {
+        for (const item of items) {
+          if (item.path && pathname.startsWith(item.path)) {
+            const itemAccess = !item.requiredPermission && !item.requiredAnyPermission
+              ? true
+              : item.requiredPermission
+                ? hasPermission(item.requiredPermission)
+                : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
+            
+            if (!itemAccess) return false;
+          }
+          if (item.children && !checkItemAccess(item.children)) {
+            return false;
+          }
+        }
+        return true;
+      };
+
+      if (!checkItemAccess(foundModule.items)) {
+        router.push("/dashboard");
+        return;
+      }
+
       setActiveModule(foundModule.key);
+    } else {
+      // Check standalone pages
+      const foundStandalone = STANDALONE_PAGES.find(p => pathname.startsWith(p.path));
+      if (foundStandalone) {
+        if (!hasPermission(foundStandalone.requiredPermission)) {
+          router.push("/dashboard");
+          return;
+        }
+      }
     }
-  }, [pathname]);
+  }, [pathname, user, hasPermission, hasAnyPermission]);
 
   // Connect to user stream for global notifications
   useEffect(() => {
@@ -89,13 +134,68 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
     }
   };
 
+  // Synchronous permission check to prevent flash of unauthorized content
+  let isAuthorized = true;
+  if (user && pathname) {
+    const foundModule = NAVIGATION_CONFIG.find((module) =>
+      module.pathPrefixes.some((prefix) => pathname.startsWith(prefix)),
+    );
+
+    if (foundModule) {
+      const hasAccess = !foundModule.requiredPermission && !foundModule.requiredAnyPermission 
+        ? true 
+        : foundModule.requiredPermission 
+          ? hasPermission(foundModule.requiredPermission)
+          : foundModule.requiredAnyPermission ? hasAnyPermission(...foundModule.requiredAnyPermission) : true;
+
+      if (foundModule.key !== "HOME" && !hasAccess && pathname !== "/dashboard") {
+        isAuthorized = false;
+      }
+
+      // Deep check for specific item permission
+      const checkItemAccess = (items: any[]): boolean => {
+        for (const item of items) {
+          if (item.path && pathname.startsWith(item.path)) {
+            const itemAccess = !item.requiredPermission && !item.requiredAnyPermission
+              ? true
+              : item.requiredPermission
+                ? hasPermission(item.requiredPermission)
+                : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
+            
+            if (!itemAccess) return false;
+          }
+          if (item.children && !checkItemAccess(item.children)) {
+            return false;
+          }
+        }
+        return true;
+      };
+
+      if (!checkItemAccess(foundModule.items)) {
+        isAuthorized = false;
+      }
+    } else {
+      // Check standalone pages
+      const foundStandalone = STANDALONE_PAGES.find(p => pathname.startsWith(p.path));
+      if (foundStandalone) {
+        if (!hasPermission(foundStandalone.requiredPermission)) {
+          isAuthorized = false;
+        }
+      }
+    }
+  }
+
   if (authLoading) {
-    return <LoadingSpinner message="Loading..." />;
+    return <LoadingSpinner message="Verifying session..." />;
   }
 
   if (!user) {
     router.push("/login");
-    return null;
+    return <LoadingSpinner message="Redirecting to login..." />;
+  }
+
+  if (!isAuthorized) {
+    return <LoadingSpinner message="Access restricted. Redirecting..." />;
   }
 
   return (
@@ -126,7 +226,8 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
             marginLeft: collapsed ? 65 : 200,
             transition: "all 0.2s",
             height: "calc(100vh - 64px)",
-            overflow: "auto",
+            overflowY: "auto",
+            overflowX: "hidden",
             position: "relative",
           }}
         >

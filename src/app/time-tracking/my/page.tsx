@@ -11,6 +11,10 @@ import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import dayjs from "dayjs";
 import { ClockCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
+import { Result } from "antd";
+import { useRouter } from "next/navigation";
 
 export default function MyTimePage() {
   const { setPopoverOpen } = useTimeTrackerStore();
@@ -19,11 +23,32 @@ export default function MyTimePage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [manageModalOpen, setManageModalOpen] = useState(false);
 
+  const { canReadTimeTracking } = usePermission();
+  const { isLoading } = useAuth();
+  const router = useRouter();
+
   const handleTotalChange = useCallback((total: number) => {
     setTotalSeconds(total);
   }, []);
 
   const isToday = selectedDate.isSame(dayjs(), "day");
+
+  if (isLoading) return null;
+
+  if (!canReadTimeTracking) {
+    return (
+      <MainLayout>
+        <div style={{ padding: "100px 0", background: "var(--bg-pure-white)", minHeight: "calc(100vh - 64px)" }}>
+          <Result
+            status="403"
+            title="403"
+            subTitle="Sorry, you are not authorized to access this page."
+            extra={<Button type="primary" onClick={() => router.push("/dashboard")}>Back to Dashboard</Button>}
+          />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -35,6 +60,11 @@ export default function MyTimePage() {
         }}
       >
         <TimeTrackingHeader
+          style={{
+            padding: '9.5px 32px',
+            borderBottom: '1px solid var(--border-slate-200)',
+            marginBottom: 20
+          }}
           icon={<ClockCircleOutlined style={{ fontSize: 18, color: "#8b5cf6" }} />}
           title="My Time Tracking"
           description="Monitor and manage your daily task sessions and work logs."
@@ -82,9 +112,11 @@ export default function MyTimePage() {
         />
 
         <div style={{ padding: "0 32px 32px 32px" }}>
-          <MyTimeStatsStrip refreshKey={refreshKey} />
+          <div style={{ marginTop: 4 }}>
+            <MyTimeStatsStrip refreshKey={refreshKey} />
+          </div>
 
-          <Row gutter={24} align="stretch" style={{ marginTop: 20 }}>
+          <Row gutter={[24, 20]} align="stretch" style={{ marginTop: 20 }}>
             <Col xs={24} lg={17}>
               <MyTimeTracker
                 selectedDate={selectedDate}

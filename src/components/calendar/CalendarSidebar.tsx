@@ -17,6 +17,7 @@ interface CalendarSidebarProps {
     onSync: () => Promise<void>;
     syncing: boolean;
     eventsForMonth?: CalendarEvent[];
+    canSync?: boolean;
 }
 
 const CALENDARS: Array<{ id: string; name: string; color: string }> = [
@@ -36,6 +37,7 @@ export default function CalendarSidebar({
     onSync,
     syncing,
     eventsForMonth = [],
+    canSync = true,
 }: CalendarSidebarProps) {
     const router = useRouter();
 
@@ -211,23 +213,25 @@ export default function CalendarSidebar({
 
             {/* Sync actions */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <Button
-                    block
-                    icon={<SyncOutlined spin={syncing} />}
-                    onClick={() => onSync()}
-                    loading={syncing}
-                    disabled={!provider}
-                    style={{
-                        height: 38,
-                        borderRadius: 9,
-                        background: 'var(--cal-brand-soft)',
-                        borderColor: 'var(--cal-brand-soft-border)',
-                        color: 'var(--cal-brand)',
-                        fontWeight: 600,
-                    }}
-                >
-                    Sync {providerLabel}
-                </Button>
+                {canSync && (
+                    <Button
+                        block
+                        icon={<SyncOutlined spin={syncing} />}
+                        onClick={() => onSync()}
+                        loading={syncing}
+                        disabled={!provider}
+                        style={{
+                            height: 38,
+                            borderRadius: 9,
+                            background: 'var(--cal-brand-soft)',
+                            borderColor: 'var(--cal-brand-soft-border)',
+                            color: 'var(--cal-brand)',
+                            fontWeight: 600,
+                        }}
+                    >
+                        Sync {providerLabel}
+                    </Button>
+                )}
                 <Button
                     block
                     icon={<SettingOutlined />}

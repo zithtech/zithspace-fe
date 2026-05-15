@@ -13,6 +13,7 @@ import {
 const { Title, Text } = Typography;
 import MainLayout from "@/components/layout/MainLayout";
 import { useCalendar } from "@/hooks/useCalendar";
+import { usePermission } from "@/hooks/usePermission";
 import { CalendarService, CalendarProvider } from "@/services/calendarService";
 import CalendarSidebar from "@/components/calendar/CalendarSidebar";
 import CalendarToolbar from "@/components/calendar/CalendarToolbar";
@@ -39,6 +40,13 @@ function CalendarPageContent() {
         syncAll,
         clearMessages,
     } = useCalendar();
+
+    const { 
+        canCreateCalendar, 
+        canUpdateCalendar, 
+        canDeleteCalendar,
+        canManageCalendar 
+    } = usePermission();
 
     const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
     const [view, setView] = useState<'month' | 'week' | 'day'>('month');
@@ -241,6 +249,7 @@ function CalendarPageContent() {
                         onSync={() => syncAll(connectedProvider!)}
                         syncing={syncing}
                         eventsForMonth={filteredEvents}
+                        canSync={canManageCalendar}
                     />
                 </Sider>
 
@@ -264,6 +273,7 @@ function CalendarPageContent() {
                         providerIcon={providerInfo.icon}
                         providerColor={providerInfo.color}
                         eventCount={filteredEvents.length}
+                        canCreate={canCreateCalendar}
                     />
                     
 
@@ -297,8 +307,8 @@ function CalendarPageContent() {
                                         <MonthView
                                             currentDate={currentDate}
                                             events={filteredEvents.filter(e => selectedCalendars.includes(e.calendar || 'Personal Calendar'))}
-                                            onDayClick={handleDayClick}
                                             onEventClick={handleEventClick}
+                                            onTimeSlotClick={canCreateCalendar ? handleDayClick : undefined}
                                         />
                                     )}
                                     {view === 'week' && (
@@ -306,7 +316,7 @@ function CalendarPageContent() {
                                             currentDate={currentDate}
                                             events={filteredEvents.filter(e => selectedCalendars.includes(e.calendar || 'Personal Calendar'))}
                                             onEventClick={handleEventClick}
-                                            onTimeSlotClick={handleDayClick}
+                                            onTimeSlotClick={canCreateCalendar ? handleDayClick : undefined}
                                         />
                                     )}
                                     {view === 'day' && (
@@ -314,7 +324,7 @@ function CalendarPageContent() {
                                             currentDate={currentDate}
                                             events={filteredEvents.filter(e => selectedCalendars.includes(e.calendar || 'Personal Calendar'))}
                                             onEventClick={handleEventClick}
-                                            onTimeSlotClick={handleDayClick}
+                                            onTimeSlotClick={canCreateCalendar ? handleDayClick : undefined}
                                         />
                                     )}
                                 </>
@@ -344,19 +354,22 @@ function CalendarPageContent() {
                 onClose={() => setShowFormDrawer(false)}
                 onSave={handleSaveEvent}
                 onDelete={selectedEvent ? handleDeleteEvent : undefined}
-                editEvent={selectedEvent}
-                initialDate={initialDateForModal}
+                 initialDate={initialDateForModal}
                 loading={loading}
                 error={error}
+                canSave={selectedEvent ? canUpdateCalendar : canCreateCalendar}
+                canDelete={canDeleteCalendar}
             />
 
             <EventDrawer
+                event={selectedEvent}
                 open={showDrawer}
                 onClose={() => setShowDrawer(false)}
-                event={selectedEvent}
-                onEdit={handleEditFromDrawer}
+                 onEdit={handleEditFromDrawer}
                 onDelete={handleDeleteFromDrawer}
                 loading={loading}
+                canEdit={canUpdateCalendar}
+                canDelete={canDeleteCalendar}
             />
         </MainLayout>
     );

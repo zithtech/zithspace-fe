@@ -1387,9 +1387,9 @@ function DashboardContent() {
                                     strokeColor={
                                       isActive
                                         ? {
-                                            "0%": token.colorPrimary,
-                                            "100%": "#7C3AED",
-                                          }
+                                          "0%": token.colorPrimary,
+                                          "100%": "#7C3AED",
+                                        }
                                         : ringColor
                                     }
                                     trailColor={token.colorFillAlter}
@@ -1630,90 +1630,90 @@ function DashboardContent() {
                         dayjs(m.startTime).isAfter(dayjs()),
                       ).length;
                       return (
-                    <Card
-                      style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
-                      styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
-                      title={
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            flexWrap: "wrap",
-                            minWidth: 0,
-                          }}
-                        >
-                          {sectionTitle(
-                            <VideoCameraOutlined />,
-                            "Today's Meetings",
-                            accentTM,
-                          )}
-                          {tmCount > 0 && (
-                            <span
+                        <Card
+                          style={{ ...cardBase, height: 340, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
+                          styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
+                          title={
+                            <div
                               style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                letterSpacing: "0.4px",
-                                color: accentTM,
-                                background: `${accentTM}14`,
-                                border: `1px solid ${accentTM}33`,
-                                padding: "2px 7px",
-                                borderRadius: 999,
-                                fontVariantNumeric: "tabular-nums",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                flexWrap: "wrap",
+                                minWidth: 0,
                               }}
                             >
-                              {tmCount} TODAY
-                            </span>
-                          )}
-                          {liveTM && (
-                            <Tooltip title="Live meeting in progress">
-                              <span
-                                style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 5,
-                                  fontSize: 10,
-                                  fontWeight: 700,
-                                  letterSpacing: "0.4px",
-                                  color: "#047857",
-                                  background: "#ECFDF5",
-                                  border: "1px solid #10B98133",
-                                  padding: "2px 7px",
-                                  borderRadius: 999,
-                                }}
-                              >
+                              {sectionTitle(
+                                <VideoCameraOutlined />,
+                                "Today's Meetings",
+                                accentTM,
+                              )}
+                              {tmCount > 0 && (
                                 <span
                                   style={{
-                                    width: 5,
-                                    height: 5,
-                                    borderRadius: "50%",
-                                    background: "#10B981",
-                                    animation:
-                                      "pulse-soft 2s infinite ease-in-out",
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    letterSpacing: "0.4px",
+                                    color: accentTM,
+                                    background: `${accentTM}14`,
+                                    border: `1px solid ${accentTM}33`,
+                                    padding: "2px 7px",
+                                    borderRadius: 999,
+                                    fontVariantNumeric: "tabular-nums",
                                   }}
-                                />
-                                LIVE
-                              </span>
-                            </Tooltip>
-                          )}
-                          {!liveTM && upcomingTM > 0 && (
-                            <span
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                letterSpacing: "0.4px",
-                                color: "#4F46E5",
-                                background: "rgba(79,70,229,0.10)",
-                                border: "1px solid rgba(79,70,229,0.25)",
-                                padding: "2px 7px",
-                                borderRadius: 999,
-                              }}
-                            >
-                              {upcomingTM} UPCOMING
-                            </span>
-                          )}
-                        </div>
-                      }
+                                >
+                                  {tmCount} TODAY
+                                </span>
+                              )}
+                              {liveTM && (
+                                <Tooltip title="Live meeting in progress">
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      letterSpacing: "0.4px",
+                                      color: "#047857",
+                                      background: "#ECFDF5",
+                                      border: "1px solid #10B98133",
+                                      padding: "2px 7px",
+                                      borderRadius: 999,
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        width: 5,
+                                        height: 5,
+                                        borderRadius: "50%",
+                                        background: "#10B981",
+                                        animation:
+                                          "pulse-soft 2s infinite ease-in-out",
+                                      }}
+                                    />
+                                    LIVE
+                                  </span>
+                                </Tooltip>
+                              )}
+                              {!liveTM && upcomingTM > 0 && (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    letterSpacing: "0.4px",
+                                    color: "#4F46E5",
+                                    background: "rgba(79,70,229,0.10)",
+                                    border: "1px solid rgba(79,70,229,0.25)",
+                                    padding: "2px 7px",
+                                    borderRadius: 999,
+                                  }}
+                                >
+                                  {upcomingTM} UPCOMING
+                                </span>
+                              )}
+                            </div>
+                          }
                           extra={
                             connectedProvider ? (
                               <Space size={4}>
@@ -1916,13 +1916,13 @@ function DashboardContent() {
                                         );
                                         const progressPct = live
                                           ? Math.min(
+                                            100,
+                                            Math.round(
+                                              (now.diff(start, "minute") /
+                                                totalMin) *
                                               100,
-                                              Math.round(
-                                                (now.diff(start, "minute") /
-                                                  totalMin) *
-                                                  100,
-                                              ),
-                                            )
+                                            ),
+                                          )
                                           : 0;
                                         return (
                                           <div
@@ -2292,143 +2292,143 @@ function DashboardContent() {
                       );
                     })()}
                   </Col>
-                      <Col xs={24} lg={8}>
-                        {(() => {
-                          const segments = [
-                            { key: "done", label: "Done", value: completedTickets, color: "#10B981", icon: <CheckCircleFilled style={{ fontSize: 11 }} /> },
-                            { key: "active", label: "Active", value: inProgressTickets, color: "#0EA5E9", icon: <SyncOutlined spin style={{ fontSize: 11 }} /> },
-                            { key: "testing", label: "In Testing", value: inTestingTickets, color: "#F59E0B", icon: <ExperimentOutlined style={{ fontSize: 11 }} /> },
-                            { key: "not_started", label: "Not Started", value: notStartedTickets, color: "#94A3B8", icon: <ClockCircleOutlined style={{ fontSize: 11 }} /> },
-                          ];
-                          const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
-                          return (
-                            <Card
-                              style={{ ...cardBase, height: 340, overflow: "hidden" }}
-                              styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
-                              title={sectionTitle(<TrophyOutlined />, "My Tickets", "#7C3AED")}
-                              extra={<Button type="link" size="small" onClick={() => router.push("/tickets")} style={{ fontSize: 11 }}>View all</Button>}
-                            >
-                              <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
-                                <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
-                                  <div>
-                                    <Text style={{ fontSize: 10, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "0.6px", textTransform: "uppercase", display: "block" }}>Completion</Text>
-                                    <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 0 }}>
-                                      <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: token.colorText, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #7C3AED 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                                        {completionRate}%
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div style={{ textAlign: "right", paddingBottom: 4 }}>
-                                    <div style={{ fontSize: 16, fontWeight: 700, color: token.colorText, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-                                      {completedTickets}
-                                      <span style={{ color: token.colorTextTertiary, fontWeight: 500 }}> / {totalTickets}</span>
-                                    </div>
-                                    <Text style={{ fontSize: 10, color: token.colorTextSecondary, fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Closed · Total</Text>
-                                  </div>
-                                </div>
-                                <div style={{ display: "flex", width: "100%", height: 5, borderRadius: 999, overflow: "hidden", background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, gap: 2, padding: 1, marginBottom: 6 }}>
-                                  {segments.filter((s) => s.value > 0).map((s) => (
-                                    <Tooltip key={s.key} title={`${s.label}: ${s.value} (${pct(s.value)}%)`}>
-                                      <div style={{ flex: s.value, background: s.color, borderRadius: 999, minWidth: 4 }} />
-                                    </Tooltip>
-                                  ))}
-                                </div>
-                                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-                                  {segments.map((s) => {
-                                    const segmentPct = pct(s.value);
-                                    return (
-                                      <div
-                                        key={s.key}
-                                        style={{
-                                          position: "relative",
-                                          display: "flex",
-                                          alignItems: "center",
-                                          justifyContent: "space-between",
-                                          padding: "6px 12px",
-                                          borderRadius: 10,
-                                          background: token.colorFillAlter,
-                                          border: `1px solid ${token.colorBorderSecondary}`,
-                                          overflow: "hidden",
-                                        }}
-                                      >
-                                        {/* Progress background */}
-                                        <div
-                                          aria-hidden
-                                          style={{
-                                            position: "absolute",
-                                            left: 0,
-                                            top: 0,
-                                            bottom: 0,
-                                            width: `${segmentPct}%`,
-                                            background: `${s.color}0D`,
-                                            transition: "width .6s cubic-bezier(0.4, 0, 0.2, 1)",
-                                          }}
-                                        />
-
-                                        <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
-                                          <div
-                                            style={{
-                                              width: 26,
-                                              height: 26,
-                                              borderRadius: 8,
-                                              background: `${s.color}14`,
-                                              display: "flex",
-                                              alignItems: "center",
-                                              justifyContent: "center",
-                                              border: `1px solid ${s.color}26`,
-                                            }}
-                                          >
-                                            <div
-                                              style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                color: s.color,
-                                                filter: `drop-shadow(0 0 4px ${s.color}40)`,
-                                              }}
-                                            >
-                                              {s.icon}
-                                            </div>
-                                          </div>
-                                          <div style={{ display: "flex", flexDirection: "column" }}>
-                                            <Text style={{ fontSize: 12, fontWeight: 700, color: token.colorText, lineHeight: 1.1 }}>{s.label}</Text>
-                                            <Text style={{ fontSize: 8, fontWeight: 600, color: token.colorTextTertiary, textTransform: "uppercase", letterSpacing: "0.3px" }}>Tasks</Text>
-                                          </div>
-                                        </div>
-
-                                        <div style={{ display: "flex", alignItems: "baseline", gap: 6, position: "relative", zIndex: 1 }}>
-                                          <span style={{ fontSize: 16, fontWeight: 800, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{s.value}</span>
-                                          <span style={{ fontSize: 10, color: token.colorTextTertiary, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 32, textAlign: "right" }}>{segmentPct}%</span>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
+                  <Col xs={24} lg={8}>
+                    {(() => {
+                      const segments = [
+                        { key: "done", label: "Done", value: completedTickets, color: "#10B981", icon: <CheckCircleFilled style={{ fontSize: 11 }} /> },
+                        { key: "active", label: "Active", value: inProgressTickets, color: "#0EA5E9", icon: <SyncOutlined spin style={{ fontSize: 11 }} /> },
+                        { key: "testing", label: "In Testing", value: inTestingTickets, color: "#F59E0B", icon: <ExperimentOutlined style={{ fontSize: 11 }} /> },
+                        { key: "not_started", label: "Not Started", value: notStartedTickets, color: "#94A3B8", icon: <ClockCircleOutlined style={{ fontSize: 11 }} /> },
+                      ];
+                      const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
+                      return (
+                        <Card
+                          style={{ ...cardBase, height: 340, overflow: "hidden" }}
+                          styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
+                          title={sectionTitle(<TrophyOutlined />, "My Tickets", "#7C3AED")}
+                          extra={<Button type="link" size="small" onClick={() => router.push("/tickets")} style={{ fontSize: 11 }}>View all</Button>}
+                        >
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
+                            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
+                              <div>
+                                <Text style={{ fontSize: 10, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "0.6px", textTransform: "uppercase", display: "block" }}>Completion</Text>
+                                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 0 }}>
+                                  <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: token.colorText, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", background: `linear-gradient(135deg, ${token.colorPrimary} 0%, #7C3AED 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                                    {completionRate}%
+                                  </span>
                                 </div>
                               </div>
-                            </Card>
-                          );
-                        })()}
-                      </Col>
+                              <div style={{ textAlign: "right", paddingBottom: 4 }}>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: token.colorText, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                                  {completedTickets}
+                                  <span style={{ color: token.colorTextTertiary, fontWeight: 500 }}> / {totalTickets}</span>
+                                </div>
+                                <Text style={{ fontSize: 10, color: token.colorTextSecondary, fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Closed · Total</Text>
+                              </div>
+                            </div>
+                            <div style={{ display: "flex", width: "100%", height: 5, borderRadius: 999, overflow: "hidden", background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, gap: 2, padding: 1, marginBottom: 6 }}>
+                              {segments.filter((s) => s.value > 0).map((s) => (
+                                <Tooltip key={s.key} title={`${s.label}: ${s.value} (${pct(s.value)}%)`}>
+                                  <div style={{ flex: s.value, background: s.color, borderRadius: 999, minWidth: 4 }} />
+                                </Tooltip>
+                              ))}
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                              {segments.map((s) => {
+                                const segmentPct = pct(s.value);
+                                return (
+                                  <div
+                                    key={s.key}
+                                    style={{
+                                      position: "relative",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      padding: "6px 12px",
+                                      borderRadius: 10,
+                                      background: token.colorFillAlter,
+                                      border: `1px solid ${token.colorBorderSecondary}`,
+                                      overflow: "hidden",
+                                    }}
+                                  >
+                                    {/* Progress background */}
+                                    <div
+                                      aria-hidden
+                                      style={{
+                                        position: "absolute",
+                                        left: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        width: `${segmentPct}%`,
+                                        background: `${s.color}0D`,
+                                        transition: "width .6s cubic-bezier(0.4, 0, 0.2, 1)",
+                                      }}
+                                    />
+
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
+                                      <div
+                                        style={{
+                                          width: 26,
+                                          height: 26,
+                                          borderRadius: 8,
+                                          background: `${s.color}14`,
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          border: `1px solid ${s.color}26`,
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            color: s.color,
+                                            filter: `drop-shadow(0 0 4px ${s.color}40)`,
+                                          }}
+                                        >
+                                          {s.icon}
+                                        </div>
+                                      </div>
+                                      <div style={{ display: "flex", flexDirection: "column" }}>
+                                        <Text style={{ fontSize: 12, fontWeight: 700, color: token.colorText, lineHeight: 1.1 }}>{s.label}</Text>
+                                        <Text style={{ fontSize: 8, fontWeight: 600, color: token.colorTextTertiary, textTransform: "uppercase", letterSpacing: "0.3px" }}>Tasks</Text>
+                                      </div>
+                                    </div>
+
+                                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, position: "relative", zIndex: 1 }}>
+                                      <span style={{ fontSize: 16, fontWeight: 800, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{s.value}</span>
+                                      <span style={{ fontSize: 10, color: token.colorTextTertiary, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 32, textAlign: "right" }}>{segmentPct}%</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })()}
+                  </Col>
                 </Row>
 
                 {/* Bottom Row: Recent Tickets + Quick Actions */}
                 <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-                      <Col xs={24} lg={16}>
-                        {(() => {
-                          const accent = "#0EA5E9";
-                          const testingCount = recentTickets.filter((t: any) => {
-                            const s = t.status?.toLowerCase();
-                            return s === "in_testing" || s === "testing";
-                          }).length;
-                          const activeCount = recentTickets.filter((t: any) => {
-                            const s = t.status?.toLowerCase();
-                            return s === "in_progress" || s === "doing";
-                          }).length;
-                          const notStartedCount = recentTickets.filter((t: any) => {
-                            const s = t.status?.toLowerCase();
-                            return s === "not_started";
-                          }).length;
-                          return (
+                  <Col xs={24} lg={16}>
+                    {(() => {
+                      const accent = "#0EA5E9";
+                      const testingCount = recentTickets.filter((t: any) => {
+                        const s = t.status?.toLowerCase();
+                        return s === "in_testing" || s === "testing";
+                      }).length;
+                      const activeCount = recentTickets.filter((t: any) => {
+                        const s = t.status?.toLowerCase();
+                        return s === "in_progress" || s === "doing";
+                      }).length;
+                      const notStartedCount = recentTickets.filter((t: any) => {
+                        const s = t.status?.toLowerCase();
+                        return s === "not_started";
+                      }).length;
+                      return (
                         <Card
                           style={{
                             ...cardBase,
@@ -2910,209 +2910,209 @@ function DashboardContent() {
                             </div>
                           )}
                         </Card>
-                          );
-                        })()}
-                      </Col>
+                      );
+                    })()}
+                  </Col>
 
-                      <Col xs={24} lg={8}>
-                        {(() => {
-                          const accentQA = "#F59E0B";
-                          const quickActions = [
-                            {
-                              icon: <PlusCircleOutlined />,
-                              title: "Create Ticket",
-                              desc: "Log a new task or issue",
-                              accent: "#7C3AED",
-                              onClick: () => router.push("/tickets"),
-                              shortcut: "T",
+                  <Col xs={24} lg={8}>
+                    {(() => {
+                      const accentQA = "#F59E0B";
+                      const quickActions = [
+                        {
+                          icon: <PlusCircleOutlined />,
+                          title: "Create Ticket",
+                          desc: "Log a new task or issue",
+                          accent: "#7C3AED",
+                          onClick: () => router.push("/tickets"),
+                          shortcut: "T",
+                        },
+                        {
+                          icon: <FolderOpenOutlined />,
+                          title: "Document Hub",
+                          desc: "Browse and manage docs",
+                          accent: "#10B981",
+                          onClick: () => router.push("/documenthub"),
+                          shortcut: "D",
+                        },
+                        {
+                          icon: <AppstoreOutlined />,
+                          title: "Projects",
+                          desc: "View all active projects",
+                          accent: "#0EA5E9",
+                          onClick: () => router.push("/projects"),
+                          shortcut: "P",
+                        },
+                      ];
+                      return (
+                        <Card
+                          style={{
+                            ...cardBase,
+                            height: "100%",
+                            position: "relative",
+                            overflow: "hidden",
+                          }}
+                          styles={{
+                            body: {
+                              padding: 16,
+                              position: "relative",
+                              zIndex: 1,
                             },
-                            {
-                              icon: <FolderOpenOutlined />,
-                              title: "Document Hub",
-                              desc: "Browse and manage docs",
-                              accent: "#10B981",
-                              onClick: () => router.push("/documenthub"),
-                              shortcut: "D",
-                            },
-                            {
-                              icon: <AppstoreOutlined />,
-                              title: "Projects",
-                              desc: "View all active projects",
-                              accent: "#0EA5E9",
-                              onClick: () => router.push("/projects"),
-                              shortcut: "P",
-                            },
-                          ];
-                          return (
-                            <Card
+                          }}
+                          title={
+                            <div
                               style={{
-                                ...cardBase,
-                                height: "100%",
-                                position: "relative",
-                                overflow: "hidden",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                minWidth: 0,
                               }}
-                              styles={{
-                                body: {
-                                  padding: 16,
-                                  position: "relative",
-                                  zIndex: 1,
-                                },
-                              }}
-                              title={
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 10,
-                                    minWidth: 0,
-                                  }}
-                                >
-                                  {sectionTitle(
-                                    <ThunderboltFilled />,
-                                    "Quick Actions",
-                                    accentQA,
-                                  )}
-                                  <span
-                                    style={{
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      letterSpacing: "0.4px",
-                                      color: accentQA,
-                                      background: `${accentQA}14`,
-                                      border: `1px solid ${accentQA}33`,
-                                      padding: "2px 7px",
-                                      borderRadius: 999,
-                                    }}
-                                  >
-                                    SHORTCUTS
-                                  </span>
-                                </div>
-                              }
                             >
-                              {/* Soft ambient accent */}
-                              <div
-                                aria-hidden
+                              {sectionTitle(
+                                <ThunderboltFilled />,
+                                "Quick Actions",
+                                accentQA,
+                              )}
+                              <span
                                 style={{
-                                  position: "absolute",
-                                  top: -50,
-                                  right: -50,
-                                  width: 220,
-                                  height: 220,
-                                  borderRadius: "50%",
-                                  background: `radial-gradient(circle, ${accentQA}1F 0%, transparent 70%)`,
-                                  pointerEvents: "none",
-                                  zIndex: 0,
-                                }}
-                              />
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: 8,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  letterSpacing: "0.4px",
+                                  color: accentQA,
+                                  background: `${accentQA}14`,
+                                  border: `1px solid ${accentQA}33`,
+                                  padding: "2px 7px",
+                                  borderRadius: 999,
                                 }}
                               >
-                                {quickActions.map((a) => (
-                                  <div
-                                    key={a.title}
-                                    onClick={a.onClick}
-                                    className="dash-qa-row"
-                                    style={
-                                      {
-                                        cursor: "pointer",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 12,
-                                        padding: "10px 12px 10px 14px",
-                                        borderRadius: 12,
-                                        border: `1px solid ${token.colorBorderSecondary}`,
-                                        background: `linear-gradient(135deg, ${a.accent}0A 0%, ${token.colorBgContainer} 70%)`,
-                                        position: "relative",
-                                        overflow: "hidden",
-                                        ["--qa-accent" as any]: a.accent,
-                                      } as React.CSSProperties
-                                    }
+                                SHORTCUTS
+                              </span>
+                            </div>
+                          }
+                        >
+                          {/* Soft ambient accent */}
+                          <div
+                            aria-hidden
+                            style={{
+                              position: "absolute",
+                              top: -50,
+                              right: -50,
+                              width: 220,
+                              height: 220,
+                              borderRadius: "50%",
+                              background: `radial-gradient(circle, ${accentQA}1F 0%, transparent 70%)`,
+                              pointerEvents: "none",
+                              zIndex: 0,
+                            }}
+                          />
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 8,
+                            }}
+                          >
+                            {quickActions.map((a) => (
+                              <div
+                                key={a.title}
+                                onClick={a.onClick}
+                                className="dash-qa-row"
+                                style={
+                                  {
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 12,
+                                    padding: "10px 12px 10px 14px",
+                                    borderRadius: 12,
+                                    border: `1px solid ${token.colorBorderSecondary}`,
+                                    background: `linear-gradient(135deg, ${a.accent}0A 0%, ${token.colorBgContainer} 70%)`,
+                                    position: "relative",
+                                    overflow: "hidden",
+                                    ["--qa-accent" as any]: a.accent,
+                                  } as React.CSSProperties
+                                }
+                              >
+                                <span
+                                  aria-hidden
+                                  style={{
+                                    position: "absolute",
+                                    left: 0,
+                                    top: 0,
+                                    bottom: 0,
+                                    width: 3,
+                                    background: a.accent,
+                                  }}
+                                />
+                                <div
+                                  style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 10,
+                                    background: `${a.accent}14`,
+                                    border: `1px solid ${a.accent}33`,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    color: a.accent,
+                                    fontSize: 16,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {a.icon}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <Text
+                                    strong
+                                    style={{
+                                      fontSize: 13,
+                                      color: token.colorText,
+                                      display: "block",
+                                      lineHeight: 1.3,
+                                      letterSpacing: "-0.1px",
+                                    }}
                                   >
-                                    <span
-                                      aria-hidden
-                                      style={{
-                                        position: "absolute",
-                                        left: 0,
-                                        top: 0,
-                                        bottom: 0,
-                                        width: 3,
-                                        background: a.accent,
-                                      }}
-                                    />
-                                    <div
-                                      style={{
-                                        width: 36,
-                                        height: 36,
-                                        borderRadius: 10,
-                                        background: `${a.accent}14`,
-                                        border: `1px solid ${a.accent}33`,
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        color: a.accent,
-                                        fontSize: 16,
-                                        flexShrink: 0,
-                                      }}
-                                    >
-                                      {a.icon}
-                                    </div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      <Text
-                                        strong
-                                        style={{
-                                          fontSize: 13,
-                                          color: token.colorText,
-                                          display: "block",
-                                          lineHeight: 1.3,
-                                          letterSpacing: "-0.1px",
-                                        }}
-                                      >
-                                        {a.title}
-                                      </Text>
-                                      <Text
-                                        type="secondary"
-                                        style={{
-                                          fontSize: 11,
-                                          lineHeight: 1.3,
-                                        }}
-                                      >
-                                        {a.desc}
-                                      </Text>
-                                    </div>
-                                    <span
-                                      style={{
-                                        fontSize: 10,
-                                        fontWeight: 700,
-                                        color: token.colorTextTertiary,
-                                        background: token.colorFillAlter,
-                                        border: `1px solid ${token.colorBorderSecondary}`,
-                                        padding: "2px 6px",
-                                        borderRadius: 6,
-                                        fontVariantNumeric: "tabular-nums",
-                                        letterSpacing: "0.4px",
-                                        flexShrink: 0,
-                                      }}
-                                    >
-                                      ⌘ {a.shortcut}
-                                    </span>
-                                    <ArrowRightOutlined
-                                      style={{
-                                        fontSize: 11,
-                                        color: token.colorTextTertiary,
-                                        flexShrink: 0,
-                                      }}
-                                    />
-                                  </div>
-                                ))}
+                                    {a.title}
+                                  </Text>
+                                  <Text
+                                    type="secondary"
+                                    style={{
+                                      fontSize: 11,
+                                      lineHeight: 1.3,
+                                    }}
+                                  >
+                                    {a.desc}
+                                  </Text>
+                                </div>
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    color: token.colorTextTertiary,
+                                    background: token.colorFillAlter,
+                                    border: `1px solid ${token.colorBorderSecondary}`,
+                                    padding: "2px 6px",
+                                    borderRadius: 6,
+                                    fontVariantNumeric: "tabular-nums",
+                                    letterSpacing: "0.4px",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  ⌘ {a.shortcut}
+                                </span>
+                                <ArrowRightOutlined
+                                  style={{
+                                    fontSize: 11,
+                                    color: token.colorTextTertiary,
+                                    flexShrink: 0,
+                                  }}
+                                />
                               </div>
-                            </Card>
-                          );
-                        })()}
-                      </Col>
+                            ))}
+                          </div>
+                        </Card>
+                      );
+                    })()}
+                  </Col>
                 </Row>
               </>
             ) : null}
@@ -3806,13 +3806,13 @@ function DashboardContent() {
                                     );
                                     const progressPct = live
                                       ? Math.min(
+                                        100,
+                                        Math.round(
+                                          (now.diff(start, "minute") /
+                                            totalMin) *
                                           100,
-                                          Math.round(
-                                            (now.diff(start, "minute") /
-                                              totalMin) *
-                                              100,
-                                          ),
-                                        )
+                                        ),
+                                      )
                                       : 0;
                                     return (
                                       <div
@@ -4433,8 +4433,8 @@ function DashboardContent() {
                                     typeof item.project === "string"
                                       ? item.project
                                       : item.project?.code ||
-                                        item.project?.name ||
-                                        "";
+                                      item.project?.name ||
+                                      "";
 
                                   return (
                                     <div

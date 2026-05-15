@@ -28,6 +28,8 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/context/TenantContext";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import { VendorService, Vendor } from "@/services/vendor.service";
 
@@ -35,6 +37,8 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 export default function VendorListPage() {
+  const { user, isLoading } = useAuth();
+  const { canReadVendor } = usePermission();
   const router = useRouter();
   const { tenantId } = useTenant();
   const [data, setData] = useState<Vendor[]>([]);
@@ -74,11 +78,18 @@ export default function VendorListPage() {
     }
   };
 
+  // ─── Route Guard ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (tenantId) {
+    if (!isLoading && user && !canReadVendor) {
+      router.push("/dashboard");
+    }
+  }, [user, isLoading, canReadVendor, router]);
+
+  useEffect(() => {
+    if (tenantId && canReadVendor) {
       fetchData();
     }
-  }, [tenantId]);
+  }, [tenantId, canReadVendor]);
 
   const handleTableChange = (paginationInfo: TablePaginationConfig) => {
     fetchData(paginationInfo.current || 1, paginationInfo.pageSize || 10);

@@ -62,6 +62,7 @@ import ReleasePlanService, {
 import { ProjectService } from "@/services/projectService";
 import { SprintCompletionModal } from "./sprint-completion";
 import { useSocket } from "@/providers/SocketProvider";
+import { usePermission } from "@/hooks/usePermission";
 import { useTheme } from "@/context/ThemeContext";
 
 const { Title, Text } = Typography;
@@ -82,6 +83,12 @@ export default function SprintPlanComponent() {
   });
   const { message } = App.useApp();
   const { socket, connected } = useSocket();
+  const { 
+    canCreateTicketPlan, 
+    canUpdateTicketPlan, 
+    canDeleteTicketPlan, 
+    canReadTicketPlan 
+  } = usePermission();
 
   // State management
   const [sprintPlans, setSprintPlans] = useState<ReleasePlan[]>([]);
@@ -685,14 +692,14 @@ export default function SprintPlanComponent() {
       width: 180,
       render: (_: any, record: ReleasePlan) => (
         <div className="sp-row-actions">
-          {record.status === 'planning' && (
+          {record.status === 'planning' && canUpdateTicketPlan && (
             <Popconfirm title="Activate this sprint?" onConfirm={() => handleStartSprint(record)}>
               <Tooltip title="Start sprint">
                 <Button type="text" size="small" icon={<PlayCircleOutlined style={{ color: '#10b981' }} />} className="sp-row-action-btn" />
               </Tooltip>
             </Popconfirm>
           )}
-          {record.status === 'active' && (
+          {record.status === 'active' && canUpdateTicketPlan && (
             <Tooltip title="Complete sprint">
               <Button type="text" size="small" icon={<CheckCircleOutlined style={{ color: '#3b82f6' }} />} onClick={() => handleCompleteSprint(record)} className="sp-row-action-btn" />
             </Tooltip>
@@ -700,14 +707,18 @@ export default function SprintPlanComponent() {
           <Tooltip title="View details">
             <Button type="text" size="small" icon={<EyeOutlined style={{ color: '#64748b' }} />} onClick={() => handleViewTickets(record)} className="sp-row-action-btn" />
           </Tooltip>
-          <Tooltip title="Edit">
-            <Button type="text" size="small" icon={<EditOutlined style={{ color: '#64748b' }} />} onClick={() => handleEdit(record)} className="sp-row-action-btn" />
-          </Tooltip>
-          <Popconfirm title="Delete this sprint?" onConfirm={() => handleDelete(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
-            <Tooltip title="Delete">
-              <Button type="text" size="small" danger icon={<DeleteOutlined />} className="sp-row-action-btn" />
+          {canUpdateTicketPlan && (
+            <Tooltip title="Edit">
+              <Button type="text" size="small" icon={<EditOutlined style={{ color: '#64748b' }} />} onClick={() => handleEdit(record)} className="sp-row-action-btn" />
             </Tooltip>
-          </Popconfirm>
+          )}
+          {canDeleteTicketPlan && (
+            <Popconfirm title="Delete this sprint?" onConfirm={() => handleDelete(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
+              <Tooltip title="Delete">
+                <Button type="text" size="small" danger icon={<DeleteOutlined />} className="sp-row-action-btn" />
+              </Tooltip>
+            </Popconfirm>
+          )}
         </div>
       ),
     },
@@ -765,20 +776,22 @@ export default function SprintPlanComponent() {
                 className="saas-button-item"
                 style={{ height: 36, fontWeight: 600 }}
               />
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setShowCreateModal(true)}
-                className="saas-button-item"
-                style={{
-                  height: 36,
-                  fontWeight: 700,
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                  border: 'none'
-                }}
-              >
-                Plan New Sprint
-              </Button>
+              {canCreateTicketPlan && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setShowCreateModal(true)}
+                  className="saas-button-item"
+                  style={{
+                    height: 36,
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    border: 'none'
+                  }}
+                >
+                  Plan New Sprint
+                </Button>
+              )}
             </Space>
           </Col>
         </Row>

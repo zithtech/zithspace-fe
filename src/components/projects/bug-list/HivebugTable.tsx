@@ -16,6 +16,7 @@ import type {
   BugStatus,
 } from "@/services/bugListService";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
+import { usePermission } from "@/hooks/usePermission";
 
 const SEVERITY_DOT: Record<BugSeverity, string> = {
   blocker: "#ff4d6d",
@@ -142,6 +143,13 @@ export default function HivebugTable({
   isNestedInSheet,
   isNestedInFolder,
 }: HivebugTableProps) {
+  const { 
+    canUpdateBug, 
+    canDeleteBug, 
+    canCreateTicket, 
+    canManageBugs 
+  } = usePermission();
+
   const selectableBugs = bugs.filter((b) => !b.ticketId);
   const allChecked =
     selectableBugs.length > 0 &&
@@ -252,6 +260,12 @@ function BugRow({
   isNestedInFolder,
 }: BugRowProps) {
   const { open: openTicketDrawer } = useTicketDrawer();
+  const { 
+    canUpdateBug, 
+    canDeleteBug, 
+    canCreateTicket, 
+    canManageBugs 
+  } = usePermission();
   const severity = bug.severity;
   const status = toDisplayStatus(bug.status);
   const creatorName = bug.createdBy?.name || "Unknown";
@@ -311,7 +325,7 @@ function BugRow({
         <BugStatusDropdown
           currentStatus={bug.bugStatus || "not started"}
           onUpdate={(value) => onBugStatusUpdate?.(bug.id, value)}
-          canEdit={!!onBugStatusUpdate}
+          canEdit={!!onBugStatusUpdate && canUpdateBug}
         />
       </td>
       <td>
@@ -377,8 +391,11 @@ function BugRow({
             className="hb-create-ticket"
             onClick={(e) => {
               e.stopPropagation();
-              onCreateTicket();
+              if (canCreateTicket) onCreateTicket();
+              else message.info("You don't have permission to create tickets");
             }}
+            disabled={!canCreateTicket}
+            style={{ opacity: canCreateTicket ? 1 : 0.5 }}
           >
             <Plus size={11} /> Create
           </button>
@@ -417,21 +434,21 @@ function BugRow({
                   { key: "delete", label: "Delete", danger: true },
                 ]
               : [
-                  { key: "edit", label: "Edit" },
+                  { key: "edit", label: "Edit", disabled: !canUpdateBug },
                   ...(bug.status === "converted" || bug.status === "reopened"
                     ? [
-                        { key: "verify", label: "Mark verified" },
-                        { key: "reopen", label: "Reopen" },
+                        { key: "verify", label: "Mark verified", disabled: !canUpdateBug },
+                        { key: "reopen", label: "Reopen", disabled: !canUpdateBug },
                       ]
                     : []),
                   {
                     key: "ignore",
                     label: "Ignore",
-                    disabled: bug.status === "ignored",
+                    disabled: bug.status === "ignored" || !canUpdateBug,
                   },
-                  { key: "archive", label: "Archive" },
+                  { key: "archive", label: "Archive", disabled: !canUpdateBug },
                   { type: "divider" as const },
-                  { key: "delete", label: "Move to Trash", danger: true },
+                  { key: "delete", label: "Move to Trash", danger: true, disabled: !canDeleteBug },
                 ],
             onClick: ({ key }) => {
               if (key === "edit") onEdit();

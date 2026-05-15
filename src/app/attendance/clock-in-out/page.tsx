@@ -52,7 +52,7 @@ interface TodayAttendanceStatus extends TodayAttendance {
 export default function ClockInOutPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
-  const { canReadAttendance } = usePermission();
+  const { canClockInOut } = usePermission();
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -63,10 +63,10 @@ export default function ClockInOutPage() {
   const [workHoursSummary, setWorkHoursSummary] = useState<any>(null);
 
   useEffect(() => {
-    if (!authLoading && !canReadAttendance) {
+    if (!authLoading && !canClockInOut) {
       router.push('/dashboard');
     }
-  }, [authLoading, canReadAttendance, router]);
+  }, [authLoading, canClockInOut, router]);
 
   const fetchData = async () => {
     try {
@@ -88,10 +88,10 @@ export default function ClockInOutPage() {
   };
 
   useEffect(() => {
-    if (user && canReadAttendance) {
+    if (user && canClockInOut) {
       fetchData();
     }
-  }, [user, canReadAttendance]);
+  }, [user, canClockInOut]);
 
   const handleClockIn = async () => {
     try {
@@ -172,7 +172,7 @@ export default function ClockInOutPage() {
     },
   ];
 
-  if (authLoading || !canReadAttendance) return null;
+  if (authLoading || !canClockInOut) return null;
 
   return (
     <MainLayout>

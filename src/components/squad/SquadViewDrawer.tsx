@@ -15,6 +15,7 @@ import {
   InboxOutlined,
 } from '@ant-design/icons';
 import { Squad, SquadMember } from '@/services/squadService';
+import { usePermission } from '@/hooks/usePermission';
 
 interface SquadViewDrawerProps {
   visible: boolean;
@@ -36,6 +37,7 @@ const ROLE_ORDER: Role[] = ['HEAD', 'SUB_HEAD', 'MEMBER'];
 
 const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squad, onManage }) => {
   const { message } = App.useApp();
+  const { canUpdateSquad } = usePermission();
   const [filter, setFilter] = useState<FilterKey>('ALL');
   const [search, setSearch] = useState('');
 
@@ -219,7 +221,7 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             <Button onClick={onClose}>Close</Button>
-            {onManage && (
+            {onManage && canUpdateSquad && (
               <Button
                 type="primary"
                 icon={<SettingOutlined />}

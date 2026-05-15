@@ -23,6 +23,7 @@ interface EditableSelectProps {
     emptyText?: string;
     plain?: boolean; // If true, removes default hover background and padding
     textStyle?: React.CSSProperties;
+    disabled?: boolean;
 }
 
 export const EditableSelect: React.FC<EditableSelectProps> = ({
@@ -35,6 +36,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
     emptyText = 'Select...',
     plain = false,
     textStyle,
+    disabled = false,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -160,9 +162,9 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
 
     return (
         <div
-            onClick={() => !loading && setIsEditing(true)}
+            onClick={() => !loading && !disabled && setIsEditing(true)}
             style={{
-                cursor: 'pointer',
+                cursor: disabled ? 'default' : 'pointer',
                 padding: plain ? '0' : '4px 8px',
                 margin: plain ? '0' : '-4px -8px',
                 borderRadius: '4px',
@@ -176,7 +178,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
         >
             <div style={{ flex: 1 }}>{renderValue()}</div>
             {loading && <Spin size="small" style={{ marginLeft: 8 }} />}
-            {!loading && <EditOutlined style={{ marginLeft: 8, opacity: 0, transition: 'opacity 0.2s' }} className="edit-icon" />}
+            {!loading && !disabled && <EditOutlined style={{ marginLeft: 8, opacity: 0, transition: 'opacity 0.2s' }} className="edit-icon" />}
 
             <style jsx global>{`
         .editable-field-hover:hover {

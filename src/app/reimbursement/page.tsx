@@ -28,7 +28,13 @@ const { Title } = Typography;
 export default function ReimbursementPage() {
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
-  const { canReadReimbursement, canCreateReimbursement, canApproveReimbursement } = usePermission();
+  const {
+    canReadReimbursement,
+    canReadReimbursementMy,
+    canReadReimbursementApproval,
+    canReadReimbursementSetting,
+    canReadReimbursementPolicy
+  } = usePermission();
 
   // Route guard
   useEffect(() => {
@@ -67,7 +73,7 @@ export default function ReimbursementPage() {
         <Tabs
           defaultActiveKey="employee"
           items={[
-            {
+            canReadReimbursementMy && {
               key: "employee",
               label: (
                 <Space>
@@ -76,16 +82,7 @@ export default function ReimbursementPage() {
               ),
               children: <EmployeeTab />,
             },
-            // {
-            //   key: "manager",
-            //   label: (
-            //     <Space>
-            //       <TeamOutlined /> Manager
-            //     </Space>
-            //   ),
-            //   children: <ManagerTab />,
-            // },
-            {
+            canReadReimbursementApproval && {
               key: "finance",
               label: (
                 <Space>
@@ -94,7 +91,7 @@ export default function ReimbursementPage() {
               ),
               children: <FinanceTab />,
             },
-            {
+            canReadReimbursementSetting && {
               key: "settings",
               label: (
                 <Space>
@@ -103,7 +100,7 @@ export default function ReimbursementPage() {
               ),
               children: <SettingsTab />,
             },
-            {
+            canReadReimbursementPolicy && {
               key: "reimbursement configuration",
               label: (
                 <Space>
@@ -112,7 +109,7 @@ export default function ReimbursementPage() {
               ),
               children: <ReimbursementTab />,
             },
-          ]}
+          ].filter(Boolean) as any[]}
         />
       </div>
     </MainLayout>

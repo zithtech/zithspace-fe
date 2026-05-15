@@ -2213,7 +2213,7 @@ const DocumentHubPage = () => {
                               className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-[1px] rounded"
                               style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)', color: '#fff' }}
                             >
-                              AI
+                              Start from a blank document hub
                             </span>
                           </div>
                           <span className="text-[11.5px] leading-snug mt-0.5" style={{ color: 'var(--text-slate-400)' }}>

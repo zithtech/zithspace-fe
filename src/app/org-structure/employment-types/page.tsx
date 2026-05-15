@@ -15,7 +15,11 @@ const { Text } = Typography;
 export default function EmploymentTypesPage() {
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
-  const { canReadOrg, canManageOrg } = usePermission();
+  const { 
+    canReadOrgEmploymentType, 
+    canCreateOrgEmploymentType, 
+    canUpdateOrgEmploymentType 
+  } = usePermission();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -32,10 +36,10 @@ export default function EmploymentTypesPage() {
 
   // Route guard
   useEffect(() => {
-    if (!authLoading && !canReadOrg) {
+    if (!authLoading && !canReadOrgEmploymentType) {
       router.push('/dashboard');
     }
-  }, [authLoading, canReadOrg, router]);
+  }, [authLoading, canReadOrgEmploymentType, router]);
 
   const totalTypes = employmentTypes.length;
   const activeTypes = employmentTypes.filter(type => type.isActive).length;
@@ -176,7 +180,7 @@ export default function EmploymentTypesPage() {
       align: "right" as const,
       width: 100,
       render: (_: any, record: EmploymentType) => {
-        if (!canManageOrg) return null;
+        if (!canUpdateOrgEmploymentType) return null;
         return (
           <Tooltip title="Edit Type">
             <Button
@@ -203,7 +207,7 @@ export default function EmploymentTypesPage() {
     );
   }
 
-  if (!canReadOrg) return null;
+  if (!canReadOrgEmploymentType) return null;
 
   return (
     <ProtectedRoute>
@@ -231,7 +235,7 @@ export default function EmploymentTypesPage() {
                 style={{ width: 280, borderRadius: 10, height: 44 }}
                 onChange={(e) => setSearchText(e.target.value)}
               />
-              {canManageOrg && (
+              {canCreateOrgEmploymentType && (
                 <Button 
                   type="primary" size="large" icon={<Plus size={18} />} 
                   style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}

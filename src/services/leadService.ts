@@ -50,6 +50,8 @@ export interface Lead {
     matchPercentage: number;
   };
   ai_summary?: string;
+  last_mail_at?: string;
+  is_mail_sent?: boolean;
 }
 
 export interface LeadPayload {
@@ -249,6 +251,19 @@ export class LeadService {
       await api.post('/api/leads/trash/bulk-permanent-delete', { ids });
     } catch (error) {
       console.error('Failed to bulk delete leads:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send mail to lead
+   */
+  static async sendLeadMail(mailData: { leadId?: string, to: string | string[], subject: string, body: string, attachments?: any[] }): Promise<any> {
+    try {
+      const response = await api.post('/api/leads/send-mail', mailData);
+      return response;
+    } catch (error) {
+      console.error('Failed to send lead mail:', error);
       throw error;
     }
   }

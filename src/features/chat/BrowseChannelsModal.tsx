@@ -6,6 +6,7 @@ import { NumberOutlined, TeamOutlined } from '@ant-design/icons';
 import { channelService, PublicChannel } from '@/services/channelService';
 import { useChatStore } from '@/store/chatStore';
 import { useRouter } from 'next/navigation';
+import { usePermission } from '@/hooks/usePermission';
 
 const { Text, Title } = Typography;
 
@@ -17,6 +18,7 @@ interface BrowseChannelsModalProps {
 export default function BrowseChannelsModal({ open, onClose }: BrowseChannelsModalProps) {
     const router = useRouter();
     const { channels, setChannels } = useChatStore();
+    const { canCreateChat } = usePermission();
     const { token } = theme.useToken();
     const [publicChannels, setPublicChannels] = useState<PublicChannel[]>([]);
     const [loading, setLoading] = useState(true);
@@ -97,7 +99,7 @@ export default function BrowseChannelsModal({ open, onClose }: BrowseChannelsMod
                                     >
                                         Joined
                                     </Button>
-                                ) : (
+                                ) : canCreateChat ? (
                                     <Button
                                         type="primary"
                                         size="small"
@@ -107,7 +109,7 @@ export default function BrowseChannelsModal({ open, onClose }: BrowseChannelsMod
                                     >
                                         Join
                                     </Button>
-                                )
+                                ) : null
                             ]}
                         >
                             <List.Item.Meta

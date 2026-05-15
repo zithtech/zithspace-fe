@@ -10,15 +10,15 @@ import TicketSettings from '@/components/projects/TicketSettings';
 
 export default function ProjectsSettingsPage() {
   const { user, isLoading: authLoading } = useAuth();
-  const { canManageProjects } = usePermission();
+  const { canReadTicketSetting } = usePermission();
   const router = useRouter();
 
-  // Route guard - requires project.manage permission
+  // Route guard - requires ticket.setting.read permission
   useEffect(() => {
-    if (!authLoading && !canManageProjects) {
+    if (!authLoading && !canReadTicketSetting) {
       router.push('/dashboard');
     }
-  }, [authLoading, canManageProjects, router]);
+  }, [authLoading, canReadTicketSetting, router]);
 
   // Show loading spinner while authentication is being checked
   if (authLoading) {
@@ -26,7 +26,7 @@ export default function ProjectsSettingsPage() {
   }
 
   // Don't render if no permission
-  if (!canManageProjects) {
+  if (!canReadTicketSetting) {
     return null;
   }
 

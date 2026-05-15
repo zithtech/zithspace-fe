@@ -12,6 +12,7 @@ import {
   SettingOutlined,
 } from '@ant-design/icons';
 import { Squad, SquadService } from '@/services/squadService';
+import { usePermission } from '@/hooks/usePermission';
 
 interface SquadCardProps {
   squad: Squad;
@@ -26,6 +27,7 @@ const MEMBER_AVATAR_BG = 'linear-gradient(135deg, #3b82f6, #6366f1)';
 
 const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefresh }) => {
   const { message, modal } = App.useApp();
+  const { canUpdateSquad, canDeleteSquad } = usePermission();
   const [busy, setBusy] = useState(false);
 
   const handleArchive = async () => {
@@ -62,22 +64,31 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
     });
   };
 
-  const menuItems: MenuProps['items'] = [
-    {
-      key: 'archive',
-      icon: squad.isArchived ? <RollbackOutlined /> : <InboxOutlined />,
-      label: squad.isArchived ? 'Unarchive' : 'Archive',
-      onClick: handleArchive,
-    },
-    { type: 'divider' },
-    {
-      key: 'delete',
-      icon: <DeleteOutlined />,
-      danger: true,
-      label: 'Delete',
-      onClick: handleDelete,
-    },
-  ];
+  const menuItems: MenuProps['items'] = useMemo(() => {
+    const items: MenuProps['items'] = [];
+    
+    if (canUpdateSquad) {
+      items.push({
+        key: 'archive',
+        icon: squad.isArchived ? <RollbackOutlined /> : <InboxOutlined />,
+        label: squad.isArchived ? 'Unarchive' : 'Archive',
+        onClick: handleArchive,
+      });
+    }
+
+    if (canDeleteSquad) {
+      if (items.length > 0) items.push({ type: 'divider' });
+      items.push({
+        key: 'delete',
+        icon: <DeleteOutlined />,
+        danger: true,
+        label: 'Delete',
+        onClick: handleDelete,
+      });
+    }
+    
+    return items;
+  }, [canUpdateSquad, canDeleteSquad, squad.isArchived]);
 
   const { heads, subHeads, members, initials, statusClass, statusBadgeClass, statusLabel } = useMemo(() => {
     const heads = squad.squadMembers?.filter(m => m.memberType === 'HEAD') || [];
@@ -144,14 +155,16 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
               <span className="squad-status-dot" />
               {statusLabel}
             </span>
-            <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight" disabled={busy}>
-              <Button
-                type="text"
-                icon={<MoreOutlined />}
-                className="squad-card-v2__menu-btn"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </Dropdown>
+            {menuItems.length > 0 && (
+              <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight" disabled={busy}>
+                <Button
+                  type="text"
+                  icon={<MoreOutlined />}
+                  className="squad-card-v2__menu-btn"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Dropdown>
+            )}
           </div>
         </div>
 
@@ -193,9 +206,11 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
         <Button icon={<EyeOutlined />} onClick={() => onOpen(squad)}>
           View
         </Button>
-        <Button type="primary" icon={<SettingOutlined />} onClick={() => onManage(squad)}>
-          Manage
-        </Button>
+        {canUpdateSquad && (
+          <Button type="primary" icon={<SettingOutlined />} onClick={() => onManage(squad)}>
+            Manage
+          </Button>
+        )}
       </div>
     </div>
   );

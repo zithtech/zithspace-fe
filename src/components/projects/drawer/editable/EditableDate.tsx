@@ -12,6 +12,7 @@ interface EditableDateProps {
     label?: string;
     emptyText?: string;
     format?: string;
+    disabled?: boolean;
 }
 
 export const EditableDate: React.FC<EditableDateProps> = ({
@@ -20,7 +21,8 @@ export const EditableDate: React.FC<EditableDateProps> = ({
     placeholder,
     label,
     emptyText = 'Set date',
-    format = 'MMM D, YYYY'
+    format = 'MMM D, YYYY',
+    disabled = false
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -76,9 +78,9 @@ export const EditableDate: React.FC<EditableDateProps> = ({
 
     return (
         <div
-            onClick={() => !loading && setIsEditing(true)}
+            onClick={() => !loading && !disabled && setIsEditing(true)}
             style={{
-                cursor: 'pointer',
+                cursor: disabled ? 'default' : 'pointer',
                 padding: '4px 8px',
                 margin: '-4px -8px',
                 borderRadius: '4px',
@@ -98,7 +100,7 @@ export const EditableDate: React.FC<EditableDateProps> = ({
             )}
 
             {loading && <Spin size="small" style={{ marginLeft: 8 }} />}
-            {!loading && <EditOutlined style={{ marginLeft: 8, opacity: 0, transition: 'opacity 0.2s' }} className="edit-icon" />}
+            {!loading && !disabled && <EditOutlined style={{ marginLeft: 8, opacity: 0, transition: 'opacity 0.2s' }} className="edit-icon" />}
 
             <style jsx global>{`
         .editable-field-hover:hover .edit-icon {

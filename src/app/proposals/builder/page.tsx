@@ -24,6 +24,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Sparkles, Wand2 } from 'lucide-react';
 import { EndToEndZaiModal } from '@/components/proposals/EndToEndZaiModal';
+import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -55,6 +57,19 @@ function BuilderContent() {
   const [showGenOverlay, setShowGenOverlay] = useState(false);
   const [pendingLeadId, setPendingLeadId] = useState<string | null>(null);
   const [endToEndOpen, setEndToEndOpen] = useState(false);
+  const { user, isLoading } = useAuth();
+  const { canCreateProposal, canUpdateProposal } = usePermission();
+
+  // ─── Route Guard ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isLoading && user) {
+      if (proposalId && !canUpdateProposal) {
+        router.push("/proposals");
+      } else if (!proposalId && !canCreateProposal) {
+        router.push("/proposals");
+      }
+    }
+  }, [user, isLoading, canCreateProposal, canUpdateProposal, proposalId, router]);
 
   const isInitialized = useRef(false);
 
@@ -156,6 +171,9 @@ function BuilderContent() {
             );
 
             setBlocks(sortedBlocks);
+            if (proposal.lead_id) {
+              setPendingLeadId(proposal.lead_id);
+            }
             messageApi.success({ content: 'Proposal data loaded.', key: 'load_data' });
           } else {
             setBlocks([]);
@@ -521,29 +539,35 @@ function BuilderContent() {
               onChange={(val) => setPalettePosition(val as 'top' | 'left' | 'right')}
             />
           )}
-          <Button
-            className="pb-zai-cta"
-            onClick={() => setEndToEndOpen(true)}
-            icon={<Wand2 size={14} />}
-          >
-            Create with Zai
-          </Button>
+          {canUpdateProposal && (
+            <Button
+              className="pb-zai-cta"
+              onClick={() => setEndToEndOpen(true)}
+              icon={<Wand2 size={14} />}
+            >
+              Create with Zai
+            </Button>
+          )}
           <Button className="pb-action-btn" icon={<EyeOutlined />} onClick={() => setPreviewOpen(true)}>
             Live Preview
           </Button>
-          <Dropdown menu={{ items: exportMenu }} placement="bottomRight">
-            <Button className="pb-action-btn" icon={<DownloadOutlined />}>
-              Export
+          {canUpdateProposal && (
+            <Dropdown menu={{ items: exportMenu }} placement="bottomRight">
+              <Button className="pb-action-btn" icon={<DownloadOutlined />}>
+                Export
+              </Button>
+            </Dropdown>
+          )}
+          {((proposalId && canUpdateProposal) || (!proposalId && canCreateProposal)) && (
+            <Button
+              className="pb-action-btn pb-action-btn--primary"
+              type="primary"
+              icon={<SaveOutlined />}
+              onClick={handleSave}
+            >
+              {proposalId ? 'Save Changes' : 'Save'}
             </Button>
-          </Dropdown>
-          <Button
-            className="pb-action-btn pb-action-btn--primary"
-            type="primary"
-            icon={<SaveOutlined />}
-            onClick={handleSave}
-          >
-            {proposalId ? 'Save Changes' : 'Save'}
-          </Button>
+          )}
           <Button
             type="text"
             className="pb-iconbtn"

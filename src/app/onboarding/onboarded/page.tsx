@@ -33,6 +33,8 @@ import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
 
 const { Text, Title } = Typography;
 
@@ -63,10 +65,23 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
 /* ---------------- MAIN COMPONENT ---------------- */
 
 const Onboarded = () => {
+  const { isLoading: authLoading } = useAuth();
+  const { 
+    canReadOnboarding, 
+    canCreateOnboarding, 
+    canUpdateOnboarding, 
+    canDeleteOnboarding 
+  } = usePermission();
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (!authLoading && !canReadOnboarding) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadOnboarding, router]);
 
   // ✅ Fetch All Employees
   const fetchEmployees = async (background = false) => {
@@ -95,8 +110,10 @@ const Onboarded = () => {
   };
 
   useEffect(() => {
-    fetchEmployees();
-  }, []);
+    if (canReadOnboarding) {
+      fetchEmployees();
+    }
+  }, [canReadOnboarding]);
 
   // ✅ Status Toggle
   const handleStatusChange = async (id: string, checked: boolean) => {
@@ -208,6 +225,7 @@ const Onboarded = () => {
           size="small"
           checked={status}
           onChange={(checked) => handleStatusChange(record.id, checked)}
+          disabled={!canUpdateOnboarding}
         />
       ),
     },
@@ -270,31 +288,33 @@ const Onboarded = () => {
                 icon: <Eye size={14} />,
                 onClick: () => router.push(`/onboarding/onboarded/${record.id}`)
               },
-              {
+              ...(canUpdateOnboarding ? [{
                 key: 'edit',
                 label: 'Edit Info',
                 icon: <Edit2 size={14} />,
                 onClick: () => router.push(`/onboarding/create?id=${record.id}`)
-              },
-              {
-                type: 'divider',
-              },
-              {
-                key: 'delete',
-                label: (
-                  <Popconfirm
-                    title="Delete this record?"
-                    description="This action cannot be undone."
-                    onConfirm={() => handleDelete(record.id)}
-                    okText="Delete"
-                    cancelText="Cancel"
-                    okButtonProps={{ danger: true }}
-                  >
-                    <span style={{ color: '#ff4d4f', display: 'block', width: '100%' }}>Delete Record</span>
-                  </Popconfirm>
-                ),
-                icon: <Trash2 size={14} color="#ff4d4f" />,
-              },
+              }] : []),
+              ...(canDeleteOnboarding ? [
+                {
+                  type: 'divider' as const,
+                },
+                {
+                  key: 'delete',
+                  label: (
+                    <Popconfirm
+                      title="Delete this record?"
+                      description="This action cannot be undone."
+                      onConfirm={() => handleDelete(record.id)}
+                      okText="Delete"
+                      cancelText="Cancel"
+                      okButtonProps={{ danger: true }}
+                    >
+                      <span style={{ color: '#ff4d4f', display: 'block', width: '100%' }}>Delete Record</span>
+                    </Popconfirm>
+                  ),
+                  icon: <Trash2 size={14} color="#ff4d4f" />,
+                }
+              ] : []),
             ]
           }}
           trigger={['click']}
@@ -304,6 +324,8 @@ const Onboarded = () => {
       </Space>
     );
   }
+
+  if (authLoading || !canReadOnboarding) return null;
 
   return (
     <div style={{ padding: "8px 0" }}>
@@ -333,15 +355,17 @@ const Onboarded = () => {
             style={{ width: 280, borderRadius: 10, height: 44 }}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <Button
-            type="primary"
-            size="large"
-            icon={<Plus size={18} />}
-            style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center", background: "#3b82f6", border: "none" }}
-            onClick={() => router.push("/onboarding/create")}
-          >
-            Hire Employee
-          </Button>
+          {canCreateOnboarding && (
+            <Button
+              type="primary"
+              size="large"
+              icon={<Plus size={18} />}
+              style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center", background: "#3b82f6", border: "none" }}
+              onClick={() => router.push("/onboarding/create")}
+            >
+              Hire Employee
+            </Button>
+          )}
         </div>
       </div>
 

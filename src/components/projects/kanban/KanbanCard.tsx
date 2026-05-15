@@ -36,6 +36,12 @@ interface KanbanCardProps {
   onSprintAssignment?: (ticketId: string, action: 'add' | 'remove') => void;
   onClick?: () => void;
   isOverlay?: boolean;
+  permissions?: {
+    canUpdateTicket: boolean;
+    canDeleteTicket: boolean;
+    canAssignTicket: boolean;
+    canManageTickets: boolean;
+  };
 }
 
 const PRIORITY_COLOR_VAR: Record<string, string> = {
@@ -68,7 +74,15 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
   onSprintAssignment,
   onClick,
   isOverlay = false,
+  permissions,
 }) => {
+  const { canUpdateTicket, canDeleteTicket, canAssignTicket, canManageTickets } = permissions || {
+    canUpdateTicket: true,
+    canDeleteTicket: true,
+    canAssignTicket: true,
+    canManageTickets: true,
+  };
+
   const {
     attributes,
     listeners,
@@ -76,7 +90,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: ticket.id, disabled: isOverlay });
+  } = useSortable({ id: ticket.id, disabled: isOverlay || !canUpdateTicket });
 
   const [editingField, setEditingField] = useState<
     'title' | 'priority' | 'type' | 'storyPoint' | 'assignee' | null
@@ -124,7 +138,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
 
   const getMenuItems = (): MenuProps['items'] => {
     const items: MenuProps['items'] = [];
-    if (kanbanScope === 'backlog' && activeSprint && onSprintAssignment) {
+    if (kanbanScope === 'backlog' && activeSprint && onSprintAssignment && (canUpdateTicket || canManageTickets)) {
       items.push({
         key: 'addToSprint',
         label: 'Add to Active Sprint',
@@ -132,7 +146,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
         onClick: () => onSprintAssignment(ticket.id, 'add'),
       });
     }
-    if (kanbanScope === 'active' && onSprintAssignment) {
+    if (kanbanScope === 'active' && onSprintAssignment && (canUpdateTicket || canManageTickets)) {
       items.push({
         key: 'removeFromSprint',
         label: 'Remove from Sprint',
@@ -185,6 +199,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
         onPointerDown={stopPropagation}
         onMouseDown={stopPropagation}
         onClick={(e) => {
+          if (!canUpdateTicket) return;
           e.stopPropagation();
           startEditing('title', ticket.title);
         }}
@@ -219,6 +234,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
           onPointerDown={stopPropagation}
           onMouseDown={stopPropagation}
           onClick={(e) => {
+            if (!canUpdateTicket) return;
             e.stopPropagation();
             startEditing('type', ticket.type);
           }}
@@ -254,6 +270,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
           onPointerDown={stopPropagation}
           onMouseDown={stopPropagation}
           onClick={(e) => {
+            if (!canUpdateTicket) return;
             e.stopPropagation();
             startEditing('priority', ticket.priority);
           }}
@@ -299,6 +316,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
           onPointerDown={stopPropagation}
           onMouseDown={stopPropagation}
           onClick={(e) => {
+            if (!canUpdateTicket) return;
             e.stopPropagation();
             startEditing('storyPoint', ticket.storyPoint);
           }}
@@ -339,6 +357,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
             onPointerDown={stopPropagation}
             onMouseDown={stopPropagation}
             onClick={(e) => {
+              if (!canAssignTicket && !canUpdateTicket) return;
               e.stopPropagation();
               startEditing('assignee', ticket.assignee?.id);
             }}
@@ -361,6 +380,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
           onPointerDown={stopPropagation}
           onMouseDown={stopPropagation}
           onClick={(e) => {
+            if (!canAssignTicket && !canUpdateTicket) return;
             e.stopPropagation();
             startEditing('assignee', undefined);
           }}

@@ -62,7 +62,7 @@ import {
 import { MembersService } from "@/services/membersService";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { useAuth } from "@/context/AuthContext";
-import { RBAC } from "@/lib/rbac";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import { useTheme } from "@/context/ThemeContext";
 import { ColumnsType } from "antd/es/table";
@@ -163,6 +163,7 @@ const ProjectsManagePage: React.FC = () => {
   const { notification, message } = App.useApp();
   const [form] = Form.useForm();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { canReadProject, canCreateProject, canUpdateProject, canDeleteProject } = usePermission();
   const router = useRouter();
 
   // State management
@@ -558,8 +559,7 @@ const ProjectsManagePage: React.FC = () => {
               }}
             />
           </Tooltip>
-          {user?.role &&
-            RBAC.hasPermission(user.role as any, "projects", "update") && (
+          {canUpdateProject && (
               <Tooltip title="Edit">
                 <Button
                   type="text"
@@ -572,8 +572,7 @@ const ProjectsManagePage: React.FC = () => {
                 />
               </Tooltip>
             )}
-          {user?.role &&
-            RBAC.hasPermission(user.role as any, "projects", "delete") && (
+          {canDeleteProject && (
               <Popconfirm
                 title="Delete project?"
                 description="Are you sure you want to delete this project?"
@@ -608,7 +607,7 @@ const ProjectsManagePage: React.FC = () => {
   // Check permissions
   if (
     user &&
-    (!user.role || !RBAC.hasPermission(user.role as any, "projects", "read"))
+    !canReadProject
   ) {
     return (
       <MainLayout>
@@ -668,12 +667,12 @@ const ProjectsManagePage: React.FC = () => {
                     message.success("Projects view synchronized");
                   }}
                   loading={loading}
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 8,
-                    display: "flex",
-                    alignItems: "center",
+                  style={{ 
+                    width: 34, 
+                    height: 34, 
+                    borderRadius: 8, 
+                    display: "flex", 
+                    alignItems: "center", 
                     justifyContent: "center",
                     background: "transparent",
                     borderColor: "var(--border-color)"
@@ -689,551 +688,558 @@ const ProjectsManagePage: React.FC = () => {
                 ]}
                 className="saas-segmented-premium"
               />
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleAdd}
-                style={{
-                  height: 34,
-                  padding: "0 14px",
-                  borderRadius: 8,
-                  fontWeight: 600,
-                }}
-              >
-                Add Project
-              </Button>
+              {canCreateProject && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleAdd}
+                  style={{
+                    height: 34,
+                    padding: "0 14px",
+                    borderRadius: 8,
+                    fontWeight: 600,
+                  }}
+                >
+                  Add Project
+                </Button>
+              )}
             </Space>
           }
         />
 
         <div style={{ padding: "0 32px 32px" }}>
-          {/* Stats Row */}
-          <div className="pm-stat-grid">
-            <StatCard
-              label="Total Projects"
-              value={stats.total}
-              icon={FolderKanban}
-              accent="#3b82f6"
-              subtle="Across all statuses"
-              chart={
-                stats.total > 0 ? (
-                  <MiniBar
-                    segments={[
-                      { value: stats.active, color: "#10b981", label: `${stats.active} active` },
-                      { value: stats.onHold, color: "#f59e0b", label: `${stats.onHold} on hold` },
-                      { value: stats.completed, color: "#8b5cf6", label: `${stats.completed} completed` },
-                    ]}
+
+        {/* Stats Row */}
+        <div className="pm-stat-grid">
+          <StatCard
+            label="Total Projects"
+            value={stats.total}
+            icon={FolderKanban}
+            accent="#3b82f6"
+            subtle="Across all statuses"
+            chart={
+              stats.total > 0 ? (
+                <MiniBar
+                  segments={[
+                    { value: stats.active, color: "#10b981", label: `${stats.active} active` },
+                    { value: stats.onHold, color: "#f59e0b", label: `${stats.onHold} on hold` },
+                    { value: stats.completed, color: "#8b5cf6", label: `${stats.completed} completed` },
+                  ]}
+                />
+              ) : null
+            }
+          />
+          <StatCard
+            label="Active"
+            value={stats.active}
+            icon={Rocket}
+            accent="#10b981"
+            subtle={stats.total > 0 ? `${activePct}% of total` : "No projects yet"}
+            chart={
+              stats.total > 0 ? (
+                <div className="pm-progress-row">
+                  <div className="pm-progress-track">
+                    <span
+                      className="pm-progress-fill"
+                      style={{
+                        width: `${activePct}%`,
+                        background: "linear-gradient(90deg, #10b981, #34d399)",
+                      }}
+                    />
+                  </div>
+                  <span className="pm-progress-label">{activePct}%</span>
+                </div>
+              ) : null
+            }
+          />
+          <StatCard
+            label="On Hold"
+            value={stats.onHold}
+            icon={PauseCircle}
+            accent="#f59e0b"
+            subtle={stats.total > 0 ? `${onHoldPct}% of total` : "No projects yet"}
+            chart={
+              stats.total > 0 ? (
+                <div className="pm-progress-row">
+                  <div className="pm-progress-track">
+                    <span
+                      className="pm-progress-fill"
+                      style={{
+                        width: `${onHoldPct}%`,
+                        background: "linear-gradient(90deg, #f59e0b, #fbbf24)",
+                      }}
+                    />
+                  </div>
+                  <span className="pm-progress-label">{onHoldPct}%</span>
+                </div>
+              ) : null
+            }
+          />
+          <StatCard
+            label="Completed"
+            value={stats.completed}
+            icon={CheckCircle2}
+            accent="#8b5cf6"
+            subtle={stats.total > 0 ? `${completedPct}% of total` : "No projects yet"}
+            chart={
+              stats.total > 0 ? (
+                <div className="pm-progress-row">
+                  <div className="pm-progress-track">
+                    <span
+                      className="pm-progress-fill"
+                      style={{
+                        width: `${completedPct}%`,
+                        background: "linear-gradient(90deg, #8b5cf6, #a78bfa)",
+                      }}
+                    />
+                  </div>
+                  <span className="pm-progress-label">{completedPct}%</span>
+                </div>
+              ) : null
+            }
+          />
+        </div>
+
+        {/* Filter / All Projects Bar */}
+        <div style={{
+          marginBottom: 20,
+          padding: "12px 16px",
+          borderRadius: 12,
+          background: "var(--bg-secondary, #f8fafc)",
+          border: "1px solid var(--border-color)",
+          display: "flex",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12,
+          justifyContent: "space-between",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 3, height: 16, background: "var(--premium-blue)", borderRadius: 2 }} />
+            <Text strong style={{ fontSize: 14, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
+              All Projects
+            </Text>
+            <span style={{
+              padding: "1px 8px",
+              borderRadius: 999,
+              background: "var(--bg-blue-50)",
+              color: "var(--premium-blue)",
+              border: "1px solid var(--border-blue-200)",
+              fontSize: 11,
+              fontWeight: 700,
+            }}>
+              {projects.length}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <Input
+              placeholder="Search projects..."
+              prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
+              value={filters.search || ""}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="saas-input"
+              style={{ width: 240, height: 36, borderRadius: 8, background: 'transparent' }}
+              allowClear
+            />
+            <Select
+              placeholder="Status"
+              value={filters.status}
+              onChange={handleStatusFilter}
+              style={{ width: 150, height: 36 }}
+              allowClear
+              styles={{ popup: { root: { borderRadius: 12 } } }}
+            >
+              <Option value="planning">Planning</Option>
+              <Option value="active">Active</Option>
+              <Option value="on-hold">On Hold</Option>
+              <Option value="completed">Completed</Option>
+              <Option value="cancelled">Cancelled</Option>
+            </Select>
+            <Select
+              placeholder="Project Manager"
+              value={filters.projectManagerId}
+              onChange={handleProjectManagerFilter}
+              style={{ width: 200, height: 36 }}
+              allowClear
+              showSearch
+              styles={{ popup: { root: { borderRadius: 12 } } }}
+              filterOption={(input, option) => {
+                const member = members.find((m) => m.value === option?.value);
+                return member
+                  ? String(member.label ?? "").toLowerCase().includes(input.toLowerCase()) ||
+                  String(member.position ?? "").toLowerCase().includes(input.toLowerCase())
+                  : false;
+              }}
+            >
+              {members.map((member) => (
+                <Option key={member.value} value={member.value}>
+                  {member.label}
+                </Option>
+              ))}
+            </Select>
+            <RangePicker
+              placeholder={["Start", "End"]}
+              onChange={handleDateRangeFilter}
+              style={{ width: 220, height: 36, borderRadius: 8 }}
+            />
+            {hasActiveFilters && (
+              <Button
+                type="text"
+                danger
+                onClick={() => setFilters({ page: 1, limit: 10 })}
+                style={{ fontWeight: 600, height: 36 }}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
+
+
+        {/* Projects Card View - DASHBOARD STYLE */}
+        {viewMode === "card" ? (
+          projects.length === 0 && !loading ? (
+            <div style={{
+              padding: "64px 24px",
+              borderRadius: 16,
+              border: "1px dashed var(--border-color)",
+              textAlign: "center",
+              background: "var(--bg-pure-white)",
+            }}>
+              <Empty
+                description={
+                  <Text style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
+                    {hasActiveFilters ? "No projects match your filters" : "No projects yet — create your first one"}
+                  </Text>
+                }
+              >
+                {!hasActiveFilters && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleAdd}
+                    style={{ borderRadius: 8, fontWeight: 600 }}
+                  >
+                    Add Project
+                  </Button>
+                )}
+              </Empty>
+            </div>
+          ) : (
+          <Row gutter={[20, 20]}>
+            {loading
+              ? [1, 2, 3, 4, 5, 6].map((i) => (
+                <Col xs={24} sm={12} lg={8} xl={8} key={i}>
+                  <Card
+                    loading
+                    style={{
+                      height: 240,
+                      ...glassStyle,
+                      borderRadius: 16,
+                    }}
                   />
-                ) : null
-              }
-            />
-            <StatCard
-              label="Active"
-              value={stats.active}
-              icon={Rocket}
-              accent="#10b981"
-              subtle={stats.total > 0 ? `${activePct}% of total` : "No projects yet"}
-              chart={
-                stats.total > 0 ? (
-                  <div className="pm-progress-row">
-                    <div className="pm-progress-track">
-                      <span
-                        className="pm-progress-fill"
-                        style={{
-                          width: `${activePct}%`,
-                          background: "linear-gradient(90deg, #10b981, #34d399)",
-                        }}
-                      />
-                    </div>
-                    <span className="pm-progress-label">{activePct}%</span>
-                  </div>
-                ) : null
-              }
-            />
-            <StatCard
-              label="On Hold"
-              value={stats.onHold}
-              icon={PauseCircle}
-              accent="#f59e0b"
-              subtle={stats.total > 0 ? `${onHoldPct}% of total` : "No projects yet"}
-              chart={
-                stats.total > 0 ? (
-                  <div className="pm-progress-row">
-                    <div className="pm-progress-track">
-                      <span
-                        className="pm-progress-fill"
-                        style={{
-                          width: `${onHoldPct}%`,
-                          background: "linear-gradient(90deg, #f59e0b, #fbbf24)",
-                        }}
-                      />
-                    </div>
-                    <span className="pm-progress-label">{onHoldPct}%</span>
-                  </div>
-                ) : null
-              }
-            />
-            <StatCard
-              label="Completed"
-              value={stats.completed}
-              icon={CheckCircle2}
-              accent="#8b5cf6"
-              subtle={stats.total > 0 ? `${completedPct}% of total` : "No projects yet"}
-              chart={
-                stats.total > 0 ? (
-                  <div className="pm-progress-row">
-                    <div className="pm-progress-track">
-                      <span
-                        className="pm-progress-fill"
-                        style={{
-                          width: `${completedPct}%`,
-                          background: "linear-gradient(90deg, #8b5cf6, #a78bfa)",
-                        }}
-                      />
-                    </div>
-                    <span className="pm-progress-label">{completedPct}%</span>
-                  </div>
-                ) : null
-              }
-            />
-          </div>
+                </Col>
+              ))
+              : projects.map((project) => {
+                const memberCount = project.members?.length || 0;
+                const statusColorMap: Record<string, string> = {
+                  planning: "#3b82f6",
+                  active: "#10b981",
+                  "on-hold": "#f59e0b",
+                  completed: "#8b5cf6",
+                  cancelled: "#ef4444",
+                };
+                const accentColor = statusColorMap[project.status] || "#3b82f6";
+                const priorityColor =
+                  project.defaultPriority === "high" ? "#ef4444" :
+                  project.defaultPriority === "medium" ? "#f59e0b" : "#10b981";
 
-          {/* Filter / All Projects Bar */}
-          <div style={{
-            marginBottom: 20,
-            padding: "12px 16px",
-            borderRadius: 12,
-            background: "var(--bg-secondary, #f8fafc)",
-            border: "1px solid var(--border-color)",
-            display: "flex",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 12,
-            justifyContent: "space-between",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 3, height: 16, background: "var(--premium-blue)", borderRadius: 2 }} />
-              <Text strong style={{ fontSize: 14, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
-                All Projects
-              </Text>
-              <span style={{
-                padding: "1px 8px",
-                borderRadius: 999,
-                background: "var(--bg-blue-50)",
-                color: "var(--premium-blue)",
-                border: "1px solid var(--border-blue-200)",
-                fontSize: 11,
-                fontWeight: 700,
-              }}>
-                {projects.length}
-              </span>
-            </div>
+                let progress = 0;
+                if (project.startDate && project.endDate) {
+                  const start = dayjs(project.startDate);
+                  const end = dayjs(project.endDate);
+                  const total = end.diff(start, "day");
+                  const elapsed = dayjs().diff(start, "day");
+                  if (total > 0) progress = Math.max(0, Math.min(100, Math.round((elapsed / total) * 100)));
+                }
+                if (project.status === "completed") progress = 100;
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <Input
-                placeholder="Search projects..."
-                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                value={filters.search || ""}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="saas-input"
-                style={{ width: 240, height: 36, borderRadius: 8, background: 'transparent' }}
-                allowClear
-              />
-              <Select
-                placeholder="Status"
-                value={filters.status}
-                onChange={handleStatusFilter}
-                style={{ width: 150, height: 36 }}
-                allowClear
-                styles={{ popup: { root: { borderRadius: 12 } } }}
-              >
-                <Option value="planning">Planning</Option>
-                <Option value="active">Active</Option>
-                <Option value="on-hold">On Hold</Option>
-                <Option value="completed">Completed</Option>
-                <Option value="cancelled">Cancelled</Option>
-              </Select>
-              <Select
-                placeholder="Project Manager"
-                value={filters.projectManagerId}
-                onChange={handleProjectManagerFilter}
-                style={{ width: 200, height: 36 }}
-                allowClear
-                showSearch
-                styles={{ popup: { root: { borderRadius: 12 } } }}
-                filterOption={(input, option) => {
-                  const member = members.find((m) => m.value === option?.value);
-                  return member
-                    ? String(member.label ?? "").toLowerCase().includes(input.toLowerCase()) ||
-                    String(member.position ?? "").toLowerCase().includes(input.toLowerCase())
-                    : false;
-                }}
-              >
-                {members.map((member) => (
-                  <Option key={member.value} value={member.value}>
-                    {member.label}
-                  </Option>
-                ))}
-              </Select>
-              <RangePicker
-                placeholder={["Start", "End"]}
-                onChange={handleDateRangeFilter}
-                style={{ width: 220, height: 36, borderRadius: 8 }}
-              />
-              {hasActiveFilters && (
-                <Button
-                  type="text"
-                  danger
-                  onClick={() => setFilters({ page: 1, limit: 10 })}
-                  style={{ fontWeight: 600, height: 36 }}
-                >
-                  Clear
-                </Button>
-              )}
-            </div>
-          </div>
-
-
-          {/* Projects Card View - DASHBOARD STYLE */}
-          {viewMode === "card" ? (
-            projects.length === 0 && !loading ? (
-              <div style={{
-                padding: "64px 24px",
-                borderRadius: 16,
-                border: "1px dashed var(--border-color)",
-                textAlign: "center",
-                background: "var(--bg-pure-white)",
-              }}>
-                <Empty
-                  description={
-                    <Text style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
-                      {hasActiveFilters ? "No projects match your filters" : "No projects yet — create your first one"}
-                    </Text>
-                  }
-                >
-                  {!hasActiveFilters && (
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={handleAdd}
-                      style={{ borderRadius: 8, fontWeight: 600 }}
+                return (
+                  <Col xs={24} sm={12} lg={8} xl={8} key={project.id}>
+                    <Card
+                      onClick={() => router.push(`/projects/${project.id}/overview`)}
+                      style={{
+                        ...glassStyle,
+                        height: "100%",
+                        overflow: "hidden",
+                        position: "relative",
+                        cursor: "pointer",
+                        transition: "all 0.3s cubic-bezier(0.23, 1, 0.32, 1)",
+                        border: "1px solid var(--border-color)",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                        e.currentTarget.style.boxShadow = "0 8px 20px rgba(15, 23, 42, 0.06)";
+                        e.currentTarget.style.borderColor = "var(--border-blue-200)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = "none";
+                        e.currentTarget.style.borderColor = "var(--border-color)";
+                      }}
+                      styles={{ body: { padding: 0 } }}
                     >
-                      Add Project
-                    </Button>
-                  )}
-                </Empty>
-              </div>
-            ) : (
-              <Row gutter={[20, 20]}>
-                {loading
-                  ? [1, 2, 3, 4, 5, 6].map((i) => (
-                    <Col xs={24} sm={12} lg={8} xl={8} key={i}>
-                      <Card
-                        loading
-                        style={{
-                          height: 240,
-                          ...glassStyle,
-                          borderRadius: 16,
-                        }}
-                      />
-                    </Col>
-                  ))
-                  : projects.map((project) => {
-                    const memberCount = project.members?.length || 0;
-                    const statusColorMap: Record<string, string> = {
-                      planning: "#3b82f6",
-                      active: "#10b981",
-                      "on-hold": "#f59e0b",
-                      completed: "#8b5cf6",
-                      cancelled: "#ef4444",
-                    };
-                    const accentColor = statusColorMap[project.status] || "#3b82f6";
-                    const priorityColor =
-                      project.defaultPriority === "high" ? "#ef4444" :
-                        project.defaultPriority === "medium" ? "#f59e0b" : "#10b981";
-
-                    let progress = 0;
-                    if (project.startDate && project.endDate) {
-                      const start = dayjs(project.startDate);
-                      const end = dayjs(project.endDate);
-                      const total = end.diff(start, "day");
-                      const elapsed = dayjs().diff(start, "day");
-                      if (total > 0) progress = Math.max(0, Math.min(100, Math.round((elapsed / total) * 100)));
-                    }
-                    if (project.status === "completed") progress = 100;
-
-                    return (
-                      <Col xs={24} sm={12} lg={8} xl={8} key={project.id}>
-                        <Card
-                          onClick={() => router.push(`/projects/${project.id}/overview`)}
-                          style={{
-                            ...glassStyle,
-                            height: "100%",
-                            overflow: "hidden",
-                            position: "relative",
-                            cursor: "pointer",
-                            transition: "all 0.3s cubic-bezier(0.23, 1, 0.32, 1)",
-                            border: "1px solid var(--border-color)",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "translateY(-2px)";
-                            e.currentTarget.style.boxShadow = "0 8px 20px rgba(15, 23, 42, 0.06)";
-                            e.currentTarget.style.borderColor = "var(--border-blue-200)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "translateY(0)";
-                            e.currentTarget.style.boxShadow = "none";
-                            e.currentTarget.style.borderColor = "var(--border-color)";
-                          }}
-                          styles={{ body: { padding: 0 } }}
-                        >
-                          <div style={{ padding: "18px 20px 14px" }}>
-                            {/* Top: icon + name + status pill */}
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
-                              <div style={{ display: "flex", gap: 10, flex: 1, minWidth: 0 }}>
-                                <div style={{
-                                  width: 36, height: 36, borderRadius: 10,
-                                  background: `${accentColor}12`,
-                                  display: "flex", alignItems: "center", justifyContent: "center",
-                                  flexShrink: 0,
-                                }}>
-                                  <Text style={{ color: accentColor, fontWeight: 700, fontSize: 11, letterSpacing: "0.02em" }}>
-                                    {(project.code || project.name).slice(0, 3).toUpperCase()}
-                                  </Text>
-                                </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <Text strong style={{ fontSize: 14.5, display: "block", color: "var(--text-slate-900)", letterSpacing: "-0.01em" }} ellipsis>
-                                    {project.name}
-                                  </Text>
-                                  <Text style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>
-                                    #{project.code || "—"}
-                                  </Text>
-                                </div>
-                              </div>
-                              <div style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 6,
-                                padding: "2px 8px",
-                                borderRadius: 6,
-                                background: `${accentColor}10`,
-                                flexShrink: 0,
-                              }}>
-                                <span style={{
-                                  width: 5, height: 5, borderRadius: "50%",
-                                  background: accentColor,
-                                }} />
-                                <Text style={{
-                                  fontSize: 10,
-                                  fontWeight: 600,
-                                  color: accentColor,
-                                  textTransform: "capitalize",
-                                  letterSpacing: "0.02em",
-                                }}>
-                                  {project.status.replace("-", " ")}
-                                </Text>
-                              </div>
-                            </div>
-
-                            {/* Description */}
-                            <Typography.Paragraph
-                              style={{ fontSize: 12.5, color: "var(--text-slate-500)", marginBottom: 14, lineHeight: 1.5, minHeight: 36 }}
-                              ellipsis={{ rows: 2 }}
-                            >
-                              {project.description || "No description provided."}
-                            </Typography.Paragraph>
-
-                            {/* Progress */}
-                            <div style={{ marginBottom: 14 }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                                <Text style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-slate-400)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                                  Timeline
-                                </Text>
-                                <Text style={{ fontSize: 11, fontWeight: 600, color: "var(--text-slate-600)" }}>
-                                  {progress}%
-                                </Text>
-                              </div>
-                              <div style={{
-                                height: 4,
-                                borderRadius: 999,
-                                background: "var(--bg-secondary, #f1f5f9)",
-                                overflow: "hidden",
-                              }}>
-                                <div style={{
-                                  width: `${progress}%`,
-                                  height: "100%",
-                                  background: accentColor,
-                                  opacity: 0.85,
-                                  borderRadius: 999,
-                                  transition: "width 0.4s ease",
-                                }} />
-                              </div>
-                            </div>
-
-                            {/* Priority + dates */}
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <span style={{ width: 6, height: 6, borderRadius: "50%", background: priorityColor }} />
-                                <Text style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-slate-600)", textTransform: "capitalize" }}>
-                                  {project.defaultPriority}
-                                </Text>
-                              </div>
-                              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                                <CalendarOutlined style={{ fontSize: 11, color: "var(--text-slate-400)" }} />
-                                <Text style={{ fontSize: 11, color: "var(--text-slate-500)", fontWeight: 500 }}>
-                                  {dayjs(project.startDate).format("MMM DD")}
-                                  {project.endDate && ` → ${dayjs(project.endDate).format("MMM DD")}`}
-                                </Text>
-                              </div>
-                            </div>
-
-                            {/* Manager + team avatars */}
+                      <div style={{ padding: "18px 20px 14px" }}>
+                        {/* Top: icon + name + status pill */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+                          <div style={{ display: "flex", gap: 10, flex: 1, minWidth: 0 }}>
                             <div style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              paddingTop: 12,
-                              borderTop: "1px solid var(--border-color)",
+                              width: 36, height: 36, borderRadius: 10,
+                              background: `${accentColor}12`,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              flexShrink: 0,
                             }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                                <Avatar
-                                  size={26}
-                                  src={project.projectManager?.avatarUrl}
-                                  style={{
-                                    background: "var(--bg-secondary, #f1f5f9)",
-                                    color: "var(--text-slate-600)",
-                                    fontSize: 11,
-                                    fontWeight: 600,
-                                    border: "1px solid var(--border-color)",
-                                  }}
-                                >
-                                  {project.projectManager?.name?.charAt(0)}
-                                </Avatar>
-                                <div style={{ minWidth: 0 }}>
-                                  <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-900)", display: "block", lineHeight: 1.2 }} ellipsis>
-                                    {project.projectManager?.name?.split(" ")[0] || "Unassigned"}
-                                  </Text>
-                                  <Text style={{ fontSize: 10, color: "var(--text-slate-400)", fontWeight: 500 }}>
-                                    Project Lead
-                                  </Text>
-                                </div>
-                              </div>
-                              <Tooltip title={`${memberCount} members`}>
-                                <Avatar.Group
-                                  max={{ count: 3, style: { background: "var(--bg-secondary, #f1f5f9)", color: "var(--text-slate-600)", fontSize: 10, fontWeight: 600, border: "2px solid var(--bg-pure-white)" } }}
-                                  size={24}
-                                >
-                                  {(project.members || []).slice(0, 4).map((m: any, idx: number) => (
-                                    <Avatar
-                                      key={m.user?.id || idx}
-                                      src={m.user?.avatarUrl}
-                                      style={{
-                                        background: ["#94a3b8", "#a3a3a3", "#cbd5e1", "#9ca3af"][idx % 4],
-                                        fontSize: 10,
-                                        fontWeight: 600,
-                                        border: "2px solid var(--bg-pure-white)",
-                                      }}
-                                    >
-                                      {m.user?.name?.charAt(0) || "?"}
-                                    </Avatar>
-                                  ))}
-                                </Avatar.Group>
-                              </Tooltip>
+                              <Text style={{ color: accentColor, fontWeight: 700, fontSize: 11, letterSpacing: "0.02em" }}>
+                                {(project.code || project.name).slice(0, 3).toUpperCase()}
+                              </Text>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <Text strong style={{ fontSize: 14.5, display: "block", color: "var(--text-slate-900)", letterSpacing: "-0.01em" }} ellipsis>
+                                {project.name}
+                              </Text>
+                              <Text style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>
+                                #{project.code || "—"}
+                              </Text>
                             </div>
                           </div>
-
-                          {/* Footer actions */}
                           <div style={{
-                            padding: "8px 16px",
-                            borderTop: "1px solid var(--border-color)",
-                            background: "var(--bg-secondary, #fafbfc)",
                             display: "flex",
-                            justifyContent: "space-between",
                             alignItems: "center",
+                            gap: 6,
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            background: `${accentColor}10`,
+                            flexShrink: 0,
                           }}>
-                            <Text style={{ fontSize: 11, color: "var(--text-slate-500)", fontWeight: 600 }}>
-                              <TeamOutlined style={{ marginRight: 4 }} />
-                              {memberCount} {memberCount === 1 ? "member" : "members"}
+                            <span style={{
+                              width: 5, height: 5, borderRadius: "50%",
+                              background: accentColor,
+                            }} />
+                            <Text style={{
+                              fontSize: 10,
+                              fontWeight: 600,
+                              color: accentColor,
+                              textTransform: "capitalize",
+                              letterSpacing: "0.02em",
+                            }}>
+                              {project.status.replace("-", " ")}
                             </Text>
-                            <Space size={4}>
-                              {user?.role && RBAC.hasPermission(user.role as any, "projects", "update") && (
-                                <Tooltip title="Edit">
-                                  <Button
-                                    type="text"
-                                    size="small"
-                                    icon={<EditOutlined style={{ fontSize: 13 }} />}
-                                    onClick={(e) => { e.stopPropagation(); handleEdit(project); }}
-                                  />
-                                </Tooltip>
-                              )}
-                              {user?.role && RBAC.hasPermission(user.role as any, "projects", "delete") && (
-                                <Popconfirm
-                                  title="Delete project?"
-                                  description="Are you sure you want to delete this project?"
-                                  onConfirm={(e) => { e?.stopPropagation(); handleDelete(project.id); }}
-                                  okText="Yes"
-                                  cancelText="No"
-                                  placement="topRight"
-                                >
-                                  <Tooltip title="Delete">
-                                    <Button
-                                      type="text"
-                                      size="small"
-                                      danger
-                                      icon={<DeleteOutlined style={{ fontSize: 13 }} />}
-                                      onClick={(e) => e.stopPropagation()}
-                                    />
-                                  </Tooltip>
-                                </Popconfirm>
-                              )}
-                              <Tooltip title="Open">
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  icon={<ArrowRightOutlined style={{ fontSize: 13, color: "var(--premium-blue)" }} />}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    router.push(`/projects/${project.id}/overview`);
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <Typography.Paragraph
+                          style={{ fontSize: 12.5, color: "var(--text-slate-500)", marginBottom: 14, lineHeight: 1.5, minHeight: 36 }}
+                          ellipsis={{ rows: 2 }}
+                        >
+                          {project.description || "No description provided."}
+                        </Typography.Paragraph>
+
+                        {/* Progress */}
+                        <div style={{ marginBottom: 14 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                            <Text style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-slate-400)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                              Timeline
+                            </Text>
+                            <Text style={{ fontSize: 11, fontWeight: 600, color: "var(--text-slate-600)" }}>
+                              {progress}%
+                            </Text>
+                          </div>
+                          <div style={{
+                            height: 4,
+                            borderRadius: 999,
+                            background: "var(--bg-secondary, #f1f5f9)",
+                            overflow: "hidden",
+                          }}>
+                            <div style={{
+                              width: `${progress}%`,
+                              height: "100%",
+                              background: accentColor,
+                              opacity: 0.85,
+                              borderRadius: 999,
+                              transition: "width 0.4s ease",
+                            }} />
+                          </div>
+                        </div>
+
+                        {/* Priority + dates */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: priorityColor }} />
+                            <Text style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-slate-600)", textTransform: "capitalize" }}>
+                              {project.defaultPriority}
+                            </Text>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                            <CalendarOutlined style={{ fontSize: 11, color: "var(--text-slate-400)" }} />
+                            <Text style={{ fontSize: 11, color: "var(--text-slate-500)", fontWeight: 500 }}>
+                              {dayjs(project.startDate).format("MMM DD")}
+                              {project.endDate && ` → ${dayjs(project.endDate).format("MMM DD")}`}
+                            </Text>
+                          </div>
+                        </div>
+
+                        {/* Manager + team avatars */}
+                        <div style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          paddingTop: 12,
+                          borderTop: "1px solid var(--border-color)",
+                        }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                            <Avatar
+                              size={26}
+                              src={project.projectManager?.avatarUrl}
+                              style={{
+                                background: "var(--bg-secondary, #f1f5f9)",
+                                color: "var(--text-slate-600)",
+                                fontSize: 11,
+                                fontWeight: 600,
+                                border: "1px solid var(--border-color)",
+                              }}
+                            >
+                              {project.projectManager?.name?.charAt(0)}
+                            </Avatar>
+                            <div style={{ minWidth: 0 }}>
+                              <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-900)", display: "block", lineHeight: 1.2 }} ellipsis>
+                                {project.projectManager?.name?.split(" ")[0] || "Unassigned"}
+                              </Text>
+                              <Text style={{ fontSize: 10, color: "var(--text-slate-400)", fontWeight: 500 }}>
+                                Project Lead
+                              </Text>
+                            </div>
+                          </div>
+                          <Tooltip title={`${memberCount} members`}>
+                            <Avatar.Group
+                              max={{ count: 3, style: { background: "var(--bg-secondary, #f1f5f9)", color: "var(--text-slate-600)", fontSize: 10, fontWeight: 600, border: "2px solid var(--bg-pure-white)" } }}
+                              size={24}
+                            >
+                              {(project.members || []).slice(0, 4).map((m: any, idx: number) => (
+                                <Avatar
+                                  key={m.user?.id || idx}
+                                  src={m.user?.avatarUrl}
+                                  style={{
+                                    background: ["#94a3b8", "#a3a3a3", "#cbd5e1", "#9ca3af"][idx % 4],
+                                    fontSize: 10,
+                                    fontWeight: 600,
+                                    border: "2px solid var(--bg-pure-white)",
                                   }}
+                                >
+                                  {m.user?.name?.charAt(0) || "?"}
+                                </Avatar>
+                              ))}
+                            </Avatar.Group>
+                          </Tooltip>
+                        </div>
+                      </div>
+
+                      {/* Footer actions */}
+                      <div style={{
+                        padding: "8px 16px",
+                        borderTop: "1px solid var(--border-color)",
+                        background: "var(--bg-secondary, #fafbfc)",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}>
+                        <Text style={{ fontSize: 11, color: "var(--text-slate-500)", fontWeight: 600 }}>
+                          <TeamOutlined style={{ marginRight: 4 }} />
+                          {memberCount} {memberCount === 1 ? "member" : "members"}
+                        </Text>
+                        <Space size={4}>
+                          {canUpdateProject && (
+                            <Tooltip title="Edit">
+                              <Button
+                                size="small"
+                                type="text"
+                                icon={<EditOutlined style={{ color: "var(--premium-blue)" }} />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEdit(project);
+                                }}
+                              />
+                            </Tooltip>
+                          )}
+                          {canDeleteProject && (
+                            <Popconfirm
+                              title="Delete project?"
+                              onConfirm={(e) => {
+                                e?.stopPropagation();
+                                handleDelete(project.id);
+                              }}
+                              okText="Yes"
+                              cancelText="No"
+                            >
+                              <Tooltip title="Delete">
+                                <Button
+                                  size="small"
+                                  type="text"
+                                  danger
+                                  icon={<DeleteOutlined />}
+                                  onClick={(e) => e.stopPropagation()}
                                 />
                               </Tooltip>
-                            </Space>
-                          </div>
-                        </Card>
-                      </Col>
-                    );
-                  })}
-              </Row>
-            )
-          ) : (
-            /* ===== TABLE VIEW ===== */
-            <Card size="small">
-              <Table
-                columns={columns}
-                dataSource={projects}
-                rowKey="id"
-                loading={loading}
-                pagination={{
-                  current: pagination.current,
-                  pageSize: pagination.pageSize,
-                  total: pagination.total,
-                  showSizeChanger: true,
-                  showQuickJumper: true,
-                  showTotal: (total, range) =>
-                    `${range[0]}-${range[1]} of ${total} projects`,
-                }}
-                scroll={{ x: 1200 }}
-                onChange={handleTableChange}
-                onRow={(record) => ({
-                  onClick: () => {
-                    router.push(`/projects/${record.id}/overview`);
-                  },
-                })}
-              />
-            </Card>
-          )}
+                            </Popconfirm>
+                          )}
+                          <Tooltip title="Open">
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<ArrowRightOutlined style={{ fontSize: 13, color: "var(--premium-blue)" }} />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/projects/${project.id}/overview`);
+                              }}
+                            />
+                          </Tooltip>
+                        </Space>
+                      </div>
+                    </Card>
+                  </Col>
+                );
+              })}
+          </Row>
+          )
+        ) : (
+          /* ===== TABLE VIEW ===== */
+          <Card size="small">
+            <Table
+              columns={columns}
+              dataSource={projects}
+              rowKey="id"
+              loading={loading}
+              pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: pagination.total,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} of ${total} projects`,
+              }}
+              scroll={{ x: 1200 }}
+              onChange={handleTableChange}
+              onRow={(record) => ({
+                onClick: () => {
+                  router.push(`/projects/${record.id}/overview`);
+                },
+              })}
+            />
+          </Card>
+        )}
 
-          {/* Create/Edit Project Drawer */}
+
           <Drawer
             title={null}
             open={drawerVisible}
@@ -1686,13 +1692,7 @@ const ProjectsManagePage: React.FC = () => {
               </div>
             </div>
           </Drawer>
-          {/* <Button
-          block
-          style={{ height: 44, borderRadius: 10, fontWeight: 600 }}
-          onClick={() => setViewDrawerOpen(false)}
-        >
-          Close
-        </Button> */}
+
         </div>
       </div>
 

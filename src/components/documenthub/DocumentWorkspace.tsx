@@ -35,11 +35,11 @@ import DocumentHistory from '@/components/common/DocumentHistory'
 import ShareModal from '@/components/documenthub/ShareModal'
 import AiEditDocModal from '@/components/documenthub/AiEditDocModal'
 import { useAutosaveDocument } from '@/hooks/useAutosaveDocument'
+import { usePermission } from '@/hooks/usePermission'
 
 interface TreeItem extends DocumentTreeNode {
     children?: TreeItem[]
 }
-
 function TreeNode({
     item,
     selectedId,
@@ -57,6 +57,9 @@ function TreeNode({
     onDragLeaveNode,
     onDropNode,
     isDescendantOfDragged,
+    canCreate,
+    canUpdate,
+    canDelete,
 }: {
     item: TreeItem
     selectedId: string
@@ -75,6 +78,9 @@ function TreeNode({
     onDropNode: (e: React.DragEvent, id: string) => void
     /** True when this subtree contains the node being dragged. */
     isDescendantOfDragged: boolean
+    canCreate?: boolean
+    canUpdate?: boolean
+    canDelete?: boolean
 }) {
     const hasChildren = item.children && item.children.length > 0
     const isExpanded = expandedIds.has(item.id)
@@ -100,43 +106,49 @@ function TreeNode({
     };
 
     const menuItems: MenuProps['items'] = [
-        {
-            key: 'add-folder',
-            label: 'Add Folder',
-            icon: <Folder className="w-4 h-4" />,
-            onClick: (e) => {
-                e.domEvent.stopPropagation();
-                onAddNode(item.id, 'folder');
+        ...(canCreate ? [
+            {
+                key: 'add-folder',
+                label: 'Add Folder',
+                icon: <Folder className="w-4 h-4" />,
+                onClick: (e: any) => {
+                    e.domEvent.stopPropagation();
+                    onAddNode(item.id, 'folder');
+                }
+            },
+            {
+                key: 'add-file',
+                label: 'Add File',
+                icon: <FileText className="w-4 h-4" />,
+                onClick: (e: any) => {
+                    e.domEvent.stopPropagation();
+                    onAddNode(item.id, 'file');
+                }
             }
-        },
-        {
-            key: 'add-file',
-            label: 'Add File',
-            icon: <FileText className="w-4 h-4" />,
-            onClick: (e) => {
-                e.domEvent.stopPropagation();
-                onAddNode(item.id, 'file');
+        ] : []),
+        ...(canUpdate ? [
+            {
+                key: 'rename-node',
+                label: 'Rename',
+                icon: <EditOutlined style={{ fontSize: 14 }} />,
+                onClick: (e: any) => {
+                    e.domEvent.stopPropagation();
+                    setIsEditing(true);
+                }
             }
-        },
-        {
-            key: 'rename-node',
-            label: 'Rename',
-            icon: <EditOutlined style={{ fontSize: 14 }} />,
-            onClick: (e) => {
-                e.domEvent.stopPropagation();
-                setIsEditing(true);
+        ] : []),
+        ...(canDelete ? [
+            {
+                key: 'delete-node',
+                label: 'Delete',
+                icon: <Trash className="w-4 h-4 text-red-500" />,
+                danger: true,
+                onClick: (e: any) => {
+                    e.domEvent.stopPropagation();
+                    onDeleteDocument(item.id, item.type as 'file' | 'folder' | 'section', item.documentId || undefined);
+                }
             }
-        },
-        {
-            key: 'delete-node',
-            label: 'Delete',
-            icon: <Trash className="w-4 h-4 text-red-500" />,
-            danger: true,
-            onClick: (e) => {
-                e.domEvent.stopPropagation();
-                onDeleteDocument(item.id, item.type as 'file' | 'folder' | 'section', item.documentId || undefined);
-            }
-        }
+        ] : [])
     ];
 
     const isBeingDragged = draggedNodeId === item.id;
@@ -208,6 +220,7 @@ function TreeNode({
                     onSelect(item.id)
                 }}
                 onDoubleClick={(e) => {
+                    if (!canUpdate) return;
                     e.stopPropagation();
                     setIsEditing(true);
                 }}
@@ -299,6 +312,9 @@ function TreeNode({
                             onDragLeaveNode={onDragLeaveNode}
                             onDropNode={onDropNode}
                             isDescendantOfDragged={isDescendantOfDragged || isBeingDragged}
+                            canCreate={canCreate}
+                            canUpdate={canUpdate}
+                            canDelete={canDelete}
                         />
                     ))}
                 </div>
@@ -430,6 +446,7 @@ const SIDEBAR_WIDTH_STORAGE_KEY = 'documenthub:sidebarWidth';
 
 export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps) {
     const router = useRouter()
+    const { canCreateDocument, canUpdateDocument, canDeleteDocument } = usePermission();
     const [collapsed, setCollapsed] = useState(false)
     const [selectedDoc, setSelectedDoc] = useState('api-ref')
     const [searchValue, setSearchValue] = useState('')
@@ -1392,11 +1409,13 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             {documentHub?.name}
                                         </h1>
                                     </Tooltip>
-                                    <EditOutlined
-                                        className="cursor-pointer opacity-0 group-hover/header:opacity-100 transition-opacity ml-2 shrink-0"
-                                        style={{ fontSize: 14, color: 'var(--text-slate-400)' }}
-                                        onClick={() => setIsEditingHubName(true)}
-                                    />
+                                    {canUpdateDocument && (
+                                        <EditOutlined
+                                            className="cursor-pointer opacity-0 group-hover/header:opacity-100 transition-opacity ml-2 shrink-0"
+                                            style={{ fontSize: 14, color: 'var(--text-slate-400)' }}
+                                            onClick={() => setIsEditingHubName(true)}
+                                        />
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -1509,52 +1528,57 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                                 if (id) void handleMoveNode(id, targetId);
                                             }}
                                             isDescendantOfDragged={false}
+                                            canCreate={canCreateDocument}
+                                            canUpdate={canUpdateDocument}
+                                            canDelete={canDeleteDocument}
                                         />
                                     ))}
                                 </div>
 
                                 {/* New Document Button (Root Level) */}
-                                <div className="p-3" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
-                                    <Dropdown
-                                        menu={{
-                                            items: [
-                                                {
-                                                    key: 'add-root-folder',
-                                                    label: 'New Folder',
-                                                    icon: <Folder className="w-4 h-4" />,
-                                                    onClick: () => handleAddNode(null, 'folder')
-                                                },
-                                                {
-                                                    key: 'add-root-file',
-                                                    label: 'New File',
-                                                    icon: <FileText className="w-4 h-4" />,
-                                                    onClick: () => handleAddNode(null, 'file')
-                                                }
-                                            ]
-                                        }}
-                                        trigger={['click']}
-                                    >
-                                        <button
-                                            className="w-full flex items-center justify-center gap-2 px-4 py-[9px] text-[13px] font-medium rounded-lg transition-all duration-150"
-                                            style={{
-                                                background: 'linear-gradient(135deg, var(--text-blue-700) 0%, rgba(99, 102, 241, 0.95) 100%)',
-                                                color: '#ffffff',
-                                                boxShadow: '0 1px 2px rgba(59, 130, 246, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+                                {canCreateDocument && (
+                                    <div className="p-3" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
+                                        <Dropdown
+                                            menu={{
+                                                items: [
+                                                    {
+                                                        key: 'add-root-folder',
+                                                        label: 'New Folder',
+                                                        icon: <Folder className="w-4 h-4" />,
+                                                        onClick: () => handleAddNode(null, 'folder')
+                                                    },
+                                                    {
+                                                        key: 'add-root-file',
+                                                        label: 'New File',
+                                                        icon: <FileText className="w-4 h-4" />,
+                                                        onClick: () => handleAddNode(null, 'file')
+                                                    }
+                                                ]
                                             }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
-                                                e.currentTarget.style.transform = 'translateY(-1px)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.boxShadow = '0 1px 2px rgba(59, 130, 246, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)';
-                                                e.currentTarget.style.transform = 'translateY(0)';
-                                            }}
+                                            trigger={['click']}
                                         >
-                                            <Plus className="w-4 h-4" strokeWidth={2.5} />
-                                            New Item
-                                        </button>
-                                    </Dropdown>
-                                </div>
+                                            <button
+                                                className="w-full flex items-center justify-center gap-2 px-4 py-[9px] text-[13px] font-medium rounded-lg transition-all duration-150"
+                                                style={{
+                                                    background: 'linear-gradient(135deg, var(--text-blue-700) 0%, rgba(99, 102, 241, 0.95) 100%)',
+                                                    color: '#ffffff',
+                                                    boxShadow: '0 1px 2px rgba(59, 130, 246, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
+                                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(59, 130, 246, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)';
+                                                    e.currentTarget.style.transform = 'translateY(0)';
+                                                }}
+                                            >
+                                                <Plus className="w-4 h-4" strokeWidth={2.5} />
+                                                New Item
+                                            </button>
+                                        </Dropdown>
+                                    </div>
+                                )}
                             </>
                         )}
 
@@ -1651,36 +1675,40 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                         <div className="flex items-center gap-2">
                             {selectedDoc && selectedDoc !== 'api-ref' && (
                                 <>
-                                    <Tooltip title="Generate or refine this page with Zai">
-                                        <Button
-                                            onClick={() => setIsAiEditOpen(true)}
-                                            style={{
-                                                height: 32,
-                                                borderRadius: 8,
-                                                fontWeight: 600,
-                                                paddingInline: 12,
-                                                background: 'linear-gradient(135deg, #722ed1 0%, #391085 100%)',
-                                                color: '#fff',
-                                                border: 'none',
-                                                boxShadow: '0 2px 8px rgba(114, 46, 209, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
-                                            }}
-                                        >
-                                            <span style={{ marginRight: 6, display: 'inline-flex', alignItems: 'center' }}>
-                                                <ThunderboltOutlined style={{ fontSize: 13 }} />
-                                            </span>
-                                            Create with Zai
-                                        </Button>
-                                    </Tooltip>
-                                    <Button
-                                        type="primary"
-                                        icon={<SaveOutlined className="w-4 h-4" />}
-                                        loading={isSaving}
-                                        onClick={handleSaveDocument}
-                                        disabled={!isDirty && !isSaving}
-                                    >
-                                        Save
-                                    </Button>
-                                    <div className="h-5 w-px mx-1" style={{ backgroundColor: 'var(--border-slate-200)' }} />
+                                    {canUpdateDocument && (
+                                        <>
+                                            <Tooltip title="Generate or refine this page with Zai">
+                                                <Button
+                                                    onClick={() => setIsAiEditOpen(true)}
+                                                    style={{
+                                                        height: 32,
+                                                        borderRadius: 8,
+                                                        fontWeight: 600,
+                                                        paddingInline: 12,
+                                                        background: 'linear-gradient(135deg, #722ed1 0%, #391085 100%)',
+                                                        color: '#fff',
+                                                        border: 'none',
+                                                        boxShadow: '0 2px 8px rgba(114, 46, 209, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+                                                    }}
+                                                >
+                                                    <span style={{ marginRight: 6, display: 'inline-flex', alignItems: 'center' }}>
+                                                        <ThunderboltOutlined style={{ fontSize: 13 }} />
+                                                    </span>
+                                                    Create with Zai
+                                                </Button>
+                                            </Tooltip>
+                                            <Button
+                                                type="primary"
+                                                icon={<SaveOutlined className="w-4 h-4" />}
+                                                loading={isSaving}
+                                                onClick={handleSaveDocument}
+                                                disabled={!isDirty && !isSaving}
+                                            >
+                                                Save
+                                            </Button>
+                                            <div className="h-5 w-px mx-1" style={{ backgroundColor: 'var(--border-slate-200)' }} />
+                                        </>
+                                    )}
                                     <Tooltip title="Open in New Tab">
                                         <Button
                                             type="text"
@@ -1689,30 +1717,34 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             onClick={() => window.open(`/document/${selectedDoc}`, '_blank')}
                                         />
                                     </Tooltip>
-                                    <Tooltip title="Share Hub">
-                                        <Button
-                                            type="text"
-                                            icon={<Share2 className="w-4 h-4" />}
-                                            style={{ color: 'var(--text-slate-600)' }}
-                                            onClick={() => setIsShareOpen(true)}
-                                        />
-                                    </Tooltip>
-                                    <Tooltip title={`Delete ${selectedNode?.type || 'item'}`}>
-                                        <Button
-                                            type="text"
-                                            icon={<Trash className="w-4 h-4" />}
-                                            style={{ color: '#ef4444' }}
-                                            onClick={() => {
-                                                if (selectedNode) {
-                                                    handleDeleteDocument(
-                                                        selectedNode.id,
-                                                        selectedNode.type as any,
-                                                        selectedNode.documentId || undefined
-                                                    );
-                                                }
-                                            }}
-                                        />
-                                    </Tooltip>
+                                    {canUpdateDocument && (
+                                        <Tooltip title="Share Hub">
+                                            <Button
+                                                type="text"
+                                                icon={<Share2 className="w-4 h-4" />}
+                                                style={{ color: 'var(--text-slate-600)' }}
+                                                onClick={() => setIsShareOpen(true)}
+                                            />
+                                        </Tooltip>
+                                    )}
+                                    {canDeleteDocument && (
+                                        <Tooltip title={`Delete ${selectedNode?.type || 'item'}`}>
+                                            <Button
+                                                type="text"
+                                                icon={<Trash className="w-4 h-4" />}
+                                                style={{ color: '#ef4444' }}
+                                                onClick={() => {
+                                                    if (selectedNode) {
+                                                        handleDeleteDocument(
+                                                            selectedNode.id,
+                                                            selectedNode.type as any,
+                                                            selectedNode.documentId || undefined
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Tooltip>
+                                    )}
                                     <div className="h-5 w-px mx-1" style={{ backgroundColor: 'var(--border-slate-200)' }} />
                                 </>
                             )}
@@ -1850,7 +1882,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                 ) : (
                                     <DocumentEditor
                                         editor={editor}
-                                        viewMode={viewMode}
+                                        viewMode={!canUpdateDocument ? "preview" : viewMode}
                                         onChange={notifyChange}
                                     />
                                 )
@@ -1901,6 +1933,8 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     onSelectVersion={handleSelectVersion}
                     onRestoreVersion={handleRestoreVersionEntry}
                     onDeleteVersion={handleDeleteVersionEntry}
+                    canRestore={canUpdateDocument}
+                    canDelete={canDeleteDocument}
                 />
             </Drawer>
 

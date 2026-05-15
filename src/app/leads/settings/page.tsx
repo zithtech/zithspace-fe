@@ -60,10 +60,28 @@ import {
     LinkOutlined,
 } from "@ant-design/icons";
 import { useLeadSettings } from "@/hooks/useLeadSettings";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
+import { useRouter } from "next/navigation";
 
 const { Text, Title } = Typography;
 
 export default function LeadSettingsPage() {
+    const { user, isLoading } = useAuth();
+    const { 
+        canManageLeads,
+        canCreateLeadSetting,
+        canUpdateLeadSetting,
+        canDeleteLeadSetting
+    } = usePermission();
+    const router = useRouter();
+
+    // ─── Route Guard ────────────────────────────────────────────────────────────
+    useEffect(() => {
+        if (!isLoading && user && !canManageLeads) {
+            router.push("/dashboard");
+        }
+    }, [user, isLoading, canManageLeads, router]);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [form] = Form.useForm();
     const [activeTab, setActiveTab] = useState<"1" | "2">("1");
@@ -386,7 +404,13 @@ export default function LeadSettingsPage() {
             width: 140,
             render: (isActive: boolean, record: any) => (
                 <div className="lset-visibility">
-                    <Switch size="small" checked={isActive} onChange={(val) => handleToggleStatusProperty(record.id, "isActive", val)} loading={loading} />
+                    <Switch 
+                        size="small" 
+                        checked={isActive} 
+                        onChange={(val) => handleToggleStatusProperty(record.id, "isActive", val)} 
+                        loading={loading} 
+                        disabled={!canUpdateLeadSetting}
+                    />
                     <span className={`lset-vis-label ${isActive ? "is-on" : ""}`}>{isActive ? "Visible" : "Hidden"}</span>
                 </div>
             ),
@@ -398,33 +422,41 @@ export default function LeadSettingsPage() {
             width: 160,
             render: (_: any, record: any, index: number) => (
                 <div className="lset-row-actions">
-                    <Tooltip title="Move up">
-                        <button className="lset-icon-btn" disabled={index === 0} onClick={() => moveRow(index, "up")} aria-label="Move up">
-                            <ArrowUp size={14} />
-                        </button>
-                    </Tooltip>
-                    <Tooltip title="Move down">
-                        <button className="lset-icon-btn" disabled={index === dataSource.length - 1} onClick={() => moveRow(index, "down")} aria-label="Move down">
-                            <ArrowDown size={14} />
-                        </button>
-                    </Tooltip>
-                    <Tooltip title="Edit">
-                        <button className="lset-icon-btn" onClick={() => handleEditStatus(record)} aria-label="Edit">
-                            <Edit2 size={14} />
-                        </button>
-                    </Tooltip>
-                    <Popconfirm
-                        title="Delete this status?"
-                        description="Leads using this status may need reassignment."
-                        onConfirm={() => deleteStatus(record.id)}
-                        okText="Delete"
-                        cancelText="Cancel"
-                        okButtonProps={{ danger: true }}
-                    >
-                        <button className="lset-icon-btn lset-icon-danger" aria-label="Delete">
-                            <Trash2 size={14} />
-                        </button>
-                    </Popconfirm>
+                    {canUpdateLeadSetting && (
+                        <>
+                            <Tooltip title="Move up">
+                                <button className="lset-icon-btn" disabled={index === 0} onClick={() => moveRow(index, "up")} aria-label="Move up">
+                                    <ArrowUp size={14} />
+                                </button>
+                            </Tooltip>
+                            <Tooltip title="Move down">
+                                <button className="lset-icon-btn" disabled={index === dataSource.length - 1} onClick={() => moveRow(index, "down")} aria-label="Move down">
+                                    <ArrowDown size={14} />
+                                </button>
+                            </Tooltip>
+                        </>
+                    )}
+                    {canUpdateLeadSetting && (
+                        <Tooltip title="Edit">
+                            <button className="lset-icon-btn" onClick={() => handleEditStatus(record)} aria-label="Edit">
+                                <Edit2 size={14} />
+                            </button>
+                        </Tooltip>
+                    )}
+                    {canDeleteLeadSetting && (
+                        <Popconfirm
+                            title="Delete this status?"
+                            description="Leads using this status may need reassignment."
+                            onConfirm={() => deleteStatus(record.id)}
+                            okText="Delete"
+                            cancelText="Cancel"
+                            okButtonProps={{ danger: true }}
+                        >
+                            <button className="lset-icon-btn lset-icon-danger" aria-label="Delete">
+                                <Trash2 size={14} />
+                            </button>
+                        </Popconfirm>
+                    )}
                 </div>
             ),
         },
@@ -464,7 +496,13 @@ export default function LeadSettingsPage() {
             width: 140,
             render: (isActive: boolean, record: any) => (
                 <div className="lset-visibility">
-                    <Switch size="small" checked={isActive} onChange={(val) => handleToggleActionProperty(record.id, val)} loading={loading} />
+                    <Switch 
+                        size="small" 
+                        checked={isActive} 
+                        onChange={(val) => handleToggleActionProperty(record.id, val)} 
+                        loading={loading} 
+                        disabled={!canUpdateLeadSetting}
+                    />
                     <span className={`lset-vis-label ${isActive ? "is-on" : ""}`}>{isActive ? "Active" : "Disabled"}</span>
                 </div>
             ),
@@ -483,22 +521,26 @@ export default function LeadSettingsPage() {
             width: 110,
             render: (_: any, record: any) => (
                 <div className="lset-row-actions">
-                    <Tooltip title="Edit">
-                        <button className="lset-icon-btn" onClick={() => handleEditAction(record)} aria-label="Edit">
-                            <Edit2 size={14} />
-                        </button>
-                    </Tooltip>
-                    <Popconfirm
-                        title="Remove this action?"
-                        onConfirm={() => deleteAction(record.id)}
-                        okText="Remove"
-                        cancelText="Cancel"
-                        okButtonProps={{ danger: true }}
-                    >
-                        <button className="lset-icon-btn lset-icon-danger" aria-label="Delete">
-                            <Trash2 size={14} />
-                        </button>
-                    </Popconfirm>
+                    {canUpdateLeadSetting && (
+                        <Tooltip title="Edit">
+                            <button className="lset-icon-btn" onClick={() => handleEditAction(record)} aria-label="Edit">
+                                <Edit2 size={14} />
+                            </button>
+                        </Tooltip>
+                    )}
+                    {canDeleteLeadSetting && (
+                        <Popconfirm
+                            title="Remove this action?"
+                            onConfirm={() => deleteAction(record.id)}
+                            okText="Remove"
+                            cancelText="Cancel"
+                            okButtonProps={{ danger: true }}
+                        >
+                            <button className="lset-icon-btn lset-icon-danger" aria-label="Delete">
+                                <Trash2 size={14} />
+                            </button>
+                        </Popconfirm>
+                    )}
                 </div>
             ),
         },
@@ -569,6 +611,7 @@ export default function LeadSettingsPage() {
                                     icon={<Plus size={14} />}
                                     onClick={showDrawer}
                                     className="lset-cta-btn"
+                                    disabled={!canCreateLeadSetting}
                                 >
                                     {activeTab === "1" ? "New Status" : "New Action"}
                                     <ArrowUpRight size={13} />
@@ -753,16 +796,18 @@ export default function LeadSettingsPage() {
                             </span>
                             <div style={{ display: "flex", gap: 10 }}>
                                 <Button onClick={handleCancel} className="lset-btn-cancel">Cancel</Button>
-                                <Button
-                                    type="primary"
-                                    loading={loading}
-                                    onClick={handleSave}
-                                    className="lset-cta-btn"
-                                    style={{ minWidth: 180 }}
-                                >
-                                    {editingId ? "Update" : "Create"} {activeTab === "1" ? "Status" : "Action"}
-                                    <ArrowUpRight size={13} />
-                                </Button>
+                                {((editingId && canUpdateLeadSetting) || (!editingId && canCreateLeadSetting)) && (
+                                    <Button
+                                        type="primary"
+                                        loading={loading}
+                                        onClick={handleSave}
+                                        className="lset-cta-btn"
+                                        style={{ minWidth: 180 }}
+                                    >
+                                        {editingId ? "Update" : "Create"} {activeTab === "1" ? "Status" : "Action"}
+                                        <ArrowUpRight size={13} />
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     }
@@ -1433,6 +1478,21 @@ export default function LeadSettingsPage() {
                     [data-theme='dark'] .lset-drawer-note-text { color: #c9d1d9 !important; }
                     [data-theme='dark'] .lset-drawer-footer-hint { color: #6e7681 !important; }
                     [data-theme='dark'] .lset-btn-cancel { background: #21262d !important; border-color: #30363d !important; color: #c9d1d9 !important; }
+
+                    /* Autofill fix for dark mode */
+                    [data-theme='dark'] input:-webkit-autofill,
+                    [data-theme='dark'] input:-webkit-autofill:hover,
+                    [data-theme='dark'] input:-webkit-autofill:focus,
+                    [data-theme='dark'] textarea:-webkit-autofill,
+                    [data-theme='dark'] textarea:-webkit-autofill:hover,
+                    [data-theme='dark'] textarea:-webkit-autofill:focus,
+                    [data-theme='dark'] select:-webkit-autofill,
+                    [data-theme='dark'] select:-webkit-autofill:hover,
+                    [data-theme='dark'] select:-webkit-autofill:focus {
+                        -webkit-text-fill-color: #c9d1d9 !important;
+                        -webkit-box-shadow: 0 0 0px 1000px #0d1117 inset !important;
+                        transition: background-color 5000s ease-in-out 0s;
+                    }
                     `,
                 }} />
             </MainLayout>

@@ -31,7 +31,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
   isMenuItem,
   showContentOnly,
 }) => {
-  const { notification } = App.useApp();
+  const { notification, message } = App.useApp();
   const {
     activeEntry,
     activeEntries,
@@ -178,12 +178,9 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
       });
 
       await startMultipleTimers(entriesToCreate);
-      notification.success({ message: "Timer started" });
+      message.success("Timer started");
     } catch (error: any) {
-      notification.error({
-        message: "Failed to start timer",
-        description: error.message,
-      });
+      message.error(`Failed to start timer: ${error.message}`);
     }
   };
 
@@ -191,12 +188,9 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
     try {
       await stopTimer();
       form.resetFields();
-      notification.success({ message: "Timer stopped and saved" });
+      message.success("Timer stopped and saved");
     } catch (error: any) {
-      notification.error({
-        message: "Failed to stop timer",
-        description: error.message,
-      });
+      message.error(`Failed to stop timer: ${error.message}`);
     }
   };
 

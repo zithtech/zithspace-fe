@@ -106,8 +106,8 @@ function TreeNode({
     };
 
     const menuItems: MenuProps['items'] = [
-        ...(canCreate ? [
-            {
+        ...(canCreate && item.type !== 'file' ? [
+            ...(item.type !== 'folder' ? [{
                 key: 'add-folder',
                 label: 'Add Folder',
                 icon: <Folder className="w-4 h-4" />,
@@ -115,7 +115,7 @@ function TreeNode({
                     e.domEvent.stopPropagation();
                     onAddNode(item.id, 'folder');
                 }
-            },
+            }] : []),
             {
                 key: 'add-file',
                 label: 'Add File',

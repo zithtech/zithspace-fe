@@ -5,7 +5,6 @@ import {
   CalendarOutlined,
   ProjectOutlined,
   EditOutlined,
-  ShareAltOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -19,6 +18,8 @@ interface OverviewHeaderProps {
   startDate: string | Date;
   endDate: string | Date | null;
   progress: number;
+  projectId: string;
+  onEdit?: () => void;
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -36,6 +37,8 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
   startDate,
   endDate,
   progress,
+  projectId,
+  onEdit,
 }) => {
   const router = useRouter();
   const accentColor = STATUS_COLOR[status?.toLowerCase()] || "#3b82f6";
@@ -190,11 +193,13 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
           </div>
 
           <Space size={6}>
-            <Tooltip title="Share">
-              <Button icon={<ShareAltOutlined />} style={{ height: 36, borderRadius: 8 }} />
-            </Tooltip>
             <Tooltip title="Edit project">
-              <Button type="primary" icon={<EditOutlined />} style={{ height: 36, borderRadius: 8, fontWeight: 600 }}>
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                style={{ height: 36, borderRadius: 8, fontWeight: 600 }}
+                onClick={() => (onEdit ? onEdit() : router.push(`/projects/manage?edit=${projectId}`))}
+              >
                 Edit
               </Button>
             </Tooltip>

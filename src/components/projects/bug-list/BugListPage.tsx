@@ -1,4 +1,5 @@
 "use client";
+import dayjs from "dayjs";
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
@@ -98,6 +99,7 @@ interface FilterState {
   search: string;
   severity?: BugSeverity;
   status?: BugStatus;
+  bugStatus?: "not started" | "pending" | "completed";
   bugType?: BugType;
   module?: string;
   assigneeId?: string;
@@ -181,6 +183,7 @@ export default function BugListPage() {
 
   const { data: projects, isLoading: projectsLoading } = useAllProjects();
   const { data: folders, isLoading: foldersLoading } = useBugFolders(selectedProjectId || undefined);
+  const { data: projectSheets } = useProjectSheets(selectedProjectId);
   const { data: sheets } = useBugSheets(selectedFolderId);
   const { data: archivedSheets } = useArchivedSheets(selectedFolderId || undefined);
   const { data: trashedSheets } = useTrashedSheets(selectedFolderId || undefined);
@@ -231,7 +234,6 @@ export default function BugListPage() {
     };
   }, [isResizing, resize, stopResizing]);
 
-  const { data: projectSheets } = useProjectSheets(selectedProjectId);
   const bulkMoveBugs = useBulkMoveBugs();
 
   const prefilledProjectId = useMemo(() => {
@@ -260,7 +262,7 @@ export default function BugListPage() {
 
   const workspaceStats = {
     totalFolders: folders?.length || 0,
-    totalSheets: sheets?.length || 0,
+    totalSheets: projectSheets?.length || 0,
     total: stats?.total || 0,
     verified: stats?.verified || 0,
     completed: stats?.completed || 0,
@@ -279,14 +281,15 @@ export default function BugListPage() {
       search: filters.search || undefined,
       severity: filters.severity,
       status: filters.status,
+      bugStatus: filters.bugStatus,
       bugType: filters.bugType,
       module: filters.module,
       assigneeId: filters.assigneeId,
       createdById: filters.createdById || undefined,
-      createdFrom: filters.createdRange?.[0]?.toISOString(),
-      createdTo: filters.createdRange?.[1]?.endOf("day").toISOString(),
-      updatedFrom: filters.updatedRange?.[0]?.toISOString(),
-      updatedTo: filters.updatedRange?.[1]?.endOf("day").toISOString(),
+      createdFrom: filters.createdRange?.[0] ? dayjs(filters.createdRange[0]).startOf("day").toISOString() : undefined,
+      createdTo: filters.createdRange?.[1] ? dayjs(filters.createdRange[1]).endOf("day").toISOString() : undefined,
+      updatedFrom: filters.updatedRange?.[0] ? dayjs(filters.updatedRange[0]).startOf("day").toISOString() : undefined,
+      updatedTo: filters.updatedRange?.[1] ? dayjs(filters.updatedRange[1]).endOf("day").toISOString() : undefined,
       page,
       limit,
     }),
@@ -328,7 +331,11 @@ export default function BugListPage() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const bugs = bugsResponse?.bugs || [];
+  const rawBugs = bugsResponse?.bugs || [];
+  const bugs = useMemo(() => {
+    if (!filters.bugStatus) return rawBugs;
+    return rawBugs.filter(b => b.bugStatus === filters.bugStatus || (!b.bugStatus && filters.bugStatus === "not started"));
+  }, [rawBugs, filters.bugStatus]);
   const total = bugsResponse?.pagination.total || 0;
   const shown = bugs.length;
 
@@ -348,6 +355,7 @@ export default function BugListPage() {
     if (filters.search) n++;
     if (filters.severity) n++;
     if (filters.status) n++;
+    if (filters.bugStatus) n++;
     if (filters.bugType) n++;
     if (filters.module) n++;
     if (filters.assigneeId) n++;
@@ -683,12 +691,16 @@ export default function BugListPage() {
           <div className="hb-stats-row">
             <StatCard
               icon={<FolderTree size={14} />}
-              label="Folders / Sheets"
+              label={workspaceStats.totalSheets > 0 ? "Folders / Sheets" : "Folders"}
               value={
                 <>
-                  {workspaceStats?.totalFolders ?? "—"}
-                  <span className="hb-stat-sep">/</span>
-                  {workspaceStats?.totalSheets ?? "—"}
+                  {workspaceStats.totalFolders}
+                  {workspaceStats.totalSheets > 0 && (
+                    <>
+                      <span className="hb-stat-sep">/</span>
+                      {workspaceStats.totalSheets}
+                    </>
+                  )}
                 </>
               }
             />
@@ -725,7 +737,15 @@ export default function BugListPage() {
                 <StatCard
                   icon={<Activity size={14} />}
                   label="Health"
-                  value={workspaceStats && workspaceStats.total > 0 ? `${percentage}%` : "—"}
+                  value={
+                    workspaceStats && workspaceStats.total > 0 ? (
+                      <>
+                        {percentage}%
+                        <span className="hb-stat-sep">|</span>
+                        {workspaceStats.completed}/{workspaceStats.total}
+                      </>
+                    ) : "—"
+                  }
                   tone={tone}
                 />
               );
@@ -746,7 +766,6 @@ export default function BugListPage() {
             </div>
             <div className="hb-filterbar-divider" />
 
-            {!selectedSheetId && (
             <>
                 <div className={`hb-filter-group ${selectedFolderId ? "active" : ""}`}>
                   <span className="hb-filter-label"><Folder size={12} /></span>
@@ -778,16 +797,16 @@ export default function BugListPage() {
                   variant="borderless"
                   value={selectedSheetId || undefined}
                   onChange={(v) => setSelectedSheetId(v || null)}
-                  options={allSheets.map((s) => ({
-                    value: s.id,
-                    label: s.name,
-                  }))}
-                  disabled={!selectedFolderId}
+                  options={allSheets
+                    .filter(s => !selectedFolderId || s.folderId === selectedFolderId)
+                    .map((s) => ({
+                      value: s.id,
+                      label: s.name,
+                    }))}
                   style={{ width: 140 }}
                 />
               </div>
             </>
-          )}
           
           <div className={`hb-filter-group ${filters.createdById ? "active" : ""}`}>
             <span className="hb-filter-label"><User size={12} /></span>
@@ -843,6 +862,24 @@ export default function BugListPage() {
             />
           </div>
 
+          <div className={`hb-filter-group ${filters.bugStatus ? "active" : ""}`}>
+            <span className="hb-filter-label"><Activity size={12} /></span>
+            <Select
+              allowClear
+              placeholder="Bug Status"
+              size="small"
+              variant="borderless"
+              value={filters.bugStatus}
+              onChange={(v) => setFilters((f) => ({ ...f, bugStatus: v }))}
+              options={[
+                { value: "not started", label: "Not Started" },
+                { value: "pending", label: "Pending" },
+                { value: "completed", label: "Completed" },
+              ]}
+              style={{ width: 120 }}
+            />
+          </div>
+
           <div className={`hb-filter-group ${filters.severity ? "active" : ""}`}>
             <span className="hb-filter-label"><AlertTriangle size={12} /></span>
             <Select
@@ -871,21 +908,6 @@ export default function BugListPage() {
                       label: s.toUpperCase(),
                     }))}
                     style={{ width: 100 }}
-                  />
-                </div>
-
-                <div className={`hb-filter-group ${filters.module ? "active" : ""}`}>
-                  <span className="hb-filter-label"><Box size={12} /></span>
-                  <Select
-                    allowClear
-                    showSearch
-                    placeholder="Module"
-                    size="small"
-                    variant="borderless"
-                    value={filters.module}
-                    onChange={(v) => setFilters((f) => ({ ...f, module: v }))}
-                    options={moduleOptions.map((m) => ({ value: m, label: m }))}
-                    style={{ width: 120 }}
                   />
                 </div>
 

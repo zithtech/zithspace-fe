@@ -2169,7 +2169,7 @@ const DocumentHubPage = () => {
                   {
                     key: 'manual',
                     label: (
-                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 260 }}>
+                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 290 }}>
                         <div
                           className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white"
                           style={{
@@ -2194,7 +2194,7 @@ const DocumentHubPage = () => {
                   {
                     key: 'zai',
                     label: (
-                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 260 }}>
+                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 290 }}>
                         <div
                           className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white relative"
                           style={{
@@ -2213,7 +2213,7 @@ const DocumentHubPage = () => {
                               className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-[1px] rounded"
                               style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)', color: '#fff' }}
                             >
-                              Start from a blank document hub
+                              AI
                             </span>
                           </div>
                           <span className="text-[11.5px] leading-snug mt-0.5" style={{ color: 'var(--text-slate-400)' }}>
@@ -3790,6 +3790,27 @@ const DocumentHubPage = () => {
         .dh-bulk-clear:hover {
           background: rgba(239, 68, 68, 0.10);
           color: #ef4444;
+        }
+
+        /* Create Document Dropdown (#1) */
+        .create-document-menu .ant-dropdown-menu {
+          padding: 6px !important;
+          border-radius: 14px !important;
+          border: 1px solid var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important;
+          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
+          min-width: 320px !important;
+        }
+        .create-document-menu .ant-dropdown-menu-item {
+          border-radius: 10px !important;
+          padding: 8px 10px !important;
+          margin-bottom: 2px !important;
+        }
+        .create-document-menu .ant-dropdown-menu-item:last-child {
+          margin-bottom: 0 !important;
+        }
+        .create-document-menu .ant-dropdown-menu-item:hover {
+          background: var(--bg-slate-50) !important;
         }
       `}</style>
     </MainLayout>

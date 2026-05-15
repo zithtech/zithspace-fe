@@ -22,6 +22,7 @@ interface TimeTrackerState {
   pauseTimer: () => Promise<void>;
   resumeTimer: () => Promise<void>;
   stopTimer: () => Promise<void>;
+  syncTimer: (entry: TimeTrackingEntry) => void;
 }
 
 export const useTimeTrackerStore = create<TimeTrackerState>((set, get) => ({
@@ -185,5 +186,39 @@ export const useTimeTrackerStore = create<TimeTrackerState>((set, get) => ({
 
   pauseTimer: async () => get().pauseAllTimers(),
   resumeTimer: async () => get().resumeAllTimers(),
-  stopTimer: async () => get().stopAllTimers()
+  stopTimer: async () => get().stopAllTimers(),
+
+  syncTimer: (updatedEntry) => {
+    const { activeEntries, activeEntry } = get();
+    
+    // If the entry is stopped, remove it
+    if (updatedEntry.status === 'STOPPED') {
+      const newActiveEntries = activeEntries.filter(e => e.id !== updatedEntry.id);
+      let newActiveEntry = activeEntry?.id === updatedEntry.id ? null : activeEntry;
+      if (!newActiveEntry && newActiveEntries.length > 0) {
+        newActiveEntry = [...newActiveEntries].sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())[0];
+      }
+      set({ 
+        activeEntries: newActiveEntries,
+        activeEntry: newActiveEntry,
+        refreshTrigger: get().refreshTrigger + 1
+      });
+      return;
+    }
+
+    // Otherwise update or add
+    const exists = activeEntries.some(e => e.id === updatedEntry.id);
+    let newActiveEntries;
+    if (exists) {
+      newActiveEntries = activeEntries.map(e => e.id === updatedEntry.id ? updatedEntry : e);
+    } else {
+      newActiveEntries = [updatedEntry, ...activeEntries];
+    }
+
+    set({ 
+      activeEntries: newActiveEntries,
+      activeEntry: activeEntry?.id === updatedEntry.id || !activeEntry ? updatedEntry : activeEntry,
+      refreshTrigger: get().refreshTrigger + 1
+    });
+  }
 }));

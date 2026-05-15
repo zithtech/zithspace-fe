@@ -11,6 +11,7 @@ import { NAVIGATION_CONFIG, ModuleType, STANDALONE_PAGES } from "./navigationCon
 import { useLayout } from "@/context/LayoutContext";
 import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
 import { useDocumentSocketEvents } from "@/hooks/useDocumentSocketEvents";
+import { TimerSocketListener } from "../time-tracking/TimerSocketListener";
 
 const { Content } = Layout;
 
@@ -233,6 +234,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
         >
           {children}
         </Content>
+        <TimerSocketListener />
       </Layout>
     </Layout>
   );

@@ -581,6 +581,8 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             if (updated && updated.id) {
                 lastSavedVersionRef.current = updated.version;
                 queryClient.setQueryData(['document', updated.id], updated);
+                // Also invalidate hub list to update "Last Updated" timestamps
+                queryClient.invalidateQueries({ queryKey: ['documentHubs'] });
             }
             if (isHistoryOpen) refetchHistory();
         },
@@ -1013,6 +1015,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             queryClient.refetchQueries({ queryKey: ticketsKey });
             queryClient.invalidateQueries({ queryKey: hubKey });
             queryClient.refetchQueries({ queryKey: hubKey });
+            queryClient.invalidateQueries({ queryKey: ['documentHubs'] });
 
             // If we added to a parent, ensure it's expanded
             if (addNodeParentId) {
@@ -1148,6 +1151,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             queryClient.refetchQueries({ queryKey: ticketsKey });
             queryClient.invalidateQueries({ queryKey: hubKey });
             queryClient.refetchQueries({ queryKey: hubKey });
+            queryClient.invalidateQueries({ queryKey: ['documentHubs'] });
             setIsEditingHubName(false);
         } catch (error) {
             console.error(error);
@@ -1167,6 +1171,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             queryClient.refetchQueries({ queryKey: ticketsKey });
             queryClient.invalidateQueries({ queryKey: hubKey });
             queryClient.refetchQueries({ queryKey: hubKey });
+            queryClient.invalidateQueries({ queryKey: ['documentHubs'] });
             // Also refetch document if it's the currently selected one
             if (selectedTreeNodeId === id) {
                 refetchDocument();
@@ -1250,6 +1255,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             queryClient.refetchQueries({ queryKey: ticketsKey });
             queryClient.invalidateQueries({ queryKey: hubKey });
             queryClient.refetchQueries({ queryKey: hubKey });
+            queryClient.invalidateQueries({ queryKey: ['documentHubs'] });
             // If we moved INTO a folder, expand it so the user sees the result.
             if (newParentId) {
                 setExpandedIds((prev) => new Set(prev).add(newParentId));
@@ -1285,6 +1291,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                             queryClient.refetchQueries({ queryKey: ticketsKey });
                             queryClient.invalidateQueries({ queryKey: hubKey });
                             queryClient.refetchQueries({ queryKey: hubKey });
+                            queryClient.invalidateQueries({ queryKey: ['documentHubs'] });
 
                             // Invalidate the individual document cache
                             queryClient.removeQueries({ queryKey: ['document', docId] });
@@ -1319,6 +1326,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                         queryClient.refetchQueries({ queryKey: ticketsKey });
                         queryClient.invalidateQueries({ queryKey: hubKey });
                         queryClient.refetchQueries({ queryKey: hubKey });
+                        queryClient.invalidateQueries({ queryKey: ['documentHubs'] });
                     } catch (error: any) {
                         console.error(error);
                         const errorMessage = error.response?.data?.error || error.message || `Failed to delete ${type}`;

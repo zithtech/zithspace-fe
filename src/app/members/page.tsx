@@ -344,7 +344,23 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             rules={[{ required: true, message: "Please select role" }]}
             initialValue="user"
           >
-            <RoleCardGroup options={ROLE_OPTIONS} />
+            <Select placeholder="Select a role" optionLabelProp="label">
+              {ROLE_OPTIONS.map((opt) => (
+                <Select.Option key={opt.value} value={opt.value} label={opt.title}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ color: opt.color, display: "flex", alignItems: "center" }}>
+                      {opt.icon}
+                    </span>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{opt.title}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-slate-500)" }}>
+                        {opt.desc}
+                      </div>
+                    </div>
+                  </div>
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <div
@@ -488,75 +504,6 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
   );
 };
 
-const RoleCardGroup = ({
-  value,
-  onChange,
-  options,
-}: {
-  value?: string;
-  onChange?: (v: string) => void;
-  options: { value: string; icon: React.ReactNode; title: string; desc: string; color: string }[];
-}) => (
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(3, 1fr)",
-      gap: 10,
-    }}
-  >
-    {options.map((opt) => {
-      const active = value === opt.value;
-      return (
-        <button
-          type="button"
-          key={opt.value}
-          onClick={() => onChange?.(opt.value)}
-          className={`mm-role-card${active ? " active" : ""}`}
-          style={{
-            ["--role-color" as any]: opt.color,
-          }}
-        >
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 7,
-              background: `${opt.color}14`,
-              color: opt.color,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 13,
-              marginBottom: 8,
-            }}
-          >
-            {opt.icon}
-          </div>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--text-slate-900)",
-              lineHeight: 1.2,
-            }}
-          >
-            {opt.title}
-          </div>
-          <div
-            style={{
-              fontSize: 11,
-              color: "var(--text-slate-500)",
-              marginTop: 2,
-              lineHeight: 1.35,
-            }}
-          >
-            {opt.desc}
-          </div>
-        </button>
-      );
-    })}
-  </div>
-);
 
 const StatCard = ({
   label,
@@ -1605,34 +1552,6 @@ export default function MembersPage() {
           .mm-drawer .ant-input-affix-wrapper:focus-within {
             border-color: #8b5cf6 !important;
             box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12) !important;
-          }
-          .mm-role-card {
-            text-align: left;
-            padding: 12px 12px 12px 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border-slate-200);
-            background: var(--bg-pure-white);
-            cursor: pointer;
-            transition: all 0.15s ease;
-            position: relative;
-          }
-          .mm-role-card:hover {
-            border-color: var(--role-color, #8b5cf6);
-            background: var(--bg-slate-50);
-          }
-          .mm-role-card.active {
-            border-color: var(--role-color, #8b5cf6);
-            background: color-mix(in srgb, var(--role-color, #8b5cf6) 6%, var(--bg-pure-white));
-            box-shadow: 0 0 0 3px color-mix(in srgb, var(--role-color, #8b5cf6) 12%, transparent);
-          }
-          .mm-role-card.active::after {
-            content: "";
-            position: absolute;
-            top: 10px; right: 10px;
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: var(--role-color, #8b5cf6);
-            box-shadow: 0 0 0 3px color-mix(in srgb, var(--role-color, #8b5cf6) 22%, transparent);
           }
           .mm-day-pill {
             width: 38px; height: 38px;

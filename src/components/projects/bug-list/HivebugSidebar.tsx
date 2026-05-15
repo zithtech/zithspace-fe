@@ -20,6 +20,7 @@ import {
   Star,
   Trash2,
   CheckCircle2,
+  Search,
 } from "lucide-react";
 import { Dropdown, Skeleton, Tooltip, Select } from "antd";
 import {
@@ -34,6 +35,7 @@ import {
   useDeleteBugSheet,
   useUpdateBugSheetStatus,
   useUpdateBugSheet,
+  useProjectSheets,
 } from "@/hooks/useBugList";
 import type {
   BugFolder,
@@ -96,6 +98,7 @@ export default function HivebugSidebar({
   const updateSheet = useUpdateBugSheet();
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [workspaceExpanded, setWorkspaceExpanded] = useState(true);
   const toggle = (id: string) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
 
   const sensors = useSensors(
@@ -122,6 +125,22 @@ export default function HivebugSidebar({
     }
   };
 
+  const [collectionSearch, setCollectionSearch] = useState("");
+
+  const { data: projectSheets } = useProjectSheets(selectedProjectId);
+
+  const filteredFolders = useMemo(() => {
+    if (!collectionSearch.trim()) return folders;
+    const q = collectionSearch.toLowerCase();
+    return folders?.filter((f) => {
+      const folderMatch = f.name.toLowerCase().includes(q);
+      const sheetMatch = projectSheets?.some(
+        (s) => s.folderId === f.id && s.name.toLowerCase().includes(q)
+      );
+      return folderMatch || sheetMatch;
+    });
+  }, [folders, projectSheets, collectionSearch]);
+
   const totalAll = useMemo(
     () => folders?.reduce((acc, f) => acc + (f._count?.bugs || 0), 0) || 0,
     [folders]
@@ -142,63 +161,80 @@ export default function HivebugSidebar({
           </div>
 
           <div className="hb-section">
-            <div className="hb-section-title">
+            <div
+              className="hb-section-title"
+              style={{ cursor: "pointer" }}
+              onClick={() => setWorkspaceExpanded(!workspaceExpanded)}
+            >
               <span className="hb-section-title-text">
                 <LayoutGrid size={11} className="hb-section-title-icon" />
                 <span>WORKSPACE</span>
               </span>
+              <button className="hb-icon-btn" aria-label="Toggle workspace">
+                <ChevronDown
+                  size={13}
+                  style={{
+                    transition: "transform 0.2s",
+                    transform: workspaceExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                />
+              </button>
             </div>
-            <button
-              className={`hb-row ${scope === "all" && !selectedFolderId && !selectedSheetId ? "active" : ""
-                }`}
-              onClick={() => {
-                onScopeChange("all");
-                onSelect(null, null);
-              }}
-            >
-              <Inbox size={15} />
-              <span className="hb-row-label">All Bugs</span>
-              <span className="hb-row-count">{totalAll}</span>
-            </button>
-            <button
-              className={`hb-row ${scope === "mine" ? "active" : ""}`}
-              onClick={() => {
-                onScopeChange("mine");
-                onSelect(null, null);
-              }}
-            >
-              <User size={15} />
-              <span className="hb-row-label">My Bugs</span>
-              <span className="hb-row-count">
-                {stats.data?.mineTotal ?? 0}
-              </span>
-            </button>
-            <button
-              className={`hb-row ${scope === "trash" ? "active" : ""}`}
-              onClick={() => {
-                onScopeChange("trash");
-                onSelect(null, null);
-              }}
-            >
-              <Trash2 size={15} />
-              <span className="hb-row-label">Trash</span>
-              <span className="hb-row-count">
-                {stats.data?.trashTotal ?? 0}
-              </span>
-            </button>
-            <button
-              className={`hb-row ${scope === "archived" ? "active" : ""}`}
-              onClick={() => {
-                onScopeChange("archived");
-                onSelect(null, null);
-              }}
-            >
-              <Archive size={15} />
-              <span className="hb-row-label">Archived</span>
-              <span className="hb-row-count">
-                {stats.data?.archivedTotal ?? 0}
-              </span>
-            </button>
+            {workspaceExpanded && (
+              <>
+                <button
+                  className={`hb-row ${scope === "all" && !selectedFolderId && !selectedSheetId ? "active" : ""
+                    }`}
+                  onClick={() => {
+                    onScopeChange("all");
+                    onSelect(null, null);
+                  }}
+                >
+                  <Inbox size={15} />
+                  <span className="hb-row-label">All Bugs</span>
+                  <span className="hb-row-count">{totalAll}</span>
+                </button>
+                <button
+                  className={`hb-row ${scope === "mine" ? "active" : ""}`}
+                  onClick={() => {
+                    onScopeChange("mine");
+                    onSelect(null, null);
+                  }}
+                >
+                  <User size={15} />
+                  <span className="hb-row-label">My Bugs</span>
+                  <span className="hb-row-count">
+                    {stats.data?.mineTotal ?? 0}
+                  </span>
+                </button>
+                <button
+                  className={`hb-row ${scope === "trash" ? "active" : ""}`}
+                  onClick={() => {
+                    onScopeChange("trash");
+                    onSelect(null, null);
+                  }}
+                >
+                  <Trash2 size={15} />
+                  <span className="hb-row-label">Trash</span>
+                  <span className="hb-row-count">
+                    {stats.data?.trashTotal ?? 0}
+                  </span>
+                </button>
+                <button
+                  className={`hb-row ${scope === "archived" ? "active" : ""}`}
+                  onClick={() => {
+                    onScopeChange("archived");
+                    onSelect(null, null);
+                  }}
+                >
+                  <Archive size={15} />
+                  <span className="hb-row-label">Archived</span>
+                  <span className="hb-row-count">
+                    {stats.data?.archivedTotal ?? 0}
+                  </span>
+                </button>
+              </>
+            )}
           </div>
 
           <div className="hb-section hb-section-grow">
@@ -211,22 +247,47 @@ export default function HivebugSidebar({
                 <Plus size={13} />
               </button>
             </div>
+
+            <div className="hb-sidebar-search">
+              <Search size={13} />
+              <input
+                type="text"
+                placeholder="Search collections..."
+                value={collectionSearch}
+                onChange={(e) => setCollectionSearch(e.target.value)}
+              />
+              {collectionSearch && (
+                <button
+                  className="hb-sidebar-search-clear"
+                  onClick={() => setCollectionSearch("")}
+                >
+                  <Plus size={14} style={{ transform: 'rotate(45deg)' }} />
+                </button>
+              )}
+            </div>
+
             <div className="hb-collections">
               {foldersLoading ? (
                 <div style={{ padding: 12 }}>
                   <Skeleton active paragraph={{ rows: 4 }} title={false} />
                 </div>
-              ) : !folders || folders.length === 0 ? (
-                <button className="hb-row hb-row-muted" onClick={onCreateFolder}>
-                  <Plus size={13} />
-                  <span className="hb-row-label">New collection</span>
-                </button>
+              ) : !filteredFolders || filteredFolders.length === 0 ? (
+                <div className="hb-section-empty">
+                  {collectionSearch ? (
+                    <span className="hb-row-muted">No matches found</span>
+                  ) : (
+                    <button className="hb-row hb-row-muted" onClick={onCreateFolder}>
+                      <Plus size={13} />
+                      <span className="hb-row-label">New collection</span>
+                    </button>
+                  )}
+                </div>
               ) : (
-                folders.map((folder) => (
+                filteredFolders.map((folder) => (
                   <FolderNode
                     key={folder.id}
                     folder={folder}
-                    isOpen={!!expanded[folder.id]}
+                    isOpen={!!expanded[folder.id] || !!collectionSearch}
                     isFolderSelected={
                       selectedFolderId === folder.id && !selectedSheetId
                     }
@@ -242,6 +303,7 @@ export default function HivebugSidebar({
                     onEdit={() => onEditFolder(folder)}
                     onAddSheet={() => onCreateSheet(folder.id)}
                     onEditSheet={onEditSheet}
+                    searchQuery={collectionSearch}
                   />
                 ))
               )}
@@ -289,6 +351,7 @@ interface FolderNodeProps {
   onEdit: () => void;
   onAddSheet: () => void;
   onEditSheet: (sheet: BugSheet) => void;
+  searchQuery?: string;
 }
 
 function FolderNode({
@@ -302,8 +365,9 @@ function FolderNode({
   onEdit,
   onAddSheet,
   onEditSheet,
+  searchQuery,
 }: FolderNodeProps) {
-  const { data: sheets, isLoading } = useBugSheets(isOpen ? folder.id : null);
+  const { data: sheets, isLoading } = useBugSheets(isOpen || !!searchQuery ? folder.id : null);
   const deleteFolder = useDeleteBugFolder();
   const archiveFolder = useArchiveFolder();
 
@@ -395,15 +459,17 @@ function FolderNode({
               <span className="hb-row-label">Add sheet</span>
             </button>
           ) : (
-            sheets.map((s) => (
-              <SheetNode
-                key={s.id}
-                sheet={s}
-                selectedSheetId={selectedSheetId}
-                onSelectSheet={onSelectSheet}
-                onEditSheet={onEditSheet}
-              />
-            ))
+            sheets
+              .filter(s => !searchQuery || s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+              .map((s) => (
+                <SheetNode
+                  key={s.id}
+                  sheet={s}
+                  selectedSheetId={selectedSheetId}
+                  onSelectSheet={onSelectSheet}
+                  onEditSheet={onEditSheet}
+                />
+              ))
           )}
         </div>
       )}

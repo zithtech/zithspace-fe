@@ -46,12 +46,10 @@ const labelStyle: React.CSSProperties = {
 };
 
 const cardStyle: React.CSSProperties = {
-  background: "var(--bg-pure-white)",
-  border: "1px solid var(--border-slate-100)",
-  borderRadius: "12px",
-  padding: "11px",
+  background: "transparent",
+  border: "none",
+  padding: "11px 0",
   height: "280px",
-  transition: "all 0.2s ease",
   display: "flex",
   flexDirection: "column",
   position: "relative",
@@ -202,7 +200,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
   };
 
   return (
-    <div style={{ padding: "0 24px 20px", background: "transparent", borderRadius: "12px" }}>
+    <div style={{ padding: "0 40px 20px", background: "transparent" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "12px 0", borderBottom: "1px solid var(--border-slate-100)" }}>
         <div>
           <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#1e293b" }}>Assets Information</h2>

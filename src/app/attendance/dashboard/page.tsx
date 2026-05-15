@@ -32,6 +32,11 @@ import { useRouter } from 'next/navigation';
 import { AttendanceService, Attendance } from '@/services/attendanceService';
 import { usePermission } from '@/hooks/usePermission';
 import dayjs from 'dayjs';
+import localeData from 'dayjs/plugin/localeData';
+import weekday from 'dayjs/plugin/weekday';
+
+dayjs.extend(localeData);
+dayjs.extend(weekday);
 import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;
@@ -72,7 +77,7 @@ export default function AttendanceDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
   const [presentEmployees, setPresentEmployees] = useState<PresentEmployee[]>([]);
-  const [dateFilter, setDateFilter] = useState<'week' | 'month' | 'custom'>('week');
+  const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'custom'>('today');
   const [customDateRange, setCustomDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 
   useEffect(() => {
@@ -84,9 +89,27 @@ export default function AttendanceDashboardPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
+
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+
+      if (dateFilter === 'week') {
+        startDate = dayjs().startOf('week').toISOString();
+        endDate = dayjs().endOf('day').toISOString();
+      } else if (dateFilter === 'month') {
+        startDate = dayjs().startOf('month').toISOString();
+        endDate = dayjs().endOf('day').toISOString();
+      } else if (dateFilter === 'custom' && customDateRange) {
+        startDate = customDateRange[0].startOf('day').toISOString();
+        endDate = customDateRange[1].endOf('day').toISOString();
+      } else {
+        startDate = dayjs().startOf('day').toISOString();
+        endDate = dayjs().endOf('day').toISOString();
+      }
+
       const [summary, employees] = await Promise.all([
-        AttendanceService.getDashboardSummary(),
-        AttendanceService.getPresentMembers(),
+        AttendanceService.getDashboardSummary(startDate, endDate),
+        AttendanceService.getPresentMembers(startDate, endDate),
       ]);
       setDashboardSummary(summary as any);
       setPresentEmployees(employees as any);
@@ -106,7 +129,7 @@ export default function AttendanceDashboardPage() {
     if (user && canReadAttendanceDashboard) {
       fetchData();
     }
-  }, [user, canReadAttendanceDashboard]);
+  }, [user, canReadAttendanceDashboard, dateFilter, customDateRange]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -130,6 +153,16 @@ export default function AttendanceDashboardPage() {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h ${mins}m`;
+  };
+
+  const getFilterLabel = () => {
+    if (dateFilter === 'today') return 'today';
+    if (dateFilter === 'week') return 'this week';
+    if (dateFilter === 'month') return 'this month';
+    if (dateFilter === 'custom' && customDateRange) {
+      return `${customDateRange[0].format('MMM DD')} - ${customDateRange[1].format('MMM DD')}`;
+    }
+    return 'today';
   };
 
   if (authLoading || !canReadAttendanceDashboard) return null;
@@ -158,12 +191,19 @@ export default function AttendanceDashboardPage() {
             </div>
             <div>
               <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-slate-900)' }}>Attendance Dashboard</Title>
-              <Text type="secondary" style={{ color: 'var(--text-slate-500)' }}>Overview of organization attendance for today</Text>
+              <Text type="secondary" style={{ color: 'var(--text-slate-500)' }}>Overview of organization attendance {getFilterLabel()}</Text>
             </div>
           </Space>
 
           <Card size="small" style={{ borderRadius: '12px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', background: 'var(--bg-pure-white)' }}>
             <Space>
+              <Button
+                type={dateFilter === 'today' ? 'primary' : 'default'}
+                onClick={() => setDateFilter('today')}
+                style={{ borderRadius: '6px' }}
+              >
+                Today
+              </Button>
               <Button
                 type={dateFilter === 'week' ? 'primary' : 'default'}
                 onClick={() => setDateFilter('week')}
@@ -194,9 +234,9 @@ export default function AttendanceDashboardPage() {
         <Row gutter={[24, 24]} style={{ marginBottom: '24px' }}>
           {[
             { title: 'Total Members', value: dashboardSummary?.totalMembers, color: '#1677ff', icon: <TeamOutlined /> },
-            { title: 'Expected Today', value: dashboardSummary?.expectedToday, color: '#722ed1', icon: <ClockCircleOutlined /> },
-            { title: 'Present Today', value: dashboardSummary?.presentToday, color: '#52c41a', icon: <CheckCircleOutlined /> },
-            { title: 'Absent Today', value: dashboardSummary?.absentToday, color: '#ff4d4f', icon: <CloseCircleOutlined /> },
+            { title: dateFilter === 'today' ? 'Expected Today' : 'Expected Records', value: dashboardSummary?.expectedToday, color: '#722ed1', icon: <ClockCircleOutlined /> },
+            { title: dateFilter === 'today' ? 'Present Today' : 'Present Records', value: dashboardSummary?.presentToday, color: '#52c41a', icon: <CheckCircleOutlined /> },
+            { title: dateFilter === 'today' ? 'Absent Today' : 'Absent Records', value: dashboardSummary?.absentToday, color: '#ff4d4f', icon: <CloseCircleOutlined /> },
           ].map((stat, index) => (
             <Col xs={24} sm={12} lg={6} key={index}>
               <Card 
@@ -234,7 +274,7 @@ export default function AttendanceDashboardPage() {
               title={
                 <Space>
                   <TeamOutlined style={{ color: 'var(--premium-blue)' }} />
-                  <span style={{ fontWeight: 600, color: 'var(--text-slate-900)' }}>Today's Present Employees</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-slate-900)' }}>Present Employees ({getFilterLabel()})</span>
                 </Space>
               }
               style={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', background: 'var(--bg-pure-white)' }}
@@ -279,10 +319,10 @@ export default function AttendanceDashboardPage() {
                       description={
                         <div style={{ marginTop: '4px' }}>
                           <Space split={<Divider type="vertical" style={{ borderColor: 'var(--border-slate-100)' }} />} wrap>
-                            <Text style={{ color: 'var(--text-slate-500)' }}>{typeof employee.position === 'object' ? employee.position?.title : employee.position || 'N/A'}</Text>
+                            <Text style={{ color: 'var(--text-slate-500)' }}>{typeof employee.position === 'object' ? (employee.position as any)?.title : employee.position || 'N/A'}</Text>
                             <Text style={{ color: 'var(--text-slate-500)' }}>
                               <ClockCircleOutlined style={{ marginRight: '4px' }} />
-                              Clock In: {dayjs(employee.clockInTime).format('HH:mm')}
+                              {dayjs(employee.clockInTime).format('MMM DD, HH:mm')}
                             </Text>
                             <Text style={{ color: 'var(--text-slate-500)' }}>
                               Work Hours: <Text strong style={{ color: 'var(--text-slate-900)' }}>{formatDuration(employee.workHours)}</Text>

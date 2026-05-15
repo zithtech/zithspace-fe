@@ -227,26 +227,27 @@ const OnboardingContent = () => {
   };
 
   return (
-    <MainLayout>
-      <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg-secondary)", paddingBottom: "80px" }}>
+    <div style={{ width: "100%", minHeight: "100vh", background: "transparent", paddingBottom: "100px" }}>
+      {/* Fixed/Sticky Header Container */}
+      <div style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 1000,
+        background: "var(--bg-pure-white)",
+        borderBottom: "1px solid var(--border-slate-100)",
+        backdropFilter: "blur(12px)",
+      }}>
         <div style={{
-          padding: "16px 24px",
-          borderBottom: "1px solid var(--border-slate-100)",
-          background: "var(--bg-pure-white)",
+          padding: "16px 40px",
+          borderBottom: "1px solid var(--border-slate-50)",
         }}>
-          <h1 style={{ fontSize: "20px", fontWeight: "600", margin: 0, color: "var(--text-slate-900)" }}>
+          <h1 style={{ fontSize: "24px", fontWeight: "700", margin: 0, color: "var(--text-slate-900)" }}>
             Employee Onboarding
           </h1>
         </div>
 
         <div style={{
-          padding: "20px 24px",
-          background: "var(--bg-pure-white)",
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          borderBottom: "1px solid var(--border-slate-100)",
-          boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
+          padding: "20px 40px",
         }}>
           <Steps current={current} size="small" style={{ marginBottom: 0 }}>
             <Step title="Personal Details" />
@@ -256,7 +257,9 @@ const OnboardingContent = () => {
             <Step title="Assets" />
           </Steps>
         </div>
+      </div>
 
+      <div style={{ padding: "40px 0 0" }}>
         {/*
           KEY STRATEGY: All steps are always mounted (display:block/none).
           This keeps the Ant Design form instances alive in memory,
@@ -282,7 +285,7 @@ const OnboardingContent = () => {
           <Assets ref={assetsRef} data={allData.assets} />
         </div> */}
 
-        <div style={{ padding: "0 24px" }}>
+        <div style={{ padding: "0" }}>
           <div style={{ display: current === 0 ? "block" : "none" }}>
             <PersonalDetails
               key={`personal-${resetKey}`}
@@ -331,59 +334,36 @@ const OnboardingContent = () => {
             bottom: 0,
             display: "flex",
             justifyContent: "space-between",
-            padding: "16px 24px",
+            padding: "16px 40px",
             background: "var(--bg-pure-white)",
-            borderTop: "1px solid var(--border-slate-100)",
+            borderTop: "1px solid var(--border-slate-200)",
             zIndex: 1000,
-            marginTop: "20px",
+            marginTop: "40px",
+            boxShadow: "0 -4px 12px rgba(0,0,0,0.05)"
           }}
         >
-          <div>{current > 0 && <Button onClick={prev}>Previous</Button>}</div>
+          <div>{current > 0 && <Button onClick={prev} style={{ borderRadius: '8px' }}>Previous</Button>}</div>
 
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 12 }}>
             {current < 4 && (
               <>
-                <Button onClick={saveAndSkip}>Save & Skip</Button>
+                <Button onClick={saveAndSkip} style={{ borderRadius: '8px' }}>Save & Next</Button>
 
-                <Button type="primary" onClick={next} loading={submitting} style={{ background: "var(--premium-blue)" }}>
+                <Button type="primary" onClick={next} loading={submitting} style={{ background: "var(--premium-blue)", borderRadius: '8px', fontWeight: 600 }}>
                   Continue
                 </Button>
               </>
             )}
 
             {current === 4 && (
-              <Button type="primary" onClick={submitAll} style={{ background: "var(--premium-blue)" }}>
-                Submit
+              <Button type="primary" onClick={submitAll} style={{ background: "var(--premium-blue)", borderRadius: '8px', fontWeight: 600 }}>
+                {isEdit ? "Update Profile" : "Submit Process"}
               </Button>
             )}
           </div>
         </div>
       </div>
-
-      <div style={{
-        position: "fixed",
-        bottom: 0,
-        right: 0,
-        left: 280, // Offset for sidebar
-        display: "flex",
-        justifyContent: "space-between",
-        padding: "16px 24px",
-        background: "#fff",
-        borderTop: "1px solid #f0f0f0",
-        zIndex: 1000,
-      }}>
-        <div>{current > 0 && <Button onClick={prev}>Previous</Button>}</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {current < 4 && (
-            <>
-              <Button onClick={saveAndSkip} loading={submitting}>Save & Next</Button>
-              <Button type="primary" onClick={next} loading={submitting}>Continue</Button>
-            </>
-          )}
-          {current === 4 && <Button type="primary" onClick={submitAll} loading={submitting}>{isEdit ? "Update Profile" : "Submit Process"}</Button>}
-        </div>
-      </div>
-    </MainLayout>
+    </div>
   );
 };
 

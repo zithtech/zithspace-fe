@@ -162,8 +162,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
       <Card
         title={<Space><UserOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Basic Information</span></Space>}
         bordered={false}
-        style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
-        styles={{ body: { padding: "24px" } }}
+        style={{ background: "transparent", border: "none" }}
+        styles={{ body: { padding: "24px 40px" } }}
       >
         <Form
           form={basicForm}
@@ -292,8 +292,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
       <Card
         title={<Space><EnvironmentOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Address Information</span></Space>}
         bordered={false}
-        style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
-        styles={{ body: { padding: "24px" } }}
+        style={{ background: "transparent", border: "none" }}
+        styles={{ body: { padding: "24px 40px" } }}
       >
         <Form
           form={addressForm}
@@ -464,8 +464,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           <Card
             title={<Space><Users size={18} style={{ color: "#ec4899" }} /> <span>Relationship & Emergency Contact</span></Space>}
             bordered={false}
-            style={{ height: "100%", background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
-            styles={{ body: { padding: "24px" } }}
+            style={{ height: "100%", background: "transparent", border: "none" }}
+            styles={{ body: { padding: "24px 40px" } }}
           >
             <Form form={emergencyInfoForm} layout="vertical" requiredMark={false}>
               <Form.Item label={<span style={labelStyle}>Relationship</span>} name="relationship" rules={[{ required: true }]}>
@@ -518,8 +518,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           <Card
             title={<Space><IdcardOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Identity Information</span></Space>}
             bordered={false}
-            style={{ height: "100%", background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
-            styles={{ body: { padding: "24px" } }}
+            style={{ height: "100%", background: "transparent", border: "none" }}
+            styles={{ body: { padding: "24px 40px" } }}
           >
             <Form form={identityForm} layout="vertical" requiredMark={false}>
               <Form.Item

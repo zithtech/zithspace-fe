@@ -72,8 +72,8 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
       <Card
         title={<span style={{ fontWeight: 600, color: "var(--premium-blue)" }}>🏦 Bank Details</span>}
         bordered={false}
-        style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
-        styles={{ body: { padding: "24px" } }}
+        style={{ background: "transparent", border: "none" }}
+        styles={{ body: { padding: "24px 40px" } }}
       >
         <Form
           form={bankform}
@@ -178,8 +178,8 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
       <Card
         title={<span style={{ fontWeight: 600, color: "var(--premium-blue)" }}>💰 Payroll Identifiers</span>}
         bordered={false}
-        style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
-        styles={{ body: { padding: "24px" } }}
+        style={{ background: "transparent", border: "none" }}
+        styles={{ body: { padding: "24px 40px" } }}
       >
         <Form
           form={payrollform}

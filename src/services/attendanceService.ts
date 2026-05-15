@@ -190,11 +190,21 @@ export class AttendanceService {
   /**
    * Get dashboard summary (admin only)
    */
-  static async getDashboardSummary(): Promise<DashboardSummary> {
+  static async getDashboardSummary(
+    startDate?: string,
+    endDate?: string,
+  ): Promise<DashboardSummary> {
     try {
-      return await api.get<DashboardSummary>(
-        "/api/attendance/dashboard/summary",
-      );
+      const params: Record<string, any> = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+
+      const queryString = apiUtils.buildQueryString(params);
+      const url = queryString
+        ? `/api/attendance/dashboard/summary?${queryString}`
+        : "/api/attendance/dashboard/summary";
+
+      return await api.get<DashboardSummary>(url);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
@@ -206,7 +216,10 @@ export class AttendanceService {
   /**
    * Get present members for today (admin only)
    */
-  static async getPresentMembers(): Promise<
+  static async getPresentMembers(
+    startDate?: string,
+    endDate?: string,
+  ): Promise<
     Array<{
       id: string;
       name: string;
@@ -217,7 +230,16 @@ export class AttendanceService {
     }>
   > {
     try {
-      return await api.get("/api/attendance/dashboard/present");
+      const params: Record<string, any> = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+
+      const queryString = apiUtils.buildQueryString(params);
+      const url = queryString
+        ? `/api/attendance/dashboard/present?${queryString}`
+        : "/api/attendance/dashboard/present";
+
+      return await api.get(url);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);

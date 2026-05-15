@@ -56,12 +56,10 @@ const labelStyle = {
 };
 
 const cardStyle: React.CSSProperties = {
-  background: "var(--bg-pure-white)",
-  border: "1px solid var(--border-slate-100)",
-  borderRadius: "12px",
-  padding: "20px",
+  background: "transparent",
+  border: "none",
+  padding: "20px 40px",
   marginBottom: "16px",
-  transition: "all 0.2s ease",
 };
 
 const SectionHeader = ({ icon: Icon, title, subtitle }: { icon: any; title: string; subtitle?: string }) => (
@@ -93,7 +91,7 @@ const CustomInputField = ({ label, name, placeholder, rules, onKeyDown, onKeyPre
         borderRadius: "8px",
         border: "1px solid var(--border-slate-200)",
         fontSize: "13px",
-        background: "var(--bg-pure-white)",
+        background: "transparent",
         color: "var(--text-slate-900)"
       }}
     />
@@ -182,8 +180,8 @@ const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRe
   return (
     <div
       style={{
-        background: "var(--bg-pure-white)",
-        border: "1px solid var(--border-slate-100)",
+        background: "transparent",
+        border: "1px solid var(--border-slate-200)",
         borderRadius: "12px",
         padding: "20px",
         height: "100%",
@@ -324,7 +322,7 @@ const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
   const label = roleLabelMap[role] || "Contact";
 
   return (
-    <div style={{ background: "var(--bg-pure-white)", padding: "16px", borderRadius: "10px", border: "1px solid var(--border-slate-100)", marginBottom: "12px" }}>
+    <div style={{ background: "transparent", padding: "16px 40px", borderBottom: "1px solid var(--border-slate-100)", marginBottom: "12px" }}>
       <Row gutter={16}>
         <Col span={24}>
           <CustomSelectField
@@ -461,7 +459,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
 
         {/* Documents Section - Moved Below */}
         <Col span={24}>
-          <div style={{ padding: "20px", background: "var(--bg-pure-white)", borderRadius: "12px", border: "1px solid var(--border-slate-100)", marginBottom: "20px" }}>
+          <div style={{ padding: "20px 40px", background: "transparent", borderBottom: "1px solid var(--border-slate-100)", marginBottom: "20px" }}>
             <SectionHeader icon={FileSearch} title="Supportive Documents" subtitle="Upload relevant certificates and proof" />
 
             <Row gutter={[12, 12]}>
@@ -708,7 +706,7 @@ const EmployeHistory = forwardRef(({ data }: any, ref: any) => {
   }));
 
   return (
-    <div style={{ padding: "0 24px 24px", background: "transparent" }}>
+    <div style={{ padding: "0", background: "transparent" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", padding: "16px 0", borderBottom: "1px solid var(--border-slate-100)" }}>
         <div>
           <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "var(--text-slate-900)" }}>Employee History</h2>

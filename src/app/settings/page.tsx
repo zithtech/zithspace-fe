@@ -2071,9 +2071,23 @@ export default function SettingsPage() {
           onClose={() => setIsLocationDrawerVisible(false)}
           open={isLocationDrawerVisible}
           width={500}
-          styles={{ body: { padding: '24px' } }}
+          styles={{ 
+            body: { padding: '24px' },
+            header: { 
+              background: 'var(--bg-secondary)', 
+              borderBottom: '1px solid var(--border-slate-100)',
+              padding: '16px 24px'
+            },
+            content: { background: 'var(--bg-secondary)' },
+            footer: { 
+              background: 'var(--bg-secondary)', 
+              borderTop: '1px solid var(--border-slate-100)',
+              padding: '16px 24px'
+            },
+            mask: { backdropFilter: 'blur(4px)', background: 'rgba(0,0,0,0.2)' }
+          }}
           footer={
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '16px 24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <Button onClick={() => setIsLocationDrawerVisible(false)} style={{ borderRadius: 8 }}>
                 Cancel
               </Button>
@@ -2093,7 +2107,7 @@ export default function SettingsPage() {
               <Col span={12}>
                 <Form.Item
                   name="flatNumber"
-                  label={<span style={{ fontWeight: 500, color: '#475569' }}>Door / Flat Number</span>}
+                  label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Door / Flat Number</span>}
                   rules={[{ required: true, message: 'Required' }]}
                 >
                   <Input placeholder="e.g. 101 or Suite 4" style={{ borderRadius: 8 }} />
@@ -2102,7 +2116,7 @@ export default function SettingsPage() {
               <Col span={12}>
                 <Form.Item
                   name="street"
-                  label={<span style={{ fontWeight: 500, color: '#475569' }}>Street</span>}
+                  label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Street</span>}
                   rules={[{ required: true, message: 'Required' }]}
                 >
                   <Input placeholder="e.g. Main St" style={{ borderRadius: 8 }} />
@@ -2112,7 +2126,7 @@ export default function SettingsPage() {
 
             <Form.Item
               name="area"
-              label={<span style={{ fontWeight: 500, color: '#475569' }}>Area</span>}
+              label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Area</span>}
               rules={[{ required: true, message: 'Required' }]}
             >
               <Input placeholder="e.g. Downtown" style={{ borderRadius: 8 }} />
@@ -2122,7 +2136,7 @@ export default function SettingsPage() {
               <Col span={12}>
                 <Form.Item
                   name="city"
-                  label={<span style={{ fontWeight: 500, color: '#475569' }}>City</span>}
+                  label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>City</span>}
                   rules={[{ required: true, message: 'Required' }]}
                 >
                   <Input placeholder="e.g. San Francisco" style={{ borderRadius: 8 }} />
@@ -2131,7 +2145,7 @@ export default function SettingsPage() {
               <Col span={12}>
                 <Form.Item
                   name="state"
-                  label={<span style={{ fontWeight: 500, color: '#475569' }}>State</span>}
+                  label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>State</span>}
                   rules={[{ required: true, message: 'Required' }]}
                 >
                   <Input placeholder="e.g. California" style={{ borderRadius: 8 }} />
@@ -2143,7 +2157,7 @@ export default function SettingsPage() {
               <Col span={12}>
                 <Form.Item
                   name="pincode"
-                  label={<span style={{ fontWeight: 500, color: '#475569' }}>Pincode</span>}
+                  label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Pincode</span>}
                   rules={[{ required: true, message: 'Required' }]}
                 >
                   <Input placeholder="e.g. 94105" style={{ borderRadius: 8 }} />
@@ -2152,7 +2166,7 @@ export default function SettingsPage() {
               <Col span={12}>
                 <Form.Item
                   name="country"
-                  label={<span style={{ fontWeight: 500, color: '#475569' }}>Country</span>}
+                  label={<span style={{ fontWeight: 500, color: 'var(--text-slate-600)' }}>Country</span>}
                   rules={[{ required: true, message: 'Required' }]}
                 >
                   <Input placeholder="e.g. USA" style={{ borderRadius: 8 }} />

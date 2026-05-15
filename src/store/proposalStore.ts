@@ -9,15 +9,22 @@ export interface ProposalBlock {
   data: any;
 }
 
+export interface DocumentTheme {
+  themeId: string;
+  fontId: string;
+}
+
 interface ProposalState {
   blocks: ProposalBlock[];
   selectedBlockId: string | null;
+  documentTheme: DocumentTheme;
   addBlock: (type: BlockType, index?: number) => void;
   removeBlock: (id: string) => void;
   updateBlock: (id: string, data: any) => void;
   reorderBlocks: (activeId: string, overId: string) => void;
   setSelectedBlockId: (id: string | null) => void;
   setBlocks: (blocks: ProposalBlock[]) => void;
+  setDocumentTheme: (patch: Partial<DocumentTheme>) => void;
 }
 
 const getDefaultDataForType = (type: BlockType) => {
@@ -91,6 +98,8 @@ const getDefaultDataForType = (type: BlockType) => {
 export const useProposalStore = create<ProposalState>((set) => ({
   blocks: [],
   selectedBlockId: null,
+  documentTheme: { themeId: 'graphite', fontId: 'inter' },
+  setDocumentTheme: (patch) => set((state) => ({ documentTheme: { ...state.documentTheme, ...patch } })),
   
   addBlock: (type, index) => set((state) => {
     // Unique blocks should only have one instance

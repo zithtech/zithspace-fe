@@ -157,30 +157,31 @@ export default function SprintPlanComponent() {
     try {
       setLoading(true);
       const activeFilters = filtersOverride || tableFilters;
-      // Only fetch sprint_plan type
+      
+      // Fetch plans respecting search and project, but NOT status
+      // This allows us to calculate accurate status counts in JS
       const data = await ReleasePlanService.getReleasePlans({
         type: "sprint_plan",
         search: activeFilters.search || undefined,
         projectId: activeFilters.projectId || undefined,
-        status: activeFilters.status || undefined,
+        // We omit status here to get the full set for metrics
+        limit: 100, // Increased limit to ensure we get all plans for the current view
       });
-      setSprintPlans(data?.data || []);
-      // Also fetch all plans for metrics if this is the first load or filters cleared
-      if (!activeFilters.search && !activeFilters.projectId && !activeFilters.status) {
-        setAllPlans(data?.data || []);
-      } else if (allPlans.length === 0) {
-        // Fallback for first load with filters
-        const allData = await ReleasePlanService.getReleasePlans({ type: "sprint_plan" });
-        setAllPlans(allData?.data || []);
+
+      const plans = data?.data || [];
+      setAllPlans(plans);
+
+      // Now filter by status for the display table
+      if (activeFilters.status) {
+        setSprintPlans(plans.filter(p => p.status === activeFilters.status));
+      } else {
+        setSprintPlans(plans);
       }
-
-
     } catch (error) {
       console.error("Failed to load sprint plans:", error);
       api.error({
         message: "Error",
         description: "Failed to load sprint plans",
-
       });
     } finally {
       setLoading(false);

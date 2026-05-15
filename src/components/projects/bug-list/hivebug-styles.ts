@@ -345,7 +345,7 @@ export const hivebugStyles = `
 }
 
 .hb-section { padding: 12px 10px 6px; }
-.hb-section-grow { flex: 1; overflow: hidden; padding-bottom: 12px; }
+.hb-section-grow { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
 .hb-section-title {
   display: flex; align-items: center; justify-content: space-between;
   color: var(--hb-text-muted);
@@ -410,8 +410,75 @@ export const hivebugStyles = `
   padding: 4px; border-radius: 6px;
 }
 .hb-icon-btn:hover { background: var(--hb-bg-hover); color: var(--hb-text); }
+
+.hb-sidebar-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--hb-bg-soft);
+  border: 1px solid var(--hb-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin: 0 8px 12px;
+  color: var(--hb-text-muted);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.hb-sidebar-search:focus-within {
+  border-color: var(--hb-border-strong);
+  background: var(--hb-bg-hover);
+  box-shadow: 0 0 0 2px rgba(var(--hb-accent-rgb), 0.1);
+}
+.hb-sidebar-search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--hb-text);
+  font-size: 12px;
+}
+.hb-sidebar-search input::placeholder {
+  color: var(--hb-text-muted);
+  opacity: 0.7;
+}
+.hb-sidebar-search-clear {
+  background: transparent;
+  border: none;
+  color: var(--hb-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0.6;
+}
+.hb-sidebar-search-clear:hover {
+  opacity: 1;
+  color: var(--hb-text);
+}
+
+.hb-collections { 
+  flex: 1; 
+  overflow-y: auto; 
+  padding-bottom: 24px;
+  /* Hide scrollbar for IE, Edge and Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+/* Hide scrollbar for Chrome, Safari and Opera */
+.hb-collections::-webkit-scrollbar {
+  display: none;
+}
+
 .hb-collections .hb-row-muted { color: var(--hb-text-soft); }
 .hb-collections .hb-row-muted:hover { color: var(--hb-text); }
+
+.hb-section-empty {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
 .hb-pulse {
   margin: 12px;
@@ -2359,8 +2426,43 @@ export const hivebugStyles = `
   display: inline-flex; align-items: center; justify-content: center;
   opacity: 0;
   transition: opacity 120ms ease;
+  z-index: 10;
 }
 .hb-cbd-tile:hover .hb-cbd-tile-remove { opacity: 1; }
+.hb-cbd-tile-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  backdrop-filter: blur(2px);
+  z-index: 5;
+}
+.hb-cbd-tile:hover .hb-cbd-tile-overlay {
+  opacity: 1;
+}
+.hb-cbd-tile-action {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.hb-cbd-tile-action:hover {
+  background: var(--hb-accent);
+  border-color: var(--hb-accent);
+  transform: scale(1.1);
+}
 .hb-cbd-tile-new {
   position: absolute; top: 6px; left: 6px;
   padding: 1px 6px;
@@ -2376,6 +2478,45 @@ export const hivebugStyles = `
   font-size: 11.5px;
   color: var(--hb-text-soft);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hb-cbd-tile-rename-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--hb-bg-soft);
+  border: 1px solid var(--hb-border-strong);
+  border-radius: 6px;
+  padding: 2px 4px;
+  margin-top: -2px;
+  margin-bottom: -2px;
+}
+.hb-cbd-tile-rename-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--hb-text);
+  font-size: 11px;
+  padding: 0;
+  font-family: inherit;
+}
+.hb-cbd-tile-rename-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--hb-success);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.hb-cbd-tile-rename-btn:hover {
+  transform: scale(1.1);
 }
 .hb-cbd-tile-size {
   font-size: 10.5px;
@@ -2399,6 +2540,166 @@ export const hivebugStyles = `
   border-radius: 8px;
   font-size: 12px;
 }
+
+/* ============================================================
+   Attachment Preview Drawer (Left Side)
+   ============================================================ */
+.hb-preview-drawer .ant-drawer-content {
+  background: var(--hb-bg) !important;
+  box-shadow: 20px 0 50px rgba(0,0,0,0.2);
+  border-right: 1px solid var(--hb-border);
+}
+.hb-preview-drawer-dark {
+  --hb-bg: #070a12;
+  --hb-bg-elev: #0a0f1c;
+  --hb-bg-soft: #0f1524;
+  --hb-border: #1a2030;
+  --hb-text: #e6e8ee;
+  --hb-text-soft: #aab1bd;
+  --hb-text-muted: #6f7684;
+}
+.hb-preview-drawer-light {
+  --hb-bg: #ffffff;
+  --hb-bg-elev: #fafbfc;
+  --hb-bg-soft: #f3f4f6;
+  --hb-border: #e5e7eb;
+  --hb-text: #111827;
+  --hb-text-soft: #4b5563;
+  --hb-text-muted: #9ca3af;
+}
+
+.hb-preview-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--hb-bg);
+  color: var(--hb-text);
+}
+
+.hb-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--hb-border);
+  background: var(--hb-bg-elev);
+}
+
+.hb-preview-fileinfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.hb-preview-icon {
+  color: var(--hb-text-muted);
+  flex-shrink: 0;
+}
+
+.hb-preview-meta {
+  min-width: 0;
+}
+
+.hb-preview-filename {
+  font-weight: 600;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hb-preview-filesize {
+  font-size: 11px;
+  color: var(--hb-text-muted);
+  margin-top: 2px;
+}
+
+.hb-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hb-preview-btn, .hb-preview-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--hb-border);
+  border-radius: 8px;
+  color: var(--hb-text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hb-preview-btn:hover, .hb-preview-close:hover {
+  background: var(--hb-bg-soft);
+  color: var(--hb-text);
+  border-color: var(--hb-text-muted);
+}
+
+.hb-preview-close:hover {
+  color: var(--hb-danger);
+  border-color: var(--hb-danger);
+}
+
+.hb-preview-body {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--hb-bg-soft);
+}
+
+.hb-preview-media-container {
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hb-preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.hb-preview-video {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.hb-preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: white;
+  border-radius: 4px;
+}
+
+.hb-preview-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: var(--hb-text-muted);
+}
+
+.hb-preview-error {
+  color: var(--hb-danger);
+  font-weight: 500;
+}
+
 .hb-cbd-light .hb-cbd-link { background: #ffffff; }
 .hb-cbd-link svg { color: var(--hb-text-muted); flex-shrink: 0; }
 .hb-cbd-link-anchor {
@@ -3677,7 +3978,8 @@ export const hivebugStyles = `
   .hb-aim-body { padding: 16px; max-height: 55vh; }
   .hb-aim-footer { padding: 12px 16px; flex-wrap: wrap; }
   /* Capture drawer fills screen */
-  .hb-cbd .ant-drawer-content-wrapper { width: 100% !important; }
+  .hb-cbd .ant-drawer-content-wrapper,
+  .hb-preview-drawer .ant-drawer-content-wrapper { width: 100% !important; }
   .hb-cbd-header { padding: 16px 16px 14px; }
   .hb-cbd-body { padding: 14px 16px 18px; gap: 14px; }
   .hb-cbd-row { flex-direction: column; gap: 10px; }

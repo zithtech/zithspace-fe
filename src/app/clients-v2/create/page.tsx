@@ -36,6 +36,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/axios";
 import MainLayout from "@/components/layout/MainLayout";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -220,13 +221,12 @@ function CreateClientV2Content() {
     };
   }, []);
 
-  const scrollToSection = (key: string) => {
+  const scrollToSection = (sectionId: string) => {
     isUserScrolling.current = false;
-    setActiveSection(key);
-    const el = sectionRefs.current[key];
-    const root = scrollContainerRef.current;
-    if (el && root) {
-      root.scrollTo({ top: el.offsetTop - 24, behavior: "smooth" });
+    setActiveSection(sectionId);
+    const section = sectionRefs.current[sectionId];
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
     }
     setTimeout(() => {
       isUserScrolling.current = true;
@@ -302,52 +302,48 @@ function CreateClientV2Content() {
 
       <div className="cc-page">
         {/* ========================== Header ========================== */}
-        <div className="cc-header">
-          <div className="cc-header-left">
-            <Button
-              icon={<ArrowLeft size={16} />}
-              onClick={() => router.back()}
-              className="cc-back-btn"
-            />
-            <div className="cc-header-icon">
-              <Building2 size={20} color="#8b5cf6" />
-            </div>
-            <div className="cc-header-text">
-              <div className="cc-eyebrow">
-                <Sparkles size={11} />
-                <span>{isEditMode ? "Edit existing record" : "New client profile"}</span>
+        <TimeTrackingHeader
+          icon={
+            <div className="cc-header-icon-group">
+              <Button
+                icon={<ArrowLeft size={18} />}
+                onClick={() => router.back()}
+                type="text"
+                className="cc-header-back-btn"
+              />
+              <div className="cc-header-icon-box">
+                <Building2 size={20} color="#8b5cf6" />
               </div>
-              <Title level={4} className="cc-title">
-                {isEditMode ? "Edit Client" : "Create New Client"}
-              </Title>
-              <Text className="cc-subtitle">
-                {isEditMode
-                  ? "Update the client details below — changes save instantly when you submit."
-                  : "Set up a complete client record with billing, compliance, and banking details."}
-              </Text>
             </div>
-          </div>
-          <div className="cc-header-right">
-            <div className="cc-progress-pill">
-              <div className="cc-progress-track">
-                <div className="cc-progress-fill" style={{ width: `${overallProgress}%` }} />
+          }
+          title={isEditMode ? "Edit Client" : "Create New Client"}
+          description={isEditMode
+            ? "Update the client details below"
+            : "Set up a complete client record with billing, compliance, and banking details."}
+          extra={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div className="cc-progress-pill">
+                <div className="cc-progress-track">
+                  <div className="cc-progress-fill" style={{ width: `${overallProgress}%` }} />
+                </div>
+                <span className="cc-progress-text">{overallProgress}%</span>
               </div>
-              <span className="cc-progress-text">{overallProgress}%</span>
+              <Button onClick={() => router.back()} className="cc-cancel-btn">
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                onClick={() => form.submit()}
+                icon={<Save size={15} />}
+                loading={loading}
+                className="cc-save-btn"
+              >
+                {isEditMode ? "Save Changes" : "Create Client"}
+              </Button>
             </div>
-            <Button onClick={() => router.back()} className="cc-cancel-btn">
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              onClick={() => form.submit()}
-              icon={<Save size={15} />}
-              loading={loading}
-              className="cc-save-btn"
-            >
-              {isEditMode ? "Save Changes" : "Create Client"}
-            </Button>
-          </div>
-        </div>
+          }
+          style={{ padding: '9.5px 32px', marginBottom: 0, borderBottom: '1px solid var(--border-slate-100)' }}
+        />
 
         {/* ========================== Body ========================== */}
         <div className="cc-body">
@@ -813,68 +809,54 @@ function CreateClientV2Content() {
             font-size: 13px;
           }
 
-          /* ---------- Header ---------- */
-          .cc-header {
+          /* ---------- Header Overrides ---------- */
+          :global(.bh-header-icon-box), 
+          [data-theme='dark'] :global(.bh-header-icon-box) {
+            background: transparent !important;
+            border: none !important;
+            width: auto !important;
+            height: auto !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+          }
+          .cc-header-icon-group {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 16px 32px;
-            background: var(--bg-pure-white);
-            border-bottom: 1px solid var(--border-slate-100);
+            gap: 12px;
+          }
+          .cc-header-back-btn {
+            width: 38px !important; height: 38px !important;
+            border-radius: 10px !important;
+            border: 1px solid var(--border-slate-100) !important;
+            background: transparent !important;
+            color: var(--text-slate-600) !important;
+            display: flex !important; align-items: center !important; justify-content: center !important;
+            padding: 0 !important;
+            transition: all 0.2s !important;
             flex-shrink: 0;
           }
-          .cc-header-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
-          .cc-header-icon {
+          .cc-header-back-btn:hover {
+            border-color: #8b5cf6 !important;
+            color: #8b5cf6 !important;
+            background: rgba(139,92,246,0.04) !important;
+          }
+          .cc-header-icon-box {
             width: 38px; height: 38px;
-            background: rgba(139,92,246,0.12);
-            border: 1px solid rgba(139,92,246,0.25);
+            background: rgba(139,92,246,0.1);
+            border: 1px solid rgba(139,92,246,0.2);
             border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
           }
-          .cc-header-text { min-width: 0; }
-          .cc-eyebrow {
-            display: inline-flex; align-items: center; gap: 5px;
-            font-size: 10.5px;
-            font-weight: 700;
-            color: #8b5cf6;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-bottom: 2px;
+          [data-theme='dark'] .cc-header-back-btn {
+            border-color: rgba(255,255,255,0.1) !important;
+            color: var(--text-slate-400) !important;
           }
-          .cc-title {
-            margin: 0 !important;
-            font-weight: 800 !important;
-            color: var(--text-slate-900) !important;
-            letter-spacing: -0.02em;
-            font-size: 18px !important;
+          [data-theme='dark'] .cc-header-icon-box {
+            background: rgba(139,92,246,0.15);
+            border-color: rgba(139,92,246,0.3);
           }
-          .cc-subtitle {
-            display: block;
-            font-size: 12.5px;
-            color: var(--text-slate-500);
-            margin-top: 2px;
-            font-weight: 500;
-          }
-          .cc-back-btn {
-            width: 36px !important; height: 36px !important;
-            border-radius: 10px !important;
-            border: 1px solid var(--border-slate-100) !important;
-            background: var(--bg-pure-white) !important;
-            color: var(--text-slate-700) !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding: 0 !important;
-            flex-shrink: 0;
-          }
-          .cc-back-btn:hover {
-            border-color: #8b5cf6 !important;
-            color: #8b5cf6 !important;
-            background: rgba(139,92,246,0.05) !important;
-          }
-          .cc-header-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 
           .cc-progress-pill {
             display: inline-flex;
@@ -934,7 +916,7 @@ function CreateClientV2Content() {
           /* ---------- Body layout ---------- */
           .cc-body {
             display: grid;
-            grid-template-columns: 280px 1fr;
+            grid-template-columns: 300px 1fr;
             flex: 1;
             min-height: 0;
           }
@@ -950,12 +932,12 @@ function CreateClientV2Content() {
             overflow-y: auto;
           }
           .cc-sidebar-inner {
-            padding: 22px 16px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 20px;
           }
-          .cc-sidebar-header { padding: 0 4px 14px; border-bottom: 1px dashed var(--border-slate-100); }
+          .cc-sidebar-header { padding: 0 0 16px; border-bottom: 1px dashed var(--border-slate-100); }
           .cc-sidebar-title-row {
             display: flex; align-items: center; justify-content: space-between;
             gap: 8px;
@@ -986,16 +968,18 @@ function CreateClientV2Content() {
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 11px;
-            padding: 9px 10px;
-            border-radius: 10px;
+            gap: 14px;
+            padding: 12px 16px;
+            border-radius: 14px;
             transition: all .18s ease;
             position: relative;
+            width: 100%;
+            box-sizing: border-box;
           }
           .cc-nav-item:hover { background: var(--bg-slate-50); }
           .cc-nav-item.active {
-            background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(99,102,241,0.05));
-            box-shadow: inset 0 0 0 1px rgba(139,92,246,0.2);
+            background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(99,102,241,0.04));
+            box-shadow: inset 0 0 0 1px rgba(139,92,246,0.15);
           }
           .cc-nav-step {
             width: 24px; height: 24px;
@@ -1034,6 +1018,7 @@ function CreateClientV2Content() {
             font-weight: 600;
             color: var(--text-slate-700);
             line-height: 1.2;
+            white-space: nowrap;
           }
           .cc-nav-item.active .cc-nav-label { color: var(--text-slate-900); }
           .cc-nav-sub {
@@ -1042,6 +1027,7 @@ function CreateClientV2Content() {
             color: var(--text-slate-500);
             font-weight: 600;
             font-variant-numeric: tabular-nums;
+            white-space: nowrap;
           }
           .cc-nav-progress {
             flex: 1;
@@ -1089,7 +1075,7 @@ function CreateClientV2Content() {
             border-radius: 16px;
             padding: 24px 26px 8px;
             margin-bottom: 18px;
-            scroll-margin-top: 24px;
+            scroll-margin-top: 40px;
             box-shadow: 0 1px 3px rgba(15,23,42,0.04);
             transition: border-color .2s ease;
           }

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Avatar, Drawer, Select, Tooltip, message, ConfigProvider, theme as antdTheme } from "antd";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Avatar, Drawer, Select, Tooltip, message, ConfigProvider, theme as antdTheme, notification } from "antd";
 import {
   X,
   UploadCloud,
@@ -21,6 +21,10 @@ import {
   Wand2,
   Play,
   FileText,
+  Eye,
+  Download,
+  Edit2,
+  Check,
 } from "lucide-react";
 import { useMembersSelect } from "@/hooks/useMembersSelect";
 import { useTheme } from "@/context/ThemeContext";
@@ -71,6 +75,8 @@ export default function CreateBugDrawer({
 }: Props) {
   const { theme } = useTheme();
   const { users: members } = useMembersSelect();
+  const [notificationApi, notificationContextHolder] = notification.useNotification();
+  const [messageApi, messageContextHolder] = message.useMessage();
 
   // Form state
   const [title, setTitle] = useState("");
@@ -91,6 +97,7 @@ export default function CreateBugDrawer({
   const [descriptionTouched, setDescriptionTouched] = useState(false);
   const [enhancingDescription, setEnhancingDescription] = useState(false);
   const [comments, setComments] = useState("");
+  const [previewAttachment, setPreviewAttachment] = useState<BugAttachment | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
@@ -131,15 +138,15 @@ export default function CreateBugDrawer({
     setLinkLabel("");
     setDragOver(false);
     setDescriptionTouched(false);
-  }, [open, editingBug]);
+  }, [open, editingBug, severityOptions, typeOptions]);
 
   const assignee = useMemo(
     () => members.find((m) => m.value === assigneeId),
     [members, assigneeId],
   );
 
-  // ─── Attachments ───────────────────────────────────────────────────────
-  const addFiles = async (files: FileList | File[]) => {
+  // ─── Global Paste Handler (Direct Paste Fix) ──────────────────────────
+  const addFiles = React.useCallback(async (files: FileList | File[]) => {
     const list = Array.from(files);
     for (const file of list) {
       const sizeMB = file.size / (1024 * 1024);
@@ -163,10 +170,47 @@ export default function CreateBugDrawer({
         message.error(`Failed to read ${file.name}`);
       }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleWindowPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const files: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (it.kind === "file") {
+          const f = it.getAsFile();
+          if (f) files.push(f);
+        }
+      }
+
+      if (files.length > 0) {
+        const target = e.target as HTMLElement;
+        const isInput =
+          target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+        if (!isInput) {
+          e.preventDefault();
+        }
+        addFiles(files);
+      }
+    };
+
+    window.addEventListener("paste", handleWindowPaste);
+    return () => window.removeEventListener("paste", handleWindowPaste);
+  }, [open, addFiles]);
 
   const removeAttachment = (idx: number) =>
     setAttachments((prev) => prev.filter((_, i) => i !== idx));
+
+  const renameAttachment = (idx: number, newName: string) => {
+    setAttachments((prev) =>
+      prev.map((a, i) => (i === idx ? { ...a, fileName: newName } : a)),
+    );
+  };
 
   // ─── Drag-and-drop ─────────────────────────────────────────────────────
   const onDragEnter = (e: React.DragEvent) => {
@@ -192,26 +236,6 @@ export default function CreateBugDrawer({
     dragCounter.current = 0;
     setDragOver(false);
     if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
-  };
-
-  // ─── Paste image into description ──────────────────────────────────────
-  const onDescriptionPaste = async (
-    e: React.ClipboardEvent<HTMLTextAreaElement>,
-  ) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    const files: File[] = [];
-    for (let i = 0; i < items.length; i++) {
-      const it = items[i];
-      if (it.kind === "file") {
-        const f = it.getAsFile();
-        if (f) files.push(f);
-      }
-    }
-    if (files.length > 0) {
-      e.preventDefault();
-      await addFiles(files);
-    }
   };
 
   // ─── Tags ──────────────────────────────────────────────────────────────
@@ -313,430 +337,551 @@ export default function CreateBugDrawer({
   };
 
   return (
-    <Drawer
-      open={open}
-      onClose={onClose}
-      width={560}
-      destroyOnHidden
-      closable={false}
-      title={null}
-      footer={null}
-      maskClosable={!submitting}
-      className={`hb-cbd ${theme === "dark" ? "hb-cbd-dark" : "hb-cbd-light"}`}
-    >
-      <div
-        className="hb-cbd-shell"
-        onKeyDown={onShellKeyDown}
-        onDragEnter={onDragEnter}
-        onDragLeave={onDragLeave}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
+    <>
+      <Drawer
+        open={open}
+        onClose={onClose}
+        width={560}
+        destroyOnHidden
+        closable={false}
+        title={null}
+        footer={null}
+        maskClosable={!submitting}
+        className={`hb-cbd ${theme === "dark" ? "hb-cbd-dark" : "hb-cbd-light"}`}
       >
-        <ConfigProvider
-          theme={{
-            algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-            token: {
-              colorBgContainer: theme === 'dark' ? '#0f1524' : '#ffffff',
-              colorText: theme === 'dark' ? '#e6e8ee' : '#111827',
-            }
-          }}
+        <div
+          className="hb-cbd-shell"
+          onKeyDown={onShellKeyDown}
+          onDragEnter={onDragEnter}
+          onDragLeave={onDragLeave}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
         >
-        {/* Drag overlay */}
-        {dragOver && (
-          <div className="hb-cbd-dropoverlay">
-            <UploadCloud size={36} />
-            <div className="hb-cbd-dropoverlay-title">Drop files to attach</div>
-            <div className="hb-cbd-dropoverlay-sub">
-              Up to {MAX_FILE_MB}MB each
-            </div>
-          </div>
-        )}
-
-        {/* Header */}
-        <div className="hb-cbd-header">
-          <div className="hb-cbd-headblock">
-            <div className="hb-cbd-eyebrow">
-              <Sparkles size={11} />
-              {editingBug ? "Edit bug" : "New bug"}
-            </div>
-            <div className="hb-cbd-headtitle">
-              {editingBug ? `${editingBug.bugNumber || "Bug"} · Refine` : "Capture a bug"}
-            </div>
-            <div className="hb-cbd-headsub">
-              Describe what's broken — refinement happens later via AI.
-            </div>
-          </div>
-          <button
-            className="hb-cbd-iconbtn"
-            onClick={onClose}
-            aria-label="Close"
+          <ConfigProvider
+            theme={{
+              algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+              token: {
+                colorBgContainer: theme === 'dark' ? '#0f1524' : '#ffffff',
+                colorText: theme === 'dark' ? '#e6e8ee' : '#111827',
+              }
+            }}
           >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="hb-cbd-body">
-          {/* Title */}
-          <input
-            type="text"
-            className="hb-cbd-title-input"
-            placeholder="Bug title (optional — AI can refine)"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={140}
-          />
-
-          {/* Description */}
-          <div
-            className={`hb-cbd-fieldgroup ${
-              !isValid && descriptionTouched ? "hb-cbd-error" : ""
-            }`}
-          >
-            <div className="hb-cbd-fieldhead">
-              <Label icon={<TypeIcon size={11} />} required>
-                Description
-              </Label>
-              <Tooltip
-                title={
-                  description.trim()
-                    ? "Lightly fix grammar & typos"
-                    : "Write a description first"
-                }
-              >
-                <button
-                  type="button"
-                  className="hb-cbd-linkbtn"
-                  onClick={enhanceDescription}
-                  disabled={enhancingDescription || !description.trim()}
-                  aria-label="Enhance grammar"
-                >
-                  {enhancingDescription ? (
-                    <Loader2 size={12} className="hb-cbd-spin" />
-                  ) : (
-                    <Wand2 size={12} />
-                  )}
-                  {enhancingDescription ? "Polishing…" : "Enhance grammar"}
-                </button>
-              </Tooltip>
-            </div>
-            <textarea
-              className="hb-cbd-textarea"
-              rows={5}
-              placeholder="What's broken? Steps, observed behaviour, screenshots (paste images here)…"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onBlur={() => setDescriptionTouched(true)}
-              onPaste={onDescriptionPaste}
-            />
-            {!isValid && descriptionTouched && (
-              <div className="hb-cbd-errortext">Description is required</div>
-            )}
-          </div>
-
-          {/* Comments */}
-          <div className="hb-cbd-fieldgroup">
-            <Label icon={<FileText size={11} />}>Comments</Label>
-            <textarea
-              className="hb-cbd-textarea"
-              rows={3}
-              placeholder="Any additional internal comments or notes…"
-              value={comments}
-              onChange={(e) => setComments(e.target.value)}
-            />
-          </div>
-
-          {/* Severity + Type */}
-          <div className="hb-cbd-row">
-            <div className="hb-cbd-fieldgroup hb-cbd-half">
-              <Label icon={<AlertOctagon size={11} />} required>Severity</Label>
-              <Select
-                allowClear
-                placeholder="Select severity"
-                value={severity}
-                onChange={(v) => setSeverity(v)}
-                style={{ width: "100%" }}
-                size="middle"
-                options={(severityOptions || [])
-                  .filter((s) => s.isActive)
-                  .map((s) => ({
-                    value: s.key,
-                    label: (
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 8,
-                        }}
-                      >
-                        {s.color && (
-                          <span
-                            style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: 999,
-                              background: s.color,
-                              flexShrink: 0,
-                            }}
-                          />
-                        )}
-                        {s.label}
-                      </span>
-                    ),
-                  }))}
-              />
-            </div>
-            <div className="hb-cbd-fieldgroup hb-cbd-half">
-              <Label icon={<Layers size={11} />} required>Type</Label>
-              <Select
-                allowClear
-                placeholder="Select type"
-                value={bugType}
-                onChange={(v) => setBugType(v)}
-                style={{ width: "100%" }}
-                size="middle"
-                options={(typeOptions || [])
-                  .filter((t) => t.isActive)
-                  .map((t) => ({ value: t.key, label: t.label }))}
-              />
-            </div>
-          </div>
-
-          {/* Module + Assignee */}
-          <div className="hb-cbd-row">
-            <div className="hb-cbd-fieldgroup hb-cbd-half">
-              <Label icon={<Hash size={11} />}>Module</Label>
-              <input
-                type="text"
-                className="hb-cbd-input"
-                placeholder="e.g. Auth, Payments"
-                list="hb-cbd-module-options"
-                value={module}
-                onChange={(e) => setModule(e.target.value)}
-              />
-              <datalist id="hb-cbd-module-options">
-                {modules.map((m) => (
-                  <option key={m} value={m} />
-                ))}
-              </datalist>
-            </div>
-            <div className="hb-cbd-fieldgroup hb-cbd-half">
-              <Label icon={<UserPlus size={11} />}>Assignee</Label>
-              <Select
-                allowClear
-                showSearch
-                placeholder="Unassigned"
-                value={assigneeId}
-                onChange={(v) => setAssigneeId(v)}
-                options={members.map((m) => ({
-                  value: m.value,
-                  label: m.label,
-                }))}
-                filterOption={(input, option) =>
-                  (option?.label as string)
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                style={{ width: "100%" }}
-                size="middle"
-                suffixIcon={
-                  assignee ? (
-                    <Avatar
-                      size={20}
-                      style={{ background: "#1677ff", fontSize: 10 }}
-                    >
-                      {assignee.label.charAt(0).toUpperCase()}
-                    </Avatar>
-                  ) : undefined
-                }
-              />
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div className="hb-cbd-fieldgroup">
-            <Label icon={<Hash size={11} />}>Tags</Label>
-            <div className="hb-cbd-tagbox">
-              {tags.map((t) => (
-                <span key={t} className="hb-cbd-tag">
-                  #{t}
-                  <button
-                    onClick={() => removeTag(t)}
-                    aria-label={`Remove ${t}`}
-                  >
-                    <X size={10} />
-                  </button>
-                </span>
-              ))}
-              <input
-                className="hb-cbd-tag-input"
-                placeholder={tags.length === 0 ? "Type a tag and press Enter" : ""}
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === ",") {
-                    e.preventDefault();
-                    commitTag();
-                  } else if (
-                    e.key === "Backspace" &&
-                    !tagInput &&
-                    tags.length > 0
-                  ) {
-                    setTags((prev) => prev.slice(0, -1));
-                  }
-                }}
-                onBlur={commitTag}
-              />
-            </div>
-          </div>
-
-          {/* Attachments */}
-          <div className="hb-cbd-fieldgroup">
-            <div className="hb-cbd-fieldhead">
-              <Label icon={<Paperclip size={11} />}>Attachments</Label>
-              <button
-                className="hb-cbd-linkbtn"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Plus size={12} />
-                Add files
-              </button>
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              hidden
-              accept="image/*,application/pdf,.log,.txt"
-              onChange={(e) => {
-                if (e.target.files) addFiles(e.target.files);
-                e.target.value = "";
-              }}
-            />
-            {attachments.length === 0 ? (
-              <button
-                type="button"
-                className="hb-cbd-dropzone"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <UploadCloud size={20} />
-                <div>
-                  <div className="hb-cbd-dropzone-title">
-                    Drop files or click to browse
-                  </div>
-                  <div className="hb-cbd-dropzone-sub">
-                    Images, PDFs, logs · max {MAX_FILE_MB}MB
-                  </div>
+            {/* Drag overlay */}
+            {dragOver && (
+              <div className="hb-cbd-dropoverlay">
+                <UploadCloud size={36} />
+                <div className="hb-cbd-dropoverlay-title">Drop files to attach</div>
+                <div className="hb-cbd-dropoverlay-sub">
+                  Up to {MAX_FILE_MB}MB each
                 </div>
-              </button>
-            ) : (
-              <div className="hb-cbd-attachments">
-                {attachments.map((a, idx) => (
-                  <AttachmentTile
-                    key={`${a.fileName}-${idx}`}
-                    attachment={a}
-                    onRemove={() => removeAttachment(idx)}
-                  />
-                ))}
               </div>
             )}
-          </div>
 
-          {/* External links */}
-          <div className="hb-cbd-fieldgroup">
-            <Label icon={<Link2 size={11} />}>External links</Label>
-            <div className="hb-cbd-linkrow">
-              <input
-                className="hb-cbd-input"
-                placeholder="Label (optional)"
-                value={linkLabel}
-                onChange={(e) => setLinkLabel(e.target.value)}
-                style={{ flex: "0 0 35%" }}
-              />
-              <input
-                className="hb-cbd-input"
-                placeholder="https://…"
-                value={linkUrl}
-                onChange={(e) => setLinkUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addLink();
-                  }
-                }}
-              />
+            {/* Header */}
+            <div className="hb-cbd-header">
+              <div className="hb-cbd-headblock">
+                <div className="hb-cbd-eyebrow">
+                  <Sparkles size={11} />
+                  {editingBug ? "Edit bug" : "New bug"}
+                </div>
+                <div className="hb-cbd-headtitle">
+                  {editingBug ? `${editingBug.bugNumber || "Bug"} · Refine` : "Capture a bug"}
+                </div>
+                <div className="hb-cbd-headsub">
+                  Describe what's broken — refinement happens later via AI.
+                </div>
+              </div>
               <button
                 className="hb-cbd-iconbtn"
-                onClick={addLink}
-                aria-label="Add link"
+                onClick={onClose}
+                aria-label="Close"
               >
-                <Plus size={14} />
+                <X size={16} />
               </button>
             </div>
-            {links.length > 0 && (
-              <div className="hb-cbd-linklist">
-                {links.map((l, idx) => (
-                  <div key={`${l.url}-${idx}`} className="hb-cbd-link">
-                    <ExternalLink size={12} />
-                    <a
-                      href={l.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hb-cbd-link-anchor"
-                    >
-                      {l.label || l.url}
-                    </a>
+
+            {/* Body */}
+            <div className="hb-cbd-body">
+              {notificationContextHolder}
+              {messageContextHolder}
+              {/* Title */}
+              <input
+                type="text"
+                className="hb-cbd-title-input"
+                placeholder="Bug title (optional — AI can refine)"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={140}
+              />
+
+              {/* Description */}
+              <div
+                className={`hb-cbd-fieldgroup ${!isValid && descriptionTouched ? "hb-cbd-error" : ""
+                  }`}
+              >
+                <div className="hb-cbd-fieldhead">
+                  <Label icon={<TypeIcon size={11} />} required>
+                    Description
+                  </Label>
+                  <Tooltip
+                    title={
+                      description.trim()
+                        ? "Lightly fix grammar & typos"
+                        : "Write a description first"
+                    }
+                  >
                     <button
-                      className="hb-cbd-iconbtn-sm"
-                      onClick={() => removeLink(idx)}
-                      aria-label="Remove link"
+                      type="button"
+                      className="hb-cbd-linkbtn"
+                      onClick={enhanceDescription}
+                      disabled={enhancingDescription || !description.trim()}
+                      aria-label="Enhance grammar"
                     >
-                      <Trash2 size={12} />
+                      {enhancingDescription ? (
+                        <Loader2 size={12} className="hb-cbd-spin" />
+                      ) : (
+                        <Wand2 size={12} />
+                      )}
+                      {enhancingDescription ? "Polishing…" : "Enhance grammar"}
+                    </button>
+                  </Tooltip>
+                </div>
+                <textarea
+                  className="hb-cbd-textarea"
+                  rows={5}
+                  placeholder="What's broken? Steps, observed behaviour, screenshots (paste images here)…"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  onBlur={() => setDescriptionTouched(true)}
+                />
+                {!isValid && descriptionTouched && (
+                  <div className="hb-cbd-errortext">Description is required</div>
+                )}
+              </div>
+
+              {/* Comments */}
+              <div className="hb-cbd-fieldgroup">
+                <Label icon={<FileText size={11} />}>Comments</Label>
+                <textarea
+                  className="hb-cbd-textarea"
+                  rows={3}
+                  placeholder="Any additional internal comments or notes…"
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                />
+              </div>
+
+              {/* Severity + Type */}
+              <div className="hb-cbd-row">
+                <div className="hb-cbd-fieldgroup hb-cbd-half">
+                  <Label icon={<AlertOctagon size={11} />} required>Severity</Label>
+                  <Select
+                    allowClear
+                    placeholder="Select severity"
+                    value={severity}
+                    onChange={(v) => setSeverity(v)}
+                    style={{ width: "100%" }}
+                    size="middle"
+                    options={(severityOptions || [])
+                      .filter((s) => s.isActive)
+                      .map((s) => ({
+                        value: s.key,
+                        label: (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 8,
+                            }}
+                          >
+                            {s.color && (
+                              <span
+                                style={{
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: 999,
+                                  background: s.color,
+                                  flexShrink: 0,
+                                }}
+                              />
+                            )}
+                            {s.label}
+                          </span>
+                        ),
+                      }))}
+                  />
+                </div>
+                <div className="hb-cbd-fieldgroup hb-cbd-half">
+                  <Label icon={<Layers size={11} />} required>Type</Label>
+                  <Select
+                    allowClear
+                    placeholder="Select type"
+                    value={bugType}
+                    onChange={(v) => setBugType(v)}
+                    style={{ width: "100%" }}
+                    size="middle"
+                    options={(typeOptions || [])
+                      .filter((t) => t.isActive)
+                      .map((t) => ({ value: t.key, label: t.label }))}
+                  />
+                </div>
+              </div>
+
+              {/* Module + Assignee */}
+              <div className="hb-cbd-row">
+                <div className="hb-cbd-fieldgroup hb-cbd-half">
+                  <Label icon={<Hash size={11} />}>Module</Label>
+                  <input
+                    type="text"
+                    className="hb-cbd-input"
+                    placeholder="e.g. Auth, Payments"
+                    list="hb-cbd-module-options"
+                    value={module}
+                    onChange={(e) => setModule(e.target.value)}
+                  />
+                  <datalist id="hb-cbd-module-options">
+                    {modules.map((m) => (
+                      <option key={m} value={m} />
+                    ))}
+                  </datalist>
+                </div>
+                <div className="hb-cbd-fieldgroup hb-cbd-half">
+                  <Label icon={<UserPlus size={11} />}>Assignee</Label>
+                  <Select
+                    allowClear
+                    showSearch
+                    placeholder="Unassigned"
+                    value={assigneeId}
+                    onChange={(v) => setAssigneeId(v)}
+                    options={members.map((m) => ({
+                      value: m.value,
+                      label: m.label,
+                    }))}
+                    filterOption={(input, option) =>
+                      (option?.label as string)
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }
+                    style={{ width: "100%" }}
+                    size="middle"
+                    suffixIcon={
+                      assignee ? (
+                        <Avatar
+                          size={20}
+                          style={{ background: "#1677ff", fontSize: 10 }}
+                        >
+                          {assignee.label.charAt(0).toUpperCase()}
+                        </Avatar>
+                      ) : undefined
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div className="hb-cbd-fieldgroup">
+                <Label icon={<Hash size={11} />}>Tags</Label>
+                <div className="hb-cbd-tagbox">
+                  {tags.map((t) => (
+                    <span key={t} className="hb-cbd-tag">
+                      #{t}
+                      <button
+                        onClick={() => removeTag(t)}
+                        aria-label={`Remove ${t}`}
+                      >
+                        <X size={10} />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    className="hb-cbd-tag-input"
+                    placeholder={tags.length === 0 ? "Type a tag and press Enter" : ""}
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === ",") {
+                        e.preventDefault();
+                        commitTag();
+                      } else if (
+                        e.key === "Backspace" &&
+                        !tagInput &&
+                        tags.length > 0
+                      ) {
+                        setTags((prev) => prev.slice(0, -1));
+                      }
+                    }}
+                    onBlur={commitTag}
+                  />
+                </div>
+              </div>
+
+              {/* Attachments */}
+              <div className="hb-cbd-fieldgroup">
+                <div className="hb-cbd-fieldhead">
+                  <Label icon={<Paperclip size={11} />}>Attachments</Label>
+                  <button
+                    className="hb-cbd-linkbtn"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Plus size={12} />
+                    Add files
+                  </button>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  hidden
+                  accept="image/*,application/pdf,.log,.txt"
+                  onChange={(e) => {
+                    if (e.target.files) addFiles(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+                {attachments.length === 0 ? (
+                  <button
+                    type="button"
+                    className="hb-cbd-dropzone"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <UploadCloud size={20} />
+                    <div>
+                      <div className="hb-cbd-dropzone-title">
+                        Drop files, click to browse, or paste images
+                      </div>
+                      <div className="hb-cbd-dropzone-sub">
+                        Images, PDFs, logs · max {MAX_FILE_MB}MB
+                      </div>
+                    </div>
+                  </button>
+                ) : (
+                  <div className="hb-cbd-attachments">
+                    {attachments.map((a, idx) => (
+                      <AttachmentTile
+                        key={`${a.fileName}-${idx}`}
+                        attachment={a}
+                        onRemove={() => removeAttachment(idx)}
+                        onPreview={() => setPreviewAttachment(a)}
+                        onRename={(newName) => renameAttachment(idx, newName)}
+                        messageApi={messageApi}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* External links */}
+              <div className="hb-cbd-fieldgroup">
+                <Label icon={<Link2 size={11} />}>External links</Label>
+                <div className="hb-cbd-linkrow">
+                  <input
+                    className="hb-cbd-input"
+                    placeholder="Label (optional)"
+                    value={linkLabel}
+                    onChange={(e) => setLinkLabel(e.target.value)}
+                    style={{ flex: "0 0 35%" }}
+                  />
+                  <input
+                    className="hb-cbd-input"
+                    placeholder="https://…"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addLink();
+                      }
+                    }}
+                  />
+                  <button
+                    className="hb-cbd-iconbtn"
+                    onClick={addLink}
+                    aria-label="Add link"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+                {links.length > 0 && (
+                  <div className="hb-cbd-linklist">
+                    {links.map((l, idx) => (
+                      <div key={`${l.url}-${idx}`} className="hb-cbd-link">
+                        <ExternalLink size={12} />
+                        <a
+                          href={l.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hb-cbd-link-anchor"
+                        >
+                          {l.label || l.url}
+                        </a>
+                        <button
+                          className="hb-cbd-iconbtn-sm"
+                          onClick={() => removeLink(idx)}
+                          aria-label="Remove link"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="hb-cbd-footer">
+              <div className="hb-cbd-footer-hint">
+                <span className="hb-cbd-kbd">⌘</span>
+                <span className="hb-cbd-kbd">↵</span>
+                to {editingBug ? "save" : "capture"}
+              </div>
+              <div className="hb-cbd-footer-actions">
+                <button
+                  className="hb-cbd-secondary"
+                  onClick={onClose}
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="hb-cbd-primary"
+                  onClick={handleSubmit}
+                  disabled={submitting || !isValid}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 size={14} className="hb-cbd-spin" />
+                      {editingBug ? "Saving…" : "Capturing…"}
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={14} />
+                      {editingBug ? "Save changes" : "Capture bug"}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </ConfigProvider>
+        </div>
+      </Drawer>
+
+      <Drawer
+        open={!!previewAttachment}
+        onClose={() => setPreviewAttachment(null)}
+        placement="left"
+        width={700}
+        closable={false}
+        title={null}
+        footer={null}
+        mask={false}
+        className={`hb-preview-drawer ${theme === "dark" ? "hb-preview-drawer-dark" : "hb-preview-drawer-light"}`}
+        styles={{
+          body: { padding: 0, height: '100%' }
+        }}
+      >
+        {previewAttachment && (
+          (() => {
+            const displayUrl = (() => {
+              let url = previewAttachment.fileUrl || "";
+              if (url.includes("r2.cloudflarestorage.com")) {
+                url = url.replace(
+                  /https:\/\/[^/]+\.r2\.cloudflarestorage\.com\/[^/]+/,
+                  "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev"
+                );
+              }
+              if (url.includes(".r2.dev") && !url.includes(".r2.dev/")) {
+                url = url.replace(".r2.dev", ".r2.dev/");
+              }
+              return url;
+            })();
+
+            return (
+              <div className="hb-preview-shell">
+                <div className="hb-preview-header">
+                  <div className="hb-preview-fileinfo">
+                    <FileText size={16} className="hb-preview-icon" />
+                    <div className="hb-preview-meta">
+                      <div className="hb-preview-filename">{previewAttachment.fileName}</div>
+                      <div className="hb-preview-filesize">
+                        {previewAttachment.fileSize ? formatBytes(previewAttachment.fileSize) : previewAttachment.fileType}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="hb-preview-actions">
+                    <button
+                      className="hb-preview-btn"
+                      onClick={() => {
+                        if (displayUrl) window.open(displayUrl, '_blank');
+                      }}
+                      title="Open in new tab"
+                    >
+                      <ExternalLink size={16} />
+                    </button>
+                    <button
+                      className="hb-preview-close"
+                      onClick={() => setPreviewAttachment(null)}
+                      aria-label="Close preview"
+                    >
+                      <X size={18} />
                     </button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+                </div>
+                <div className="hb-preview-body">
+                  {(() => {
+                    const isImage =
+                      previewAttachment.fileType?.startsWith("image/") ||
+                      displayUrl.startsWith("data:image/") ||
+                      /\.(jpg|jpeg|png|gif|webp|svg)/i.test(displayUrl);
 
-        {/* Footer */}
-        <div className="hb-cbd-footer">
-          <div className="hb-cbd-footer-hint">
-            <span className="hb-cbd-kbd">⌘</span>
-            <span className="hb-cbd-kbd">↵</span>
-            to {editingBug ? "save" : "capture"}
-          </div>
-          <div className="hb-cbd-footer-actions">
-            <button
-              className="hb-cbd-secondary"
-              onClick={onClose}
-              disabled={submitting}
-            >
-              Cancel
-            </button>
-            <button
-              className="hb-cbd-primary"
-              onClick={handleSubmit}
-              disabled={submitting || !isValid}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 size={14} className="hb-cbd-spin" />
-                  {editingBug ? "Saving…" : "Capturing…"}
-                </>
-              ) : (
-                <>
-                  <Sparkles size={14} />
-                  {editingBug ? "Save changes" : "Capture bug"}
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-        </ConfigProvider>
-      </div>
-    </Drawer>
+                    const isVideo =
+                      previewAttachment.fileType?.startsWith("video/") ||
+                      /\.(mp4|webm|ogg|mov)/i.test(displayUrl);
+
+                    const isPdf =
+                      previewAttachment.fileType === "application/pdf" ||
+                      /\.pdf/i.test(displayUrl);
+
+                    if (!displayUrl) return <div className="hb-preview-error">No preview available</div>;
+
+                    if (isImage) {
+                      return (
+                        <div className="hb-preview-media-container">
+                          <img src={displayUrl} alt={previewAttachment.fileName} className="hb-preview-image" />
+                        </div>
+                      );
+                    }
+                    if (isVideo) {
+                      return (
+                        <div className="hb-preview-media-container">
+                          <video src={displayUrl} controls className="hb-preview-video" />
+                        </div>
+                      );
+                    }
+                    if (isPdf) {
+                      return <iframe src={displayUrl} className="hb-preview-iframe" title="PDF Preview" />;
+                    }
+
+                    return (
+                      <div className="hb-preview-fallback">
+                        <FileText size={48} />
+                        <p>Preview not available for this file type</p>
+                        <button
+                          className="hb-cbd-primary"
+                          onClick={() => window.open(displayUrl, '_blank')}
+                        >
+                          Open in new tab
+                        </button>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            );
+          })()
+        )}
+      </Drawer>
+    </>
   );
 }
 
@@ -765,11 +910,34 @@ function Label({
 function AttachmentTile({
   attachment,
   onRemove,
+  onPreview,
+  onRename,
+  messageApi,
 }: {
   attachment: BugAttachment;
   onRemove: () => void;
+  onPreview: () => void;
+  onRename: (newName: string) => void;
+  messageApi: any;
 }) {
   const [imageError, setImageError] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [tempName, setTempName] = useState(attachment.fileName);
+
+  useEffect(() => {
+    setTempName(attachment.fileName);
+  }, [attachment.fileName]);
+
+  const handleRenameCommit = () => {
+    const trimmed = tempName.trim();
+    if (trimmed && trimmed !== attachment.fileName) {
+      onRename(trimmed);
+      messageApi.success("Attachment renamed");
+    } else {
+      setTempName(attachment.fileName);
+    }
+    setIsRenaming(false);
+  };
 
   const isImage =
     attachment.fileType?.startsWith("image/") ||
@@ -800,33 +968,10 @@ function AttachmentTile({
     return url;
   }, [attachment.fileUrl]);
 
-  const handleOpen = () => {
-    if (!displayUrl) return;
-    if (displayUrl.startsWith("data:")) {
-      try {
-        const parts = displayUrl.split(",");
-        const mime = parts[0].match(/:(.*?);/)?.[1];
-        const b64 = parts[1];
-        const bin = atob(b64);
-        const u8 = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-        const blob = new Blob([u8], { type: mime });
-        const url = URL.createObjectURL(blob);
-        window.open(url, "_blank");
-      } catch (e) {
-        window.open(displayUrl, "_blank");
-      }
-    } else {
-      window.open(displayUrl, "_blank");
-    }
-  };
-
   return (
     <div className="hb-cbd-tile">
       <div
         className="hb-cbd-tile-preview"
-        onClick={handleOpen}
-        style={{ cursor: "pointer" }}
       >
         {isImage && !imageError ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -844,6 +989,64 @@ function AttachmentTile({
             <FileText size={20} />
           </div>
         )}
+
+        <div className="hb-cbd-tile-overlay">
+          <button
+            className="hb-cbd-tile-action"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPreview();
+            }}
+            title="View"
+          >
+            <Eye size={16} />
+          </button>
+          <button
+            className="hb-cbd-tile-action"
+            onClick={async (e) => {
+              e.stopPropagation();
+              if (!displayUrl) return;
+              try {
+                // Try fetching to force download if CORS allows
+                const res = await fetch(displayUrl);
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = attachment.fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                messageApi.success("Download successfully");
+              } catch (err) {
+                // Fallback for CORS issues
+                const a = document.createElement("a");
+                a.href = displayUrl;
+                a.download = attachment.fileName;
+                a.target = "_blank";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                messageApi.success("Download successfully");
+              }
+            }}
+            title="Download"
+          >
+            <Download size={16} />
+          </button>
+          <button
+            className="hb-cbd-tile-action"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsRenaming(true);
+            }}
+            title="Rename"
+          >
+            <Edit2 size={16} />
+          </button>
+        </div>
+
         <button
           className="hb-cbd-tile-remove"
           onClick={(e) => {
@@ -857,9 +1060,31 @@ function AttachmentTile({
         {attachment.isNew && <span className="hb-cbd-tile-new">NEW</span>}
       </div>
       <div className="hb-cbd-tile-info">
-        <div className="hb-cbd-tile-name" title={attachment.fileName}>
-          {attachment.fileName}
-        </div>
+        {isRenaming ? (
+          <div className="hb-cbd-tile-rename-field" onClick={(e) => e.stopPropagation()}>
+            <input
+              autoFocus
+              className="hb-cbd-tile-rename-input"
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRenameCommit();
+                if (e.key === "Escape") {
+                  setTempName(attachment.fileName);
+                  setIsRenaming(false);
+                }
+              }}
+              onBlur={handleRenameCommit}
+            />
+            <button className="hb-cbd-tile-rename-btn" onClick={handleRenameCommit}>
+              <Check size={12} />
+            </button>
+          </div>
+        ) : (
+          <div className="hb-cbd-tile-name" title={attachment.fileName}>
+            {attachment.fileName}
+          </div>
+        )}
         <div className="hb-cbd-tile-meta">
           {attachment.fileSize
             ? formatBytes(attachment.fileSize)

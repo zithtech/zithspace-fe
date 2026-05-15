@@ -171,6 +171,9 @@ function BuilderContent() {
             );
 
             setBlocks(sortedBlocks);
+            if (proposal.lead_id) {
+              setPendingLeadId(proposal.lead_id);
+            }
             messageApi.success({ content: 'Proposal data loaded.', key: 'load_data' });
           } else {
             setBlocks([]);

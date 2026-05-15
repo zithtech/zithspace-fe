@@ -355,7 +355,7 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                         backgroundClip: 'text',
                     }}
                 >
-                    ZithSpace
+                    Zukvo
                 </span>
             </footer>
 

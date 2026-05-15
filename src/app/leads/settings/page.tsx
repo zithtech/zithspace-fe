@@ -1478,6 +1478,21 @@ export default function LeadSettingsPage() {
                     [data-theme='dark'] .lset-drawer-note-text { color: #c9d1d9 !important; }
                     [data-theme='dark'] .lset-drawer-footer-hint { color: #6e7681 !important; }
                     [data-theme='dark'] .lset-btn-cancel { background: #21262d !important; border-color: #30363d !important; color: #c9d1d9 !important; }
+
+                    /* Autofill fix for dark mode */
+                    [data-theme='dark'] input:-webkit-autofill,
+                    [data-theme='dark'] input:-webkit-autofill:hover,
+                    [data-theme='dark'] input:-webkit-autofill:focus,
+                    [data-theme='dark'] textarea:-webkit-autofill,
+                    [data-theme='dark'] textarea:-webkit-autofill:hover,
+                    [data-theme='dark'] textarea:-webkit-autofill:focus,
+                    [data-theme='dark'] select:-webkit-autofill,
+                    [data-theme='dark'] select:-webkit-autofill:hover,
+                    [data-theme='dark'] select:-webkit-autofill:focus {
+                        -webkit-text-fill-color: #c9d1d9 !important;
+                        -webkit-box-shadow: 0 0 0px 1000px #0d1117 inset !important;
+                        transition: background-color 5000s ease-in-out 0s;
+                    }
                     `,
                 }} />
             </MainLayout>

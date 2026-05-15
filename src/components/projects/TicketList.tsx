@@ -30,6 +30,7 @@ import {
   Progress,
   Spin,
   Segmented,
+  Switch,
   App,
   type TableProps,
 } from "antd";
@@ -63,6 +64,8 @@ import {
   CloseOutlined,
   FolderAddOutlined,
   CloseCircleOutlined,
+  SettingOutlined,
+  ColumnHeightOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -95,8 +98,49 @@ import { SprintCreationForm, type SprintFormData } from "./sprint-completion/Spr
 import { ManualCreateTicketModal } from "./ManualCreateTicketModal";
 import { AiCreateTicketModal } from "./AiCreateTicketModal";
 import TicketSkeleton from "./TicketSkeleton";
+import { TablePreferenceService } from "@/services/tablePreferenceService";
 
 const { Title, Text } = Typography;
+
+type TicketDensity = "compact" | "comfortable" | "spacious";
+const TICKETS_TABLE_KEY = "tickets_list_v1";
+const TICKETS_TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
+  { key: "ticketNumber", label: "ID" },
+  { key: "title", label: "Title" },
+  { key: "status", label: "Status" },
+  { key: "priority", label: "Priority" },
+  { key: "assignee", label: "Assignee" },
+  { key: "type", label: "Type" },
+  { key: "storyPoint", label: "Story Points" },
+  { key: "platform", label: "Platform" },
+  { key: "stack", label: "Stack" },
+  { key: "taskLevel", label: "Task Level" },
+  { key: "tags", label: "Tags" },
+  { key: "estimateHours", label: "Estimate (h)" },
+  { key: "startDate", label: "Start Date" },
+  { key: "endDate", label: "End Date" },
+  { key: "reportTo", label: "Report To" },
+  { key: "createdBy", label: "Created By" },
+  { key: "createdAt", label: "Created" },
+  { key: "updatedAt", label: "Updated" },
+  { key: "actions", label: "Actions" },
+];
+
+// Columns hidden by default (everything outside the canonical 8: ID, Title,
+// Status, Priority, Assignee, Type, SP, Actions).
+const TICKETS_DEFAULT_HIDDEN_COLS: Record<string, boolean> = {
+  platform: true,
+  stack: true,
+  taskLevel: true,
+  tags: true,
+  estimateHours: true,
+  startDate: true,
+  endDate: true,
+  reportTo: true,
+  createdBy: true,
+  createdAt: true,
+  updatedAt: true,
+};
 
 interface FilterState {
   status: string[];
@@ -141,6 +185,61 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
   const [kanbanScope, setKanbanScope] = useState<'active' | 'backlog'>('active');
+
+  // Table settings — density + column visibility, persisted per-user in DB
+  // via user_table_preferences (raw psql, no Prisma).
+  const [tableDensity, setTableDensity] = useState<TicketDensity>('comfortable');
+  const [hiddenCols, setHiddenCols] = useState<Record<string, boolean>>(TICKETS_DEFAULT_HIDDEN_COLS);
+  const [tablePrefsLoaded, setTablePrefsLoaded] = useState(false);
+  const tablePrefsSaveTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const saved = await TablePreferenceService.get<{
+          density?: TicketDensity;
+          hiddenCols?: Record<string, boolean>;
+        }>(TICKETS_TABLE_KEY);
+        if (cancelled) return;
+        if (saved?.density && ['compact', 'comfortable', 'spacious'].includes(saved.density)) {
+          setTableDensity(saved.density);
+        }
+        if (saved?.hiddenCols && typeof saved.hiddenCols === 'object') {
+          // Merge: explicit user choices win, but newly-added columns inherit
+          // their default-hidden state for users who saved before they existed.
+          setHiddenCols({ ...TICKETS_DEFAULT_HIDDEN_COLS, ...saved.hiddenCols });
+        }
+      } catch (err) {
+        console.warn('Failed to load ticket table preferences', err);
+      } finally {
+        if (!cancelled) setTablePrefsLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!tablePrefsLoaded) return;
+    if (tablePrefsSaveTimer.current !== null) {
+      window.clearTimeout(tablePrefsSaveTimer.current);
+    }
+    tablePrefsSaveTimer.current = window.setTimeout(() => {
+      TablePreferenceService.save(TICKETS_TABLE_KEY, {
+        density: tableDensity,
+        hiddenCols,
+      }).catch((err) => console.warn('Failed to save ticket table preferences', err));
+    }, 300);
+    return () => {
+      if (tablePrefsSaveTimer.current !== null) {
+        window.clearTimeout(tablePrefsSaveTimer.current);
+        tablePrefsSaveTimer.current = null;
+      }
+    };
+  }, [tablePrefsLoaded, tableDensity, hiddenCols]);
+
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
@@ -1073,7 +1172,149 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         );
       }
     },
-
+    {
+      title: "Platform",
+      dataIndex: "platform",
+      key: "platform",
+      width: 120,
+      render: (platform: string) => platform
+        ? <Tag className="saas-tag" bordered={false} style={{ fontSize: 11 }}>{platform}</Tag>
+        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+    },
+    {
+      title: "Stack",
+      dataIndex: "stack",
+      key: "stack",
+      width: 120,
+      render: (stack: string) => stack
+        ? <Tag className="saas-tag" bordered={false} style={{ fontSize: 11 }}>{stack}</Tag>
+        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+    },
+    {
+      title: "Task Level",
+      dataIndex: "taskLevel",
+      key: "taskLevel",
+      width: 120,
+      render: (level: string) => level
+        ? <Tag className="saas-tag" bordered={false} style={{ fontSize: 11 }}>{level}</Tag>
+        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+    },
+    {
+      title: "Tags",
+      dataIndex: "tags",
+      key: "tags",
+      width: 180,
+      render: (tags: string[] | undefined) => {
+        if (!tags || tags.length === 0) {
+          return <Text type="secondary" style={{ fontSize: 12 }}>-</Text>;
+        }
+        const visible = tags.slice(0, 3);
+        const extra = tags.length - visible.length;
+        return (
+          <Space size={4} wrap>
+            {visible.map((t) => (
+              <Tag key={t} bordered={false} style={{ fontSize: 10.5, margin: 0 }}>{t}</Tag>
+            ))}
+            {extra > 0 && (
+              <Tooltip title={tags.slice(3).join(', ')}>
+                <Tag bordered={false} style={{ fontSize: 10.5, margin: 0 }}>+{extra}</Tag>
+              </Tooltip>
+            )}
+          </Space>
+        );
+      },
+    },
+    {
+      title: "Estimate (h)",
+      dataIndex: "estimateHours",
+      key: "estimateHours",
+      width: 110,
+      render: (hours: number | undefined) => (
+        <Text style={{ fontSize: 12, color: 'var(--text-slate-700)' }}>
+          {hours != null ? hours : <span style={{ color: 'var(--text-slate-400)' }}>-</span>}
+        </Text>
+      ),
+    },
+    {
+      title: "Start Date",
+      dataIndex: "startDate",
+      key: "startDate",
+      width: 130,
+      render: (date: string | undefined) => date
+        ? <Text style={{ fontSize: 12 }}>{dayjs(date).format('DD MMM YYYY')}</Text>
+        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+    },
+    {
+      title: "End Date",
+      dataIndex: "endDate",
+      key: "endDate",
+      width: 130,
+      render: (date: string | undefined) => date
+        ? <Text style={{ fontSize: 12 }}>{dayjs(date).format('DD MMM YYYY')}</Text>
+        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+    },
+    {
+      title: "Report To",
+      dataIndex: "reportTo",
+      key: "reportTo",
+      width: 170,
+      render: (reportTo: Ticket["reportTo"]) => {
+        if (!reportTo || typeof reportTo === 'string') {
+          return <Text type="secondary" style={{ fontSize: 12 }}>{typeof reportTo === 'string' ? reportTo : '-'}</Text>;
+        }
+        return (
+          <Space size={6}>
+            <Avatar size="small" style={{ backgroundColor: '#8b5cf6' }} src={reportTo.avatarUrl || undefined}>
+              {!reportTo.avatarUrl && reportTo.name?.charAt(0)}
+            </Avatar>
+            <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{reportTo.name}</Text>
+          </Space>
+        );
+      },
+    },
+    {
+      title: "Created By",
+      dataIndex: "createdBy",
+      key: "createdBy",
+      width: 170,
+      render: (createdBy: Ticket["createdBy"]) => {
+        if (!createdBy) return <Text type="secondary" style={{ fontSize: 12 }}>-</Text>;
+        return (
+          <Space size={6}>
+            <Avatar size="small" style={{ backgroundColor: '#10b981' }} src={createdBy.avatarUrl || undefined}>
+              {!createdBy.avatarUrl && createdBy.name?.charAt(0)}
+            </Avatar>
+            <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{createdBy.name}</Text>
+          </Space>
+        );
+      },
+    },
+    {
+      title: "Created",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      width: 140,
+      render: (date: string | undefined) => date
+        ? (
+          <Tooltip title={dayjs(date).format('DD MMM YYYY, HH:mm')}>
+            <Text style={{ fontSize: 12 }}>{dayjs(date).format('DD MMM YYYY')}</Text>
+          </Tooltip>
+        )
+        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+    },
+    {
+      title: "Updated",
+      dataIndex: "updatedAt",
+      key: "updatedAt",
+      width: 140,
+      render: (date: string | undefined) => date
+        ? (
+          <Tooltip title={dayjs(date).format('DD MMM YYYY, HH:mm')}>
+            <Text style={{ fontSize: 12 }}>{dayjs(date).format('DD MMM YYYY')}</Text>
+          </Tooltip>
+        )
+        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+    },
     {
       title: "Actions",
       key: "actions",
@@ -1187,6 +1428,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         .project-switch-trigger:hover {
           background-color: var(--bg-slate-50);
         }
+        .tickets-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 5px 12px !important; }
+        .tickets-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 9px 16px !important; }
+        .tickets-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 14px 20px !important; }
+        .tickets-table-settings-popover .ant-popover-inner { padding: 14px !important; border-radius: 12px !important; }
+        .tickets-cols-scroll::-webkit-scrollbar { width: 6px; }
+        .tickets-cols-scroll::-webkit-scrollbar-track { background: transparent; }
+        .tickets-cols-scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 3px; }
+        .tickets-cols-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-slate-400); }
       `}} />
 
       {/* Premium Header Row - Sticky Glassmorphism */}
@@ -1324,6 +1573,144 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             ]}
             className="saas-segmented-premium"
           />
+
+          {viewMode === 'list' && (
+            <Popover
+              trigger={['click']}
+              placement="bottomRight"
+              classNames={{ root: 'tickets-table-settings-popover' }}
+              content={
+                <div style={{ width: 240 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: 'var(--text-slate-500)',
+                      marginBottom: 8,
+                    }}
+                  >
+                    <ColumnHeightOutlined style={{ fontSize: 11 }} />
+                    <span>Density</span>
+                  </div>
+                  <Segmented
+                    block
+                    value={tableDensity}
+                    onChange={(v) => setTableDensity(v as TicketDensity)}
+                    options={[
+                      { label: 'Compact', value: 'compact' },
+                      { label: 'Cozy', value: 'comfortable' },
+                      { label: 'Roomy', value: 'spacious' },
+                    ]}
+                  />
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: 'var(--text-slate-500)',
+                      marginTop: 14,
+                      marginBottom: 8,
+                    }}
+                  >
+                    <UnorderedListOutlined style={{ fontSize: 11 }} />
+                    <span>Columns</span>
+                  </div>
+                  <div
+                    className="tickets-cols-scroll"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                      maxHeight: 256,
+                      overflowY: 'auto',
+                      paddingRight: 4,
+                    }}
+                  >
+                    {TICKETS_TOGGLEABLE_COLUMNS.map((c) => (
+                      <label
+                        key={c.key}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '4px 6px',
+                          borderRadius: 6,
+                          cursor: 'pointer',
+                          flex: '0 0 auto',
+                        }}
+                      >
+                        <span style={{ fontSize: 12.5, color: 'var(--text-slate-700)' }}>{c.label}</span>
+                        <Switch
+                          size="small"
+                          checked={!hiddenCols[c.key]}
+                          onChange={(checked) =>
+                            setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      marginTop: 12,
+                      paddingTop: 12,
+                      borderTop: '1px solid var(--border-slate-200)',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHiddenCols({ ...TICKETS_DEFAULT_HIDDEN_COLS });
+                        setTableDensity('comfortable');
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#3b82f6',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        padding: 0,
+                      }}
+                    >
+                      Reset to defaults
+                    </button>
+                    <span style={{ fontSize: 10.5, color: 'var(--text-slate-400)' }}>
+                      Saved automatically
+                    </span>
+                  </div>
+                </div>
+              }
+            >
+              <Tooltip title="Table settings">
+                <Button
+                  icon={<SettingOutlined />}
+                  aria-label="Table settings"
+                  style={{
+                    height: 36,
+                    width: 36,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 8,
+                  }}
+                />
+              </Tooltip>
+            </Popover>
+          )}
         </div>
 
         {/* Right Side Actions */}
@@ -2019,25 +2406,27 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 </div>
               }
             >
-              <Table
-                rowSelection={backlogRowSelection}
-                columns={getColumns('backlog')}
-                loading={backlogFetching}
-                dataSource={backlogTickets}
-                rowKey="id"
-                className="saas-table"
-                size="middle"
-                pagination={{
-                  current: pagination.current,
-                  pageSize: pagination.pageSize,
-                  total: totalBacklog,
-                  showSizeChanger: true,
-                  pageSizeOptions: ['10', '25', '50'],
-                  showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
-                  onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 10 })
-                }}
-                scroll={{ x: 'max-content' }}
-              />
+              <div className="tickets-table-shell" data-density={tableDensity}>
+                <Table
+                  rowSelection={backlogRowSelection}
+                  columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                  loading={backlogFetching}
+                  dataSource={backlogTickets}
+                  rowKey="id"
+                  className="saas-table"
+                  size="middle"
+                  pagination={{
+                    current: pagination.current,
+                    pageSize: pagination.pageSize,
+                    total: totalBacklog,
+                    showSizeChanger: true,
+                    pageSizeOptions: ['10', '25', '50'],
+                    showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
+                    onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 10 })
+                  }}
+                  scroll={{ x: 'max-content' }}
+                />
+              </div>
             </Card>
           </div>
         </div>

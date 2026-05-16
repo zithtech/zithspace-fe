@@ -1518,9 +1518,7 @@ export default function LeadsPage() {
                   value={searchText}
                   allowClear
                 />
-                <Button icon={<Download size={15} />} className="lm-secondary-btn">
-                  Export
-                </Button>
+                
                 <Button
                   type="primary"
                   icon={<Plus size={16} />}
@@ -1862,7 +1860,7 @@ export default function LeadsPage() {
                       {TOGGLEABLE_COLUMNS.length - TOGGLEABLE_COLUMNS.filter(c => hiddenCols[c.key]).length} of {TOGGLEABLE_COLUMNS.length}
                     </span>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div className="lm-col-toggle-list">
                     {TOGGLEABLE_COLUMNS.map((c) => (
                       <label key={c.key} className="lm-col-toggle-row">
                         <span>{c.label}</span>
@@ -2686,15 +2684,46 @@ export default function LeadsPage() {
 
         {/* ----------------------- Timeline Drawer ----------------------- */}
         <Drawer
+          className="lm-timeline-drawer"
           title={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <History size={16} style={{ color: '#6366f1' }} />
-              <span>Lead Activity Timeline: {activeTimelineLead?.client_name || activeTimelineLead?.title}</span>
+            <div className="ltl-header">
+              <div className="ltl-header-main">
+                <div className="ltl-eyebrow">
+                  <span className="ltl-dot" />
+                  <span>Activity</span>
+                </div>
+                <div className="ltl-title">Lead Timeline</div>
+                <div className="ltl-subtitle">
+                  {/* <span className="ltl-subtitle-strong">
+                    {activeTimelineLead?.client_name || "Client"}
+                  </span> */}
+                  {activeTimelineLead?.title && (
+                    <>
+                      <span className="ltl-sep">·</span>
+                      <span className="ltl-subtitle-mute">{activeTimelineLead.title}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="ltl-header-meta">
+                <div className="ltl-stat-chip">
+                  <History size={13} />
+                  <span className="ltl-stat-num">{timelineData.length}</span>
+                  <span className="ltl-stat-label">
+                    event{timelineData.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                {activeTimelineLead?.posted_on && (
+                  <div className="ltl-since">
+                    Since {dayjs(activeTimelineLead.posted_on).format("DD MMM YYYY")}
+                  </div>
+                )}
+              </div>
             </div>
           }
           open={timelineOpen}
           onClose={() => setTimelineOpen(false)}
-          width={480}
+          width={520}
           styles={{ body: { padding: '24px 20px' } }}
         >
           {timelineLoading ? (
@@ -3606,6 +3635,39 @@ export default function LeadsPage() {
               cursor: pointer;
             }
             .lm-col-toggle-row:hover { background: var(--bg-slate-50); }
+            .lm-col-toggle-list {
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+              max-height: 224px; /* ~7 rows before scroll */
+              overflow-y: auto;
+              padding-right: 4px;
+              margin-right: -4px;
+              scrollbar-width: thin;
+              scrollbar-color: #cbd5e1 transparent;
+            }
+            .lm-col-toggle-list::-webkit-scrollbar {
+              width: 6px;
+            }
+            .lm-col-toggle-list::-webkit-scrollbar-track {
+              background: transparent;
+            }
+            .lm-col-toggle-list::-webkit-scrollbar-thumb {
+              background: #e2e8f0;
+              border-radius: 3px;
+            }
+            .lm-col-toggle-list::-webkit-scrollbar-thumb:hover {
+              background: #cbd5e1;
+            }
+            [data-theme='dark'] .lm-col-toggle-list {
+              scrollbar-color: #30363d transparent;
+            }
+            [data-theme='dark'] .lm-col-toggle-list::-webkit-scrollbar-thumb {
+              background: #30363d;
+            }
+            [data-theme='dark'] .lm-col-toggle-list::-webkit-scrollbar-thumb:hover {
+              background: #484f58;
+            }
             .lm-popover-footer {
               display: flex;
               align-items: center;
@@ -3657,6 +3719,138 @@ export default function LeadsPage() {
             [data-theme='dark'] .lm-col-toggle-row:hover {
               background: var(--bg-primary);
             }
+
+            /* ---------- Timeline drawer header (premium) ---------- */
+            .lm-timeline-drawer .ant-drawer-header {
+              padding: 18px 24px !important;
+              border-bottom: 1px solid #ececf1 !important;
+              background: #ffffff !important;
+            }
+            .lm-timeline-drawer .ant-drawer-title {
+              flex: 1;
+              min-width: 0;
+            }
+            .lm-timeline-drawer .ant-drawer-close {
+              color: #6b7280 !important;
+            }
+            .ltl-header {
+              display: flex;
+              align-items: flex-start;
+              justify-content: space-between;
+              gap: 18px;
+              width: 100%;
+            }
+            .ltl-header-main {
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+              min-width: 0;
+            }
+            .ltl-eyebrow {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 11px;
+              font-weight: 600;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              color: #6366f1;
+            }
+            .ltl-dot {
+              width: 6px;
+              height: 6px;
+              border-radius: 50%;
+              background: #6366f1;
+              display: inline-block;
+            }
+            .ltl-title {
+              font-size: 18px;
+              font-weight: 700;
+              color: #0f172a;
+              letter-spacing: -0.01em;
+              line-height: 1.3;
+            }
+            .ltl-subtitle {
+              font-size: 12.5px;
+              color: #6b7280;
+              font-weight: 500;
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              min-width: 0;
+              max-width: 320px;
+            }
+            .ltl-subtitle-strong {
+              color: #0f172a;
+              font-weight: 600;
+              white-space: nowrap;
+            }
+            .ltl-subtitle-mute {
+              color: #6b7280;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              min-width: 0;
+            }
+            .ltl-sep {
+              color: #cbd5e1;
+              flex-shrink: 0;
+            }
+            .ltl-header-meta {
+              display: flex;
+              flex-direction: column;
+              align-items: flex-end;
+              gap: 6px;
+              flex-shrink: 0;
+            }
+            .ltl-stat-chip {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              padding: 6px 11px;
+              border: 1px solid #e5e7f0;
+              border-radius: 999px;
+              background: #fbfbfd;
+              color: #475569;
+              font-size: 12px;
+              font-weight: 600;
+            }
+            .ltl-stat-chip svg { color: #6366f1; }
+            .ltl-stat-num {
+              color: #0f172a;
+              font-weight: 700;
+              font-variant-numeric: tabular-nums;
+            }
+            .ltl-stat-label {
+              color: #6b7280;
+              font-weight: 500;
+            }
+            .ltl-since {
+              font-size: 10.5px;
+              font-weight: 600;
+              color: #94a3b8;
+              text-transform: uppercase;
+              letter-spacing: 0.06em;
+            }
+
+            [data-theme='dark'] .lm-timeline-drawer .ant-drawer-header {
+              background: #11151d !important;
+              border-bottom-color: #21262d !important;
+            }
+            [data-theme='dark'] .ltl-title { color: #e6edf3; }
+            [data-theme='dark'] .ltl-subtitle { color: #8b949e; }
+            [data-theme='dark'] .ltl-subtitle-strong { color: #e6edf3; }
+            [data-theme='dark'] .ltl-subtitle-mute { color: #8b949e; }
+            [data-theme='dark'] .ltl-sep { color: #30363d; }
+            [data-theme='dark'] .ltl-stat-chip {
+              background: #161b22;
+              border-color: #21262d;
+              color: #c9d1d9;
+            }
+            [data-theme='dark'] .ltl-stat-chip svg { color: #a5b4fc; }
+            [data-theme='dark'] .ltl-stat-num { color: #e6edf3; }
+            [data-theme='dark'] .ltl-stat-label { color: #8b949e; }
+            [data-theme='dark'] .ltl-since { color: #6e7681; }
 
             /* ---------- Lead title tooltip (Document Hub style) ---------- */
             .lm-title-tooltip-overlay .ant-tooltip-inner {

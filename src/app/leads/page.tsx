@@ -118,7 +118,7 @@ import { api, apiClient } from "@/lib/axios";
 const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
   const { name, ...restField } = field;
   
-  // Use useWatch to make the row reactive to form changes
+  // Use useWatch to make the rows reactive to form changes
   const docType = Form.useWatch(['documents', name, 'type']) || 'link';
   const url = Form.useWatch(['documents', name, 'url']);
   const fileName = Form.useWatch(['documents', name, 'name']);

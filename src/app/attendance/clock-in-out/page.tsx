@@ -17,6 +17,7 @@ import {
   Space,
   DatePicker,
   Select,
+  Drawer,
 } from 'antd';
 import {
   ClockCircleOutlined,
@@ -24,11 +25,17 @@ import {
   StopOutlined,
   HistoryOutlined,
   CalendarOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { AttendanceService, Attendance, TodayAttendance } from '@/services/attendanceService';
 import { usePermission } from '@/hooks/usePermission';
 import dayjs from 'dayjs';
+import localeData from 'dayjs/plugin/localeData';
+import weekday from 'dayjs/plugin/weekday';
+
+dayjs.extend(localeData);
+dayjs.extend(weekday);
 import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;
@@ -61,6 +68,14 @@ export default function ClockInOutPage() {
   const [todayStatus, setTodayStatus] = useState<TodayAttendanceStatus | null>(null);
   const [myAttendanceRecords, setMyAttendanceRecords] = useState<Attendance[]>([]);
   const [workHoursSummary, setWorkHoursSummary] = useState<any>(null);
+  const [isHistoryDrawerVisible, setIsHistoryDrawerVisible] = useState(false);
+  const [historyPagination, setHistoryPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [allHistoryRecords, setAllHistoryRecords] = useState<Attendance[]>([]);
 
   useEffect(() => {
     if (!authLoading && !canClockInOut) {
@@ -84,6 +99,27 @@ export default function ClockInOutPage() {
       setError('Failed to load attendance records');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchHistory = async (page = 1, pageSize = 10) => {
+    try {
+      setHistoryLoading(true);
+      const records = await AttendanceService.getAttendance({ 
+        page, 
+        limit: pageSize, 
+        member: user?.id 
+      });
+      setAllHistoryRecords(records.data);
+      setHistoryPagination({
+        current: page,
+        pageSize,
+        total: records.pagination.total,
+      });
+    } catch (err) {
+      console.error('Failed to fetch history:', err);
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -129,11 +165,11 @@ export default function ClockInOutPage() {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      present: '#52c41a',
-      late: '#faad14',
-      absent: '#ff4d4f',
+      present: '#10b981', // Emerald
+      late: '#f59e0b',    // Amber
+      absent: '#f43f5e',   // Rose
     };
-    return colors[status] || '#8c8c8c';
+    return colors[status] || '#64748b';
   };
 
   const columns: ColumnsType<Attendance> = [
@@ -165,7 +201,19 @@ export default function ClockInOutPage() {
       dataIndex: 'status',
       key: 'status',
       render: (status) => (
-        <Tag color={getStatusColor(status)} style={{ borderRadius: '6px', border: 'none', fontWeight: 600 }}>
+        <Tag 
+          style={{ 
+            borderRadius: '20px', 
+            padding: '2px 14px', 
+            fontWeight: 700,
+            border: 'none',
+            fontSize: '11px',
+            backgroundColor: status === 'present' ? 'rgba(16, 185, 129, 0.15)' : status === 'late' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+            color: status === 'present' ? '#10b981' : status === 'late' ? '#f59e0b' : '#f43f5e',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}
+        >
           {status.toUpperCase()}
         </Tag>
       ),
@@ -228,31 +276,62 @@ export default function ClockInOutPage() {
 
                   <div style={{ marginBottom: '40px' }}>
                     {!todayStatus.isClockIn ? (
-                      <Button
-                        type="primary"
-                        size="large"
-                        icon={<PlayCircleOutlined />}
-                        onClick={handleClockIn}
-                        loading={actionLoading}
-                        style={{ width: '220px', height: '60px', borderRadius: '30px', fontSize: '18px', fontWeight: 600, background: 'var(--premium-blue)', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }}
-                      >
-                        Clock In
-                      </Button>
-                    ) : !todayStatus.clockOutTime ? (
-                      <Button
-                        danger
-                        size="large"
-                        icon={<StopOutlined />}
-                        onClick={handleClockOut}
-                        loading={actionLoading}
-                        style={{ width: '220px', height: '60px', borderRadius: '30px', fontSize: '18px', fontWeight: 600, boxShadow: '0 4px 12px rgba(255, 77, 79, 0.3)' }}
-                      >
-                        Clock Out
-                      </Button>
-                    ) : (
-                      <div style={{ background: 'var(--bg-green-50)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-green-200)' }}>
-                        <Text strong style={{ color: 'var(--text-holiday)', fontSize: '18px' }}>Day Complete</Text>
-                      </div>
+                        <Button
+                          type="primary"
+                          size="large"
+                          icon={<PlayCircleOutlined />}
+                          onClick={handleClockIn}
+                          loading={actionLoading}
+                          style={{ 
+                            width: '240px', 
+                            height: '64px', 
+                            borderRadius: '32px', 
+                            fontSize: '20px', 
+                            fontWeight: 700, 
+                            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', 
+                            border: 'none',
+                            boxShadow: '0 8px 20px rgba(99, 102, 241, 0.35)',
+                            transition: 'all 0.3s ease'
+                          }}
+                          className="premium-action-btn"
+                        >
+                          Clock In
+                        </Button>
+                      ) : !todayStatus.clockOutTime ? (
+                        <Button
+                          danger
+                          size="large"
+                          icon={<StopOutlined />}
+                          onClick={handleClockOut}
+                          loading={actionLoading}
+                          style={{ 
+                            width: '240px', 
+                            height: '64px', 
+                            borderRadius: '32px', 
+                            fontSize: '20px', 
+                            fontWeight: 700, 
+                            background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                            border: 'none',
+                            boxShadow: '0 8px 20px rgba(244, 63, 94, 0.35)',
+                            transition: 'all 0.3s ease'
+                          }}
+                          className="premium-action-btn"
+                        >
+                          Clock Out
+                        </Button>
+                      ) : (
+                        <div style={{ 
+                          background: 'rgba(16, 185, 129, 0.1)', 
+                          padding: '20px', 
+                          borderRadius: '20px', 
+                          border: '1px solid rgba(16, 185, 129, 0.2)',
+                          display: 'inline-block',
+                          minWidth: '240px'
+                        }}>
+                          <CheckCircleOutlined style={{ color: '#10b981', fontSize: '24px', marginBottom: '8px' }} />
+                          <br />
+                          <Text strong style={{ color: '#10b981', fontSize: '18px', display: 'block' }}>Day Complete</Text>
+                        </div>
                     )}
                   </div>
 
@@ -348,20 +427,131 @@ export default function ClockInOutPage() {
                     size="middle"
                   />
                   <div style={{ padding: '16px 0', textAlign: 'center' }}>
-                    <Button type="link">View All History</Button>
+                    <Button 
+                      type="link" 
+                      onClick={() => {
+                        setIsHistoryDrawerVisible(true);
+                        fetchHistory(1, 10);
+                      }}
+                    >
+                      View All History
+                    </Button>
                   </div>
                 </Card>
               </Col>
             </Row>
           </Col>
         </Row>
+
+        <Drawer
+          title={
+            <Space>
+              <HistoryOutlined style={{ color: 'var(--premium-blue)' }} />
+              <span style={{ fontWeight: 700, fontSize: '18px', color: 'var(--text-slate-900)' }}>Your Attendance History</span>
+            </Space>
+          }
+          placement="right"
+          onClose={() => setIsHistoryDrawerVisible(false)}
+          open={isHistoryDrawerVisible}
+          width={750}
+          className="premium-drawer"
+          headerStyle={{ 
+            borderBottom: '1px solid var(--border-slate-200)', 
+            padding: '24px 32px',
+            background: 'var(--bg-secondary)' 
+          }}
+          bodyStyle={{ 
+            padding: '0',
+            background: 'var(--bg-secondary)'
+          }}
+        >
+          <div style={{ padding: '24px 32px' }}>
+            <Table 
+              columns={columns} 
+              dataSource={allHistoryRecords} 
+              rowKey="id" 
+              loading={historyLoading}
+              pagination={{
+                ...historyPagination,
+                onChange: (page, pageSize) => fetchHistory(page, pageSize),
+                showSizeChanger: true,
+                size: 'default',
+                className: 'premium-pagination'
+              }}
+              size="middle"
+              scroll={{ x: 600 }}
+              className="premium-table"
+            />
+          </div>
+        </Drawer>
       </div>
       <style jsx global>{`
-        .ant-table-thead>tr>th {
-           border-bottom: 1px solid var(--border-slate-100) !important;
+        .premium-drawer .ant-drawer-content {
+          background-color: var(--bg-secondary) !important;
         }
-        .ant-table-tbody>tr>td {
-           border-bottom: 1px solid var(--border-slate-100) !important;
+        .premium-drawer .ant-drawer-header {
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          background: linear-gradient(to right, var(--bg-secondary), var(--bg-slate-50)) !important;
+        }
+        .premium-drawer .ant-drawer-header-title {
+          flex-direction: row-reverse;
+        }
+        .premium-drawer .ant-drawer-close {
+          margin-inline-end: 0;
+          margin-inline-start: 12px;
+          color: var(--text-slate-400);
+          transition: transform 0.3s ease;
+        }
+        .premium-drawer .ant-drawer-close:hover {
+          transform: rotate(90deg);
+          color: #f43f5e;
+        }
+        .premium-table .ant-table {
+          background: transparent !important;
+        }
+        .premium-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important;
+          color: var(--text-slate-500) !important;
+          font-weight: 700 !important;
+          font-size: 12px !important;
+          text-transform: uppercase !important;
+          letter-spacing: '1px' !important;
+          border-bottom: 2px solid var(--border-slate-100) !important;
+          padding: 16px !important;
+        }
+        .premium-table .ant-table-tbody > tr > td {
+          padding: 18px 16px !important;
+          border-bottom: 1px solid var(--border-slate-50) !important;
+          color: var(--text-slate-900) !important;
+          font-size: 14px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .premium-table .ant-table-row:hover td {
+          background: rgba(99, 102, 241, 0.04) !important;
+          color: #4f46e5 !important;
+        }
+        .premium-pagination .ant-pagination-item-active {
+          border-color: #6366f1 !important;
+          background: #6366f1 !important;
+        }
+        .premium-pagination .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .premium-action-btn:hover {
+          transform: translateY(-2px);
+          filter: brightness(1.1);
+        }
+        .premium-action-btn:active {
+          transform: translateY(0);
+        }
+        
+        /* Custom scrollbar for Drawer */
+        .premium-drawer .ant-drawer-body::-webkit-scrollbar {
+          width: 6px;
+        }
+        .premium-drawer .ant-drawer-body::-webkit-scrollbar-thumb {
+          background: var(--border-slate-200);
+          border-radius: 10px;
         }
       `}</style>
     </MainLayout>

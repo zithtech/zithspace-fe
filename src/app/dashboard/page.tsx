@@ -523,8 +523,7 @@ function DashboardContent() {
   ).length;
   const inTestingTickets = tickets.filter(
     (t) =>
-      t.status?.toLowerCase() === "in_testing" ||
-      t.status?.toLowerCase() === "testing",
+      ["in_testing", "testing", "live_testing", "live testing"].includes(t.status?.toLowerCase()),
   ).length;
   const completionRate =
     totalTickets > 0
@@ -2306,7 +2305,7 @@ function DashboardContent() {
                           style={{ ...cardBase, height: 340, overflow: "hidden" }}
                           styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
                           title={sectionTitle(<TrophyOutlined />, "My Tickets", "#7C3AED")}
-                          extra={<Button type="link" size="small" onClick={() => router.push("/tickets")} style={{ fontSize: 11 }}>View all</Button>}
+                          extra={<Button type="link" size="small" onClick={() => router.push("/projects/select")} style={{ fontSize: 11 }}>View all</Button>}
                         >
                           <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
                             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
@@ -2418,7 +2417,7 @@ function DashboardContent() {
                       const accent = "#0EA5E9";
                       const testingCount = recentTickets.filter((t: any) => {
                         const s = t.status?.toLowerCase();
-                        return s === "in_testing" || s === "testing";
+                        return s === "in_testing" || s === "testing" || s === "live_testing" || s === "live testing";
                       }).length;
                       const activeCount = recentTickets.filter((t: any) => {
                         const s = t.status?.toLowerCase();
@@ -2573,7 +2572,7 @@ function DashboardContent() {
                             <Button
                               type="link"
                               size="small"
-                              onClick={() => router.push("/tickets")}
+                              onClick={() => router.push("/projects/select")}
                               style={{ fontSize: 11, fontWeight: 600 }}
                             >
                               View all{" "}
@@ -2663,6 +2662,8 @@ function DashboardContent() {
                                   doing: { label: "In Progress", color: "#0EA5E9", bg: "#F0F9FF" },
                                   in_testing: { label: "In Testing", color: "#F59E0B", bg: "#FFFBEB" },
                                   testing: { label: "In Testing", color: "#F59E0B", bg: "#FFFBEB" },
+                                  live_testing: { label: "In Testing", color: "#F59E0B", bg: "#FFFBEB" },
+                                  "live testing": { label: "In Testing", color: "#F59E0B", bg: "#FFFBEB" },
                                   not_started: { label: "Not Started", color: "#94A3B8", bg: token.colorFillAlter },
                                 };
                                 const sm =
@@ -2923,7 +2924,7 @@ function DashboardContent() {
                           title: "Create Ticket",
                           desc: "Log a new task or issue",
                           accent: "#7C3AED",
-                          onClick: () => router.push("/tickets"),
+                          onClick: () => router.push("/projects/create"),
                           shortcut: "T",
                         },
                         {
@@ -2936,10 +2937,10 @@ function DashboardContent() {
                         },
                         {
                           icon: <AppstoreOutlined />,
-                          title: "Projects",
-                          desc: "View all active projects",
+                          title: "Project",
+                          desc: "Manage and track all projects",
                           accent: "#0EA5E9",
-                          onClick: () => router.push("/projects"),
+                          onClick: () => router.push("/projects/manage"),
                           shortcut: "P",
                         },
                       ];
@@ -3494,7 +3495,7 @@ function DashboardContent() {
                           style={{ ...cardBase, height: 340, overflow: "hidden" }}
                           styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
                           title={sectionTitle(<TrophyOutlined />, "My Tickets", "#7C3AED")}
-                          extra={<Button type="link" size="small" onClick={() => router.push("/tickets")} style={{ fontSize: 11 }}>View all</Button>}
+                          extra={<Button type="link" size="small" onClick={() => router.push("/projects/select")} style={{ fontSize: 11 }}>View all</Button>}
                         >
                           <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
                             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
@@ -4192,7 +4193,7 @@ function DashboardContent() {
                       }).length;
                       const testingCount = recentTickets.filter((t: any) => {
                         const s = t.status?.toLowerCase();
-                        return s === "in_testing" || s === "testing";
+                        return s === "in_testing" || s === "testing" || s === "live_testing" || s === "live testing";
                       }).length;
                       const notStartedCount = recentTickets.filter((t: any) => {
                         const s = t.status?.toLowerCase();
@@ -4329,7 +4330,7 @@ function DashboardContent() {
                             <Button
                               type="link"
                               size="small"
-                              onClick={() => router.push("/tickets")}
+                              onClick={() => router.push("/projects/select")}
                               style={{ fontSize: 11, fontWeight: 600 }}
                             >
                               View all <ArrowRightOutlined style={{ fontSize: 10 }} />
@@ -4409,6 +4410,16 @@ function DashboardContent() {
                                       color: "#F59E0B",
                                       bg: "#FFFBEB",
                                     },
+                                    live_testing: {
+                                      label: "In Testing",
+                                      color: "#F59E0B",
+                                      bg: "#FFFBEB",
+                                    },
+                                    "live testing": {
+                                      label: "In Testing",
+                                      color: "#F59E0B",
+                                      bg: "#FFFBEB",
+                                    },
                                     not_started: {
                                       label: "Not Started",
                                       color: "#94A3B8",
@@ -4440,7 +4451,7 @@ function DashboardContent() {
                                     <div
                                       key={item.id}
                                       onClick={() =>
-                                        router.push(`/tickets/${item.id}`)
+                                        setSelectedTicketId(item.id)
                                       }
                                       className="ticket-list-item"
                                       style={{
@@ -4910,7 +4921,7 @@ function DashboardContent() {
                                     <div
                                       key={lead.id}
                                       onClick={() =>
-                                        router.push(`/leads/${lead.id}`)
+                                        router.push(`/leads/view/${lead.id}`)
                                       }
                                       className="ticket-list-item"
                                       style={{
@@ -5430,7 +5441,7 @@ function DashboardContent() {
                             <Button
                               type="link"
                               size="small"
-                              onClick={() => router.push("/invoice")}
+                              onClick={() => router.push("/invoice/invoices")}
                               style={{ fontSize: 11, fontWeight: 600 }}
                             >
                               View all{" "}
@@ -5510,7 +5521,7 @@ function DashboardContent() {
                                     <div
                                       key={invoice.id}
                                       onClick={() =>
-                                        router.push(`/invoice/${invoice.id}`)
+                                        router.push(`/invoice/invoices/view/${invoice.invoiceNumber}`)
                                       }
                                       className="ticket-list-item"
                                       style={{

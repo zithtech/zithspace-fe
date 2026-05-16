@@ -475,8 +475,8 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
       <Card
         title={<Space><BankOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Work Details</span></Space>}
         bordered={false}
-        style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
-        styles={{ body: { padding: "24px" } }}
+        style={{ background: "transparent", border: "none" }}
+        styles={{ body: { padding: "24px 40px" } }}
       >
         <Form
           layout="vertical"
@@ -577,7 +577,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
 
             <Col span={24}>
               {workType === "Hybrid" && (
-                <div style={{ background: "var(--bg-slate-50)", padding: "16px", borderRadius: "8px", border: "1px solid var(--border-slate-100)", marginBottom: "16px" }}>
+                <div style={{ background: "transparent", padding: "16px 0", borderBottom: "1px solid var(--border-slate-100)", marginBottom: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
                     <span style={{ fontWeight: 500 }}>Hybrid Mode:</span>
                     <Switch
@@ -662,8 +662,8 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           <Card
             title={<Space><CalendarOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Employee Timeline</span></Space>}
             bordered={false}
-            style={{ height: "100%", background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
-            styles={{ body: { padding: "24px" } }}
+            style={{ height: "100%", background: "transparent", border: "none" }}
+            styles={{ body: { padding: "24px 40px" } }}
           >
             <Form
               layout="vertical"
@@ -730,8 +730,8 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           <Card
             title={<Space><TrophyOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Additional Details</span></Space>}
             bordered={false}
-            style={{ height: "100%", background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
-            styles={{ body: { padding: "24px" } }}
+            style={{ height: "100%", background: "transparent", border: "none" }}
+            styles={{ body: { padding: "24px 40px" } }}
           >
             <Form
               layout="vertical"

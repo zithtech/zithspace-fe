@@ -42,6 +42,11 @@ import { MembersService, Member } from '@/services/membersService';
 import { ProjectService } from '@/services/projectService';
 import { usePermission } from '@/hooks/usePermission';
 import dayjs from 'dayjs';
+import localeData from 'dayjs/plugin/localeData';
+import weekday from 'dayjs/plugin/weekday';
+
+dayjs.extend(localeData);
+dayjs.extend(weekday);
 import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;
@@ -464,7 +469,16 @@ export default function ManageAttendancePage() {
               <RangePicker
                 style={{ width: '100%', borderRadius: '8px' }}
                 value={dateRange}
-                onChange={(dates) => setDateRange(dates as any)}
+                onChange={(dates) => {
+                  if (dates && dates[0] && dates[1]) {
+                    setDateRange([
+                      dates[0].startOf('day'),
+                      dates[1].endOf('day'),
+                    ]);
+                  } else {
+                    setDateRange(null);
+                  }
+                }}
               />
             </Col>
           </Row>

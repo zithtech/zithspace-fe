@@ -41,6 +41,7 @@ interface AttachmentListProps {
   attachments: Attachment[];
   onDelete: (attachmentId: string) => Promise<void>;
   onRename?: (attachmentId: string, newFileName: string) => Promise<void>;
+  onOpen?: () => void;
   currentUserId?: string;
   loading?: boolean;
 }
@@ -49,6 +50,7 @@ export default function AttachmentList({
   attachments,
   onDelete,
   onRename,
+  onOpen,
   currentUserId,
   loading = false,
 }: AttachmentListProps) {
@@ -131,7 +133,10 @@ export default function AttachmentList({
     }
   };
 
-  const handleDownload = (fileUrl: string, fileName: string) => {
+  const handleDownload = (e: React.MouseEvent, fileUrl: string, fileName: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onOpen?.();
     const link = document.createElement("a");
     link.href = fileUrl;
     link.download = fileName;
@@ -177,8 +182,9 @@ export default function AttachmentList({
                   transition: "all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1)",
                   position: "relative",
                   overflow: "hidden",
-                  cursor: "default"
+                  cursor: "pointer"
                 }}
+                onClick={(e) => handleDownload(e, attachment.fileUrl, attachment.fileName)}
               >
                 {/* File Icon Block */}
                 <div style={{
@@ -259,7 +265,7 @@ export default function AttachmentList({
                     type="text"
                     size="small"
                     icon={<DownloadOutlined style={{ fontSize: 13, color: "#1890ff" }} />}
-                    onClick={() => handleDownload(attachment.fileUrl, attachment.fileName)}
+                    onClick={(e) => handleDownload(e, attachment.fileUrl, attachment.fileName)}
                     style={{ background: "#e6f7ff", borderRadius: 6 }}
                   />
                   {onRename && (
@@ -267,7 +273,10 @@ export default function AttachmentList({
                       type="text"
                       size="small"
                       icon={<EditOutlined style={{ fontSize: 13, color: "#faad14" }} />}
-                      onClick={() => startEditing(attachment)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEditing(attachment);
+                      }}
                       style={{ background: "#fff7e6", borderRadius: 6 }}
                     />
                   )}
@@ -277,7 +286,10 @@ export default function AttachmentList({
                     danger
                     icon={<DeleteOutlined style={{ fontSize: 13 }} />}
                     loading={deletingId === attachment.id}
-                    onClick={() => handleDelete(attachment.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(attachment.id);
+                    }}
                     style={{ background: "#fff1f0", borderRadius: 6 }}
                   />
                 </div>

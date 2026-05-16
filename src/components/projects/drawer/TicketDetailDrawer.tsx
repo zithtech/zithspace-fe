@@ -720,7 +720,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   {
                     key: 'zai',
                     label: (
-                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 260 }}>
+                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 290 }}>
                         <div
                           className="flex items-center justify-center shrink-0 text-white"
                           style={{
@@ -1345,7 +1345,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                         <LinkedDocumentHubsList
                           hubs={linkedHubs}
                           isLoading={linkedHubsLoading}
-                          onOpenHub={(hubId) => router.push(`/documenthub/${hubId}`)}
+                          onOpenHub={(hubId) => {
+                            onClose();
+                            router.push(`/documenthub/${hubId}`);
+                          }}
                         />
                         <AttachmentsSection
                           attachments={attachments}
@@ -1354,6 +1357,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                           onUpload={async (f, n) => await uploadAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", file: f, fileName: n })}
                           onDelete={async (id) => await deleteAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", attachmentId: id })}
                           onRename={async (id, newName) => await renameAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", attachmentId: id, newFileName: newName })}
+                          onOpen={onClose}
                           currentUserId={currentUserId}
                         />
                       </>
@@ -2203,6 +2207,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       defaultTicketId={ticket?.id}
       lockLink
       onCreated={(hubId) => {
+        onClose();
         queryClient.invalidateQueries({ queryKey: ['ticket', currentTicketId, 'documentHubs'] });
         router.push(`/documenthub/${hubId}`);
       }}
@@ -2219,6 +2224,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       defaultTicketId={ticket?.id}
       lockedTicket={ticket as any}
       onCreated={(hubId) => {
+        onClose();
         queryClient.invalidateQueries({ queryKey: ['ticket', currentTicketId, 'documentHubs'] });
         router.push(`/documenthub/${hubId}`);
       }}
@@ -2238,7 +2244,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
             box-shadow:
               0 12px 32px rgba(15, 23, 42, 0.10),
               0 2px 6px rgba(15, 23, 42, 0.06) !important;
-            min-width: 290px !important;
+            min-width: 320px !important;
           }
           .create-doc-from-ticket-menu .ant-dropdown-menu-item {
             border-radius: 10px !important;

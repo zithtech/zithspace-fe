@@ -55,10 +55,15 @@ export default function TeamTimePage() {
         }}
       >
         <TimeTrackingHeader
-          style={{ 
-            padding: '9.5px 32px', 
-            borderBottom: '1px solid var(--border-slate-200)',
-            marginBottom: 20
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 1000,
+            background: "var(--bg-primary)",
+            padding: "9.5px 32px",
+            borderBottom: "1px solid var(--border-slate-200)",
+            marginBottom: 20,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
           }}
           icon={<TeamOutlined style={{ fontSize: 18, color: "#8b5cf6" }} />}
           title="Team Tracking"

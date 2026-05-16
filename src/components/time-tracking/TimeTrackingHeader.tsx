@@ -15,6 +15,7 @@ interface TimeTrackingHeaderProps {
   onSearchChange?: (value: string) => void;
   extra?: React.ReactNode;
   style?: React.CSSProperties;
+  showIconBox?: boolean;
 }
 
 export function TimeTrackingHeader({
@@ -26,6 +27,7 @@ export function TimeTrackingHeader({
   onSearchChange,
   extra,
   style,
+  showIconBox = true,
 }: TimeTrackingHeaderProps) {
   return (
     <>
@@ -44,15 +46,23 @@ export function TimeTrackingHeader({
               {/* Desktop: This behaves like Space. Mobile: This becomes a Column */}
               <div className="saas-header-left-group">
                 <div className="saas-header-icon-title-row">
-                  <div className="bh-header-icon-box">
-                    {icon}
-                  </div>
+                  {icon && (
+                    showIconBox ? (
+                      <div className="bh-header-icon-box">
+                        {icon}
+                      </div>
+                    ) : (
+                      <div className="saas-header-custom-icon">
+                        {icon}
+                      </div>
+                    )
+                  )}
                   <div className="saas-header-title-box">
                     <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
                       {title}
                     </Title>
                     {subTitle && (
-                      <div style={{ marginTop: 0 }}>
+                      <div style={{ marginTop: 4 }}>
                         {subTitle}
                       </div>
                     )}
@@ -109,6 +119,11 @@ export function TimeTrackingHeader({
           border-radius: 4px;
           display: flex; align-items: center; justify-content: center;
           border: 1px solid rgba(139,92,246,0.2);
+          flex-shrink: 0;
+        }
+        .saas-header-custom-icon {
+          display: flex;
+          align-items: center;
           flex-shrink: 0;
         }
         [data-theme='dark'] .bh-header-icon-box {

@@ -13,6 +13,7 @@ interface AttachmentsSectionProps {
   onUpload: (file: string, fileName: string) => Promise<void>;
   onDelete: (attachmentId: string) => Promise<void>;
   onRename?: (attachmentId: string, newFileName: string) => Promise<void>;
+  onOpen?: () => void;
   currentUserId?: string;
 }
 
@@ -23,6 +24,7 @@ export default function AttachmentsSection({
   onUpload,
   onDelete,
   onRename,
+  onOpen,
   currentUserId,
 }: AttachmentsSectionProps) {
   const handleUpload = async (file: string, fileName: string) => {
@@ -82,6 +84,7 @@ export default function AttachmentsSection({
           attachments={attachments}
           onDelete={handleDelete}
           onRename={handleRename}
+          onOpen={onOpen}
           currentUserId={currentUserId}
           loading={isLoading}
         />

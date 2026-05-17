@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import {
   App,
   Table,
@@ -159,7 +159,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
   );
 };
 
-const ProjectsManagePage: React.FC = () => {
+const ProjectsManageContent: React.FC = () => {
   const { theme } = useTheme();
   const { user, isLoading } = useAuth();
   const { notification, message } = App.useApp();
@@ -1392,6 +1392,12 @@ const ProjectsManagePage: React.FC = () => {
     </MainLayout >
   );
 };
+
+const ProjectsManagePage: React.FC = () => (
+  <Suspense fallback={null}>
+    <ProjectsManageContent />
+  </Suspense>
+);
 
 export default ProjectsManagePage;
 function handleDelete(id: any) {

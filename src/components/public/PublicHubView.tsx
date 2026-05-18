@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Spin, Empty, Button, Tooltip } from 'antd';
+import { Spin, Empty, Button, Tooltip, message } from 'antd';
 import {
     UserOutlined,
     CalendarOutlined,
@@ -11,6 +11,7 @@ import {
     DownOutlined,
     RightOutlined,
     GlobalOutlined,
+    FilePdfOutlined,
 } from '@ant-design/icons';
 import { PanelLeftClose, PanelLeft } from 'lucide-react';
 import { documentHubService as DocumentHubService } from '@/services/documentHub';
@@ -70,6 +71,77 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
     const [error, setError] = useState<string | null>(null);
     const [collapsed, setCollapsed] = useState(false);
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+    const contentRef = React.useRef<HTMLDivElement>(null);
+    const [exporting, setExporting] = useState(false);
+
+    const handleExportPdf = async () => {
+        if (!contentRef.current || !selectedDoc) return;
+
+        try {
+            setExporting(true);
+            const html2pdf = (await import('html2pdf.js')).default;
+
+            const element = contentRef.current.cloneNode(true) as HTMLElement;
+
+            // Wait for all images in the cloned element to load completely
+            const images = Array.from(element.getElementsByTagName('img'));
+            await Promise.all(
+                images.map((img) => {
+                    if (img.complete) return Promise.resolve();
+                    return new Promise((resolve) => {
+                        img.onload = resolve;
+                        img.onerror = resolve;
+                    });
+                })
+            );
+
+            // Apply PDF-specific styles to the clone
+            element.style.width = '100%';
+            element.style.maxWidth = '800px'; // A4 width approx
+            element.style.margin = '0';
+            element.style.padding = '20px 40px';
+            element.style.background = 'white';
+            element.style.border = 'none';
+            element.style.boxShadow = 'none';
+            element.style.height = 'auto';
+            element.style.overflow = 'visible';
+
+            // Create a temporary container that holds the clone with all proper BlockNote context classes
+            const container = document.createElement('div');
+            container.className = 'bn-container bn-editor'; // Supply BlockNote global stylesheet styles
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.top = '0';
+            container.style.width = '800px';
+            container.style.background = 'white';
+            container.appendChild(element);
+            document.body.appendChild(container);
+
+            const opt = {
+                margin: [10, 10, 10, 10], // top, left, bottom, right in mm
+                filename: `${selectedDoc.title || 'document'}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    letterRendering: true
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            await (html2pdf() as any).set(opt).from(element).save();
+            document.body.removeChild(container);
+            message.success('PDF downloaded successfully');
+        } catch (error) {
+            console.error('Failed to export PDF:', error);
+            message.error('Failed to generate PDF. Please try again.');
+        } finally {
+            setExporting(false);
+        }
+    };
 
     useEffect(() => {
         const fetchHub = async () => {
@@ -84,13 +156,27 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                     .map((n: any) => n.id);
                 setExpandedIds(new Set(folderIds));
 
-                // Auto-load the first file.
-                const firstFile = data.treeNodes?.find(
-                    (n: any) => n.type === 'file' && n.documentId,
-                );
-                if (firstFile) {
-                    setSelectedNodeId(firstFile.id);
-                    loadDocument(firstFile.documentId);
+                // Resolve target page from URL query param '?page=[documentId]' or '?page=[nodeId]'
+                const params = new URLSearchParams(window.location.search);
+                const targetPageId = params.get('page');
+
+                let targetFile = null;
+                if (targetPageId) {
+                    targetFile = data.treeNodes?.find(
+                        (n: any) => n.type === 'file' && (n.documentId === targetPageId || n.id === targetPageId)
+                    );
+                }
+
+                // Fallback to first file
+                if (!targetFile) {
+                    targetFile = data.treeNodes?.find(
+                        (n: any) => n.type === 'file' && n.documentId,
+                    );
+                }
+
+                if (targetFile) {
+                    setSelectedNodeId(targetFile.id);
+                    loadDocument(targetFile.documentId);
                 }
             } catch (err: any) {
                 console.error(err);
@@ -153,6 +239,10 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
         setSelectedNodeId(node.id);
         if (node.type === 'file' && node.documentId) {
             loadDocument(node.documentId);
+            // Deep-linking URL update: rewrite URL search params without page reload
+            const url = new URL(window.location.href);
+            url.searchParams.set('page', node.documentId);
+            window.history.replaceState(null, '', url.pathname + url.search);
         } else if (node.children && node.children.length > 0) {
             toggleExpand(node.id);
         }
@@ -407,6 +497,31 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                         </div>
                     </div>
                 </div>
+                <div className="flex items-center gap-3 shrink-0">
+                    {selectedDoc && (
+                        <Button
+                            type="primary"
+                            icon={<FilePdfOutlined />}
+                            onClick={handleExportPdf}
+                            loading={exporting}
+                            style={{
+                                borderRadius: 8,
+                                fontWeight: 600,
+                                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                borderColor: 'transparent',
+                                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)',
+                            }}
+                            onMouseEnter={(e) => {
+                                (e.currentTarget as HTMLButtonElement).style.filter = 'brightness(1.08)';
+                            }}
+                            onMouseLeave={(e) => {
+                                (e.currentTarget as HTMLButtonElement).style.filter = 'none';
+                            }}
+                        >
+                            Download PDF
+                        </Button>
+                    )}
+                </div>
             </header>
 
             <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
@@ -478,6 +593,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                         </div>
                     ) : selectedDoc ? (
                         <div
+                            ref={contentRef}
                             style={{
                                 maxWidth: 820,
                                 margin: '0 auto',

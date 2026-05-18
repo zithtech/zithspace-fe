@@ -585,10 +585,10 @@ export default function ClientV2DetailsPage() {
 
   const createdAt = client.createdAt
     ? new Date(client.createdAt).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
     : null;
 
   /* ---------------------- Render ---------------------- */

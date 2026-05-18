@@ -43,6 +43,12 @@ export interface Project {
   };
   createdAt: string;
   updatedAt: string;
+  /**
+   * Clients this project is linked to via `client_projects`. A project can
+   * be shared with multiple clients (rare but supported). Populated by
+   * GET /api/projects; absent on single-project endpoints.
+   */
+  clients?: { id: string; companyName: string; clientCode: string | null }[];
 }
 
 export interface CreateProjectData {

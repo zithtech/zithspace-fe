@@ -49,6 +49,10 @@ import {
   BadgeCheck,
   Calendar,
   ChevronRight,
+  KeyRound,
+  GitPullRequest,
+  CheckSquare,
+  Server,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useTenant } from "@/context/TenantContext";
@@ -61,6 +65,12 @@ import ContactsTab from "./Tabs/ContactsTab";
 import AllocationsTab from "./Tabs/AllocationsTab";
 import DocumentsTab from "./Tabs/DocumentsTab";
 import ProjectsTab from "./Tabs/ProjectsTab";
+import PortalAccessTab from "./Tabs/PortalAccessTab";
+import MeetingsTab from "./Tabs/MeetingsTab";
+import ChangeRequestsTab from "./Tabs/ChangeRequestsTab";
+import ApprovalsTab from "./Tabs/ApprovalsTab";
+import EnvironmentsTab from "./Tabs/EnvironmentsTab";
+import TeamTab from "./Tabs/TeamTab";
 
 const { Text } = Typography;
 
@@ -1214,6 +1224,135 @@ export default function ClientV2DetailsPage() {
                       <DocumentsTab
                         clientId={params.id as string}
                         documents={client.documents || []}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "6",
+                  label: (
+                    <span className="cd-tab-label">
+                      <KeyRound size={15} />
+                      <span>Portal Access</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <PortalAccessTab
+                        clientId={params.id as string}
+                        contacts={client.contacts || []}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "7",
+                  label: (
+                    <span className="cd-tab-label">
+                      <Calendar size={15} />
+                      <span>Meetings</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <MeetingsTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
+                        contacts={client.contacts || []}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "8",
+                  label: (
+                    <span className="cd-tab-label">
+                      <GitPullRequest size={15} />
+                      <span>Change Requests</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <ChangeRequestsTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "9",
+                  label: (
+                    <span className="cd-tab-label">
+                      <CheckSquare size={15} />
+                      <span>Approvals</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <ApprovalsTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "10",
+                  label: (
+                    <span className="cd-tab-label">
+                      <Server size={15} />
+                      <span>Environments</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <EnvironmentsTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "11",
+                  label: (
+                    <span className="cd-tab-label">
+                      <Users size={15} />
+                      <span>Team</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <TeamTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
                         onRefresh={fetchClientDetails}
                       />
                     </div>

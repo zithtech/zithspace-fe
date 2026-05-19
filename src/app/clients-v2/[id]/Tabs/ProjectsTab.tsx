@@ -40,10 +40,16 @@ import {
   Wallet,
   Briefcase,
   Hash,
+  FolderInput as FolderInputIcon,
+  Link2,
 } from "lucide-react";
 import { api } from "@/lib/axios";
 import { usePermission } from "@/hooks/usePermission";
 import dayjs from "dayjs";
+import {
+  ClientV2Service,
+  ImportableProject,
+} from "@/services/clientV2Service";
 
 const currencyOptions = [
   { value: "USD", label: "US Dollar", symbol: "$", minor: "Cent" },
@@ -77,6 +83,9 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   const [editingProject, setEditingProject] = useState<any>(null);
   const [editForm] = Form.useForm();
   const [notify, contextHolder] = notification.useNotification();
+
+  // Import-existing-projects modal state
+  const [isImportModalVisible, setIsImportModalVisible] = useState(false);
 
   // Live duplicate-check state for the Initiate New Project modal
   type CheckState = { status: "idle" | "checking" | "available" | "taken"; value: string };
@@ -457,6 +466,22 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             />
             {canUpdateClient && (
               <Button
+                size="large"
+                icon={<FolderInputIcon size={18} />}
+                onClick={() => setIsImportModalVisible(true)}
+                style={{
+                  borderRadius: 10,
+                  height: 40,
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                Import projects
+              </Button>
+            )}
+            {canUpdateClient && (
+              <Button
                 type="primary"
                 size="large"
                 icon={<Plus size={18} />}
@@ -808,6 +833,17 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         </div>
       </Modal>
 
+      <ImportProjectsModal
+        open={isImportModalVisible}
+        onClose={() => setIsImportModalVisible(false)}
+        clientId={clientId}
+        notify={notify}
+        onImported={() => {
+          setIsImportModalVisible(false);
+          fetchProjects();
+        }}
+      />
+
       <style dangerouslySetInnerHTML={{
         __html: `
         .premium-table .ant-table {
@@ -848,5 +884,402 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         }
       `}} />
     </div>
+  );
+}
+
+/* ====================================================================== */
+/*  Import Projects modal — pick from existing tenant projects that aren't */
+/*  already linked to this client.                                          */
+/* ====================================================================== */
+
+function ImportProjectsModal({
+  open,
+  onClose,
+  clientId,
+  onImported,
+  notify,
+}: {
+  open: boolean;
+  onClose: () => void;
+  clientId: string;
+  onImported: () => void;
+  notify: any;
+}) {
+  const [items, setItems] = useState<ImportableProject[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  const reload = async (q?: string) => {
+    setLoading(true);
+    try {
+      const data = await ClientV2Service.getImportableProjects(clientId, q);
+      setItems(data || []);
+    } catch (err: any) {
+      notify.error({
+        message: "Failed to load projects",
+        description: err?.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!open) {
+      setSearch("");
+      setSelected([]);
+      setItems([]);
+      return;
+    }
+    reload("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Debounce search
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => reload(search), 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  const toggle = (id: string) => {
+    setSelected((cur) =>
+      cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
+    );
+  };
+
+  const submit = async () => {
+    if (selected.length === 0) return;
+    setSubmitting(true);
+    try {
+      const res = await ClientV2Service.importProjects(clientId, selected);
+      notify.success({
+        message: `Linked ${res.linked} project${
+          res.linked === 1 ? "" : "s"
+        }${
+          res.skipped > 0
+            ? ` · ${res.skipped} already linked, skipped`
+            : ""
+        }`,
+        placement: "top",
+      });
+      onImported();
+    } catch (err: any) {
+      notify.error({
+        message: "Import failed",
+        description: err?.message,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      destroyOnClose
+      width={680}
+      closable={false}
+      styles={{
+        mask: { backgroundColor: "rgba(15,23,42,0.45)" },
+        content: {
+          background: "#ffffff",
+          border: "1px solid #e5e7eb",
+          padding: 0,
+          overflow: "hidden",
+        },
+        body: { padding: 0 },
+      }}
+    >
+      {/* Accent ribbon */}
+      <div style={{ height: 3, background: "#3b82f6" }} />
+
+      {/* Header */}
+      <div
+        style={{
+          padding: "20px 24px 16px",
+          borderBottom: "1px solid #e5e7eb",
+          display: "flex",
+          gap: 14,
+          alignItems: "flex-start",
+        }}
+      >
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 11,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            border: "1px solid #bfdbfe",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <FolderInputIcon size={20} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: "#0f172a",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Import existing projects
+          </div>
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 12.5,
+              color: "#64748b",
+              lineHeight: 1.55,
+            }}
+          >
+            Link projects already in this workspace to this client. A project
+            can be shared with multiple clients — importing here doesn&apos;t
+            unlink it from any others.
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: 18 }}>
+        <Input
+          allowClear
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          prefix={<Search size={14} color="#94a3b8" />}
+          placeholder="Search by project name or code…"
+          style={{ marginBottom: 12 }}
+        />
+
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: 10,
+            maxHeight: 380,
+            overflowY: "auto",
+            background: "#f8fafc",
+          }}
+        >
+          {loading ? (
+            <div
+              style={{
+                padding: 32,
+                textAlign: "center",
+                color: "#64748b",
+                fontSize: 13,
+              }}
+            >
+              Loading…
+            </div>
+          ) : items.length === 0 ? (
+            <div
+              style={{
+                padding: 32,
+                textAlign: "center",
+                color: "#64748b",
+                fontSize: 13,
+              }}
+            >
+              {search
+                ? `No projects match "${search}".`
+                : "Every project in this workspace is already linked to this client."}
+            </div>
+          ) : (
+            items.map((p, i) => {
+              const isSelected = selected.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => toggle(p.id)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "11px 14px",
+                    background: isSelected ? "#eff6ff" : "transparent",
+                    border: "none",
+                    borderTop: i === 0 ? "none" : "1px solid #e5e7eb",
+                    cursor: "pointer",
+                    width: "100%",
+                    textAlign: "left",
+                    transition: "background 120ms ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 4,
+                      background: isSelected ? "#3b82f6" : "#ffffff",
+                      border: `1px solid ${
+                        isSelected ? "#3b82f6" : "#cbd5e1"
+                      }`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {isSelected && (
+                      <CheckCircle2 size={12} color="#ffffff" strokeWidth={3} />
+                    )}
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 13.5,
+                          fontWeight: 600,
+                          color: "#0f172a",
+                        }}
+                      >
+                        {p.name}
+                      </span>
+                      {p.code && (
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 600,
+                            padding: "1px 7px",
+                            background: "#f1f5f9",
+                            border: "1px solid #e2e8f0",
+                            color: "#475569",
+                            borderRadius: 999,
+                            fontFamily:
+                              "ui-monospace, SFMono-Regular, Menlo, monospace",
+                          }}
+                        >
+                          {p.code}
+                        </span>
+                      )}
+                      {p.otherClientCount > 0 && (
+                        <Tooltip
+                          title={`Already linked to ${p.otherClientCount} other client${
+                            p.otherClientCount === 1 ? "" : "s"
+                          }`}
+                        >
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 500,
+                              padding: "1px 7px",
+                              background: "#f5f3ff",
+                              border: "1px solid #ddd6fe",
+                              color: "#6d28d9",
+                              borderRadius: 999,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
+                            <Link2 size={10} />
+                            Shared
+                          </span>
+                        </Tooltip>
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: 3,
+                        fontSize: 11.5,
+                        color: "#64748b",
+                        display: "flex",
+                        gap: 10,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span>Status: {p.status}</span>
+                      {p.projectManagerName && (
+                        <>
+                          <span style={{ color: "#cbd5e1" }}>·</span>
+                          <span>PM: {p.projectManagerName}</span>
+                        </>
+                      )}
+                      {p.startDate && (
+                        <>
+                          <span style={{ color: "#cbd5e1" }}>·</span>
+                          <span>
+                            Started {dayjs(p.startDate).format("MMM D, YYYY")}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {selected.length > 0 && (
+          <div
+            style={{
+              marginTop: 10,
+              padding: "8px 12px",
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              color: "#1d4ed8",
+              borderRadius: 8,
+              fontSize: 12.5,
+              fontWeight: 500,
+            }}
+          >
+            {selected.length} project{selected.length === 1 ? "" : "s"}{" "}
+            selected
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div
+        style={{
+          borderTop: "1px solid #e5e7eb",
+          padding: "12px 22px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
+          {items.length} project{items.length === 1 ? "" : "s"} available
+        </span>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            type="primary"
+            disabled={selected.length === 0 || submitting}
+            loading={submitting}
+            onClick={submit}
+            icon={<FolderInputIcon size={14} />}
+          >
+            {selected.length > 0
+              ? `Import ${selected.length} project${
+                  selected.length === 1 ? "" : "s"
+                }`
+              : "Import"}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }

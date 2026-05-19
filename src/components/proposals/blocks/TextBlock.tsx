@@ -56,7 +56,7 @@ export const TextBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => v
         <Form.Item 
           label={
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-              <span style={labelStyle}>Section Heading</span>
+              <span style={{ ...labelStyle, flex: 1 }}>Section Heading</span>
               <AIEnhanceButton 
                 originalData={data.heading} 
                 blockType="text (heading)" 
@@ -76,7 +76,7 @@ export const TextBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => v
         </Form.Item>
         <div style={{ marginBottom: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 6 }}>
-            <span style={labelStyle}>Main Content</span>
+            <span style={{ ...labelStyle, flex: 1 }}>Main Content</span>
             <AIEnhanceButton 
               originalData={data.content} 
               blockType="text (content)" 

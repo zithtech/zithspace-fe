@@ -18,11 +18,6 @@ const SectionLabel: React.FC<{ children: React.ReactNode; accent?: boolean }> = 
 
 export const BlockProperties = () => {
   const { blocks, selectedBlockId, updateBlock, setSelectedBlockId, documentTheme, setDocumentTheme } = useProposalStore();
-  const [tab, setTab] = useState<PanelTab>('content');
-  const themeId = documentTheme.themeId;
-  const fontId = documentTheme.fontId;
-  const setThemeId = (id: string) => setDocumentTheme({ themeId: id });
-  const setFontId = (id: string) => setDocumentTheme({ fontId: id });
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId);
   const otherBlocks = blocks.filter((b) => b.id !== selectedBlockId);
@@ -30,9 +25,8 @@ export const BlockProperties = () => {
 
   const containerRef = React.useRef<HTMLDivElement>(null);
   const activeRef = React.useRef<HTMLDivElement>(null);
-
   React.useEffect(() => {
-    if (!selectedBlockId || tab !== 'content') return;
+    if (!selectedBlockId) return;
     requestAnimationFrame(() => {
       if (activeRef.current && containerRef.current) {
         activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -40,7 +34,7 @@ export const BlockProperties = () => {
         containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
       }
     });
-  }, [selectedBlockId, tab]);
+  }, [selectedBlockId]);
 
   const handleUpdateBranding = (data: any) => {
     if (coverBlock) {
@@ -50,108 +44,8 @@ export const BlockProperties = () => {
 
   return (
     <div ref={containerRef} className="no-scrollbar pb-props">
-      {/* Tabs */}
-      <div className="pb-props__tabs" role="tablist">
-        <button
-          type="button"
-          className={`pb-props__tab ${tab === 'content' ? 'pb-props__tab--active' : ''}`}
-          onClick={() => setTab('content')}
-        >
-          <Sparkles size={12} />
-          <span>Content</span>
-        </button>
-        <button
-          type="button"
-          className={`pb-props__tab ${tab === 'style' ? 'pb-props__tab--active' : ''}`}
-          onClick={() => setTab('style')}
-        >
-          <Palette size={12} />
-          <span>Style</span>
-        </button>
-        <button
-          type="button"
-          className={`pb-props__tab ${tab === 'ai' ? 'pb-props__tab--active' : ''}`}
-          onClick={() => setTab('ai')}
-        >
-          <History size={12} />
-          <span>AI</span>
-        </button>
-      </div>
-
-      {tab === 'style' && (
-        <div className="pb-props__panel">
-          <div className="pb-props__card">
-            <div className="pb-props__card-head">
-              <div className="pb-props__card-title">
-                <Palette size={14} />
-                <span>Document Theme</span>
-              </div>
-            </div>
-            <SectionLabel>Accent</SectionLabel>
-            <div className="pb-style__swatches">
-              {THEME_PRESETS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={`pb-style__swatch ${themeId === t.id ? 'pb-style__swatch--active' : ''}`}
-                  style={{ background: `linear-gradient(135deg, ${t.from}, ${t.to})` }}
-                  onClick={() => setThemeId(t.id)}
-                  title={t.label}
-                >
-                  {themeId === t.id && <span className="pb-style__swatch-tick">✓</span>}
-                </button>
-              ))}
-            </div>
-            <div className="pb-style__divider" />
-            <SectionLabel>Typeface</SectionLabel>
-            <div className="pb-style__fonts">
-              {FONT_PRESETS.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  className={`pb-style__font ${fontId === f.id ? 'pb-style__font--active' : ''}`}
-                  style={{ fontFamily: f.family }}
-                  onClick={() => setFontId(f.id)}
-                >
-                  <span className="pb-style__font-label">{f.label}</span>
-                  <span className="pb-style__font-sample">Aa</span>
-                </button>
-              ))}
-            </div>
-            <div className="pb-style__note">
-              Style presets preview the look of your exported document.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {tab === 'ai' && (
-        <div className="pb-props__panel">
-          <div className="pb-props__card">
-            <div className="pb-props__card-head">
-              <div className="pb-props__card-title">
-                <Sparkles size={14} />
-                <span>Zai Activity</span>
-              </div>
-              <span className="pb-props__active-chip">Live</span>
-            </div>
-            <div className="pb-ai-tab__empty">
-              <div className="pb-ai-tab__orb">
-                <Sparkles size={18} />
-              </div>
-              <div className="pb-ai-tab__title">Zai is standing by</div>
-              <div className="pb-ai-tab__sub">
-                Select text in the canvas to rewrite, or use{' '}
-                <kbd className="pb-rail__kbd">⌘</kbd>
-                <kbd className="pb-rail__kbd">K</kbd> to invoke Zai across the whole document.
-                Your enhancement history will appear here.
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {tab === 'content' && (() => {
+      {/* Main Content Panel (Always Visible) */}
+      {(() => {
         const activeCard = selectedBlock && (
           <div key={selectedBlock.id} ref={activeRef} className="active-block-properties">
             <div className="pb-props__active-head">

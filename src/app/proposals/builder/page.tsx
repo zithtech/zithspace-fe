@@ -15,7 +15,6 @@ import { useProposalStore, BlockType } from '@/store/proposalStore';
 import { BlockProperties } from '@/components/proposals/BlockProperties';
 import { EditorCanvas } from '@/components/proposals/EditorCanvas';
 import { LeftRail } from '@/components/proposals/LeftRail';
-import { CanvasChrome } from '@/components/proposals/CanvasChrome';
 import { CommandPalette } from '@/components/proposals/CommandPalette';
 import { Typography, Layout, Button, message, Drawer, Space, Dropdown, Segmented } from 'antd';
 import type { MenuProps } from 'antd';
@@ -627,15 +626,6 @@ function BuilderContent() {
               className="builder-canvas-wrapper"
               style={{ flex: 1, height: '100%', overflowY: 'auto', minWidth: '300px', position: 'relative' }}
             >
-              {railPosition === 'top' && (
-                <CanvasChrome
-                  zoom={zoom}
-                  onZoomChange={setZoom}
-                  blockCount={blocks.length}
-                  savedAt={savedAt}
-                  onShare={() => messageApi.info('Share link copy is on the roadmap.')}
-                />
-              )}
               <div className="pb-canvas-stage" style={{ ['--pb-zoom' as any]: zoom }}>
                 <EditorCanvas />
               </div>
@@ -793,7 +783,8 @@ function BuilderContent() {
 
               [data-theme='dark'] #proposal-builder-canvas {
                 background: #161b22 !important;
-                box-shadow: 0 0 0 1px #30363d, 0 8px 24px rgba(0,0,0,0.3) !important;
+                border: 3px solid #30363d !important;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
               }
             `}} />
         </>

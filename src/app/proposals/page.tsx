@@ -13,6 +13,9 @@ import {
   Popconfirm,
   Segmented,
   Select,
+  Modal,
+  Popover,
+  Switch,
 } from 'antd';
 import {
   PlusOutlined,
@@ -35,13 +38,19 @@ import {
   FilterOutlined,
   UserOutlined,
   TeamOutlined,
+  EllipsisOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Settings, Layers, Mail } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
+import { TablePreferenceService } from '@/services/tablePreferenceService';
+import { MailService } from '@/services/mailService';
+import { LeadMailDrawer } from '@/components/leads/LeadMailDrawer';
 import { useRouter } from 'next/navigation';
+import ProtectedRoute from '@/components/common/ProtectedRoute';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -83,6 +92,25 @@ const Sparkline = ({ values, color }: { values: number[]; color: string }) => {
   );
 };
 
+const PROPOSALS_TABLE_KEY = "proposals_v1";
+type PropDensity = "compact" | "comfortable" | "spacious";
+
+const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
+  { key: 'title', label: 'Proposal Title' },
+  { key: 'client_name', label: 'Client' },
+  { key: 'status', label: 'Status' },
+  { key: 'createdBy', label: 'Created By' },
+  { key: 'created_at', label: 'Created Date' },
+  { key: 'updated_at', label: 'Last Updated' },
+  { key: 'mail', label: 'Mail' },
+  { key: 'actions', label: 'Actions' },
+];
+
+const DEFAULT_HIDDEN_COLS: Record<string, boolean> = {
+  createdBy: false,
+  updated_at: false,
+};
+
 export default function ProposalsListPage() {
   const { user, isLoading } = useAuth();
   const { canReadProposal, canCreateProposal, canUpdateProposal, canDeleteProposal } = usePermission();
@@ -90,11 +118,61 @@ export default function ProposalsListPage() {
 
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusKey>('all');
   const [clientFilter, setClientFilter] = useState<string | null>(null);
   const [creatorFilter, setCreatorFilter] = useState<string | null>(null);
   const [view, setView] = useState<'list' | 'grid'>('list');
+  const [tableDensity, setTableDensity] = useState<PropDensity>("comfortable");
+  const [hiddenCols, setHiddenCols] = useState<Record<string, boolean>>(DEFAULT_HIDDEN_COLS);
+  const [tablePrefsLoaded, setTablePrefsLoaded] = useState(false);
+  const tablePrefsSaveTimer = React.useRef<number | null>(null);
+  const [isMailDrawerVisible, setIsMailDrawerVisible] = useState(false);
+  const [selectedProposalForMail, setSelectedProposalForMail] = useState<any>(null);
+  const [invoiceMailSettings, setInvoiceMailSettings] = useState<any>(null);
+
+  // Load saved preferences
+  useEffect(() => {
+    (async () => {
+      try {
+        const [saved, invoiceSettings] = await Promise.all([
+          TablePreferenceService.get<{
+            density?: PropDensity;
+            hiddenCols?: Record<string, boolean>;
+          }>(PROPOSALS_TABLE_KEY),
+          MailService.getInvoiceMailSettings()
+        ]);
+
+        if (saved?.density) setTableDensity(saved.density);
+        if (saved?.hiddenCols) setHiddenCols(saved.hiddenCols);
+
+        if (invoiceSettings) {
+          const settings = (invoiceSettings as any).settings || [];
+          setInvoiceMailSettings(settings.find((s: any) => s.is_default_invoice_mail) || settings[0] || null);
+        }
+      } catch (err) {
+        console.warn("Failed to load table preferences or mail settings", err);
+      } finally {
+        setTablePrefsLoaded(true);
+      }
+    })();
+  }, []);
+
+  // Persist preferences
+  useEffect(() => {
+    if (!tablePrefsLoaded) return;
+    if (tablePrefsSaveTimer.current !== null) window.clearTimeout(tablePrefsSaveTimer.current);
+    tablePrefsSaveTimer.current = window.setTimeout(() => {
+      TablePreferenceService.save(PROPOSALS_TABLE_KEY, {
+        density: tableDensity,
+        hiddenCols,
+      }).catch((err) => console.warn("Failed to save table preferences", err));
+    }, 300);
+    return () => {
+      if (tablePrefsSaveTimer.current !== null) window.clearTimeout(tablePrefsSaveTimer.current);
+    };
+  }, [tablePrefsLoaded, tableDensity, hiddenCols]);
 
   const [messageApi, messageHolder] = message.useMessage();
 
@@ -434,96 +512,132 @@ export default function ProposalsListPage() {
       ),
     },
     {
+      title: 'Mail',
+      key: 'mail',
+      width: 140,
+      render: (_: any, record: any) => {
+        const isSent = !!record.last_mail_at || !!record.is_mail_sent || record.status === 'sent';
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Button
+              type="link"
+              icon={isSent ? <CheckCircleOutlined style={{ color: '#10b981' }} /> : <Mail size={16} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedProposalForMail(record);
+                setIsMailDrawerVisible(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: isSent ? '#10b981' : 'var(--premium-blue)',
+                fontWeight: 700,
+                fontSize: 13,
+                padding: 0,
+                height: 'auto'
+              }}
+            >
+              {isSent ? 'Sent' : 'Send Mail'}
+            </Button>
+            {record.last_mail_at && (
+              <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 500, paddingLeft: 20, marginTop: -2 }}>
+                {dayjs(record.last_mail_at).format('MMM D, YYYY')}
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       title: '',
       key: 'actions',
       align: 'right' as const,
-      width: 200,
+      width: 80,
       render: (_: any, record: any) => (
-        <Space size={2} className="prop-actions">
-          <Tooltip title="View">
-            <Button type="text" className="prop-icon-btn" icon={<EyeOutlined />} onClick={() => router.push(`/proposals/${record.id}`)} />
-          </Tooltip>
-          {canUpdateProposal && (
-            <Tooltip title="Edit">
-              <Button type="text" className="prop-icon-btn" icon={<EditOutlined />} onClick={() => router.push(`/proposals/builder?id=${record.id}`)} />
-            </Tooltip>
-          )}
-          {canUpdateProposal && (
-            <Dropdown
-              menu={{
-                items: [
-                  { key: 'pdf', label: 'Export PDF', icon: <FilePdfOutlined style={{ color: '#ef4444' }} /> },
-                  { key: 'word', label: 'Export Word', icon: <FileWordOutlined style={{ color: '#2563eb' }} /> },
-                ],
-                onClick: ({ key }) => {
-                  if (key === 'pdf') handleExport(record.id, 'pdf');
-                  else if (key === 'word') handleExport(record.id, 'word');
-                },
-              }}
-              trigger={['click']}
-            >
-              <Button type="text" className="prop-icon-btn" icon={<DownloadOutlined />} />
-            </Dropdown>
-          )}
-          {canDeleteProposal && (
-            <Popconfirm
-              title="Delete Proposal"
-              description="Are you sure you want to delete this proposal?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Yes, Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
-            >
-              <Button type="text" className="prop-icon-btn prop-icon-btn--danger" icon={<DeleteOutlined />} />
-            </Popconfirm>
-          )}
-        </Space>
+        <Dropdown
+          menu={{
+            items: [
+              { key: 'view', label: 'View', icon: <EyeOutlined /> },
+              { key: 'edit', label: 'Edit', icon: <EditOutlined />, disabled: !canUpdateProposal },
+              { key: 'download', label: 'Download', icon: <DownloadOutlined />, children: [
+                { key: 'pdf', label: 'PDF Document', icon: <FilePdfOutlined style={{ color: '#ef4444' }} /> },
+                { key: 'word', label: 'Word Document', icon: <FileWordOutlined style={{ color: '#2563eb' }} /> },
+              ]},
+              { type: 'divider' },
+              { key: 'delete', label: 'Delete', icon: <DeleteOutlined />, danger: true, disabled: !canDeleteProposal },
+            ],
+            onClick: ({ key }) => {
+              if (key === 'view') router.push(`/proposals/${record.id}`);
+              else if (key === 'edit') router.push(`/proposals/builder?id=${record.id}`);
+              else if (key === 'pdf') handleExport(record.id, 'pdf');
+              else if (key === 'word') handleExport(record.id, 'word');
+              else if (key === 'delete') {
+                Modal.confirm({
+                  title: 'Delete Proposal',
+                  content: 'Are you sure you want to delete this proposal? This action cannot be undone.',
+                  okText: 'Delete',
+                  okType: 'danger',
+                  cancelText: 'Cancel',
+                  onOk: () => handleDelete(record.id),
+                });
+              }
+            },
+          }}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <Button type="text" className="prop-icon-btn" icon={<EllipsisOutlined />} />
+        </Dropdown>
       ),
     },
-  ];
+  ].filter(col => !hiddenCols[col.key as string]);
 
   return (
-    <MainLayout>
+    <ProtectedRoute>
+      <MainLayout>
       {messageHolder}
 
       <div className="prop-page">
-        {/* Page header */}
-        <div className="prop-header">
-          <div className="prop-header__left">
-            <div className="prop-header__icon">
-              <SnippetsOutlined />
+        {/* Page header - STICKY */}
+        <div className="prop-sticky">
+          <div className="prop-header">
+            <div className="prop-header__left">
+              <div className="prop-header__icon">
+                <SnippetsOutlined />
+              </div>
+              <div className="prop-header__text">
+                <Title level={4} className="prop-header__title">Proposals</Title>
+                <span className="prop-header__divider" aria-hidden="true" />
+                <Text className="prop-header__sub">Manage and track your winning business proposals</Text>
+              </div>
             </div>
-            <div className="prop-header__text">
-              <Title level={4} className="prop-header__title">Proposals</Title>
-              <span className="prop-header__divider" aria-hidden="true" />
-              <Text className="prop-header__sub">Manage and track your winning business proposals</Text>
+            <div className="prop-header__right">
+              <Button
+                type="default"
+                className="prop-cta-secondary"
+                icon={<ReloadOutlined />}
+                onClick={fetchProposals}
+                loading={loading}
+              >
+                Refresh
+              </Button>
+              {canCreateProposal && (
+              <Button
+                type="primary"
+                className="prop-cta-primary"
+                icon={<PlusOutlined />}
+                onClick={() => router.push('/proposals/builder')}
+              >
+                New Proposal
+              </Button>
+              )}
             </div>
-          </div>
-          <div className="prop-header__right">
-            <Button
-              type="default"
-              className="prop-cta-secondary"
-              icon={<ReloadOutlined />}
-              onClick={fetchProposals}
-              loading={loading}
-            >
-              Refresh
-            </Button>
-            {canCreateProposal && (
-            <Button
-              type="primary"
-              className="prop-cta-primary"
-              icon={<PlusOutlined />}
-              onClick={() => router.push('/proposals/builder')}
-            >
-              New Proposal
-            </Button>
-            )}
           </div>
         </div>
 
         {/* Stats strip — doc-hub style */}
-        <div className="prop-stats-strip">
+        <div className="prop-stats-strip" style={{ marginTop: 24 }}>
           {statCells.map((s, i) => (
             <div
               key={s.key}
@@ -668,10 +782,73 @@ export default function ProposalsListPage() {
               { value: 'grid', icon: <AppstoreOutlined /> },
             ]}
           />
+
+          <Popover
+            trigger={["click"]}
+            placement="bottomRight"
+            classNames={{ root: "prop-table-settings-popover" }}
+            content={
+              <div style={{ width: 240 }}>
+                <div className="prop-popover-section-label">
+                  <Settings size={11} />
+                  <span>Density</span>
+                </div>
+                <Segmented
+                  block
+                  value={tableDensity}
+                  onChange={(v) => setTableDensity(v as PropDensity)}
+                  options={[
+                    { label: "Compact", value: "compact" },
+                    { label: "Cozy", value: "comfortable" },
+                    { label: "Roomy", value: "spacious" },
+                  ]}
+                />
+                <div className="prop-popover-section-label" style={{ marginTop: 14 }}>
+                  <Layers size={11} />
+                  <span>Columns</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {TOGGLEABLE_COLUMNS.map((c) => (
+                    <label key={c.key} className="prop-col-toggle-row">
+                      <span>{c.label}</span>
+                      <Switch
+                        size="small"
+                        checked={!hiddenCols[c.key]}
+                        onChange={(checked) =>
+                          setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+                <div className="prop-popover-footer">
+                  <button
+                    type="button"
+                    className="prop-popover-reset"
+                    onClick={() => {
+                      setHiddenCols(DEFAULT_HIDDEN_COLS);
+                      setTableDensity("comfortable");
+                    }}
+                  >
+                    Reset
+                  </button>
+                  <span className="prop-popover-saved">Auto-saved</span>
+                </div>
+              </div>
+            }
+          >
+            <Tooltip title="Table settings">
+              <Button
+                icon={<SettingOutlined />}
+                className="prop-filterbar__btn"
+                style={{ marginLeft: 8 }}
+              />
+            </Tooltip>
+          </Popover>
         </div>
 
         {/* Table + Grid */}
-        <div className="prop-card">
+        <div className="prop-card" data-density={tableDensity}>
 
           {view === 'list' ? (
             <Table
@@ -767,7 +944,31 @@ export default function ProposalsListPage() {
             </div>
           )}
         </div>
+
+        <LeadMailDrawer
+          visible={isMailDrawerVisible}
+          onClose={() => {
+            setIsMailDrawerVisible(false);
+            setSelectedProposalForMail(null);
+          }}
+          lead={selectedProposalForMail ? {
+            id: selectedProposalForMail.lead_id || selectedProposalForMail.id,
+            title: selectedProposalForMail.title,
+            client_name: selectedProposalForMail.client_name,
+            client_mail: selectedProposalForMail.client_mail || "",
+            proposal_id: selectedProposalForMail.id,
+            last_mail_at: selectedProposalForMail.last_mail_at,
+            is_mail_sent: selectedProposalForMail.is_mail_sent
+          } as any : null}
+          fromEmail={invoiceMailSettings?.email}
+          onSuccess={() => {
+            setIsMailDrawerVisible(false);
+            setSelectedProposalForMail(null);
+            fetchProposals();
+          }}
+        />
       </div>
-    </MainLayout>
+      </MainLayout>
+    </ProtectedRoute>
   );
 }

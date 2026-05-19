@@ -5444,17 +5444,17 @@ select:-webkit-autofill:focus {
 .pb-paper {
   position: relative;
   width: 100%;
-  max-width: 1100px;
+  max-width: none; /* Increase content width */
   min-height: 1100px;
   background: var(--bg-pure-white);
   border-radius: 6px;
-  padding: 56px 72px;
+  padding: 10px !important; /* border inside space 10px */
   margin-top: 28px;
+  border: 3px solid var(--border-color); /* increase content border width */
   box-shadow:
     0 1px 0 rgba(15, 23, 42, 0.04),
     0 12px 28px rgba(15, 23, 42, 0.06),
-    0 32px 64px rgba(15, 23, 42, 0.06),
-    0 0 0 1px rgba(15, 23, 42, 0.04);
+    0 32px 64px rgba(15, 23, 42, 0.06);
 }
 
 .pb-paper::before {
@@ -11732,14 +11732,21 @@ select:-webkit-autofill:focus {
 
 /* --- Header: quieter wash, tighter type --------------------------- */
 .pb-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
   background: var(--bg-secondary) !important;
   border-bottom: 1px solid var(--border-color);
   height: 60px !important;
   padding: 0 22px !important;
-  backdrop-filter: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 1px 0 rgba(15,23,42,0.03);
 }
-[data-theme='dark'] .pb-header { background: #0d1117 !important; box-shadow: 0 1px 0 rgba(255,255,255,0.04); }
+[data-theme='dark'] .pb-header { 
+  background: #0d1117 !important; 
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04); 
+}
 
 .pb-header__brand {
   width: 32px !important;
@@ -11840,6 +11847,7 @@ select:-webkit-autofill:focus {
   background:
     radial-gradient(circle, rgba(15,23,42,0.06) 1px, transparent 1px) 0 0 / 22px 22px,
     var(--bg-slate-50) !important;
+  padding: 0 30px !important; /* outer space 30px */
 }
 [data-theme='dark'] .builder-canvas-wrapper {
   background:
@@ -11852,6 +11860,7 @@ select:-webkit-autofill:focus {
   border-radius: 8px !important;
   box-shadow: var(--pb-elev-3) !important;
   margin-top: 36px !important;
+  width: 100% !important;
 }
 .pb-paper::before {
   top: -10px !important;
@@ -12089,6 +12098,17 @@ select:-webkit-autofill:focus {
   padding: 24px 22px !important;
   background: var(--bg-secondary) !important;
   border-left: 1px solid var(--border-color);
+}
+
+.pb-props .ant-form-item-label {
+  width: 100%;
+}
+
+.pb-props .ant-form-item-label > label {
+  width: 100%;
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .pb-props__active-head {
@@ -12755,7 +12775,7 @@ select:-webkit-autofill:focus {
 .pb-canvas-stage {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   transform-origin: top center;
   transform: scale(var(--pb-zoom, 1));
   transition: transform 0.22s cubic-bezier(.2,.8,.2,1);
@@ -13451,11 +13471,101 @@ select:-webkit-autofill:focus {
   background: #0d1117 !important;
 }
 
+/* Table density and settings */
+.prop-table-settings-popover .ant-popover-inner {
+  padding: 14px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--border-slate-100) !important;
+}
+.prop-popover-section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-slate-500);
+  margin-bottom: 8px;
+}
+.prop-popover-section-label svg { color: var(--text-slate-400); }
+.prop-col-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  transition: background .12s ease;
+  font-size: 12.5px;
+  color: var(--text-slate-700);
+  cursor: pointer;
+}
+.prop-col-toggle-row:hover { background: var(--bg-slate-50); }
+.prop-popover-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-slate-100);
+}
+.prop-popover-reset {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: #4f46e5;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-family: inherit;
+}
+.prop-popover-reset:hover { color: #4338ca; }
+.prop-popover-saved {
+  font-size: 10.5px;
+  color: var(--text-slate-400);
+  font-weight: 500;
+}
+
+.prop-card[data-density='compact'] .ant-table-wrapper .ant-table-tbody > tr > td {
+  padding: 8px 14px !important;
+}
+.prop-card[data-density='comfortable'] .ant-table-wrapper .ant-table-tbody > tr > td {
+  padding: 14px 16px !important;
+}
+.prop-card[data-density='spacious'] .ant-table-wrapper .ant-table-tbody > tr > td {
+  padding: 20px 18px !important;
+}
+
+[data-theme='dark'] .prop-table-settings-popover .ant-popover-inner {
+  background: var(--bg-secondary) !important;
+}
+[data-theme='dark'] .prop-col-toggle-row:hover {
+  background: var(--bg-primary);
+}
+
+/* --- Sticky chrome wrapper --------------------------------------- */
+.prop-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-pure-white);
+  margin: 0 -24px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+[data-theme='dark'] .prop-sticky {
+  background: #0d1117;
+  border-bottom-color: #30363d;
+}
+
 /* --- Header: flat, no glass ------------------------------------- */
 .prop-header {
-  padding: 18px 0 16px !important;
-  margin-bottom: 16px !important;
+  padding: 10px 0 10px !important;
+  margin-bottom: 0 !important;
   background: transparent !important;
+  border-bottom: none !important;
 }
 .prop-header__icon {
   background: rgba(59,130,246,0.10) !important;
@@ -13483,7 +13593,7 @@ select:-webkit-autofill:focus {
   display: flex !important;
   flex-direction: row !important;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   min-width: 0;
 }
 .prop-header__divider {
@@ -13574,8 +13684,8 @@ select:-webkit-autofill:focus {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
+  padding: 14px 20px;
+  gap: 16px;
   transition: background 0.15s ease;
 }
 .prop-stat-cell:hover { background: var(--bg-slate-50); }
@@ -14183,7 +14293,7 @@ select:-webkit-autofill:focus {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 32px 12px;
+  padding: 10px 32px 8px;
 }
 .pd-header__left {
   display: flex;
@@ -14231,7 +14341,7 @@ select:-webkit-autofill:focus {
 .pd-header__text {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   min-width: 0;
 }
 .pd-header__title {

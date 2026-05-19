@@ -170,7 +170,7 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
 
         <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <span style={labelStyle}>Section Details</span>
+            <span style={{ ...labelStyle, flex: 1 }}>Section Details</span>
             <AIEnhanceButton 
               originalData={{ title: data.title }} 
               blockType="scope (title)" 
@@ -207,7 +207,7 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
               position: 'relative'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <Text strong style={{ fontSize: '0.75rem', color: 'var(--text-primary)', textTransform: 'uppercase' }}>Milestone Phase</Text>
+                <Text strong style={{ fontSize: '0.75rem', color: 'var(--text-primary)', textTransform: 'uppercase', flex: 1 }}>Milestone Phase</Text>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <AIEnhanceButton 
                     originalData={m} 
@@ -306,7 +306,7 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <div style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <span style={labelStyle}>Boundary Details</span>
+                    <span style={{ ...labelStyle, flex: 1 }}>Boundary Details</span>
                     <AIEnhanceButton 
                       originalData={term} 
                       blockType="scope (boundary)" 
@@ -349,7 +349,7 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
               </div>
 
               <div>
-                <span style={labelStyle}>Description Details</span>
+                <span style={{ ...labelStyle, flex: 1, display: 'block' }}>Description Details</span>
                 <TiptapEditor
                   content={term.description || ''}
                   onChange={(html) => {

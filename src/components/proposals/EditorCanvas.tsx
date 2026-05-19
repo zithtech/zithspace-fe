@@ -108,7 +108,6 @@ export const EditorCanvas = () => {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
       }}
     >
       <div id="proposal-builder-canvas" ref={setNodeRef} className="pb-paper" style={paperStyle}>

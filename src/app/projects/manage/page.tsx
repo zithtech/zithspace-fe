@@ -159,7 +159,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
   );
 };
 
-const ProjectsManagePage: React.FC = () => {
+const ProjectsManageContent: React.FC = () => {
   const { theme } = useTheme();
   const { user, isLoading } = useAuth();
   const { notification, message } = App.useApp();
@@ -1390,6 +1390,14 @@ const ProjectsManagePage: React.FC = () => {
         [data-theme='dark'] .pm-stat-card { background: var(--bg-secondary); }
       `}</style>
     </MainLayout >
+  );
+};
+
+const ProjectsManagePage = () => {
+  return (
+    <React.Suspense fallback={null}>
+      <ProjectsManageContent />
+    </React.Suspense>
   );
 };
 

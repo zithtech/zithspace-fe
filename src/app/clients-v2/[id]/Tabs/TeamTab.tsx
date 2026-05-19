@@ -781,14 +781,13 @@ function TeamMemberModal({
   const handleStaffPick = (id: string | undefined) => {
     if (!id) return;
     const picked = staffOptions.find((s) => s.id === id);
-    if (picked) {
-      // Auto-fill display name + email if the fields are empty
-      const cur = form.getFieldsValue();
-      const next: any = {};
-      if (!cur.displayName) next.displayName = picked.name;
-      if (!cur.contactEmail) next.contactEmail = picked.work_email || undefined;
-      if (Object.keys(next).length) form.setFieldsValue(next);
-    }
+    if (!picked) return;
+    const cur = form.getFieldsValue();
+    const next: any = {};
+    if (!cur.displayName) next.displayName = picked.name;
+    if (!cur.contactEmail) next.contactEmail = picked.work_email || undefined;
+    if (picked.title) next.roleLabel = picked.title;
+    if (Object.keys(next).length) form.setFieldsValue(next);
   };
 
   const submit = async (v: any) => {
@@ -869,34 +868,25 @@ function TeamMemberModal({
         >
           <Form.Item
             name="staffUserId"
-            label={<L c={c} hint="optional · auto-fills basics">Link to staff member</L>}
+            label={
+              <L c={c} hint="optional · auto-fills name, email, role">
+                Link to staff member
+              </L>
+            }
             style={{ marginBottom: 12 }}
           >
             <Select
               allowClear
               showSearch
-              placeholder="Search staff…"
+              placeholder="Search staff by name or email…"
               filterOption={false}
               onSearch={setStaffSearch}
               onChange={handleStaffPick}
+              optionLabelProp="labelText"
               options={staffOptions.map((s) => ({
                 value: s.id,
-                label: (
-                  <span>
-                    {s.name}
-                    {s.work_email && (
-                      <span
-                        style={{
-                          color: c.textSubtle,
-                          fontSize: 11.5,
-                          marginLeft: 6,
-                        }}
-                      >
-                        {s.work_email}
-                      </span>
-                    )}
-                  </span>
-                ),
+                labelText: s.name,
+                label: <StaffOptionRow option={s} c={c} />,
               }))}
             />
           </Form.Item>
@@ -957,14 +947,15 @@ function TeamMemberModal({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
+              gridTemplateColumns: "1.4fr 1fr",
               gap: 10,
+              marginBottom: 12,
             }}
           >
             <Form.Item
               name="contactEmail"
-              label={<L c={c} hint="defaults to work email">Email override</L>}
-              style={{ marginBottom: 12 }}
+              label={<L c={c} hint="overrides staff work email">Email</L>}
+              style={{ marginBottom: 0 }}
             >
               <Input
                 prefix={<Mail size={13} color={c.textFaint} />}
@@ -974,28 +965,79 @@ function TeamMemberModal({
             <Form.Item
               name="contactPhone"
               label={<L c={c} hint="optional">Phone</L>}
-              style={{ marginBottom: 12 }}
+              style={{ marginBottom: 0 }}
             >
               <Input
                 prefix={<Phone size={13} color={c.textFaint} />}
                 placeholder="+1 555 …"
               />
             </Form.Item>
-            <Form.Item
-              name="projectId"
-              label={<L c={c} hint="optional">Project</L>}
-              style={{ marginBottom: 12 }}
-            >
-              <Select
-                allowClear
-                placeholder="—"
-                options={projects.map((p) => ({
-                  value: p.id,
-                  label: p.code ? `${p.name} · ${p.code}` : p.name,
-                }))}
-              />
-            </Form.Item>
           </div>
+
+          <Form.Item
+            name="projectId"
+            label={
+              <L c={c} hint={`${projects.length} linked to this client`}>
+                Linked project
+              </L>
+            }
+            style={{ marginBottom: 12 }}
+          >
+            <Select
+              allowClear
+              placeholder={
+                projects.length
+                  ? "Pick a project this member works on"
+                  : "No projects linked to this client yet"
+              }
+              disabled={projects.length === 0}
+              suffixIcon={<Briefcase size={13} color={c.textFaint} />}
+              optionLabelProp="labelText"
+              options={projects.map((p) => ({
+                value: p.id,
+                labelText: p.code ? `${p.name} · ${p.code}` : p.name,
+                label: (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      minWidth: 0,
+                    }}
+                  >
+                    <Briefcase size={12} color={c.textFaint} />
+                    <span
+                      style={{
+                        color: c.text,
+                        fontWeight: 500,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {p.name}
+                    </span>
+                    {p.code && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: c.textSubtle,
+                          padding: "1px 6px",
+                          background: c.surfaceMuted,
+                          border: `1px solid ${c.border}`,
+                          borderRadius: 4,
+                          fontFamily:
+                            "ui-monospace, SFMono-Regular, Menlo, monospace",
+                        }}
+                      >
+                        {p.code}
+                      </span>
+                    )}
+                  </span>
+                ),
+              }))}
+            />
+          </Form.Item>
 
           <Form.Item
             name="bio"
@@ -1132,5 +1174,98 @@ function L({
         </span>
       )}
     </span>
+  );
+}
+
+function StaffOptionRow({
+  option,
+  c,
+}: {
+  option: StaffOption;
+  c: ReturnType<typeof palette>;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "2px 0",
+        minWidth: 0,
+      }}
+    >
+      {option.avatar_url ? (
+        <img
+          src={option.avatar_url}
+          alt=""
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            objectFit: "cover",
+            border: `1px solid ${c.border}`,
+            flexShrink: 0,
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            background: c.accentBg,
+            color: c.accentText,
+            border: `1px solid ${c.accentBorder}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 11,
+            fontWeight: 600,
+            flexShrink: 0,
+          }}
+        >
+          {initials(option.name)}
+        </div>
+      )}
+      <div style={{ minWidth: 0, flex: 1, lineHeight: 1.25 }}>
+        <div
+          style={{
+            fontSize: 13,
+            color: c.text,
+            fontWeight: 500,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {option.name}
+          {option.title && (
+            <span
+              style={{
+                marginLeft: 8,
+                fontSize: 11,
+                color: c.textSubtle,
+                fontWeight: 400,
+              }}
+            >
+              · {option.title}
+            </span>
+          )}
+        </div>
+        {option.work_email && (
+          <div
+            style={{
+              fontSize: 11.5,
+              color: c.textFaint,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {option.work_email}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

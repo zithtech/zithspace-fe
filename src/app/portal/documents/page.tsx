@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { Input, Empty, Spin, Tooltip } from "antd";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Input, Empty, Spin, Tooltip, Modal, message } from "antd";
 import {
   Search,
   Download,
@@ -15,6 +15,12 @@ import {
   Eye,
   Clock,
   Tag as TagIcon,
+  Plus,
+  UploadCloud,
+  Link as LinkIcon,
+  X,
+  FileUp,
+  Loader2,
 } from "lucide-react";
 import {
   portalDocumentService,
@@ -100,6 +106,7 @@ export default function PortalDocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("ALL");
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -157,34 +164,65 @@ export default function PortalDocumentsPage() {
   return (
     <div style={{ padding: "32px 40px 56px", maxWidth: 1280 }}>
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <div
+      <div
+        style={{
+          marginBottom: 24,
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: 24,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: p.textSubtle,
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+              marginBottom: 6,
+            }}
+          >
+            Zukvo · Knowledge
+          </div>
+          <h1
+            style={{
+              fontSize: 28,
+              fontWeight: 600,
+              color: p.text,
+              margin: 0,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Documents
+          </h1>
+          <div style={{ marginTop: 6, fontSize: 13.5, color: p.textMuted }}>
+            Every document your account team has shared — and anything you
+            upload here for them.
+          </div>
+        </div>
+        <button
+          onClick={() => setUploadOpen(true)}
           style={{
-            fontSize: 11,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 16px",
+            background: p.text,
+            color: "#ffffff",
+            border: `1px solid ${p.text}`,
+            borderRadius: 9,
+            fontSize: 13,
             fontWeight: 600,
-            color: p.textSubtle,
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            marginBottom: 6,
+            cursor: "pointer",
+            transition: "all 120ms ease",
           }}
         >
-          Zukvo · Knowledge
-        </div>
-        <h1
-          style={{
-            fontSize: 28,
-            fontWeight: 600,
-            color: p.text,
-            margin: 0,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Documents
-        </h1>
-        <div style={{ marginTop: 6, fontSize: 13.5, color: p.textMuted }}>
-          Every document your account team has shared — agreements, SOWs,
-          architecture, release notes and more.
-        </div>
+          <Plus size={15} />
+          Add document
+        </button>
       </div>
 
       {/* Category pills + search */}
@@ -270,6 +308,15 @@ export default function PortalDocumentsPage() {
           ))}
         </div>
       )}
+
+      <UploadModal
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onUploaded={() => {
+          setUploadOpen(false);
+          load();
+        }}
+      />
     </div>
   );
 }
@@ -617,4 +664,576 @@ function iconButtonStyle(palette: typeof p): React.CSSProperties {
     cursor: "pointer",
     transition: "all 120ms ease",
   };
+}
+
+/* --------------------------------------------------------------- */
+
+const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
+
+function fmtBytes(b: number): string {
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+  return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(file);
+  });
+}
+
+function UploadModal({
+  open,
+  onClose,
+  onUploaded,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onUploaded: () => void;
+}) {
+  const [mode, setMode] = useState<"file" | "url">("file");
+  const [file, setFile] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [url, setUrl] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [docType, setDocType] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setMode("file");
+      setFile(null);
+      setDragging(false);
+      setUrl("");
+      setDisplayName("");
+      setDocType("");
+      setSubmitting(false);
+    }
+  }, [open]);
+
+  const pickFile = (f: File | null) => {
+    if (!f) return;
+    if (f.size > MAX_FILE_BYTES) {
+      message.error(`File is too large. Max ${fmtBytes(MAX_FILE_BYTES)}.`);
+      return;
+    }
+    setFile(f);
+    if (!displayName) setDisplayName(f.name);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) pickFile(f);
+  };
+
+  const submit = async () => {
+    if (mode === "file") {
+      if (!file) {
+        message.warning("Pick a file to upload");
+        return;
+      }
+    } else {
+      if (!url.trim()) {
+        message.warning("Paste a link");
+        return;
+      }
+      try {
+        // eslint-disable-next-line no-new
+        new URL(url.trim());
+      } catch {
+        message.error("That doesn't look like a valid URL");
+        return;
+      }
+    }
+    setSubmitting(true);
+    try {
+      if (mode === "file") {
+        const base64 = await fileToDataUrl(file!);
+        await portalDocumentService.upload({
+          base64,
+          fileName: displayName.trim() || file!.name,
+          documentType: docType.trim() || undefined,
+        });
+      } else {
+        await portalDocumentService.upload({
+          externalUrl: url.trim(),
+          fileName: displayName.trim() || undefined,
+          documentType: docType.trim() || undefined,
+        });
+      }
+      message.success("Document added");
+      onUploaded();
+    } catch (err: any) {
+      message.error(err?.message || "Failed to add document");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      closable={false}
+      width={560}
+      destroyOnClose
+      styles={{ body: { padding: 0 } }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: "20px 24px 16px",
+          borderBottom: `1px solid ${p.border}`,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                background: p.accentBg,
+                border: `1px solid ${p.accentBorder}`,
+                color: p.accentText,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <FileUp size={17} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: p.text,
+                  lineHeight: 1.2,
+                }}
+              >
+                Add a document
+              </div>
+              <div
+                style={{ marginTop: 3, fontSize: 12.5, color: p.textSubtle }}
+              >
+                Upload a file, or paste a link to one stored elsewhere.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 7,
+              background: p.surfaceElevated,
+              border: `1px solid ${p.border}`,
+              color: p.textMuted,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+            aria-label="Close"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* Mode toggle */}
+      <div
+        style={{
+          padding: "16px 24px 0",
+          display: "flex",
+          gap: 8,
+        }}
+      >
+        <ModeTab
+          active={mode === "file"}
+          icon={<UploadCloud size={14} />}
+          label="Upload file"
+          onClick={() => setMode("file")}
+        />
+        <ModeTab
+          active={mode === "url"}
+          icon={<LinkIcon size={14} />}
+          label="Paste link"
+          onClick={() => setMode("url")}
+        />
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: "16px 24px 0" }}>
+        {mode === "file" ? (
+          <>
+            {!file ? (
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    fileInputRef.current?.click();
+                  }
+                }}
+                style={{
+                  border: `1px dashed ${
+                    dragging ? p.accent : p.borderStrong
+                  }`,
+                  borderRadius: 12,
+                  background: dragging ? p.accentBg : p.surfaceMuted,
+                  padding: 28,
+                  textAlign: "center",
+                  cursor: "pointer",
+                  transition: "all 120ms ease",
+                }}
+              >
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 11,
+                    background: p.surfaceElevated,
+                    border: `1px solid ${p.border}`,
+                    color: p.accentText,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: 10,
+                  }}
+                >
+                  <UploadCloud size={20} />
+                </div>
+                <div
+                  style={{ fontSize: 13.5, fontWeight: 600, color: p.text }}
+                >
+                  Drop a file here, or click to browse
+                </div>
+                <div
+                  style={{
+                    marginTop: 4,
+                    fontSize: 11.5,
+                    color: p.textSubtle,
+                  }}
+                >
+                  Up to {fmtBytes(MAX_FILE_BYTES)} · PDF, images, docs, archives
+                </div>
+              </div>
+            ) : (
+              <SelectedFile
+                file={file}
+                onRemove={() => {
+                  setFile(null);
+                  setDisplayName("");
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+              />
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              hidden
+              onChange={(e) => pickFile(e.target.files?.[0] || null)}
+            />
+          </>
+        ) : (
+          <FieldBlock label="Link">
+            <Input
+              autoFocus
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://drive.google.com/…"
+              prefix={<LinkIcon size={14} color={p.textFaint} />}
+              size="large"
+            />
+          </FieldBlock>
+        )}
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.4fr 1fr",
+            gap: 10,
+            marginTop: 14,
+          }}
+        >
+          <FieldBlock
+            label="Display name"
+            hint={mode === "file" ? "auto-filled" : "optional"}
+          >
+            <Input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder={
+                mode === "file" ? "Same as file" : "Friendly name for the link"
+              }
+              maxLength={200}
+            />
+          </FieldBlock>
+          <FieldBlock label="Label" hint="optional">
+            <Input
+              value={docType}
+              onChange={(e) => setDocType(e.target.value)}
+              placeholder="Brief, Reference, etc."
+              maxLength={120}
+            />
+          </FieldBlock>
+        </div>
+
+        <div
+          style={{
+            marginTop: 14,
+            fontSize: 11.5,
+            color: p.textSubtle,
+            lineHeight: 1.5,
+          }}
+        >
+          Your account team will see this document under{" "}
+          <span style={{ color: p.textMuted, fontWeight: 600 }}>
+            Client Uploads
+          </span>
+          .
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div
+        style={{
+          marginTop: 20,
+          padding: "14px 24px",
+          borderTop: `1px solid ${p.border}`,
+          background: p.surfaceMuted,
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: 8,
+          borderBottomLeftRadius: 8,
+          borderBottomRightRadius: 8,
+        }}
+      >
+        <button
+          onClick={onClose}
+          disabled={submitting}
+          style={{
+            padding: "8px 14px",
+            background: p.surfaceElevated,
+            border: `1px solid ${p.border}`,
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 500,
+            color: p.textMuted,
+            cursor: submitting ? "not-allowed" : "pointer",
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={submit}
+          disabled={submitting}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+            padding: "8px 16px",
+            background: p.text,
+            border: `1px solid ${p.text}`,
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            color: "#ffffff",
+            cursor: submitting ? "not-allowed" : "pointer",
+            opacity: submitting ? 0.75 : 1,
+          }}
+        >
+          {submitting ? (
+            <Loader2
+              size={14}
+              style={{ animation: "spin 0.9s linear infinite" }}
+            />
+          ) : (
+            <Plus size={14} />
+          )}
+          {submitting ? "Adding…" : "Add document"}
+        </button>
+      </div>
+      <style jsx global>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </Modal>
+  );
+}
+
+function ModeTab({
+  active,
+  icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 7,
+        padding: "8px 14px",
+        background: active ? p.surfaceElevated : "transparent",
+        border: `1px solid ${active ? p.borderStrong : "transparent"}`,
+        borderRadius: 8,
+        fontSize: 12.5,
+        fontWeight: 600,
+        color: active ? p.text : p.textSubtle,
+        cursor: "pointer",
+        transition: "all 120ms ease",
+      }}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function FieldBlock({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div
+        style={{
+          fontSize: 11.5,
+          fontWeight: 600,
+          color: p.textMuted,
+          marginBottom: 6,
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+        }}
+      >
+        {label}
+        {hint && (
+          <span
+            style={{
+              fontSize: 11,
+              color: p.textFaint,
+              fontWeight: 400,
+            }}
+          >
+            · {hint}
+          </span>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function SelectedFile({
+  file,
+  onRemove,
+}: {
+  file: File;
+  onRemove: () => void;
+}) {
+  const { Icon, color } = iconForFile(file.name);
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 12,
+        alignItems: "center",
+        padding: 14,
+        background: p.surfaceElevated,
+        border: `1px solid ${p.border}`,
+        borderRadius: 11,
+      }}
+    >
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 9,
+          background: `${color}14`,
+          color,
+          border: `1px solid ${color}33`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={18} />
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div
+          style={{
+            fontSize: 13.5,
+            fontWeight: 600,
+            color: p.text,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {file.name}
+        </div>
+        <div style={{ marginTop: 2, fontSize: 11.5, color: p.textSubtle }}>
+          {fmtBytes(file.size)}
+        </div>
+      </div>
+      <button
+        onClick={onRemove}
+        style={{
+          padding: "6px 10px",
+          background: p.surfaceMuted,
+          border: `1px solid ${p.border}`,
+          borderRadius: 7,
+          fontSize: 12,
+          color: p.textMuted,
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+        }}
+      >
+        <X size={12} />
+        Remove
+      </button>
+    </div>
+  );
 }

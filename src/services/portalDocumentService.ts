@@ -11,11 +11,20 @@ export interface PortalDocument {
   createdAt: string;
   updatedAt: string;
   uploadedByName: string | null;
+  uploadedByPortal?: boolean;
   firstViewedAt: string | null;
   lastViewedAt: string | null;
   viewCount: number;
   downloadCount: number;
   lastEvent: "view" | "download" | null;
+}
+
+export interface PortalDocumentUploadInput {
+  base64?: string;
+  externalUrl?: string;
+  fileName?: string;
+  category?: string;
+  documentType?: string;
 }
 
 export interface PortalDocumentGroup {
@@ -52,5 +61,13 @@ export const portalDocumentService = {
     return portalApi
       .post(`/api/client-portal/documents/${id}/track`, { event })
       .catch(() => undefined);
+  },
+
+  async upload(input: PortalDocumentUploadInput): Promise<PortalDocument> {
+    const doc = await portalClient.post(`/api/client-portal/documents`, input);
+    if (doc.data?.success === false) {
+      throw new Error(doc.data.error || "Failed to upload document");
+    }
+    return doc.data?.data as PortalDocument;
   },
 };

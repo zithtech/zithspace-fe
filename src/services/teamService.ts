@@ -48,6 +48,7 @@ export interface StaffOption {
   name: string;
   work_email: string | null;
   avatar_url: string | null;
+  title: string | null;
 }
 
 export interface CreateTeamMemberPayload {

@@ -40,6 +40,7 @@ import {
   ModalSection,
   ModalFooterActions,
 } from "./_PremiumModal";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 type Mode = "light" | "dark";
 
@@ -192,68 +193,38 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
       {contextHolder}
 
       {/* Header */}
-      <div
-        style={{
-          padding: 22,
-          background: c.surfaceElevated,
-          border: `1px solid ${c.border}`,
-          borderRadius: 14,
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 24,
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", gap: 16, flex: 1, minWidth: 280 }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 10,
-              background: c.accentBg,
-              color: c.accentText,
-              border: `1px solid ${c.accentBorder}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Users size={20} />
-          </div>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: c.text }}>
-              Team &amp; contacts
-            </div>
-            <div
+      <div className="team-header-wrap" style={{ margin: "0 -32px" }}>
+        <TimeTrackingHeader
+          icon={<Users size={20} color="#3b82f6" />}
+          title="Team &amp; contacts"
+          description="Devs, designers, QA and account managers who build your products."
+          extra={
+            <Button
+              type="primary"
+              icon={<Plus size={15} />}
+              onClick={() => {
+                setEditing(null);
+                setModalOpen(true);
+              }}
               style={{
-                marginTop: 4,
-                fontSize: 13,
-                color: c.textSubtle,
-                lineHeight: 1.55,
-                maxWidth: 580,
+                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                borderColor: "transparent",
+                borderRadius: "8px",
+                height: "36px",
+                fontWeight: 600,
+                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                display: "inline-flex",
+                alignItems: "center",
               }}
             >
-              The people the client should know about — devs, designers, QA,
-              account manager. Curated separately from billing allocations.
-              Toggle visibility per member.
-            </div>
-          </div>
-        </div>
-        <Button
-          type="primary"
-          icon={<Plus size={15} />}
-          onClick={() => {
-            setEditing(null);
-            setModalOpen(true);
-          }}
-        >
-          Add team member
-        </Button>
+              Add team member
+            </Button>
+          }
+          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
+        />
       </div>
 
+      <div style={{ marginTop: 20 }}>
       {loading ? (
         <div
           style={{
@@ -279,7 +250,7 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
             gap: 12,
           }}
         >
@@ -300,6 +271,7 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
           ))}
         </div>
       )}
+      </div>
 
       <TeamMemberModal
         open={modalOpen}
@@ -318,6 +290,66 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
         c={c}
         notify={notify}
       />
+
+      {/* Premium adaptive header styling */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        /* Full bleed header styling flush with vertical sidebar border */
+        .team-header-wrap {
+          margin-bottom: 24px !important;
+          display: block !important;
+        }
+        .team-header-wrap .saas-header-container {
+          margin-left: -32px !important;
+          margin-right: -32px !important;
+          padding-left: 32px !important;
+          padding-right: 32px !important;
+          padding-top: 10px !important;
+          padding-bottom: 12px !important;
+          margin-bottom: 0 !important;
+        }
+        @media (max-width: 900px) {
+          .team-header-wrap .saas-header-container {
+            margin-left: -20px !important;
+            margin-right: -20px !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .team-header-wrap .saas-header-container {
+            margin-left: -16px !important;
+            margin-right: -16px !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+        }
+
+        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
+        @media (max-width: 1200px) {
+          html body .team-header-wrap .saas-header-container .saas-header-row {
+            flex-wrap: nowrap !important;
+          }
+          html body .team-header-wrap .saas-header-container .saas-header-left-col {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+          }
+          html body .team-header-wrap .saas-header-container .saas-header-extra-col {
+            width: auto !important;
+            flex: 0 0 auto !important;
+            margin-top: 0 !important;
+          }
+          html body .team-header-wrap .saas-header-container .saas-header-left-group {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 16px !important;
+          }
+          html body .team-header-wrap .saas-header-container .bh-header-divider {
+            display: inline-block !important;
+          }
+        }
+      `}} />
     </div>
   );
 }
@@ -408,32 +440,34 @@ function TeamCard({
       style={{
         background: c.surfaceElevated,
         border: `1px solid ${hover ? c.borderStrong : c.border}`,
-        borderRadius: 14,
-        padding: 18,
+        borderRadius: 16,
+        padding: "20px 22px",
         display: "flex",
         flexDirection: "column",
-        gap: 12,
-        transition: "border-color 120ms ease",
+        gap: 16,
+        transition: "all 200ms cubic-bezier(0.4, 0, 0.2, 1)",
         opacity: member.isVisible ? 1 : 0.65,
+        transform: hover ? "translateY(-3px)" : "none",
+        boxShadow: hover ? "0 12px 24px -8px rgba(0,0,0,0.15)" : "0 2px 8px -2px rgba(0,0,0,0.04)",
       }}
     >
-      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+      <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
         <Avatar member={member} c={c} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
               display: "flex",
-              gap: 6,
+              gap: 8,
               alignItems: "center",
               flexWrap: "wrap",
             }}
           >
             <div
               style={{
-                fontSize: 14.5,
+                fontSize: 15.5,
                 fontWeight: 600,
                 color: c.text,
-                lineHeight: 1.25,
+                letterSpacing: "-0.01em",
               }}
             >
               {member.displayName}
@@ -444,17 +478,18 @@ function TeamCard({
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 3,
-                    padding: "1px 7px",
-                    background: c.warningBg,
-                    border: `1px solid ${c.warningBorder}`,
-                    color: c.warningText,
+                    gap: 4,
+                    padding: "2px 8px",
+                    background: "rgba(250, 204, 21, 0.08)",
+                    border: `1px solid rgba(250, 204, 21, 0.3)`,
+                    color: "#facc15",
                     borderRadius: 999,
                     fontSize: 10.5,
                     fontWeight: 600,
+                    letterSpacing: "0.02em",
                   }}
                 >
-                  <Crown size={10} />
+                  <Crown size={10} strokeWidth={2.5} />
                   Primary
                 </span>
               </Tooltip>
@@ -463,28 +498,28 @@ function TeamCard({
           <div
             style={{
               marginTop: 3,
-              fontSize: 12.5,
+              fontSize: 13,
               color: c.textMuted,
-              lineHeight: 1.4,
+              fontWeight: 400,
             }}
           >
             {member.roleLabel}
           </div>
           {disc && (
-            <div style={{ marginTop: 6 }}>
+            <div style={{ marginTop: 8 }}>
               <span
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  padding: "1px 8px",
+                  padding: "2px 10px",
                   background: tones[disc.tone].bg,
                   border: `1px solid ${tones[disc.tone].border}`,
                   color: tones[disc.tone].text,
                   borderRadius: 999,
                   fontSize: 10.5,
-                  fontWeight: 500,
+                  fontWeight: 600,
                   textTransform: "uppercase",
-                  letterSpacing: "0.04em",
+                  letterSpacing: "0.05em",
                 }}
               >
                 {disc.label}
@@ -498,19 +533,21 @@ function TeamCard({
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: 4,
-          fontSize: 12.5,
+          gap: 6,
+          fontSize: 13,
           color: c.textMuted,
+          marginTop: 2,
         }}
       >
         {member.contactEmail && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Mail size={11} color={c.textSubtle} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Mail size={13} color={c.textFaint} />
             <span
               style={{
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
+                color: c.text,
               }}
             >
               {member.contactEmail}
@@ -518,15 +555,15 @@ function TeamCard({
           </div>
         )}
         {member.contactPhone && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Phone size={11} color={c.textSubtle} />
-            <span>{member.contactPhone}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Phone size={13} color={c.textFaint} />
+            <span style={{ color: c.text }}>{member.contactPhone}</span>
           </div>
         )}
         {member.projectName && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Briefcase size={11} color={c.textSubtle} />
-            <span>{member.projectName}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Briefcase size={13} color={c.textFaint} />
+            <span style={{ color: c.text }}>{member.projectName}</span>
           </div>
         )}
       </div>
@@ -534,17 +571,18 @@ function TeamCard({
       {member.bio && (
         <div
           style={{
-            fontSize: 12,
+            fontSize: 12.5,
             color: c.textSubtle,
-            lineHeight: 1.55,
-            padding: "8px 10px",
-            background: c.surfaceMuted,
+            lineHeight: 1.6,
+            padding: "10px 14px",
+            background: "rgba(0,0,0,0.15)",
             border: `1px solid ${c.border}`,
-            borderRadius: 8,
+            borderRadius: 10,
             display: "-webkit-box",
             WebkitLineClamp: 3,
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
+            boxShadow: "inset 0 1px 4px rgba(0,0,0,0.1)",
           }}
         >
           {member.bio}
@@ -554,7 +592,7 @@ function TeamCard({
       <div
         style={{
           marginTop: "auto",
-          paddingTop: 10,
+          paddingTop: 16,
           borderTop: `1px solid ${c.border}`,
           display: "flex",
           alignItems: "center",
@@ -566,10 +604,11 @@ function TeamCard({
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 5,
-            fontSize: 11.5,
+            gap: 6,
+            fontSize: 12,
             color: tones[avail.tone].text,
-            fontWeight: 500,
+            fontWeight: 600,
+            letterSpacing: "0.01em",
           }}
         >
           <span
@@ -579,6 +618,7 @@ function TeamCard({
               borderRadius: 999,
               background: avail.dot,
               display: "inline-block",
+              boxShadow: `0 0 0 2px ${tones[avail.tone].bg}`,
             }}
           />
           {avail.label}
@@ -588,7 +628,7 @@ function TeamCard({
             </span>
           )}
         </span>
-        <div style={{ display: "flex", gap: 4 }}>
+        <div style={{ display: "flex", gap: 2 }}>
           <Tooltip
             title={
               member.isVisible
@@ -601,12 +641,13 @@ function TeamCard({
               type="text"
               icon={
                 member.isVisible ? (
-                  <Eye size={13} color={c.textSubtle} />
+                  <Eye size={14} color={c.textSubtle} />
                 ) : (
-                  <EyeOff size={13} color={c.dangerText} />
+                  <EyeOff size={14} color={c.dangerText} />
                 )
               }
               onClick={onToggleVisible}
+              style={{ padding: "0 6px" }}
             />
           </Tooltip>
           <Tooltip
@@ -621,20 +662,22 @@ function TeamCard({
               type="text"
               icon={
                 member.isPrimaryContact ? (
-                  <Star size={13} color={c.warningText} fill={c.warningText} />
+                  <Star size={14} color="#facc15" fill="#facc15" />
                 ) : (
-                  <Star size={13} color={c.textSubtle} />
+                  <Star size={14} color={c.textSubtle} />
                 )
               }
               onClick={onTogglePrimary}
+              style={{ padding: "0 6px" }}
             />
           </Tooltip>
           <Tooltip title="Edit">
             <Button
               size="small"
               type="text"
-              icon={<Edit3 size={13} color={c.textSubtle} />}
+              icon={<Edit3 size={14} color={c.textSubtle} />}
               onClick={onEdit}
+              style={{ padding: "0 6px" }}
             />
           </Tooltip>
           <Popconfirm
@@ -647,7 +690,8 @@ function TeamCard({
             <Button
               size="small"
               type="text"
-              icon={<Trash2 size={13} color={c.textSubtle} />}
+              icon={<Trash2 size={14} color={c.textSubtle} />}
+              style={{ padding: "0 6px" }}
             />
           </Popconfirm>
         </div>
@@ -869,7 +913,7 @@ function TeamMemberModal({
           <Form.Item
             name="staffUserId"
             label={
-              <L c={c} hint="optional · auto-fills name, email, role">
+              <L c={c}>
                 Link to staff member
               </L>
             }
@@ -954,7 +998,7 @@ function TeamMemberModal({
           >
             <Form.Item
               name="contactEmail"
-              label={<L c={c} hint="overrides staff work email">Email</L>}
+              label={<L c={c} >Email</L>}
               style={{ marginBottom: 0 }}
             >
               <Input
@@ -964,7 +1008,7 @@ function TeamMemberModal({
             </Form.Item>
             <Form.Item
               name="contactPhone"
-              label={<L c={c} hint="optional">Phone</L>}
+              label={<L c={c}>Phone</L>}
               style={{ marginBottom: 0 }}
             >
               <Input
@@ -977,7 +1021,7 @@ function TeamMemberModal({
           <Form.Item
             name="projectId"
             label={
-              <L c={c} hint={`${projects.length} linked to this client`}>
+              <L c={c} >
                 Linked project
               </L>
             }
@@ -1041,8 +1085,8 @@ function TeamMemberModal({
 
           <Form.Item
             name="bio"
-            label={<L c={c} hint="optional · 500 char">Short bio</L>}
-            style={{ marginBottom: 0 }}
+            label={<L c={c}>Short bio</L>}
+            style={{ marginBottom: 16 }}
           >
             <Input.TextArea
               rows={3}
@@ -1083,7 +1127,7 @@ function TeamMemberModal({
             </Form.Item>
             <Form.Item
               name="availabilityNote"
-              label={<L c={c} hint="optional">Note</L>}
+              label={<L c={c}>Note</L>}
               style={{ marginBottom: 0 }}
             >
               <Input placeholder="e.g. Out until 15 Mar · OOO Fridays" />

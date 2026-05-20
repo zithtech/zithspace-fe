@@ -1,6 +1,8 @@
 import { portalClient, portalApi } from "@/lib/portalAxios";
+import { ReactNode } from "react";
 
 export interface PortalDocument {
+  title: ReactNode;
   id: string;
   category: string | null;
   documentType: string;

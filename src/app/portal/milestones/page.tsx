@@ -1,7 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Spin, Empty } from "antd";
+import { Spin, Empty, Row, Col, Divider, Typography } from "antd";
+import { FlagOutlined } from "@ant-design/icons";
+
+const { Title, Text } = Typography;
 import {
   Flag,
   Calendar,
@@ -148,107 +151,182 @@ export default function PortalMilestonesPage() {
   }, [items]);
 
   return (
-    <div style={{ padding: "32px 40px 56px", maxWidth: 1280 }}>
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            color: p.textSubtle,
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            marginBottom: 6,
-          }}
-        >
-          Zukvo · Delivery
-        </div>
-        <h1
-          style={{
-            fontSize: 28,
-            fontWeight: 600,
-            color: p.text,
-            margin: 0,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Milestones
-        </h1>
-        <div style={{ marginTop: 6, fontSize: 13.5, color: p.textMuted }}>
-          Where each milestone of your delivery stands today, with a transparent
-          breakdown of the work behind it.
-        </div>
+    <div style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}>
+      {/* Workstation Header */}
+      <div
+        className="saas-header-container portal-mom-header-container"
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          backdropFilter: "blur(12px)",
+          padding: "20px 40px 20px 40px",
+          marginBottom: 0,
+          backgroundColor: "#ffffff",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+        }}
+      >
+        <Row justify="space-between" align="middle" gutter={[16, 16]}>
+          <Col flex="1 1 auto" style={{ minWidth: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background:
+                      "linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(37, 99, 235, 0.08))",
+                    color: "#3b82f6",
+                  }}
+                >
+                  <FlagOutlined style={{ fontSize: 18, color: "#3b82f6" }} />
+                </div>
+                <Title
+                  level={4}
+                  className="portal-mom-header-title"
+                  style={{
+                    margin: 0,
+                    fontWeight: 800,
+                    color: "var(--text-slate-900)",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  Milestones
+                </Title>
+              </div>
+
+              <Divider
+                type="vertical"
+                style={{
+                  height: 20,
+                  borderColor: "rgba(0, 0, 0, 0.08)",
+                  margin: "0 12px",
+                }}
+              />
+
+              <div>
+                <Text
+                  className="portal-mom-header-desc"
+                  style={{
+                    fontSize: 12,
+                    color: "var(--text-slate-600)",
+                    fontWeight: 600,
+                  }}
+                >
+                  Where each milestone of your delivery stands today, with a transparent breakdown of the work behind it.
+                </Text>
+              </div>
+            </div>
+          </Col>
+        </Row>
       </div>
 
-      {/* Summary strip */}
-      {items.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 12,
-            marginBottom: 20,
-          }}
-        >
-          <SummaryCard
-            icon={Flag}
-            label="Milestones"
-            value={String(counts.total)}
-            tone={{ bg: p.accentBg, border: p.accentBorder, color: p.accentText }}
-          />
-          <SummaryCard
-            icon={Clock}
-            label="In progress"
-            value={String(counts.inProgress)}
-            tone={{ bg: p.warningBg, border: p.warningBorder, color: p.warningText }}
-          />
-          <SummaryCard
-            icon={CheckCircle2}
-            label="Completed"
-            value={String(counts.completed)}
-            tone={{ bg: p.successBg, border: p.successBorder, color: p.successText }}
-          />
-          <SummaryCard
-            icon={ListChecks}
-            label="Overall progress"
-            value={`${counts.overallPct}%`}
-            tone={{ bg: p.purpleBg, border: p.purpleBorder, color: p.purpleText }}
-          />
-        </div>
-      )}
+      {/* Content Container */}
+      <div style={{ padding: "16px 40px 56px", width: "100%", boxSizing: "border-box" }}>
+        {/* Summary strip */}
+        {items.length > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: 12,
+              marginBottom: 20,
+            }}
+          >
+            <SummaryCard
+              icon={Flag}
+              label="Milestones"
+              value={String(counts.total)}
+              tone={{ bg: p.accentBg, border: p.accentBorder, color: p.accentText }}
+            />
+            <SummaryCard
+              icon={Clock}
+              label="In progress"
+              value={String(counts.inProgress)}
+              tone={{ bg: p.warningBg, border: p.warningBorder, color: p.warningText }}
+            />
+            <SummaryCard
+              icon={CheckCircle2}
+              label="Completed"
+              value={String(counts.completed)}
+              tone={{ bg: p.successBg, border: p.successBorder, color: p.successText }}
+            />
+            <SummaryCard
+              icon={ListChecks}
+              label="Overall progress"
+              value={`${counts.overallPct}%`}
+              tone={{ bg: p.purpleBg, border: p.purpleBorder, color: p.purpleText }}
+            />
+          </div>
+        )}
 
-      {/* Body */}
-      {loading ? (
-        <div style={{ padding: 80, textAlign: "center" }}>
-          <Spin />
-        </div>
-      ) : items.length === 0 ? (
-        <div
-          style={{
-            padding: 64,
-            textAlign: "center",
-            background: p.surfaceElevated,
-            border: `1px dashed ${p.border}`,
-            borderRadius: 12,
-          }}
-        >
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <span style={{ color: p.textSubtle, fontSize: 13 }}>
-                Your delivery plan hasn't been set up yet. Your account team
-                will publish it here soon.
-              </span>
-            }
-          />
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {items.map((m) => (
-            <MilestoneCard key={m.id} milestone={m} />
-          ))}
-        </div>
-      )}
+        {/* Body */}
+        {loading ? (
+          <div style={{ padding: 80, textAlign: "center" }}>
+            <Spin />
+          </div>
+        ) : items.length === 0 ? (
+          <div
+            style={{
+              padding: 64,
+              textAlign: "center",
+              background: p.surfaceElevated,
+              border: `1px dashed ${p.border}`,
+              borderRadius: 12,
+            }}
+          >
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <span style={{ color: p.textSubtle, fontSize: 13 }}>
+                  Your delivery plan hasn't been set up yet. Your account team
+                  will publish it here soon.
+                </span>
+              }
+            />
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {items.map((m) => (
+              <MilestoneCard key={m.id} milestone={m} />
+            ))}
+          </div>
+        )}
+
+        <style>{`
+          .portal-mom-header-container,
+          [data-theme='dark'] .portal-mom-header-container,
+          [data-theme='dark'] .saas-header-container.portal-mom-header-container,
+          .saas-header-container.portal-mom-header-container {
+            background: #ffffff !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+          }
+          .portal-mom-header-title {
+            color: #0f172a !important;
+          }
+          .portal-mom-header-desc {
+            color: #475569 !important;
+          }
+        `}</style>
+      </div>
     </div>
   );
 }

@@ -38,6 +38,7 @@ import {
   ModalSection,
   ModalFooterActions,
 } from "./_PremiumModal";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 type Mode = "light" | "dark";
 
@@ -188,65 +189,35 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
       {contextHolder}
 
       {/* Header */}
-      <div
-        style={{
-          padding: 22,
-          background: c.surfaceElevated,
-          border: `1px solid ${c.border}`,
-          borderRadius: 14,
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 24,
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", gap: 16, flex: 1, minWidth: 280 }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 10,
-              background: c.purpleBg,
-              color: c.purpleText,
-              border: `1px solid ${c.purpleBorder}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <GitPullRequest size={20} />
-          </div>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: c.text }}>
-              Change requests
-            </div>
-            <div
+      <div className="cr-header-wrap" style={{ margin: "0 -32px" }}>
+        <TimeTrackingHeader
+          icon={<GitPullRequest size={20} color="#8b5cf6" />}
+          title="Change requests"
+          description="Track every scope change with impact, time and cost estimates."
+          extra={
+            <Button
+              type="primary"
+              icon={<Plus size={15} />}
+              onClick={() => setCreateOpen(true)}
               style={{
-                marginTop: 4,
-                fontSize: 13,
-                color: c.textSubtle,
-                lineHeight: 1.55,
-                maxWidth: 580,
+                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                borderColor: "transparent",
+                borderRadius: "8px",
+                height: "36px",
+                fontWeight: 600,
+                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
+                display: "inline-flex",
+                alignItems: "center",
               }}
             >
-              Track every scope change with impact, time and cost estimates.
-              The client approves the estimate from their portal before work
-              kicks off.
-            </div>
-          </div>
-        </div>
-        <Button
-          type="primary"
-          icon={<Plus size={15} />}
-          onClick={() => setCreateOpen(true)}
-        >
-          New change request
-        </Button>
+              New change request
+            </Button>
+          }
+          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
+        />
       </div>
 
+      <div style={{ marginTop: 20 }}>
       {loading ? (
         <div
           style={{
@@ -324,6 +295,7 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
           ))}
         </div>
       )}
+      </div>
 
       <CreateCrModal
         open={createOpen}
@@ -337,7 +309,6 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
         c={c}
         notify={notify}
       />
-
       <CrDetailDrawer
         id={openId}
         c={c}
@@ -346,6 +317,66 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
         onClose={() => setOpenId(null)}
         onMutated={load}
       />
+
+      {/* Premium adaptive header styling */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        /* Full bleed header styling flush with vertical sidebar border */
+        .cr-header-wrap {
+          margin-bottom: 24px !important;
+          display: block !important;
+        }
+        .cr-header-wrap .saas-header-container {
+          margin-left: -32px !important;
+          margin-right: -32px !important;
+          padding-left: 32px !important;
+          padding-right: 32px !important;
+          padding-top: 10px !important;
+          padding-bottom: 12px !important;
+          margin-bottom: 0 !important;
+        }
+        @media (max-width: 900px) {
+          .cr-header-wrap .saas-header-container {
+            margin-left: -20px !important;
+            margin-right: -20px !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .cr-header-wrap .saas-header-container {
+            margin-left: -16px !important;
+            margin-right: -16px !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+        }
+
+        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
+        @media (max-width: 1200px) {
+          html body .cr-header-wrap .saas-header-container .saas-header-row {
+            flex-wrap: nowrap !important;
+          }
+          html body .cr-header-wrap .saas-header-container .saas-header-left-col {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+          }
+          html body .cr-header-wrap .saas-header-container .saas-header-extra-col {
+            width: auto !important;
+            flex: 0 0 auto !important;
+            margin-top: 0 !important;
+          }
+          html body .cr-header-wrap .saas-header-container .saas-header-left-group {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 16px !important;
+          }
+          html body .cr-header-wrap .saas-header-container .bh-header-divider {
+            display: inline-block !important;
+          }
+        }
+      `}} />
     </div>
   );
 }
@@ -371,8 +402,8 @@ function CrRow({
   const estimateText = cr.estimatedCost
     ? fmtCurrency(cr.estimatedCost, cr.estimatedCurrency)
     : cr.estimatedHoursMin || cr.estimatedHoursMax
-    ? `${cr.estimatedHoursMin || "?"}–${cr.estimatedHoursMax || "?"} h`
-    : "—";
+      ? `${cr.estimatedHoursMin || "?"}–${cr.estimatedHoursMax || "?"} h`
+      : "—";
 
   return (
     <button
@@ -1371,11 +1402,10 @@ function CrDetailBody({
                         cr.clientDecision === "approved"
                           ? c.successBg
                           : c.dangerBg,
-                      border: `1px solid ${
-                        cr.clientDecision === "approved"
+                      border: `1px solid ${cr.clientDecision === "approved"
                           ? c.successBorder
                           : c.dangerBorder
-                      }`,
+                        }`,
                       color:
                         cr.clientDecision === "approved"
                           ? c.successText
@@ -1552,22 +1582,22 @@ function SystemRow({
     m.eventType === "status_change"
       ? `Status: ${prettify(m.eventFrom)} → ${prettify(m.eventTo)}`
       : m.eventType === "estimate_published"
-      ? "Estimate published to client"
-      : m.eventType === "estimate_updated"
-      ? "Estimate updated"
-      : m.eventType === "client_decision"
-      ? m.body
-      : m.eventType === "invoice_linked"
-      ? `Invoice link ${m.eventTo ? "set" : "cleared"}`
-      : m.eventType === "sprint_linked"
-      ? `Sprint link ${m.eventTo ? "set" : "cleared"}`
-      : m.eventType === "assignment"
-      ? "Assignment changed"
-      : m.eventType === "created_from_mom"
-      ? m.body
-      : m.eventType === "attachment_upload_failed"
-      ? `Attachment upload failed${m.body ? `: ${m.body}` : ""}`
-      : m.body || "System event";
+        ? "Estimate published to client"
+        : m.eventType === "estimate_updated"
+          ? "Estimate updated"
+          : m.eventType === "client_decision"
+            ? m.body
+            : m.eventType === "invoice_linked"
+              ? `Invoice link ${m.eventTo ? "set" : "cleared"}`
+              : m.eventType === "sprint_linked"
+                ? `Sprint link ${m.eventTo ? "set" : "cleared"}`
+                : m.eventType === "assignment"
+                  ? "Assignment changed"
+                  : m.eventType === "created_from_mom"
+                    ? m.body
+                    : m.eventType === "attachment_upload_failed"
+                      ? `Attachment upload failed${m.body ? `: ${m.body}` : ""}`
+                      : m.body || "System event";
   return (
     <div
       style={{

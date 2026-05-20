@@ -11,6 +11,7 @@ import {
   notification,
   Tooltip,
   Empty,
+  Table,
 } from "antd";
 import {
   KeyRound,
@@ -37,6 +38,8 @@ import {
   Link2,
   Unlink,
   Info,
+  LayoutList,
+  LayoutGrid,
 } from "lucide-react";
 import {
   clientPortalService,
@@ -52,6 +55,7 @@ import {
   ModalFooterActions,
   FieldLabel as FLabel,
 } from "./_PremiumModal";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 /* ---------------------------------------------------------------------- */
 /*  Theme palette                                                          */
@@ -122,6 +126,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
   const [users, setUsers] = useState<ClientPortalUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<"list" | "card">("list");
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form] = Form.useForm();
@@ -265,80 +270,192 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
     }
   };
 
+  const columns = [
+    {
+      title: "User",
+      key: "user",
+      render: (record: ClientPortalUser) => {
+        const initials = (record.displayName || record.username || "?")
+          .split(" ")
+          .map((s) => s[0])
+          .filter(Boolean)
+          .slice(0, 2)
+          .join("")
+          .toUpperCase();
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 6,
+                background: c.accentBg,
+                border: `1px solid ${c.accentBorder}`,
+                color: c.accentText,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 11.5,
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >
+              {initials}
+            </div>
+            <span style={{ fontWeight: 600, color: c.text }}>
+              {record.displayName || record.username}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      title: "Username",
+      dataIndex: "username",
+      key: "username",
+      render: (text: string) => (
+        <span
+          style={{
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            fontSize: 11.5,
+            padding: "2px 6px",
+            background: c.surfaceMuted,
+            border: `1px solid ${c.border}`,
+            borderRadius: 4,
+            color: c.textMuted,
+          }}
+        >
+          {text}
+        </span>
+      ),
+    },
+    {
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
+      render: (text: string) => (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13, color: c.textMuted }}>
+          <AtSign size={12} color={c.textFaint} />
+          {text}
+        </span>
+      ),
+    },
+    {
+      title: "Designation",
+      dataIndex: "designation",
+      key: "designation",
+      render: (text: string) => text ? (
+        <span style={{ fontSize: 13, color: c.textMuted }}>{text}</span>
+      ) : (
+        <span style={{ fontSize: 13, color: c.textFaint }}>—</span>
+      ),
+    },
+    {
+      title: "Status",
+      key: "status",
+      render: (record: ClientPortalUser) => (
+        <div style={{ display: "flex", gap: 6, flexDirection: "row", flexWrap: "nowrap", alignItems: "center" }}>
+          {record.status === "active" ? (
+            <StatusBadge variant="success" c={c} icon={ShieldCheck}>
+              Active
+            </StatusBadge>
+          ) : (
+            <StatusBadge variant="danger" c={c} icon={ShieldOff}>
+              Disabled
+            </StatusBadge>
+          )}
+          {record.mustChangePassword && (
+            <Tooltip title="User has not changed the temporary password yet">
+              <span>
+                <StatusBadge variant="warning" c={c} icon={Clock}>
+                  Pending first sign-in
+                </StatusBadge>
+              </span>
+            </Tooltip>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Last Active",
+      dataIndex: "lastLoginAt",
+      key: "lastLoginAt",
+      render: (iso: string | null) => (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: c.textMuted }}>
+          <Clock size={12} color={c.textFaint} />
+          {formatRelative(iso)}
+        </span>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      align: "right" as const,
+      render: (record: ClientPortalUser) => (
+        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+          <Tooltip title="Reset password">
+            <Button size="small" icon={<RefreshCw size={12} />} onClick={() => handleReset(record)}>
+              Reset
+            </Button>
+          </Tooltip>
+          <Tooltip
+            title={record.status === "active" ? "Disable access" : "Re-enable access"}
+          >
+            <Button size="small" icon={<Power size={12} />} onClick={() => handleToggleStatus(record)}>
+              {record.status === "active" ? "Disable" : "Enable"}
+            </Button>
+          </Tooltip>
+          <Popconfirm
+            title="Remove portal access?"
+            description="This permanently deletes the login. The client contact will not be removed."
+            okText="Remove"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => handleDelete(record)}
+          >
+            <Button size="small" danger icon={<Trash2 size={12} />}>
+              Remove
+            </Button>
+          </Popconfirm>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div style={{ padding: "4px 0 24px", color: c.text }}>
       {contextHolder}
 
       {/* ---------------- Header card ---------------- */}
-      <div
-        style={{
-          padding: 22,
-          background: c.surfaceElevated,
-          border: `1px solid ${c.border}`,
-          borderRadius: 14,
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 24,
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", gap: 16, flex: 1, minWidth: 280 }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 10,
-              background: c.accentBg,
-              color: c.accentText,
-              border: `1px solid ${c.accentBorder}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <KeyRound size={20} />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div
+      <div className="portal-access-header-wrap" style={{ margin: "0 -32px" }}>
+        <TimeTrackingHeader
+          icon={<KeyRound size={20} color="#3b82f6" />}
+          title="Portal Access"
+          description="Create logins for client contacts to view their portal workspace."
+          extra={
+            <Button
+              type="primary"
+              icon={<Plus size={15} />}
+              onClick={() => setCreateOpen(true)}
               style={{
-                fontSize: 16,
+                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                borderColor: "transparent",
+                borderRadius: "8px",
+                height: "36px",
                 fontWeight: 600,
-                color: c.text,
-                lineHeight: 1.3,
+                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                display: "inline-flex",
+                alignItems: "center",
               }}
             >
-              Portal Access
-            </div>
-            <div
-              style={{
-                marginTop: 4,
-                fontSize: 13,
-                color: c.textSubtle,
-                lineHeight: 1.55,
-                maxWidth: 560,
-              }}
-            >
-              Create logins so client contacts can sign in to view invoices,
-              sprints, documents and support tickets.
-            </div>
-          </div>
-        </div>
-
-        <Button
-          type="primary"
-          icon={<Plus size={15} />}
-          onClick={() => setCreateOpen(true)}
-          style={{ height: 38 }}
-        >
-          Create credential
-        </Button>
+              Create credential
+            </Button>
+          }
+          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
+        />
       </div>
 
       {/* ---------------- Billing customers (gates invoice visibility) ---------------- */}
-      <BillingCustomersCard clientId={clientId} c={c} notify={notify} />
+      {/* <BillingCustomersCard clientId={clientId} c={c} notify={notify} /> */}
 
       {/* ---------------- Stats strip ---------------- */}
       {users.length > 0 && (
@@ -347,6 +464,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
             gap: 12,
+            marginTop: 20,
             marginBottom: 16,
           }}
         >
@@ -381,9 +499,9 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
         </div>
       )}
 
-      {/* ---------------- Search ---------------- */}
+      {/* ---------------- Search & View Mode Toggle ---------------- */}
       {users.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
           <Input
             allowClear
             value={search}
@@ -391,11 +509,64 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
             placeholder="Search by name, username, or email…"
             prefix={<Search size={14} color={c.textFaint} />}
             style={{
+              flex: 1,
               background: c.surfaceElevated,
               borderColor: c.border,
               color: c.text,
             }}
           />
+          <div
+            style={{
+              display: "flex",
+              background: c.surfaceMuted,
+              border: `1px solid ${c.border}`,
+              borderRadius: 8,
+              padding: 3,
+            }}
+          >
+            <Tooltip title="List view">
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 30,
+                  height: 30,
+                  borderRadius: 6,
+                  border: "none",
+                  cursor: "pointer",
+                  background: viewMode === "list" ? c.accentBg : "transparent",
+                  color: viewMode === "list" ? c.accentText : c.textSubtle,
+                  transition: "all 150ms ease",
+                }}
+              >
+                <LayoutList size={15} />
+              </button>
+            </Tooltip>
+            <Tooltip title="Card view">
+              <button
+                type="button"
+                onClick={() => setViewMode("card")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 30,
+                  height: 30,
+                  borderRadius: 6,
+                  border: "none",
+                  cursor: "pointer",
+                  background: viewMode === "card" ? c.accentBg : "transparent",
+                  color: viewMode === "card" ? c.accentText : c.textSubtle,
+                  transition: "all 150ms ease",
+                }}
+              >
+                <LayoutGrid size={15} />
+              </button>
+            </Tooltip>
+          </div>
         </div>
       )}
 
@@ -429,10 +600,26 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
         >
           No portal users match “{search}”.
         </div>
+      ) : viewMode === "list" ? (
+        <Table
+          dataSource={filteredUsers}
+          columns={columns}
+          rowKey="id"
+          pagination={false}
+          scroll={{ x: "max-content" }}
+          className="premium-table"
+          locale={{ emptyText: <div style={{ color: c.textSubtle }}>No portal users found</div> }}
+        />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: 16,
+          }}
+        >
           {filteredUsers.map((u) => (
-            <UserRow
+            <UserCard
               key={u.id}
               user={u}
               c={c}
@@ -473,9 +660,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
         onClose={() => setCredentialDialog(null)}
         onCopy={copyToClipboard}
         c={c}
-      />
-
-      {/* ---------------- Reset password dialog ---------------- */}
+      />      {/* ---------------- Reset password dialog ---------------- */}
       <CredentialRevealModal
         open={!!resetDialog}
         title="New temporary password"
@@ -492,6 +677,108 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
         onCopy={copyToClipboard}
         c={c}
       />
+
+      {/* Premium adaptive header styling */}
+      <style dangerouslySetInnerHTML={{ __html: `
+       /* Full bleed header styling flush with vertical sidebar border */
+        .portal-access-header-wrap {
+          margin-bottom: 0 !important;
+          display: block !important;
+        }
+        .portal-access-header-wrap .saas-header-container {
+          margin-left: -32px !important;
+          margin-right: -32px !important;
+          padding-left: 32px !important;
+          padding-right: 32px !important;
+          padding-top: 10px !important;
+          padding-bottom: 12px !important;
+          margin-bottom: 0 !important;
+        }
+        @media (max-width: 900px) {
+          .portal-access-header-wrap .saas-header-container {
+            margin-left: -20px !important;
+            margin-right: -20px !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .portal-access-header-wrap .saas-header-container {
+            margin-left: -16px !important;
+            margin-right: -16px !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+        }
+
+        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
+        @media (max-width: 1200px) {
+          html body .portal-access-header-wrap .saas-header-container .saas-header-row {
+            flex-wrap: nowrap !important;
+          }
+          html body .portal-access-header-wrap .saas-header-container .saas-header-left-col {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+          }
+          html body .portal-access-header-wrap .saas-header-container .saas-header-extra-col {
+            width: auto !important;
+            flex: 0 0 auto !important;
+            margin-top: 0 !important;
+          }
+          html body .portal-access-header-wrap .saas-header-container .saas-header-left-group {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 16px !important;
+          }
+          html body .portal-access-header-wrap .saas-header-container .bh-header-divider {
+            display: inline-block !important;
+          }
+        }
+
+        /* Premium Table Styles */
+        .premium-table .ant-table {
+          background: transparent !important;
+          color: var(--text-slate-700) !important;
+        }
+        .premium-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important;
+          color: var(--text-slate-500) !important;
+          font-weight: 600 !important;
+          font-size: 12px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.025em !important;
+          padding: 16px 24px !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          white-space: nowrap !important;
+        }
+        .premium-table .ant-table-thead > tr > th::before { display: none !important; }
+        .premium-table .ant-table-tbody > tr > td {
+          padding: 16px 24px !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+        }
+        .premium-table .ant-table-tbody > tr:hover > td {
+          background: var(--bg-slate-50) !important;
+        }
+        .premium-table .ant-table-placeholder > td {
+          background: transparent !important;
+        }
+
+        [data-theme="dark"] .premium-table .ant-table {
+          color: var(--text-slate-200) !important;
+        }
+        [data-theme="dark"] .premium-table .ant-table-thead > tr > th {
+          background: var(--bg-secondary) !important;
+          color: var(--text-slate-300) !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
+        }
+        [data-theme="dark"] .premium-table .ant-table-tbody > tr > td {
+          border-bottom: 1px solid var(--border-slate-200) !important;
+        }
+        [data-theme="dark"] .premium-table .ant-table-tbody > tr:hover > td {
+          background: var(--bg-slate-800) !important;
+        }
+      `}} />
     </div>
   );
 }
@@ -614,6 +901,7 @@ function StatusBadge({
         fontSize: 11.5,
         fontWeight: 500,
         lineHeight: 1.2,
+        whiteSpace: "nowrap",
       }}
     >
       <Icon size={11} />
@@ -622,7 +910,7 @@ function StatusBadge({
   );
 }
 
-function UserRow({
+function UserCard({
   user,
   c,
   onReset,
@@ -649,149 +937,155 @@ function UserRow({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 16,
-        padding: "16px 18px",
         background: c.surfaceElevated,
         border: `1px solid ${hover ? c.borderStrong : c.border}`,
-        borderRadius: 12,
-        transition: "border-color 140ms ease",
+        borderRadius: 14,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        position: "relative",
+        boxShadow: hover ? "0 8px 24px rgba(0, 0, 0, 0.04)" : "none",
+        transition: "all 200ms ease",
       }}
     >
+      {/* Top status indicator ribbon */}
       <div
-        style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}
-      >
-        <div
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 10,
-            background: c.accentBg,
-            border: `1px solid ${c.accentBorder}`,
-            color: c.accentText,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 13,
-            fontWeight: 600,
-            flexShrink: 0,
-          }}
-        >
-          {initials}
-        </div>
-        <div style={{ minWidth: 0 }}>
+        style={{
+          height: 3,
+          background: user.status === "active" ? c.success : c.danger,
+          width: "100%",
+        }}
+      />
+
+      {/* Card Content */}
+      <div style={{ padding: "18px 20px 16px", flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* Avatar + Names Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div
             style={{
+              width: 44,
+              height: 44,
+              borderRadius: 10,
+              background: c.accentBg,
+              border: `1px solid ${c.accentBorder}`,
+              color: c.accentText,
               display: "flex",
               alignItems: "center",
-              flexWrap: "wrap",
-              gap: 8,
+              justifyContent: "center",
               fontSize: 14,
               fontWeight: 600,
-              color: c.text,
-              lineHeight: 1.3,
+              flexShrink: 0,
             }}
           >
-            <span style={{ minWidth: 0 }}>
-              {user.displayName || user.username}
-            </span>
-            {user.status === "active" ? (
-              <StatusBadge variant="success" c={c} icon={ShieldCheck}>
-                Active
-              </StatusBadge>
-            ) : (
-              <StatusBadge variant="danger" c={c} icon={ShieldOff}>
-                Disabled
-              </StatusBadge>
-            )}
-            {user.mustChangePassword && (
-              <Tooltip title="User has not changed the temporary password yet">
-                <span>
-                  <StatusBadge variant="warning" c={c} icon={Clock}>
-                    Pending first sign-in
-                  </StatusBadge>
-                </span>
-              </Tooltip>
-            )}
+            {initials}
           </div>
-          <div
-            style={{
-              marginTop: 4,
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 8,
-              alignItems: "center",
-              fontSize: 12.5,
-              color: c.textMuted,
-            }}
-          >
-            <span
+          <div style={{ minWidth: 0 }}>
+            <div
               style={{
+                fontSize: 11,
                 fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                fontSize: 12,
-                padding: "1px 7px",
-                background: c.surfaceMuted,
-                border: `1px solid ${c.border}`,
-                borderRadius: 6,
-                color: c.textMuted,
+                color: c.textFaint,
+                lineHeight: 1.2,
               }}
             >
-              {user.username}
-            </span>
-            <span style={{ color: c.textFaint }}>·</span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <AtSign size={11} color={c.textFaint} />
+              @{user.username}
+            </div>
+            <div
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                color: c.text,
+                lineHeight: 1.3,
+                marginTop: 2,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {user.displayName || user.username}
+            </div>
+          </div>
+        </div>
+
+        {/* Metadata Details (Pills/Tags) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: c.textMuted }}>
+            <AtSign size={13} style={{ color: c.textFaint }} />
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {user.email}
             </span>
-            {user.designation && (
-              <>
-                <span style={{ color: c.textFaint }}>·</span>
-                <span>{user.designation}</span>
-              </>
-            )}
           </div>
-          <div
-            style={{
-              marginTop: 4,
-              fontSize: 11.5,
-              color: c.textFaint,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            <Clock size={11} />
-            {formatRelative(user.lastLoginAt)}
+
+          {user.designation && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: c.textMuted }}>
+              <Building2 size={13} style={{ color: c.textFaint }} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {user.designation}
+              </span>
+            </div>
+          )}
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: c.textFaint }}>
+            <Clock size={13} />
+            <span>Last active: {formatRelative(user.lastLoginAt)}</span>
           </div>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-        <Tooltip title="Reset password">
-          <Button size="small" icon={<RefreshCw size={13} />} onClick={onReset}>
-            Reset
-          </Button>
-        </Tooltip>
-        <Tooltip
-          title={user.status === "active" ? "Disable access" : "Re-enable access"}
-        >
-          <Button size="small" icon={<Power size={13} />} onClick={onToggle}>
-            {user.status === "active" ? "Disable" : "Enable"}
-          </Button>
-        </Tooltip>
-        <Popconfirm
-          title="Remove portal access?"
-          description="This permanently deletes the login. The client contact will not be removed."
-          okText="Remove"
-          okButtonProps={{ danger: true }}
-          onConfirm={onDelete}
-        >
-          <Button size="small" danger icon={<Trash2 size={13} />}>
-            Remove
-          </Button>
-        </Popconfirm>
+      {/* Horizontal Divider */}
+      <div style={{ height: 1, background: c.border, width: "100%" }} />
+
+      {/* Card Footer */}
+      <div
+        style={{
+          padding: "12px 16px",
+          background: c.surfaceSubtle,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        {/* Status badges */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minWidth: 0 }}>
+          {user.status === "active" ? (
+            <StatusBadge variant="success" c={c} icon={ShieldCheck}>
+              Active
+            </StatusBadge>
+          ) : (
+            <StatusBadge variant="danger" c={c} icon={ShieldOff}>
+              Disabled
+            </StatusBadge>
+          )}
+          {user.mustChangePassword && (
+            <Tooltip title="User has not changed the temporary password yet">
+              <span>
+                <StatusBadge variant="warning" c={c} icon={Clock}>
+                  Pending
+                </StatusBadge>
+              </span>
+            </Tooltip>
+          )}
+        </div>
+
+        {/* Action icons */}
+        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          <Tooltip title="Reset password">
+            <Button size="small" icon={<RefreshCw size={12} />} onClick={onReset} />
+          </Tooltip>
+          <Tooltip title={user.status === "active" ? "Disable access" : "Re-enable access"}>
+            <Button size="small" icon={<Power size={12} />} onClick={onToggle} />
+          </Tooltip>
+          <Popconfirm
+            title="Remove portal access?"
+            description="Permanently deletes credentials."
+            okText="Remove"
+            okButtonProps={{ danger: true }}
+            onConfirm={onDelete}
+          >
+            <Button size="small" danger icon={<Trash2 size={12} />} />
+          </Popconfirm>
+        </div>
       </div>
     </div>
   );

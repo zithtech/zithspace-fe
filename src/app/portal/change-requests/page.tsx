@@ -11,7 +11,14 @@ import {
   Form,
   Select,
   notification,
+  Row,
+  Col,
+  Divider,
+  Typography,
 } from "antd";
+import { PullRequestOutlined } from "@ant-design/icons";
+
+const { Title, Text } = Typography;
 import {
   Search,
   Plus,
@@ -115,265 +122,400 @@ export default function PortalCrListPage() {
   }, [meta]);
 
   return (
-    <div style={{ padding: "32px 40px 56px", maxWidth: 1280 }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}>
       {contextHolder}
 
+      {/* Workstation Header */}
       <div
+        className="saas-header-container portal-mom-header-container"
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 16,
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-          marginBottom: 24,
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          backdropFilter: "blur(12px)",
+          padding: "20px 40px 20px 40px",
+          marginBottom: 0,
+          backgroundColor: "#ffffff",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
         }}
       >
-        <div>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: p.textSubtle,
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              marginBottom: 6,
-            }}
-          >
-            Zukvo · Scope
-          </div>
-          <h1
-            style={{
-              fontSize: 28,
-              fontWeight: 600,
-              color: p.text,
-              margin: 0,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Change requests
-          </h1>
-          <div style={{ marginTop: 6, fontSize: 13.5, color: p.textMuted }}>
-            Request a scope change, see our impact and cost estimate, and
-            approve or reject before work starts.
-          </div>
-        </div>
-        <button
-          onClick={() => setCreateOpen(true)}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 16px",
-            background: p.text,
-            color: "#ffffff",
-            border: `1px solid ${p.text}`,
-            borderRadius: 10,
-            fontSize: 13.5,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          <Plus size={15} />
-          New change request
-        </button>
-      </div>
-
-      {/* Summary strip */}
-      {(meta?.total || 0) > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 12,
-            marginBottom: 18,
-          }}
-        >
-          <SummaryCard label="Total" value={summary.total} tone="neutral" />
-          <SummaryCard
-            label="Awaiting your decision"
-            value={summary.awaiting}
-            tone="warning"
-          />
-          <SummaryCard
-            label="In flight"
-            value={summary.inFlight}
-            tone="accent"
-          />
-          <SummaryCard
-            label="Delivered"
-            value={summary.delivered}
-            tone="success"
-          />
-        </div>
-      )}
-
-      {/* Filter row */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-          marginBottom: 12,
-        }}
-      >
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {FILTER_TABS.map((tab) => {
-            const active = status === tab.key;
-            const count =
-              tab.key === "ALL" ? meta?.total : meta?.counts?.[tab.key as never];
-            return (
-              <button
-                key={tab.key}
-                onClick={() => {
-                  setStatus(tab.key);
-                  setPage(1);
-                }}
+        <Row justify="space-between" align="middle" gutter={[16, 16]}>
+          <Col flex="1 1 auto" style={{ minWidth: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <div
                 style={{
-                  display: "inline-flex",
+                  display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  padding: "7px 12px",
-                  background: active ? p.text : p.surfaceElevated,
-                  color: active ? "#ffffff" : p.textMuted,
-                  border: `1px solid ${active ? p.text : p.border}`,
+                }}
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background:
+                      "linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(37, 99, 235, 0.08))",
+                    color: "#3b82f6",
+                  }}
+                >
+                  <PullRequestOutlined style={{ fontSize: 18, color: "#3b82f6" }} />
+                </div>
+                <Title
+                  level={4}
+                  className="portal-mom-header-title"
+                  style={{
+                    margin: 0,
+                    fontWeight: 800,
+                    color: "var(--text-slate-900)",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  Change requests
+                </Title>
+              </div>
+
+              <Divider
+                type="vertical"
+                style={{
+                  height: 20,
+                  borderColor: "rgba(0, 0, 0, 0.08)",
+                  margin: "0 12px",
+                }}
+              />
+
+              <div>
+                <Text
+                  className="portal-mom-header-desc"
+                  style={{
+                    fontSize: 12,
+                    color: "var(--text-slate-600)",
+                    fontWeight: 600,
+                  }}
+                >
+                  Request a scope change, see our impact and cost estimate, and approve or reject before work starts.
+                </Text>
+              </div>
+            </div>
+          </Col>
+
+          <Col flex="0 0 auto">
+            <Row gutter={8} align="middle">
+              <Col>
+                <button
+                  onClick={() => setCreateOpen(true)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 14px",
+                    background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    boxShadow: "0 2px 4px rgba(99, 102, 241, 0.1)",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <Plus size={14} />
+                  New change request
+                </button>
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+      </div>
+
+      {/* Content Container */}
+      <div style={{ padding: "16px 40px 56px", width: "100%", boxSizing: "border-box" }}>
+        {/* Summary strip */}
+        {(meta?.total || 0) > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 12,
+              marginBottom: 18,
+            }}
+          >
+            <SummaryCard label="Total" value={summary.total} tone="neutral" />
+            <SummaryCard
+              label="Awaiting your decision"
+              value={summary.awaiting}
+              tone="warning"
+            />
+            <SummaryCard
+              label="In flight"
+              value={summary.inFlight}
+              tone="accent"
+            />
+            <SummaryCard
+              label="Delivered"
+              value={summary.delivered}
+              tone="success"
+            />
+          </div>
+        )}
+
+        {/* Filter row */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            marginBottom: 12,
+          }}
+        >
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {FILTER_TABS.map((tab) => {
+              const active = status === tab.key;
+              const count =
+                tab.key === "ALL" ? meta?.total : meta?.counts?.[tab.key as never];
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => {
+                    setStatus(tab.key);
+                    setPage(1);
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 14px",
+                    backgroundColor: active ? "#4f46e5" : "#ffffff",
+                    color: active ? "#ffffff" : "#475569",
+                    border: "1px solid",
+                    borderColor: active ? "#4f46e5" : "#e2e8f0",
+                    borderRadius: 999,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {tab.label}
+                  {count != null && count > 0 && (
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        padding: "1px 7px",
+                        borderRadius: 999,
+                        background: active
+                          ? "rgba(255,255,255,0.15)"
+                          : "#f1f5f9",
+                        color: active ? "#ffffff" : "#64748b",
+                      }}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <Input
+            allowClear
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            prefix={<Search size={14} color={p.textFaint} />}
+            placeholder="Search CR # or subject…"
+            style={{ width: 280 }}
+          />
+        </div>
+
+        {/* Body */}
+        {loading ? (
+          <div
+            style={{
+              padding: 80,
+              textAlign: "center",
+              background: p.surfaceElevated,
+              border: `1px solid ${p.border}`,
+              borderRadius: 12,
+            }}
+          >
+            <Spin />
+          </div>
+        ) : items.length === 0 ? (
+          <div
+            style={{
+              padding: 64,
+              textAlign: "center",
+              background: p.surfaceElevated,
+              border: `1px dashed ${p.border}`,
+              borderRadius: 12,
+            }}
+          >
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <span style={{ color: p.textSubtle, fontSize: 13 }}>
+                  {search
+                    ? `No change requests match "${search}".`
+                    : status !== "ALL"
+                    ? "Nothing in this status."
+                    : "No change requests yet."}
+                </span>
+              }
+            />
+            <div style={{ marginTop: 14 }}>
+              <button
+                onClick={() => setCreateOpen(true)}
+                style={{
+                  padding: "8px 14px",
+                  background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                  color: "#ffffff",
+                  border: "none",
                   borderRadius: 8,
                   fontSize: 13,
                   fontWeight: 500,
                   cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  boxShadow: "0 2px 4px rgba(99, 102, 241, 0.1)",
                 }}
               >
-                {tab.label}
-                {count != null && count > 0 && (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: "1px 7px",
-                      borderRadius: 999,
-                      background: active
-                        ? "rgba(255,255,255,0.15)"
-                        : p.neutralBg,
-                      color: active ? "#ffffff" : p.textSubtle,
-                    }}
-                  >
-                    {count}
-                  </span>
-                )}
+                <Plus size={14} />
+                Raise your first CR
               </button>
-            );
-          })}
-        </div>
-        <Input
-          allowClear
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          prefix={<Search size={14} color={p.textFaint} />}
-          placeholder="Search CR # or subject…"
-          style={{ width: 280 }}
-        />
-      </div>
-
-      {/* Body */}
-      {loading ? (
-        <div
-          style={{
-            padding: 80,
-            textAlign: "center",
-            background: p.surfaceElevated,
-            border: `1px solid ${p.border}`,
-            borderRadius: 12,
-          }}
-        >
-          <Spin />
-        </div>
-      ) : items.length === 0 ? (
-        <div
-          style={{
-            padding: 64,
-            textAlign: "center",
-            background: p.surfaceElevated,
-            border: `1px dashed ${p.border}`,
-            borderRadius: 12,
-          }}
-        >
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <span style={{ color: p.textSubtle, fontSize: 13 }}>
-                {search
-                  ? `No change requests match "${search}".`
-                  : status !== "ALL"
-                  ? "Nothing in this status."
-                  : "No change requests yet."}
-              </span>
-            }
-          />
-          <div style={{ marginTop: 14 }}>
-            <button
-              onClick={() => setCreateOpen(true)}
-              style={{
-                padding: "8px 14px",
-                background: p.text,
-                color: "#ffffff",
-                border: `1px solid ${p.text}`,
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <Plus size={14} />
-              Raise your first CR
-            </button>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div
-          style={{
-            background: p.surfaceElevated,
-            border: `1px solid ${p.border}`,
-            borderRadius: 12,
-            overflow: "hidden",
-          }}
-        >
-          {items.map((cr, i) => (
-            <CrRow key={cr.id} cr={cr} first={i === 0} />
-          ))}
-        </div>
-      )}
+        ) : (
+          <div
+            style={{
+              background: p.surfaceElevated,
+              border: `1px solid ${p.border}`,
+              borderRadius: 12,
+              overflow: "hidden",
+            }}
+          >
+            {items.map((cr, i) => (
+              <CrRow key={cr.id} cr={cr} first={i === 0} />
+            ))}
+          </div>
+        )}
 
-      {meta && meta.total > limit && (
-        <div
-          style={{
-            marginTop: 16,
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-        >
-          <Pagination
-            current={page}
-            pageSize={limit}
-            total={meta.total}
-            onChange={setPage}
-            showSizeChanger={false}
-          />
-        </div>
-      )}
+        {meta && meta.total > limit && (
+          <div
+            style={{
+              marginTop: 16,
+              display: "flex",
+              justifyContent: "flex-end",
+            }}
+          >
+            <Pagination
+              current={page}
+              pageSize={limit}
+              total={meta.total}
+              onChange={setPage}
+              showSizeChanger={false}
+            />
+          </div>
+        )}
 
-      <RaiseCrModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        notify={notify}
-        onCreated={() => {
-          setCreateOpen(false);
-          setPage(1);
-          load();
-        }}
-      />
+        <RaiseCrModal
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          notify={notify}
+          onCreated={() => {
+            setCreateOpen(false);
+            setPage(1);
+            load();
+          }}
+        />
+
+        <style jsx global>{`
+          .portal-mom-header-container,
+          [data-theme='dark'] .portal-mom-header-container,
+          [data-theme='dark'] .saas-header-container.portal-mom-header-container,
+          .saas-header-container.portal-mom-header-container {
+            background: #ffffff !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+          }
+          .portal-mom-header-title {
+            color: #0f172a !important;
+          }
+          .portal-mom-header-desc {
+            color: #475569 !important;
+          }
+          
+          /* Form Inputs and Select elements styling overrides */
+          .ant-input, .ant-select-selector, .ant-input-affix-wrapper {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+          }
+          .ant-input::placeholder, .ant-select-selection-placeholder {
+            color: #94a3b8 !important;
+          }
+          .ant-select-selection-item {
+            color: #0f172a !important;
+          }
+          .ant-input-affix-wrapper .ant-input {
+            background-color: transparent !important;
+            color: #0f172a !important;
+          }
+          .ant-input-affix-wrapper:hover, .ant-input:hover, .ant-select-selector:hover {
+            border-color: #cbd5e1 !important;
+          }
+          .ant-input-affix-wrapper-focused, .ant-input-focused, .ant-select-focused .ant-select-selector {
+            border-color: #4f46e5 !important;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+          }
+          .ant-select-arrow {
+            color: #94a3b8 !important;
+          }
+          
+          /* Empty state SVG path overrides to force light colors */
+          .ant-empty-img-simple path,
+          .ant-empty-image svg path,
+          .ant-empty-image path {
+            fill: #f8fafc !important;
+            stroke: #cbd5e1 !important;
+          }
+          .ant-empty-img-simple ellipse,
+          .ant-empty-image svg ellipse,
+          .ant-empty-image ellipse {
+            fill: #e2e8f0 !important;
+            stroke: #cbd5e1 !important;
+          }
+          .ant-empty-img-simple g,
+          .ant-empty-image svg g,
+          .ant-empty-image g {
+            stroke: #cbd5e1 !important;
+          }
+          
+          /* Target specific nested elements inside simple image for fine tuning */
+          .ant-empty-img-simple [fill="#434343"],
+          .ant-empty-image [fill="#434343"],
+          .ant-empty-img-simple [fill="#1f1f1f"],
+          .ant-empty-image [fill="#1f1f1f"] {
+            fill: #f1f5f9 !important;
+          }
+          .ant-empty-img-simple [stroke="#434343"],
+          .ant-empty-image [stroke="#434343"] {
+            stroke: #cbd5e1 !important;
+          }
+        `}</style>
+      </div>
     </div>
   );
 }
@@ -843,12 +985,12 @@ function RaiseCrModal({
             </Form.Item>
           </div>
 
-          <div style={{ marginBottom: 14 }}>
+          <div style={{ marginBottom: 18, marginTop: 10 }}>
             <div
               style={{
                 fontSize: 12.5,
                 color: p.textMuted,
-                marginBottom: 6,
+                marginBottom: 10,
               }}
             >
               Attachments
@@ -900,14 +1042,15 @@ function RaiseCrModal({
                 alignItems: "center",
                 gap: 6,
                 padding: "8px 14px",
-                background: p.text,
+                background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
                 color: "#ffffff",
-                border: `1px solid ${p.text}`,
+                border: "none",
                 borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: submitting ? "not-allowed" : "pointer",
                 opacity: submitting ? 0.6 : 1,
+                boxShadow: "0 2px 4px rgba(99, 102, 241, 0.1)",
               }}
             >
               <Send size={13} />

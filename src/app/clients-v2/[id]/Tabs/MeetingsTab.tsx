@@ -14,6 +14,8 @@ import {
   Tooltip,
   Popconfirm,
   Empty,
+  Table,
+  Tag,
 } from "antd";
 import {
   Plus,
@@ -35,6 +37,9 @@ import {
   Link2,
   Upload as UploadIcon,
   FileText,
+  Search,
+  LayoutList,
+  LayoutGrid,
 } from "lucide-react";
 import dayjs from "dayjs";
 import {
@@ -55,6 +60,7 @@ import {
   ModalFooterActions,
   FieldLabel as FLabel,
 } from "./_PremiumModal";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 type Mode = "light" | "dark";
 
@@ -183,6 +189,12 @@ export default function MeetingsTab({
   const [openId, setOpenId] = useState<string | null>(null);
   const [notify, contextHolder] = notification.useNotification();
 
+  // Toolbar state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "card">("list");
+
   const load = async () => {
     setLoading(true);
     try {
@@ -207,141 +219,499 @@ export default function MeetingsTab({
       {contextHolder}
 
       {/* Header */}
-      <div
-        style={{
-          padding: 22,
-          background: c.surfaceElevated,
-          border: `1px solid ${c.border}`,
-          borderRadius: 14,
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 24,
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", gap: 16, flex: 1, minWidth: 280 }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 10,
-              background: c.accentBg,
-              color: c.accentText,
-              border: `1px solid ${c.accentBorder}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Calendar size={20} />
-          </div>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: c.text }}>
-              Meeting minutes
-            </div>
-            <div
-              style={{
-                marginTop: 4,
-                fontSize: 13,
-                color: c.textSubtle,
-                lineHeight: 1.55,
-                maxWidth: 580,
-              }}
-            >
-              Capture decisions and action items from your meetings with the
-              client. Action items can be converted into portal tickets in
-              one click.
-            </div>
-          </div>
-        </div>
-        <Button
-          type="primary"
-          icon={<Plus size={15} />}
-          onClick={() => setCreateOpen(true)}
-        >
-          New meeting
-        </Button>
-      </div>
-
-      {loading ? (
-        <div
-          style={{
-            padding: 48,
-            textAlign: "center",
-            border: `1px solid ${c.border}`,
-            borderRadius: 12,
-            background: c.surfaceElevated,
-            color: c.textSubtle,
-          }}
-        >
-          Loading…
-        </div>
-      ) : items.length === 0 ? (
-        <div
-          style={{
-            padding: 56,
-            textAlign: "center",
-            background: c.surfaceElevated,
-            border: `1px dashed ${c.border}`,
-            borderRadius: 14,
-          }}
-        >
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 14,
-              background: c.accentBg,
-              color: c.accentText,
-              border: `1px solid ${c.accentBorder}`,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 14,
-            }}
-          >
-            <Calendar size={22} />
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: c.text }}>
-            No meetings logged yet
-          </div>
-          <div
-            style={{
-              marginTop: 6,
-              fontSize: 13,
-              color: c.textSubtle,
-              maxWidth: 420,
-              margin: "6px auto 0",
-            }}
-          >
-            Log your first MOM to start tracking action items and decisions
-            with this client.
-          </div>
-          <div style={{ marginTop: 18 }}>
+      <div className="meetings-header-wrap" style={{ margin: "0 -32px" }}>
+        <TimeTrackingHeader
+          icon={<Calendar size={20} color="#3b82f6" />}
+          title="Meeting minutes"
+          description="Capture decisions and action items from meetings with the client."
+          extra={
             <Button
               type="primary"
               icon={<Plus size={15} />}
               onClick={() => setCreateOpen(true)}
+              style={{
+                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                borderColor: "transparent",
+                borderRadius: "8px",
+                height: "36px",
+                fontWeight: 600,
+                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                display: "inline-flex",
+                alignItems: "center",
+              }}
             >
-              Log first meeting
+              New meeting
             </Button>
+          }
+          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
+        />
+      </div>
+
+      {/* ── Toolbar ── */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 10,
+          alignItems: "center",
+          marginTop: 20,
+          marginBottom: 20,
+          padding: "12px 16px",
+          background: c.surfaceElevated,
+          border: `1px solid ${c.border}`,
+          borderRadius: 12,
+        }}
+      >
+        {/* Search */}
+        <Input
+          allowClear
+          prefix={<Search size={14} style={{ color: c.textFaint }} />}
+          placeholder="Search meetings…"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            width: 220,
+            background: c.surfaceMuted,
+            borderColor: c.border,
+            color: c.text,
+            borderRadius: 8,
+          }}
+        />
+
+        {/* Date range */}
+        <DatePicker.RangePicker
+          allowClear
+          placeholder={["From date", "To date"]}
+          onChange={(val) => setDateRange(val as any)}
+          style={{
+            background: c.surfaceMuted,
+            borderColor: c.border,
+            borderRadius: 8,
+            color: c.text,
+          }}
+        />
+
+        {/* Project filter */}
+        {projects.length > 0 && (
+          <Select
+            allowClear
+            placeholder="All projects"
+            value={projectFilter}
+            onChange={(v) => setProjectFilter(v ?? null)}
+            options={projects.map((p) => ({ label: p.name, value: p.id }))}
+            style={{ minWidth: 160, borderRadius: 8 }}
+          />
+        )}
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* View toggle */}
+        <div
+          style={{
+            display: "flex",
+            gap: 2,
+            background: c.surfaceMuted,
+            border: `1px solid ${c.border}`,
+            borderRadius: 8,
+            padding: 3,
+          }}
+        >
+          <Tooltip title="List view">
+            <button
+              onClick={() => setViewMode("list")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 30,
+                height: 30,
+                borderRadius: 6,
+                border: "none",
+                cursor: "pointer",
+                background: viewMode === "list" ? c.accent : "transparent",
+                color: viewMode === "list" ? "#fff" : c.textSubtle,
+                transition: "background 150ms ease",
+              }}
+            >
+              <LayoutList size={15} />
+            </button>
+          </Tooltip>
+          <Tooltip title="Card view">
+            <button
+              onClick={() => setViewMode("card")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 30,
+                height: 30,
+                borderRadius: 6,
+                border: "none",
+                cursor: "pointer",
+                background: viewMode === "card" ? c.accent : "transparent",
+                color: viewMode === "card" ? "#fff" : c.textSubtle,
+                transition: "background 150ms ease",
+              }}
+            >
+              <LayoutGrid size={15} />
+            </button>
+          </Tooltip>
+        </div>
+      </div>
+
+      {/* ── Content ── */}
+      {(() => {
+        // Filter items
+        const filtered = items.filter((m) => {
+          if (searchTerm.trim()) {
+            const q = searchTerm.toLowerCase();
+            if (
+              !m.title?.toLowerCase().includes(q) &&
+              !m.momNumber?.toLowerCase().includes(q) &&
+              !m.projectName?.toLowerCase().includes(q)
+            ) return false;
+          }
+          if (projectFilter && m.projectId !== projectFilter) return false;
+          if (dateRange && dateRange[0] && dateRange[1]) {
+            const d = dayjs(m.meetingDate);
+            if (d.isBefore(dateRange[0], "day") || d.isAfter(dateRange[1], "day")) return false;
+          }
+          return true;
+        });
+
+        if (loading) return (
+          <div style={{ padding: 48, textAlign: "center", border: `1px solid ${c.border}`, borderRadius: 12, background: c.surfaceElevated, color: c.textSubtle }}>
+            Loading…
           </div>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {items.map((m) => (
-            <MeetingRow
-              key={m.id}
-              mom={m}
-              c={c}
-              onOpen={() => setOpenId(m.id)}
+        );
+
+        if (items.length === 0) return (
+          <div style={{ padding: 56, textAlign: "center", background: c.surfaceElevated, border: `1px dashed ${c.border}`, borderRadius: 14 }}>
+            <div style={{ width: 56, height: 56, borderRadius: 14, background: c.accentBg, color: c.accentText, border: `1px solid ${c.accentBorder}`, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+              <Calendar size={22} />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: c.text }}>No meetings logged yet</div>
+            <div style={{ marginTop: 6, fontSize: 13, color: c.textSubtle, maxWidth: 420, margin: "6px auto 0" }}>
+              Log your first MOM to start tracking action items and decisions with this client.
+            </div>
+            <div style={{ marginTop: 18 }}>
+              <Button type="primary" icon={<Plus size={15} />} onClick={() => setCreateOpen(true)}>Log first meeting</Button>
+            </div>
+          </div>
+        );
+
+        if (filtered.length === 0) return (
+          <div style={{ padding: 40, textAlign: "center", border: `1px dashed ${c.border}`, borderRadius: 12, color: c.textSubtle }}>
+            No meetings match your filters.
+          </div>
+        );
+
+        // ── CARD VIEW ──
+        if (viewMode === "card") return (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
+            {filtered.map((m) => (
+              <div
+                key={m.id}
+                onClick={() => setOpenId(m.id)}
+                style={{
+                  background: c.surfaceElevated,
+                  border: `1px solid ${c.border}`,
+                  borderRadius: 14,
+                  cursor: "pointer",
+                  transition: "border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease",
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                  position: "relative",
+                }}
+                onMouseEnter={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = c.accentBorder;
+                  el.style.boxShadow = `0 8px 28px rgba(59,130,246,0.10), 0 2px 8px rgba(0,0,0,0.06)`;
+                  el.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = c.border;
+                  el.style.boxShadow = "none";
+                  el.style.transform = "translateY(0)";
+                }}
+              >
+                {/* Top accent bar */}
+                <div style={{ height: 3, background: `linear-gradient(90deg, ${c.accent}, ${c.accent}66)`, flexShrink: 0 }} />
+
+                {/* Card body */}
+                <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
+
+                  {/* Header row: icon + title + badges */}
+                  <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                    {/* Icon tile */}
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                      background: c.accentBg, border: `1px solid ${c.accentBorder}`,
+                      color: c.accentText, display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <Calendar size={17} />
+                    </div>
+
+                    {/* Title + MOM number */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontFamily: "ui-monospace, SFMono-Regular, monospace",
+                        fontSize: 10, color: c.textFaint, marginBottom: 3, letterSpacing: "0.05em",
+                      }}>
+                        {m.momNumber}
+                      </div>
+                      <div style={{
+                        fontSize: 14, fontWeight: 700, color: c.text, lineHeight: 1.3,
+                        overflow: "hidden", display: "-webkit-box",
+                        WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                      }}>
+                        {m.title}
+                      </div>
+                    </div>
+
+                    {/* Badges */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
+                      {m.status === "draft" && (
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", background: c.warningBg, border: `1px solid ${c.warningBorder}`, color: c.warningText, borderRadius: 999 }}>
+                          Draft
+                        </span>
+                      )}
+                      {m.visibility === "internal" && (
+                        <span style={{ fontSize: 10, fontWeight: 500, padding: "2px 8px", background: c.surfaceMuted, border: `1px solid ${c.border}`, color: c.textSubtle, borderRadius: 999 }}>
+                          Internal
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Meta chips row */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {/* Date chip */}
+                    <span style={{
+                      display: "inline-flex", gap: 5, alignItems: "center",
+                      padding: "4px 10px", borderRadius: 999,
+                      background: c.surfaceMuted, border: `1px solid ${c.border}`,
+                      fontSize: 11.5, color: c.textMuted, fontWeight: 500,
+                    }}>
+                      <Clock size={11} />{fmtDate(m.meetingDate)}
+                    </span>
+
+                    {/* Duration chip */}
+                    {m.durationMinutes && (
+                      <span style={{
+                        display: "inline-flex", gap: 5, alignItems: "center",
+                        padding: "4px 10px", borderRadius: 999,
+                        background: c.surfaceMuted, border: `1px solid ${c.border}`,
+                        fontSize: 11.5, color: c.textMuted, fontWeight: 500,
+                      }}>
+                        {m.durationMinutes} min
+                      </span>
+                    )}
+
+                    {/* Project chip */}
+                    {m.projectName && (
+                      <span style={{
+                        display: "inline-flex", gap: 5, alignItems: "center",
+                        padding: "4px 10px", borderRadius: 999,
+                        background: c.accentBg, border: `1px solid ${c.accentBorder}`,
+                        fontSize: 11.5, color: c.accentText, fontWeight: 500,
+                      }}>
+                        <GitPullRequest size={11} />{m.projectName}
+                      </span>
+                    )}
+
+                    {/* Recording chip */}
+                    {m.recordingUrl && (
+                      <span style={{
+                        display: "inline-flex", gap: 5, alignItems: "center",
+                        padding: "4px 10px", borderRadius: 999,
+                        background: c.purpleBg, border: `1px solid ${c.purpleBorder}`,
+                        fontSize: 11.5, color: c.purpleText, fontWeight: 500,
+                      }}>
+                        <Video size={11} />Recording
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer stats bar */}
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 0,
+                  borderTop: `1px solid ${c.border}`,
+                  background: c.surfaceMuted,
+                }}>
+                  <div style={{
+                    flex: 1, display: "flex", alignItems: "center", gap: 6,
+                    padding: "10px 18px", fontSize: 12, color: c.textSubtle,
+                    borderRight: `1px solid ${c.border}`,
+                  }}>
+                    <Users size={12} />
+                    <span>{m.attendeeCount} attendee{m.attendeeCount === 1 ? "" : "s"}</span>
+                  </div>
+                  <div style={{
+                    flex: 1, display: "flex", alignItems: "center", gap: 6,
+                    padding: "10px 18px", fontSize: 12,
+                    color: m.openActionCount > 0 ? c.warningText : c.textSubtle,
+                    fontWeight: m.openActionCount > 0 ? 600 : 400,
+                  }}>
+                    <CheckSquare size={12} />
+                    <span>{m.openActionCount} open · {m.actionCount} total</span>
+                  </div>
+                  <div style={{
+                    padding: "10px 14px",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: c.textFaint,
+                  }}>
+                    <ChevronRight size={15} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+
+
+        // ── TABLE VIEW ──
+        const columns = [
+          {
+            title: "MOM #",
+            dataIndex: "momNumber",
+            key: "momNumber",
+            width: 110,
+            render: (v: string) => (
+              <span style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: 11.5, color: c.textMuted }}>{v}</span>
+            ),
+          },
+          {
+            title: "Title",
+            dataIndex: "title",
+            key: "title",
+            render: (v: string, m: MomListItem) => (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: c.text }}>{v}</span>
+                {m.status === "draft" && (
+                  <Tag color="warning" style={{ fontSize: 10, margin: 0 }}>Draft</Tag>
+                )}
+                {m.visibility === "internal" && (
+                  <Tag style={{ fontSize: 10, margin: 0, background: c.surfaceMuted, border: `1px solid ${c.border}`, color: c.textSubtle }}>Internal</Tag>
+                )}
+              </div>
+            ),
+          },
+          {
+            title: "Date",
+            dataIndex: "meetingDate",
+            key: "meetingDate",
+            width: 160,
+            render: (v: string) => (
+              <span style={{ fontSize: 12.5, color: c.textMuted, display: "inline-flex", gap: 5, alignItems: "center" }}>
+                <Clock size={12} />{fmtDate(v)}
+              </span>
+            ),
+          },
+          {
+            title: "Duration",
+            dataIndex: "durationMinutes",
+            key: "durationMinutes",
+            width: 100,
+            render: (v: number | null) => (
+              <span style={{ fontSize: 12.5, color: c.textSubtle }}>{v ? `${v} min` : "—"}</span>
+            ),
+          },
+          {
+            title: "Project",
+            dataIndex: "projectName",
+            key: "projectName",
+            width: 140,
+            render: (v: string | null) => v ? (
+              <span style={{ fontSize: 12, color: c.accentText, display: "inline-flex", gap: 4, alignItems: "center" }}>
+                <GitPullRequest size={11} />{v}
+              </span>
+            ) : <span style={{ color: c.textFaint }}>—</span>,
+          },
+          {
+            title: "Attendees",
+            dataIndex: "attendeeCount",
+            key: "attendeeCount",
+            width: 100,
+            render: (v: number) => (
+              <span style={{ fontSize: 12.5, color: c.textSubtle, display: "inline-flex", gap: 4, alignItems: "center" }}>
+                <Users size={12} />{v}
+              </span>
+            ),
+          },
+          // {
+          //   title: "Actions",
+          //   dataIndex: "openActionCount",
+          //   key: "actions",
+          //   width: 120,
+          //   render: (open: number, m: MomListItem) => (
+          //     <span style={{ fontSize: 12.5, display: "inline-flex", gap: 4, alignItems: "center", color: open > 0 ? c.warningText : c.textSubtle, fontWeight: open > 0 ? 600 : 400 }}>
+          //       <CheckSquare size={12} />{open} open · {m.actionCount} total
+          //     </span>
+          //   ),
+          // },
+          // {
+          //   title: "",
+          //   key: "open",
+          //   width: 40,
+          //   render: (_: any, m: MomListItem) => (
+          //     <Button
+          //       type="text"
+          //       size="small"
+          //       icon={<ChevronRight size={15} color={c.textFaint} />}
+          //       onClick={() => setOpenId(m.id)}
+          //     />
+          //   ),
+          // },
+        ];
+
+        return (
+          <>
+            <style dangerouslySetInnerHTML={{
+              __html: `
+              .meetings-table .ant-table {
+                background: transparent !important;
+                color: ${c.text} !important;
+              }
+              .meetings-table .ant-table-thead > tr > th {
+                background: ${c.surfaceMuted} !important;
+                color: ${c.textSubtle} !important;
+                font-weight: 600 !important;
+                font-size: 11px !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.06em !important;
+                border-bottom: 1px solid ${c.border} !important;
+                padding: 10px 16px !important;
+              }
+              .meetings-table .ant-table-thead > tr > th::before { display: none !important; }
+              .meetings-table .ant-table-tbody > tr > td {
+                background: ${c.surfaceElevated} !important;
+                border-bottom: 1px solid ${c.border} !important;
+                padding: 12px 16px !important;
+              }
+              .meetings-table .ant-table-tbody > tr:hover > td {
+                background: ${c.surfaceMuted} !important;
+              }
+              .meetings-table .ant-table-tbody > tr > td:first-child { border-radius: 0 !important; }
+              .meetings-table { border: 1px solid ${c.border}; border-radius: 12px; overflow: hidden; }
+            ` }} />
+            <Table
+              className="meetings-table"
+              dataSource={filtered}
+              columns={columns}
+              rowKey="id"
+              loading={loading}
+              pagination={{ pageSize: 10, hideOnSinglePage: true }}
+              scroll={{ x: "max-content" }}
+              onRow={(m) => ({ onClick: () => setOpenId(m.id), style: { cursor: "pointer" } })}
             />
-          ))}
-        </div>
-      )}
+          </>
+        );
+      })()}
 
       {/* Create modal */}
       <CreateMeetingModal
@@ -357,7 +727,6 @@ export default function MeetingsTab({
         c={c}
         notify={notify}
       />
-
       {/* Detail drawer */}
       <MomDetailDrawer
         id={openId}
@@ -366,6 +735,66 @@ export default function MeetingsTab({
         onClose={() => setOpenId(null)}
         onMutated={load}
       />
+
+      {/* Premium adaptive header styling */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        /* Full bleed header styling flush with vertical sidebar border */
+        .meetings-header-wrap {
+          margin-bottom: 24px !important;
+          display: block !important;
+        }
+        .meetings-header-wrap .saas-header-container {
+          margin-left: -32px !important;
+          margin-right: -32px !important;
+          padding-left: 32px !important;
+          padding-right: 32px !important;
+          padding-top: 10px !important;
+          padding-bottom: 12px !important;
+          margin-bottom: 0 !important;
+        }
+        @media (max-width: 900px) {
+          .meetings-header-wrap .saas-header-container {
+            margin-left: -20px !important;
+            margin-right: -20px !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .meetings-header-wrap .saas-header-container {
+            margin-left: -16px !important;
+            margin-right: -16px !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+        }
+
+        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
+        @media (max-width: 1200px) {
+          html body .meetings-header-wrap .saas-header-container .saas-header-row {
+            flex-wrap: nowrap !important;
+          }
+          html body .meetings-header-wrap .saas-header-container .saas-header-left-col {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+          }
+          html body .meetings-header-wrap .saas-header-container .saas-header-extra-col {
+            width: auto !important;
+            flex: 0 0 auto !important;
+            margin-top: 0 !important;
+          }
+          html body .meetings-header-wrap .saas-header-container .saas-header-left-group {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 16px !important;
+          }
+          html body .meetings-header-wrap .saas-header-container .bh-header-divider {
+            display: inline-block !important;
+          }
+        }
+      `}} />
     </div>
   );
 }
@@ -746,7 +1175,24 @@ function CreateMeetingModal({
       iconTile={{ bg: c.accentBg, border: c.accentBorder, text: c.accentText }}
       icon={<Calendar size={20} />}
       title="Log a meeting"
-      subtitle="Captured here for the audit trail and shared with the client portal when visibility is set to Client."
+      subtitle={
+        <div style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          marginTop: 6,
+          padding: "6px 12px",
+          background: `rgba(59,130,246,0.08)`,
+          border: `1px solid rgba(59,130,246,0.22)`,
+          borderRadius: 8,
+          fontSize: 12,
+          color: c.accentText,
+          lineHeight: 1.5,
+        }}>
+          <Calendar size={12} style={{ flexShrink: 0 }} />
+          Captured for the audit trail · shared with the portal when visibility is set to <strong style={{ marginLeft: 3 }}>Client</strong>
+        </div>
+      }
       tip={
         <span>
           Convert any action item into a <strong>portal ticket</strong> or
@@ -1175,7 +1621,7 @@ function AttendeeRow({
           value={item.email || ""}
           onChange={(e) => update({ email: e.target.value })}
           placeholder="Email"
-          // Auto-filled from picker but staff can override (e.g. personal email)
+        // Auto-filled from picker but staff can override (e.g. personal email)
         />
         <Input
           size="small"
@@ -1371,16 +1817,9 @@ function AttachmentsEditor({
 
   return (
     <div>
-      {/* Existing list */}
+      {/* Existing attachment list */}
       {value.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            marginBottom: 10,
-          }}
-        >
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
           {value.map((a, i) => (
             <div
               key={i}
@@ -1388,42 +1827,28 @@ function AttachmentsEditor({
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
-                padding: "8px 10px",
-                background: c.surfaceElevated,
+                padding: "9px 12px",
+                background: c.surfaceMuted,
                 border: `1px solid ${c.border}`,
-                borderRadius: 8,
+                borderRadius: 10,
                 fontSize: 12.5,
               }}
             >
-              {a.kind === "file" ? (
-                <FileText size={13} color={c.textSubtle} />
-              ) : (
-                <Link2 size={13} color={c.accentText} />
-              )}
+              <div style={{
+                width: 30, height: 30, borderRadius: 7, flexShrink: 0,
+                background: a.kind === "file" ? c.accentBg : c.purpleBg,
+                border: `1px solid ${a.kind === "file" ? c.accentBorder : c.purpleBorder}`,
+                color: a.kind === "file" ? c.accentText : c.purpleText,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {a.kind === "file" ? <FileText size={13} /> : <Link2 size={13} />}
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    color: c.text,
-                    fontWeight: 500,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {a.kind === "file"
-                    ? a.fileName
-                    : a.linkLabel || a.linkUrl}
+                <div style={{ color: c.text, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {a.kind === "file" ? a.fileName : (a.linkLabel || a.linkUrl)}
                 </div>
                 {a.kind === "link" && a.linkLabel && (
-                  <div
-                    style={{
-                      fontSize: 11.5,
-                      color: c.textSubtle,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
+                  <div style={{ fontSize: 11, color: c.textFaint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1 }}>
                     {a.linkUrl}
                   </div>
                 )}
@@ -1431,14 +1856,7 @@ function AttachmentsEditor({
               <button
                 type="button"
                 onClick={() => removeAt(i)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  color: c.textSubtle,
-                  display: "flex",
-                  alignItems: "center",
-                }}
+                style={{ background: "transparent", border: "none", cursor: "pointer", color: c.textSubtle, display: "flex", alignItems: "center", padding: 4, borderRadius: 6 }}
               >
                 <X size={13} />
               </button>
@@ -1447,76 +1865,97 @@ function AttachmentsEditor({
         </div>
       )}
 
-      {/* Add buttons */}
+      {/* Add controls */}
       {adding !== "link" ? (
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {/* Drop zone */}
           <input
             ref={inputRef}
             type="file"
             multiple
-            hidden
-            onChange={(e) => {
-              handleFiles(e.target.files);
-              e.target.value = "";
-            }}
+            style={{ marginBottom: 12 }}
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
           />
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
             style={{
-              flex: 1,
-              padding: "10px 12px",
-              background: c.surfaceElevated,
-              border: `1px dashed ${c.borderStrong}`,
-              borderRadius: 9,
+              width: "100%",
+              padding: "28px 16px",
+              background: c.surfaceMuted,
+              border: `2px dashed ${c.accentBorder}`,
+              borderRadius: 14,
               cursor: "pointer",
-              color: c.textMuted,
-              fontSize: 12.5,
-              fontWeight: 500,
-              display: "inline-flex",
+              display: "flex",
+              flexDirection: "column",
               alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
+              gap: 10,
+              textAlign: "center",
+              transition: "border-color 150ms ease, background 150ms ease",
             }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = c.accent; (e.currentTarget as HTMLElement).style.background = c.accentBg; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = c.accentBorder; (e.currentTarget as HTMLElement).style.background = c.surfaceMuted; }}
           >
-            <UploadIcon size={13} />
-            Upload file
+            {/* Purple icon tile */}
+            <div style={{
+              width: 52, height: 52, borderRadius: 14,
+              background: `linear-gradient(135deg, #8b5cf6, #6d28d9)`,
+              boxShadow: "0 4px 16px rgba(109,40,217,0.28)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff",
+            }}>
+              <UploadIcon size={22} />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: c.text, marginBottom: 4 }}>
+                Drop file here or click to browse
+              </div>
+              <div style={{ fontSize: 12, color: c.textSubtle }}>
+                PDF, DOCX, JPG · single file · up to 25 MB
+              </div>
+            </div>
           </button>
+
+          {/* Paste link shortcut */}
           <button
             type="button"
             onClick={() => setAdding("link")}
             style={{
-              flex: 1,
-              padding: "10px 12px",
-              background: c.surfaceElevated,
-              border: `1px dashed ${c.borderStrong}`,
-              borderRadius: 9,
+              width: "100%",
+              padding: "10px 14px",
+              background: "transparent",
+              border: `1px solid ${c.border}`,
+              borderRadius: 10,
               cursor: "pointer",
-              color: c.textMuted,
+              color: c.textSubtle,
               fontSize: 12.5,
               fontWeight: 500,
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 6,
+              gap: 7,
+              transition: "border-color 150ms ease, color 150ms ease",
             }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = c.borderStrong; (e.currentTarget as HTMLElement).style.color = c.text; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = c.border; (e.currentTarget as HTMLElement).style.color = c.textSubtle; }}
           >
             <Link2 size={13} />
-            Paste link
+            Paste a link (Figma, Drive, Notion…)
           </button>
         </div>
       ) : (
-        <div
-          style={{
-            padding: 10,
-            background: c.surfaceElevated,
-            border: `1px solid ${c.border}`,
-            borderRadius: 9,
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-          }}
-        >
+        <div style={{
+          padding: 14,
+          background: c.surfaceMuted,
+          border: `1px solid ${c.border}`,
+          borderRadius: 12,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}>
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: c.textSubtle, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>Paste a link</div>
           <Input
             size="small"
             value={linkUrl}
@@ -1524,6 +1963,7 @@ function AttachmentsEditor({
             prefix={<Link2 size={12} color={c.textFaint} />}
             placeholder="https://docs.example.com/doc/…"
             autoFocus
+            onPressEnter={addLink}
           />
           <Input
             size="small"
@@ -1531,28 +1971,9 @@ function AttachmentsEditor({
             onChange={(e) => setLinkLabel(e.target.value)}
             placeholder="Optional label (e.g. Sprint 4 retro doc)"
           />
-          <div
-            style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}
-          >
-            <Button
-              size="small"
-              onClick={() => {
-                setAdding(null);
-                setLinkUrl("");
-                setLinkLabel("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              size="small"
-              type="primary"
-              onClick={addLink}
-              disabled={!linkUrl.trim()}
-              icon={<Plus size={12} />}
-            >
-              Add link
-            </Button>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginTop: 2 }}>
+            <Button size="small" onClick={() => { setAdding(null); setLinkUrl(""); setLinkLabel(""); }}>Cancel</Button>
+            <Button size="small" type="primary" onClick={addLink} disabled={!linkUrl.trim()} icon={<Plus size={12} />}>Add link</Button>
           </div>
         </div>
       )}

@@ -39,8 +39,9 @@ import {
   AlertTriangle,
   Copy,
 } from "lucide-react";
-import { api } from "@/lib/axios";
+import { api, apiClient, TokenManager } from "@/lib/axios";
 import { usePermission } from "@/hooks/usePermission";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Option } = Select;
 
@@ -154,13 +155,14 @@ export default function DocumentsTab({
   };
 
   const filteredDocuments = documents.filter((d) => {
-    if (!searchTerm) return true;
     const q = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = !searchTerm || (
       (d.fileName || "").toLowerCase().includes(q) ||
       (d.category || "").toLowerCase().includes(q) ||
       (d.documentType || "").toLowerCase().includes(q)
     );
+
+    return matchesSearch;
   });
 
   // --- Category + subtype option lists (suggested + custom from prior uploads) ---
@@ -187,19 +189,19 @@ export default function DocumentsTab({
     },
     ...(customCategories.length
       ? [
-          {
-            label: <span className="doc-opt-group">Used before</span>,
-            options: customCategories.map((c) => ({
-              value: c,
-              label: (
-                <span className="doc-opt">
-                  <span>{c}</span>
-                  <span className="doc-opt-custom">Custom</span>
-                </span>
-              ),
-            })),
-          },
-        ]
+        {
+          label: <span className="doc-opt-group">Used before</span>,
+          options: customCategories.map((c) => ({
+            value: c,
+            label: (
+              <span className="doc-opt">
+                <span>{c}</span>
+                <span className="doc-opt-custom">Custom</span>
+              </span>
+            ),
+          })),
+        },
+      ]
       : []),
   ];
 
@@ -212,27 +214,27 @@ export default function DocumentsTab({
     return [
       ...(suggested.length
         ? [
-            {
-              label: <span className="doc-opt-group">Suggested</span>,
-              options: suggested.map((t) => ({ value: t, label: t })),
-            },
-          ]
+          {
+            label: <span className="doc-opt-group">Suggested</span>,
+            options: suggested.map((t) => ({ value: t, label: t })),
+          },
+        ]
         : []),
       ...(customForCat.length
         ? [
-            {
-              label: <span className="doc-opt-group">Used before</span>,
-              options: customForCat.map((t) => ({
-                value: t,
-                label: (
-                  <span className="doc-opt">
-                    <span>{t}</span>
-                    <span className="doc-opt-custom">Custom</span>
-                  </span>
-                ),
-              })),
-            },
-          ]
+          {
+            label: <span className="doc-opt-group">Used before</span>,
+            options: customForCat.map((t) => ({
+              value: t,
+              label: (
+                <span className="doc-opt">
+                  <span>{t}</span>
+                  <span className="doc-opt-custom">Custom</span>
+                </span>
+              ),
+            })),
+          },
+        ]
         : []),
     ];
   };
@@ -362,12 +364,12 @@ export default function DocumentsTab({
               style={{ color: "var(--text-slate-500)" }}
             />
           </Tooltip>
-          <Tooltip title="Download File">
+          <Tooltip title="Download / Open">
             <Button
               type="text"
               className="premium-action-btn"
               icon={<Download size={16} />}
-              onClick={() => handleDownload(record)}
+              onClick={() => window.open(record.fileUrl, "_blank", "noopener,noreferrer")}
               style={{ color: "var(--text-slate-500)" }}
             />
           </Tooltip>
@@ -483,13 +485,7 @@ export default function DocumentsTab({
 
   const handleDownload = (record: any) => {
     if (record?.fileUrl) {
-      const link = document.createElement("a");
-      link.href = record.fileUrl;
-      link.download = record.fileName;
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      window.open(record.fileUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -514,41 +510,49 @@ export default function DocumentsTab({
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
-      <Card className="ptab-card" styles={{ body: { padding: 0 } }}>
-        <div className="ptab-header">
-          <div className="ptab-header-left">
-            <div className="ptab-header-icon amber">
-              <FolderArchive size={20} />
-            </div>
-            <div className="ptab-header-titlewrap">
-              <div className="ptab-header-title">
-                Document Repository
-                <span className="ptab-header-count">{documents.length}</span>
-              </div>
-              <div className="ptab-header-desc">
-                Centralized storage for all MSA, SOW, NDAs, and legal annexures
-              </div>
-            </div>
-          </div>
-          <div className="ptab-header-right">
-            <Input
-              placeholder="Search by name or category..."
-              prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="ptab-search"
-              allowClear
-            />
-            <Button
-              type="primary"
-              icon={<FilePlus size={16} />}
-              onClick={() => setIsUploadModalVisible(true)}
-              className="ptab-primary-btn"
-            >
-              Add Document
-            </Button>
-          </div>
-        </div>
+      <div className="documents-header-wrap" style={{ margin: "0 -32px" }}>
+        <TimeTrackingHeader
+          icon={<FolderArchive size={20} color="#f59e0b" />}
+          title="Document Repository"
+          description="Centralized storage for all MSA, SOW, NDAs, and legal annexures"
+          extra={
+            canUpdateClient && (
+              <Button
+                type="primary"
+                icon={<FilePlus size={16} />}
+                onClick={() => setIsUploadModalVisible(true)}
+                className="ptab-primary-btn"
+                style={{
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  borderColor: "transparent",
+                  borderRadius: "8px",
+                  height: "32px",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                Add Document
+              </Button>
+            )
+          }
+          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
+        />
+      </div>
 
+      <div style={{ margin: "20px 0 16px 0", display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+        <Input
+          placeholder="Search by name or classification..."
+          prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="documents-search-input"
+          style={{ width: "320px" }}
+          allowClear
+        />
+      </div>
+
+      <Card className="ptab-card" styles={{ body: { padding: 0 } }}>
         <Table
           dataSource={filteredDocuments}
           columns={columns}
@@ -588,7 +592,7 @@ export default function DocumentsTab({
         closeIcon={<X size={16} />}
       >
         <Form form={form} layout="vertical">
-          <div className="pmodal-hero blue">
+          <div className="pmodal-hero pmodal-hero-slim">
             <div className="pmodal-hero-mesh" />
             <div className="pmodal-hero-blob" />
             <div className="pmodal-hero-content">
@@ -942,6 +946,10 @@ export default function DocumentsTab({
 
       <style dangerouslySetInnerHTML={{
         __html: `
+        html body .documents-header-wrap .ptab-primary-btn {
+          background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25) !important;
+        }
         .premium-table .ant-table {
           background: transparent !important;
           color: var(--text-slate-700) !important;
@@ -976,7 +984,7 @@ export default function DocumentsTab({
         }
         .premium-action-btn:hover {
           background: var(--bg-slate-50) !important;
-          color: #8b5cf6 !important;
+          color: #f59e0b !important;
         }
         .ant-modal-header {
             border-bottom: 1px solid var(--border-slate-100) !important;
@@ -986,10 +994,148 @@ export default function DocumentsTab({
           color: var(--text-slate-400) !important;
         }
         [data-theme="dark"] .premium-action-btn:hover {
-          background: rgba(139, 92, 246, 0.16) !important;
-          color: #a78bfa !important;
+          background: rgba(245, 158, 11, 0.16) !important;
+          color: #f59e0b !important;
+        }
+
+        /* Zero white borders constraint for inputs */
+        html body .documents-search-input {
+          background-color: var(--bg-slate-50) !important;
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 8px !important;
+          color: var(--text-slate-900) !important;
+        }
+        html body .documents-search-input:hover,
+        html body .documents-search-input:focus {
+          border-color: #f59e0b !important;
+        }
+        [data-theme="dark"] html body .documents-search-input {
+          background-color: var(--bg-secondary) !important;
+          border: 1px solid var(--border-slate-800) !important;
+        }
+
+        /* Full bleed header styling flush with vertical sidebar border */
+        .documents-header-wrap .saas-header-container {
+          margin-left: -32px !important;
+          margin-right: -32px !important;
+          padding-left: 32px !important;
+          padding-right: 32px !important;
+          padding-top: 10px !important;
+          padding-bottom: 12px !important;
+          margin-bottom: 0 !important;
+        }
+        @media (max-width: 900px) {
+          .documents-header-wrap .saas-header-container {
+            margin-left: -20px !important;
+            margin-right: -20px !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .documents-header-wrap .saas-header-container {
+            margin-left: -16px !important;
+            margin-right: -16px !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+        }
+
+        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
+        @media (max-width: 1200px) {
+          html body .documents-header-wrap .saas-header-container .saas-header-row {
+            flex-wrap: nowrap !important;
+          }
+          html body .documents-header-wrap .saas-header-container .saas-header-left-col {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+          }
+          html body .documents-header-wrap .saas-header-container .saas-header-extra-col {
+            width: auto !important;
+            flex: 0 0 auto !important;
+            margin-top: 0 !important;
+          }
+          html body .documents-header-wrap .saas-header-container .saas-header-left-group {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 16px !important;
+          }
+          html body .documents-header-wrap .saas-header-container .bh-header-divider {
+            display: inline-block !important;
+          }
+        }
+
+        /* Add Document Modal Header Polish */
+        .pmodal-hero {
+          background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%) !important;
+          color: var(--text-slate-900) !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+        }
+        .pmodal-hero-slim {
+          background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%) !important;
+          color: var(--text-slate-900) !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+        }
+        .pmodal-hero-title {
+          color: var(--text-slate-900) !important;
+        }
+        .pmodal-hero-sub {
+          color: var(--text-slate-500) !important;
+        }
+        .pmodal-hero-icon {
+          background: rgba(139, 92, 246, 0.1) !important;
+          border: 1px solid rgba(139, 92, 246, 0.2) !important;
+          color: #8b5cf6 !important;
+          box-shadow: none !important;
+        }
+        .pmodal-hero-mesh {
+          background-image:
+            linear-gradient(rgba(139, 92, 246, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(139, 92, 246, 0.05) 1px, transparent 1px) !important;
+        }
+        .pmodal-hero-blob {
+          opacity: 0.25 !important;
+        }
+
+        /* Dark theme header overrides */
+        [data-theme="dark"] .pmodal-hero {
+          background:
+            radial-gradient(800px 220px at -10% 0%, rgba(139, 92, 246, 0.4), transparent 60%),
+            radial-gradient(600px 220px at 110% 100%, rgba(59, 130, 246, 0.35), transparent 60%),
+            linear-gradient(135deg, #0b1220 0%, #111827 100%) !important;
+          color: #fff !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+        }
+        [data-theme="dark"] .pmodal-hero-slim {
+          background:
+            radial-gradient(500px 140px at -10% 0%, rgba(139, 92, 246, 0.4), transparent 65%),
+            radial-gradient(420px 140px at 110% 100%, rgba(99, 102, 241, 0.35), transparent 65%),
+            linear-gradient(135deg, #0b1220 0%, #111827 100%) !important;
+          color: #fff !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+        }
+        [data-theme="dark"] .pmodal-hero-title {
+          color: #fff !important;
+        }
+        [data-theme="dark"] .pmodal-hero-sub {
+          color: rgba(226, 232, 240, 0.78) !important;
+        }
+        [data-theme="dark"] .pmodal-hero-icon {
+          background: rgba(255, 255, 255, 0.1) !important;
+          border: 1px solid rgba(255, 255, 255, 0.16) !important;
+          color: #fff !important;
+        }
+        [data-theme="dark"] .pmodal-hero-mesh {
+          background-image:
+            linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px) !important;
+        }
+        [data-theme="dark"] .pmodal-hero-blob {
+          opacity: 0.45 !important;
         }
       `}} />
     </div>
   );
 }
+

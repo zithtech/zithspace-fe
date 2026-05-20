@@ -49,6 +49,7 @@ import {
   ModalSection,
   ModalFooterActions,
 } from "./_PremiumModal";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 type Mode = "light" | "dark";
 
@@ -191,65 +192,35 @@ export default function ApprovalsTab({ clientId, projects = [] }: Props) {
       {contextHolder}
 
       {/* Header */}
-      <div
-        style={{
-          padding: 22,
-          background: c.surfaceElevated,
-          border: `1px solid ${c.border}`,
-          borderRadius: 14,
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 24,
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", gap: 16, flex: 1, minWidth: 280 }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 10,
-              background: c.accentBg,
-              color: c.accentText,
-              border: `1px solid ${c.accentBorder}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <CheckSquare size={20} />
-          </div>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: c.text }}>
-              Approvals
-            </div>
-            <div
+      <div className="approvals-header-wrap" style={{ margin: "0 -32px" }}>
+        <TimeTrackingHeader
+          icon={<CheckSquare size={20} color="#3b82f6" />}
+          title="Approvals"
+          description="Request explicit client sign-off on designs, requirements, deliverables or releases."
+          extra={
+            <Button
+              type="primary"
+              icon={<Plus size={15} />}
+              onClick={() => setCreateOpen(true)}
               style={{
-                marginTop: 4,
-                fontSize: 13,
-                color: c.textSubtle,
-                lineHeight: 1.55,
-                maxWidth: 580,
+                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                borderColor: "transparent",
+                borderRadius: "8px",
+                height: "36px",
+                fontWeight: 600,
+                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                display: "inline-flex",
+                alignItems: "center",
               }}
             >
-              Request explicit client sign-off on designs, requirements,
-              sprint deliverables, UAT, production releases or anything else.
-              Every decision is logged for the audit trail.
-            </div>
-          </div>
-        </div>
-        <Button
-          type="primary"
-          icon={<Plus size={15} />}
-          onClick={() => setCreateOpen(true)}
-        >
-          Request approval
-        </Button>
+              Request approval
+            </Button>
+          }
+          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
+        />
       </div>
 
+      <div style={{ marginTop: 20 }}>
       {loading ? (
         <div
           style={{
@@ -326,6 +297,7 @@ export default function ApprovalsTab({ clientId, projects = [] }: Props) {
           ))}
         </div>
       )}
+      </div>
 
       <CreateApprovalModal
         open={createOpen}
@@ -349,6 +321,65 @@ export default function ApprovalsTab({ clientId, projects = [] }: Props) {
         onClose={() => setOpenId(null)}
         onMutated={load}
       />
+
+      {/* Premium adaptive header styling */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        /* Full bleed header styling flush with vertical sidebar border */
+        .approvals-header-wrap {
+          margin-bottom: 24px !important;
+          display: block !important;
+        }
+        .approvals-header-wrap .saas-header-container {
+          margin-left: -32px !important;
+          margin-right: -32px !important;
+          padding-left: 32px !important;
+          padding-right: 32px !important;
+          padding-top: 10px !important;
+          padding-bottom: 12px !important;
+          margin-bottom: 0 !important;
+        }
+        @media (max-width: 900px) {
+          .approvals-header-wrap .saas-header-container {
+            margin-left: -20px !important;
+            margin-right: -20px !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .approvals-header-wrap .saas-header-container {
+            margin-left: -16px !important;
+            margin-right: -16px !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+        }
+
+        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
+        @media (max-width: 1200px) {
+          html body .approvals-header-wrap .saas-header-container .saas-header-row {
+            flex-wrap: nowrap !important;
+          }
+          html body .approvals-header-wrap .saas-header-container .saas-header-left-col {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+          }
+          html body .approvals-header-wrap .saas-header-container .saas-header-extra-col {
+            width: auto !important;
+            flex: 0 0 auto !important;
+            margin-top: 0 !important;
+          }
+          html body .approvals-header-wrap .saas-header-container .saas-header-left-group {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 16px !important;
+          }
+          html body .approvals-header-wrap .saas-header-container .bh-header-divider {
+            display: inline-block !important;
+          }
+        }
+      `}} />
     </div>
   );
 }
@@ -893,7 +924,7 @@ function AttachmentBox({
         ref={inputRef}
         type="file"
         multiple
-        hidden
+        style={{ marginBottom: 12 }}
         onChange={(e) => {
           const fs = e.target.files;
           if (!fs) return;

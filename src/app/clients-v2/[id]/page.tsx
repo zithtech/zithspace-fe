@@ -605,6 +605,7 @@ export default function ClientV2DetailsPage() {
               <ChevronRight size={13} className="cd-crumb-sep" />
               <span className="cd-crumb-current">{client.companyName}</span>
             </div>
+
             <div className="cd-cmdbar-actions">
               {canUpdateClient && (
                 <Button
@@ -714,48 +715,6 @@ export default function ClientV2DetailsPage() {
                           </div>
                         </div>
 
-                        {/* Hero KPI strip */}
-                        <div className="cd-hero-kpis">
-                          <div className="cd-kpi">
-                            <div className="cd-kpi-label">
-                              <Wallet size={11} /> Contract Value
-                            </div>
-                            <div className="cd-kpi-value">
-                              {formatCurrencyShort(client.contractValue)}
-                              <span className="cd-kpi-suffix">{client.defaultCurrency || "USD"}</span>
-                            </div>
-                          </div>
-                          <div className="cd-kpi-sep" />
-                          <div className="cd-kpi">
-                            <div className="cd-kpi-label">
-                              <Layers size={11} /> Projects
-                            </div>
-                            <div className="cd-kpi-value">
-                              {totalProjects}
-                              <span className="cd-kpi-suffix">total</span>
-                            </div>
-                          </div>
-                          <div className="cd-kpi-sep" />
-                          <div className="cd-kpi">
-                            <div className="cd-kpi-label">
-                              <Users size={11} /> Contacts
-                            </div>
-                            <div className="cd-kpi-value">
-                              {activeContacts}
-                              <span className="cd-kpi-suffix">/ {totalContacts}</span>
-                            </div>
-                          </div>
-                          <div className="cd-kpi-sep" />
-                          <div className="cd-kpi">
-                            <div className="cd-kpi-label">
-                              <Activity size={11} /> Allocations
-                            </div>
-                            <div className="cd-kpi-value">
-                              {activeAllocations}
-                              <span className="cd-kpi-suffix">active</span>
-                            </div>
-                          </div>
-                        </div>
                       </div>
 
                       {/* Stat cards */}
@@ -1153,7 +1112,7 @@ export default function ClientV2DetailsPage() {
                     </div>
                   ),
                 },
-                {
+                /* {
                   key: "3",
                   label: (
                     <span className="cd-tab-label">
@@ -1171,7 +1130,7 @@ export default function ClientV2DetailsPage() {
                       />
                     </div>
                   ),
-                },
+                }, */
                 {
                   key: "4",
                   label: (
@@ -1386,10 +1345,12 @@ export default function ClientV2DetailsPage() {
           {/* ---------------- Styles ---------------- */}
           <style jsx global>{`
             .cd-page {
-              margin: 0 -24px;
+              margin: 0 -8px;
               background: var(--bg-primary);
               min-height: calc(100vh - 64px);
-              padding: 0 0 48px 0;
+              padding: 0;
+              display: flex;
+              flex-direction: column;
             }
 
             /* ---------- Command bar ---------- */
@@ -1398,7 +1359,12 @@ export default function ClientV2DetailsPage() {
               align-items: center;
               justify-content: space-between;
               gap: 12px;
-              padding: 16px 32px 12px 32px;
+              padding: 10.3px 32px;
+              position: sticky;
+              top: 0;
+              z-index: 100;
+              background: var(--bg-primary);
+              border-bottom: 1px solid var(--border-slate-200);
             }
             .cd-crumbs {
               display: flex;
@@ -1415,7 +1381,7 @@ export default function ClientV2DetailsPage() {
               justify-content: center;
               border-radius: 10px;
               background: var(--bg-pure-white);
-              border: 1px solid var(--border-slate-100);
+              border: 1px solid var(--border-slate-200);
               color: var(--text-slate-700);
               cursor: pointer;
               transition: all 0.18s ease;
@@ -1467,7 +1433,7 @@ export default function ClientV2DetailsPage() {
             .cd-secondary-btn {
               height: 36px !important;
               border-radius: 10px !important;
-              border: 1px solid var(--border-slate-100) !important;
+              border: 1px solid var(--border-slate-200) !important;
               background: var(--bg-pure-white) !important;
               color: var(--text-slate-700) !important;
               font-weight: 600 !important;
@@ -1496,8 +1462,8 @@ export default function ClientV2DetailsPage() {
             .cd-hero {
               position: relative;
               overflow: hidden;
-              margin: 0 32px 20px 32px;
-              padding: 20px 26px 0 26px;
+              margin: 0 0 20px 0;
+              padding: 28px 26px;
               border-radius: 18px;
               background:
                 radial-gradient(900px 200px at -10% 0%, rgba(139, 92, 246, 0.42), transparent 60%),
@@ -1540,7 +1506,6 @@ export default function ClientV2DetailsPage() {
               align-items: center;
               gap: 18px;
               z-index: 1;
-              padding-bottom: 18px;
             }
             .cd-hero-avatar {
               position: relative;
@@ -1796,27 +1761,46 @@ export default function ClientV2DetailsPage() {
             /* ---------- Body & Side-nav Tabs ---------- */
             .cd-body {
               padding: 0;
+              flex: 1;
+              display: flex;
+              flex-direction: column;
             }
             .cd-tabs.ant-tabs {
               align-items: stretch;
+              position: relative;
+              flex: 1;
+            }
+            .cd-tabs.ant-tabs::before {
+              content: "";
+              position: absolute;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 220px;
+              background: var(--bg-slate-50);
+              border-right: 1px solid var(--border-slate-200);
+              z-index: 1;
+            }
+            [data-theme="dark"] .cd-tabs.ant-tabs::before {
+              background: var(--bg-secondary);
             }
             .cd-tabs.ant-tabs > .ant-tabs-nav {
               position: sticky !important;
-              top: 0;
+              top: 61px;
               align-self: flex-start;
-              width: 240px;
+              width: 220px;
               flex-shrink: 0;
               margin: 0 !important;
-              padding: 12px 12px 24px 12px !important;
+              padding: 20px 14px !important;
               background: transparent;
-              border-right: 1px solid var(--border-slate-100);
+              border-right: none !important;
               border-radius: 0;
               max-height: calc(100vh - 64px);
               overflow-y: auto;
+              z-index: 2;
             }
             [data-theme="dark"] .cd-tabs.ant-tabs > .ant-tabs-nav {
               background: transparent;
-              border-right-color: var(--border-slate-100);
             }
             .cd-tabs .ant-tabs-nav::before {
               display: none !important;
@@ -1887,6 +1871,11 @@ export default function ClientV2DetailsPage() {
               border-left: none !important;
               padding: 0 32px !important;
             }
+            .cd-tabs .ant-tabs-content,
+            .cd-tabs .ant-tabs-tabpane {
+              margin: 0 !important;
+              padding: 0 !important;
+            }
             .cd-tab-count {
               display: inline-flex;
               align-items: center;
@@ -1899,7 +1888,7 @@ export default function ClientV2DetailsPage() {
               color: var(--text-slate-600);
               font-size: 10.5px;
               font-weight: 700;
-              border: 1px solid var(--border-slate-100);
+              border: 1px solid var(--border-slate-200);
               margin-left: auto;
             }
             .cd-tabs .ant-tabs-tab-active .cd-tab-count {
@@ -1909,11 +1898,15 @@ export default function ClientV2DetailsPage() {
             }
             .cd-tab-pane {
               animation: cd-fade-in 0.3s ease;
-              padding: 8px 0 24px 0;
+              padding: 8px 0 48px 0;
             }
             @media (max-width: 900px) {
               .cd-tabs.ant-tabs > .ant-tabs-nav {
-                width: 200px;
+                width: 180px;
+                padding: 20px 10px !important;
+              }
+              .cd-tabs.ant-tabs::before {
+                width: 180px;
               }
               .cd-tabs .ant-tabs-content-holder {
                 padding: 0 20px !important;
@@ -1923,6 +1916,9 @@ export default function ClientV2DetailsPage() {
               .cd-tabs.ant-tabs {
                 flex-direction: column;
               }
+              .cd-tabs.ant-tabs::before {
+                display: none;
+              }
               .cd-tabs.ant-tabs > .ant-tabs-nav {
                 position: static !important;
                 width: 100%;
@@ -1930,7 +1926,7 @@ export default function ClientV2DetailsPage() {
                 padding: 8px 16px !important;
                 max-height: none;
                 border-right: none;
-                border-bottom: 1px solid var(--border-slate-100);
+                border-bottom: 1px solid var(--border-slate-200);
               }
               .cd-tabs .ant-tabs-content-holder {
                 padding: 0 16px !important;
@@ -1948,7 +1944,7 @@ export default function ClientV2DetailsPage() {
               gap: 16px;
               margin-bottom: 24px;
             }
-            @media (max-width: 1100px) {
+            @media (max-width: 1300px) {
               .cd-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             }
             @media (max-width: 600px) {
@@ -2035,7 +2031,7 @@ export default function ClientV2DetailsPage() {
               grid-template-columns: repeat(2, minmax(0, 1fr));
               gap: 16px;
             }
-            @media (max-width: 1100px) {
+            @media (max-width: 1200px) {
               .cd-section-grid { grid-template-columns: 1fr; }
             }
             .cd-section {

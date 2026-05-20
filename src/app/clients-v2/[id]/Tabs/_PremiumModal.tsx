@@ -177,7 +177,17 @@ export function PremiumModal({
       </div>
 
       {/* Scrollable body */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .premium-modal-body::-webkit-scrollbar {
+          display: none;
+        }
+        .premium-modal-body {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}} />
       <div
+        className="premium-modal-body"
         style={{
           padding: 22,
           maxHeight: "calc(80vh - 220px)",
@@ -255,11 +265,11 @@ export function ModalSection({
         ...(plain
           ? {}
           : {
-              padding: 14,
-              background: c.surfaceMuted,
-              border: `1px solid ${c.border}`,
-              borderRadius: 10,
-            }),
+            padding: 14,
+            background: c.surfaceMuted,
+            border: `1px solid ${c.border}`,
+            borderRadius: 10,
+          }),
       }}
     >
       <div

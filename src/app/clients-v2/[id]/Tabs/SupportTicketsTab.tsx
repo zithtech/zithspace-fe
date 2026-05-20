@@ -10,6 +10,8 @@ import {
   notification,
   Empty,
   Tooltip,
+  Table,
+  Tag,
 } from "antd";
 import {
   Plus,
@@ -28,6 +30,9 @@ import {
   ChevronRight,
   Hash,
   MessageSquare,
+  LayoutList,
+  LayoutGrid,
+  X,
 } from "lucide-react";
 import {
   staffPortalTicketService,
@@ -43,6 +48,7 @@ import {
   ModalSection,
   ModalFooterActions,
 } from "./_PremiumModal";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 type Mode = "light" | "dark";
 
@@ -169,6 +175,7 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "card">("list");
   const [notify, contextHolder] = notification.useNotification();
 
   const load = async () => {
@@ -205,107 +212,291 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
     return acc;
   }, [items]);
 
+  const columns = useMemo(() => {
+    return [
+      {
+        title: "Ticket #",
+        dataIndex: "ticketNumber",
+        key: "ticketNumber",
+        width: 110,
+        render: (v: string) => (
+          <span style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: 11.5, color: c.textMuted }}>
+            {v}
+          </span>
+        ),
+      },
+      {
+        title: "Subject",
+        dataIndex: "subject",
+        key: "subject",
+        render: (_v: string, t: StaffPortalTicketListItem) => {
+          const cat = CATEGORY_META[t.category] || CATEGORY_META.other;
+          const CatIcon = cat.icon;
+          return (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  background: tones[cat.tone].bg,
+                  color: tones[cat.tone].text,
+                  border: `1px solid ${tones[cat.tone].border}`,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <CatIcon size={14} />
+              </div>
+              <span style={{ fontSize: 13.5, fontWeight: 600, color: c.text }}>
+                {t.subject}
+              </span>
+            </div>
+          );
+        }
+      },
+      {
+        title: "Status",
+        dataIndex: "status",
+        key: "status",
+        width: 140,
+        render: (v: TicketStatus) => {
+          const status = STATUS_META[v] || STATUS_META.new;
+          return (
+            <PillTone
+              tone={tones[status.tone]}
+              label={status.label}
+              dot={status.dot}
+            />
+          );
+        }
+      },
+      {
+        title: "Priority",
+        dataIndex: "priority",
+        key: "priority",
+        width: 110,
+        render: (v: TicketPriority) => {
+          const priority = PRIORITY_META[v] || PRIORITY_META.medium;
+          return (
+            <PillTone
+              tone={tones[priority.tone]}
+              label={priority.label}
+              kind="priority"
+            />
+          );
+        }
+      },
+      {
+        title: "Project",
+        dataIndex: "projectName",
+        key: "projectName",
+        width: 140,
+        render: (v: string | null) => v ? (
+          <span style={{ fontSize: 12, color: c.accentText, display: "inline-flex", gap: 4, alignItems: "center" }}>
+            <FolderKanban size={11} />{v}
+          </span>
+        ) : <span style={{ color: c.textFaint }}>—</span>,
+      },
+      {
+        title: "Assignee",
+        dataIndex: "assignedStaffName",
+        key: "assignedStaffName",
+        width: 140,
+        render: (v: string | null) => v ? (
+          <span style={{ fontSize: 12.5, color: c.textMuted, display: "inline-flex", gap: 4, alignItems: "center" }}>
+            <UserIcon size={11} />{v}
+          </span>
+        ) : <span style={{ color: c.textFaint }}>Unassigned</span>,
+      },
+      {
+        title: "Messages",
+        dataIndex: "messageCount",
+        key: "messageCount",
+        width: 100,
+        render: (v: number) => (
+          <span style={{ fontSize: 12.5, color: c.textSubtle, display: "inline-flex", gap: 4, alignItems: "center" }}>
+            <MessageSquare size={12} />{v}
+          </span>
+        ),
+      },
+      {
+        title: "Last Activity",
+        dataIndex: "lastActivityAt",
+        key: "lastActivityAt",
+        width: 160,
+        render: (v: string | null, t: StaffPortalTicketListItem) => {
+          const overdue =
+            t.dueDate &&
+            t.status !== "closed" &&
+            t.status !== "resolved" &&
+            new Date(t.dueDate).getTime() < Date.now();
+          return (
+            <span
+              style={{
+                fontSize: 12.5,
+                color: overdue ? tones.danger.text : c.textSubtle,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Clock size={11} />
+              {fmtRelative(v)}
+              {overdue && (
+                <span
+                  style={{
+                    marginLeft: 4,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 3,
+                    color: tones.danger.text,
+                    fontWeight: 600,
+                  }}
+                >
+                  <AlertTriangle size={11} />
+                  overdue
+                </span>
+              )}
+            </span>
+          );
+        }
+      },
+      {
+        title: "",
+        key: "openChevron",
+        width: 40,
+        render: () => <ChevronRight size={15} color={c.textFaint} />,
+      }
+    ];
+  }, [c, tones]);
+
   return (
     <div style={{ padding: "4px 0 24px", color: c.text }}>
       {contextHolder}
 
-      {/* Header card */}
-      <div
-        style={{
-          padding: 22,
-          background: c.surfaceElevated,
-          border: `1px solid ${c.border}`,
-          borderRadius: 14,
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 24,
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", gap: 16, flex: 1, minWidth: 280 }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 10,
-              background: c.accentBg,
-              color: c.accentText,
-              border: `1px solid ${c.accentBorder}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <LifeBuoy size={20} />
-          </div>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: c.text }}>
-              Support tickets
-            </div>
-            <div
+      {/* Header */}
+      <div className="support-header-wrap" style={{ margin: "0 -32px" }}>
+        <TimeTrackingHeader
+          icon={<LifeBuoy size={20} color="#3b82f6" />}
+          title="Support tickets"
+          description="Tickets raised by the client through the portal or opened by your team on their behalf."
+          extra={
+            <Button
+              type="primary"
+              icon={<Plus size={15} />}
+              onClick={() => setCreateOpen(true)}
               style={{
-                marginTop: 4,
-                fontSize: 13,
-                color: c.textSubtle,
-                lineHeight: 1.55,
-                maxWidth: 580,
+                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                borderColor: "transparent",
+                borderRadius: "8px",
+                height: "36px",
+                fontWeight: 600,
+                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                display: "inline-flex",
+                alignItems: "center",
               }}
             >
-              Tickets raised by the client through the portal, plus any opened
-              by your team on their behalf. Reply, change status, or escalate
-              from here.
-            </div>
-          </div>
-        </div>
-        <Button
-          type="primary"
-          icon={<Plus size={15} />}
-          onClick={() => setCreateOpen(true)}
-        >
-          Create ticket
-        </Button>
+              Create ticket
+            </Button>
+          }
+          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
+        />
       </div>
 
-      {/* Filter row */}
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          alignItems: "center",
-          flexWrap: "wrap",
-          marginBottom: 12,
-        }}
-      >
-        <StatusChip
-          c={c}
-          tones={tones}
-          label="All"
-          count={counts.all}
-          active={statusFilter === "all"}
-          onClick={() => setStatusFilter("all")}
-        />
-        {(Object.keys(STATUS_META) as TicketStatus[]).map((s) => (
+      {/* Search & Filter Rows */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 20, marginBottom: 16 }}>
+        {/* Top line: Search & View Toggle */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ width: "100%", maxWidth: 300 }}>
+            <Input
+              allowClear
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search subject or ticket #…"
+            />
+          </div>
+
+          {/* View toggle */}
+          <div
+            style={{
+              display: "flex",
+              gap: 2,
+              background: c.surfaceMuted,
+              border: `1px solid ${c.border}`,
+              borderRadius: 8,
+              padding: 3,
+            }}
+          >
+            <Tooltip title="List view">
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 30,
+                  height: 30,
+                  borderRadius: 6,
+                  border: "none",
+                  cursor: "pointer",
+                  background: viewMode === "list" ? c.accentBg : "transparent",
+                  color: viewMode === "list" ? c.accentText : c.textSubtle,
+                  transition: "all 150ms ease",
+                }}
+              >
+                <LayoutList size={15} />
+              </button>
+            </Tooltip>
+            <Tooltip title="Card view">
+              <button
+                type="button"
+                onClick={() => setViewMode("card")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 30,
+                  height: 30,
+                  borderRadius: 6,
+                  border: "none",
+                  cursor: "pointer",
+                  background: viewMode === "card" ? c.accentBg : "transparent",
+                  color: viewMode === "card" ? c.accentText : c.textSubtle,
+                  transition: "all 150ms ease",
+                }}
+              >
+                <LayoutGrid size={15} />
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+
+        {/* Bottom line: Filters */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <StatusChip
-            key={s}
             c={c}
             tones={tones}
-            label={STATUS_META[s].label}
-            tone={STATUS_META[s].tone}
-            count={counts[s] || 0}
-            active={statusFilter === s}
-            onClick={() => setStatusFilter(s)}
+            label="All"
+            count={counts.all}
+            active={statusFilter === "all"}
+            onClick={() => setStatusFilter("all")}
           />
-        ))}
-        <div style={{ marginLeft: "auto", width: 260 }}>
-          <Input
-            allowClear
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search subject or ticket #…"
-          />
+          {(Object.keys(STATUS_META) as TicketStatus[]).map((s) => (
+            <StatusChip
+              key={s}
+              c={c}
+              tones={tones}
+              label={STATUS_META[s].label}
+              tone={STATUS_META[s].tone}
+              count={counts[s] || 0}
+              active={statusFilter === s}
+              onClick={() => setStatusFilter(s)}
+            />
+          ))}
         </div>
       </div>
 
@@ -325,16 +516,57 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
         </div>
       ) : items.length === 0 ? (
         <EmptyState c={c} onCreate={() => setCreateOpen(true)} />
+      ) : viewMode === "list" ? (
+        <>
+          <style dangerouslySetInnerHTML={{
+            __html: `
+            .tickets-table .ant-table {
+              background: transparent !important;
+              color: ${c.text} !important;
+            }
+            .tickets-table .ant-table-thead > tr > th {
+              background: ${c.surfaceMuted} !important;
+              color: ${c.textSubtle} !important;
+              font-weight: 600 !important;
+              font-size: 11px !important;
+              text-transform: uppercase !important;
+              letter-spacing: 0.06em !important;
+              border-bottom: 1px solid ${c.border} !important;
+              padding: 10px 16px !important;
+            }
+            .tickets-table .ant-table-thead > tr > th::before { display: none !important; }
+            .tickets-table .ant-table-tbody > tr > td {
+              background: ${c.surfaceElevated} !important;
+              border-bottom: 1px solid ${c.border} !important;
+              padding: 12px 16px !important;
+            }
+            .tickets-table .ant-table-tbody > tr:hover > td {
+              background: ${c.surfaceMuted} !important;
+            }
+            .tickets-table .ant-table-tbody > tr > td:first-child { border-radius: 0 !important; }
+            .tickets-table { border: 1px solid ${c.border}; border-radius: 12px; overflow: hidden; }
+          ` }} />
+          <Table
+            className="tickets-table"
+            dataSource={items}
+            columns={columns}
+            rowKey="id"
+            loading={loading}
+            pagination={{ pageSize: 10, hideOnSinglePage: true }}
+            scroll={{ x: "max-content" }}
+            onRow={(t) => ({ onClick: () => setOpenId(t.id), style: { cursor: "pointer" } })}
+          />
+        </>
       ) : (
         <div
           style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: 16,
           }}
         >
           {items.map((t) => (
-            <TicketRow
+            <TicketCard
               key={t.id}
               t={t}
               c={c}
@@ -366,6 +598,66 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
         tones={tones}
         notify={notify}
       />
+
+      {/* Premium adaptive header styling */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        /* Full bleed header styling flush with vertical sidebar border */
+        .support-header-wrap {
+          margin-bottom: 24px !important;
+          display: block !important;
+        }
+        .support-header-wrap .saas-header-container {
+          margin-left: -32px !important;
+          margin-right: -32px !important;
+          padding-left: 32px !important;
+          padding-right: 32px !important;
+          padding-top: 10px !important;
+          padding-bottom: 12px !important;
+          margin-bottom: 0 !important;
+        }
+        @media (max-width: 900px) {
+          .support-header-wrap .saas-header-container {
+            margin-left: -20px !important;
+            margin-right: -20px !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .support-header-wrap .saas-header-container {
+            margin-left: -16px !important;
+            margin-right: -16px !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+        }
+
+        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
+        @media (max-width: 1200px) {
+          html body .support-header-wrap .saas-header-container .saas-header-row {
+            flex-wrap: nowrap !important;
+          }
+          html body .support-header-wrap .saas-header-container .saas-header-left-col {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+          }
+          html body .support-header-wrap .saas-header-container .saas-header-extra-col {
+            width: auto !important;
+            flex: 0 0 auto !important;
+            margin-top: 0 !important;
+          }
+          html body .support-header-wrap .saas-header-container .saas-header-left-group {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 16px !important;
+          }
+          html body .support-header-wrap .saas-header-container .bh-header-divider {
+            display: inline-block !important;
+          }
+        }
+      `}} />
     </div>
   );
 }
@@ -675,6 +967,168 @@ function TicketRow({
   );
 }
 
+function TicketCard({
+  t,
+  c,
+  tones,
+  onClick,
+}: {
+  t: StaffPortalTicketListItem;
+  c: ReturnType<typeof palette>;
+  tones: ReturnType<typeof tonesOf>;
+  onClick: () => void;
+}) {
+  const [hover, setHover] = useState(false);
+  const status = STATUS_META[t.status] || STATUS_META.new;
+  const priority = PRIORITY_META[t.priority] || PRIORITY_META.medium;
+  const cat = CATEGORY_META[t.category] || CATEGORY_META.other;
+  const CatIcon = cat.icon;
+  const overdue =
+    t.dueDate &&
+    t.status !== "closed" &&
+    t.status !== "resolved" &&
+    new Date(t.dueDate).getTime() < Date.now();
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: c.surfaceElevated,
+        border: `1px solid ${hover ? c.borderStrong : c.border}`,
+        borderRadius: 14,
+        cursor: "pointer",
+        transition: "border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        position: "relative",
+        transform: hover ? "translateY(-2px)" : "translateY(0)",
+        boxShadow: hover ? "0 8px 28px rgba(59, 130, 246, 0.10), 0 2px 8px rgba(0, 0, 0, 0.06)" : "none",
+      }}
+    >
+      {/* Top accent bar */}
+      <div
+        style={{
+          height: 3,
+          background: `linear-gradient(90deg, ${tones[cat.tone].text}, ${tones[cat.tone].text}66)`,
+          flexShrink: 0,
+        }}
+      />
+
+      {/* Card body */}
+      <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
+        {/* Header row: Category Icon + ticketNumber & status */}
+        <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: tones[cat.tone].bg,
+              color: tones[cat.tone].text,
+              border: `1px solid ${tones[cat.tone].border}`,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <CatIcon size={15} />
+          </div>
+
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: c.textSubtle,
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                padding: "1px 5px",
+                border: `1px solid ${c.border}`,
+                borderRadius: 4,
+                background: c.surfaceMuted,
+              }}
+            >
+              {t.ticketNumber}
+            </span>
+            <PillTone
+              tone={tones[status.tone]}
+              label={status.label}
+              dot={status.dot}
+            />
+          </div>
+        </div>
+
+        {/* Title/Subject */}
+        <div style={{ flex: 1 }}>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: c.text,
+              lineHeight: 1.4,
+              overflow: "hidden",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+            }}
+          >
+            {t.subject}
+          </div>
+        </div>
+
+        {/* Divider line */}
+        <div style={{ height: "1px", background: c.border, margin: "2px 0" }} />
+
+        {/* Footer meta info: Assigned, Comments, Date, Project */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 11.5, color: c.textSubtle }}>
+          {/* Project name (if any) */}
+          {t.projectName && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <FolderKanban size={12} color={c.textFaint} />
+              <span style={{ fontWeight: 500 }}>{t.projectName}</span>
+            </div>
+          )}
+
+          {/* Assigned & Comments & Clock in a row */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <UserIcon size={12} color={c.textFaint} />
+              <span>
+                {t.assignedStaffName ? (
+                  t.assignedStaffName
+                ) : (
+                  <span style={{ color: c.textFaint }}>Unassigned</span>
+                )}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <MessageSquare size={12} color={c.textFaint} />
+                {t.messageCount}
+              </span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: overdue ? tones.danger.text : c.textSubtle }}>
+                <Clock size={12} color={overdue ? tones.danger.text : c.textFaint} />
+                {fmtRelative(t.lastActivityAt)}
+              </span>
+            </div>
+          </div>
+
+          {overdue && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4, color: tones.danger.text, fontWeight: 600 }}>
+              <AlertTriangle size={12} />
+              overdue
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PillTone({
   tone,
   label,
@@ -822,7 +1276,7 @@ function CreateTicketModal({
             name="body"
             label={<L c={c}>First message</L>}
             rules={[{ required: true, message: "Required" }]}
-            style={{ marginBottom: 0 }}
+            style={{ marginBottom: 16 }}
           >
             <Input.TextArea
               rows={5}
@@ -876,7 +1330,7 @@ function CreateTicketModal({
           <Form.Item
             name="projectId"
             label={
-              <L c={c} hint={`${projects.length} linked to this client`}>
+              <L c={c}>
                 Project
               </L>
             }
@@ -1005,8 +1459,13 @@ function TicketDetailDrawer({
       width={620}
       title={null}
       closable={false}
-      bodyStyle={{ padding: 0, background: c.surfaceMuted }}
-      headerStyle={{ display: "none" }}
+      styles={{
+        mask: { backgroundColor: c.overlay },
+        content: { background: c.surfaceElevated },
+        header: { display: "none" },
+        body: { padding: 0, background: c.surfaceMuted },
+      }}
+      zIndex={2000}
     >
       {loading || !detail ? (
         <div
@@ -1026,8 +1485,39 @@ function TicketDetailDrawer({
               padding: "20px 24px",
               background: c.surfaceElevated,
               borderBottom: `1px solid ${c.border}`,
+              position: "relative",
             }}
           >
+            {/* Close Button */}
+            <button
+              onClick={onClose}
+              style={{
+                position: "absolute",
+                top: 18,
+                right: 18,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                border: "none",
+                background: "transparent",
+                color: c.textFaint,
+                cursor: "pointer",
+                transition: "all 120ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = c.surfaceMuted;
+                e.currentTarget.style.color = c.text;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = c.textFaint;
+              }}
+            >
+              <X size={15} />
+            </button>
             <div
               style={{
                 display: "flex",
@@ -1087,6 +1577,7 @@ function TicketDetailDrawer({
                 fontSize: 12,
                 color: c.textSubtle,
                 flexWrap: "wrap",
+                alignItems: "center",
               }}
             >
               {detail.projectName && (
@@ -1094,10 +1585,10 @@ function TicketDetailDrawer({
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 4,
+                    gap: 5,
                   }}
                 >
-                  <FolderKanban size={11} />
+                  <FolderKanban size={13} />
                   {detail.projectName}
                 </span>
               )}
@@ -1105,20 +1596,20 @@ function TicketDetailDrawer({
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 4,
+                  gap: 5,
                 }}
               >
-                <UserIcon size={11} />
+                <UserIcon size={13} />
                 {detail.assignedStaffName || "Unassigned"}
               </span>
               <span
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 4,
+                  gap: 5,
                 }}
               >
-                <Clock size={11} />
+                <Clock size={13} />
                 Opened {fmtRelative(detail.created_at)}
               </span>
             </div>
@@ -1128,8 +1619,9 @@ function TicketDetailDrawer({
               style={{
                 marginTop: 14,
                 display: "flex",
-                gap: 8,
-                alignItems: "center",
+                flexDirection: "column",
+                gap: 6,
+                alignItems: "flex-start",
               }}
             >
               <span
@@ -1139,6 +1631,8 @@ function TicketDetailDrawer({
                   fontWeight: 600,
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
+                  display: "inline-flex",
+                  alignItems: "center",
                 }}
               >
                 Status
@@ -1189,7 +1683,7 @@ function TicketDetailDrawer({
           {/* Reply */}
           <div
             style={{
-              padding: "12px 16px",
+              padding: "16px 24px",
               background: c.surfaceElevated,
               borderTop: `1px solid ${c.border}`,
             }}
@@ -1263,8 +1757,8 @@ function MessageBubble({
         {m.event_type === "status_change"
           ? `Status: ${m.event_from || "—"} → ${m.event_to || "—"}`
           : m.event_type === "assignment"
-          ? `Assignment changed`
-          : m.event_type || "Event"}
+            ? `Assignment changed`
+            : m.event_type || "Event"}
       </div>
     );
   }

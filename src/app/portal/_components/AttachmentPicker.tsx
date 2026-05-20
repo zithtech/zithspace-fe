@@ -45,7 +45,7 @@ export function AttachmentPicker({
         ref={inputRef}
         type="file"
         multiple
-        hidden
+        style={{ display: "none" }}
         onChange={(e) => {
           const fs = e.target.files;
           if (!fs) return;

@@ -78,12 +78,12 @@ export default function TopNav({
 }: TopNavProps) {
   const router = useRouter();
   const { hasPermission, hasAnyPermission } = useAuth();
-  const { 
-    canReadMail, 
-    canReadCalendar, 
-    canReadSkills, 
-    canReadChat, 
-    canReadNotification, 
+  const {
+    canReadMail,
+    canReadCalendar,
+    canReadSkills,
+    canReadChat,
+    canReadNotification,
     canReadBookmark,
     canCreateBookmark,
     canDeleteBookmark,

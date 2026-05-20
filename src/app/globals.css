@@ -11605,3 +11605,39 @@ select:-webkit-autofill:focus {
 input:-webkit-autofill {
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/* Client V2 Tab Header Full-bleed Overrides */
+.cd-tabs [class*="-header-wrap"] {
+  margin: 0 !important;
+}
+
+.cd-tabs .saas-header-container {
+  margin-left: -32px !important;
+  margin-right: -32px !important;
+  padding-left: 32px !important;
+  padding-right: 32px !important;
+  padding-top: 10px !important;
+  padding-bottom: 12px !important;
+  margin-bottom: 0 !important;
+  background: var(--bg-primary) !important;
+  border-bottom: 1px solid var(--border-slate-200) !important;
+}
+
+@media (max-width: 900px) {
+  .cd-tabs .saas-header-container {
+    margin-left: -20px !important;
+    margin-right: -20px !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .cd-tabs .saas-header-container {
+    margin-left: -16px !important;
+    margin-right: -16px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}
+

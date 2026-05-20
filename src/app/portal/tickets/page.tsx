@@ -11,6 +11,10 @@ import {
   Modal,
   Form,
   notification,
+  Row as AntRow,
+  Col,
+  Divider,
+  Typography
 } from "antd";
 import {
   Search,
@@ -24,7 +28,10 @@ import {
   Send,
   AlertTriangle,
   Clock,
+  LifeBuoy
 } from "lucide-react";
+
+const { Title, Text } = Typography;
 import {
   portalTicketService,
   PortalTicketListItem,
@@ -129,69 +136,118 @@ export default function PortalTicketsPage() {
   }, [meta]);
 
   return (
-    <div style={{ padding: "32px 40px 56px", maxWidth: 1280 }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}>
       {contextHolder}
 
-      {/* Header */}
+      {/* Workstation Header */}
       <div
+        className="saas-header-container portal-mom-header-container"
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 16,
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-          marginBottom: 24,
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          backdropFilter: "blur(12px)",
+          padding: "20px 40px 20px 40px",
+          marginBottom: 0,
+          backgroundColor: "#ffffff",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
         }}
       >
-        <div>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: p.textSubtle,
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              marginBottom: 6,
-            }}
-          >
-            Zukvo · Support
-          </div>
-          <h1
-            style={{
-              fontSize: 28,
-              fontWeight: 600,
-              color: p.text,
-              margin: 0,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Tickets
-          </h1>
-          <div style={{ marginTop: 6, fontSize: 13.5, color: p.textMuted }}>
-            Raise issues, request changes, and track resolution timelines with
-            our team.
-          </div>
-        </div>
-        <button
-          onClick={() => setCreateOpen(true)}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 16px",
-            background: p.text,
-            color: "#ffffff",
-            border: `1px solid ${p.text}`,
-            borderRadius: 10,
-            fontSize: 13.5,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          <Plus size={15} />
-          Raise ticket
-        </button>
+        <AntRow justify="space-between" align="middle" gutter={[16, 16]}>
+          <Col flex="1 1 auto" style={{ minWidth: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background:
+                      "linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(37, 99, 235, 0.08))",
+                    color: "#3b82f6",
+                  }}
+                >
+                  <LifeBuoy size={18} color="#3b82f6" />
+                </div>
+                <Title
+                  level={4}
+                  className="portal-mom-header-title"
+                  style={{
+                    margin: 0,
+                    fontWeight: 800,
+                    color: "var(--text-slate-900)",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  Tickets
+                </Title>
+              </div>
+
+              <Divider
+                type="vertical"
+                style={{
+                  height: 20,
+                  borderColor: "rgba(0, 0, 0, 0.08)",
+                  margin: "0 12px",
+                }}
+              />
+
+              <div>
+                <Text
+                  className="portal-mom-header-desc"
+                  style={{
+                    fontSize: 12,
+                    color: "var(--text-slate-600)",
+                    fontWeight: 600,
+                  }}
+                >
+                  Raise issues, request changes, and track resolution timelines with our team.
+                </Text>
+              </div>
+            </div>
+          </Col>
+          <Col>
+            <button
+              onClick={() => setCreateOpen(true)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 14px",
+                background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+                boxShadow: "0 2px 4px rgba(99, 102, 241, 0.1)",
+              }}
+            >
+              <Plus size={14} />
+              Raise ticket
+            </button>
+          </Col>
+        </AntRow>
       </div>
+
+      <div style={{ padding: "32px 40px 56px", maxWidth: 1280 }}>
 
       {/* Summary strip */}
       {(meta?.total || 0) > 0 && (
@@ -245,12 +301,12 @@ export default function PortalTicketsPage() {
                   alignItems: "center",
                   gap: 8,
                   padding: "7px 12px",
-                  background: active ? p.text : p.surfaceElevated,
+                  background: active ? "#4f46e5" : p.surfaceElevated,
                   color: active ? "#ffffff" : p.textMuted,
-                  border: `1px solid ${active ? p.text : p.border}`,
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 500,
+                  border: `1px solid ${active ? "#4f46e5" : p.border}`,
+                  borderRadius: 999,
+                  fontSize: 12.5,
+                  fontWeight: 600,
                   cursor: "pointer",
                 }}
               >
@@ -325,9 +381,9 @@ export default function PortalTicketsPage() {
               onClick={() => setCreateOpen(true)}
               style={{
                 padding: "8px 14px",
-                background: p.text,
+                background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
                 color: "#ffffff",
-                border: `1px solid ${p.text}`,
+                border: "none",
                 borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 500,
@@ -335,6 +391,7 @@ export default function PortalTicketsPage() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
+                boxShadow: "0 2px 4px rgba(99, 102, 241, 0.1)",
               }}
             >
               <Plus size={14} />
@@ -385,6 +442,93 @@ export default function PortalTicketsPage() {
           load();
         }}
       />
+        <style jsx global>{`
+          .portal-mom-header-container,
+          [data-theme='dark'] .portal-mom-header-container,
+          [data-theme='dark'] .saas-header-container.portal-mom-header-container,
+          .saas-header-container.portal-mom-header-container {
+            background: #ffffff !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+          }
+          .portal-mom-header-title {
+            color: #0f172a !important;
+          }
+          .portal-mom-header-desc {
+            color: #475569 !important;
+          }
+          
+          /* Form Inputs, Select elements, and Modal styling overrides */
+          .ant-modal-content {
+            background-color: #ffffff !important;
+          }
+          .ant-modal-header {
+            background-color: #ffffff !important;
+          }
+          .ant-modal-title {
+            color: #0f172a !important;
+          }
+          .ant-modal-close {
+            color: #64748b !important;
+          }
+          .ant-input, .ant-select-selector, .ant-input-affix-wrapper, .ant-input-textarea, textarea.ant-input {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+          }
+          .ant-input::placeholder, .ant-select-selection-placeholder {
+            color: #94a3b8 !important;
+          }
+          .ant-select-selection-item {
+            color: #0f172a !important;
+          }
+          .ant-input-affix-wrapper .ant-input {
+            background-color: transparent !important;
+            color: #0f172a !important;
+          }
+          .ant-input-affix-wrapper:hover, .ant-input:hover, .ant-select-selector:hover {
+            border-color: #cbd5e1 !important;
+          }
+          .ant-input-affix-wrapper-focused, .ant-input-focused, .ant-select-focused .ant-select-selector {
+            border-color: #4f46e5 !important;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+          }
+          .ant-select-arrow {
+            color: #94a3b8 !important;
+          }
+          
+          /* Empty state SVG path overrides to force light colors */
+          .ant-empty-img-simple path,
+          .ant-empty-image svg path,
+          .ant-empty-image path {
+            fill: #f8fafc !important;
+            stroke: #cbd5e1 !important;
+          }
+          .ant-empty-img-simple ellipse,
+          .ant-empty-image svg ellipse,
+          .ant-empty-image ellipse {
+            fill: #e2e8f0 !important;
+            stroke: #cbd5e1 !important;
+          }
+          .ant-empty-img-simple g,
+          .ant-empty-image svg g,
+          .ant-empty-image g {
+            stroke: #cbd5e1 !important;
+          }
+          
+          /* Target specific nested elements inside simple image for fine tuning */
+          .ant-empty-img-simple [fill="#434343"],
+          .ant-empty-image [fill="#434343"],
+          .ant-empty-img-simple [fill="#1f1f1f"],
+          .ant-empty-image [fill="#1f1f1f"] {
+            fill: #f1f5f9 !important;
+          }
+          .ant-empty-img-simple [stroke="#434343"],
+          .ant-empty-image [stroke="#434343"] {
+            stroke: #cbd5e1 !important;
+          }
+        `}</style>
+      </div>
     </div>
   );
 }
@@ -934,14 +1078,15 @@ function RaiseTicketModal({
                 alignItems: "center",
                 gap: 6,
                 padding: "8px 14px",
-                background: p.text,
+                background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
                 color: "#ffffff",
-                border: `1px solid ${p.text}`,
+                border: "none",
                 borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: submitting ? "not-allowed" : "pointer",
                 opacity: submitting ? 0.6 : 1,
+                boxShadow: "0 2px 4px rgba(99, 102, 241, 0.1)",
               }}
             >
               <Send size={13} />

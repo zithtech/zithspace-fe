@@ -276,29 +276,29 @@ export default function PortalMomDetailPage() {
       {/* Header */}
       <div
         style={{
-          padding: 24,
-          background: p.surfaceElevated,
-          border: `1px solid ${p.border}`,
-          borderRadius: 14,
+          padding: "28px 30px",
+          background: "transparent",
+          border: "1px solid #e2e8f0",
+          borderRadius: 16,
           marginBottom: 16,
         }}
       >
-        <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+        <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
           <div
             style={{
-              width: 48,
-              height: 48,
-              borderRadius: 11,
-              background: p.accentBg,
-              border: `1px solid ${p.accentBorder}`,
-              color: p.accentText,
+              width: 52,
+              height: 52,
+              borderRadius: 14,
+              background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+              color: "#ffffff",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
+              boxShadow: "0 6px 16px -2px rgba(99, 102, 241, 0.25)",
             }}
           >
-            <Calendar size={20} />
+            <Calendar size={22} color="#ffffff" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
@@ -311,14 +311,15 @@ export default function PortalMomDetailPage() {
             >
               <span
                 style={{
-                  fontFamily:
-                    "ui-monospace, SFMono-Regular, Menlo, monospace",
-                  fontSize: 11.5,
-                  padding: "1px 7px",
-                  background: p.surfaceMuted,
-                  border: `1px solid ${p.border}`,
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  padding: "2px 8px",
+                  background: "rgba(99, 102, 241, 0.07)",
+                  border: "1px solid rgba(99, 102, 241, 0.15)",
                   borderRadius: 6,
-                  color: p.textMuted,
+                  color: "#4f46e5",
+                  letterSpacing: "0.02em",
                 }}
               >
                 {mom.momNumber}
@@ -326,11 +327,14 @@ export default function PortalMomDetailPage() {
               {mom.project && (
                 <span
                   style={{
-                    fontSize: 11,
+                    fontSize: 10.5,
                     fontWeight: 600,
-                    color: p.textSubtle,
+                    color: "#475569",
+                    background: "rgba(15, 23, 42, 0.05)",
+                    padding: "2px 8px",
+                    borderRadius: 6,
                     textTransform: "uppercase",
-                    letterSpacing: "0.06em",
+                    letterSpacing: "0.04em",
                   }}
                 >
                   {mom.project.name}
@@ -340,11 +344,11 @@ export default function PortalMomDetailPage() {
             </div>
             <h1
               style={{
-                margin: "6px 0 0",
-                fontSize: 22,
-                fontWeight: 600,
-                color: p.text,
-                letterSpacing: "-0.01em",
+                margin: "10px 0 0",
+                fontSize: 24,
+                fontWeight: 700,
+                color: "#0f172a",
+                letterSpacing: "-0.02em",
                 lineHeight: 1.25,
               }}
             >
@@ -352,20 +356,27 @@ export default function PortalMomDetailPage() {
             </h1>
             <div
               style={{
-                marginTop: 10,
+                marginTop: 12,
                 display: "flex",
-                gap: 12,
+                gap: 8,
                 flexWrap: "wrap",
+                alignItems: "center",
                 fontSize: 12.5,
-                color: p.textSubtle,
+                color: "#64748b",
               }}
             >
-              <MetaPiece icon={<Clock size={12} />} value={fmtDateTime(mom.meetingDate)} />
+              <MetaPiece icon={<Clock size={12} color="#6366f1" style={{ opacity: 0.85 }} />} value={fmtDateTime(mom.meetingDate)} />
               {mom.durationMinutes && (
-                <MetaPiece icon={<Clock size={12} />} value={`${mom.durationMinutes} min`} />
+                <>
+                  <span style={{ width: 3, height: 3, borderRadius: "50%", backgroundColor: "#cbd5e1" }}></span>
+                  <MetaPiece icon={<Clock size={12} color="#6366f1" style={{ opacity: 0.85 }} />} value={`${mom.durationMinutes} min`} />
+                </>
               )}
               {mom.location && (
-                <MetaPiece icon={<MapPin size={12} />} value={mom.location} />
+                <>
+                  <span style={{ width: 3, height: 3, borderRadius: "50%", backgroundColor: "#cbd5e1" }}></span>
+                  <MetaPiece icon={<MapPin size={12} color="#6366f1" style={{ opacity: 0.85 }} />} value={mom.location} />
+                </>
               )}
             </div>
             {mom.recordingUrl && (
@@ -374,23 +385,25 @@ export default function PortalMomDetailPage() {
                 target="_blank"
                 rel="noreferrer"
                 style={{
-                  marginTop: 10,
+                  marginTop: 14,
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 6,
-                  padding: "5px 10px",
-                  background: p.accentBg,
-                  border: `1px solid ${p.accentBorder}`,
-                  borderRadius: 8,
-                  color: p.accentText,
+                  padding: "6px 12px",
+                  background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: 10,
+                  color: "#1d4ed8",
                   fontSize: 12.5,
                   textDecoration: "none",
-                  fontWeight: 500,
+                  fontWeight: 600,
+                  boxShadow: "0 1px 2px rgba(37, 99, 235, 0.04)",
+                  transition: "all 0.2s ease",
                 }}
               >
-                <Video size={13} />
+                <Video size={13.5} color="#2563eb" />
                 Watch recording
-                <ExternalLink size={11} />
+                <ExternalLink size={11} color="#2563eb" />
               </a>
             )}
           </div>
@@ -467,26 +480,52 @@ export default function PortalMomDetailPage() {
               title={`Decisions · ${mom.decisions.length}`}
               icon={Lightbulb}
             >
-              <ul style={{ margin: 0, paddingLeft: 16 }}>
-                {mom.decisions.map((d) => (
-                  <li
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {mom.decisions.map((d, index) => (
+                  <div
                     key={d.id}
                     style={{
+                      display: "flex",
+                      gap: 12,
+                      alignItems: "flex-start",
                       fontSize: 13.5,
-                      color: p.text,
-                      marginBottom: 6,
-                      lineHeight: 1.5,
+                      color: "#1e293b",
+                      lineHeight: 1.55,
+                      paddingBottom: index === mom.decisions.length - 1 ? 0 : 10,
+                      borderBottom: index === mom.decisions.length - 1 ? "none" : "1px solid #f1f5f9",
                     }}
                   >
-                    {d.decision}
-                    {d.decided_by && (
-                      <span style={{ color: p.textSubtle, fontWeight: 400 }}>
-                        {" "}— {d.decided_by}
-                      </span>
-                    )}
-                  </li>
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#8b5cf6",
+                        marginTop: 7,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontWeight: 500 }}>{d.decision}</span>
+                      {d.decided_by && (
+                        <span 
+                          style={{ 
+                            color: "#64748b", 
+                            fontSize: 12, 
+                            marginLeft: 8, 
+                            fontWeight: 500,
+                            background: "#f1f5f9",
+                            padding: "1px 6px",
+                            borderRadius: 4
+                          }}
+                        >
+                          — {d.decided_by}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </Card>
           )}
 
@@ -495,11 +534,11 @@ export default function PortalMomDetailPage() {
             icon={ListChecks}
           >
             {mom.actionItems.length === 0 ? (
-              <div style={{ fontSize: 12.5, color: p.textSubtle }}>
+              <div style={{ fontSize: 12.5, color: "#64748b" }}>
                 No action items.
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {mom.actionItems.map((ai) => {
                   const meta = ACTION_META[ai.status || "open"];
                   const Icon = meta.icon;
@@ -507,10 +546,11 @@ export default function PortalMomDetailPage() {
                     <div
                       key={ai.id}
                       style={{
-                        padding: 12,
-                        background: p.surfaceMuted,
-                        border: `1px solid ${p.border}`,
-                        borderRadius: 10,
+                        padding: "14px 16px",
+                        background: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 12,
+                        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.02)",
                       }}
                     >
                       <div
@@ -525,37 +565,60 @@ export default function PortalMomDetailPage() {
                           <div
                             style={{
                               fontSize: 13.5,
-                              color: p.text,
+                              color: "#0f172a",
                               lineHeight: 1.5,
-                              fontWeight: 500,
+                              fontWeight: 600,
                             }}
                           >
                             {ai.text}
                           </div>
                           <div
                             style={{
-                              marginTop: 5,
+                              marginTop: 8,
                               display: "flex",
-                              gap: 10,
+                              gap: 8,
                               flexWrap: "wrap",
                               alignItems: "center",
                               fontSize: 11.5,
-                              color: p.textSubtle,
+                              color: "#64748b",
                             }}
                           >
                             {ai.ownerName && (
-                              <span>👤 {ai.ownerName}</span>
+                              <span
+                                style={{
+                                  background: "#f1f5f9",
+                                  padding: "2px 8px",
+                                  borderRadius: 6,
+                                  color: "#334155",
+                                  fontWeight: 500,
+                                }}
+                              >
+                                👤 {ai.ownerName}
+                              </span>
                             )}
                             {ai.dueDate && (
-                              <span>Due {fmtDate(ai.dueDate)}</span>
+                              <span
+                                style={{
+                                  background: "rgba(239, 68, 68, 0.05)",
+                                  padding: "2px 8px",
+                                  borderRadius: 6,
+                                  color: "#ef4444",
+                                  fontWeight: 500,
+                                }}
+                              >
+                                Due {fmtDate(ai.dueDate)}
+                              </span>
                             )}
                             {ai.convertedTicketNumber && (
                               <span
                                 style={{
-                                  fontFamily:
-                                    "ui-monospace, SFMono-Regular, Menlo, monospace",
-                                  color: p.purpleText,
-                                  fontWeight: 500,
+                                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                                  color: "#6d28d9",
+                                  background: "#f5f3ff",
+                                  border: "1px solid #ddd6fe",
+                                  padding: "2px 8px",
+                                  borderRadius: 6,
+                                  fontWeight: 600,
                                 }}
                               >
                                 → {ai.convertedTicketNumber}
@@ -574,7 +637,7 @@ export default function PortalMomDetailPage() {
                             color: meta.text,
                             borderRadius: 999,
                             fontSize: 11.5,
-                            fontWeight: 500,
+                            fontWeight: 600,
                             flexShrink: 0,
                           }}
                         >
@@ -634,77 +697,77 @@ export default function PortalMomDetailPage() {
 
           <Card title={`Attendees · ${mom.attendees.length}`} icon={Users}>
             {mom.attendees.length === 0 ? (
-              <div style={{ fontSize: 12.5, color: p.textSubtle }}>
+              <div style={{ fontSize: 12.5, color: "#64748b" }}>
                 Not recorded.
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {mom.attendees.map((a) => (
-                  <div
-                    key={a.id}
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      alignItems: "flex-start",
-                    }}
-                  >
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {mom.attendees.map((a) => {
+                  const isInternal = a.party === "internal";
+                  return (
                     <div
+                      key={a.id}
                       style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 7,
-                        background:
-                          a.party === "internal" ? p.accentBg : p.surfaceMuted,
-                        border: `1px solid ${
-                          a.party === "internal"
-                            ? p.accentBorder
-                            : p.border
-                        }`,
-                        color:
-                          a.party === "internal" ? p.accentText : p.textMuted,
                         display: "flex",
+                        gap: 10,
                         alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 11,
-                        fontWeight: 600,
-                        flexShrink: 0,
                       }}
                     >
-                      {(a.name || "?")
-                        .split(" ")
-                        .map((s) => s[0])
-                        .filter(Boolean)
-                        .slice(0, 2)
-                        .join("")
-                        .toUpperCase()}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
                       <div
                         style={{
-                          fontSize: 13,
-                          fontWeight: 500,
-                          color: p.text,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          background: isInternal 
+                            ? "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)" 
+                            : "linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%)",
+                          border: `1px solid ${isInternal ? "#bfdbfe" : "#f5d0fe"}`,
+                          color: isInternal ? "#2563eb" : "#d946ef",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          flexShrink: 0,
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                         }}
                       >
-                        {a.name}
+                        {(a.name || "?")
+                          .split(" ")
+                          .map((s) => s[0])
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase()}
                       </div>
-                      <div
-                        style={{
-                          fontSize: 11.5,
-                          color: p.textSubtle,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {a.role || a.party || "Attendee"}
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "#0f172a",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {a.name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11.5,
+                            color: "#64748b",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {a.role || a.party || "Attendee"}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Card>
@@ -754,44 +817,46 @@ function AttachmentRow({
   const rowStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
-    gap: 10,
-    padding: "9px 11px",
-    background: hover ? p.surfaceMuted : "#ffffff",
-    border: `1px solid ${hover ? p.borderStrong : p.border}`,
-    borderRadius: 9,
+    gap: 12,
+    padding: "10px 14px",
+    background: hover ? "#eff6ff" : "#ffffff",
+    border: hover ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+    borderRadius: 12,
     textAlign: "left",
     cursor: "pointer",
     width: "100%",
-    transition: "border-color 120ms ease, background 120ms ease",
+    transition: "all 0.2s ease",
     textDecoration: "none",
-    color: "inherit",
+    color: hover ? "#2563eb" : "inherit",
     boxSizing: "border-box",
+    boxShadow: hover ? "0 4px 12px -2px rgba(37, 99, 235, 0.05)" : "0 1px 2px rgba(0, 0, 0, 0.02)",
   };
 
   const inner = (
     <>
       <div
         style={{
-          width: 30,
-          height: 30,
-          borderRadius: 7,
-          background: isFile ? p.accentBg : p.purpleBg,
-          border: `1px solid ${isFile ? p.accentBorder : p.purpleBorder}`,
-          color: isFile ? p.accentText : p.purpleText,
+          width: 32,
+          height: 32,
+          borderRadius: 8,
+          background: isFile ? "rgba(99, 102, 241, 0.08)" : "rgba(139, 92, 246, 0.08)",
+          border: isFile ? "1px solid rgba(99, 102, 241, 0.15)" : "1px solid rgba(139, 92, 246, 0.15)",
+          color: isFile ? "#4f46e5" : "#7c3aed",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
+          transition: "all 0.2s ease",
         }}
       >
-        <Icon size={14} />
+        <Icon size={14} color={isFile ? "#4f46e5" : "#7c3aed"} />
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
         <div
           style={{
             fontSize: 12.5,
-            fontWeight: 500,
-            color: p.text,
+            fontWeight: 550,
+            color: hover ? "#1d4ed8" : "#1e293b",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -801,9 +866,9 @@ function AttachmentRow({
         </div>
         <div
           style={{
-            marginTop: 1,
+            marginTop: 2,
             fontSize: 11,
-            color: p.textSubtle,
+            color: "#64748b",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -812,7 +877,7 @@ function AttachmentRow({
           {sub}
         </div>
       </div>
-      <ExternalLink size={11} color={p.textFaint} />
+      <ExternalLink size={12} color={hover ? "#2563eb" : "#94a3b8"} style={{ transition: "all 0.2s ease" }} />
     </>
   );
 
@@ -867,36 +932,38 @@ function Card({
   return (
     <div
       style={{
-        background: p.surfaceElevated,
-        border: `1px solid ${p.border}`,
-        borderRadius: 12,
+        background: "transparent",
+        border: "1px solid #e2e8f0",
+        borderRadius: 16,
         overflow: "hidden",
       }}
     >
       <div
         style={{
-          padding: "10px 16px",
-          borderBottom: `1px solid ${p.border}`,
-          background: accent ? p.accentBg : p.surfaceMuted,
+          padding: "12px 18px",
+          borderBottom: accent ? "1px solid rgba(99, 102, 241, 0.15)" : "1px solid #e2e8f0",
+          background: accent 
+            ? "rgba(99, 102, 241, 0.04)" 
+            : "rgba(248, 250, 252, 0.4)",
           display: "flex",
           alignItems: "center",
           gap: 8,
         }}
       >
-        <Icon size={13} color={accent ? p.accentText : p.textSubtle} />
+        <Icon size={14} color={accent ? "#4f46e5" : "#64748b"} />
         <div
           style={{
             fontSize: 11.5,
-            fontWeight: 600,
-            color: accent ? p.accentText : p.text,
+            fontWeight: 700,
+            color: accent ? "#4f46e5" : "#334155",
             textTransform: "uppercase",
-            letterSpacing: "0.08em",
+            letterSpacing: "0.06em",
           }}
         >
           {title}
         </div>
       </div>
-      <div style={{ padding: "14px 16px" }}>{children}</div>
+      <div style={{ padding: "18px 20px" }}>{children}</div>
     </div>
   );
 }

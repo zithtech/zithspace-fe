@@ -533,7 +533,7 @@ class TicketService {
   > {
     try {
       const response = await apiClient.get(
-        `/api/projects/${projectId}/tickets`,
+        `/api/projects/${projectId}/tickets/my`,
       );
       return response.data.data;
     } catch (error) {

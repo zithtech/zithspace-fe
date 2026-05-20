@@ -159,7 +159,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
   );
 };
 
-const ProjectsManagePageInner: React.FC = () => {
+const ProjectsManageContent: React.FC = () => {
   const { theme } = useTheme();
   const { user, isLoading } = useAuth();
   const { notification, message } = App.useApp();
@@ -372,6 +372,21 @@ const ProjectsManagePageInner: React.FC = () => {
   const handleAdd = () => {
     setEditingProject(null);
     setDrawerVisible(true);
+  };
+
+  // Handle delete
+  const handleDelete = async (id: string) => {
+    try {
+      setLoading(true);
+      await ProjectService.deleteProject(id);
+      message.success("Project deleted successfully");
+      loadProjects();
+    } catch (error: any) {
+      console.error("Failed to delete project:", error);
+      message.error(error.message || "Failed to delete project");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Status color mapping
@@ -938,10 +953,6 @@ const ProjectsManagePageInner: React.FC = () => {
                     }
                     if (project.status === "completed") progress = 100;
 
-                    function handleDelete(id: string) {
-                      throw new Error("Function not implemented.");
-                    }
-
                     return (
                       <Col xs={24} sm={12} lg={8} xl={8} key={project.id}>
                         <Card
@@ -1393,14 +1404,12 @@ const ProjectsManagePageInner: React.FC = () => {
   );
 };
 
-const ProjectsManagePage: React.FC = () => (
-  <Suspense fallback={null}>
-    <ProjectsManagePageInner />
-  </Suspense>
-);
+const ProjectsManagePage = () => {
+  return (
+    <React.Suspense fallback={null}>
+      <ProjectsManageContent />
+    </React.Suspense>
+  );
+};
 
 export default ProjectsManagePage;
-function handleDelete(id: any) {
-  throw new Error("Function not implemented.");
-}
-

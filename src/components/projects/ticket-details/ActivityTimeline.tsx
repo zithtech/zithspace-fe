@@ -186,7 +186,7 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
                         if (key === 'changes') return null;
                         if (key === 'status' && action === 'Ticket Created') return null;
                         return (
-                            <div key={idx} style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                            <div key={idx} style={{ fontSize: 12, color: 'var(--text-secondary)', wordBreak: 'break-word' }}>
                                 <span style={{ textTransform: 'capitalize' }}>{key}</span>:{' '}
                                 <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{String(value)}</span>
                             </div>

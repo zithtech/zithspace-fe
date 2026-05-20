@@ -118,6 +118,19 @@ export class ProjectService {
   }
 
   /**
+   * Get next project code based on maximum numerical code
+   */
+  static async getNextCode(): Promise<string> {
+    try {
+      const response = await api.get<{success: boolean; data: string}>("/api/projects/next-code");
+      return response.data.data;
+    } catch (error) {
+      console.error("Failed to fetch next project code:", error);
+      return "";
+    }
+  }
+
+  /**
    * Get a single project by ID
    */
   static async getProject(id: string): Promise<Project> {

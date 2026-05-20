@@ -237,7 +237,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   useEffect(() => {
     if (!currentTicketId) return;
     setTimeEntriesLoading(true);
-    TimeTrackingService.getEntries({ ticketId: currentTicketId })
+    TimeTrackingService.getEntries({ ticketId: currentTicketId, allUsers: true })
       .then(setTimeEntries)
       .catch(() => setTimeEntries([]))
       .finally(() => setTimeEntriesLoading(false));

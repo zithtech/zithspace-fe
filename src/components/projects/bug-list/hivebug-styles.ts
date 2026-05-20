@@ -1092,7 +1092,7 @@ export const hivebugStyles = `
 }
 .hb-indicator:hover {
   color: var(--hb-text);
-  border-color: var(--hb-primary);
+  border-color: var(--hb-accent);
   background: var(--hb-bg-hover);
 }
 

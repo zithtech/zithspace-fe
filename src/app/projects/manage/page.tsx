@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import {
   App,
   Table,
@@ -1393,6 +1393,7 @@ const ProjectsManageContent: React.FC = () => {
   );
 };
 
+<<<<<<< HEAD
 const ProjectsManagePage = () => {
   return (
     <React.Suspense fallback={null}>
@@ -1400,6 +1401,13 @@ const ProjectsManagePage = () => {
     </React.Suspense>
   );
 };
+=======
+const ProjectsManagePage: React.FC = () => (
+  <Suspense fallback={null}>
+    <ProjectsManagePageInner />
+  </Suspense>
+);
+>>>>>>> production
 
 export default ProjectsManagePage;
 function handleDelete(id: any) {

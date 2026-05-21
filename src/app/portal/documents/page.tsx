@@ -1,10 +1,17 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Input, Empty, Spin, Tooltip, Modal, message, ConfigProvider, theme as antdTheme, Row, Col, Divider, Button, Typography } from "antd";
-import { FolderOutlined, ReloadOutlined } from "@ant-design/icons";
-
-const { Title, Text } = Typography;
+import {
+  Input,
+  Empty,
+  Spin,
+  Tooltip,
+  Modal,
+  message,
+  ConfigProvider,
+  theme as antdTheme,
+  Select,
+} from "antd";
 import {
   Search,
   Download,
@@ -22,38 +29,51 @@ import {
   UploadCloud,
   Link as LinkIcon,
   FileUp,
-  Loader2,
   LayoutGrid,
   List as ListIcon,
   X,
+  FolderOpen,
+  RefreshCw,
+  Users,
+  Building2,
+  Briefcase,
+  ChevronDown,
+  ArrowUpRight,
 } from "lucide-react";
 import {
   portalDocumentService,
   PortalDocument,
   PortalDocumentMeta,
+  DocumentSource,
 } from "@/services/portalDocumentService";
 
-const p = {
-  surface: "#ffffff",
-  surfaceElevated: "#ffffff",
-  surfaceMuted: "#f8fafc",
+/* ─────────────────────────────────────────────────────────
+ * Design tokens — premium dense
+ * ─────────────────────────────────────────────────────── */
+const T = {
+  pageBg: "#f6f7f9",
+  cardBg: "#ffffff",
   border: "#e5e7eb",
-  borderStrong: "#d1d5db",
+  borderHover: "#cbd5e1",
+  borderSoft: "#f1f5f9",
   text: "#0f172a",
   textMuted: "#475569",
   textSubtle: "#64748b",
   textFaint: "#94a3b8",
-  accent: "#3b82f6",
-  accentBg: "#eff6ff",
-  accentBorder: "#bfdbfe",
-  accentText: "#1d4ed8",
-  neutralBg: "#f1f5f9",
-  neutralBorder: "#e2e8f0",
-  neutralText: "#475569",
+  accent: "#4338ca",
+  accentBg: "#eef2ff",
+  accentBorder: "#c7d2fe",
+  numFont:
+    'ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
 };
 
-/* --------------------------------------------------------------- */
+const GAP = 12;
+const PAGE_PAD_X = 28;
+const PAGE_PAD_Y = 24;
 
+/* ─────────────────────────────────────────────────────────
+ * Formatters & helpers
+ * ─────────────────────────────────────────────────────── */
 function extOf(fileName: string): string {
   const m = fileName.match(/\.([a-z0-9]+)$/i);
   return m ? m[1].toLowerCase() : "";
@@ -70,11 +90,9 @@ function iconForFile(fileName: string) {
     return { Icon: FileText, color: "#1d4ed8" };
   if (["zip", "tar", "gz", "rar", "7z"].includes(ext))
     return { Icon: FileArchive, color: "#7c2d12" };
-  if (
-    ["json", "xml", "yml", "yaml", "ts", "js", "tsx", "jsx", "md"].includes(ext)
-  )
+  if (["json", "xml", "yml", "yaml", "ts", "js", "tsx", "jsx", "md"].includes(ext))
     return { Icon: FileCode2, color: "#7c3aed" };
-  return { Icon: FileText, color: p.textSubtle };
+  return { Icon: FileText, color: T.textSubtle };
 }
 
 function fmtDate(iso: string | null | undefined) {
@@ -103,14 +121,21 @@ function fmtRelative(iso: string | null | undefined): string {
   return fmtDate(iso);
 }
 
-/* --------------------------------------------------------------- */
+function isExternalLink(url: string): boolean {
+  return !/r2\.dev|cloudflarestorage/.test(url);
+}
 
+/* ─────────────────────────────────────────────────────────
+ * Page
+ * ─────────────────────────────────────────────────────── */
 export default function PortalDocumentsPage() {
   const [docs, setDocs] = useState<PortalDocument[]>([]);
   const [meta, setMeta] = useState<PortalDocumentMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string>("ALL");
+  const [category, setCategory] = useState<string | undefined>(undefined);
+  const [projectId, setProjectId] = useState<string | undefined>(undefined);
+  const [source, setSource] = useState<DocumentSource>("all");
   const [uploadOpen, setUploadOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "card">("list");
 
@@ -118,8 +143,10 @@ export default function PortalDocumentsPage() {
     setLoading(true);
     try {
       const res = await portalDocumentService.list({
-        category: activeCategory === "ALL" ? undefined : activeCategory,
+        category,
         search: search || undefined,
+        projectId,
+        source,
       });
       setDocs(res.data);
       setMeta(res.meta);
@@ -134,7 +161,7 @@ export default function PortalDocumentsPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCategory]);
+  }, [category, projectId, source]);
 
   useEffect(() => {
     const t = setTimeout(load, 250);
@@ -142,18 +169,12 @@ export default function PortalDocumentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  const categoryPills = useMemo(() => {
-    // When a category filter narrows the result, the response no longer
-    // contains all categories. Keep the full set from the most recent
-    // unfiltered fetch sticky if available.
-    return meta?.categories || [];
-  }, [meta]);
-
-  const handleOpen = async (doc: PortalDocument, mode: "view" | "download") => {
-    // Fire tracking, don't block the click
+  const handleOpen = async (
+    doc: PortalDocument,
+    mode: "view" | "download",
+  ) => {
     portalDocumentService.track(doc.id, mode);
     if (mode === "download") {
-      // Force download by creating a link with download attr.
       const a = document.createElement("a");
       a.href = doc.fileUrl;
       a.download = doc.fileName || "document";
@@ -167,217 +188,84 @@ export default function PortalDocumentsPage() {
     }
   };
 
+  const sourceCounts = meta?.sourceCounts || {
+    all: docs.length,
+    client: 0,
+    internal: 0,
+  };
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thisMonth = docs.filter(
+      (d) => new Date(d.createdAt) >= startOfMonth,
+    ).length;
+    const categoriesCount = new Set(docs.map((d) => d.category).filter(Boolean))
+      .size;
+    return {
+      total: sourceCounts.all,
+      client: sourceCounts.client,
+      internal: sourceCounts.internal,
+      thisMonth,
+      categories: categoriesCount,
+    };
+  }, [docs, sourceCounts]);
+
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}>
-      {/* Workstation Header */}
+    <div
+      style={{
+        background: T.pageBg,
+        height: "100vh",
+        overflowY: "auto",
+        overflowX: "hidden",
+      }}
+    >
       <div
-        className="saas-header-container portal-mom-header-container"
         style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          backdropFilter: "blur(12px)",
-          padding: "20px 40px 20px 40px",
-          marginBottom: 0,
-          backgroundColor: "#ffffff",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+          padding: `${PAGE_PAD_Y}px ${PAGE_PAD_X}px ${PAGE_PAD_Y + 8}px`,
+          maxWidth: 1480,
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: GAP,
         }}
       >
-        <Row justify="space-between" align="middle" gutter={[16, 16]}>
-          <Col flex="1 1 auto" style={{ minWidth: 0 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background:
-                      "linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(37, 99, 235, 0.08))",
-                    color: "#3b82f6",
-                  }}
-                >
-                  <FolderOutlined style={{ fontSize: 18, color: "#3b82f6" }} />
-                </div>
-                <Title
-                  level={4}
-                  className="portal-mom-header-title"
-                  style={{
-                    margin: 0,
-                    fontWeight: 800,
-                    color: "var(--text-slate-900)",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  Documents
-                </Title>
-              </div>
+        {/* Hero with stats + actions */}
+        <Hero
+          stats={stats}
+          loading={loading}
+          onReload={load}
+          onUpload={() => setUploadOpen(true)}
+        />
 
-              <Divider
-                type="vertical"
-                style={{
-                  height: 20,
-                  borderColor: "rgba(0, 0, 0, 0.08)",
-                  margin: "0 12px",
-                }}
-              />
+        {/* Source tabs — prominent above the filter row */}
+        <SourceTabs source={source} setSource={setSource} counts={sourceCounts} />
 
-              <div>
-                <Text
-                  className="portal-mom-header-desc"
-                  style={{
-                    fontSize: 12,
-                    color: "var(--text-slate-600)",
-                    fontWeight: 600,
-                  }}
-                >
-                  Every document your account team has shared — and anything you upload here for them.
-                </Text>
-              </div>
-            </div>
-          </Col>
-
-          <Col flex="0 0 auto">
-            <Row gutter={8} align="middle">
-              <Col>
-                <button
-                  onClick={() => setUploadOpen(true)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "8px 14px",
-                    background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: 8,
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    boxShadow: "0 2px 4px rgba(99, 102, 241, 0.1)",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  <Plus size={14} />
-                  Add document
-                </button>
-              </Col>
-              <Col>
-                <Button
-                  className="portal-mom-reload-btn"
-                  icon={<ReloadOutlined />}
-                  onClick={load}
-                  style={{
-                    height: 34,
-                    width: 34,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: 8,
-                    borderColor: "#e2e8f0",
-                    color: "#64748b",
-                  }}
-                />
-              </Col>
-            </Row>
-          </Col>
-        </Row>
-      </div>
-
-      {/* Content Container */}
-      <div style={{ padding: "16px 40px 56px", width: "100%", boxSizing: "border-box" }}>
-
-        {/* Category pills + search */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: 12,
-            flexWrap: "wrap",
-            marginBottom: 16,
-          }}
-        >
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <CategoryPill
-              label="All"
-              active={activeCategory === "ALL"}
-              onClick={() => setActiveCategory("ALL")}
-              count={meta?.total ?? undefined}
-            />
-            {categoryPills.map((cat) => {
-              const count =
-                meta?.groups.find((g) => g.category === cat)?.count ?? 0;
-              return (
-                <CategoryPill
-                  key={cat}
-                  label={cat}
-                  active={activeCategory === cat}
-                  onClick={() => setActiveCategory(cat)}
-                  count={count}
-                />
-              );
-            })}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex", background: "#f1f5f9", padding: 4, borderRadius: 8, border: "1px solid #e2e8f0" }}>
-              <button
-                onClick={() => setViewMode("list")}
-                title="List view"
-                style={{
-                  display: "inline-flex", padding: 6, borderRadius: 6, border: "none",
-                  background: viewMode === "list" ? "#ffffff" : "transparent",
-                  color: viewMode === "list" ? "#0f172a" : "#94a3b8",
-                  boxShadow: viewMode === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                  cursor: "pointer", transition: "all 0.2s ease"
-                }}
-              >
-                <ListIcon size={15} />
-              </button>
-              <button
-                onClick={() => setViewMode("card")}
-                title="Card view"
-                style={{
-                  display: "inline-flex", padding: 6, borderRadius: 6, border: "none",
-                  background: viewMode === "card" ? "#ffffff" : "transparent",
-                  color: viewMode === "card" ? "#0f172a" : "#94a3b8",
-                  boxShadow: viewMode === "card" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                  cursor: "pointer", transition: "all 0.2s ease"
-                }}
-              >
-                <LayoutGrid size={15} />
-              </button>
-            </div>
-            <Input
-              allowClear
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              prefix={<Search size={14} color={p.textFaint} />}
-              placeholder="Search file name, type, or tag…"
-              style={{ width: 300 }}
-            />
-          </div>
-        </div>
+        {/* Filter bar */}
+        <FilterBar
+          search={search}
+          setSearch={setSearch}
+          projectId={projectId}
+          setProjectId={setProjectId}
+          projects={meta?.projects ?? []}
+          category={category}
+          setCategory={setCategory}
+          categories={meta?.categories ?? []}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+        />
 
         {/* Body */}
         {loading ? (
-          <div style={{ padding: 80, textAlign: "center" }}>
+          <div
+            style={{
+              padding: 80,
+              textAlign: "center",
+              background: T.cardBg,
+              border: `1px solid ${T.border}`,
+              borderRadius: 12,
+            }}
+          >
             <Spin />
           </div>
         ) : docs.length === 0 ? (
@@ -385,460 +273,1031 @@ export default function PortalDocumentsPage() {
             style={{
               padding: 64,
               textAlign: "center",
-              background: p.surfaceElevated,
-              border: `1px dashed ${p.border}`,
+              background: T.cardBg,
+              border: `1px dashed ${T.border}`,
               borderRadius: 12,
             }}
           >
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
-                <span style={{ color: p.textSubtle, fontSize: 13 }}>
+                <span style={{ color: T.textSubtle, fontSize: 13 }}>
                   {search
                     ? `No documents match "${search}".`
-                    : activeCategory === "ALL"
-                      ? "Your team hasn't shared any documents yet."
-                      : `Nothing in ${activeCategory} yet.`}
+                    : source === "client"
+                      ? "You haven't uploaded any documents yet."
+                      : source === "internal"
+                        ? "Your account team hasn't shared any documents yet."
+                        : "No documents yet."}
                 </span>
               }
             />
           </div>
+        ) : viewMode === "list" ? (
+          <DocumentsTable docs={docs} onOpen={handleOpen} />
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-            {(meta?.groups || []).map((group) => (
-              <DocGroup
-                key={group.category}
-                category={group.category}
-                count={group.count}
-                docs={group.items}
-                onOpen={handleOpen}
-                viewMode={viewMode}
-              />
-            ))}
-          </div>
+          <DocumentsGrid docs={docs} onOpen={handleOpen} />
         )}
 
         <UploadModal
           open={uploadOpen}
+          projects={meta?.projects ?? []}
           onClose={() => setUploadOpen(false)}
           onUploaded={() => {
             setUploadOpen(false);
             load();
           }}
         />
-        <style jsx global>{`
-        .ant-input {
-          background-color: #ffffff !important;
-          color: #0f172a !important;
-          border-color: #e2e8f0 !important;
+      </div>
+
+      <style>{`
+        .portal-docs-page .ant-select:not(.ant-select-customize-input)
+          .ant-select-selector {
+          background: ${T.cardBg} !important;
+          border: 1px solid ${T.border} !important;
+          color: ${T.text} !important;
+          border-radius: 8px !important;
+          height: 34px !important;
+        }
+        .portal-docs-page .ant-select .ant-select-selection-placeholder,
+        .portal-docs-page .ant-select .ant-select-selection-item {
+          line-height: 32px !important;
+        }
+        .portal-docs-page .ant-input,
+        .portal-docs-page .ant-input-affix-wrapper {
+          background: ${T.cardBg} !important;
+          color: ${T.text} !important;
+          border-color: ${T.border} !important;
           border-radius: 8px !important;
         }
-        .ant-input::placeholder {
-          color: #94a3b8 !important;
+        .portal-docs-page .ant-input::placeholder,
+        .portal-docs-page .ant-input-affix-wrapper .ant-input::placeholder {
+          color: ${T.textFaint} !important;
         }
-        .ant-input-affix-wrapper {
-          background-color: #ffffff !important;
-          border-color: #e2e8f0 !important;
-          color: #0f172a !important;
-          border-radius: 8px !important;
-          padding: 8px 12px !important;
+        .portal-docs-page .ant-input-clear-icon {
+          color: ${T.textFaint} !important;
         }
-        .ant-input-affix-wrapper .ant-input {
-          background-color: transparent !important;
-          color: #0f172a !important;
+        /* Project filter — prominent */
+        .portal-docs-project-select.ant-select .ant-select-selector {
+          border: 1px solid ${T.border} !important;
         }
-        .ant-input-affix-wrapper:hover, .ant-input:hover {
-          border-color: #cbd5e1 !important;
+        .portal-docs-project-select.is-active.ant-select .ant-select-selector {
+          background: ${T.accentBg} !important;
+          border-color: ${T.accentBorder} !important;
         }
-        .ant-input-affix-wrapper-focused, .ant-input-focused {
-          border-color: #4f46e5 !important;
-          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+        /* Popup — force light theme */
+        html body .portal-docs-popup,
+        html[data-theme='dark'] body .portal-docs-popup,
+        [data-theme='dark'] .portal-docs-popup {
+          background: ${T.cardBg} !important;
+          border: 1px solid ${T.border} !important;
+          padding: 4px !important;
         }
-        .ant-input-clear-icon {
-          color: #94a3b8 !important;
+        html body .portal-docs-popup .ant-select-item,
+        html[data-theme='dark'] body .portal-docs-popup .ant-select-item,
+        [data-theme='dark'] .portal-docs-popup .ant-select-item {
+          color: ${T.text} !important;
+          background: transparent !important;
+          border-radius: 6px !important;
+          padding: 6px 10px !important;
+          margin: 1px 0 !important;
         }
-        .ant-input-clear-icon:hover {
-          color: #64748b !important;
+        html body .portal-docs-popup .ant-select-item-option-active,
+        html[data-theme='dark'] body .portal-docs-popup .ant-select-item-option-active {
+          background: ${T.borderSoft} !important;
         }
-        .portal-mom-header-container,
-        [data-theme='dark'] .portal-mom-header-container,
-        [data-theme='dark'] .saas-header-container.portal-mom-header-container,
-        .saas-header-container.portal-mom-header-container {
-          background: #ffffff !important;
-          border-bottom: 1px solid #e2e8f0 !important;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+        html body .portal-docs-popup .ant-select-item-option-selected,
+        html[data-theme='dark'] body .portal-docs-popup .ant-select-item-option-selected {
+          background: ${T.accentBg} !important;
         }
-        .portal-mom-header-title {
-          color: #0f172a !important;
+        /* Table */
+        .docs-table {
+          width: 100%;
+          border-collapse: collapse;
         }
-        .portal-mom-header-desc {
-          color: #475569 !important;
+        .docs-table thead th {
+          padding: 10px 16px;
+          font-size: 10.5px;
+          font-weight: 600;
+          color: ${T.textSubtle};
+          letter-spacing: 0.07em;
+          text-transform: uppercase;
+          background: #fafbfc;
+          border-bottom: 1px solid ${T.borderSoft};
+          text-align: left;
+          white-space: nowrap;
         }
-        .portal-mom-reload-btn {
-          background-color: #ffffff !important;
-          border-color: #e2e8f0 !important;
-          color: #475569 !important;
+        .docs-table tbody td {
+          padding: 11px 16px;
+          font-size: 12.5px;
+          color: ${T.text};
+          border-bottom: 1px solid ${T.borderSoft};
+          vertical-align: middle;
         }
-        .portal-mom-reload-btn:hover {
-          color: #3b82f6 !important;
-          border-color: #3b82f6 !important;
-          background-color: #eff6ff !important;
+        .docs-table tbody tr {
+          transition: background 120ms ease;
+        }
+        .docs-table tbody tr:hover {
+          background: #f8fafc;
+        }
+        .docs-table tbody tr:hover .docs-row-name {
+          color: ${T.accent};
+        }
+        .docs-table tbody tr:last-child td {
+          border-bottom: none;
+        }
+        .ant-empty-img-simple path,
+        .ant-empty-image svg path {
+          fill: #f8fafc !important;
+          stroke: ${T.borderHover} !important;
+        }
+        .ant-empty-img-simple ellipse,
+        .ant-empty-image svg ellipse {
+          fill: #e2e8f0 !important;
+          stroke: ${T.borderHover} !important;
         }
       `}</style>
-      </div>
     </div>
   );
 }
 
-/* --------------------------------------------------------------- */
+/* ─────────────────────────────────────────────────────────
+ * Hero with stats + actions
+ * ─────────────────────────────────────────────────────── */
+const Hero: React.FC<{
+  stats: { total: number; client: number; internal: number; thisMonth: number; categories: number };
+  loading: boolean;
+  onReload: () => void;
+  onUpload: () => void;
+}> = ({ stats, loading, onReload, onUpload }) => (
+  <div
+    className="portal-docs-page"
+    style={{
+      background: T.cardBg,
+      border: `1px solid ${T.border}`,
+      borderRadius: 12,
+      padding: "16px 20px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 20,
+      position: "relative",
+      overflow: "hidden",
+    }}
+  >
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 3,
+        background: "linear-gradient(180deg, #4338ca 0%, #0d9488 100%)",
+      }}
+    />
+    <div
+      style={{
+        minWidth: 0,
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+      }}
+    >
+      <div
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 10,
+          background: T.accentBg,
+          color: T.accent,
+          border: `1px solid ${T.accentBorder}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <FolderOpen size={19} strokeWidth={2.2} />
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: T.text,
+            letterSpacing: "-0.022em",
+            lineHeight: 1.2,
+          }}
+        >
+          Documents
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            color: T.textSubtle,
+            marginTop: 3,
+            fontWeight: 500,
+          }}
+        >
+          Every document your account team has shared — and anything you upload here for them.
+        </div>
+      </div>
+    </div>
 
-function CategoryPill({
-  label,
-  active,
-  onClick,
-  count,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  count?: number;
-}) {
+    <div
+      style={{
+        display: "flex",
+        gap: 6,
+        flexShrink: 0,
+        alignItems: "stretch",
+      }}
+    >
+      {[
+        { label: "Total", value: stats.total, accent: "#4338ca" },
+        { label: "Categories", value: stats.categories, accent: "#0d9488" },
+        { label: "This month", value: stats.thisMonth, accent: "#7c3aed" },
+      ].map((s) => (
+        <div
+          key={s.label}
+          style={{
+            padding: "8px 12px",
+            border: `1px solid ${T.border}`,
+            borderRadius: 8,
+            background: "#fafbfc",
+            minWidth: 78,
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 9.5,
+              fontWeight: 600,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: T.textSubtle,
+            }}
+          >
+            {s.label}
+          </div>
+          <div
+            style={{
+              fontSize: 17,
+              fontWeight: 700,
+              color: s.accent,
+              marginTop: 2,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.1,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {s.value}
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={onUpload}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "0 14px",
+          height: "auto",
+          alignSelf: "stretch",
+          background: "linear-gradient(135deg, #4338ca 0%, #6366f1 100%)",
+          color: "#ffffff",
+          border: "1px solid #3730a3",
+          borderRadius: 8,
+          fontSize: 12.5,
+          fontWeight: 600,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <Plus size={14} strokeWidth={2.5} />
+        Add document
+      </button>
+      <button
+        type="button"
+        onClick={onReload}
+        aria-label="Reload"
+        style={{
+          alignSelf: "stretch",
+          minWidth: 38,
+          background: T.cardBg,
+          border: `1px solid ${T.border}`,
+          color: T.textMuted,
+          borderRadius: 8,
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <RefreshCw
+          size={14}
+          style={{
+            animation: loading ? "portal-docs-spin 1s linear infinite" : undefined,
+          }}
+        />
+      </button>
+    </div>
+    <style>{`
+      @keyframes portal-docs-spin {
+        from {
+          transform: rotate(0);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    `}</style>
+  </div>
+);
+
+/* ─────────────────────────────────────────────────────────
+ * Source segmented tabs
+ * ─────────────────────────────────────────────────────── */
+const SourceTabs: React.FC<{
+  source: DocumentSource;
+  setSource: (s: DocumentSource) => void;
+  counts: { all: number; client: number; internal: number };
+}> = ({ source, setSource, counts }) => {
+  const tabs: {
+    key: DocumentSource;
+    label: string;
+    sub: string;
+    icon: any;
+    accent: string;
+    accentBg: string;
+    accentBorder: string;
+    count: number;
+  }[] = [
+    {
+      key: "all",
+      label: "All documents",
+      sub: "Everything shared",
+      icon: FolderOpen,
+      accent: "#4338ca",
+      accentBg: "#eef2ff",
+      accentBorder: "#c7d2fe",
+      count: counts.all,
+    },
+    {
+      key: "internal",
+      label: "From Zukvo",
+      sub: "Shared by your account team",
+      icon: Briefcase,
+      accent: "#0d9488",
+      accentBg: "#ccfbf1",
+      accentBorder: "#99f6e4",
+      count: counts.internal,
+    },
+    {
+      key: "client",
+      label: "From your team",
+      sub: "Uploaded via the portal",
+      icon: Users,
+      accent: "#7c3aed",
+      accentBg: "#f5f3ff",
+      accentBorder: "#ddd6fe",
+      count: counts.client,
+    },
+  ];
+
   return (
-    <button
-      onClick={onClick}
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+        gap: GAP,
+      }}
+    >
+      {tabs.map((tab) => {
+        const active = source === tab.key;
+        const Icon = tab.icon;
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setSource(tab.key)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "12px 16px",
+              background: active ? tab.accentBg : T.cardBg,
+              border: `1px solid ${active ? tab.accent : T.border}`,
+              borderRadius: 12,
+              cursor: "pointer",
+              textAlign: "left",
+              transition: "all 150ms ease",
+              minHeight: 64,
+            }}
+          >
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 9,
+                background: tab.accentBg,
+                border: `1px solid ${tab.accentBorder}`,
+                color: tab.accent,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Icon size={16} strokeWidth={2.3} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: active ? tab.accent : T.text,
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                {tab.label}
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: T.textSubtle,
+                  marginTop: 1,
+                  fontWeight: 500,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {tab.sub}
+              </div>
+            </div>
+            <div
+              style={{
+                fontSize: 19,
+                fontWeight: 700,
+                color: active ? tab.accent : T.text,
+                fontVariantNumeric: "tabular-nums",
+                letterSpacing: "-0.02em",
+                flexShrink: 0,
+              }}
+            >
+              {tab.count}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────────────────
+ * Filter bar
+ * ─────────────────────────────────────────────────────── */
+const FilterBar: React.FC<{
+  search: string;
+  setSearch: (v: string) => void;
+  projectId: string | undefined;
+  setProjectId: (v: string | undefined) => void;
+  projects: { id: string; name: string; code: string | null }[];
+  category: string | undefined;
+  setCategory: (v: string | undefined) => void;
+  categories: string[];
+  viewMode: "list" | "card";
+  setViewMode: (v: "list" | "card") => void;
+}> = ({
+  search,
+  setSearch,
+  projectId,
+  setProjectId,
+  projects,
+  category,
+  setCategory,
+  categories,
+  viewMode,
+  setViewMode,
+}) => (
+  <div
+    className="portal-docs-page"
+    style={{
+      background: T.cardBg,
+      border: `1px solid ${T.border}`,
+      borderRadius: 12,
+      padding: "10px 12px",
+      display: "flex",
+      gap: 10,
+      flexWrap: "wrap",
+      alignItems: "center",
+    }}
+  >
+    {/* Project filter */}
+    <Select
+      className={`portal-docs-project-select${projectId ? " is-active" : ""}`}
+      popupClassName="portal-docs-popup"
+      allowClear
+      placeholder={
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            color: T.textSubtle,
+            fontWeight: 500,
+          }}
+        >
+          <FolderOpen size={14} />
+          {projects.length === 0
+            ? "No projects yet"
+            : `All projects · ${projects.length}`}
+        </span>
+      }
+      value={projectId}
+      onChange={(v) => setProjectId(v as string | undefined)}
+      style={{ width: 240 }}
+      options={projects.map((proj) => ({
+        value: proj.id,
+        label: proj.name,
+        code: proj.code,
+      }))}
+      optionRender={(option) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <FolderOpen size={13} color={T.textSubtle} />
+          <span style={{ fontWeight: 600, color: T.text }}>
+            {String(option.label)}
+          </span>
+          {(option.data as any)?.code && (
+            <span
+              style={{
+                marginLeft: "auto",
+                fontFamily: T.numFont,
+                fontSize: 11,
+                color: T.textFaint,
+              }}
+            >
+              {(option.data as any).code}
+            </span>
+          )}
+        </div>
+      )}
+      labelRender={(label) => (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            color: T.accent,
+            fontWeight: 600,
+          }}
+        >
+          <FolderOpen size={14} />
+          {String(label.label ?? "")}
+        </span>
+      )}
+    />
+
+    {/* Category filter */}
+    <Select
+      popupClassName="portal-docs-popup"
+      allowClear
+      placeholder={
+        <span style={{ color: T.textSubtle, fontWeight: 500 }}>
+          All categories
+        </span>
+      }
+      value={category}
+      onChange={(v) => setCategory(v as string | undefined)}
+      style={{ width: 180 }}
+      options={categories.map((c) => ({ value: c, label: c }))}
+    />
+
+    <Input
+      allowClear
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      prefix={<Search size={14} color={T.textSubtle} />}
+      placeholder="Search file name, type, or tag…"
+      style={{
+        flex: 1,
+        minWidth: 240,
+        height: 34,
+      }}
+    />
+
+    <div
+      style={{
+        display: "inline-flex",
+        background: T.borderSoft,
+        padding: 3,
+        borderRadius: 8,
+        border: `1px solid ${T.border}`,
+        height: 34,
+        boxSizing: "border-box",
+        alignItems: "center",
+      }}
+    >
+      {[
+        { mode: "list" as const, icon: <ListIcon size={13} />, label: "List" },
+        {
+          mode: "card" as const,
+          icon: <LayoutGrid size={13} />,
+          label: "Cards",
+        },
+      ].map(({ mode, icon, label }) => {
+        const active = viewMode === mode;
+        return (
+          <button
+            key={mode}
+            onClick={() => setViewMode(mode)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "0 10px",
+              height: 26,
+              fontSize: 12,
+              fontWeight: 600,
+              borderRadius: 5,
+              border: active ? `1px solid ${T.border}` : "1px solid transparent",
+              cursor: "pointer",
+              background: active ? T.cardBg : "transparent",
+              color: active ? T.text : T.textSubtle,
+              transition: "background 120ms ease, color 120ms ease",
+            }}
+          >
+            {icon}
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
+
+/* ─────────────────────────────────────────────────────────
+ * Single flat table
+ * ─────────────────────────────────────────────────────── */
+const DocumentsTable: React.FC<{
+  docs: PortalDocument[];
+  onOpen: (doc: PortalDocument, mode: "view" | "download") => void;
+}> = ({ docs, onOpen }) => (
+  <div
+    style={{
+      background: T.cardBg,
+      border: `1px solid ${T.border}`,
+      borderRadius: 12,
+      overflow: "hidden",
+    }}
+  >
+    <div style={{ overflowX: "auto" }}>
+      <table className="docs-table">
+        <thead>
+          <tr>
+            <th style={{ minWidth: 280 }}>File</th>
+            <th style={{ width: 140 }}>Category</th>
+            <th style={{ width: 140 }}>Project</th>
+            <th style={{ width: 110 }}>Source</th>
+            <th style={{ width: 160 }}>Uploaded by</th>
+            <th style={{ width: 110 }}>Date</th>
+            <th style={{ width: 100, textAlign: "right" }}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {docs.map((doc) => {
+            const { Icon, color } = iconForFile(doc.fileName);
+            const looksExternal = isExternalLink(doc.fileUrl);
+            return (
+              <tr key={doc.id}>
+                <td>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 11,
+                      minWidth: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 8,
+                        background: `${color}14`,
+                        color,
+                        border: `1px solid ${color}33`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon size={13} />
+                    </div>
+                    <div style={{ minWidth: 0, overflow: "hidden" }}>
+                      <div
+                        className="docs-row-name"
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: T.text,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          letterSpacing: "-0.005em",
+                          transition: "color 120ms ease",
+                        }}
+                        title={doc.fileName}
+                      >
+                        {doc.fileName}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: T.textSubtle,
+                          marginTop: 1,
+                          fontWeight: 500,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span>{doc.documentType}</span>
+                        {doc.version > 1 && (
+                          <span
+                            style={{
+                              fontFamily: T.numFont,
+                              padding: "1px 5px",
+                              background: T.accentBg,
+                              border: `1px solid ${T.accentBorder}`,
+                              borderRadius: 4,
+                              color: T.accent,
+                              fontWeight: 600,
+                              fontSize: 10,
+                            }}
+                          >
+                            v{doc.version}
+                          </span>
+                        )}
+                        {doc.tags?.slice(0, 2).map((t) => (
+                          <span
+                            key={t}
+                            style={{
+                              fontSize: 10,
+                              padding: "1px 5px",
+                              background: T.borderSoft,
+                              border: `1px solid ${T.border}`,
+                              color: T.textMuted,
+                              borderRadius: 4,
+                              fontWeight: 500,
+                            }}
+                          >
+                            {t}
+                          </span>
+                        ))}
+                        {doc.tags && doc.tags.length > 2 && (
+                          <span style={{ fontSize: 10, color: T.textFaint }}>
+                            +{doc.tags.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  {doc.category ? (
+                    <span
+                      style={{
+                        fontSize: 11,
+                        padding: "2px 8px",
+                        background: T.borderSoft,
+                        border: `1px solid ${T.border}`,
+                        color: T.textMuted,
+                        borderRadius: 6,
+                        fontWeight: 600,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {doc.category}
+                    </span>
+                  ) : (
+                    <span style={{ color: T.textFaint }}>—</span>
+                  )}
+                </td>
+                <td>
+                  {doc.projectName ? (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        maxWidth: 130,
+                        background: T.accentBg,
+                        border: `1px solid ${T.accentBorder}`,
+                        color: T.accent,
+                        padding: "2px 7px",
+                        borderRadius: 6,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                      title={doc.projectName}
+                    >
+                      <FolderOpen size={10} />
+                      {doc.projectName}
+                    </span>
+                  ) : (
+                    <span style={{ color: T.textFaint }}>—</span>
+                  )}
+                </td>
+                <td>
+                  <SourcePill uploadedByPortal={!!doc.uploadedByPortal} />
+                </td>
+                <td>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: T.text,
+                      fontWeight: 500,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {doc.uploadedByName || "—"}
+                  </div>
+                </td>
+                <td>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: T.textMuted,
+                      fontVariantNumeric: "tabular-nums",
+                      whiteSpace: "nowrap",
+                    }}
+                    title={fmtDate(doc.createdAt)}
+                  >
+                    {fmtRelative(doc.createdAt)}
+                  </div>
+                </td>
+                <td>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 6,
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <Tooltip title={looksExternal ? "Open link" : "Open"}>
+                      <button
+                        onClick={() => onOpen(doc, "view")}
+                        style={iconBtn(false)}
+                        aria-label="Open"
+                      >
+                        {looksExternal ? (
+                          <ExternalLink size={12} />
+                        ) : (
+                          <Eye size={12} />
+                        )}
+                      </button>
+                    </Tooltip>
+                    {!looksExternal && (
+                      <Tooltip title="Download">
+                        <button
+                          onClick={() => onOpen(doc, "download")}
+                          style={iconBtn(false)}
+                          aria-label="Download"
+                        >
+                          <Download size={12} />
+                        </button>
+                      </Tooltip>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
+const iconBtn = (hover: boolean): React.CSSProperties => ({
+  width: 28,
+  height: 28,
+  borderRadius: 7,
+  background: hover ? T.accentBg : T.cardBg,
+  border: `1px solid ${hover ? T.accentBorder : T.border}`,
+  color: hover ? T.accent : T.textMuted,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  transition: "all 120ms ease",
+});
+
+const SourcePill: React.FC<{ uploadedByPortal: boolean }> = ({
+  uploadedByPortal,
+}) => {
+  if (uploadedByPortal) {
+    return (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          fontSize: 10.5,
+          fontWeight: 700,
+          padding: "1.5px 7px",
+          background: "#f5f3ff",
+          border: "1px solid #ddd6fe",
+          color: "#6d28d9",
+          borderRadius: 999,
+        }}
+      >
+        <Users size={10} />
+        Client
+      </span>
+    );
+  }
+  return (
+    <span
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 8,
-        padding: "7px 12px",
-        background: active ? "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)" : "transparent",
-        color: active ? "#ffffff" : p.textMuted,
-        border: active ? "1px solid #4f46e5" : "1px solid #e2e8f0",
-        borderRadius: 8,
-        fontSize: 13,
-        fontWeight: 550,
-        cursor: "pointer",
-        transition: "all 120ms ease",
+        gap: 4,
+        fontSize: 10.5,
+        fontWeight: 700,
+        padding: "1.5px 7px",
+        background: "#ccfbf1",
+        border: "1px solid #99f6e4",
+        color: "#0d9488",
+        borderRadius: 999,
       }}
     >
-      {label}
-      {count != null && count > 0 && (
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            padding: "1px 7px",
-            borderRadius: 999,
-            background: active ? "rgba(255,255,255,0.2)" : "rgba(15, 23, 42, 0.05)",
-            color: active ? "#ffffff" : p.textSubtle,
-          }}
-        >
-          {count}
-        </span>
-      )}
-    </button>
+      <Briefcase size={10} />
+      Zukvo
+    </span>
   );
-}
+};
 
-function DocGroup({
-  category,
-  count,
-  docs,
-  onOpen,
-  viewMode,
-}: {
-  category: string;
-  count: number;
+/* ─────────────────────────────────────────────────────────
+ * Grid view
+ * ─────────────────────────────────────────────────────── */
+const DocumentsGrid: React.FC<{
   docs: PortalDocument[];
   onOpen: (doc: PortalDocument, mode: "view" | "download") => void;
-  viewMode: "list" | "card";
-}) {
-  return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 10,
-        }}
-      >
-        <h2
-          style={{
-            fontSize: 13.5,
-            fontWeight: 600,
-            color: p.text,
-            margin: 0,
-            letterSpacing: "-0.005em",
-          }}
-        >
-          {category}
-        </h2>
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            padding: "1px 8px",
-            background: p.neutralBg,
-            border: `1px solid ${p.neutralBorder}`,
-            borderRadius: 999,
-            color: p.textSubtle,
-          }}
-        >
-          {count}
-        </span>
-      </div>
-      {viewMode === "card" ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-            gap: 10,
-          }}
-        >
-          {docs.map((d) => (
-            <DocCard key={d.id} doc={d} onOpen={onOpen} />
-          ))}
-        </div>
-      ) : (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            border: "1px solid #e2e8f0",
-            borderRadius: 12,
-            overflow: "hidden",
-            background: "#ffffff",
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(250px, 1.5fr) 150px 150px 120px 100px",
-              gap: 12,
-              padding: "12px 16px",
-              background: "#f8fafc",
-              borderBottom: "1px solid #e2e8f0",
-              fontSize: 11.5,
-              fontWeight: 600,
-              color: "#64748b",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            }}
-          >
-            <div>File Name</div>
-            <div>Tags</div>
-            <div>Uploaded By</div>
-            <div>Date</div>
-            <div style={{ textAlign: "right" }}>Actions</div>
-          </div>
-          {docs.map((d, i) => (
-            <DocRow key={d.id} doc={d} onOpen={onOpen} isLast={i === docs.length - 1} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+}> = ({ docs, onOpen }) => (
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+      gap: GAP,
+    }}
+  >
+    {docs.map((doc) => (
+      <DocCard key={doc.id} doc={doc} onOpen={onOpen} />
+    ))}
+  </div>
+);
 
-function DocRow({
-  doc,
-  onOpen,
-  isLast,
-}: {
+const DocCard: React.FC<{
   doc: PortalDocument;
   onOpen: (doc: PortalDocument, mode: "view" | "download") => void;
-  isLast: boolean;
-}) {
+}> = ({ doc, onOpen }) => {
   const [hover, setHover] = useState(false);
   const { Icon, color } = iconForFile(doc.fileName);
-  const looksExternal = !/r2\.dev|cloudflarestorage/.test(doc.fileUrl);
+  const looksExternal = isExternalLink(doc.fileUrl);
 
   return (
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        display: "grid",
-        gridTemplateColumns: "minmax(250px, 1.5fr) 150px 150px 120px 100px",
-        gap: 12,
-        padding: "12px 16px",
-        background: hover ? "rgba(99, 102, 241, 0.02)" : "#ffffff",
-        borderBottom: isLast ? "none" : "1px solid #f1f5f9",
-        alignItems: "center",
-        transition: "all 0.2s ease",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            background: `${color}14`,
-            color,
-            border: `1px solid ${color}33`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <Icon size={14} />
-        </div>
-        <div style={{ minWidth: 0, overflow: "hidden" }}>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "#0f172a",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-            title={doc.fileName}
-          >
-            {doc.fileName}
-          </div>
-          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-            {doc.documentType} {doc.version > 1 && `· v${doc.version}`}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", overflow: "hidden" }}>
-        {doc.tags?.slice(0, 2).map((t) => (
-          <span
-            key={t}
-            style={{
-              fontSize: 10,
-              padding: "2px 6px",
-              background: "#f1f5f9",
-              border: "1px solid #e2e8f0",
-              color: "#475569",
-              borderRadius: 4,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {t}
-          </span>
-        ))}
-        {doc.tags && doc.tags.length > 2 && (
-          <span style={{ fontSize: 10, color: "#94a3b8" }}>
-            +{doc.tags.length - 2}
-          </span>
-        )}
-      </div>
-
-      <div
-        style={{
-          fontSize: 12,
-          color: "#475569",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}
-      >
-        {doc.uploadedByName || "—"}
-      </div>
-
-      <div
-        style={{
-          fontSize: 12,
-          color: "#64748b",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}
-      >
-        {fmtDate(doc.createdAt)}
-      </div>
-
-      <div style={{ textAlign: "right", display: "flex", gap: 6, justifyContent: "flex-end" }}>
-        <Tooltip title={looksExternal ? "Open link" : "Open"}>
-          <button
-            onClick={() => onOpen(doc, "view")}
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 8,
-              background: hover ? "rgba(99, 102, 241, 0.08)" : "transparent",
-              border: `1px solid ${hover ? "#bfdbfe" : "#e2e8f0"}`,
-              color: hover ? "#2563eb" : "#475569",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-            aria-label="Open"
-          >
-            {looksExternal ? <ExternalLink size={13} /> : <Eye size={13} />}
-          </button>
-        </Tooltip>
-        {!looksExternal && (
-          <Tooltip title="Download">
-            <button
-              onClick={() => onOpen(doc, "download")}
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 8,
-                background: hover ? "rgba(99, 102, 241, 0.08)" : "transparent",
-                border: `1px solid ${hover ? "#bfdbfe" : "#e2e8f0"}`,
-                color: hover ? "#2563eb" : "#475569",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-              aria-label="Download"
-            >
-              <Download size={13} />
-            </button>
-          </Tooltip>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function DocCard({
-  doc,
-  onOpen,
-}: {
-  doc: PortalDocument;
-  onOpen: (doc: PortalDocument, mode: "view" | "download") => void;
-}) {
-  const [hover, setHover] = useState(false);
-  const { Icon, color } = iconForFile(doc.fileName);
-  // If the URL doesn't look like our R2-hosted file, treat it as an external
-  // reference (e.g. a Google Drive / Notion link added via the "external URL"
-  // path on the staff document uploader). External links open in a new tab
-  // without forcing a download.
-  const looksExternal = !/r2\.dev|cloudflarestorage/.test(doc.fileUrl);
-
-  return (
-    <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        padding: 16,
-        background: hover ? "rgba(99, 102, 241, 0.02)" : "transparent",
-        border: `1px solid ${hover ? "#818cf8" : "#e2e8f0"}`,
-        borderRadius: 16,
-        transition: "all 0.2s ease",
+        padding: 14,
+        background: T.cardBg,
+        border: `1px solid ${hover ? T.borderHover : T.border}`,
+        borderRadius: 12,
+        transition: "border-color 150ms ease, transform 150ms ease",
+        transform: hover ? "translateY(-1px)" : "translateY(0)",
         display: "flex",
         flexDirection: "column",
-        gap: 12,
+        gap: 10,
+        minHeight: 178,
       }}
     >
-      <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+      <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
         <div
           style={{
-            width: 40,
-            height: 40,
+            width: 38,
+            height: 38,
             borderRadius: 9,
             background: `${color}14`,
             color,
@@ -849,20 +1308,21 @@ function DocCard({
             flexShrink: 0,
           }}
         >
-          <Icon size={18} />
+          <Icon size={17} />
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
-              fontSize: 13.5,
-              fontWeight: 600,
-              color: "#0f172a",
+              fontSize: 13,
+              fontWeight: 700,
+              color: hover ? T.accent : T.text,
               lineHeight: 1.3,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
+              letterSpacing: "-0.01em",
               display: "-webkit-box",
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              transition: "color 150ms ease",
             }}
             title={doc.fileName}
           >
@@ -873,60 +1333,79 @@ function DocCard({
               marginTop: 4,
               display: "flex",
               flexWrap: "wrap",
-              gap: 6,
+              gap: 5,
               alignItems: "center",
             }}
           >
-            <span
-              style={{
-                fontSize: 11,
-                color: "#64748b",
-                fontWeight: 500,
-              }}
-            >
+            <span style={{ fontSize: 11, color: T.textSubtle, fontWeight: 500 }}>
               {doc.documentType}
             </span>
             {doc.version > 1 && (
               <span
                 style={{
-                  fontSize: 10.5,
-                  fontWeight: 600,
+                  fontSize: 10,
+                  fontWeight: 700,
                   padding: "1px 6px",
-                  background: "rgba(99, 102, 241, 0.06)",
-                  border: "1px solid rgba(99, 102, 241, 0.15)",
-                  color: "#4f46e5",
+                  background: T.accentBg,
+                  border: `1px solid ${T.accentBorder}`,
+                  color: T.accent,
                   borderRadius: 999,
+                  fontFamily: T.numFont,
                 }}
               >
                 v{doc.version}
               </span>
             )}
-            {doc.lastEvent && (
-              <Tooltip
-                title={`Last opened ${fmtRelative(doc.lastViewedAt)}`}
-              >
-                <span
-                  style={{
-                    fontSize: 10.5,
-                    fontWeight: 500,
-                    padding: "1px 6px",
-                    background: "rgba(15, 23, 42, 0.05)",
-                    border: "1px solid rgba(15, 23, 42, 0.08)",
-                    color: "#475569",
-                    borderRadius: 999,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 3,
-                  }}
-                >
-                  <Eye size={10} />
-                  Opened
-                </span>
-              </Tooltip>
-            )}
           </div>
         </div>
+        <SourcePill uploadedByPortal={!!doc.uploadedByPortal} />
       </div>
+
+      {(doc.category || doc.projectName) && (
+        <div
+          style={{
+            display: "flex",
+            gap: 5,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          {doc.category && (
+            <span
+              style={{
+                fontSize: 10.5,
+                padding: "1.5px 7px",
+                background: T.borderSoft,
+                border: `1px solid ${T.border}`,
+                color: T.textMuted,
+                borderRadius: 6,
+                fontWeight: 600,
+              }}
+            >
+              {doc.category}
+            </span>
+          )}
+          {doc.projectName && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 3,
+                fontSize: 10.5,
+                padding: "1.5px 7px",
+                background: T.accentBg,
+                border: `1px solid ${T.accentBorder}`,
+                color: T.accent,
+                borderRadius: 6,
+                fontWeight: 600,
+              }}
+            >
+              <FolderOpen size={10} />
+              {doc.projectName}
+            </span>
+          )}
+        </div>
+      )}
 
       {doc.tags && doc.tags.length > 0 && (
         <div
@@ -934,37 +1413,30 @@ function DocCard({
             display: "flex",
             flexWrap: "wrap",
             gap: 4,
-            paddingTop: 2,
           }}
         >
           {doc.tags.slice(0, 4).map((t) => (
             <span
               key={t}
               style={{
-                fontSize: 10.5,
+                fontSize: 10,
                 fontWeight: 500,
-                padding: "1px 7px",
+                padding: "1px 6px",
                 background: "transparent",
-                border: "1px solid #e2e8f0",
-                color: "#475569",
+                border: `1px solid ${T.border}`,
+                color: T.textMuted,
                 borderRadius: 999,
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 3,
               }}
             >
-              <TagIcon size={9} color="#64748b" />
+              <TagIcon size={9} color={T.textSubtle} />
               {t}
             </span>
           ))}
           {doc.tags.length > 4 && (
-            <span
-              style={{
-                fontSize: 10.5,
-                color: "#94a3b8",
-                fontWeight: 500,
-              }}
-            >
+            <span style={{ fontSize: 10, color: T.textFaint, fontWeight: 500 }}>
               +{doc.tags.length - 4}
             </span>
           )}
@@ -975,7 +1447,7 @@ function DocCard({
         style={{
           marginTop: "auto",
           paddingTop: 10,
-          borderTop: "1px solid #e2e8f0",
+          borderTop: `1px solid ${T.borderSoft}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -984,59 +1456,40 @@ function DocCard({
       >
         <div
           style={{
-            fontSize: 11.5,
-            color: "#64748b",
+            fontSize: 11,
+            color: T.textSubtle,
             display: "inline-flex",
             alignItems: "center",
             gap: 4,
+            fontWeight: 500,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            minWidth: 0,
           }}
         >
-          <Clock size={11} color="#64748b" />
-          {fmtRelative(doc.updatedAt)}
+          <Clock size={10} />
+          {fmtRelative(doc.createdAt)}
           {doc.uploadedByName ? ` · ${doc.uploadedByName}` : ""}
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
           <Tooltip title={looksExternal ? "Open link" : "Open"}>
             <button
               onClick={() => onOpen(doc, "view")}
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 8,
-                background: hover ? "rgba(99, 102, 241, 0.08)" : "transparent",
-                border: `1px solid ${hover ? "#bfdbfe" : "#e2e8f0"}`,
-                color: hover ? "#2563eb" : "#475569",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
+              style={iconBtn(hover)}
               aria-label="Open"
             >
-              {looksExternal ? <ExternalLink size={13} /> : <Eye size={13} />}
+              {looksExternal ? <ExternalLink size={12} /> : <Eye size={12} />}
             </button>
           </Tooltip>
           {!looksExternal && (
             <Tooltip title="Download">
               <button
                 onClick={() => onOpen(doc, "download")}
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 8,
-                  background: hover ? "rgba(99, 102, 241, 0.08)" : "transparent",
-                  border: `1px solid ${hover ? "#bfdbfe" : "#e2e8f0"}`,
-                  color: hover ? "#2563eb" : "#475569",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
+                style={iconBtn(hover)}
                 aria-label="Download"
               >
-                <Download size={13} />
+                <Download size={12} />
               </button>
             </Tooltip>
           )}
@@ -1044,27 +1497,12 @@ function DocCard({
       </div>
     </div>
   );
-}
+};
 
-function iconButtonStyle(palette: typeof p): React.CSSProperties {
-  return {
-    width: 30,
-    height: 30,
-    borderRadius: 7,
-    background: palette.surfaceElevated,
-    border: `1px solid ${palette.border}`,
-    color: palette.textMuted,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    transition: "all 120ms ease",
-  };
-}
-
-/* --------------------------------------------------------------- */
-
-const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
+/* ─────────────────────────────────────────────────────────
+ * Upload modal
+ * ─────────────────────────────────────────────────────── */
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
 function fmtBytes(b: number): string {
   if (b < 1024) return `${b} B`;
@@ -1083,10 +1521,12 @@ function fileToDataUrl(file: File): Promise<string> {
 
 function UploadModal({
   open,
+  projects,
   onClose,
   onUploaded,
 }: {
   open: boolean;
+  projects: { id: string; name: string; code: string | null }[];
   onClose: () => void;
   onUploaded: () => void;
 }) {
@@ -1096,6 +1536,7 @@ function UploadModal({
   const [url, setUrl] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [docType, setDocType] = useState("");
+  const [projectId, setProjectId] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -1107,6 +1548,7 @@ function UploadModal({
       setUrl("");
       setDisplayName("");
       setDocType("");
+      setProjectId(undefined);
       setSubmitting(false);
     }
   }, [open]);
@@ -1149,18 +1591,22 @@ function UploadModal({
     }
     setSubmitting(true);
     try {
+      const common = {
+        documentType: docType.trim() || undefined,
+        projectId: projectId || null,
+      };
       if (mode === "file") {
         const base64 = await fileToDataUrl(file!);
         await portalDocumentService.upload({
+          ...common,
           base64,
           fileName: displayName.trim() || file!.name,
-          documentType: docType.trim() || undefined,
         });
       } else {
         await portalDocumentService.upload({
+          ...common,
           externalUrl: url.trim(),
           fileName: displayName.trim() || undefined,
-          documentType: docType.trim() || undefined,
         });
       }
       message.success("Document added");
@@ -1177,10 +1623,7 @@ function UploadModal({
       theme={{
         algorithm: antdTheme.defaultAlgorithm,
         components: {
-          Modal: {
-            contentBg: "#ffffff",
-            headerBg: "#ffffff",
-          },
+          Modal: { contentBg: "#ffffff", headerBg: "#ffffff" },
           Input: {
             colorBgContainer: "#ffffff",
             colorText: "#0f172a",
@@ -1202,99 +1645,93 @@ function UploadModal({
         {/* Header */}
         <div
           style={{
-            padding: "20px 24px 16px",
-            borderBottom: `1px solid ${p.border}`,
+            padding: "18px 22px 14px",
+            borderBottom: `1px solid ${T.border}`,
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 12,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: p.accentBg,
-                  border: `1px solid ${p.accentBorder}`,
-                  color: p.accentText,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <FileUp size={17} />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 600,
-                    color: p.text,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  Add a document
-                </div>
-                <div
-                  style={{ marginTop: 3, fontSize: 12.5, color: p.textSubtle }}
-                >
-                  Upload a file, or paste a link to one stored elsewhere.
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <div
               style={{
-                width: 30,
-                height: 30,
-                borderRadius: 7,
-                background: p.surfaceElevated,
-                border: `1px solid ${p.border}`,
-                color: p.textMuted,
-                display: "inline-flex",
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: T.accentBg,
+                border: `1px solid ${T.accentBorder}`,
+                color: T.accent,
+                display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                cursor: "pointer",
                 flexShrink: 0,
               }}
-              aria-label="Close"
             >
-              <X size={14} />
-            </button>
+              <FileUp size={16} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: T.text,
+                  letterSpacing: "-0.015em",
+                }}
+              >
+                Add a document
+              </div>
+              <div
+                style={{
+                  marginTop: 2,
+                  fontSize: 12,
+                  color: T.textSubtle,
+                  fontWeight: 500,
+                }}
+              >
+                Upload a file, or paste a link to one stored elsewhere.
+              </div>
+            </div>
           </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 7,
+              background: T.cardBg,
+              border: `1px solid ${T.border}`,
+              color: T.textMuted,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+            aria-label="Close"
+          >
+            <X size={14} />
+          </button>
         </div>
 
         {/* Mode toggle */}
-        <div
-          style={{
-            padding: "16px 24px 0",
-            display: "flex",
-            gap: 8,
-          }}
-        >
+        <div style={{ padding: "14px 22px 0", display: "flex", gap: 6 }}>
           <ModeTab
             active={mode === "file"}
-            icon={<UploadCloud size={14} />}
+            icon={<UploadCloud size={13} />}
             label="Upload file"
             onClick={() => setMode("file")}
           />
           <ModeTab
             active={mode === "url"}
-            icon={<LinkIcon size={14} />}
+            icon={<LinkIcon size={13} />}
             label="Paste link"
             onClick={() => setMode("url")}
           />
         </div>
 
         {/* Body */}
-        <div style={{ padding: "16px 24px 0" }}>
+        <div style={{ padding: "14px 22px 0" }}>
           {mode === "file" ? (
             <>
               {!file ? (
@@ -1308,62 +1745,98 @@ function UploadModal({
                   onClick={() => fileInputRef.current?.click()}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      fileInputRef.current?.click();
-                    }
-                  }}
                   style={{
-                    border: `1px dashed ${dragging ? "#4f46e5" : "#e2e8f0"
-                      }`,
-                    borderRadius: 16,
-                    background: dragging ? "rgba(99, 102, 241, 0.04)" : "transparent",
-                    padding: 28,
+                    padding: "32px 20px",
+                    border: `1.5px dashed ${dragging ? T.accent : T.border}`,
+                    borderRadius: 12,
+                    background: dragging ? T.accentBg : "#fafbfc",
                     textAlign: "center",
                     cursor: "pointer",
-                    transition: "all 120ms ease",
+                    transition: "all 150ms ease",
+                  }}
+                >
+                  <UploadCloud
+                    size={26}
+                    color={dragging ? T.accent : T.textSubtle}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: T.text,
+                      marginBottom: 4,
+                    }}
+                  >
+                    Drop a file or click to browse
+                  </div>
+                  <div style={{ fontSize: 11.5, color: T.textSubtle, fontWeight: 500 }}>
+                    Up to {fmtBytes(MAX_FILE_BYTES)}
+                  </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    padding: "12px 14px",
+                    background: "#fafbfc",
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
                   }}
                 >
                   <div
                     style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 11,
-                      background: "rgba(99, 102, 241, 0.06)",
-                      border: "1px solid rgba(99, 102, 241, 0.15)",
-                      color: "#4f46e5",
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: T.accentBg,
+                      color: T.accent,
+                      border: `1px solid ${T.accentBorder}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <FileText size={14} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: T.text,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {file.name}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: T.textSubtle, fontWeight: 500 }}>
+                      {fmtBytes(file.size)}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setFile(null)}
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 6,
+                      background: T.cardBg,
+                      border: `1px solid ${T.border}`,
+                      color: T.textMuted,
+                      cursor: "pointer",
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      marginBottom: 10,
                     }}
+                    aria-label="Remove file"
                   >
-                    <UploadCloud size={20} />
-                  </div>
-                  <div
-                    style={{ fontSize: 13.5, fontWeight: 600, color: p.text }}
-                  >
-                    Drop a file here, or click to browse
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 4,
-                      fontSize: 11.5,
-                      color: p.textSubtle,
-                    }}
-                  >
-                    Up to {fmtBytes(MAX_FILE_BYTES)} · PDF, images, docs, archives
-                  </div>
+                    <X size={12} />
+                  </button>
                 </div>
-              ) : (
-                <SelectedFile
-                  file={file}
-                  onRemove={() => {
-                    setFile(null);
-                    setDisplayName("");
-                    if (fileInputRef.current) fileInputRef.current.value = "";
-                  }}
-                />
               )}
               <input
                 ref={fileInputRef}
@@ -1373,77 +1846,59 @@ function UploadModal({
               />
             </>
           ) : (
-            <FieldBlock label="Link">
-              <Input
-                autoFocus
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://drive.google.com/…"
-                prefix={<LinkIcon size={14} color={p.textFaint} />}
-                size="large"
-              />
-            </FieldBlock>
+            <Input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://docs.google.com/…"
+              prefix={<LinkIcon size={13} color={T.textSubtle} />}
+              style={{ height: 38 }}
+            />
           )}
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1.4fr 1fr",
-              gap: 10,
-              marginTop: 14,
-            }}
-          >
-            <FieldBlock
-              label="Display name"
-              hint={mode === "file" ? "auto-filled" : "optional"}
-            >
+          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+            <FieldLabel label="Display name">
               <Input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder={
-                  mode === "file" ? "Same as file" : "Friendly name for the link"
+                  mode === "file" ? file?.name || "Document name" : "Optional"
                 }
-                maxLength={200}
+                style={{ height: 34 }}
               />
-            </FieldBlock>
-            <FieldBlock label="Label" hint="optional">
+            </FieldLabel>
+            <FieldLabel label="Document type">
               <Input
                 value={docType}
                 onChange={(e) => setDocType(e.target.value)}
-                placeholder="Brief, Reference, etc."
-                maxLength={120}
+                placeholder="e.g. Attachment, Report, NDA"
+                style={{ height: 34 }}
               />
-            </FieldBlock>
-          </div>
-
-          <div
-            style={{
-              marginTop: 14,
-              fontSize: 11.5,
-              color: p.textSubtle,
-              lineHeight: 1.5,
-            }}
-          >
-            Your account team will see this document under{" "}
-            <span style={{ color: p.textMuted, fontWeight: 600 }}>
-              Client Uploads
-            </span>
-            .
+            </FieldLabel>
+            <FieldLabel label="Project (optional)">
+              <Select
+                popupClassName="portal-docs-popup"
+                allowClear
+                placeholder="Link to a project"
+                value={projectId}
+                onChange={(v) => setProjectId(v as string | undefined)}
+                style={{ width: "100%", height: 34 }}
+                options={projects.map((proj) => ({
+                  value: proj.id,
+                  label: proj.name,
+                  code: proj.code,
+                }))}
+              />
+            </FieldLabel>
           </div>
         </div>
 
         {/* Footer */}
         <div
           style={{
-            marginTop: 20,
-            padding: "14px 24px",
-            borderTop: `1px solid ${p.border}`,
-            background: p.surfaceMuted,
+            padding: "14px 22px 16px",
             display: "flex",
             justifyContent: "flex-end",
             gap: 8,
-            borderBottomLeftRadius: 8,
-            borderBottomRightRadius: 8,
           }}
         >
           <button
@@ -1451,12 +1906,12 @@ function UploadModal({
             disabled={submitting}
             style={{
               padding: "8px 14px",
-              background: "transparent",
-              border: "1px solid #e2e8f0",
+              background: T.cardBg,
+              border: `1px solid ${T.border}`,
+              color: T.textMuted,
               borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 500,
-              color: "#475569",
+              fontSize: 12.5,
+              fontWeight: 600,
               cursor: submitting ? "not-allowed" : "pointer",
             }}
           >
@@ -1468,186 +1923,73 @@ function UploadModal({
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 7,
-              padding: "8px 16px",
-              background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-              border: "1px solid #4f46e5",
+              gap: 6,
+              padding: "8px 14px",
+              background: submitting
+                ? T.borderHover
+                : "linear-gradient(135deg, #4338ca 0%, #6366f1 100%)",
+              border: "1px solid #3730a3",
+              color: "#fff",
               borderRadius: 8,
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: 600,
-              color: "#ffffff",
               cursor: submitting ? "not-allowed" : "pointer",
-              opacity: submitting ? 0.75 : 1,
-              boxShadow: "0 4px 12px -2px rgba(99, 102, 241, 0.15)",
             }}
           >
-            {submitting ? (
-              <Loader2
-                size={14}
-                style={{ animation: "spin 0.9s linear infinite" }}
-              />
-            ) : (
-              <Plus size={14} />
-            )}
             {submitting ? "Adding…" : "Add document"}
+            {!submitting && <ArrowUpRight size={13} />}
           </button>
         </div>
-        <style jsx global>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
       </Modal>
     </ConfigProvider>
   );
 }
 
-function ModeTab({
-  active,
-  icon,
-  label,
-  onClick,
-}: {
+const ModeTab: React.FC<{
   active: boolean;
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 7,
-        padding: "8px 14px",
-        background: active ? "rgba(99, 102, 241, 0.05)" : "transparent",
-        border: `1px solid ${active ? "rgba(99, 102, 241, 0.15)" : "transparent"}`,
-        borderRadius: 8,
-        fontSize: 12.5,
-        fontWeight: 600,
-        color: active ? "#4f46e5" : "#64748b",
-        cursor: "pointer",
-        transition: "all 120ms ease",
-      }}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
+}> = ({ active, icon, label, onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "6px 11px",
+      borderRadius: 8,
+      border: `1px solid ${active ? T.accentBorder : T.border}`,
+      background: active ? T.accentBg : T.cardBg,
+      color: active ? T.accent : T.textMuted,
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: "pointer",
+      transition: "all 120ms ease",
+    }}
+  >
+    {icon}
+    {label}
+  </button>
+);
 
-function FieldBlock({
-  label,
-  hint,
-  children,
-}: {
+const FieldLabel: React.FC<{
   label: string;
-  hint?: string;
   children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <div
-        style={{
-          fontSize: 11.5,
-          fontWeight: 600,
-          color: p.textMuted,
-          marginBottom: 6,
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-        }}
-      >
-        {label}
-        {hint && (
-          <span
-            style={{
-              fontSize: 11,
-              color: p.textFaint,
-              fontWeight: 400,
-            }}
-          >
-            · {hint}
-          </span>
-        )}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function SelectedFile({
-  file,
-  onRemove,
-}: {
-  file: File;
-  onRemove: () => void;
-}) {
-  const { Icon, color } = iconForFile(file.name);
-  return (
+}> = ({ label, children }) => (
+  <div>
     <div
       style={{
-        display: "flex",
-        gap: 12,
-        alignItems: "center",
-        padding: 14,
-        background: p.surfaceElevated,
-        border: `1px solid ${p.border}`,
-        borderRadius: 11,
+        fontSize: 10.5,
+        fontWeight: 600,
+        letterSpacing: "0.07em",
+        textTransform: "uppercase",
+        color: T.textSubtle,
+        marginBottom: 4,
       }}
     >
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 9,
-          background: `${color}14`,
-          color,
-          border: `1px solid ${color}33`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div
-          style={{
-            fontSize: 13.5,
-            fontWeight: 600,
-            color: p.text,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {file.name}
-        </div>
-        <div style={{ marginTop: 2, fontSize: 11.5, color: p.textSubtle }}>
-          {fmtBytes(file.size)}
-        </div>
-      </div>
-      <button
-        onClick={onRemove}
-        style={{
-          padding: "6px 10px",
-          background: p.surfaceMuted,
-          border: `1px solid ${p.border}`,
-          borderRadius: 7,
-          fontSize: 12,
-          color: p.textMuted,
-          cursor: "pointer",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 5,
-        }}
-      >
-        <X size={12} />
-        Remove
-      </button>
+      {label}
     </div>
-  );
-}
+    {children}
+  </div>
+);

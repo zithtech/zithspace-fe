@@ -1,6 +1,8 @@
 import { portalClient, portalApi } from "@/lib/portalAxios";
 import { ReactNode } from "react";
 
+export type DocumentSource = "all" | "client" | "internal";
+
 export interface PortalDocument {
   title: ReactNode;
   id: string;
@@ -12,6 +14,9 @@ export interface PortalDocument {
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  projectId?: string | null;
+  projectName?: string | null;
+  projectCode?: string | null;
   uploadedByName: string | null;
   uploadedByPortal?: boolean;
   firstViewedAt: string | null;
@@ -27,6 +32,7 @@ export interface PortalDocumentUploadInput {
   fileName?: string;
   category?: string;
   documentType?: string;
+  projectId?: string | null;
 }
 
 export interface PortalDocumentGroup {
@@ -39,13 +45,30 @@ export interface PortalDocumentMeta {
   total: number;
   groups: PortalDocumentGroup[];
   categories: string[];
+  projects?: { id: string; name: string; code: string | null }[];
+  sourceCounts?: {
+    all: number;
+    client: number;
+    internal: number;
+  };
 }
 
 export const portalDocumentService = {
-  async list(params: { category?: string; search?: string } = {}) {
+  async list(
+    params: {
+      category?: string;
+      search?: string;
+      projectId?: string;
+      source?: DocumentSource;
+    } = {},
+  ) {
     const qs = new URLSearchParams();
     if (params.category) qs.append("category", params.category);
     if (params.search) qs.append("search", params.search);
+    if (params.projectId) qs.append("projectId", params.projectId);
+    if (params.source && params.source !== "all") {
+      qs.append("source", params.source);
+    }
     const res = await portalClient.get(
       `/api/client-portal/documents${qs.toString() ? `?${qs.toString()}` : ""}`,
     );

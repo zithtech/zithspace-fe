@@ -79,6 +79,7 @@ export interface PortalTicketMeta {
   page: number;
   limit: number;
   counts: Record<TicketStatus, number>;
+  projects: { id: string; name: string; code: string | null }[];
 }
 
 export interface CreateTicketPayload {
@@ -103,6 +104,9 @@ export const portalTicketService = {
     category?: string;
     priority?: string;
     search?: string;
+    projectId?: string;
+    from?: string;
+    to?: string;
   }) {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {

@@ -52,6 +52,7 @@ import {
   KeyRound,
   LifeBuoy,
   Flag,
+  Rocket,
   GitPullRequest,
   CheckSquare,
   Server,
@@ -75,6 +76,7 @@ import EnvironmentsTab from "./Tabs/EnvironmentsTab";
 import TeamTab from "./Tabs/TeamTab";
 import SupportTicketsTab from "./Tabs/SupportTicketsTab";
 import MilestonesTab from "./Tabs/MilestonesTab";
+import ReleasesTab from "./Tabs/ReleasesTab";
 
 const { Text } = Typography;
 
@@ -1327,6 +1329,28 @@ export default function ClientV2DetailsPage() {
                   children: (
                     <div className="cd-tab-pane">
                       <MilestonesTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "14",
+                  label: (
+                    <span className="cd-tab-label">
+                      <Rocket size={15} />
+                      <span>Releases</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <ReleasesTab
                         clientId={params.id as string}
                         projects={(client.projects || []).map((p: any) => ({
                           id: p.id || p.projectId,

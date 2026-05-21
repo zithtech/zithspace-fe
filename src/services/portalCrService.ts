@@ -75,6 +75,7 @@ export interface PortalCrMeta {
   page: number;
   limit: number;
   counts: Record<CrStatus, number>;
+  projects: { id: string; name: string; code: string | null }[];
 }
 
 export const portalCrService = {
@@ -83,6 +84,9 @@ export const portalCrService = {
     limit?: number;
     status?: string;
     search?: string;
+    projectId?: string;
+    from?: string;
+    to?: string;
   }) {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {

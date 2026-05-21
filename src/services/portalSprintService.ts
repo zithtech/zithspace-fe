@@ -77,6 +77,8 @@ export const portalSprintService = {
     status?: string;
     projectId?: string;
     search?: string;
+    from?: string;
+    to?: string;
   }) {
     const qs = new URLSearchParams();
     if (params.page) qs.append("page", String(params.page));
@@ -84,6 +86,8 @@ export const portalSprintService = {
     if (params.status) qs.append("status", params.status);
     if (params.projectId) qs.append("projectId", params.projectId);
     if (params.search) qs.append("search", params.search);
+    if (params.from) qs.append("from", params.from);
+    if (params.to) qs.append("to", params.to);
     const res = await portalClient.get(
       `/api/client-portal/sprints${qs.toString() ? `?${qs.toString()}` : ""}`,
     );

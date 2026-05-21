@@ -133,4 +133,43 @@ export class ClientV2Service {
       throw new Error('Failed to update client');
     }
   }
+
+  /**
+   * List existing projects in the tenant that are NOT yet linked to this
+   * client. Used by the "Import projects" picker on the Projects tab.
+   */
+  static async getImportableProjects(
+    clientId: string,
+    search?: string,
+  ): Promise<ImportableProject[]> {
+    const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+    return api.get<ImportableProject[]>(
+      `/api/clients-v2/${clientId}/projects/importable${qs}`,
+    );
+  }
+
+  /**
+   * Bulk-link existing projects to a client.
+   */
+  static async importProjects(
+    clientId: string,
+    projectIds: string[],
+  ): Promise<{ linked: number; skipped: number; projectIds: string[] }> {
+    return api.post(`/api/clients-v2/${clientId}/projects/import`, {
+      projectIds,
+    });
+  }
+}
+
+export interface ImportableProject {
+  id: string;
+  name: string;
+  code: string | null;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  projectManagerId: string | null;
+  projectManagerName: string | null;
+  createdAt: string;
+  otherClientCount: number;
 }

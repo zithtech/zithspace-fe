@@ -479,6 +479,79 @@ const ProjectsManageContent: React.FC = () => {
       ),
     },
     {
+      title: "Client",
+      key: "clients",
+      width: 200,
+      render: (_: any, record: any) => {
+        const clients: { id: string; companyName: string; clientCode: string | null }[] =
+          record?.clients || [];
+        if (clients.length === 0) {
+          return (
+            <Text type="secondary" style={{ fontSize: 12, fontStyle: "italic" }}>
+              —
+            </Text>
+          );
+        }
+        if (clients.length === 1) {
+          const c = clients[0];
+          return (
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>{c.companyName}</div>
+              {c.clientCode && (
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "#8c8c8c",
+                    fontFamily:
+                      "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  }}
+                >
+                  {c.clientCode}
+                </div>
+              )}
+            </div>
+          );
+        }
+        // Multiple clients — show first + "+N more"
+        const [first, ...rest] = clients;
+        return (
+          <Tooltip
+            title={
+              <div style={{ fontSize: 12 }}>
+                {clients.map((c) => (
+                  <div key={c.id}>
+                    {c.companyName}
+                    {c.clientCode ? ` · ${c.clientCode}` : ""}
+                  </div>
+                ))}
+              </div>
+            }
+          >
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>
+                {first.companyName}
+              </div>
+              <div
+                style={{
+                  marginTop: 2,
+                  display: "inline-block",
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  padding: "1px 7px",
+                  background: "#f5f3ff",
+                  border: "1px solid #ddd6fe",
+                  color: "#6d28d9",
+                  borderRadius: 999,
+                }}
+              >
+                +{rest.length} more
+              </div>
+            </div>
+          </Tooltip>
+        );
+      },
+    },
+    {
       title: "Team",
       key: "teamMembers",
       width: 130,

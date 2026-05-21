@@ -2,22 +2,18 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  Card,
   Typography,
-  Tabs,
   Button,
   Tag,
   Space,
   Spin,
   message,
-  Breadcrumb,
   Empty,
   Row,
   Col,
   Table,
   Descriptions,
   Divider,
-  theme,
   Dropdown,
   Drawer
 } from "antd";
@@ -29,9 +25,7 @@ import {
   FileTextOutlined,
   SafetyCertificateOutlined,
   CalendarOutlined,
-  HistoryOutlined,
   UserOutlined,
-  PrinterOutlined,
   DownloadOutlined,
   EyeOutlined,
   FilePdfOutlined,
@@ -45,17 +39,22 @@ import TiptapViewer from '@/components/common/TiptapViewer';
 
 const { Title, Text } = Typography;
 
+const STATUS_META: Record<string, { label: string; color: string; bg: string; ring: string }> = {
+  draft:    { label: 'Draft',    color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)' },
+  sent:     { label: 'Sent',     color: '#3b82f6', bg: 'rgba(59,130,246,0.10)',  ring: 'rgba(59,130,246,0.25)' },
+  accepted: { label: 'Accepted', color: '#10b981', bg: 'rgba(16,185,129,0.10)',  ring: 'rgba(16,185,129,0.25)' },
+  declined: { label: 'Declined', color: '#ef4444', bg: 'rgba(239,68,68,0.10)',   ring: 'rgba(239,68,68,0.25)'  },
+};
+
 export default function ProposalDetailPage() {
   const router = useRouter();
   const params = useParams();
   const [proposal, setProposal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
   const [activeSection, setActiveSection] = useState<string>('overview');
   const [docDrawerOpen, setDocDrawerOpen] = useState(false);
 
   const [messageApi, contextHolder] = message.useMessage();
-  const { token } = theme.useToken();
 
   const handleExport = async (format: 'pdf' | 'word') => {
     const key = 'exporting';
@@ -176,24 +175,6 @@ export default function ProposalDetailPage() {
   };
 
   const blocks = [...rawBlocks].sort((a, b) => (TYPE_ORDER[a.type] || 99) - (TYPE_ORDER[b.type] || 99));
-
-  const handleTabChange = (key: string) => {
-    if (key === 'overview') {
-      setActiveTab('overview');
-      return;
-    }
-
-    // Force overview tab and scroll
-    setActiveTab('overview');
-
-    // Smooth scroll to the section
-    setTimeout(() => {
-      const element = document.getElementById(`scroll-section-${key}`);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
-  };
 
   const getBlockTitle = (b: any) => {
     if (b.type === 'cover') return 'Cover';
@@ -558,7 +539,7 @@ export default function ProposalDetailPage() {
       case 'cover': {
         const logo = data.logoUrl || data.logo;
         return (
-          <div style={{ padding: isPreview ? '0 0 24px 0' : '24px', background: isPreview ? 'transparent' : 'var(--bg-secondary)', borderRadius: 16, minHeight: isPreview ? 'auto' : 400, display: 'flex', flexDirection: 'column', border: isPreview ? 'none' : '1px solid var(--border-color)', boxShadow: isPreview ? 'none' : 'var(--box-shadow)' }}>
+          <div style={{ padding: isPreview ? '0 0 24px 0' : '24px', background: isPreview ? 'transparent' : 'var(--bg-secondary)', borderRadius: 14, minHeight: isPreview ? 'auto' : 400, display: 'flex', flexDirection: 'column', border: isPreview ? 'none' : '1px solid var(--border-color)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 32 }}>
               {logo ? <img src={logo} alt="Logo" width="120" crossOrigin="anonymous" style={{ height: '48px', width: 'auto', objectFit: 'contain', display: 'inline-block' }} /> : <div style={{ height: 48, width: 48, background: 'var(--bg-blue-50)', borderRadius: 8 }} />}
               <div style={{ textAlign: 'right' }}>
@@ -644,152 +625,210 @@ export default function ProposalDetailPage() {
     }
   };
 
-  const tabItems = [
-    {
-      key: 'overview',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: activeSection === 'overview' ? 'var(--premium-blue)' : 'inherit', fontWeight: activeSection === 'overview' ? 600 : 'inherit' }}><SnippetsOutlined /> Overview</span>,
-      forceRender: true,
-      children: (
-        <div id="proposal-document-sheet" style={{ padding: '0', background: 'var(--bg-pure-white)' }}>
-          <div
-            style={{
-              maxWidth: 960,
-              margin: '0 auto',
-              background: 'transparent',
-              padding: '24px 32px'
-            }}
-          >
-            {/* Metadata Title */}
-            <div id="scroll-section-overview" style={{ marginBottom: 40, borderBottom: '2px solid var(--border-color)', paddingBottom: 24, scrollMarginTop: 160 }}>
-              <Text strong style={{ color: 'var(--premium-blue)', fontSize: 12, letterSpacing: '1.5px', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>PROPOSAL OVERVIEW</Text>
-              <Title level={2} style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 800, letterSpacing: '-0.02em' }}>{proposal.title}</Title>
-              <Text type="secondary" style={{ fontSize: 14, marginTop: 4, display: 'block', opacity: 0.8 }}>Complete sequential display of all project details and contractual terms.</Text>
-            </div>
-
-            {/* Sequential Blocks */}
-            {blocks.filter(b => !isBlockEmpty(b)).map((block: any, idx: number) => (
-              <div key={idx} id={`scroll-section-block-${idx}`} style={{ marginBottom: 32, scrollMarginTop: 160 }}>
-                {block.type !== 'cover' && (
-                  <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Title level={4} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
-                      <span style={{ color: 'var(--premium-blue)', opacity: 0.7, fontSize: '0.85rem' }}>{getTabIcon(block.type)}</span>
-                      {getBlockTitle(block).toUpperCase()}
-                    </Title>
-                    <Divider style={{ flex: 1, marginLeft: 16, minWidth: 16, borderColor: 'var(--border-color)', opacity: 0.3 }} />
-                  </div>
-                )}
-                <div style={{ paddingLeft: 0 }}>
-                  {renderBlockContent(block, true)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )
-    },
-
-    ...blocks.filter(b => !isBlockEmpty(b)).map((block: any, idx: number) => ({
+  // Section anchors for the custom tab strip. Each entry maps to a
+  // `#scroll-section-${key}` element rendered inside the overview body.
+  const visibleBlocks = blocks.filter((b) => !isBlockEmpty(b));
+  const sections: { key: string; icon: React.ReactNode; label: string }[] = [
+    { key: 'overview', icon: <SnippetsOutlined />, label: 'Overview' },
+    ...visibleBlocks.map((block: any, idx: number) => ({
       key: `block-${idx}`,
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: activeSection === `block-${idx}` ? 'var(--premium-blue)' : 'inherit', fontWeight: activeSection === `block-${idx}` ? 600 : 'inherit' }}>{getTabIcon(block.type)} {getBlockTitle(block)}</span>,
-      children: (
-        <div style={{ padding: '24px 32px' }}>
-          <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Title level={3} style={{ margin: 0, color: 'var(--text-primary)' }}>{getBlockTitle(block)}</Title>
-            <Button icon={<PrinterOutlined />}>Print Section</Button>
-          </div>
-          {renderBlockContent(block)}
-        </div>
-      )
-    }))
+      icon: getTabIcon(block.type),
+      label: getBlockTitle(block),
+    })),
   ];
 
+  const handleSectionJump = (key: string) => {
+    setActiveSection(key);
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`scroll-section-${key}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  const overviewContent = (
+    <div id="proposal-document-sheet" className="pd-sheet">
+      <div className="pd-sheet__inner">
+        {/* Sheet header */}
+        <div id="scroll-section-overview" className="pd-sheet__head" style={{ scrollMarginTop: 200 }}>
+          <span className="pd-sheet__eyebrow">Proposal Overview</span>
+          <h1 className="pd-sheet__title">{proposal.title}</h1>
+          <p className="pd-sheet__sub">Complete sequential display of all project details and contractual terms.</p>
+        </div>
+
+        {/* Sequential Blocks */}
+        {visibleBlocks.map((block: any, idx: number) => (
+          <section key={idx} id={`scroll-section-block-${idx}`} className="pd-section" style={{ scrollMarginTop: 200 }}>
+            {block.type !== 'cover' && (
+              <header className="pd-section__head">
+                <span className="pd-section__icon">{getTabIcon(block.type)}</span>
+                <span className="pd-section__title">{getBlockTitle(block).toUpperCase()}</span>
+                <span className="pd-section__rule" />
+              </header>
+            )}
+            <div className="pd-section__body">
+              {renderBlockContent(block, true)}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+
+
+  const statusKey = (proposal.status || '').toLowerCase();
+  const statusMeta = STATUS_META[statusKey as keyof typeof STATUS_META];
+  const creator = proposal.createdBy;
 
   return (
     <MainLayout>
       {contextHolder}
       <div style={{ background: 'var(--bg-pure-white)', minHeight: 'calc(100vh - 52px)' }}>
-        <Tabs
-          activeKey={activeTab}
-          onChange={handleTabChange}
-          items={tabItems}
-          className="premium-tabs"
-          style={{ marginTop: 0 }}
-          renderTabBar={(props, DefaultTabBar) => (
-            <div style={{
-              position: 'sticky',
-              top: 0,
-              zIndex: 100,
-              background: 'var(--bg-pure-white)',
-              borderBottom: '1px solid var(--border-color)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-            }}>
-              {/* Header section inside the sticky wrapper */}
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-end",
-                padding: '12px 32px 8px 32px'
-              }}>
-                <div>
-                  <Space size={12} align="center">
-                    <Button
-                      icon={<ArrowLeftOutlined />}
-                      onClick={() => router.push("/proposals")}
-                      style={{ borderRadius: 10, height: 44, width: 44 }}
-                    />
-                    <div style={{ background: "rgba(99, 102, 241, 0.08)", padding: 8, borderRadius: 10, color: "var(--premium-blue)", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <SnippetsOutlined style={{ fontSize: 20 }} />
-                    </div>
-                    <div>
-                      <Title level={4} className="premium-title" style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)', fontSize: 18, letterSpacing: "-0.01em" }}>{proposal.title}</Title>
-                      <Text type="secondary" className="premium-text-sec" style={{ color: 'var(--text-secondary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Proposal Details</Text>
-                    </div>
-                  </Space>
-                </div>
-                <Space>
-                  <Dropdown
-                    menu={{
-                      items: [
-                        { key: 'pdf', label: 'Download PDF', icon: <FilePdfOutlined /> },
-                        { key: 'word', label: 'Download Word', icon: <FileWordOutlined /> },
-                      ],
-                      onClick: ({ key }) => {
-                        if (key === 'pdf') handleExport('pdf');
-                        else if (key === 'word') handleExport('word');
-                      }
-                    }}
-                    placement="bottomRight"
-                  >
-                    <Button icon={<DownloadOutlined />} size="large">Export</Button>
-                  </Dropdown>
-                  <Button
-                    type="primary"
-                    size="large"
-                    icon={<EditOutlined />}
-                    onClick={() => router.push(`/proposals/builder?id=${proposal.id}`)}
-                    style={{ borderRadius: 10, fontWeight: 600 }}
-                  >
-                    Edit Proposal
-                  </Button>
-                  <Button
-                    type="default"
-                    size="large"
-                    icon={<EyeOutlined />}
-                    onClick={() => setDocDrawerOpen(true)}
-                    style={{ borderRadius: 10, fontWeight: 600 }}
-                  >
-                    View as Doc
-                  </Button>
-                </Space>
+        <div className="pd-sticky">
+          {/* Title row */}
+          <div className="pd-header">
+            <div className="pd-header__left">
+              <button
+                type="button"
+                className="pd-back"
+                onClick={() => router.push('/proposals')}
+                aria-label="Back to proposals"
+              >
+                <ArrowLeftOutlined />
+              </button>
+              <div className="pd-header__brand">
+                <SnippetsOutlined />
               </div>
-
-              {/* Tab Bar section inside the sticky wrapper */}
-              <div style={{ padding: '0 32px' }}>
-                <DefaultTabBar {...props} style={{ marginBottom: 0 }} />
+              <div className="pd-header__text">
+                <h1 className="pd-header__title">{proposal.title}</h1>
+                <span className="pd-header__divider" aria-hidden="true" />
+                <span className="pd-header__sub">Proposal details</span>
               </div>
             </div>
-          )}
-        />
+            <div className="pd-header__actions">
+              <Dropdown
+                menu={{
+                  items: [
+                    { key: 'pdf', label: 'Download PDF', icon: <FilePdfOutlined /> },
+                    { key: 'word', label: 'Download Word', icon: <FileWordOutlined /> },
+                  ],
+                  onClick: ({ key }) => {
+                    if (key === 'pdf') handleExport('pdf');
+                    else if (key === 'word') handleExport('word');
+                  }
+                }}
+                placement="bottomRight"
+              >
+                <Button icon={<DownloadOutlined />} className="pd-btn">Export</Button>
+              </Dropdown>
+              <Button
+                icon={<EyeOutlined />}
+                className="pd-btn"
+                onClick={() => setDocDrawerOpen(true)}
+              >
+                Preview
+              </Button>
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                className="pd-btn pd-btn--primary"
+                onClick={() => router.push(`/proposals/builder?id=${proposal.id}`)}
+              >
+                Edit Proposal
+              </Button>
+            </div>
+          </div>
+
+          {/* Metadata strip */}
+          <div className="pd-meta">
+                  <div className="pd-meta__item">
+                    <span className="pd-meta__label">Status</span>
+                    {statusMeta ? (
+                      <span
+                        className="pd-status"
+                        style={{
+                          color: statusMeta.color,
+                          background: statusMeta.bg,
+                          borderColor: statusMeta.ring,
+                        }}
+                      >
+                        <span
+                          className="pd-status__dot"
+                          style={{ background: statusMeta.color, boxShadow: `0 0 0 3px ${statusMeta.bg}` }}
+                        />
+                        {statusMeta.label}
+                      </span>
+                    ) : (
+                      <span className="pd-meta__value pd-meta__value--mono">—</span>
+                    )}
+                  </div>
+                  <span className="pd-meta__sep" />
+                  <div className="pd-meta__item">
+                    <span className="pd-meta__label">Client</span>
+                    <span className="pd-meta__value">
+                      <UserOutlined className="pd-meta__icon" />
+                      {proposal.client_name || '—'}
+                    </span>
+                  </div>
+                  <span className="pd-meta__sep" />
+                  <div className="pd-meta__item">
+                    <span className="pd-meta__label">Created by</span>
+                    {creator?.name ? (
+                      <span className="pd-meta__value pd-meta__creator">
+                        {creator.avatarUrl ? (
+                          <img src={creator.avatarUrl} alt={creator.name} className="pd-meta__avatar" />
+                        ) : (
+                          <span className="pd-meta__avatar pd-meta__avatar--initials">
+                            {(creator.name || '—').split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase()}
+                          </span>
+                        )}
+                        {creator.name}
+                      </span>
+                    ) : (
+                      <span className="pd-meta__value pd-meta__value--mono">—</span>
+                    )}
+                  </div>
+                  <span className="pd-meta__sep" />
+                  <div className="pd-meta__item">
+                    <span className="pd-meta__label">Created</span>
+                    <span className="pd-meta__value pd-meta__value--mono">
+                      {proposal.created_at ? dayjs(proposal.created_at).format('MMM D, YYYY') : '—'}
+                    </span>
+                  </div>
+                  <span className="pd-meta__sep" />
+                  <div className="pd-meta__item">
+                    <span className="pd-meta__label">Updated</span>
+                    <span className="pd-meta__value pd-meta__value--mono">
+                      {proposal.updated_at
+                        ? dayjs(proposal.updated_at).format('MMM D · h:mm A')
+                        : '—'}
+                    </span>
+                  </div>
+                </div>
+
+          {/* Custom tab strip (section anchors) — bound to activeSection so
+              both click and scroll keep the indicator in sync. */}
+          <div className="pd-tabs pd-tabs--custom" role="tablist">
+            {sections.map((s) => {
+              const isActive = activeSection === s.key;
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`pd-tab ${isActive ? 'pd-tab--active' : ''}`}
+                  onClick={() => handleSectionJump(s.key)}
+                >
+                  <span className="pd-tab__icon">{s.icon}</span>
+                  <span className="pd-tab__label">{s.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Document body */}
+        {overviewContent}
       </div>
 
       {/* Document Preview Drawer */}
@@ -802,7 +841,7 @@ export default function ProposalDetailPage() {
         styles={{
           body: { padding: 0, background: 'var(--bg-pure-white)' },
           header: { background: 'var(--bg-pure-white)', borderBottom: '1px solid var(--border-color)' },
-          mask: { backdropFilter: 'blur(4px)' }
+          mask: { background: 'rgba(15, 23, 42, 0.42)' },
         }}
       >
         <iframe

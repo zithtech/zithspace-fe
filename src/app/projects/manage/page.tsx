@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import {
   App,
   Table,
@@ -159,7 +159,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
   );
 };
 
-const ProjectsManagePage: React.FC = () => {
+const ProjectsManageContent: React.FC = () => {
   const { theme } = useTheme();
   const { user, isLoading } = useAuth();
   const { notification, message } = App.useApp();
@@ -372,6 +372,21 @@ const ProjectsManagePage: React.FC = () => {
   const handleAdd = () => {
     setEditingProject(null);
     setDrawerVisible(true);
+  };
+
+  // Handle delete
+  const handleDelete = async (id: string) => {
+    try {
+      setLoading(true);
+      await ProjectService.deleteProject(id);
+      message.success("Project deleted successfully");
+      loadProjects();
+    } catch (error: any) {
+      console.error("Failed to delete project:", error);
+      message.error(error.message || "Failed to delete project");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Status color mapping
@@ -1011,10 +1026,6 @@ const ProjectsManagePage: React.FC = () => {
                     }
                     if (project.status === "completed") progress = 100;
 
-                    function handleDelete(id: string) {
-                      throw new Error("Function not implemented.");
-                    }
-
                     return (
                       <Col xs={24} sm={12} lg={8} xl={8} key={project.id}>
                         <Card
@@ -1466,17 +1477,12 @@ const ProjectsManagePage: React.FC = () => {
   );
 };
 
-// useSearchParams() requires a Suspense boundary for static prerendering
-// in Next 15. Wrap the page so the build can bail out to client rendering
-// cleanly instead of erroring.
-const ProjectsManagePageWithSuspense: React.FC = () => (
-  <React.Suspense fallback={null}>
-    <ProjectsManagePage />
-  </React.Suspense>
-);
+const ProjectsManagePage = () => {
+  return (
+    <React.Suspense fallback={null}>
+      <ProjectsManageContent />
+    </React.Suspense>
+  );
+};
 
-export default ProjectsManagePageWithSuspense;
-function handleDelete(id: any) {
-  throw new Error("Function not implemented.");
-}
-
+export default ProjectsManagePage;

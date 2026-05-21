@@ -14,6 +14,8 @@ import {
   Segmented,
   Select,
   Dropdown,
+  Modal,
+  message,
 } from "antd";
 import type { ColumnType } from "antd/es/table";
 import {
@@ -38,8 +40,11 @@ import {
   ShieldCheck,
   CircleDot,
   FolderKanban,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import * as XLSX from "xlsx";
+import dayjs from "dayjs";
 import { useTenant } from "@/context/TenantContext";
 import { api, apiUtils } from "@/lib/axios";
 import MainLayout from "@/components/layout/MainLayout";
@@ -187,7 +192,15 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
 export default function ClientsV2ListPage() {
   const router = useRouter();
   const { tenantId } = useTenant();
-  const { canCreateClient, canUpdateClient } = usePermission();
+  const { canCreateClient, canUpdateClient, canDeleteClient } = usePermission();
+  const [modal, modalContextHolder] = Modal.useModal();
+  const [messageApi, messageContextHolder] = message.useMessage();
+  
+  // Delete modal state
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
@@ -319,6 +332,70 @@ export default function ClientsV2ListPage() {
       console.error(`Failed to fetch projects for client ${clientId}`, err);
     } finally {
       setExpandedLoading(null);
+    }
+  };
+
+  const handleDeleteClient = (clientId: string, clientName: string) => {
+    setClientToDelete({ id: clientId, name: clientName });
+    setIsDeleteModalVisible(true);
+  };
+
+  const confirmDeleteClient = async () => {
+    if (!clientToDelete) return;
+    try {
+      setIsDeleting(true);
+      await api.delete(`/api/clients-v2/${clientToDelete.id}`);
+      messageApi.success("Client deleted successfully");
+      setIsDeleteModalVisible(false);
+      setClientToDelete(null);
+      fetchClients(pagination.current, pagination.pageSize, searchText, activeFilter, typeFilter);
+      fetchAllClientOptions();
+    } catch (err: any) {
+      console.error("Failed to delete client", err);
+      messageApi.error(err.response?.data?.error || "Failed to delete client");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      setLoading(true);
+      const params: any = { page: 1, limit: 1000, search: searchText };
+      if (activeFilter === "active") params.status = "Active";
+      if (activeFilter === "highRisk") params.riskLevel = "High";
+      if (typeFilter) params.clientType = typeFilter;
+
+      const res = await apiUtils.getPaginated("/api/clients-v2", params);
+      const allData = res.data || [];
+      
+      if (allData.length === 0) {
+        messageApi.warning("No data to export");
+        return;
+      }
+
+      const exportData = allData.map((c: any) => ({
+        "Company Name": c.companyName,
+        "Client Code": c.clientCode,
+        "Type": c.clientType,
+        "Status": c.status,
+        "Risk Level": c.riskLevel,
+        "Contract Value": c.contractValue,
+        "Industry": c.industry,
+        "Website": c.website,
+        "Created At": dayjs(c.createdAt).format("YYYY-MM-DD")
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Clients");
+      XLSX.writeFile(wb, `Clients_Export_${dayjs().format("YYYY-MM-DD")}.xlsx`);
+      messageApi.success("Exported successfully");
+    } catch (err) {
+      console.error("Export failed", err);
+      messageApi.error("Export failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -541,11 +618,27 @@ export default function ClientsV2ListPage() {
               />
             </Tooltip>
           )}
+          {canDeleteClient && (
+            <Tooltip title="Delete">
+              <Button
+                type="text"
+                size="small"
+                icon={<Trash2 size={16} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  handleDeleteClient(record.id, record.companyName);
+                }}
+                className="cm-action-btn delete"
+              />
+            </Tooltip>
+          )}
           <Dropdown
             menu={{
               items: [
                 { key: "view", label: "View overview", icon: <Eye size={14} />, onClick: () => router.push(`/clients-v2/${record.id}`) },
                 canUpdateClient ? { key: "edit", label: "Edit profile", icon: <Settings2 size={14} />, onClick: () => router.push(`/clients-v2/create?id=${record.id}`) } : null,
+                canDeleteClient ? { key: "delete", label: "Delete client", danger: true, icon: <Trash2 size={14} />, onClick: () => handleDeleteClient(record.id, record.companyName) } : null,
                 { type: "divider" },
                 { key: "projects", label: "View projects", icon: <FolderKanban size={14} /> },
               ].filter(Boolean) as any,
@@ -646,6 +739,81 @@ export default function ClientsV2ListPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
+        {modalContextHolder}
+        {messageContextHolder}
+
+        <Modal
+          className="cm-delete-modal"
+          title={
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: "rgba(225,29,72,0.10)",
+                  color: "#e11d48",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 16,
+                }}
+              >
+                <Trash2 size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                  Delete Client
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
+                  This action cannot be undone
+                </div>
+              </div>
+            </div>
+          }
+          open={isDeleteModalVisible}
+          onCancel={() => {
+            if (!isDeleting) {
+              setIsDeleteModalVisible(false);
+              setClientToDelete(null);
+            }
+          }}
+          footer={
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
+              <Button 
+                onClick={() => {
+                  setIsDeleteModalVisible(false);
+                  setClientToDelete(null);
+                }} 
+                style={{ borderRadius: 8 }}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                danger
+                loading={isDeleting}
+                onClick={confirmDeleteClient}
+                style={{ borderRadius: 8, fontWeight: 600 }}
+              >
+                Delete Client
+              </Button>
+            </div>
+          }
+          width={440}
+          destroyOnClose
+        >
+          <div style={{ padding: "8px 0" }}>
+            <Text style={{ color: "var(--text-slate-600)", fontSize: 13.5, lineHeight: 1.6 }}>
+              Are you sure you want to delete{" "}
+              <strong style={{ color: "var(--text-slate-900)" }}>{clientToDelete?.name}</strong>
+              ? This will permanently remove the client and all associated data, including contacts, 
+              allocations, and documents.
+            </Text>
+          </div>
+        </Modal>
+
         <div className="cm-page">
           <TimeTrackingHeader
             icon={<Building2 size={20} color="#8b5cf6" />}
@@ -660,7 +828,12 @@ export default function ClientsV2ListPage() {
                   onChange={(e) => handleSearch(e.target.value)}
                   allowClear
                 />
-                <Button icon={<Download size={15} />} className="cm-secondary-btn">
+                <Button 
+                  icon={<Download size={15} />} 
+                  className="cm-secondary-btn"
+                  onClick={handleExport}
+                  loading={loading}
+                >
                   Export
                 </Button>
                 {canCreateClient && (
@@ -1801,9 +1974,16 @@ export default function ClientsV2ListPage() {
               color: var(--text-slate-500) !important;
               transition: all .15s ease !important;
             }
+            .cm-action-btn svg {
+              pointer-events: none;
+            }
             .cm-action-btn:hover {
               background: var(--bg-slate-50) !important;
               color: #8b5cf6 !important;
+            }
+            .cm-action-btn.delete:hover {
+              background: #fef2f2 !important;
+              color: #ef4444 !important;
             }
 
             /* expand */
@@ -2026,6 +2206,35 @@ export default function ClientsV2ListPage() {
             }
             .cm-table-card .ant-table-cell-fix-right::after,
             .cm-table-card .ant-table-cell-fix-left::after { box-shadow: none !important; }
+
+            /* custom delete modal matching members style */
+            .cm-delete-modal .ant-modal-content {
+              border-radius: 16px !important;
+              padding: 24px !important;
+              background-color: var(--bg-pure-white) !important;
+              box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+            }
+            .cm-delete-modal .ant-modal-header {
+              background-color: var(--bg-pure-white) !important;
+              border-bottom: 1px solid var(--border-slate-100) !important;
+              padding-bottom: 18px !important;
+              margin-bottom: 20px !important;
+            }
+            .cm-delete-modal .ant-modal-close {
+              top: 24px !important;
+              right: 24px !important;
+            }
+            .cm-delete-modal .ant-modal-title {
+              background-color: var(--bg-pure-white) !important;
+            }
+            [data-theme='dark'] .cm-delete-modal .ant-modal-content,
+            [data-theme='dark'] .cm-delete-modal .ant-modal-header,
+            [data-theme='dark'] .cm-delete-modal .ant-modal-title {
+              background-color: var(--bg-secondary) !important;
+            }
+            [data-theme='dark'] .cm-delete-modal .ant-modal-header {
+              border-bottom-color: var(--border-slate-800) !important;
+            }
           `}</style>
         </div>
       </MainLayout>

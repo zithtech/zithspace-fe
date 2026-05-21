@@ -27,6 +27,9 @@ interface TicketFiltersProps {
   members: Array<{ value: string; label: string; position?: string; avatarUrl?: string | null }>;
   onReset?: () => void;
   showArchivedToggle?: boolean;
+  statusOptions?: { label: string; value: string }[];
+  priorityOptions?: { label: string; value: string }[];
+  typeOptions?: { label: string; value: string }[];
 }
 
 export const TicketFilters: React.FC<TicketFiltersProps> = ({
@@ -35,6 +38,9 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
   members,
   onReset,
   showArchivedToggle = false,
+  statusOptions = STATUS_OPTIONS,
+  priorityOptions = PRIORITY_OPTIONS,
+  typeOptions = TYPE_OPTIONS,
 }) => {
   const activeCount =
     (filters.status?.length || 0) +
@@ -136,7 +142,7 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
             style={{ width: "100%" }}
             value={filters.status}
             onChange={(val) => onFilterChange("status", val)}
-            options={STATUS_OPTIONS}
+            options={statusOptions}
             allowClear
             className="saas-select-minimal"
             maxTagCount={1}
@@ -156,7 +162,7 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
             style={{ width: "100%" }}
             value={filters.priority}
             onChange={(val) => onFilterChange("priority", val)}
-            options={PRIORITY_OPTIONS}
+            options={priorityOptions}
             allowClear
             className="saas-select-minimal"
             maxTagCount={2}
@@ -173,7 +179,7 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
             style={{ width: "100%" }}
             value={filters.type}
             onChange={(val) => onFilterChange("type", val)}
-            options={TYPE_OPTIONS}
+            options={typeOptions}
             allowClear
             className="saas-select-minimal"
             maxTagCount={2}

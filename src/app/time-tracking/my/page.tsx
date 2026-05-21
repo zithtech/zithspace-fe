@@ -61,9 +61,14 @@ export default function MyTimePage() {
       >
         <TimeTrackingHeader
           style={{
-            padding: '9.5px 32px',
-            borderBottom: '1px solid var(--border-slate-200)',
-            marginBottom: 20
+            position: "sticky",
+            top: 0,
+            zIndex: 1000,
+            background: "var(--bg-primary)",
+            padding: "9.5px 32px",
+            borderBottom: "1px solid var(--border-slate-200)",
+            marginBottom: 20,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
           }}
           icon={<ClockCircleOutlined style={{ fontSize: 18, color: "#8b5cf6" }} />}
           title="My Time Tracking"

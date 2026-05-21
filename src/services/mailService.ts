@@ -104,6 +104,14 @@ export const MailService = {
         return await api.post("/api/mail/upload-attachment", { file, fileName });
     },
 
+    async enhanceMailContent(payload: { subject?: string; body: string; context?: string }) {
+        return await api.post("/api/mail/ai/enhance", payload);
+    },
+
+    async correctMailGrammar(payload: { body: string }) {
+        return await api.post("/api/mail/ai/grammar", payload);
+    },
+
     async getStatus(provider: MailProvider) {
         // Shared with calendar status usually, but we can have specific mail status if needed
         return await api.get(`/api/calendar/${provider}/status`);

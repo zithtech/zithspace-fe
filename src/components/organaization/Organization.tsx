@@ -1402,7 +1402,7 @@ function DashboardContent() {
                     <Button
                       type="link"
                       size="small"
-                      onClick={() => router.push("/projects")}
+                      onClick={() => router.push("/projects/manage")}
                       style={{ fontSize: 11 }}
                     >
                       View
@@ -1518,10 +1518,10 @@ function DashboardContent() {
                   />
                   <QuickActionCard
                     icon={<RocketOutlined />}
-                    title="Active Projects"
+                    title="Project"
                     desc="See what teams are shipping"
                     accent="#7C3AED"
-                    onClick={() => router.push("/projects")}
+                    onClick={() => router.push("/projects/manage")}
                   />
                   <QuickActionCard
                     icon={<CalendarOutlined />}

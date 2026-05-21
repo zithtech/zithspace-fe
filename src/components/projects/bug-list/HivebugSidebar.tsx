@@ -36,12 +36,14 @@ import {
   useUpdateBugSheetStatus,
   useUpdateBugSheet,
   useProjectSheets,
+  useBugs,
 } from "@/hooks/useBugList";
 import { usePermission } from "@/hooks/usePermission";
 import type {
   BugFolder,
   BugSheet,
   BugSheetStatus,
+  BugListItem,
 } from "@/services/bugListService";
 import {
   DndContext,
@@ -142,11 +144,24 @@ export default function HivebugSidebar({
       return folderMatch || sheetMatch;
     });
   }, [folders, projectSheets, collectionSearch]);
+  
+  const { data: trashedBugsRes } = useBugs({ 
+    scope: "trash", 
+    projectId: selectedProjectId || undefined,
+    limit: 1000 // Fetch up to 1000 trashed bugs to reconcile counts
+  });
+  const trashedBugs = trashedBugsRes?.bugs || [];
 
-  const totalAll = useMemo(
-    () => folders?.reduce((acc, f) => acc + (f._count?.bugs || 0), 0) || 0,
-    [folders]
-  );
+  const trashMap = useMemo(() => {
+    const map: Record<string, { folder: number; sheet: number }> = {};
+    trashedBugs.forEach((bug: BugListItem) => {
+      if (!map[bug.folderId]) map[bug.folderId] = { folder: 0, sheet: 0 };
+      if (!map[bug.sheetId]) map[bug.sheetId] = { folder: 0, sheet: 0 };
+      map[bug.folderId].folder++;
+      map[bug.sheetId].sheet++;
+    });
+    return map;
+  }, [trashedBugs]);
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
@@ -194,7 +209,7 @@ export default function HivebugSidebar({
                 >
                   <Inbox size={15} />
                   <span className="hb-row-label">All Bugs</span>
-                  <span className="hb-row-count">{totalAll}</span>
+                  <span className="hb-row-count">{stats.data?.total ?? 0}</span>
                 </button>
                 <button
                   className={`hb-row ${scope === "mine" ? "active" : ""}`}
@@ -306,6 +321,8 @@ export default function HivebugSidebar({
                     onAddSheet={() => onCreateSheet(folder.id)}
                     onEditSheet={onEditSheet}
                     searchQuery={collectionSearch}
+                    trashCount={trashMap[folder.id]?.folder || 0}
+                    sheetTrashMap={trashMap}
                   />
                 ))
               )}
@@ -354,6 +371,8 @@ interface FolderNodeProps {
   onAddSheet: () => void;
   onEditSheet: (sheet: BugSheet) => void;
   searchQuery?: string;
+  trashCount?: number;
+  sheetTrashMap?: Record<string, { folder: number; sheet: number }>;
 }
 
 function FolderNode({
@@ -368,6 +387,8 @@ function FolderNode({
   onAddSheet,
   onEditSheet,
   searchQuery,
+  trashCount = 0,
+  sheetTrashMap = {},
 }: FolderNodeProps) {
   const { data: sheets, isLoading } = useBugSheets(isOpen || !!searchQuery ? folder.id : null);
   const deleteFolder = useDeleteBugFolder();
@@ -420,7 +441,9 @@ function FolderNode({
             />
           </Tooltip>
         )}
-        <span className="hb-row-count">{folder._count?.bugs ?? 0}</span>
+        <span className="hb-row-count">
+          {Math.max(0, (folder._count?.bugs ?? 0) - trashCount)}
+        </span>
         <Dropdown
           trigger={["click"]}
           menu={{
@@ -473,6 +496,7 @@ function FolderNode({
                   selectedSheetId={selectedSheetId}
                   onSelectSheet={onSelectSheet}
                   onEditSheet={onEditSheet}
+                  trashCount={sheetTrashMap[s.id]?.sheet || 0}
                 />
               ))
           )}
@@ -487,11 +511,13 @@ function SheetNode({
   selectedSheetId,
   onSelectSheet,
   onEditSheet,
+  trashCount = 0,
 }: {
   sheet: BugSheet;
   selectedSheetId: string | null;
   onSelectSheet: (id: string) => void;
   onEditSheet: (s: BugSheet) => void;
+  trashCount?: number;
 }) {
   const deleteSheet = useDeleteBugSheet();
   const updateSheetStatus = useUpdateBugSheetStatus();
@@ -527,7 +553,9 @@ function SheetNode({
     >
       <SheetStatusIcon status={status} />
       <span className="hb-row-label">{sheet.name}</span>
-      <span className="hb-row-count">{sheet._count?.bugs ?? 0}</span>
+      <span className="hb-row-count">
+        {Math.max(0, (sheet._count?.bugs ?? 0) - trashCount)}
+      </span>
       <Dropdown
         trigger={["click"]}
         menu={{

@@ -717,12 +717,17 @@ export const hivebugStyles = `
 }
 .hb-filterbar-close:hover { background: rgba(255, 90, 78, 0.1); color: var(--hb-danger); }
 .hb-filter-reset { 
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 5px 12px; 
   font-size: 12px; 
   border-radius: 8px;
   color: var(--hb-text-soft);
   background: transparent;
   border: 1px dashed var(--hb-border-strong);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 .hb-filter-reset:hover {
   background: var(--hb-bg-soft);
@@ -1087,7 +1092,7 @@ export const hivebugStyles = `
 }
 .hb-indicator:hover {
   color: var(--hb-text);
-  border-color: var(--hb-primary);
+  border-color: var(--hb-accent);
   background: var(--hb-bg-hover);
 }
 

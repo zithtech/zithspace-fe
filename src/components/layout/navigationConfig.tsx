@@ -241,6 +241,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.BUG_READ,
           },
           {
+            key: "/tickets/reports",
+            label: "Reports",
+            icon: I(BarChart3),
+            path: "/tickets/reports",
+            requiredPermission: Permissions.TICKET_READ,
+          },
+          {
             key: "/projects/settings",
             label: "Settings",
             icon: I(SlidersHorizontal),

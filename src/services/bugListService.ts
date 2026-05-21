@@ -130,6 +130,7 @@ export interface BugListFilters {
   module?: string;
   severity?: BugSeverity;
   status?: BugStatus;
+  bugStatus?: "not started" | "pending" | "completed";
   bugType?: BugType;
   createdById?: string;
   assigneeId?: string;

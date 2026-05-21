@@ -66,6 +66,7 @@ import {
   CloseCircleOutlined,
   SettingOutlined,
   ColumnHeightOutlined,
+  LineChartOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -330,6 +331,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // Add this after all useState declarations
   const [dbStatusOptions, setDbStatusOptions] = useState<{ label: string; value: string }[]>([]);
   const [dbPriorityOptions, setDbPriorityOptions] = useState<{ label: string; value: string }[]>([]);
+  const [dbTypeOptions, setDbTypeOptions] = useState<{ label: string; value: string }[]>([]);
+  const [dbPlatformOptions, setDbPlatformOptions] = useState<{ label: string; value: string }[]>([]);
+  const [dbStackOptions, setDbStackOptions] = useState<{ label: string; value: string }[]>([]);
+  const [dbTaskLevelOptions, setDbTaskLevelOptions] = useState<{ label: string; value: string }[]>([]);
 
   // Add this useEffect to fetch from database
   useEffect(() => {
@@ -351,6 +356,34 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           .map(opt => ({ label: opt.label, value: opt.value }));
         setDbPriorityOptions(priorityOpts);
 
+        // Type options from DB
+        const typeOpts = (options.taskType || [])
+          .filter(opt => opt.isActive)
+          .sort((a, b) => a.order - b.order)
+          .map(opt => ({ label: opt.label, value: opt.value }));
+        setDbTypeOptions(typeOpts);
+
+        // Platform options from DB
+        const platformOpts = (options.platform || [])
+          .filter(opt => opt.isActive)
+          .sort((a, b) => a.order - b.order)
+          .map(opt => ({ label: opt.label, value: opt.value }));
+        setDbPlatformOptions(platformOpts);
+
+        // Stack options from DB
+        const stackOpts = (options.stack || [])
+          .filter(opt => opt.isActive)
+          .sort((a, b) => a.order - b.order)
+          .map(opt => ({ label: opt.label, value: opt.value }));
+        setDbStackOptions(stackOpts);
+
+        // Task Level options from DB
+        const taskLevelOpts = (options.taskLevel || [])
+          .filter(opt => opt.isActive)
+          .sort((a, b) => a.order - b.order)
+          .map(opt => ({ label: opt.label, value: opt.value }));
+        setDbTaskLevelOptions(taskLevelOpts);
+
       } catch (error) {
         console.error('Error fetching dropdown options:', error);
       }
@@ -367,6 +400,27 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     }
     return opts;
   }, [dbStatusOptions]);
+
+  const finalPriorityOptions = useMemo(() => {
+    return dbPriorityOptions.length > 0 ? dbPriorityOptions : PRIORITY_OPTIONS;
+  }, [dbPriorityOptions]);
+
+  const finalTypeOptions = useMemo(() => {
+    return dbTypeOptions.length > 0 ? dbTypeOptions : TYPE_OPTIONS;
+  }, [dbTypeOptions]);
+
+  const activeColumnsSet = useMemo(() => {
+    const set = new Set(TICKETS_TOGGLEABLE_COLUMNS.map(c => c.key));
+    // Filter out columns that have NO active options in settings
+    if (dbPlatformOptions.length === 0) set.delete('platform');
+    if (dbStackOptions.length === 0) set.delete('stack');
+    if (dbTaskLevelOptions.length === 0) set.delete('taskLevel');
+    return set;
+  }, [dbPlatformOptions, dbStackOptions, dbTaskLevelOptions]);
+
+  const toggleableColumns = useMemo(() => {
+    return TICKETS_TOGGLEABLE_COLUMNS.filter(c => activeColumnsSet.has(c.key));
+  }, [activeColumnsSet]);
 
   // --- React Query Hooks ---
 
@@ -845,7 +899,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
 
   // Table columns generator
-  const getColumns = (context: 'active' | 'backlog'): TableProps<Ticket>['columns'] => [
+  const getColumns = (context: 'active' | 'backlog'): TableProps<Ticket>['columns'] => {
+    const allCols: TableProps<Ticket>['columns'] = [
     {
       title: "ID",
       dataIndex: "ticketNumber",
@@ -1416,6 +1471,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     },
   ];
 
+  return allCols.filter(c => activeColumnsSet.has(c?.key as string));
+};
+
   return (
     <div style={{
       backgroundColor: 'var(--bg-pure-white)',
@@ -1543,6 +1601,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   onFilterChange={handleFilterChange}
                   members={members}
                   onReset={() => setFilters({ status: [], priority: [], assignee: [], type: [], tags: [], search: filters.search })}
+                  statusOptions={finalStatusOptions}
+                  priorityOptions={finalPriorityOptions}
+                  typeOptions={finalTypeOptions}
                 />
               }
               trigger="click"
@@ -1635,7 +1696,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       paddingRight: 4,
                     }}
                   >
-                    {TICKETS_TOGGLEABLE_COLUMNS.map((c) => (
+                    {toggleableColumns.map((c) => (
                       <label
                         key={c.key}
                         style={{
@@ -1844,7 +1905,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 placeholder="Any status"
                 value={filters.status}
                 onChange={(val) => handleFilterChange('status', val)}
-                options={STATUS_OPTIONS}
+                options={finalStatusOptions}
                 allowClear
                 maxTagCount={1}
                 className="ticket-filter-row__select"
@@ -1860,7 +1921,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 placeholder="Any priority"
                 value={filters.priority}
                 onChange={(val) => handleFilterChange('priority', val)}
-                options={PRIORITY_OPTIONS}
+                options={finalPriorityOptions}
                 allowClear
                 maxTagCount={1}
                 className="ticket-filter-row__select"
@@ -1876,7 +1937,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 placeholder="Any type"
                 value={filters.type}
                 onChange={(val) => handleFilterChange('type', val)}
-                options={TYPE_OPTIONS}
+                options={finalTypeOptions}
                 allowClear
                 maxTagCount={1}
                 className="ticket-filter-row__select"
@@ -2096,10 +2157,19 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                         </>
                       ) : (
                         <>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Progress</div>
-                            <div style={{ fontSize: 13, fontWeight: 800, color: '#10b981' }}>
-                              {overallSprintTickets.length > 0 ? Math.round((overallSprintTickets.filter(t => ['completed'].includes(t.status?.toLowerCase() || '')).length / overallSprintTickets.length) * 100) : 0}%
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Progress</div>
+                              <div style={{ fontSize: 13, fontWeight: 800, color: '#10b981' }}>
+                                {overallSprintTickets.length > 0 ? Math.round((overallSprintTickets.filter(t => ['completed'].includes(t.status?.toLowerCase() || '')).length / overallSprintTickets.length) * 100) : 0}%
+                              </div>
+                            </div>
+                            <Divider type="vertical" style={{ height: 28, margin: 0, borderColor: '#e2e8f0', opacity: 0.8 }} />
+                            <div style={{ textAlign: 'left' }}>
+                              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Tickets</div>
+                              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-slate-900)' }}>
+                                {overallSprintTickets.filter(t => ['completed'].includes(t.status?.toLowerCase() || '')).length}/{overallSprintTickets.length}
+                              </div>
                             </div>
                           </div>
                           {(() => {
@@ -2169,13 +2239,25 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           Complete Sprint
                         </Button>
                       )}
+                      {activeSprint?.id && (
+                        <Button
+                          type="default"
+                          size="middle"
+                          icon={<LineChartOutlined style={{ color: '#6366f1' }} />}
+                          onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
+                          className="saas-button-item"
+                          style={{ height: 32, fontWeight: 600 }}
+                        >
+                          View Report
+                        </Button>
+                      )}
                     </Space>
                   </div>
                 }
               >
                 <Table
                   rowSelection={activeRowSelection}
-                  columns={getColumns('active')}
+                  columns={(getColumns('active') || []).filter((c: any) => !hiddenCols[c.key as string])}
                   dataSource={activeTickets}
                   loading={activeSprintFetching}
                   rowKey="id"

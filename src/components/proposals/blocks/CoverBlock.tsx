@@ -186,8 +186,8 @@ export const CoverBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
         </div>
 
         <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <span style={labelStyle}>Section Details</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, width: '100%' }}>
+            <span style={{ ...labelStyle, flex: 1 }}>Section Details</span>
             <AIEnhanceButton 
               originalData={{ title: data.title, projectSummary: data.projectSummary }} 
               blockType="cover (identity)" 

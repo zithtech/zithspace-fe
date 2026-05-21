@@ -12,18 +12,20 @@ import {
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useProposalStore, BlockType } from '@/store/proposalStore';
-import { BlockPalette } from '@/components/proposals/BlockPalette';
 import { BlockProperties } from '@/components/proposals/BlockProperties';
 import { EditorCanvas } from '@/components/proposals/EditorCanvas';
-import { Typography, Layout, Button, message, Drawer, Space, Dropdown, Segmented, Progress } from 'antd';
+import { LeftRail } from '@/components/proposals/LeftRail';
+import { CommandPalette } from '@/components/proposals/CommandPalette';
+import { Typography, Layout, Button, message, Drawer, Space, Dropdown, Segmented } from 'antd';
 import type { MenuProps } from 'antd';
 import { SaveOutlined, EyeOutlined, DownloadOutlined, FilePdfOutlined, FileWordOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SnippetsOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
 import { useTheme } from '@/context/ThemeContext';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Sparkles, Wand2 } from 'lucide-react';
+import { Sparkles, Wand2, Command as CommandIcon } from 'lucide-react';
 import { EndToEndZaiModal } from '@/components/proposals/EndToEndZaiModal';
+import { FloatingAIToolbar } from '@/components/proposals/FloatingAIToolbar';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 
@@ -36,21 +38,19 @@ function BuilderContent() {
   const router = useRouter();
   const [messageApi, messageHolder] = message.useMessage();
   const proposalId = searchParams.get('id');
-  const { blocks, addBlock, reorderBlocks, setBlocks, selectedBlockId, setSelectedBlockId } = useProposalStore();
+  const { blocks, addBlock, reorderBlocks, setBlocks, setSelectedBlockId } = useProposalStore();
 
   const [activeDragType, setActiveDragType] = useState<BlockType | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [isPaletteVisible, setIsPaletteVisible] = useState(true);
+  const [isRailVisible, setIsRailVisible] = useState(true);
   const [isPropertiesVisible, setIsPropertiesVisible] = useState(true);
-  const [palettePosition, setPalettePosition] = useState<'top' | 'left' | 'right'>('top');
-  const [paletteWidth, setPaletteWidth] = useState(240);
+  const [railWidth, setRailWidth] = useState(248);
   const [propertiesWidth, setPropertiesWidth] = useState(() => {
-    if (typeof window === 'undefined') return 520;
-    // Default split: canvas 65% / properties 35%
-    return Math.max(320, Math.min(800, Math.round(window.innerWidth * 0.35)));
+    if (typeof window === 'undefined') return 480;
+    return Math.max(320, Math.min(720, Math.round(window.innerWidth * 0.30)));
   });
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const resizingPane = useRef<'left' | 'right' | 'palette-right' | null>(null);
+  const resizingPane = useRef<'left' | 'right' | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [genProgress, setGenProgress] = useState(0);
   const [genStep, setGenStep] = useState('');
@@ -70,6 +70,11 @@ function BuilderContent() {
       }
     }
   }, [user, isLoading, canCreateProposal, canUpdateProposal, proposalId, router]);
+
+  const [zoom, setZoom] = useState(1);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [railPosition, setRailPosition] = useState<'top' | 'left'>('top');
 
   const isInitialized = useRef(false);
 
@@ -196,8 +201,7 @@ function BuilderContent() {
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     `;
     document.head.appendChild(style);
-    // Apply default 65/35 split on mount in case SSR fallback was used
-    setPropertiesWidth(Math.max(320, Math.min(800, Math.round(window.innerWidth * 0.35))));
+    setPropertiesWidth(Math.max(320, Math.min(720, Math.round(window.innerWidth * 0.30))));
     return () => { document.head.removeChild(style); };
   }, []);
 
@@ -206,19 +210,14 @@ function BuilderContent() {
       if (!resizingPane.current) return;
 
       if (resizingPane.current === 'right') {
-        const newWidth = document.body.clientWidth - e.clientX - (palettePosition === 'right' ? paletteWidth : 0);
-        if (newWidth >= 280 && newWidth <= 800) {
-          requestAnimationFrame(() => setPropertiesWidth(newWidth));
-        }
-      } else if (resizingPane.current === 'palette-right') {
         const newWidth = document.body.clientWidth - e.clientX;
-        if (newWidth >= 200 && newWidth <= 600) {
-          requestAnimationFrame(() => setPaletteWidth(newWidth));
+        if (newWidth >= 280 && newWidth <= 720) {
+          requestAnimationFrame(() => setPropertiesWidth(newWidth));
         }
       } else if (resizingPane.current === 'left') {
         const newWidth = e.clientX;
-        if (newWidth >= 200 && newWidth <= 600) {
-          requestAnimationFrame(() => setPaletteWidth(newWidth));
+        if (newWidth >= 200 && newWidth <= 420) {
+          requestAnimationFrame(() => setRailWidth(newWidth));
         }
       }
     };
@@ -242,7 +241,7 @@ function BuilderContent() {
         window.removeEventListener('mouseup', stopResize);
       }
     };
-  }, [palettePosition, paletteWidth]);
+  }, []);
 
   const startResizeRight = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -254,13 +253,6 @@ function BuilderContent() {
   const startResizeLeft = (e: React.MouseEvent) => {
     e.preventDefault();
     resizingPane.current = 'left';
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  };
-
-  const startResizePaletteRight = (e: React.MouseEvent) => {
-    e.preventDefault();
-    resizingPane.current = 'palette-right';
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   };
@@ -320,14 +312,40 @@ function BuilderContent() {
     return () => window.removeEventListener('message', handleInitialSync);
   }, []);
 
-  const lastScrolledBlock = useRef<string | null>(null);
-
+  // ⌘K / Ctrl+K toggles the command palette
   useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandOpen((v) => !v);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
+  const jumpToBlock = React.useCallback((blockId: string) => {
+    setSelectedBlockId(blockId);
+    const el = document.querySelector(`[data-block-id="${blockId}"]`) as HTMLElement | null;
+    if (el && editorScrollRef.current) {
+      const containerRect = editorScrollRef.current.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const offset = elRect.top - containerRect.top + editorScrollRef.current.scrollTop - 48;
+      editorScrollRef.current.scrollTo({ top: offset, behavior: 'smooth' });
+    }
+  }, [setSelectedBlockId]);
+
+  // Sync the live-preview iframe with whichever block is closest to the canvas
+  // viewport's top — but only when the preview drawer is open. The right-side
+  // Properties panel is intentionally NOT auto-selected on scroll: selection
+  // follows the user's click/focus, not their reading position.
+  const lastSyncedBlock = useRef<string | null>(null);
+  useEffect(() => {
+    if (!previewOpen) return;
     const scrollContainer = editorScrollRef.current;
     if (!scrollContainer) return;
 
     const handleScroll = () => {
-      // Skip during initial load so the bulk-mount of default blocks doesn't auto-select the bottom one
       if (initialLoadCompletedAt.current === null) return;
       const canvas = document.getElementById('proposal-builder-canvas');
       if (!canvas) return;
@@ -336,42 +354,31 @@ function BuilderContent() {
       if (blocksInView.length === 0) return;
 
       const containerRect = scrollContainer.getBoundingClientRect();
-      const triggerPoint = containerRect.top + 150; // Increased offset slightly for better proximity feel
+      const triggerPoint = containerRect.top + 150;
 
       let closestBlockId: string | null = null;
       let minDelta = Infinity;
-
       blocksInView.forEach((el: any) => {
         const rect = el.getBoundingClientRect();
         const delta = Math.abs(rect.top - triggerPoint);
-
         if (delta < minDelta) {
           minDelta = delta;
           closestBlockId = el.getAttribute('data-block-id');
         }
       });
 
-      if (closestBlockId && closestBlockId !== lastScrolledBlock.current) {
-        lastScrolledBlock.current = closestBlockId;
-
-        // Sync with Preview Iframe ONLY if open
-        if (previewOpen && iframeRef.current && iframeRef.current.contentWindow) {
-          iframeRef.current.contentWindow.postMessage({
-            type: 'SCROLL_TO_BLOCK',
-            payload: closestBlockId
-          }, '*');
-        }
-
-        // AUTO-SELECT for the Properties Pane on the right - ALWAYS sync this
-        if (closestBlockId !== selectedBlockId) {
-          setSelectedBlockId(closestBlockId);
-        }
+      if (closestBlockId && closestBlockId !== lastSyncedBlock.current) {
+        lastSyncedBlock.current = closestBlockId;
+        iframeRef.current?.contentWindow?.postMessage({
+          type: 'SCROLL_TO_BLOCK',
+          payload: closestBlockId,
+        }, '*');
       }
     };
 
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, [blocks, previewOpen, selectedBlockId]);
+  }, [previewOpen]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -421,6 +428,7 @@ function BuilderContent() {
       }
 
       if (response) {
+        setSavedAt(new Date());
         messageApi.success({ content: `Proposal ${proposalId ? 'updated' : 'created'} successfully!`, key: 'save_proposal' });
         // Redirect to main list after success
         setTimeout(() => {
@@ -512,10 +520,10 @@ function BuilderContent() {
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push('/proposals')}
           >
-            
+
           </Button>
           <span className="pb-header__sep" />
-          
+
           <Space size={12} align="center">
             <div className="pb-header__brand">
               <SnippetsOutlined style={{ fontSize: 18 }} />
@@ -531,22 +539,33 @@ function BuilderContent() {
           </Space>
         </div>
         <Space size={10} className="pb-header__actions">
-          {isPaletteVisible && (
-            <Segmented
-              className="pb-seg"
-              options={[{ label: 'Top', value: 'top' }, { label: 'Left', value: 'left' }]}
-              value={palettePosition}
-              onChange={(val) => setPalettePosition(val as 'top' | 'left' | 'right')}
-            />
-          )}
+          <Segmented
+            className="pb-seg"
+            options={[{ label: 'Top', value: 'top' }, { label: 'Left', value: 'left' }]}
+            value={railPosition}
+            onChange={(val) => setRailPosition(val as 'top' | 'left')}
+          />
+          <button
+            type="button"
+            className="pb-cmd-trigger"
+            onClick={() => setCommandOpen(true)}
+            aria-label="Open command palette"
+          >
+            <CommandIcon size={12} />
+            <span className="pb-cmd-trigger__text">Search & commands</span>
+            <span className="pb-cmd-trigger__kbd">
+              <kbd>⌘</kbd>
+              <kbd>K</kbd>
+            </span>
+          </button>
           {canUpdateProposal && (
-            <Button
-              className="pb-zai-cta"
-              onClick={() => setEndToEndOpen(true)}
-              icon={<Wand2 size={14} />}
-            >
-              Create with Zai
-            </Button>
+          <Button
+            className="pb-zai-cta"
+            onClick={() => setEndToEndOpen(true)}
+            icon={<Wand2 size={14} />}
+          >
+            Create with Zai
+          </Button>
           )}
           <Button className="pb-action-btn" icon={<EyeOutlined />} onClick={() => setPreviewOpen(true)}>
             Live Preview
@@ -577,38 +596,27 @@ function BuilderContent() {
         </Space>
       </Header>
 
-      <Content style={{ flex: 1, overflow: 'hidden' }}>
+      <Content style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          {isPaletteVisible && palettePosition === 'top' && (
-            <BlockPalette layout="horizontal" />
+          {isRailVisible && railPosition === 'top' && (
+            <div className="builder-top-rail">
+              <LeftRail onJumpToBlock={jumpToBlock} layout="horizontal" />
+            </div>
           )}
 
-          <div className="builder-main-container" style={{ display: 'flex', height: '100%', margin: 0, width: '100%', overflow: 'hidden' }}>
-            {isPaletteVisible && palettePosition === 'left' && (
+          <div className="builder-main-container" style={{ display: 'flex', flex: 1, minHeight: 0, margin: 0, width: '100%', overflow: 'hidden' }}>
+            {isRailVisible && railPosition === 'left' && (
               <>
-                <div className="builder-side-pane" style={{ width: `${paletteWidth}px`, flexShrink: 0, height: '100%' }}>
-                  <BlockPalette layout="vertical" />
+                <div className="builder-side-pane" style={{ width: `${railWidth}px`, flexShrink: 0, height: '100%' }}>
+                  <LeftRail onJumpToBlock={jumpToBlock} layout="vertical" />
                 </div>
-                <div
-                  onMouseDown={startResizeLeft}
-                  className="builder-resizer"
-                  style={{
-                    width: '6px',
-                    cursor: 'col-resize',
-                    borderLeft: '1px solid var(--border-color)',
-                    borderRight: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 10,
-                  }}
-                >
-                  <div style={{ height: '40px', width: '2px', background: 'var(--text-slate-400)', borderRadius: '2px' }} />
+                <div onMouseDown={startResizeLeft} className="builder-resizer pb-resizer">
+                  <div className="pb-resizer__handle" />
                 </div>
               </>
             )}
@@ -616,27 +624,16 @@ function BuilderContent() {
             <div
               ref={editorScrollRef}
               className="builder-canvas-wrapper"
-              style={{ flex: 1, height: '100%', overflowY: 'auto', minWidth: '300px' }}
+              style={{ flex: 1, height: '100%', overflowY: 'auto', minWidth: '300px', position: 'relative' }}
             >
-              <EditorCanvas />
+              <div className="pb-canvas-stage" style={{ ['--pb-zoom' as any]: zoom }}>
+                <EditorCanvas />
+              </div>
             </div>
 
             {isPropertiesVisible && (
-              <div
-                onMouseDown={startResizeRight}
-                className="builder-resizer"
-                style={{
-                  width: '6px',
-                  cursor: 'col-resize',
-                  borderLeft: '1px solid var(--border-color)',
-                  borderRight: '1px solid var(--border-color)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 10,
-                }}
-              >
-                <div style={{ height: '40px', width: '2px', background: 'var(--text-slate-400)', borderRadius: '2px' }} />
+              <div onMouseDown={startResizeRight} className="builder-resizer pb-resizer">
+                <div className="pb-resizer__handle" />
               </div>
             )}
 
@@ -644,30 +641,6 @@ function BuilderContent() {
               <div className="builder-side-pane properties-pane" style={{ width: `${propertiesWidth}px`, flexShrink: 0, height: '100%', overflowY: 'auto', borderLeft: '1px solid var(--border-color)' }}>
                 <BlockProperties />
               </div>
-            )}
-
-            {isPaletteVisible && palettePosition === 'right' && (
-              <>
-                <div
-                  onMouseDown={startResizePaletteRight}
-                  className="builder-resizer"
-                  style={{
-                    width: '6px',
-                    cursor: 'col-resize',
-                    borderLeft: '1px solid var(--border-color)',
-                    borderRight: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 10,
-                  }}
-                >
-                  <div style={{ height: '40px', width: '2px', background: 'var(--text-slate-400)', borderRadius: '2px' }} />
-                </div>
-                <div className="builder-side-pane" style={{ width: `${paletteWidth}px`, flexShrink: 0, height: '100%' }}>
-                  <BlockPalette layout="vertical" />
-                </div>
-              </>
             )}
           </div>
 
@@ -684,6 +657,18 @@ function BuilderContent() {
       <EndToEndZaiModal
         visible={endToEndOpen}
         onClose={() => setEndToEndOpen(false)}
+      />
+
+      <FloatingAIToolbar />
+
+      <CommandPalette
+        open={commandOpen}
+        onClose={() => setCommandOpen(false)}
+        onSave={handleSave}
+        onTogglePreview={() => setPreviewOpen((v) => !v)}
+        onExport={handleExportPDF}
+        onOpenZai={() => setEndToEndOpen(true)}
+        onJumpToBlock={jumpToBlock}
       />
 
       <Drawer
@@ -731,68 +716,46 @@ function BuilderContent() {
         </div>
       </Drawer>
 
-      {/* AI GENERATION OVERLAY */}
+      {/* AI GENERATION — slim top bar + corner card; canvas stays visible */}
       {showGenOverlay && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'var(--bg-pure-white)',
-          zIndex: 9999,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'opacity 0.5s ease',
-          opacity: isGenerating ? 1 : 0,
-          pointerEvents: isGenerating ? 'all' : 'none',
-          backdropFilter: 'blur(8px)'
-        }}>
-          <div style={{ width: '400px', textAlign: 'center' }}>
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{
-                width: '80px', height: '80px', borderRadius: '20px', background: 'var(--premium-blue)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-                margin: '0 auto 24px auto', boxShadow: '0 8px 24px rgba(59, 130, 246, 0.3)',
-                animation: 'pulse 2s infinite'
-              }}>
-                <Sparkles size={40} style={{ margin: 'auto' }} />
-              </div>
-              <Title level={2} className="premium-title" style={{ margin: 0, fontWeight: 800 }}>Crafting Your Proposal</Title>
-              <Text className="premium-text-sec" style={{ fontSize: '16px' }}>AI is synthesizing your winning bid...</Text>
+        <>
+          <div
+            className="pb-gen-shell"
+            style={{
+              opacity: isGenerating ? 1 : 0,
+              transition: 'opacity 0.4s ease',
+            }}
+          />
+          <div className="pb-gen-topbar">
+            <div className="pb-gen-topbar__fill" style={{ width: `${genProgress}%` }} />
+          </div>
+          <div
+            className="pb-gen-card"
+            style={{
+              opacity: isGenerating ? 1 : 0,
+              transform: isGenerating ? 'translateY(0)' : 'translateY(12px)',
+              transition: 'opacity 0.4s ease, transform 0.4s ease',
+            }}
+          >
+            <div className="pb-gen-card__orb">
+              <Sparkles size={18} />
             </div>
-
-            <div className="gen-progress-card" style={{ background: 'var(--bg-slate-50)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-slate-100)' }}>
-              <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text strong style={{ color: 'var(--premium-blue)', fontSize: '13px' }}>{genStep}</Text>
-                <Text className="premium-text-sec" style={{ fontSize: '12px' }}>{genProgress}%</Text>
-              </div>
-              <Progress
-                percent={genProgress}
-                showInfo={false}
-                strokeColor={{ '0%': '#3b82f6', '100%': '#60a5fa' }}
-                strokeWidth={10}
-                status="active"
-              />
+            <div className="pb-gen-card__text">
+              <span className="pb-gen-card__title">Crafting your proposal</span>
+              <span className="pb-gen-card__step">{genStep}</span>
             </div>
+            <span className="pb-gen-card__pct">{genProgress}%</span>
+          </div>
 
-            <style dangerouslySetInnerHTML={{
-              __html: `
-              @keyframes pulse {
-                0% { transform: scale(1); box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3); }
-                50% { transform: scale(1.05); box-shadow: 0 12px 32px rgba(59, 130, 246, 0.5); }
-                100% { transform: scale(1); box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3); }
-              }
-
+          <style dangerouslySetInnerHTML={{
+            __html: `
               .builder-main-container { background: var(--bg-pure-white); }
               .builder-side-pane { background: var(--bg-pure-white); }
               .builder-resizer { background: var(--bg-pure-white); }
-              .builder-canvas-wrapper { background: var(--bg-slate-50); }
 
-              /* DARK THEME OVERRIDES */
               [data-theme='dark'] .builder-main-container { background: #0d1117 !important; }
               [data-theme='dark'] .builder-side-pane { background: #161b22 !important; }
               [data-theme='dark'] .builder-resizer { background: #161b22 !important; border-color: #30363d !important; }
-              [data-theme='dark'] .builder-canvas-wrapper { background: #0d1117 !important; }
               [data-theme='dark'] .ant-layout-header { background: #161b22 !important; border-bottom-color: #30363d !important; }
               [data-theme='dark'] .ant-segmented { background: #0d1117 !important; color: #8b949e !important; }
               [data-theme='dark'] .ant-segmented-item-selected { background: #30363d !important; color: #f0f6fc !important; }
@@ -800,37 +763,31 @@ function BuilderContent() {
               [data-theme='dark'] .ant-drawer-header { background: #161b22 !important; border-bottom-color: #30363d !important; }
               [data-theme='dark'] .ant-drawer-title { color: #f0f6fc !important; }
 
-              /* Input & Ant Design Overrides in Dark Mode */
-              [data-theme='dark'] .ant-input-filled, 
+              [data-theme='dark'] .ant-input-filled,
               [data-theme='dark'] .ant-input-number-affix-wrapper,
               [data-theme='dark'] .ant-picker,
-              [data-theme='dark'] .ant-select-selector { 
-                background: #0d1117 !important; 
-                border-color: #30363d !important; 
-                color: #f0f6fc !important; 
+              [data-theme='dark'] .ant-select-selector {
+                background: #0d1117 !important;
+                border-color: #30363d !important;
+                color: #f0f6fc !important;
               }
-              [data-theme='dark'] .ant-input-filled:focus, 
-              [data-theme='dark'] .ant-input-filled:hover { 
-                background: #0d1117 !important; 
-                border-color: var(--premium-blue) !important; 
+              [data-theme='dark'] .ant-input-filled:focus,
+              [data-theme='dark'] .ant-input-filled:hover {
+                background: #0d1117 !important;
+                border-color: var(--premium-blue) !important;
               }
               [data-theme='dark'] .ant-divider { border-color: #30363d !important; }
-              
-              /* Tiptap Dark Mode Fixes */
+
               [data-theme='dark'] .tiptap-editor-wrapper { border-color: #30363d !important; }
               [data-theme='dark'] .tiptap-toolbar { background: #161b22 !important; border-bottom-color: #30363d !important; }
-              
-              /* Canvas Paper in Dark Mode */
-              [data-theme='dark'] #proposal-builder-canvas { 
-                background: #161b22 !important; 
-                box-shadow: 0 0 0 1px #30363d, 0 8px 24px rgba(0,0,0,0.3) !important; 
+
+              [data-theme='dark'] #proposal-builder-canvas {
+                background: #161b22 !important;
+                border: 3px solid #30363d !important;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
               }
-              [data-theme='dark'] .premium-title { color: #f0f6fc !important; }
-              [data-theme='dark'] .premium-text-sec { color: #8b949e !important; }
-              [data-theme='dark'] .gen-progress-card { background: #161b22 !important; border-color: #30363d !important; }
             `}} />
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

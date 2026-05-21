@@ -1,23 +1,42 @@
 import React from 'react';
 import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useProposalStore } from '@/store/proposalStore';
+import { useProposalStore, ProposalBlock } from '@/store/proposalStore';
 import { BlockRenderer } from './blocks';
 import { DragOutlined, DeleteOutlined, PlusOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useDroppable } from '@dnd-kit/core';
 import { Sparkles } from 'lucide-react';
+import { getBlockStatus, STATUS_LABEL } from './blockStatus';
+import { resolveTheme, resolveFont } from './themePresets';
 
-const SortableBlock = ({ id, type, data, isSelected, onClick, onRemove, index }: any) => {
+const InterBlockInserter = ({ index }: { index: number }) => {
+  const addBlock = useProposalStore((state) => state.addBlock);
+  return (
+    <div
+      className="pb-inserter-slot"
+      onClick={(e) => {
+        e.stopPropagation();
+        addBlock('section', index);
+      }}
+    >
+      <div className="pb-block-inserter">
+        <PlusOutlined style={{ fontSize: 9 }} />
+        <span>Add Section</span>
+      </div>
+    </div>
+  );
+};
+
+const SortableBlock = ({ id, type, data, isSelected, onClick, onRemove }: any) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const [isHovered, setIsHovered] = React.useState(false);
-  const addBlock = useProposalStore((state) => state.addBlock);
+  const status = getBlockStatus({ id, type, data } as ProposalBlock);
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition: transition || 'all 0.22s cubic-bezier(.4,0,.2,1)',
     opacity: isDragging ? 0.3 : 1,
     position: 'relative' as const,
-    marginBottom: '2px',
     background: 'var(--bg-pure-white)',
     zIndex: isSelected ? 2 : 1,
   };
@@ -42,32 +61,44 @@ const SortableBlock = ({ id, type, data, isSelected, onClick, onRemove, index }:
             <DragOutlined style={{ fontSize: 11 }} />
             <span>{type.toUpperCase()}</span>
           </div>
+          <span className={`pb-tb-status pb-tb-status--${status}`} title={STATUS_LABEL[status]}>
+            <span className="pb-tb-status__dot" />
+            <span className="pb-tb-status__label">{STATUS_LABEL[status]}</span>
+          </span>
           <div className="pb-tb-btn pb-tb-btn--danger" onClick={(e) => { e.stopPropagation(); onRemove(id); }}>
             <DeleteOutlined style={{ fontSize: 11 }} />
           </div>
         </div>
       )}
 
-      <div style={{ padding: 0, pointerEvents: 'none' }}>
+      <div
+        className="pb-block-content"
+        style={{ padding: 0, userSelect: 'text' }}
+      >
         <BlockRenderer type={type} data={data} />
       </div>
-
-      {/* Inter-block inserter */}
-      {isHovered && !isSelected && (
-        <div
-          onClick={(e) => { e.stopPropagation(); addBlock('section', index + 1); }}
-          className="pb-block-inserter"
-        >
-          <PlusOutlined style={{ fontSize: 10 }} />
-        </div>
-      )}
     </div>
   );
 };
 
 export const EditorCanvas = () => {
-  const { blocks, selectedBlockId, setSelectedBlockId, removeBlock } = useProposalStore();
+  const { blocks, selectedBlockId, setSelectedBlockId, removeBlock, documentTheme } = useProposalStore();
   const { setNodeRef } = useDroppable({ id: 'canvas-droppable' });
+
+  const theme = resolveTheme(documentTheme.themeId);
+  const font = resolveFont(documentTheme.fontId);
+
+  // CSS vars applied to the paper:
+  // - --premium-blue is overridden inside the paper so any element relying on it
+  //   (cover "PROPOSAL FOR" label, section icons, accents) picks up the chosen theme
+  // - --pb-doc-font cascades to all text within the paper
+  const paperStyle = {
+    ['--premium-blue' as any]: theme.accent,
+    ['--pb-doc-accent' as any]: theme.accent,
+    ['--pb-doc-accent-from' as any]: theme.from,
+    ['--pb-doc-accent-to' as any]: theme.to,
+    fontFamily: font.family,
+  } as React.CSSProperties;
 
   return (
     <div
@@ -77,10 +108,9 @@ export const EditorCanvas = () => {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
       }}
     >
-      <div id="proposal-builder-canvas" ref={setNodeRef} className="pb-paper">
+      <div id="proposal-builder-canvas" ref={setNodeRef} className="pb-paper" style={paperStyle}>
         <div className="pb-page-tag">
           <FileTextOutlined style={{ fontSize: 11 }} />
           <span>DOCUMENT · A4</span>
@@ -100,16 +130,20 @@ export const EditorCanvas = () => {
         ) : (
           <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
             {blocks.map((block, index) => (
-              <SortableBlock
-                key={block.id}
-                id={block.id}
-                index={index}
-                type={block.type}
-                data={block.data}
-                isSelected={selectedBlockId === block.id}
-                onClick={() => setSelectedBlockId(block.id)}
-                onRemove={removeBlock}
-              />
+              <React.Fragment key={block.id}>
+                <SortableBlock
+                  id={block.id}
+                  index={index}
+                  type={block.type}
+                  data={block.data}
+                  isSelected={selectedBlockId === block.id}
+                  onClick={() => setSelectedBlockId(block.id)}
+                  onRemove={removeBlock}
+                />
+                {index < blocks.length - 1 && (
+                  <InterBlockInserter index={index + 1} />
+                )}
+              </React.Fragment>
             ))}
             <div onClick={() => useProposalStore.getState().addBlock('section', blocks.length)} className="pb-insert-cta">
               <PlusOutlined />

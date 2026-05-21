@@ -175,7 +175,7 @@ export const TimelineBlockSettings: React.FC<{ data: any, onUpdate: (data: any) 
 
         <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <span style={labelStyle}>Section Details</span>
+            <span style={{ ...labelStyle, flex: 1 }}>Section Details</span>
             <AIEnhanceButton 
               originalData={{ title: data.title }} 
               blockType="timeline (title)" 
@@ -200,7 +200,7 @@ export const TimelineBlockSettings: React.FC<{ data: any, onUpdate: (data: any) 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FlagOutlined style={{ color: '#10b981' }} />
-            <Text strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>Key Milestones</Text>
+            <Text strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)', flex: 1 }}>Key Milestones</Text>
           </div>
           <AIEnhanceButton 
             originalData={{ kickoff: data.startDate, deadline: data.finalDate }} 
@@ -257,7 +257,7 @@ export const TimelineBlockSettings: React.FC<{ data: any, onUpdate: (data: any) 
               position: 'relative'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <Text strong style={{ fontSize: '0.75rem', color: 'var(--text-primary)', textTransform: 'uppercase' }}>Project Phase</Text>
+                <Text strong style={{ fontSize: '0.75rem', color: 'var(--text-primary)', textTransform: 'uppercase', flex: 1 }}>Project Phase</Text>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <AIEnhanceButton 
                     originalData={phase} 
@@ -350,7 +350,7 @@ export const TimelineBlockSettings: React.FC<{ data: any, onUpdate: (data: any) 
         <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <div style={{ marginBottom: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 6 }}>
-              <span style={labelStyle}>Dependency Notes</span>
+              <span style={{ ...labelStyle, flex: 1 }}>Dependency Notes</span>
               <AIEnhanceButton 
                 originalData={data.dependencyNotes} 
                 blockType="timeline (dependencies)" 

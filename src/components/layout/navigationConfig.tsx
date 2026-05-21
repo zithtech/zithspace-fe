@@ -210,7 +210,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Plans",
             icon: I(Map),
             path: "/projects/plans",
-            requiredPermission: Permissions.PROJECT_READ,
+            requiredPermission: Permissions.TICKET_PLAN_READ,
           },
           {
             key: "/projects/create",

@@ -166,7 +166,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     canDeleteTicket, 
     canAssignTicket,
     canManageTickets,
-    canCreateTicketPlan 
+    canCreateTicketPlan,
+    canReadTicketPlan,
+    canUpdateTicketPlan
   } = usePermission();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -440,7 +442,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     queryKey: ['activeSprint', projectId],
     queryFn: () => ReleasePlanService.getActiveReleasePlans(projectId),
     staleTime: 60 * 1000,
-    enabled: !!projectId,
+    enabled: !!projectId && canReadTicketPlan,
   });
   const activeSprint = activeSprints && activeSprints.length > 0 ? activeSprints[0] : null;
 
@@ -2226,7 +2228,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       >
                         Go To Backlog
                       </Button>
-                      {canManageTickets && (
+                      {canUpdateTicketPlan && (
                         <Button
                           type="primary"
                           size="middle"
@@ -2363,15 +2365,17 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       allowClear
                     />
                     <Divider type="vertical" style={{ height: 20, margin: 0 }} />
-                    <Button
-                      type="default"
-                      icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
-                      onClick={() => document.getElementById('active-section')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="saas-button-item"
-                      style={{ height: 32, fontWeight: 600 }}
-                    >
-                      Go To Sprint
-                    </Button>
+                    {activeSprint && (
+                      <Button
+                        type="default"
+                        icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
+                        onClick={() => document.getElementById('active-section')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="saas-button-item"
+                        style={{ height: 32, fontWeight: 600 }}
+                      >
+                        Go To Sprint
+                      </Button>
+                    )}
                     {canCreateTicketPlan && (
                       <Button
                         type="default"

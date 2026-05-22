@@ -1721,8 +1721,8 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             onClick={() => window.open(`/document/${selectedDoc}`, '_blank')}
                                         />
                                     </Tooltip>
-                                    {canUpdateDocument && (
-                                        <Tooltip title="Share Hub">
+                                    {canUpdateDocument && selectedDoc && selectedDoc !== 'api-ref' && (
+                                        <Tooltip title="Share Document">
                                             <Button
                                                 type="text"
                                                 icon={<Share2 className="w-4 h-4" />}
@@ -1946,13 +1946,13 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 open={isShareOpen}
                 onClose={() => {
                     setIsShareOpen(false);
-                    refetchHub();
+                    refetchDocument();
                 }}
-                entityId={documentId}
-                entityTitle={documentHub?.name || ''}
-                entityType="hub"
-                currentVisibility={documentHub?.visibility || 'private'}
-                currentShareToken={documentHub?.shareToken || null}
+                entityId={selectedDoc || ''}
+                entityTitle={docData?.title || 'Untitled'}
+                entityType="document"
+                currentVisibility={docData?.visibility || 'private'}
+                currentShareToken={docData?.shareToken || null}
             />
 
             {editor && (

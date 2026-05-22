@@ -26,6 +26,7 @@ import {
   Plus,
   Edit2,
   Eye,
+  Trash2,
   Search,
   Layers,
   Calendar,
@@ -40,10 +41,17 @@ import {
   Wallet,
   Briefcase,
   Hash,
+  FolderInput as FolderInputIcon,
+  Link2,
 } from "lucide-react";
 import { api } from "@/lib/axios";
 import { usePermission } from "@/hooks/usePermission";
 import dayjs from "dayjs";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import {
+  ClientV2Service,
+  ImportableProject,
+} from "@/services/clientV2Service";
 
 const currencyOptions = [
   { value: "USD", label: "US Dollar", symbol: "$", minor: "Cent" },
@@ -69,6 +77,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -77,6 +86,9 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   const [editingProject, setEditingProject] = useState<any>(null);
   const [editForm] = Form.useForm();
   const [notify, contextHolder] = notification.useNotification();
+
+  // Import-existing-projects modal state
+  const [isImportModalVisible, setIsImportModalVisible] = useState(false);
 
   // Live duplicate-check state for the Initiate New Project modal
   type CheckState = { status: "idle" | "checking" | "available" | "taken"; value: string };
@@ -288,6 +300,25 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
     }
   };
 
+  const handleDeleteProject = async (projectId: string, projectName: string) => {
+    try {
+      await api.delete(`/api/clients-v2/projects/${projectId}`);
+      notify.success({
+        message: "Project Deleted",
+        description: `"${projectName}" has been permanently deleted.`,
+        placement: "top",
+      });
+      fetchProjects();
+      onRefresh();
+    } catch (error: any) {
+      notify.error({
+        message: "Delete Failed",
+        description: error.response?.data?.error || "Failed to delete project.",
+        placement: "top",
+      });
+    }
+  };
+
   const columns = [
     {
       title: "Project Identity",
@@ -418,57 +449,116 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
               <Button type="text" className="premium-action-btn" icon={<Edit2 size={16} />} style={{ color: "var(--text-slate-400)" }} onClick={() => openEditModal(record)} />
             </Tooltip>
           )}
+          {canUpdateClient && (
+            <Popconfirm
+              title="Delete project?"
+              description={`"${record.name}" will be permanently removed. This cannot be undone.`}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+              onConfirm={(e) => {
+                e?.stopPropagation();
+                handleDeleteProject(record.id, record.name);
+              }}
+              onPopupClick={(e) => e.stopPropagation()}
+            >
+              <Tooltip title="Delete Project">
+                <Button
+                  type="text"
+                  className="premium-action-btn"
+                  icon={<Trash2 size={16} />}
+                  style={{ color: "var(--text-slate-400)" }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
   ];
 
-  const filteredProjects = projects.filter((project) =>
-    project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    project.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProjects = projects.filter((project) => {
+    const matchesSearch =
+      project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.code.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesSearch;
+  });
 
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
-      <Card className="ptab-card" styles={{ body: { padding: 0 } }}>
-        <div className="ptab-header">
-          <div className="ptab-header-left">
-            <div className="ptab-header-icon blue">
-              <Layers size={20} />
-            </div>
-            <div className="ptab-header-titlewrap">
-              <div className="ptab-header-title">
-                Internal Projects
-                <span className="ptab-header-count">{filteredProjects.length}</span>
-              </div>
-              <div className="ptab-header-desc">
-                Monitor project lifecycles, budget utilization, and leadership assignments
-              </div>
-            </div>
-          </div>
-          <div className="ptab-header-right">
-            <Input
-              placeholder="Search by name or project code..."
-              prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="ptab-search"
-              allowClear
-            />
-            {canUpdateClient && (
-              <Button
-                type="primary"
-                size="large"
-                icon={<Plus size={18} />}
-                onClick={() => setIsModalVisible(true)}
-                style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
-              >
-                Initiate Project
-              </Button>
-            )}
-          </div>
-        </div>
 
+      <div className="projects-header-wrap" style={{ margin: "0 -32px" }}>
+        <TimeTrackingHeader
+          icon={<Layers size={20} color="#8b5cf6" />}
+          title="Projects"
+          description="Monitor project lifecycles, budget utilization, and leadership assignments"
+          style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)" }}
+          extra={
+            <div style={{ display: "flex", gap: "12px", flexWrap: "nowrap", alignItems: "center" }}>
+              {canUpdateClient && (
+                <Button
+                  size="large"
+                  icon={<FolderInputIcon size={16} />}
+                  onClick={() => setIsImportModalVisible(true)}
+                  style={{
+                    borderRadius: 10,
+                    height: 38,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    background: "var(--bg-slate-50)",
+                    border: "1px solid var(--border-slate-200)",
+                    color: "var(--text-slate-700)",
+                    whiteSpace: "nowrap"
+                  }}
+                  className="premium-action-btn-secondary"
+                >
+                  Import Projects
+                </Button>
+              )}
+              {canUpdateClient && (
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<Plus size={16} />}
+                  onClick={() => setIsModalVisible(true)}
+                  style={{
+                    borderRadius: 10,
+                    height: 38,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    // background: "linear-gradient(135deg, #8b5cf6, #6366f1)",
+                    background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                    border: "none",
+                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
+                    // boxShadow: "0 4px 12px rgba(139, 92, 246, 0.15)",
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  Initiate Project
+                </Button>
+              )}
+            </div>
+          }
+        />
+      </div>
+
+      <div style={{ margin: "20px 0 16px 0", display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+        <Input
+          placeholder="Search by name or project code..."
+          prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="projects-search-input"
+          style={{ width: "320px" }}
+          allowClear
+        />
+      </div>
+
+      <Card className="ptab-card" styles={{ body: { padding: 0 } }}>
         <Table
           dataSource={filteredProjects}
           columns={columns}
@@ -808,6 +898,17 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         </div>
       </Modal>
 
+      <ImportProjectsModal
+        open={isImportModalVisible}
+        onClose={() => setIsImportModalVisible(false)}
+        clientId={clientId}
+        notify={notify}
+        onImported={() => {
+          setIsImportModalVisible(false);
+          fetchProjects();
+        }}
+      />
+
       <style dangerouslySetInnerHTML={{
         __html: `
         .premium-table .ant-table {
@@ -846,7 +947,739 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           background: rgba(139, 92, 246, 0.16) !important;
           color: #a78bfa !important;
         }
+
+        /* Dynamic TabPane padding overrides to enable full-bleed elements without clipping */
+        body .cd-tabs .ant-tabs-content-holder {
+          padding: 0 !important;
+        }
+        body .cd-tab-pane {
+          padding: 8px 32px 48px 32px !important;
+        }
+        @media (max-width: 900px) {
+          body .cd-tab-pane {
+            padding: 8px 20px 48px 20px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          body .cd-tab-pane {
+            padding: 8px 16px 48px 16px !important;
+          }
+        }
+
+        /* Full bleed header styling flush with vertical sidebar border */
+        .projects-header-wrap .saas-header-container {
+          margin-left: -32px !important;
+          margin-right: -32px !important;
+          padding-left: 32px !important;
+          padding-right: 32px !important;
+          padding-top: 10px !important;
+          padding-bottom: 12px !important;
+          margin-bottom: 0 !important;
+        }
+        @media (max-width: 900px) {
+          .projects-header-wrap .saas-header-container {
+            margin-left: -20px !important;
+            margin-right: -20px !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .projects-header-wrap .saas-header-container {
+            margin-left: -16px !important;
+            margin-right: -16px !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+        }
+
+        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
+        @media (max-width: 1200px) {
+          html body .projects-header-wrap .saas-header-container .saas-header-row {
+            flex-wrap: nowrap !important;
+          }
+          html body .projects-header-wrap .saas-header-container .saas-header-left-col {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+          }
+          html body .projects-header-wrap .saas-header-container .saas-header-extra-col {
+            width: auto !important;
+            flex: 0 0 auto !important;
+            margin-top: 0 !important;
+          }
+          html body .projects-header-wrap .saas-header-container .saas-header-left-group {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 16px !important;
+          }
+          html body .projects-header-wrap .saas-header-container .bh-header-divider {
+            display: inline-block !important;
+          }
+        }
+
+        /* Borderless/transparent unified search and filter dropdown controls */
+        .projects-search-input.ant-input-affix-wrapper {
+          height: 38px !important;
+          border-radius: 10px !important;
+          background: var(--bg-slate-50) !important;
+          border: 1px solid var(--border-slate-200) !important;
+          box-shadow: none !important;
+          transition: all 0.2s ease !important;
+          padding: 4px 12px !important;
+        }
+        .projects-search-input.ant-input-affix-wrapper:hover {
+          border-color: var(--border-slate-200) !important;
+        }
+        .projects-search-input.ant-input-affix-wrapper:focus-within {
+          border-color: #8b5cf6 !important;
+          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+          background: var(--bg-pure-white) !important;
+        }
+        .projects-search-input .ant-input {
+          background: transparent !important;
+          font-size: 13px !important;
+          font-weight: 500 !important;
+          color: var(--text-slate-800) !important;
+        }
+        [data-theme="dark"] .projects-search-input.ant-input-affix-wrapper {
+          background: var(--bg-secondary) !important;
+          border-color: var(--border-slate-200) !important;
+        }
+        [data-theme="dark"] .projects-search-input.ant-input-affix-wrapper:hover {
+          border-color: var(--border-slate-200) !important;
+        }
+        [data-theme="dark"] .projects-search-input.ant-input-affix-wrapper:focus-within {
+          background: var(--bg-slate-900) !important;
+          border-color: #8b5cf6 !important;
+        }
+
+        /* Input Fields Inside Modals (Add/Edit and Initialize Modal) */
+        .pmodal-body .ant-input-affix-wrapper,
+        .pmodal-body .ant-select-selector,
+        .pmodal-body .ant-input-number,
+        .pmodal-body .ant-picker,
+        .premium-modal .ant-input-affix-wrapper,
+        .premium-modal .ant-select-selector,
+        .premium-modal .ant-input-number,
+        .premium-modal .ant-picker {
+          border: 1px solid var(--border-slate-200) !important;
+        }
+        .pmodal-body .ant-input,
+        .premium-modal .ant-input {
+          border: 1px solid var(--border-slate-200) !important;
+        }
+        .pmodal-body .ant-input-affix-wrapper .ant-input,
+        .pmodal-body .ant-input-affix-wrapper .ant-input:focus,
+        .pmodal-body .ant-input-affix-wrapper .ant-input:hover,
+        .premium-modal .ant-input-affix-wrapper .ant-input,
+        .premium-modal .ant-input-affix-wrapper .ant-input:focus,
+        .premium-modal .ant-input-affix-wrapper .ant-input:hover,
+        .pmodal-body .ant-input-number .ant-input-number-input,
+        .pmodal-body .ant-input-number .ant-input-number-input:focus,
+        .pmodal-body .ant-input-number .ant-input-number-input:hover,
+        .premium-modal .ant-input-number .ant-input-number-input,
+        .premium-modal .ant-input-number .ant-input-number-input:focus,
+        .premium-modal .ant-input-number .ant-input-number-input:hover {
+          border: 0 !important;
+          border-width: 0 !important;
+          box-shadow: none !important;
+        }
+
+        /* Unified styling for inputs with addons (e.g. Budget Input) */
+        .pmodal-body .ant-input-number-group-wrapper,
+        .premium-modal .ant-input-number-group-wrapper {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 10px !important;
+          background: var(--bg-slate-50) !important;
+          transition: all 0.2s ease !important;
+          overflow: hidden !important;
+          display: block !important;
+          width: 100% !important;
+        }
+        .pmodal-body .ant-input-number-group-wrapper:hover,
+        .premium-modal .ant-input-number-group-wrapper:hover {
+          border-color: rgba(139, 92, 246, 0.45) !important;
+        }
+        .pmodal-body .ant-input-number-group-wrapper-focused,
+        .premium-modal .ant-input-number-group-wrapper-focused,
+        .pmodal-body .ant-input-number-group-wrapper:focus-within,
+        .premium-modal .ant-input-number-group-wrapper:focus-within {
+          border-color: #8b5cf6 !important;
+          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12) !important;
+          background: var(--bg-pure-white) !important;
+        }
+
+        /* Reset inner elements of the group input */
+        .pmodal-body .ant-input-number-group-wrapper .ant-input-number,
+        .premium-modal .ant-input-number-group-wrapper .ant-input-number {
+          border: none !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          width: 100% !important;
+        }
+        .pmodal-body .ant-input-number-group-wrapper .ant-input-number-group-addon,
+        .premium-modal .ant-input-number-group-wrapper .ant-input-number-group-addon {
+          background: transparent !important;
+          border: none !important;
+          border-right: 1px solid var(--border-slate-200) !important;
+          padding: 0 !important;
+          border-radius: 0 !important;
+        }
+        .pmodal-body .ant-input-number-group-wrapper .ant-select-selector,
+        .premium-modal .ant-input-number-group-wrapper .ant-select-selector {
+          border: none !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          height: 36px !important;
+          display: flex !important;
+          align-items: center !important;
+        }
+
+        /* Input Hover state */
+        .pmodal-body .ant-input:hover,
+        .pmodal-body .ant-input-affix-wrapper:hover,
+        .pmodal-body .ant-select:hover .ant-select-selector,
+        .pmodal-body .ant-input-number:hover,
+        .pmodal-body .ant-picker:hover,
+        .premium-modal .ant-input:hover,
+        .premium-modal .ant-input-affix-wrapper:hover,
+        .premium-modal .ant-select:hover .ant-select-selector,
+        .premium-modal .ant-input-number:hover,
+        .premium-modal .ant-picker:hover {
+          border-color: rgba(139, 92, 246, 0.45) !important;
+        }
+
+        /* Input Focus state */
+        .pmodal-body .ant-input-affix-wrapper-focused,
+        .pmodal-body .ant-select-focused .ant-select-selector,
+        .pmodal-body .ant-input-number-focused,
+        .pmodal-body .ant-picker-focused,
+        .pmodal-body .ant-input:focus,
+        .premium-modal .ant-input-affix-wrapper-focused,
+        .premium-modal .ant-select-focused .ant-select-selector,
+        .premium-modal .ant-input-number-focused,
+        .premium-modal .ant-picker-focused,
+        .premium-modal .ant-input:focus,
+        .premium-modal .ant-input-affix-wrapper:focus-within {
+          border-color: #8b5cf6 !important;
+          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12) !important;
+          background: var(--bg-pure-white) !important;
+        }
+
+        /* Dark theme overrides for inputs */
+        [data-theme="dark"] .pmodal-body .ant-input,
+        [data-theme="dark"] .pmodal-body .ant-input-affix-wrapper,
+        [data-theme="dark"] .pmodal-body .ant-select-selector,
+        [data-theme="dark"] .pmodal-body .ant-input-number,
+        [data-theme="dark"] .pmodal-body .ant-picker,
+        [data-theme="dark"] .premium-modal .ant-input,
+        [data-theme="dark"] .premium-modal .ant-input-affix-wrapper,
+        [data-theme="dark"] .premium-modal .ant-select-selector,
+        [data-theme="dark"] .premium-modal .ant-input-number,
+        [data-theme="dark"] .premium-modal .ant-picker {
+          background: var(--bg-primary) !important;
+          border-color: var(--border-slate-200) !important;
+          color: var(--text-slate-900) !important;
+        }
+        
+        [data-theme="dark"] .pmodal-body .ant-input:hover,
+        [data-theme="dark"] .pmodal-body .ant-input-affix-wrapper:hover,
+        [data-theme="dark"] .pmodal-body .ant-select:hover .ant-select-selector,
+        [data-theme="dark"] .pmodal-body .ant-input-number:hover,
+        [data-theme="dark"] .pmodal-body .ant-picker:hover,
+        [data-theme="dark"] .premium-modal .ant-input:hover,
+        [data-theme="dark"] .premium-modal .ant-input-affix-wrapper:hover,
+        [data-theme="dark"] .premium-modal .ant-select:hover .ant-select-selector,
+        [data-theme="dark"] .premium-modal .ant-input-number:hover,
+        [data-theme="dark"] .premium-modal .ant-picker:hover {
+          border-color: rgba(167, 139, 250, 0.55) !important;
+        }
+
+        [data-theme="dark"] .pmodal-body .ant-input-affix-wrapper-focused,
+        [data-theme="dark"] .pmodal-body .ant-select-focused .ant-select-selector,
+        [data-theme="dark"] .pmodal-body .ant-input-number-focused,
+        [data-theme="dark"] .pmodal-body .ant-picker-focused,
+        [data-theme="dark"] .pmodal-body .ant-input:focus,
+        [data-theme="dark"] .premium-modal .ant-input-affix-wrapper-focused,
+        [data-theme="dark"] .premium-modal .ant-select-focused .ant-select-selector,
+        [data-theme="dark"] .premium-modal .ant-input-number-focused,
+        [data-theme="dark"] .premium-modal .ant-picker-focused,
+        [data-theme="dark"] .premium-modal .ant-input:focus,
+        [data-theme="dark"] .premium-modal .ant-input-affix-wrapper:focus-within {
+          border-color: #a78bfa !important;
+          box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18) !important;
+          background: var(--bg-secondary) !important;
+        }
+
+        /* Dark theme overrides for addon group */
+        [data-theme="dark"] .pmodal-body .ant-input-number-group-wrapper,
+        [data-theme="dark"] .premium-modal .ant-input-number-group-wrapper {
+          background: var(--bg-primary) !important;
+          border-color: var(--border-slate-200) !important;
+        }
+        [data-theme="dark"] .pmodal-body .ant-input-number-group-wrapper:hover,
+        [data-theme="dark"] .premium-modal .ant-input-number-group-wrapper:hover {
+          border-color: rgba(167, 139, 250, 0.55) !important;
+        }
+        [data-theme="dark"] .pmodal-body .ant-input-number-group-wrapper-focused,
+        [data-theme="dark"] .premium-modal .ant-input-number-group-wrapper-focused,
+        [data-theme="dark"] .pmodal-body .ant-input-number-group-wrapper:focus-within,
+        [data-theme="dark"] .premium-modal .ant-input-number-group-wrapper:focus-within {
+          border-color: #a78bfa !important;
+          box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18) !important;
+          background: var(--bg-secondary) !important;
+        }
+        [data-theme="dark"] .pmodal-body .ant-input-number-group-wrapper .ant-input-number-group-addon,
+        [data-theme="dark"] .premium-modal .ant-input-number-group-wrapper .ant-input-number-group-addon {
+          border-right: 1px solid var(--border-slate-200) !important;
+        }
+
+        /* Import Projects Modal Custom Styling Overrides for Theme Adaptivity */
+        html body .import-project-search-input {
+          background-color: var(--bg-slate-50) !important;
+          border: 1px solid var(--border-slate-200) !important;
+          color: var(--text-slate-900) !important;
+          height: 38px !important;
+          border-radius: 8px !important;
+        }
+        html body .import-project-search-input .ant-input {
+          background-color: transparent !important;
+          color: var(--text-slate-900) !important;
+        }
+        html body .import-project-search-input:hover,
+        html body .import-project-search-input:focus {
+          border-color: #8b5cf6 !important;
+        }
+        [data-theme="dark"] html body .import-project-search-input {
+          background-color: var(--bg-secondary) !important;
+          border: 1px solid var(--border-slate-800) !important;
+        }
+        
+        html body .import-project-row {
+          background-color: transparent !important;
+          transition: background 0.15s ease !important;
+        }
+        html body .import-project-row:hover {
+          background-color: var(--bg-slate-100) !important;
+        }
+        html body .import-project-row.selected {
+          background-color: rgba(139, 92, 246, 0.12) !important;
+        }
+        [data-theme="dark"] html body .import-project-row:hover {
+          background-color: var(--bg-secondary) !important;
+        }
+
+        html body .import-project-cancel-btn {
+          background-color: transparent !important;
+          border: 1px solid var(--border-slate-200) !important;
+          color: var(--text-slate-700) !important;
+        }
+        [data-theme="dark"] html body .import-project-cancel-btn {
+          color: var(--text-slate-300) !important;
+          border-color: var(--border-slate-800) !important;
+        }
       `}} />
     </div>
+  );
+}
+
+/* ====================================================================== */
+/*  Import Projects modal — pick from existing tenant projects that aren't */
+/*  already linked to this client.                                          */
+/* ====================================================================== */
+
+function ImportProjectsModal({
+  open,
+  onClose,
+  clientId,
+  onImported,
+  notify,
+}: {
+  open: boolean;
+  onClose: () => void;
+  clientId: string;
+  onImported: () => void;
+  notify: any;
+}) {
+  const [items, setItems] = useState<ImportableProject[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  const reload = async (q?: string) => {
+    setLoading(true);
+    try {
+      const data = await ClientV2Service.getImportableProjects(clientId, q);
+      setItems(data || []);
+    } catch (err: any) {
+      notify.error({
+        message: "Failed to load projects",
+        description: err?.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!open) {
+      setSearch("");
+      setSelected([]);
+      setItems([]);
+      return;
+    }
+    reload("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Debounce search
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => reload(search), 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  const toggle = (id: string) => {
+    setSelected((cur) =>
+      cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
+    );
+  };
+
+  const submit = async () => {
+    if (selected.length === 0) return;
+    setSubmitting(true);
+    try {
+      const res = await ClientV2Service.importProjects(clientId, selected);
+      notify.success({
+        message: `Linked ${res.linked} project${res.linked === 1 ? "" : "s"
+          }${res.skipped > 0
+            ? ` · ${res.skipped} already linked, skipped`
+            : ""
+          }`,
+        placement: "top",
+      });
+      onImported();
+    } catch (err: any) {
+      notify.error({
+        message: "Import failed",
+        description: err?.message,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      destroyOnClose
+      width={680}
+      closable={false}
+      styles={{
+        mask: { backgroundColor: "rgba(15,23,42,0.45)" },
+        content: {
+          background: "var(--bg-pure-white, #ffffff)",
+          border: "1px solid var(--border-slate-200, #e5e7eb)",
+          padding: 0,
+          overflow: "hidden",
+        },
+        body: { padding: 0 },
+      }}
+    >
+      {/* Accent ribbon */}
+      <div style={{ height: 3, background: "#8b5cf6" }} />
+
+      {/* Header */}
+      <div
+        style={{
+          padding: "20px 24px 16px",
+          borderBottom: "1px solid var(--border-slate-100, #e5e7eb)",
+          display: "flex",
+          gap: 14,
+          alignItems: "flex-start",
+        }}
+      >
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 11,
+            background: "rgba(139, 92, 246, 0.1)",
+            color: "#8b5cf6",
+            border: "1px solid rgba(139, 92, 246, 0.2)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <FolderInputIcon size={20} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: "var(--text-slate-900, #0f172a)",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Import existing projects
+          </div>
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 12.5,
+              color: "var(--text-slate-500, #64748b)",
+              lineHeight: 1.55,
+            }}
+          >
+            Link projects already in this workspace to this client. A project
+            can be shared with multiple clients — importing here doesn&apos;t
+            unlink it from any others.
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: 18 }}>
+        <Input
+          allowClear
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          prefix={<Search size={14} color="var(--text-slate-400, #94a3b8)" />}
+          placeholder="Search by project name or code…"
+          className="import-project-search-input"
+          style={{ marginBottom: 12 }}
+        />
+
+        <div
+          style={{
+            border: "1px solid var(--border-slate-200, #e5e7eb)",
+            borderRadius: 10,
+            maxHeight: 380,
+            overflowY: "auto",
+            background: "var(--bg-slate-50, #f8fafc)",
+          }}
+        >
+          {loading ? (
+            <div
+              style={{
+                padding: 32,
+                textAlign: "center",
+                color: "var(--text-slate-500, #64748b)",
+                fontSize: 13,
+              }}
+            >
+              Loading…
+            </div>
+          ) : items.length === 0 ? (
+            <div
+              style={{
+                padding: 32,
+                textAlign: "center",
+                color: "var(--text-slate-500, #64748b)",
+                fontSize: 13,
+              }}
+            >
+              {search
+                ? `No projects match "${search}".`
+                : "Every project in this workspace is already linked to this client."}
+            </div>
+          ) : (
+            items.map((p, i) => {
+              const isSelected = selected.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => toggle(p.id)}
+                  className={`import-project-row ${isSelected ? "selected" : ""}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "11px 14px",
+                    border: "none",
+                    borderTop: i === 0 ? "none" : "1px solid var(--border-slate-100, #e5e7eb)",
+                    cursor: "pointer",
+                    width: "100%",
+                    textAlign: "left",
+                    transition: "background 120ms ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 4,
+                      background: isSelected ? "#8b5cf6" : "var(--bg-pure-white, #ffffff)",
+                      border: `1px solid ${isSelected ? "#8b5cf6" : "var(--border-slate-300, #cbd5e1)"
+                        }`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {isSelected && (
+                      <CheckCircle2 size={12} color="#ffffff" strokeWidth={3} />
+                    )}
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 13.5,
+                          fontWeight: 600,
+                          color: "var(--text-slate-900, #0f172a)",
+                        }}
+                      >
+                        {p.name}
+                      </span>
+                      {p.code && (
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 600,
+                            padding: "1px 7px",
+                            background: "var(--bg-slate-100, #f1f5f9)",
+                            border: "1px solid var(--border-slate-200, #e2e8f0)",
+                            color: "var(--text-slate-700, #475569)",
+                            borderRadius: 999,
+                            fontFamily:
+                              "ui-monospace, SFMono-Regular, Menlo, monospace",
+                          }}
+                        >
+                          {p.code}
+                        </span>
+                      )}
+                      {p.otherClientCount > 0 && (
+                        <Tooltip
+                          title={`Already linked to ${p.otherClientCount} other client${p.otherClientCount === 1 ? "" : "s"
+                            }`}
+                        >
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 500,
+                              padding: "1px 7px",
+                              background: "rgba(139, 92, 246, 0.1)",
+                              border: "1px solid rgba(139, 92, 246, 0.2)",
+                              color: "#8b5cf6",
+                              borderRadius: 999,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
+                            <Link2 size={10} />
+                            Shared
+                          </span>
+                        </Tooltip>
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: 3,
+                        fontSize: 11.5,
+                        color: "var(--text-slate-50, #64748b)",
+                        display: "flex",
+                        gap: 10,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span>Status: {p.status}</span>
+                      {p.projectManagerName && (
+                        <>
+                          <span style={{ color: "var(--border-slate-200, #cbd5e1)" }}>·</span>
+                          <span>PM: {p.projectManagerName}</span>
+                        </>
+                      )}
+                      {p.startDate && (
+                        <>
+                          <span style={{ color: "var(--border-slate-200, #cbd5e1)" }}>·</span>
+                          <span>
+                            Started {dayjs(p.startDate).format("MMM D, YYYY")}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {selected.length > 0 && (
+          <div
+            style={{
+              marginTop: 10,
+              padding: "8px 12px",
+              background: "rgba(139, 92, 246, 0.1)",
+              border: "1px solid rgba(139, 92, 246, 0.2)",
+              color: "#8b5cf6",
+              borderRadius: 8,
+              fontSize: 12.5,
+              fontWeight: 500,
+            }}
+          >
+            {selected.length} project{selected.length === 1 ? "" : "s"}{" "}
+            selected
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div
+        style={{
+          borderTop: "1px solid var(--border-slate-100, #e5e7eb)",
+          padding: "12px 22px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          background: "var(--bg-pure-white, #ffffff)",
+        }}
+      >
+        <span style={{ fontSize: 11.5, color: "var(--text-slate-400, #94a3b8)" }}>
+          {items.length} project{items.length === 1 ? "" : "s"} available
+        </span>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button onClick={onClose} className="import-project-cancel-btn">Cancel</Button>
+          <Button
+            type="primary"
+            disabled={selected.length === 0 || submitting}
+            loading={submitting}
+            onClick={submit}
+            icon={<FolderInputIcon size={14} />}
+            style={{
+              background: "linear-gradient(135deg, #8b5cf6, #6366f1)",
+              borderColor: "transparent",
+            }}
+          >
+            {selected.length > 0
+              ? `Import ${selected.length} project${selected.length === 1 ? "" : "s"
+              }`
+              : "Import"}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }

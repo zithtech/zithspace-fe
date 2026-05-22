@@ -78,12 +78,12 @@ export default function TopNav({
 }: TopNavProps) {
   const router = useRouter();
   const { hasPermission, hasAnyPermission } = useAuth();
-  const { 
-    canReadMail, 
-    canReadCalendar, 
-    canReadSkills, 
-    canReadChat, 
-    canReadNotification, 
+  const {
+    canReadMail,
+    canReadCalendar,
+    canReadSkills,
+    canReadChat,
+    canReadNotification,
     canReadBookmark,
     canCreateBookmark,
     canDeleteBookmark,
@@ -186,7 +186,7 @@ export default function TopNav({
   };
   const { isPopoverOpen, setPopoverOpen } = useTimeTrackerStore();
   const screens = useBreakpoint();
-  const isCustomBreakpoint = useIsBreakpoint("max", 1214); // true when width <= 1213
+  const isCustomBreakpoint = useIsBreakpoint("max", 1290); // true when width <= 1289
 
   // Bookmarks state
   const [shortcutPopoverVisible, setShortcutPopoverVisible] = useState(false);
@@ -227,7 +227,7 @@ export default function TopNav({
   };
 
   // Breakpoints logic
-  const isMobile = useIsBreakpoint("max", NAV_MOBILE_BREAKPOINT + 1);
+  const isMobile = useIsBreakpoint("max", 790);
   const isSmallMobile = !screens.sm;
 
   // Filter modules by permission
@@ -994,19 +994,19 @@ export default function TopNav({
                 .module-text {
                     transition: all 0.2s ease;
                 }
-                @media (max-width: 1100px) {
+                @media (max-width: 1200px) {
                     .module-text-4 { display: none !important; }
                 }
-                @media (max-width: 1000px) {
+                @media (max-width: 1120px) {
                     .module-text-3 { display: none !important; }
                 }
-                @media (max-width: 900px) {
+                @media (max-width: 1040px) {
                     .module-text-2 { display: none !important; }
                 }
-                @media (max-width: 800px) {
+                @media (max-width: 960px) {
                     .module-text-1 { display: none !important; }
                 }
-                @media (max-width: 700px) {
+                @media (max-width: 880px) {
                     .module-text-0 { display: none !important; }
                 }
                 /* Hide the default Ant Design horizontal menu bottom bar */

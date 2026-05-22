@@ -1102,7 +1102,16 @@ export default function MembersPage() {
         }}
       >
         <TimeTrackingHeader
-          style={{ padding: "8.5px 32px" }}
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 1000,
+            background: "var(--bg-pure-white)",
+            padding: "8.5px 32px",
+            borderBottom: "1px solid var(--border-slate-100)",
+            marginBottom: 20,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+          }}
           icon={<TeamOutlined style={{ fontSize: 20, color: "#8b5cf6" }} />}
           title="Members Management"
           description="Directory and access control for all organization members"

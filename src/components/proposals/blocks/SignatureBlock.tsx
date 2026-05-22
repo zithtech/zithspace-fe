@@ -118,7 +118,7 @@ export const SignatureBlockSettings: React.FC<{ data: any, onUpdate: (data: any)
           <Form.Item 
             label={
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                <span style={labelStyle}>Section Title</span>
+                <span style={{ ...labelStyle, flex: 1 }}>Section Title</span>
                 <AIEnhanceButton 
                   originalData={data.title} 
                   blockType="signature (title)" 
@@ -150,7 +150,7 @@ export const SignatureBlockSettings: React.FC<{ data: any, onUpdate: (data: any)
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={labelStyle}>Intellectual Property (IP)</span>
+              <span style={{ ...labelStyle, flex: 1 }}>Intellectual Property (IP)</span>
               <AIEnhanceButton 
                 originalData={data.ipClause} 
                 blockType="legal (IP clause)" 
@@ -162,7 +162,7 @@ export const SignatureBlockSettings: React.FC<{ data: any, onUpdate: (data: any)
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={labelStyle}>Revision Policy</span>
+              <span style={{ ...labelStyle, flex: 1 }}>Revision Policy</span>
               <AIEnhanceButton 
                 originalData={data.revisionClause} 
                 blockType="legal (Revision Policy)" 
@@ -174,7 +174,7 @@ export const SignatureBlockSettings: React.FC<{ data: any, onUpdate: (data: any)
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={labelStyle}>Termination Clause</span>
+              <span style={{ ...labelStyle, flex: 1 }}>Termination Clause</span>
               <AIEnhanceButton 
                 originalData={data.terminationClause} 
                 blockType="legal (Termination Clause)" 
@@ -186,7 +186,7 @@ export const SignatureBlockSettings: React.FC<{ data: any, onUpdate: (data: any)
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={labelStyle}>Confidentiality / NDA</span>
+              <span style={{ ...labelStyle, flex: 1 }}>Confidentiality / NDA</span>
               <AIEnhanceButton 
                 originalData={data.ndaClause} 
                 blockType="legal (NDA clause)" 

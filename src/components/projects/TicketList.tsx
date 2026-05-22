@@ -66,6 +66,7 @@ import {
   CloseCircleOutlined,
   SettingOutlined,
   ColumnHeightOutlined,
+  LineChartOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -2244,6 +2245,18 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           style={{ height: 32, background: '#10b981', borderColor: '#10b981' }}
                         >
                           Complete Sprint
+                        </Button>
+                      )}
+                      {activeSprint?.id && (
+                        <Button
+                          type="default"
+                          size="middle"
+                          icon={<LineChartOutlined style={{ color: '#6366f1' }} />}
+                          onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
+                          className="saas-button-item"
+                          style={{ height: 32, fontWeight: 600 }}
+                        >
+                          View Report
                         </Button>
                       )}
                     </Space>

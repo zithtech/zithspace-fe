@@ -910,22 +910,16 @@ export default function InvoiceNewinvoicePage() {
             <Input type="hidden" />
           </Form.Item>
 
-          <div className="px-8 pt-6 pb-12">
+          <div className="px-8 pt-6 pb-12 lg:pt-0 lg:pb-0">
             <div className="mx-auto max-w-[1600px] grid grid-cols-12 gap-6">
-              {/* LEFT — meta panel */}
-              <aside className="col-span-12 lg:col-span-3">
-                <div
-                  className="rounded-2xl overflow-hidden"
-                  style={{
-                    background: "var(--bg-secondary)",
-                    border: "1px solid var(--border-color)",
-                  }}
-                >
+              {/* LEFT — meta sidebar (open layout, not a card) */}
+              <aside
+                className="col-span-12 lg:col-span-3 lg:border-r lg:pr-7"
+                style={{ borderColor: "var(--border-color)" }}
+              >
+                <div className="lg:sticky lg:top-14 lg:pt-6 lg:pb-12 space-y-6">
                   {/* From */}
-                  <div
-                    className="px-6 pt-5 pb-5 border-b"
-                    style={{ borderColor: "var(--border-color)" }}
-                  >
+                  <div className="pt-1">
                     <div className="flex items-center gap-2">
                       <span
                         className="inline-flex items-center justify-center w-6 h-6 rounded-md"
@@ -1016,11 +1010,14 @@ export default function InvoiceNewinvoicePage() {
                     )}
                   </div>
 
-                  {/* Bill to */}
+                  {/* divider */}
                   <div
-                    className="px-6 pt-5 pb-5 border-b"
-                    style={{ borderColor: "var(--border-color)" }}
-                  >
+                    className="h-px"
+                    style={{ background: "var(--border-color)" }}
+                  />
+
+                  {/* Bill to */}
+                  <div>
                     <div className="flex items-center gap-2">
                       <span
                         className="inline-flex items-center justify-center w-6 h-6 rounded-md"
@@ -1141,8 +1138,14 @@ export default function InvoiceNewinvoicePage() {
                     )}
                   </div>
 
+                  {/* divider */}
+                  <div
+                    className="h-px"
+                    style={{ background: "var(--border-color)" }}
+                  />
+
                   {/* Details grid */}
-                  <div className="px-6 pt-5 pb-5">
+                  <div>
                     <div className="flex items-center gap-2">
                       <span
                         className="inline-flex items-center justify-center w-6 h-6 rounded-md"
@@ -1335,7 +1338,7 @@ export default function InvoiceNewinvoicePage() {
               </aside>
 
               {/* RIGHT — line items, summary, notes */}
-              <section className="col-span-12 lg:col-span-9 space-y-4">
+              <section className="col-span-12 lg:col-span-9 space-y-5 lg:pt-6 lg:pb-12">
                 {/* Line items */}
                 <div
                   className="rounded-2xl overflow-hidden"

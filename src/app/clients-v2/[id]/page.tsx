@@ -49,6 +49,13 @@ import {
   BadgeCheck,
   Calendar,
   ChevronRight,
+  KeyRound,
+  LifeBuoy,
+  Flag,
+  Rocket,
+  GitPullRequest,
+  CheckSquare,
+  Server,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useTenant } from "@/context/TenantContext";
@@ -61,6 +68,15 @@ import ContactsTab from "./Tabs/ContactsTab";
 import AllocationsTab from "./Tabs/AllocationsTab";
 import DocumentsTab from "./Tabs/DocumentsTab";
 import ProjectsTab from "./Tabs/ProjectsTab";
+import PortalAccessTab from "./Tabs/PortalAccessTab";
+import MeetingsTab from "./Tabs/MeetingsTab";
+import ChangeRequestsTab from "./Tabs/ChangeRequestsTab";
+import ApprovalsTab from "./Tabs/ApprovalsTab";
+import EnvironmentsTab from "./Tabs/EnvironmentsTab";
+import TeamTab from "./Tabs/TeamTab";
+import SupportTicketsTab from "./Tabs/SupportTicketsTab";
+import MilestonesTab from "./Tabs/MilestonesTab";
+import ReleasesTab from "./Tabs/ReleasesTab";
 
 const { Text } = Typography;
 
@@ -415,35 +431,7 @@ export default function ClientV2DetailsPage() {
   const [activeField, setActiveField] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("1");
   const [copiedCode, setCopiedCode] = useState(false);
-  const tabsRef = React.useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    const root = tabsRef.current;
-    if (!root) return;
-    const nav = root.querySelector(".ant-tabs-nav") as HTMLElement | null;
-    if (!nav) return;
-
-    const sentinel = document.createElement("div");
-    sentinel.style.cssText = "position:absolute;top:-1px;left:0;right:0;height:1px;pointer-events:none;";
-    nav.style.position = "sticky";
-    const wrapper = nav.parentElement;
-    if (wrapper) {
-      wrapper.style.position = "relative";
-      wrapper.insertBefore(sentinel, nav);
-    }
-
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        nav.classList.toggle("cd-tabs-stuck", !entry.isIntersecting);
-      },
-      { threshold: [1], rootMargin: "0px" },
-    );
-    obs.observe(sentinel);
-    return () => {
-      obs.disconnect();
-      sentinel.remove();
-    };
-  }, [client]);
   const [editModes, setEditModes] = useState({
     basic: false,
     operational: false,
@@ -585,10 +573,10 @@ export default function ClientV2DetailsPage() {
 
   const createdAt = client.createdAt
     ? new Date(client.createdAt).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
     : null;
 
   /* ---------------------- Render ---------------------- */
@@ -619,6 +607,7 @@ export default function ClientV2DetailsPage() {
               <ChevronRight size={13} className="cd-crumb-sep" />
               <span className="cd-crumb-current">{client.companyName}</span>
             </div>
+
             <div className="cd-cmdbar-actions">
               {canUpdateClient && (
                 <Button
@@ -632,131 +621,10 @@ export default function ClientV2DetailsPage() {
             </div>
           </div>
 
-          {/* ---------------- Premium Hero ---------------- */}
-          <div className="cd-hero">
-            <div className="cd-hero-mesh" />
-            <div className="cd-hero-blob" style={{ background: heroGradient }} />
-
-            <div className="cd-hero-main">
-              <div className="cd-hero-avatar" style={{ background: heroGradient }}>
-                <span>{initials}</span>
-                <span className={`cd-hero-avatar-status ${isActive ? "active" : ""}`} />
-              </div>
-
-              <div className="cd-hero-info">
-                <h1 className="cd-hero-title">{client.companyName}</h1>
-
-                <div className="cd-hero-meta">
-                  <div className="cd-hero-meta-left">
-                    <Tooltip title={copiedCode ? "Copied!" : "Click to copy code"}>
-                      <button type="button" className="cd-meta-code" onClick={handleCopyCode}>
-                        <Hash size={11} />
-                        <span>{client.clientCode}</span>
-                        {copiedCode ? <Check size={11} /> : <Copy size={11} />}
-                      </button>
-                    </Tooltip>
-                    {client.industry && (
-                      <span className="cd-meta-item">
-                        <ShieldCheck size={12} />
-                        {client.industry}
-                      </span>
-                    )}
-                    {client.country && (
-                      <span className="cd-meta-item">
-                        <Globe2 size={12} />
-                        {client.country}
-                      </span>
-                    )}
-                    {client.website && (
-                      <a
-                        href={client.website.startsWith("http") ? client.website : `https://${client.website}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="cd-meta-link"
-                      >
-                        <Globe size={12} />
-                        <span>{client.website.replace(/^https?:\/\//, "")}</span>
-                        <ArrowUpRight size={11} />
-                      </a>
-                    )}
-                    {createdAt && (
-                      <span className="cd-meta-item">
-                        <Calendar size={12} />
-                        Onboarded {createdAt}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="cd-hero-pills">
-                    <span className={`cd-pill status ${isActive ? "active" : "inactive"}`}>
-                      <span className="cd-pill-dot" />
-                      {(client.status || "Inactive").toUpperCase()}
-                    </span>
-                    <span
-                      className="cd-pill risk"
-                      style={{ background: riskCfg.bg, color: riskCfg.color }}
-                    >
-                      <CircleDot size={10} fill={riskCfg.color} stroke={riskCfg.color} />
-                      {riskLevel.toUpperCase()} RISK
-                    </span>
-                    {client.clientType && (
-                      <span className="cd-pill type">
-                        <Sparkles size={11} />
-                        {client.clientType}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Hero KPI strip */}
-            <div className="cd-hero-kpis">
-              <div className="cd-kpi">
-                <div className="cd-kpi-label">
-                  <Wallet size={11} /> Contract Value
-                </div>
-                <div className="cd-kpi-value">
-                  {formatCurrencyShort(client.contractValue)}
-                  <span className="cd-kpi-suffix">{client.defaultCurrency || "USD"}</span>
-                </div>
-              </div>
-              <div className="cd-kpi-sep" />
-              <div className="cd-kpi">
-                <div className="cd-kpi-label">
-                  <Layers size={11} /> Projects
-                </div>
-                <div className="cd-kpi-value">
-                  {totalProjects}
-                  <span className="cd-kpi-suffix">total</span>
-                </div>
-              </div>
-              <div className="cd-kpi-sep" />
-              <div className="cd-kpi">
-                <div className="cd-kpi-label">
-                  <Users size={11} /> Contacts
-                </div>
-                <div className="cd-kpi-value">
-                  {activeContacts}
-                  <span className="cd-kpi-suffix">/ {totalContacts}</span>
-                </div>
-              </div>
-              <div className="cd-kpi-sep" />
-              <div className="cd-kpi">
-                <div className="cd-kpi-label">
-                  <Activity size={11} /> Allocations
-                </div>
-                <div className="cd-kpi-value">
-                  {activeAllocations}
-                  <span className="cd-kpi-suffix">active</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ---------------- Tabs ---------------- */}
-          <div className="cd-body" ref={tabsRef}>
+          {/* ---------------- Tabs (Side nav) ---------------- */}
+          <div className="cd-body">
             <Tabs
+              tabPosition="left"
               activeKey={activeTab}
               onChange={setActiveTab}
               className="cd-tabs"
@@ -771,6 +639,86 @@ export default function ClientV2DetailsPage() {
                   ),
                   children: (
                     <div className="cd-tab-pane">
+                      {/* ---------------- Premium Hero ---------------- */}
+                      <div className="cd-hero">
+                        <div className="cd-hero-mesh" />
+                        <div className="cd-hero-blob" style={{ background: heroGradient }} />
+
+                        <div className="cd-hero-main">
+                          <div className="cd-hero-avatar" style={{ background: heroGradient }}>
+                            <span>{initials}</span>
+                            <span className={`cd-hero-avatar-status ${isActive ? "active" : ""}`} />
+                          </div>
+
+                          <div className="cd-hero-info">
+                            <h1 className="cd-hero-title">{client.companyName}</h1>
+
+                            <div className="cd-hero-meta">
+                              <div className="cd-hero-meta-left">
+                                <Tooltip title={copiedCode ? "Copied!" : "Click to copy code"}>
+                                  <button type="button" className="cd-meta-code" onClick={handleCopyCode}>
+                                    <Hash size={11} />
+                                    <span>{client.clientCode}</span>
+                                    {copiedCode ? <Check size={11} /> : <Copy size={11} />}
+                                  </button>
+                                </Tooltip>
+                                {client.industry && (
+                                  <span className="cd-meta-item">
+                                    <ShieldCheck size={12} />
+                                    {client.industry}
+                                  </span>
+                                )}
+                                {client.country && (
+                                  <span className="cd-meta-item">
+                                    <Globe2 size={12} />
+                                    {client.country}
+                                  </span>
+                                )}
+                                {client.website && (
+                                  <a
+                                    href={client.website.startsWith("http") ? client.website : `https://${client.website}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="cd-meta-link"
+                                  >
+                                    <Globe size={12} />
+                                    <span>{client.website.replace(/^https?:\/\//, "")}</span>
+                                    <ArrowUpRight size={11} />
+                                  </a>
+                                )}
+                                {createdAt && (
+                                  <span className="cd-meta-item">
+                                    <Calendar size={12} />
+                                    Onboarded {createdAt}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="cd-hero-pills">
+                                <span className={`cd-pill status ${isActive ? "active" : "inactive"}`}>
+                                  <span className="cd-pill-dot" />
+                                  {(client.status || "Inactive").toUpperCase()}
+                                </span>
+                                <span
+                                  className="cd-pill risk"
+                                  style={{ background: riskCfg.bg, color: riskCfg.color }}
+                                >
+                                  <CircleDot size={10} fill={riskCfg.color} stroke={riskCfg.color} />
+                                  {riskLevel.toUpperCase()} RISK
+                                </span>
+                                {client.clientType && (
+                                  <span className="cd-pill type">
+                                    <Sparkles size={11} />
+                                    {client.clientType}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+
                       {/* Stat cards */}
                       <div className="cd-stat-grid">
                         <StatCard
@@ -1166,7 +1114,7 @@ export default function ClientV2DetailsPage() {
                     </div>
                   ),
                 },
-                {
+                /* {
                   key: "3",
                   label: (
                     <span className="cd-tab-label">
@@ -1184,7 +1132,7 @@ export default function ClientV2DetailsPage() {
                       />
                     </div>
                   ),
-                },
+                }, */
                 {
                   key: "4",
                   label: (
@@ -1219,6 +1167,201 @@ export default function ClientV2DetailsPage() {
                     </div>
                   ),
                 },
+                {
+                  key: "6",
+                  label: (
+                    <span className="cd-tab-label">
+                      <KeyRound size={15} />
+                      <span>Portal Access</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <PortalAccessTab
+                        clientId={params.id as string}
+                        contacts={client.contacts || []}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "7",
+                  label: (
+                    <span className="cd-tab-label">
+                      <Calendar size={15} />
+                      <span>Meetings</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <MeetingsTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
+                        contacts={client.contacts || []}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "8",
+                  label: (
+                    <span className="cd-tab-label">
+                      <GitPullRequest size={15} />
+                      <span>Change Requests</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <ChangeRequestsTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "9",
+                  label: (
+                    <span className="cd-tab-label">
+                      <CheckSquare size={15} />
+                      <span>Approvals</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <ApprovalsTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "10",
+                  label: (
+                    <span className="cd-tab-label">
+                      <Server size={15} />
+                      <span>Environments</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <EnvironmentsTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "11",
+                  label: (
+                    <span className="cd-tab-label">
+                      <Users size={15} />
+                      <span>Team</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <TeamTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "12",
+                  label: (
+                    <span className="cd-tab-label">
+                      <LifeBuoy size={15} />
+                      <span>Support Tickets</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <SupportTicketsTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "13",
+                  label: (
+                    <span className="cd-tab-label">
+                      <Flag size={15} />
+                      <span>Milestones</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <MilestonesTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "14",
+                  label: (
+                    <span className="cd-tab-label">
+                      <Rocket size={15} />
+                      <span>Releases</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <ReleasesTab
+                        clientId={params.id as string}
+                        projects={(client.projects || []).map((p: any) => ({
+                          id: p.id || p.projectId,
+                          name: p.name || p.projectName,
+                          code: p.code || null,
+                        }))}
+                        onRefresh={fetchClientDetails}
+                      />
+                    </div>
+                  ),
+                },
               ]}
             />
           </div>
@@ -1226,10 +1369,12 @@ export default function ClientV2DetailsPage() {
           {/* ---------------- Styles ---------------- */}
           <style jsx global>{`
             .cd-page {
-              margin: 0 -24px;
+              margin: 0 -8px;
               background: var(--bg-primary);
               min-height: calc(100vh - 64px);
-              padding: 0 0 48px 0;
+              padding: 0;
+              display: flex;
+              flex-direction: column;
             }
 
             /* ---------- Command bar ---------- */
@@ -1238,7 +1383,12 @@ export default function ClientV2DetailsPage() {
               align-items: center;
               justify-content: space-between;
               gap: 12px;
-              padding: 16px 32px 12px 32px;
+              padding: 10.3px 32px;
+              position: sticky;
+              top: 0;
+              z-index: 100;
+              background: var(--bg-primary);
+              border-bottom: 1px solid var(--border-slate-200);
             }
             .cd-crumbs {
               display: flex;
@@ -1255,7 +1405,7 @@ export default function ClientV2DetailsPage() {
               justify-content: center;
               border-radius: 10px;
               background: var(--bg-pure-white);
-              border: 1px solid var(--border-slate-100);
+              border: 1px solid var(--border-slate-200);
               color: var(--text-slate-700);
               cursor: pointer;
               transition: all 0.18s ease;
@@ -1307,7 +1457,7 @@ export default function ClientV2DetailsPage() {
             .cd-secondary-btn {
               height: 36px !important;
               border-radius: 10px !important;
-              border: 1px solid var(--border-slate-100) !important;
+              border: 1px solid var(--border-slate-200) !important;
               background: var(--bg-pure-white) !important;
               color: var(--text-slate-700) !important;
               font-weight: 600 !important;
@@ -1336,8 +1486,8 @@ export default function ClientV2DetailsPage() {
             .cd-hero {
               position: relative;
               overflow: hidden;
-              margin: 0 32px 20px 32px;
-              padding: 20px 26px 0 26px;
+              margin: 0 0 20px 0;
+              padding: 28px 26px;
               border-radius: 18px;
               background:
                 radial-gradient(900px 200px at -10% 0%, rgba(139, 92, 246, 0.42), transparent 60%),
@@ -1380,7 +1530,6 @@ export default function ClientV2DetailsPage() {
               align-items: center;
               gap: 18px;
               z-index: 1;
-              padding-bottom: 18px;
             }
             .cd-hero-avatar {
               position: relative;
@@ -1633,61 +1782,123 @@ export default function ClientV2DetailsPage() {
               border: 1px solid var(--border-slate-100);
             }
 
-            /* ---------- Body & Tabs ---------- */
+            /* ---------- Body & Side-nav Tabs ---------- */
             .cd-body {
-              padding: 0 32px;
+              padding: 0;
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+            }
+            .cd-tabs.ant-tabs {
+              align-items: stretch;
+              position: relative;
+              flex: 1;
+            }
+            .cd-tabs.ant-tabs::before {
+              content: "";
+              position: absolute;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 220px;
+              background: var(--bg-slate-50);
+              border-right: 1px solid var(--border-slate-200);
+              z-index: 1;
+            }
+            [data-theme="dark"] .cd-tabs.ant-tabs::before {
+              background: var(--bg-secondary);
             }
             .cd-tabs.ant-tabs > .ant-tabs-nav {
               position: sticky !important;
-              top: 0;
-              z-index: 20;
-              margin-bottom: 24px !important;
-              padding: 0 32px !important;
-              margin-left: -32px !important;
-              margin-right: -32px !important;
-              background: var(--bg-primary);
-              backdrop-filter: saturate(140%) blur(8px);
-              -webkit-backdrop-filter: saturate(140%) blur(8px);
-              transition: box-shadow 0.18s ease, background 0.18s ease;
-            }
-            .cd-tabs.ant-tabs > .ant-tabs-nav.cd-tabs-stuck {
-              background: rgba(255, 255, 255, 0.85);
-              box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.12);
+              top: 61px;
+              align-self: flex-start;
+              width: 220px;
+              flex-shrink: 0;
+              margin: 0 !important;
+              padding: 20px 14px !important;
+              background: transparent;
+              border-right: none !important;
+              border-radius: 0;
+              max-height: calc(100vh - 64px);
+              overflow-y: auto;
+              z-index: 2;
             }
             [data-theme="dark"] .cd-tabs.ant-tabs > .ant-tabs-nav {
-              background: var(--bg-primary);
-            }
-            [data-theme="dark"] .cd-tabs.ant-tabs > .ant-tabs-nav.cd-tabs-stuck {
-              background: rgba(15, 23, 42, 0.85);
-              box-shadow: 0 4px 16px -8px rgba(0, 0, 0, 0.4);
+              background: transparent;
             }
             .cd-tabs .ant-tabs-nav::before {
-              border-bottom: 1px solid var(--border-slate-100) !important;
+              display: none !important;
+            }
+            .cd-tabs .ant-tabs-nav .ant-tabs-nav-wrap {
+              width: 100%;
+            }
+            .cd-tabs .ant-tabs-nav .ant-tabs-nav-list {
+              width: 100%;
+              gap: 2px;
             }
             .cd-tabs .ant-tabs-tab {
-              padding: 12px 0 !important;
-              margin: 0 24px 0 0 !important;
-              transition: all 0.15s ease !important;
+              width: 100%;
+              padding: 10px 14px !important;
+              margin: 0 !important;
+              border-radius: 10px;
+              transition: background 0.15s ease, color 0.15s ease !important;
+            }
+            .cd-tabs .ant-tabs-tab + .ant-tabs-tab {
+              margin-top: 2px !important;
+            }
+            .cd-tabs .ant-tabs-tab .ant-tabs-tab-btn {
+              width: 100%;
+              text-align: left;
             }
             .cd-tabs .ant-tabs-tab .cd-tab-label {
-              display: inline-flex;
+              display: flex;
               align-items: center;
-              gap: 8px;
+              gap: 12px;
               color: var(--text-slate-500);
               font-size: 13.5px;
               font-weight: 600;
               transition: color 0.15s ease;
+              width: 100%;
+            }
+            .cd-tabs .ant-tabs-tab .cd-tab-label > span:not(.cd-tab-count) {
+              flex: 1;
+              min-width: 0;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+            .cd-tabs .ant-tabs-tab:hover {
+              background: var(--bg-slate-50);
             }
             .cd-tabs .ant-tabs-tab:hover .cd-tab-label {
               color: #8b5cf6;
+            }
+            .cd-tabs .ant-tabs-tab-active {
+              background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(99, 102, 241, 0.10));
+            }
+            .cd-tabs .ant-tabs-tab-active:hover {
+              background: linear-gradient(135deg, rgba(139, 92, 246, 0.16), rgba(99, 102, 241, 0.14));
             }
             .cd-tabs .ant-tabs-tab-active .cd-tab-label {
               color: #8b5cf6;
             }
             .cd-tabs .ant-tabs-ink-bar {
-              background: linear-gradient(90deg, #8b5cf6, #6366f1) !important;
-              height: 2.5px !important;
-              border-radius: 2px !important;
+              width: 3px !important;
+              background: linear-gradient(180deg, #8b5cf6, #6366f1) !important;
+              border-radius: 3px !important;
+              left: 0 !important;
+              right: auto !important;
+            }
+            .cd-tabs .ant-tabs-content-holder {
+              flex: 1;
+              min-width: 0;
+              border-left: none !important;
+              padding: 0 32px !important;
+            }
+            .cd-tabs .ant-tabs-content,
+            .cd-tabs .ant-tabs-tabpane {
+              margin: 0 !important;
+              padding: 0 !important;
             }
             .cd-tab-count {
               display: inline-flex;
@@ -1701,7 +1912,8 @@ export default function ClientV2DetailsPage() {
               color: var(--text-slate-600);
               font-size: 10.5px;
               font-weight: 700;
-              border: 1px solid var(--border-slate-100);
+              border: 1px solid var(--border-slate-200);
+              margin-left: auto;
             }
             .cd-tabs .ant-tabs-tab-active .cd-tab-count {
               background: linear-gradient(135deg, #8b5cf6, #6366f1);
@@ -1710,6 +1922,39 @@ export default function ClientV2DetailsPage() {
             }
             .cd-tab-pane {
               animation: cd-fade-in 0.3s ease;
+              padding: 8px 0 48px 0;
+            }
+            @media (max-width: 900px) {
+              .cd-tabs.ant-tabs > .ant-tabs-nav {
+                width: 180px;
+                padding: 20px 10px !important;
+              }
+              .cd-tabs.ant-tabs::before {
+                width: 180px;
+              }
+              .cd-tabs .ant-tabs-content-holder {
+                padding: 0 20px !important;
+              }
+            }
+            @media (max-width: 720px) {
+              .cd-tabs.ant-tabs {
+                flex-direction: column;
+              }
+              .cd-tabs.ant-tabs::before {
+                display: none;
+              }
+              .cd-tabs.ant-tabs > .ant-tabs-nav {
+                position: static !important;
+                width: 100%;
+                margin: 0 !important;
+                padding: 8px 16px !important;
+                max-height: none;
+                border-right: none;
+                border-bottom: 1px solid var(--border-slate-200);
+              }
+              .cd-tabs .ant-tabs-content-holder {
+                padding: 0 16px !important;
+              }
             }
             @keyframes cd-fade-in {
               from { opacity: 0; transform: translateY(6px); }
@@ -1723,7 +1968,7 @@ export default function ClientV2DetailsPage() {
               gap: 16px;
               margin-bottom: 24px;
             }
-            @media (max-width: 1100px) {
+            @media (max-width: 1300px) {
               .cd-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             }
             @media (max-width: 600px) {
@@ -1810,7 +2055,7 @@ export default function ClientV2DetailsPage() {
               grid-template-columns: repeat(2, minmax(0, 1fr));
               gap: 16px;
             }
-            @media (max-width: 1100px) {
+            @media (max-width: 1200px) {
               .cd-section-grid { grid-template-columns: 1fr; }
             }
             .cd-section {

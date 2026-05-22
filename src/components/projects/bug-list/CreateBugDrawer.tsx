@@ -292,6 +292,15 @@ export default function CreateBugDrawer({
   const handleSubmit = async () => {
     setDescriptionTouched(true);
     if (!isValid) return;
+
+    let finalLinks = [...links];
+    if (linkUrl.trim()) {
+      finalLinks.push({
+        url: linkUrl.trim(),
+        label: linkLabel.trim() || undefined,
+      });
+    }
+
     if (editingBug) {
       await onSubmit({
         id: editingBug.id,
@@ -303,7 +312,7 @@ export default function CreateBugDrawer({
         tags,
         assigneeId: assigneeId || null,
         attachments,
-        externalLinks: links,
+        externalLinks: finalLinks,
         comments: comments.trim() || null,
       });
     } else {
@@ -322,7 +331,7 @@ export default function CreateBugDrawer({
         tags,
         assigneeId,
         attachments,
-        externalLinks: links,
+        externalLinks: finalLinks,
         comments: comments.trim() || undefined,
       });
     }

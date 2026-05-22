@@ -26,8 +26,19 @@ const PUBLIC_PATHS = [
   "/api/public/",
 ];
 
+// Client-portal paths use a completely separate auth identity (see
+// `ClientPortalAuthContext`). The edge middleware shouldn't redirect them to
+// the staff `/login`. Client-portal token storage is localStorage, which the
+// edge can't see, so the client-side guard in `ClientPortalAuthContext` does
+// the actual auth check.
+const PORTAL_PUBLIC = ["/portal"];
+
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+}
+
+function isPortalPath(pathname: string): boolean {
+  return PORTAL_PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 export function middleware(request: NextRequest) {
@@ -35,6 +46,12 @@ export function middleware(request: NextRequest) {
 
   // Skip all public/static paths
   if (isPublicPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  // Portal routes have their own client-side guard — never bounce them to
+  // staff /login.
+  if (isPortalPath(pathname)) {
     return NextResponse.next();
   }
 

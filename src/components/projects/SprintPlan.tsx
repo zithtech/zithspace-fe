@@ -704,6 +704,11 @@ export default function SprintPlanComponent() {
               <Button type="text" size="small" icon={<CheckCircleOutlined style={{ color: '#3b82f6' }} />} onClick={() => handleCompleteSprint(record)} className="sp-row-action-btn" />
             </Tooltip>
           )}
+          {(record.status === 'active' || record.status === 'completed') && (
+            <Tooltip title="View report">
+              <Button type="text" size="small" icon={<LineChartOutlined style={{ color: '#6366f1' }} />} onClick={() => router.push(`/tickets/reports/${record.id}`)} className="sp-row-action-btn" />
+            </Tooltip>
+          )}
           <Tooltip title="View details">
             <Button type="text" size="small" icon={<EyeOutlined style={{ color: '#64748b' }} />} onClick={() => handleViewTickets(record)} className="sp-row-action-btn" />
           </Tooltip>
@@ -1309,6 +1314,15 @@ export default function SprintPlanComponent() {
               <Button icon={<EditOutlined />} onClick={() => { handleEdit(drawerSprintPlan!); setDrawerVisible(false); }} style={{ borderRadius: 8, fontWeight: 600, height: 36 }}>
                 Edit
               </Button>
+              {drawerSprintPlan && (drawerSprintPlan.status === 'active' || drawerSprintPlan.status === 'completed') && (
+                <Button
+                  icon={<LineChartOutlined />}
+                  onClick={() => { router.push(`/tickets/reports/${drawerSprintPlan.id}`); setDrawerVisible(false); }}
+                  style={{ borderRadius: 8, fontWeight: 600, height: 36 }}
+                >
+                  View Report
+                </Button>
+              )}
               {drawerSprintPlan?.status === 'active' && (
                 <Button
                   type="primary"

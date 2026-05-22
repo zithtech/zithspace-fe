@@ -21,8 +21,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const pathname = usePathname();
 
   // Determine the active theme based on route
-  const isLoginPage = pathname === "/login";
-  const activeTheme = isLoginPage ? "light" : theme;
+  const isLightForcedRoute = pathname === "/login" || pathname?.startsWith("/portal");
+  const activeTheme = isLightForcedRoute ? "light" : theme;
 
   useEffect(() => {
     // 1. Check local storage

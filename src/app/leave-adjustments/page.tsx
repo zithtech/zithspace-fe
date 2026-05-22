@@ -79,7 +79,14 @@ export default function LeaveAdjustmentPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { isLoading: authLoading, user } = useAuth();
-  const { canManageLeaves } = usePermission();
+  const {
+    canManageLeaves,
+    canReadLeaveAdjustment,
+    canCreateLeaveAdjustment,
+    canUpdateLeaveAdjustment,
+    canDeleteLeaveAdjustment,
+  } = usePermission();
+  const hasAccess = canManageLeaves || canReadLeaveAdjustment;
   const [form] = Form.useForm();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -147,10 +154,10 @@ export default function LeaveAdjustmentPage() {
 
   // Handle protected routing
   useEffect(() => {
-    if (!authLoading && !canManageLeaves) {
+    if (!authLoading && !hasAccess) {
       router.push('/dashboard');
     }
-  }, [authLoading, canManageLeaves, router]);
+  }, [authLoading, hasAccess, router]);
 
   useEffect(() => {
     if (employeeId) {
@@ -186,8 +193,8 @@ export default function LeaveAdjustmentPage() {
     return null;
   }
 
-  // Don't render if no manage permission
-  if (!canManageLeaves) {
+  // Don't render if no manage/read permission
+  if (!hasAccess) {
     return null;
   }
 
@@ -389,33 +396,37 @@ export default function LeaveAdjustmentPage() {
       fixed: "right" as const,
       render: (_: any, record: LeaveAdjustmentViewData) => (
         <Space>
-          <Tooltip title="Edit Adjustment">
-            <Button
-              type="text"
-              size="small"
-              icon={<Edit2 size={16} color="#64748b" />}
-              style={{ borderRadius: 6 }}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Popconfirm
-              title="Delete Adjustment?"
-              description="Are you sure you want to delete this correction?"
-              onConfirm={() => deleteAdjustment(record.id)}
-              okText="Delete"
-              cancelText="No"
-              okButtonProps={{ danger: true }}
-            >
+          {(canManageLeaves || canUpdateLeaveAdjustment) && (
+            <Tooltip title="Edit Adjustment">
               <Button
                 type="text"
                 size="small"
-                danger
-                icon={<Trash2 size={16} />}
+                icon={<Edit2 size={16} color="#64748b" />}
                 style={{ borderRadius: 6 }}
+                onClick={() => handleEdit(record)}
               />
-            </Popconfirm>
-          </Tooltip>
+            </Tooltip>
+          )}
+          {(canManageLeaves || canDeleteLeaveAdjustment) && (
+            <Tooltip title="Delete">
+              <Popconfirm
+                title="Delete Adjustment?"
+                description="Are you sure you want to delete this correction?"
+                onConfirm={() => deleteAdjustment(record.id)}
+                okText="Delete"
+                cancelText="No"
+                okButtonProps={{ danger: true }}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<Trash2 size={16} />}
+                  style={{ borderRadius: 6 }}
+                />
+              </Popconfirm>
+            </Tooltip>
+          )}
         </Space>
       ),
     },
@@ -453,19 +464,21 @@ export default function LeaveAdjustmentPage() {
                 style={{ width: 280, borderRadius: 12, height: 44, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)", color: "var(--text-slate-900)" }}
                 onChange={e => setSearchText(e.target.value)}
               />
-              <Button
-                type="primary"
-                size="large"
-                icon={<Plus size={18} />}
-                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600, background: "var(--premium-blue)" }}
-                onClick={() => {
-                  setEditingKey(null);
-                  form.resetFields();
-                  setIsModalVisible(true);
-                }}
-              >
-                New Adjustment
-              </Button>
+              {(canManageLeaves || canCreateLeaveAdjustment) && (
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<Plus size={18} />}
+                  style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600, background: "var(--premium-blue)" }}
+                  onClick={() => {
+                    setEditingKey(null);
+                    form.resetFields();
+                    setIsModalVisible(true);
+                  }}
+                >
+                  New Adjustment
+                </Button>
+              )}
             </div>
           </div>
 

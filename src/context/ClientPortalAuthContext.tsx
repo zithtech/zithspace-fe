@@ -36,6 +36,10 @@ interface PortalAuthCtx {
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<void>;
 }
 
 const Ctx = createContext<PortalAuthCtx | undefined>(undefined);
@@ -94,6 +98,18 @@ export const ClientPortalAuthProvider: React.FC<{
     await refreshMe();
   };
 
+  const changePassword = async (
+    currentPassword: string,
+    newPassword: string,
+  ) => {
+    await portalApi.post("/api/client-portal/auth/change-password", {
+      currentPassword,
+      newPassword,
+    });
+    // Backend clears must_change_password on success — refresh local user.
+    await refreshMe();
+  };
+
   const logout = async () => {
     try {
       await portalApi.post("/api/client-portal/auth/logout");
@@ -106,7 +122,7 @@ export const ClientPortalAuthProvider: React.FC<{
   };
 
   return (
-    <Ctx.Provider value={{ user, loading, login, logout, refreshMe }}>
+    <Ctx.Provider value={{ user, loading, login, logout, refreshMe, changePassword }}>
       {children}
     </Ctx.Provider>
   );

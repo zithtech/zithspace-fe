@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -18,10 +18,12 @@ import {
   ClipboardList,
   ChevronDown,
   LogOut,
+  KeyRound,
   LucideIcon,
 } from "lucide-react";
 import { Dropdown, Spin } from "antd";
 import { useClientPortalAuth } from "@/context/ClientPortalAuthContext";
+import ChangePasswordModal from "./ChangePasswordModal";
 
 const NAV: {
   href: string;
@@ -50,6 +52,7 @@ export default function PortalShell({
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout } = useClientPortalAuth();
+  const [changePwOpen, setChangePwOpen] = useState(false);
 
   if (loading) {
     return (
@@ -220,6 +223,16 @@ export default function PortalShell({
             menu={{
               items: [
                 {
+                  key: "change-password",
+                  label: (
+                    <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <KeyRound size={14} /> Change password
+                    </span>
+                  ),
+                  onClick: () => setChangePwOpen(true),
+                },
+                { type: "divider" },
+                {
                   key: "logout",
                   label: (
                     <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -295,6 +308,11 @@ export default function PortalShell({
 
       {/* Main */}
       <main style={{ flex: 1, minWidth: 0 }}>{children}</main>
+
+      <ChangePasswordModal
+        open={changePwOpen}
+        onClose={() => setChangePwOpen(false)}
+      />
     </div>
   );
 }

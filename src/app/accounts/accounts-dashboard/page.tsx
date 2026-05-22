@@ -28,6 +28,7 @@ import {
   Empty,
   Drawer,
   Switch,
+  App,
 } from 'antd';
 import {
   PlusOutlined,
@@ -94,6 +95,7 @@ const StatCard = ({ label, value, icon: Icon, color, subValue, accent }: any) =>
 );
 
 export default function AccountsPage() {
+  const { message: messageApi } = App.useApp();
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [form] = Form.useForm();
@@ -101,8 +103,11 @@ export default function AccountsPage() {
     canReadAccount,
     canCreateAccount,
     canUpdateAccount,
-    canDeleteAccount
+    canDeleteAccount,
+    canReadUser
   } = usePermission();
+
+  const hasShownError = React.useRef(false);
 
   // Protect route - requires account.read permission
   useEffect(() => {
@@ -110,6 +115,14 @@ export default function AccountsPage() {
       router.push('/dashboard');
     }
   }, [user, isLoading, canReadAccount, router]);
+
+  // Alert if member module read permission is missing
+  useEffect(() => {
+    if (!isLoading && user && !canReadUser && !hasShownError.current) {
+      messageApi.error("Members permission is missing");
+      hasShownError.current = true;
+    }
+  }, [user, isLoading, canReadUser, messageApi]);
 
   // State management
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -205,6 +218,7 @@ export default function AccountsPage() {
 
   // Fetch members
   const fetchMembers = async () => {
+    if (!canReadUser) return;
     try {
       const response = await MembersService.getMembers({ limit: 100 });
       setMembers(response.data);

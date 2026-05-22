@@ -416,6 +416,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   // Handlers
   const handleUpdate = async (field: string, value: any) => {
     if (!currentTicketId) return;
+    if (field === "assignee" && !canAssignTicket) {
+      message.error("Access Denied: You do not have permission to assign tickets.");
+      return;
+    }
     try {
       await updateTicketMutation.mutateAsync({
         id: currentTicketId,
@@ -2215,6 +2219,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       }
       defaultTicketId={ticket?.id}
       lockLink
+      existingHubs={linkedHubs}
       onCreated={(hubId) => {
         onClose();
         queryClient.invalidateQueries({ queryKey: ['ticket', currentTicketId, 'documentHubs'] });
@@ -2232,6 +2237,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       }
       defaultTicketId={ticket?.id}
       lockedTicket={ticket as any}
+      existingHubs={linkedHubs}
       onCreated={(hubId) => {
         onClose();
         queryClient.invalidateQueries({ queryKey: ['ticket', currentTicketId, 'documentHubs'] });

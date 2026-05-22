@@ -57,7 +57,7 @@ class InvoiceTemplateService {
       const response = await apiClient.get<ApiResponse<InvoiceTemplate[]>>('/api/invoice-templates');
       return response.data.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to fetch templates');
+      throw new Error(error.message || 'Failed to fetch templates');
     }
   }
 
@@ -66,7 +66,7 @@ class InvoiceTemplateService {
       const response = await apiClient.get<ApiResponse<InvoiceTemplate>>(`/api/invoice-templates/${id}`);
       return response.data.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to fetch template');
+      throw new Error(error.message || 'Failed to fetch template');
     }
   }
 
@@ -75,7 +75,7 @@ class InvoiceTemplateService {
       const response = await apiClient.post<ApiResponse<InvoiceTemplate>>('/api/invoice-templates', data);
       return response.data.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to create template');
+      throw new Error(error.message || 'Failed to create template');
     }
   }
 
@@ -84,7 +84,7 @@ class InvoiceTemplateService {
       const response = await apiClient.put<ApiResponse<InvoiceTemplate>>(`/api/invoice-templates/${id}`, data);
       return response.data.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to update template');
+      throw new Error(error.message || 'Failed to update template');
     }
   }
 
@@ -93,7 +93,7 @@ class InvoiceTemplateService {
       const response = await apiClient.delete<ApiResponse<void>>(`/api/invoice-templates/${id}`);
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to delete template');
+      throw new Error(error.message || 'Failed to delete template');
     }
   }
 }

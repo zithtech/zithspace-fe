@@ -167,7 +167,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     canDeleteTicket, 
     canAssignTicket,
     canManageTickets,
-    canCreateTicketPlan 
+    canCreateTicketPlan,
+    canReadTicketPlan,
+    canUpdateTicketPlan
   } = usePermission();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -441,7 +443,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     queryKey: ['activeSprint', projectId],
     queryFn: () => ReleasePlanService.getActiveReleasePlans(projectId),
     staleTime: 60 * 1000,
-    enabled: !!projectId,
+    enabled: !!projectId && canReadTicketPlan,
   });
   const activeSprint = activeSprints && activeSprints.length > 0 ? activeSprints[0] : null;
 
@@ -734,6 +736,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     field: "status" | "assignee" | "title" | "priority" | "type" | "storyPoint",
     value: string | number | null
   ) => {
+    if (field === "assignee" && !canAssignTicket) {
+      message.error("Access Denied: You do not have permission to assign tickets.");
+      return;
+    }
     // Prepare update data
     const updateData: any = {};
     // Prepare optimistic cache data (optional override)
@@ -1118,9 +1124,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           <Space
             style={{ cursor: canUpdateTicket ? "pointer" : "default", transition: 'all 0.2s' }}
             className={canUpdateTicket ? "hover:translate-x-1" : ""}
-            onClick={() =>
-              canUpdateTicket && setEditingField({ ticketId: record.id, field: "assignee" })
-            }
+            onClick={() => {
+              if (canUpdateTicket) {
+                if (!canAssignTicket) {
+                  message.error("Access Denied: You do not have permission to assign tickets.");
+                  return;
+                }
+                setEditingField({ ticketId: record.id, field: "assignee" });
+              }
+            }}
           >
             <Avatar
               size="small"
@@ -2241,7 +2253,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       >
                         Go To Backlog
                       </Button>
-                      {canManageTickets && (
+                      {canUpdateTicketPlan && (
                         <Button
                           type="primary"
                           size="middle"
@@ -2390,15 +2402,17 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       allowClear
                     />
                     <Divider type="vertical" style={{ height: 20, margin: 0 }} />
-                    <Button
-                      type="default"
-                      icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
-                      onClick={() => document.getElementById('active-section')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="saas-button-item"
-                      style={{ height: 32, fontWeight: 600 }}
-                    >
-                      Go To Sprint
-                    </Button>
+                    {activeSprint && (
+                      <Button
+                        type="default"
+                        icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
+                        onClick={() => document.getElementById('active-section')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="saas-button-item"
+                        style={{ height: 32, fontWeight: 600 }}
+                      >
+                        Go To Sprint
+                      </Button>
+                    )}
                     {canCreateTicketPlan && (
                       <Button
                         type="default"

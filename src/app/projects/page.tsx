@@ -16,7 +16,9 @@ import {
   Tag,
   Divider,
   Progress,
-  Empty
+  Empty,
+  message,
+  Alert
 } from "antd";
 import {
   ProjectOutlined,
@@ -39,17 +41,10 @@ const { Title, Paragraph, Text } = Typography;
 
 export default function ProjectsPage() {
   const { user, isLoading: authLoading } = useAuth();
-  const { canReadProject } = usePermission();
+  const { canReadProject, canReadTicketPlan } = usePermission();
   const router = useRouter();
 
   const { data: stats, isLoading: statsLoading } = useTicketDashboardStats();
-
-  // Route guard - requires project.read permission
-  useEffect(() => {
-    if (!authLoading && !canReadProject) {
-      router.push('/dashboard');
-    }
-  }, [authLoading, canReadProject, router]);
 
   if (authLoading || statsLoading) {
     return (
@@ -69,7 +64,20 @@ export default function ProjectsPage() {
     );
   }
 
-  if (!canReadProject) return null;
+  if (!canReadProject) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 20, maxWidth: 600, margin: '100px auto' }}>
+          <Alert
+            message="Permission Required"
+            description="Without project permission, you cannot read tickets."
+            type="warning"
+            showIcon
+          />
+        </div>
+      </MainLayout>
+    );
+  }
 
   const generalStats = stats?.generalStats || { total: 0, in_progress: 0, not_started: 0, completed: 0, blocked: 0 };
   const projectStats = stats?.projectStats || [];
@@ -359,42 +367,44 @@ export default function ProjectsPage() {
               </Card>
 
               {/* Support/Resource Card */}
-              <Card
-                style={{
-                  borderRadius: 20,
-                  background: 'linear-gradient(135deg, #1677ff 0%, #003eb3 100%)',
-                  color: '#fff',
-                  border: 'none',
-                  boxShadow: '0 8px 24px rgba(22, 119, 255, 0.25)'
-                }}
-              >
-                <Space direction="vertical" size={16}>
-                  <div style={{
-                    background: 'rgba(255,255,255,0.2)',
-                    width: 40,
-                    height: 40,
-                    borderRadius: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <CalendarOutlined style={{ fontSize: 20 }} />
-                  </div>
-                  <div>
-                    <Title level={4} style={{ color: '#fff', margin: 0, fontSize: 18 }}>Release Planning</Title>
-                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
-                      Sync your tickets with release plans to track delivery milestones.
-                    </Text>
-                  </div>
-                  <Button
-                    ghost
-                    style={{ borderRadius: 8, fontWeight: 600, border: '1px solid rgba(255,255,255,0.5)' }}
-                    onClick={() => router.push('/projects/plans')}
-                  >
-                    Configure Plans
-                  </Button>
-                </Space>
-              </Card>
+              {canReadTicketPlan && (
+                <Card
+                  style={{
+                    borderRadius: 20,
+                    background: 'linear-gradient(135deg, #1677ff 0%, #003eb3 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    boxShadow: '0 8px 24px rgba(22, 119, 255, 0.25)'
+                  }}
+                >
+                  <Space direction="vertical" size={16}>
+                    <div style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <CalendarOutlined style={{ fontSize: 20 }} />
+                    </div>
+                    <div>
+                      <Title level={4} style={{ color: '#fff', margin: 0, fontSize: 18 }}>Release Planning</Title>
+                      <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
+                        Sync your tickets with release plans to track delivery milestones.
+                      </Text>
+                    </div>
+                    <Button
+                      ghost
+                      style={{ borderRadius: 8, fontWeight: 600, border: '1px solid rgba(255,255,255,0.5)' }}
+                      onClick={() => router.push('/projects/plans')}
+                    >
+                      Configure Plans
+                    </Button>
+                  </Space>
+                </Card>
+              )}
             </Col>
           </Row>
         </div>

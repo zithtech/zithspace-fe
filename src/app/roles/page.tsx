@@ -869,8 +869,11 @@ export default function RolesPage() {
                           const parts = p.name.split('.');
                           let subKey = `${label} Core`;
                           
+                          if (p.name === 'time_tracking.manage_time') {
+                            subKey = 'Team Module';
+                          }
                           // Handle sub-modules (e.g., ticket.bucket.read -> Bucket Module)
-                          if (parts.length > 2) {
+                          else if (parts.length > 2) {
                             const subName = parts[1].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
                             subKey = `${subName} ${label.includes('Settings') ? 'Config' : 'Module'}`;
                           } 
@@ -1026,7 +1029,10 @@ export default function RolesPage() {
                           perms.forEach(p => {
                             const parts = p.name.split('.');
                             let subKey = `${label} Core`;
-                            if (parts.length > 2) {
+                            if (p.name === 'time_tracking.manage_time') {
+                              subKey = 'Team Module';
+                            }
+                            else if (parts.length > 2) {
                               const subName = parts[1].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
                               subKey = `${subName} ${label.includes('Settings') ? 'Config' : 'Module'}`;
                             }

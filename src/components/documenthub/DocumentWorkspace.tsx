@@ -163,8 +163,12 @@ function TreeNode({
     return (
         <div>
             <div
-                draggable={!isEditing}
+                draggable={!isEditing && canUpdate}
                 onDragStart={(e) => {
+                    if (!canUpdate) {
+                        e.preventDefault();
+                        return;
+                    }
                     e.stopPropagation();
                     e.dataTransfer.effectAllowed = 'move';
                     e.dataTransfer.setData('text/plain', item.id);
@@ -175,7 +179,7 @@ function TreeNode({
                     onDragEndNode();
                 }}
                 onDragOver={(e) => {
-                    if (!canBeDropTarget) return;
+                    if (!canBeDropTarget || !canUpdate) return;
                     e.preventDefault();
                     e.stopPropagation();
                     e.dataTransfer.dropEffect = 'move';
@@ -186,7 +190,7 @@ function TreeNode({
                     onDragLeaveNode(item.id);
                 }}
                 onDrop={(e) => {
-                    if (!canBeDropTarget) return;
+                    if (!canBeDropTarget || !canUpdate) return;
                     e.preventDefault();
                     e.stopPropagation();
                     onDropNode(e, item.id);

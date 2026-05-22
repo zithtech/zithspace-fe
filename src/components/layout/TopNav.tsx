@@ -47,8 +47,8 @@ interface ShortcutItem {
 }
 import { Inbox } from '@novu/nextjs';
 import { Permissions } from '@/types/permissions';
-import { ModuleType, NAVIGATION_CONFIG, NAV_MOBILE_BREAKPOINT } from './navigationConfig';
-import { useRouter } from 'next/navigation';
+import { NavItem, ModuleType, NAVIGATION_CONFIG, NAV_MOBILE_BREAKPOINT } from './navigationConfig';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useIsBreakpoint } from '@/hooks/use-is-breakpoint';
@@ -77,6 +77,9 @@ export default function TopNav({
   collapsed,
 }: TopNavProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isRouteActive = (path: string) =>
+    pathname === path || pathname?.startsWith(path + '/');
   const { hasPermission, hasAnyPermission } = useAuth();
   const {
     canReadMail,
@@ -87,7 +90,8 @@ export default function TopNav({
     canReadBookmark,
     canCreateBookmark,
     canDeleteBookmark,
-    canReadTimeTracking
+    canReadTimeTracking,
+    canCreateTimeTracking
   } = usePermission();
   const { token } = theme.useToken();
   const { theme: appTheme } = useTheme();
@@ -237,11 +241,37 @@ export default function TopNav({
     return false;
   });
 
+  const getFirstAllowedPath = (items: NavItem[]): string | undefined => {
+    for (const item of items) {
+      let hasItemPermission = true;
+      if (item.requiredPermission) {
+        hasItemPermission = hasPermission(item.requiredPermission);
+      } else if (item.requiredAnyPermission) {
+        hasItemPermission = hasAnyPermission(...item.requiredAnyPermission);
+      }
+
+      if (!hasItemPermission) {
+        continue;
+      }
+
+      if (item.children && item.children.length > 0) {
+        const childPath = getFirstAllowedPath(item.children);
+        if (childPath) return childPath;
+      } else if (item.path) {
+        return item.path;
+      }
+    }
+    return undefined;
+  };
+
   const handleModuleClick = (moduleKey: ModuleType) => {
     onModuleChange(moduleKey);
     const moduleConfig = NAVIGATION_CONFIG.find(m => m.key === moduleKey);
     if (moduleConfig) {
-      if (moduleConfig.defaultPath) {
+      const firstAllowedPath = getFirstAllowedPath(moduleConfig.items);
+      if (firstAllowedPath) {
+        router.push(firstAllowedPath);
+      } else if (moduleConfig.defaultPath) {
         router.push(moduleConfig.defaultPath);
       } else if (moduleConfig.items.length > 0) {
         const firstItem = moduleConfig.items[0];
@@ -307,54 +337,16 @@ export default function TopNav({
     return {
       key: module.key,
       label: (
-        <div style={{
-          fontWeight: 600,
-          padding: '0 12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          height: '100%',
-          position: 'relative',
-          transition: 'all 0.3s'
-        }}>
-          <span
-            className="module-icon"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              background: isActive ? `${accent}1A` : 'transparent',
-              color: isActive ? accent : 'var(--text-slate-700, #475569)',
-              transition: 'all 0.25s ease',
-            }}
-          >
+        <div
+          className={`module-pill${isActive ? ' module-pill-active' : ''}`}
+          style={{ ['--module-accent' as any]: accent }}
+        >
+          <span className="module-pill-icon">
             <ModuleIcon size={17} strokeWidth={isActive ? 2 : 1.75} />
           </span>
-          <span
-            className={`module-text module-text-${index}`}
-            style={{
-              fontSize: '13px',
-              letterSpacing: '0.3px',
-              color: isActive ? accent : undefined,
-            }}
-          >
+          <span className={`module-text module-text-${index}`}>
             {module.label}
           </span>
-          {isActive && (
-            <div style={{
-              position: 'absolute',
-              bottom: '4px',
-              left: '12px',
-              right: '12px',
-              height: '3px',
-              background: accent,
-              borderRadius: '2px',
-              boxShadow: `0 2px 6px ${accent}40`,
-            }} />
-          )}
         </div>
       ),
     };
@@ -639,7 +631,7 @@ export default function TopNav({
         {!isCustomBreakpoint ? (
           <>
             <ThemeToggle />
-            {canReadTimeTracking && <TimeTrackerPopover />}
+            {canReadTimeTracking && canCreateTimeTracking && <TimeTrackerPopover />}
 
 
             {canReadMail && (
@@ -657,7 +649,8 @@ export default function TopNav({
               >
                 <Button
                   type="text"
-                  icon={<Mail size={18} strokeWidth={1.75} />}
+                  className={`nav-action-btn${isRouteActive('/mail') ? ' nav-action-btn-active' : ''}`}
+                  icon={<Mail size={18} strokeWidth={isRouteActive('/mail') ? 2 : 1.75} />}
                   onClick={() => router.push('/mail')}
                 />
               </Tooltip>
@@ -677,7 +670,8 @@ export default function TopNav({
               >
                 <Button
                   type="text"
-                  icon={<CalendarDays size={18} strokeWidth={1.75} />}
+                  className={`nav-action-btn${isRouteActive('/calendar') ? ' nav-action-btn-active' : ''}`}
+                  icon={<CalendarDays size={18} strokeWidth={isRouteActive('/calendar') ? 2 : 1.75} />}
                   onClick={() => router.push('/calendar')}
                 />
               </Tooltip>
@@ -697,7 +691,8 @@ export default function TopNav({
               >
                 <Button
                   type="text"
-                  icon={<Sparkles size={18} strokeWidth={1.75} />}
+                  className={`nav-action-btn${isRouteActive('/skills') ? ' nav-action-btn-active' : ''}`}
+                  icon={<Sparkles size={18} strokeWidth={isRouteActive('/skills') ? 2 : 1.75} />}
                   onClick={() => router.push('/skills')}
                 />
               </Tooltip>
@@ -718,7 +713,8 @@ export default function TopNav({
               >
                 <Button
                   type="text"
-                  icon={<MessageSquareText size={18} strokeWidth={1.75} />}
+                  className={`nav-action-btn${isRouteActive('/chat') ? ' nav-action-btn-active' : ''}`}
+                  icon={<MessageSquareText size={18} strokeWidth={isRouteActive('/chat') ? 2 : 1.75} />}
                   onClick={() => router.push('/chat')}
                 />
               </Tooltip>
@@ -736,7 +732,7 @@ export default function TopNav({
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
-                <div className={`novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
+                <div className={`nav-action-btn nav-action-btn-inbox novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
                   <Inbox
                     applicationIdentifier="67g_5lVLFWvd"
                     subscriberId={user?.id}
@@ -776,9 +772,10 @@ export default function TopNav({
                 >
                   <Button
                     type="text"
+                    className={`nav-action-btn${(shortcutPopoverVisible && !isCustomBreakpoint) ? ' nav-action-btn-active' : ''}`}
                     icon={
                       (shortcutPopoverVisible && !isCustomBreakpoint) ? (
-                        <Bookmark size={18} strokeWidth={1.75} fill="#1677ff" color="#1677ff" />
+                        <Bookmark size={18} strokeWidth={2} fill="#1677ff" color="#1677ff" />
                       ) : (
                         <Bookmark size={18} strokeWidth={1.75} />
                       )
@@ -804,7 +801,7 @@ export default function TopNav({
             <Dropdown
               menu={{
                 items: [
-                  ...(hasPermission(Permissions.TIME_TRACKING_READ) ? [{
+                  ...(hasPermission(Permissions.TIME_TRACKING_READ) && hasPermission(Permissions.TIME_TRACKING_CREATE) ? [{
                     key: 'timer',
                     label: <TimeTrackerPopover isMenuItem />,
                     onClick: () => setPopoverOpen(true)
@@ -935,21 +932,84 @@ export default function TopNav({
                 .ant-menu-horizontal {
                     line-height: 64px !important;
                     border-bottom: none !important;
+                    background: transparent !important;
                 }
                 .ant-menu-horizontal .ant-menu-item {
-                    transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+                    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
                     padding: 0 !important;
-                    margin: 0 4px !important;
+                    margin: 0 2px !important;
+                    background: transparent !important;
                 }
-                .ant-menu-horizontal .ant-menu-item:after {
+                .ant-menu-horizontal .ant-menu-item:after,
+                .ant-menu-horizontal .ant-menu-item-selected:after {
                     display: none !important;
                 }
-                .ant-menu-horizontal .ant-menu-item-selected {
-                    color: #1677ff !important;
-                }
                 .ant-menu-horizontal .ant-menu-item:hover {
-                    background: rgba(22, 119, 255, 0.06) !important;
-                    border-radius: 12px;
+                    background: transparent !important;
+                }
+                .ant-menu-horizontal .ant-menu-item-selected {
+                    color: inherit !important;
+                }
+
+                /* Module pill — premium per-module accent highlighting */
+                .module-pill {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 0 12px;
+                    height: 36px;
+                    border-radius: 10px;
+                    font-weight: 600;
+                    font-size: 13px;
+                    letter-spacing: 0.3px;
+                    color: #475569;
+                    border: 1px solid transparent;
+                    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+                    position: relative;
+                }
+                .module-pill .module-pill-icon {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 22px;
+                    height: 22px;
+                    color: inherit;
+                    transition: color 0.2s ease;
+                }
+                .module-pill:hover {
+                    background: rgba(15, 23, 42, 0.04);
+                    color: var(--module-accent);
+                }
+                .module-pill:hover .module-pill-icon {
+                    color: var(--module-accent);
+                }
+                .module-pill-active {
+                    background: color-mix(in srgb, var(--module-accent) 12%, transparent);
+                    color: var(--module-accent);
+                    border-color: color-mix(in srgb, var(--module-accent) 22%, transparent);
+                }
+                .module-pill-active:hover {
+                    background: color-mix(in srgb, var(--module-accent) 16%, transparent);
+                }
+                .module-pill-active .module-pill-icon {
+                    color: var(--module-accent);
+                }
+                .ant-menu-horizontal .ant-menu-item:active .module-pill {
+                    transform: scale(0.97);
+                }
+                /* Dark theme */
+                [data-theme='dark'] .module-pill {
+                    color: #94A3B8;
+                }
+                [data-theme='dark'] .module-pill:hover {
+                    background: rgba(148, 163, 184, 0.08);
+                }
+                [data-theme='dark'] .module-pill-active {
+                    background: color-mix(in srgb, var(--module-accent) 22%, transparent);
+                    border-color: color-mix(in srgb, var(--module-accent) 35%, transparent);
+                }
+                [data-theme='dark'] .module-pill-active:hover {
+                    background: color-mix(in srgb, var(--module-accent) 28%, transparent);
                 }
                 .user-dropdown-premium:hover {
                     background-color: #fff !important;
@@ -991,6 +1051,74 @@ export default function TopNav({
                     .ant-layout-header {
                         padding: 0 16px !important;
                     }
+                }
+
+                /* Premium nav action buttons (top navbar right side) */
+                .nav-action-btn.ant-btn,
+                .nav-action-btn {
+                    width: 36px !important;
+                    height: 36px !important;
+                    min-width: 36px !important;
+                    padding: 0 !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    border-radius: 10px !important;
+                    color: #475569;
+                    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+                }
+                .nav-action-btn.ant-btn:hover,
+                .nav-action-btn:hover {
+                    background: rgba(22, 119, 255, 0.08) !important;
+                    color: #1677ff !important;
+                }
+                .nav-action-btn.ant-btn:active,
+                .nav-action-btn:active {
+                    transform: scale(0.96);
+                }
+                .nav-action-btn.nav-action-btn-active,
+                .nav-action-btn-active.ant-btn {
+                    background: rgba(22, 119, 255, 0.12) !important;
+                    color: #1677ff !important;
+                }
+                .nav-action-btn.nav-action-btn-active:hover,
+                .nav-action-btn-active.ant-btn:hover {
+                    background: rgba(22, 119, 255, 0.16) !important;
+                }
+                /* Novu inbox bell wrapped as nav-action-btn */
+                .nav-action-btn-inbox {
+                    position: relative;
+                }
+                .nav-action-btn-inbox .nv-button,
+                .nav-action-btn-inbox button {
+                    background: transparent !important;
+                    border: none !important;
+                    width: 36px !important;
+                    height: 36px !important;
+                    padding: 0 !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+                .nav-action-btn-inbox svg {
+                    width: 18px !important;
+                    height: 18px !important;
+                    stroke-width: 1.75 !important;
+                }
+                /* Dark theme tints */
+                [data-theme='dark'] .nav-action-btn,
+                [data-theme='dark'] .nav-action-btn.ant-btn {
+                    color: #94A3B8;
+                }
+                [data-theme='dark'] .nav-action-btn:hover,
+                [data-theme='dark'] .nav-action-btn.ant-btn:hover {
+                    background: rgba(59, 130, 246, 0.14) !important;
+                    color: #E2E8F0 !important;
+                }
+                [data-theme='dark'] .nav-action-btn.nav-action-btn-active,
+                [data-theme='dark'] .nav-action-btn-active.ant-btn {
+                    background: rgba(59, 130, 246, 0.20) !important;
+                    color: #93C5FD !important;
                 }
 
                 /* Premium navbar icon tooltip */

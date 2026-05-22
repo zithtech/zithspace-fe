@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Table,
   Button,
@@ -27,6 +27,7 @@ import {
   FilePlus,
   Eye,
   Trash2,
+  Pencil,
   FileCheck,
   Search,
   X,
@@ -42,6 +43,7 @@ import {
 import { api, apiClient, TokenManager } from "@/lib/axios";
 import { usePermission } from "@/hooks/usePermission";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { useSocket } from "@/providers/SocketProvider";
 
 const { Option } = Select;
 
@@ -87,6 +89,29 @@ export default function DocumentsTab({
   const [viewingDocument, setViewingDocument] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [docSource, setDocSource] = useState<"upload" | "url">("upload");
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingDocument, setEditingDocument] = useState<any>(null);
+  const [editForm] = Form.useForm();
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // Real-time: refresh when documents for this client change anywhere.
+  const { socket, connected } = useSocket();
+  useEffect(() => {
+    if (!socket || !connected) return;
+    const handler = (payload: { clientId?: string } | undefined) => {
+      if (payload?.clientId && payload.clientId !== clientId) return;
+      onRefresh();
+    };
+    socket.on("client_document:created", handler);
+    socket.on("client_document:updated", handler);
+    socket.on("client_document:deleted", handler);
+    return () => {
+      socket.off("client_document:created", handler);
+      socket.off("client_document:updated", handler);
+      socket.off("client_document:deleted", handler);
+    };
+  }, [socket, connected, clientId, onRefresh]);
 
   type DocPreview =
     | { kind: "image"; src: string }
@@ -374,6 +399,18 @@ export default function DocumentsTab({
             />
           </Tooltip>
 
+          {canUpdateClient && (
+            <Tooltip title="Edit details">
+              <Button
+                type="text"
+                className="premium-action-btn"
+                icon={<Pencil size={16} />}
+                onClick={() => openEditModal(record)}
+                style={{ color: "var(--text-slate-500)" }}
+              />
+            </Tooltip>
+          )}
+
           {canDeleteClient && (
             <Popconfirm
               title="Purge Document"
@@ -486,6 +523,54 @@ export default function DocumentsTab({
   const handleDownload = (record: any) => {
     if (record?.fileUrl) {
       window.open(record.fileUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const openEditModal = (record: any) => {
+    setEditingDocument(record);
+    setEditingCategory(record.category || null);
+    editForm.setFieldsValue({
+      fileName: record.fileName,
+      category: record.category,
+      documentType: record.documentType,
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editingDocument) return;
+    try {
+      const values = await editForm.validateFields();
+      setSavingEdit(true);
+      try {
+        await api.patch(
+          `/api/clients-v2/${clientId}/documents/${editingDocument.id}`,
+          {
+            fileName: values.fileName?.trim(),
+            category: values.category?.trim(),
+            documentType: values.documentType?.trim(),
+          },
+        );
+        notify.success({
+          message: "Document updated",
+          description: "Changes saved successfully.",
+          placement: "top",
+        });
+        setEditModalOpen(false);
+        setEditingDocument(null);
+        editForm.resetFields();
+        onRefresh();
+      } catch (err: any) {
+        notify.error({
+          message: "Update failed",
+          description: err.response?.data?.error || "Could not update document.",
+          placement: "top",
+        });
+      } finally {
+        setSavingEdit(false);
+      }
+    } catch {
+      // antd handles validation messaging
     }
   };
 
@@ -819,6 +904,134 @@ export default function DocumentsTab({
               className="pmodal-btn-primary"
             >
               Upload Document
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal
+        open={editModalOpen}
+        onCancel={() => {
+          setEditModalOpen(false);
+          setEditingDocument(null);
+          editForm.resetFields();
+        }}
+        footer={null}
+        title={null}
+        width={480}
+        centered
+        className="pmodal"
+        closeIcon={<X size={16} />}
+      >
+        <Form
+          form={editForm}
+          layout="vertical"
+          onValuesChange={(changed) => {
+            if ("category" in changed) {
+              setEditingCategory(changed.category || null);
+              editForm.setFieldsValue({ documentType: undefined });
+            }
+          }}
+        >
+          <div className="pmodal-hero pmodal-hero-slim">
+            <div className="pmodal-hero-mesh" />
+            <div className="pmodal-hero-blob" />
+            <div className="pmodal-hero-content">
+              <div className="pmodal-hero-icon">
+                <Pencil size={18} />
+              </div>
+              <div>
+                <div className="pmodal-hero-title">Edit document details</div>
+                <div className="pmodal-hero-sub">
+                  Update file name and classification — the underlying file isn't replaced.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pmodal-body">
+            <Form.Item
+              name="fileName"
+              label={
+                <span className="doc-field-label">
+                  <span>Display name</span>
+                  <span className="doc-field-help">Shown in the document list</span>
+                </span>
+              }
+              rules={[{ required: true, message: "Required" }]}
+            >
+              <Input placeholder="e.g. Q3 MSA Final.pdf" prefix={<FileText size={14} style={{ color: "var(--text-slate-400)" }} />} />
+            </Form.Item>
+
+            <Form.Item
+              name="category"
+              label={
+                <span className="doc-field-label">
+                  <span>Primary category</span>
+                </span>
+              }
+              rules={[{ required: true, message: "Required" }]}
+            >
+              <AutoComplete
+                placeholder="e.g. Legal, Sales"
+                options={categoryOptions}
+                filterOption={(input, option) => {
+                  const v = (option as any)?.value;
+                  if (typeof v !== "string") return false;
+                  return v.toLowerCase().includes((input || "").toLowerCase());
+                }}
+                popupClassName="doc-autocomplete-popup"
+                allowClear
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="documentType"
+              label={
+                <span className="doc-field-label">
+                  <span>Document subtype</span>
+                  <span className="doc-field-help">
+                    {editingCategory ? "Pick a known type or create your own" : "Choose a category first"}
+                  </span>
+                </span>
+              }
+              rules={[{ required: true, message: "Required" }]}
+            >
+              <AutoComplete
+                placeholder={editingCategory ? "e.g. Proposal, NDA" : "Choose a category first"}
+                disabled={!editingCategory}
+                options={buildSubtypeOptions(editingCategory)}
+                filterOption={(input, option) => {
+                  const v = (option as any)?.value;
+                  if (typeof v !== "string") return false;
+                  return v.toLowerCase().includes((input || "").toLowerCase());
+                }}
+                popupClassName="doc-autocomplete-popup"
+                allowClear
+              />
+            </Form.Item>
+          </div>
+
+          <div className="pmodal-footer">
+            <Button
+              onClick={() => {
+                setEditModalOpen(false);
+                setEditingDocument(null);
+                editForm.resetFields();
+              }}
+              className="pmodal-btn-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleEditSave}
+              loading={savingEdit}
+              icon={<FileCheck size={14} />}
+              className="pmodal-btn-primary"
+            >
+              Save changes
             </Button>
           </div>
         </Form>

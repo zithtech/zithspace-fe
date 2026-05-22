@@ -54,6 +54,7 @@ import {
 } from "@/services/momService";
 import { teamService, StaffOption } from "@/services/teamService";
 import { useTheme } from "@/context/ThemeContext";
+import { useSocket } from "@/providers/SocketProvider";
 import {
   PremiumModal,
   ModalSection,
@@ -186,6 +187,7 @@ export default function MeetingsTab({
   const [items, setItems] = useState<MomListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [notify, contextHolder] = notification.useNotification();
 
@@ -213,6 +215,36 @@ export default function MeetingsTab({
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
+
+  // Real-time: when any MOM for this client changes (locally or elsewhere),
+  // reload the list so staff in another tab / window stays in sync.
+  const { socket, connected } = useSocket();
+  useEffect(() => {
+    if (!socket || !connected) return;
+    const handler = (payload: { clientId?: string } | undefined) => {
+      if (payload?.clientId && payload.clientId !== clientId) return;
+      load();
+    };
+    socket.on("mom:created", handler);
+    socket.on("mom:updated", handler);
+    socket.on("mom:deleted", handler);
+    return () => {
+      socket.off("mom:created", handler);
+      socket.off("mom:updated", handler);
+      socket.off("mom:deleted", handler);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket, connected, clientId]);
+
+  const handleDeleteRow = async (id: string) => {
+    try {
+      await momService.remove(id);
+      notify.success({ message: "Meeting deleted", placement: "top" });
+      load();
+    } catch (err: any) {
+      notify.error({ message: "Delete failed", description: err?.message });
+    }
+  };
 
   return (
     <div style={{ padding: "4px 0 24px", color: c.text }}>
@@ -560,6 +592,41 @@ export default function MeetingsTab({
                     <CheckSquare size={12} />
                     <span>{m.openActionCount} open · {m.actionCount} total</span>
                   </div>
+                  <div
+                    style={{
+                      padding: "6px 8px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                      borderLeft: `1px solid ${c.border}`,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Tooltip title="Edit meeting">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<Edit3 size={13} color={c.textMuted} />}
+                        onClick={() => setEditingId(m.id)}
+                      />
+                    </Tooltip>
+                    <Popconfirm
+                      title="Delete this meeting?"
+                      description="Action items already converted to tickets will remain."
+                      onConfirm={() => handleDeleteRow(m.id)}
+                      okText="Delete"
+                      okButtonProps={{ danger: true }}
+                    >
+                      <Tooltip title="Delete">
+                        <Button
+                          type="text"
+                          size="small"
+                          danger
+                          icon={<Trash2 size={13} />}
+                        />
+                      </Tooltip>
+                    </Popconfirm>
+                  </div>
                   <div style={{
                     padding: "10px 14px",
                     display: "flex", alignItems: "center", justifyContent: "center",
@@ -654,19 +721,44 @@ export default function MeetingsTab({
           //     </span>
           //   ),
           // },
-          // {
-          //   title: "",
-          //   key: "open",
-          //   width: 40,
-          //   render: (_: any, m: MomListItem) => (
-          //     <Button
-          //       type="text"
-          //       size="small"
-          //       icon={<ChevronRight size={15} color={c.textFaint} />}
-          //       onClick={() => setOpenId(m.id)}
-          //     />
-          //   ),
-          // },
+          {
+            title: "",
+            key: "actions",
+            width: 110,
+            align: "right" as const,
+            fixed: "right" as const,
+            render: (_: any, m: MomListItem) => (
+              <div
+                style={{ display: "inline-flex", gap: 6 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Tooltip title="Edit meeting">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<Edit3 size={14} color={c.textMuted} />}
+                    onClick={() => setEditingId(m.id)}
+                  />
+                </Tooltip>
+                <Popconfirm
+                  title="Delete this meeting?"
+                  description="Action items already converted to tickets will remain."
+                  onConfirm={() => handleDeleteRow(m.id)}
+                  okText="Delete"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Tooltip title="Delete">
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<Trash2 size={14} />}
+                    />
+                  </Tooltip>
+                </Popconfirm>
+              </div>
+            ),
+          },
         ];
 
         return (
@@ -713,12 +805,17 @@ export default function MeetingsTab({
         );
       })()}
 
-      {/* Create modal */}
+      {/* Create / Edit modal */}
       <CreateMeetingModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        open={createOpen || !!editingId}
+        editingId={editingId}
+        onClose={() => {
+          setCreateOpen(false);
+          setEditingId(null);
+        }}
         onCreated={() => {
           setCreateOpen(false);
+          setEditingId(null);
           load();
         }}
         clientId={clientId}
@@ -1084,6 +1181,7 @@ function CreateMeetingModal({
   contacts,
   c,
   notify,
+  editingId,
 }: {
   open: boolean;
   onClose: () => void;
@@ -1093,9 +1191,12 @@ function CreateMeetingModal({
   contacts: ClientContactOption[];
   c: ReturnType<typeof palette>;
   notify: any;
+  editingId?: string | null;
 }) {
+  const isEdit = !!editingId;
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [attendees, setAttendees] = useState<MomAttendee[]>([]);
   const [decisions, setDecisions] = useState<MomDecision[]>([]);
   const [actionItems, setActionItems] = useState<MomActionItem[]>([]);
@@ -1111,20 +1212,59 @@ function CreateMeetingModal({
       setAttachments([]);
       return;
     }
-    form.setFieldsValue({
-      visibility: "client",
-      status: "published",
-      meetingDate: dayjs(),
-    });
+
     // Pre-fetch staff users so the "internal" attendee picker is instant.
-    // teamService.staffOptions is the same endpoint the Team tab uses —
-    // tenant-scoped, ~50 results, supports `?search=` for narrowing.
     teamService
       .staffOptions(clientId, "")
       .then((list) => setStaffOptions(list || []))
       .catch(() => setStaffOptions([]));
+
+    if (editingId) {
+      setLoadingDetail(true);
+      momService
+        .detail(editingId)
+        .then((detail) => {
+          form.setFieldsValue({
+            title: detail.title,
+            meetingDate: detail.meetingDate ? dayjs(detail.meetingDate) : dayjs(),
+            durationMinutes: detail.durationMinutes ?? undefined,
+            projectId: detail.projectId ?? undefined,
+            location: detail.location ?? undefined,
+            recordingUrl: detail.recordingUrl ?? undefined,
+            visibility: detail.visibility,
+            status: detail.status,
+            summary: detail.summary ?? undefined,
+          });
+          setAttendees(detail.attendees || []);
+          setDecisions(detail.decisions || []);
+          setActionItems(detail.actionItems || []);
+          setAttachments(
+            (detail.attachments || []).map((a) => ({
+              id: a.id,
+              kind: a.kind,
+              fileName: a.fileName || undefined,
+              linkUrl: a.linkUrl || undefined,
+              linkLabel: a.linkLabel || undefined,
+            })),
+          );
+        })
+        .catch((err: any) => {
+          notify.error({
+            message: "Could not load meeting",
+            description: err?.message,
+          });
+          onClose();
+        })
+        .finally(() => setLoadingDetail(false));
+    } else {
+      form.setFieldsValue({
+        visibility: "client",
+        status: "published",
+        meetingDate: dayjs(),
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, editingId]);
 
   const submit = async (values: any) => {
     if (!values.title?.trim()) {
@@ -1133,7 +1273,7 @@ function CreateMeetingModal({
     }
     setSubmitting(true);
     try {
-      await momService.create(clientId, {
+      const payload = {
         title: values.title.trim(),
         meetingDate:
           values.meetingDate?.toISOString() ?? new Date().toISOString(),
@@ -1149,15 +1289,22 @@ function CreateMeetingModal({
         actionItems: actionItems.filter((a) => a.text?.trim()),
         attachments: attachments.filter(
           (a) =>
+            !!a.id ||
             (a.kind === "file" && a.fileDataUrl && a.fileName) ||
             (a.kind === "link" && a.linkUrl?.trim()),
         ),
-      });
-      notify.success({ message: "Meeting logged" });
+      };
+      if (isEdit && editingId) {
+        await momService.update(editingId, payload);
+        notify.success({ message: "Meeting updated" });
+      } else {
+        await momService.create(clientId, payload);
+        notify.success({ message: "Meeting logged" });
+      }
       onCreated();
     } catch (err: any) {
       notify.error({
-        message: "Could not log meeting",
+        message: isEdit ? "Could not update meeting" : "Could not log meeting",
         description: err?.message,
       });
     } finally {
@@ -1174,7 +1321,7 @@ function CreateMeetingModal({
       ribbonColor={c.accent}
       iconTile={{ bg: c.accentBg, border: c.accentBorder, text: c.accentText }}
       icon={<Calendar size={20} />}
-      title="Log a meeting"
+      title={isEdit ? "Edit meeting" : "Log a meeting"}
       subtitle={
         <div style={{
           display: "inline-flex",
@@ -1207,10 +1354,11 @@ function CreateMeetingModal({
             type="primary"
             htmlType="submit"
             loading={submitting}
+            disabled={loadingDetail}
             onClick={() => form.submit()}
             icon={<Calendar size={14} />}
           >
-            Save meeting
+            {isEdit ? "Save changes" : "Save meeting"}
           </Button>
         </ModalFooterActions>
       }

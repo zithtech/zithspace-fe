@@ -49,6 +49,7 @@ import {
   AvailableCustomer,
 } from "@/services/clientPortalService";
 import { useTheme } from "@/context/ThemeContext";
+import { useSocket } from "@/providers/SocketProvider";
 import {
   PremiumModal,
   ModalSection,
@@ -135,6 +136,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
   const [resetDialog, setResetDialog] = useState<{
     user: ClientPortalUser;
     tempPassword: string;
+    emailSent: boolean;
   } | null>(null);
   const [notify, contextHolder] = notification.useNotification();
 
@@ -188,6 +190,25 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
+  // Real-time: another staff tab/window changes credentials → reload here.
+  const { socket, connected } = useSocket();
+  useEffect(() => {
+    if (!socket || !connected) return;
+    const handler = (payload: { clientId?: string } | undefined) => {
+      if (payload?.clientId && payload.clientId !== clientId) return;
+      load();
+    };
+    socket.on("portal_user:created", handler);
+    socket.on("portal_user:updated", handler);
+    socket.on("portal_user:deleted", handler);
+    return () => {
+      socket.off("portal_user:created", handler);
+      socket.off("portal_user:updated", handler);
+      socket.off("portal_user:deleted", handler);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket, connected, clientId]);
+
   const handleCreate = async (values: any) => {
     setCreating(true);
     try {
@@ -220,10 +241,23 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
 
   const handleReset = async (user: ClientPortalUser) => {
     try {
-      const { temporaryPassword } = await clientPortalService.resetPassword(
-        user.id,
-      );
-      setResetDialog({ user, tempPassword: temporaryPassword });
+      const { temporaryPassword, emailSent } =
+        await clientPortalService.resetPassword(user.id);
+      setResetDialog({ user, tempPassword: temporaryPassword, emailSent });
+      if (emailSent) {
+        notify.success({
+          message: "Password reset",
+          description: `New temporary password emailed to ${user.email}.`,
+          placement: "top",
+        });
+      } else {
+        notify.warning({
+          message: "Password reset (email not sent)",
+          description:
+            "Could not send the email. Copy and share the temporary password manually.",
+          placement: "top",
+        });
+      }
       load();
     } catch (err: any) {
       notify.error({
@@ -391,13 +425,21 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
       title: "Actions",
       key: "actions",
       align: "right" as const,
+      fixed: "right" as const,
+      width: 280,
       render: (record: ClientPortalUser) => (
         <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-          <Tooltip title="Reset password">
-            <Button size="small" icon={<RefreshCw size={12} />} onClick={() => handleReset(record)}>
+          <Popconfirm
+            title="Reset password?"
+            description={`A new temporary password will be emailed to ${record.email} and all active sessions will be signed out.`}
+            okText="Reset & email"
+            okButtonProps={{ type: "primary" }}
+            onConfirm={() => handleReset(record)}
+          >
+            <Button size="small" icon={<RefreshCw size={12} />}>
               Reset
             </Button>
-          </Tooltip>
+          </Popconfirm>
           <Tooltip
             title={record.status === "active" ? "Disable access" : "Re-enable access"}
           >
@@ -666,12 +708,15 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
         title="New temporary password"
         intro={
           resetDialog
-            ? `All active sessions for ${
+            ? `${
+                resetDialog.emailSent
+                  ? `The new password has been emailed to ${resetDialog.user.email}. `
+                  : `Email delivery failed — copy and share the password manually. `
+              }Username and email are unchanged. All active sessions for ${
                 resetDialog.user.displayName || resetDialog.user.username
-              } have been signed out. Share the new password securely.`
+              } have been signed out.`
             : ""
         }
-        username={resetDialog?.user.username}
         password={resetDialog?.tempPassword}
         onClose={() => setResetDialog(null)}
         onCopy={copyToClipboard}
@@ -1070,9 +1115,17 @@ function UserCard({
 
         {/* Action icons */}
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <Tooltip title="Reset password">
-            <Button size="small" icon={<RefreshCw size={12} />} onClick={onReset} />
-          </Tooltip>
+          <Popconfirm
+            title="Reset password?"
+            description={`A new temporary password will be emailed to ${user.email}.`}
+            okText="Reset & email"
+            okButtonProps={{ type: "primary" }}
+            onConfirm={onReset}
+          >
+            <Button size="small" icon={<RefreshCw size={12} />}>
+              Reset
+            </Button>
+          </Popconfirm>
           <Tooltip title={user.status === "active" ? "Disable access" : "Re-enable access"}>
             <Button size="small" icon={<Power size={12} />} onClick={onToggle} />
           </Tooltip>

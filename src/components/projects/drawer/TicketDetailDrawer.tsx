@@ -1653,15 +1653,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                           <Col span={24}>
                             <DrawerField label="Assignee" variant="table">
                               <EditableSelect
-                                isMultiple
                                 value={
-                                  ticket.metadata?.assigneeIds && Array.isArray(ticket.metadata.assigneeIds)
-                                    ? ticket.metadata.assigneeIds
-                                    : Array.isArray(ticket.assignee) 
-                                      ? ticket.assignee.map((a: any) => typeof a === 'string' ? a : a.id)
-                                      : typeof ticket.assignee === "string"
-                                      ? [ticket.assignee]
-                                      : ticket.assignee?.id ? [ticket.assignee.id] : []
+                                  typeof ticket.assignee === "string"
+                                    ? ticket.assignee
+                                    : ticket.assignee?.id
                                 }
                                 options={projectMembers}
                                 onSave={(val) =>

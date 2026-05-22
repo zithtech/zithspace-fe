@@ -24,7 +24,6 @@ interface EditableSelectProps {
     plain?: boolean; // If true, removes default hover background and padding
     textStyle?: React.CSSProperties;
     disabled?: boolean;
-    isMultiple?: boolean;
 }
 
 export const EditableSelect: React.FC<EditableSelectProps> = ({
@@ -38,7 +37,6 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
     plain = false,
     textStyle,
     disabled = false,
-    isMultiple = false,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -54,9 +52,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
         try {
             setLoading(true);
             await onSave(newValue);
-            if (!isMultiple) {
-                setIsEditing(false);
-            }
+            setIsEditing(false);
         } catch (error) {
             console.error("Failed to save selection", error);
         } finally {
@@ -66,19 +62,10 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
 
     const normalize = (val: string | undefined) => val?.toLowerCase().replace(/ /g, '_');
     
-    // For multiple selections
-    const selectedOptions = isMultiple 
-        ? options.filter(opt => (value as string[] || []).map(v => normalize(v)).includes(normalize(opt.value)))
-        : [];
-        
-    const selectedOption = !isMultiple 
-        ? options.find(opt => normalize(opt.value) === normalize(value as string))
-        : undefined;
+    const selectedOption = options.find(opt => normalize(opt.value) === normalize(value as string));
 
-    const hasValue = isMultiple ? (value as string[])?.length > 0 : !!value;
-    const internalValue = isMultiple 
-        ? (value || []) 
-        : (selectedOption ? selectedOption.value : value);
+    const hasValue = !!value;
+    const internalValue = selectedOption ? selectedOption.value : value;
 
     if (isEditing) {
         return (
@@ -90,7 +77,6 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                 style={{ width: '100%' }}
                 placeholder={placeholder}
                 loading={loading}
-                mode={isMultiple ? "multiple" : undefined}
                 defaultOpen
                 showSearch
                 filterOption={(input, option) => {
@@ -174,20 +160,8 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
     };
 
     const renderValue = () => {
-        if (!hasValue || (!isMultiple && !selectedOption) || (isMultiple && selectedOptions.length === 0)) {
+        if (!hasValue || !selectedOption) {
             return <Text type="secondary" style={{ fontStyle: 'italic', fontSize: '13px' }}>{emptyText}</Text>;
-        }
-
-        if (isMultiple) {
-            return (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {selectedOptions.map(opt => (
-                        <div key={opt.value}>
-                            {renderSingleValue(opt)}
-                        </div>
-                    ))}
-                </div>
-            );
         }
 
         return renderSingleValue(selectedOption);

@@ -120,6 +120,15 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
           status: "planning",
           defaultPriority: "medium",
         });
+        
+        try {
+          const nextCode = await ProjectService.getNextCode();
+          if (nextCode) {
+            form.setFieldsValue({ code: nextCode });
+          }
+        } catch (err) {
+          console.error(err);
+        }
       }
     };
 
@@ -381,10 +390,12 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       name="code"
                       label={
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
-                          Project Code
+                          Project Code{" "}
+                          <span style={{ fontWeight: 500, color: "var(--text-slate-400)" }}>
+                            (optional)
+                          </span>
                         </span>
                       }
-                      rules={[{ required: true, message: "Please enter code" }]}
                     >
                       <Input
                         placeholder="e.g. WEB"

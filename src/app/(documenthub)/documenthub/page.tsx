@@ -2361,8 +2361,8 @@ const DocumentHubPage = () => {
                 options={projects.map((p: any) => ({
                   label: (
                     <div className="flex flex-col py-1">
-                      <span className="font-semibold text-slate-700" style={{ fontSize: 11, lineHeight: '1.2' }}>{p.label}</span>
-                      {p.code && <span className="text-slate-400" style={{ fontSize: 9, lineHeight: '1.2' }}>{p.code}</span>}
+                      <span className="font-semibold" style={{ fontSize: 11, lineHeight: '1.2', color: 'var(--text-slate-900)' }}>{p.label}</span>
+                      {p.code && <span style={{ fontSize: 9, lineHeight: '1.2', color: 'var(--text-slate-500)' }}>{p.code}</span>}
                     </div>
                   ),
                   value: p.value
@@ -2391,8 +2391,8 @@ const DocumentHubPage = () => {
                     return filterTickets.map((t: any) => ({
                       label: (
                         <div className="flex flex-col py-1">
-                          <span className="font-semibold text-slate-700" style={{ fontSize: 11, lineHeight: '1.2' }}>{t.ticketNumber}</span>
-                          <span className="text-slate-400 truncate" style={{ fontSize: 9, lineHeight: '1.2', maxWidth: 180 }}>{t.title}</span>
+                          <span className="font-semibold" style={{ fontSize: 11, lineHeight: '1.2', color: 'var(--text-slate-900)' }}>{t.ticketNumber}</span>
+                          <span className="truncate" style={{ fontSize: 9, lineHeight: '1.2', maxWidth: 180, color: 'var(--text-slate-500)' }}>{t.title}</span>
                         </div>
                       ),
                       value: t.id
@@ -2406,8 +2406,8 @@ const DocumentHubPage = () => {
                   return uniqueTickets.map((t: any) => ({
                     label: (
                       <div className="flex flex-col py-1">
-                        <span className="font-semibold text-slate-700" style={{ fontSize: 11, lineHeight: '1.2' }}>{t.ticketNumber}</span>
-                        <span className="text-slate-400 truncate" style={{ fontSize: 9, lineHeight: '1.2', maxWidth: 180 }}>{t.title}</span>
+                        <span className="font-semibold" style={{ fontSize: 11, lineHeight: '1.2', color: 'var(--text-slate-900)' }}>{t.ticketNumber}</span>
+                        <span className="truncate" style={{ fontSize: 9, lineHeight: '1.2', maxWidth: 180, color: 'var(--text-slate-500)' }}>{t.title}</span>
                       </div>
                     ),
                     value: t.id

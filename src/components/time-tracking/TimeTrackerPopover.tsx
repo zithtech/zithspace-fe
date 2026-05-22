@@ -97,11 +97,16 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
           ? new Date(lastLog.createdAt).getTime()
           : new Date(activeEntry.startTime).getTime();
 
-        const updateTime = () =>
-          setElapsedTime(
-            baseDuration +
-            Math.floor((new Date().getTime() - lastActiveTime) / 1000)
-          );
+        const updateTime = () => {
+          const currentElapsed = baseDuration + Math.floor((new Date().getTime() - lastActiveTime) / 1000);
+          if (currentElapsed >= 6 * 60 * 60) {
+            setElapsedTime(6 * 60 * 60);
+            pauseTimer();
+            clearInterval(interval);
+          } else {
+            setElapsedTime(currentElapsed);
+          }
+        };
 
         updateTime();
         interval = setInterval(updateTime, 1000);

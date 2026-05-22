@@ -905,7 +905,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       title: "ID",
       dataIndex: "ticketNumber",
       key: "ticketNumber",
-      width: 100,
+      width: 180,
       render: (text: string, record: Ticket) => (
         <span
           onClick={() => handleViewTicket(record)}
@@ -919,7 +919,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             padding: '2px 6px',
             background: 'var(--bg-blue-50)',
             borderRadius: '4px',
-            border: '1px solid var(--border-blue-200)'
+            border: '1px solid var(--border-blue-200)',
+            whiteSpace: 'nowrap'
           }}
           className="hover:opacity-80 transition-opacity"
         >
@@ -1374,6 +1375,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       title: "Actions",
       key: "actions",
       width: 180,
+      fixed: "right",
       render: (_: any, record: Ticket) => {
         const handleShare = () => {
           const url = `${window.location.origin}/public/tickets/${record.id}`;
@@ -1484,9 +1486,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       <style dangerouslySetInnerHTML={{
         __html: `
         .project-switch-trigger:hover {
-          background-color: var(--bg-slate-50);
+          background: var(--bg-slate-50);
+          color: var(--premium-blue);
         }
-        .tickets-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 5px 12px !important; }
+        
+        /* Remove default shadow from fixed columns (e.g. Actions) */
+        .ant-table-cell-fix-left-first::after, .ant-table-cell-fix-left-last::after,
+        .ant-table-cell-fix-right-first::after, .ant-table-cell-fix-right-last::after {
+          box-shadow: none !important;
+        }.tickets-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 5px 12px !important; }
         .tickets-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 9px 16px !important; }
         .tickets-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 14px 20px !important; }
         .tickets-table-settings-popover .ant-popover-inner { padding: 14px !important; border-radius: 12px !important; }

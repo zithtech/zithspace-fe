@@ -10,6 +10,7 @@ import {
   useTicketAttachments,
   useUpdateTicket,
   useAddComment,
+  useUpdateComment,
   useDeleteComment,
   useAddRelatedLink,
   useUpdateRelatedLink,
@@ -45,6 +46,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   // Mutation hooks
   const updateTicketMutation = useUpdateTicket();
   const addCommentMutation = useAddComment();
+  const updateCommentMutation = useUpdateComment();
   const deleteCommentMutation = useDeleteComment();
   const addLinkMutation = useAddRelatedLink();
   const updateLinkMutation = useUpdateRelatedLink();
@@ -127,7 +129,13 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   };
 
   const handleDeleteComment = async (commentId: string) => {
+    if (!ticketId) return;
     await deleteCommentMutation.mutateAsync({ ticketId, commentId });
+  };
+
+  const handleEditComment = async (commentId: string, comment: string) => {
+    if (!ticketId) return;
+    await updateCommentMutation.mutateAsync({ ticketId, commentId, comment });
   };
 
   const handleAddLink = async (linkType: any, linkData: any) => {
@@ -209,8 +217,10 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
               comments={comments}
               isEditing={editing}
               onAddComment={handleAddComment}
+              onEditComment={handleEditComment}
               onDeleteComment={handleDeleteComment}
               isAddingComment={addCommentMutation.isPending}
+              isEditingComment={updateCommentMutation.isPending}
               isDeletingComment={deleteCommentMutation.isPending}
             />
           </div>

@@ -15,8 +15,10 @@ interface CommentsSectionProps {
   comments: any[];
   isEditing: boolean;
   onAddComment: (comment: string) => Promise<void>;
+  onEditComment?: (commentId: string, comment: string) => Promise<void>;
   onDeleteComment: (commentId: string) => Promise<void>;
   isAddingComment: boolean;
+  isEditingComment?: boolean;
   isDeletingComment: boolean;
 }
 
@@ -24,8 +26,10 @@ export default function CommentsSection({
   comments,
   isEditing,
   onAddComment,
+  onEditComment,
   onDeleteComment,
   isAddingComment,
+  isEditingComment,
   isDeletingComment,
 }: CommentsSectionProps) {
   const [newComment, setNewComment] = useState("");
@@ -52,6 +56,18 @@ export default function CommentsSection({
     } catch (error) {
       console.error("Failed to delete comment:", error);
       message.error("Failed to delete comment");
+    }
+  };
+
+  const handleEditComment = async (commentId: string) => {
+    if (!editCommentText.trim() || !onEditComment) return;
+    try {
+      await onEditComment(commentId, editCommentText);
+      setEditingCommentId(null);
+      message.success("Comment updated successfully");
+    } catch (error) {
+      console.error("Failed to update comment:", error);
+      message.error("Failed to update comment");
     }
   };
 
@@ -112,10 +128,8 @@ export default function CommentsSection({
                             size="small"
                             type="primary"
                             style={{ borderRadius: 6 }}
-                            onClick={() => {
-                              // Note: Update logic normally would go here
-                              setEditingCommentId(null);
-                            }}
+                            loading={isEditingComment && editingCommentId === comment.id}
+                            onClick={() => handleEditComment(comment.id)}
                           >
                             Save
                           </Button>

@@ -159,6 +159,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
   );
 };
 
+// The original component code
 const ProjectsManageContent: React.FC = () => {
   const { theme } = useTheme();
   const { user, isLoading } = useAuth();
@@ -168,6 +169,7 @@ const ProjectsManageContent: React.FC = () => {
   const { canReadProject, canCreateProject, canUpdateProject, canDeleteProject } = usePermission();
   const router = useRouter();
   const searchParams = useSearchParams();
+
 
   // State management
   const [projects, setProjects] = useState<Project[]>([]);
@@ -1026,6 +1028,8 @@ const ProjectsManageContent: React.FC = () => {
                     }
                     if (project.status === "completed") progress = 100;
 
+
+
                     return (
                       <Col xs={24} sm={12} lg={8} xl={8} key={project.id}>
                         <Card
@@ -1477,12 +1481,10 @@ const ProjectsManageContent: React.FC = () => {
   );
 };
 
-const ProjectsManagePage = () => {
+export default function ProjectsManagePage() {
   return (
-    <React.Suspense fallback={null}>
+    <React.Suspense fallback={<div style={{ padding: 20, textAlign: "center" }}>Loading projects...</div>}>
       <ProjectsManageContent />
     </React.Suspense>
   );
-};
-
-export default ProjectsManagePage;
+}

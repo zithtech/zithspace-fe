@@ -485,7 +485,7 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
         centered
         closable={step !== "generating"}
         maskClosable={step !== "generating"}
-        destroyOnClose
+        destroyOnHidden
         styles={{
           mask: { backdropFilter: "blur(6px)", background: "rgba(15, 23, 42, 0.45)" },
           content: { borderRadius: 18, padding: 0, overflow: "hidden" },

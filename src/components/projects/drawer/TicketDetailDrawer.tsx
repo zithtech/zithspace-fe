@@ -336,6 +336,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   // Mutations
   const updateTicketMutation = useUpdateTicket();
   const addCommentMutation = useAddComment();
+  const updateCommentMutation = useUpdateComment();
   const deleteCommentMutation = useDeleteComment();
   const uploadAttachmentMutation = useUploadAttachment();
   const deleteAttachmentMutation = useDeleteAttachment();
@@ -1330,8 +1331,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                         comments={comments}
                         isEditing={false} // pass false to enable Edit/Delete actions on items
                         onAddComment={async (c) => await addCommentMutation.mutateAsync({ ticketId: currentTicketId, comment: c })}
+                        onEditComment={async (id, c) => await updateCommentMutation.mutateAsync({ ticketId: currentTicketId, commentId: id, comment: c })}
                         onDeleteComment={async (id) => await deleteCommentMutation.mutateAsync({ ticketId: currentTicketId, commentId: id })}
                         isAddingComment={addCommentMutation.isPending}
+                        isEditingComment={updateCommentMutation.isPending}
                         isDeletingComment={deleteCommentMutation.isPending}
                       />
                     )

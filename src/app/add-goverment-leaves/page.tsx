@@ -261,7 +261,14 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
 
 export default function GovernmentLeavesPage() {
   const { user, isLoading: authLoading } = useAuth();
-  const { canManageLeaves } = usePermission();
+  const {
+    canManageLeaves,
+    canReadLeaveHoliday,
+    canCreateLeaveHoliday,
+    canUpdateLeaveHoliday,
+    canDeleteLeaveHoliday,
+  } = usePermission();
+  const hasAccess = canManageLeaves || canReadLeaveHoliday;
   const router = useRouter();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -442,35 +449,39 @@ export default function GovernmentLeavesPage() {
       width: 120,
       render: (_, record) => (
         <Space size={8}>
-          <Button
-            type="text"
-            size="small"
-            icon={<Edit3 size={16} />}
-            onClick={() => handleEdit(record)}
-            style={{ color: "var(--premium-blue)", background: "var(--bg-blue-50)", borderRadius: 6 }}
-          />
-          <Popconfirm
-            title="Delete holiday?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
-            okButtonProps={{ danger: true }}
-          >
+          {(canManageLeaves || canUpdateLeaveHoliday) && (
             <Button
               type="text"
               size="small"
-              danger
-              icon={<Trash2 size={16} />}
-              style={{ background: "#fef2f2", borderRadius: 6 }}
+              icon={<Edit3 size={16} />}
+              onClick={() => handleEdit(record)}
+              style={{ color: "var(--premium-blue)", background: "var(--bg-blue-50)", borderRadius: 6 }}
             />
-          </Popconfirm>
+          )}
+          {(canManageLeaves || canDeleteLeaveHoliday) && (
+            <Popconfirm
+              title="Delete holiday?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Yes"
+              cancelText="No"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<Trash2 size={16} />}
+                style={{ background: "#fef2f2", borderRadius: 6 }}
+              />
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
   ];
 
   if (authLoading) return null;
-  if (!canManageLeaves) {
+  if (!hasAccess) {
     router.push('/dashboard');
     return null;
   }
@@ -493,14 +504,16 @@ export default function GovernmentLeavesPage() {
                 </div>
               </Space>
             </div>
-            <Button
-              icon={<Plus size={18} />}
-              type="primary"
-              onClick={showDrawer}
-              style={{ height: 44, borderRadius: 12, fontWeight: 600, padding: "0 24px", background: "var(--premium-blue)" }}
-            >
-              Add Holiday Source
-            </Button>
+            {(canManageLeaves || canCreateLeaveHoliday) && (
+              <Button
+                icon={<Plus size={18} />}
+                type="primary"
+                onClick={showDrawer}
+                style={{ height: 44, borderRadius: 12, fontWeight: 600, padding: "0 24px", background: "var(--premium-blue)" }}
+              >
+                Add Holiday Source
+              </Button>
+            )}
           </div>
 
           <Row gutter={[24, 24]} style={{ marginBottom: 16 }}>

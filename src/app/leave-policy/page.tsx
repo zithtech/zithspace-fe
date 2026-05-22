@@ -250,14 +250,18 @@ export default function LeavePolicyPage() {
   const [api, contextHolder] = notification.useNotification();
   const { 
     canReadLeavePolicy, 
+    canCreateLeavePolicy,
+    canUpdateLeavePolicy,
+    canDeleteLeavePolicy,
     canManageLeaves 
   } = usePermission();
+  const hasAccess = canManageLeaves || canReadLeavePolicy;
 
   useEffect(() => {
-    if (!canReadLeavePolicy) {
+    if (!hasAccess) {
       router.push('/dashboard');
     }
-  }, [canReadLeavePolicy, router]);
+  }, [hasAccess, router]);
 
   const [viewType, setViewType] = useState<string>("table");
   const [searchText, setSearchText] = useState("");
@@ -407,12 +411,12 @@ export default function LeavePolicyPage() {
           <Tooltip title="View Details">
             <Button type="text" icon={<Maximize2 size={18} color="#64748b" />} onClick={() => { setCurrentRecord(record); setIsDetailVisible(true); }} className="action-btn" />
           </Tooltip>
-          {canManageLeaves && (
+          {(canManageLeaves || canUpdateLeavePolicy) && (
             <Tooltip title="Edit Config">
               <Button type="text" icon={<Edit2 size={18} color="#64748b" />} onClick={() => handleEdit(record)} className="action-btn" />
             </Tooltip>
           )}
-          {canManageLeaves && (
+          {(canManageLeaves || canDeleteLeavePolicy) && (
             <Popconfirm title="Delete configuration?" onConfirm={() => handleDeleteOrigin(record)} okButtonProps={{ danger: true }}>
               <Button type="text" danger icon={<Trash2 size={18} />} className="action-btn-danger" />
             </Popconfirm>
@@ -552,7 +556,7 @@ export default function LeavePolicyPage() {
                   style={{ background: "transparent", border: "none" }}
                 />
               </div>
-              {canManageLeaves && (
+              {(canManageLeaves || canCreateLeavePolicy) && (
                 <Button
                   type="primary"
                   size="large"
@@ -599,7 +603,9 @@ export default function LeavePolicyPage() {
                           {item.position === "User" ? <User size={20} /> : item.position === "Department" ? <Building2 size={20} /> : <Briefcase size={20} />}
                         </div>
                         <div style={{ display: "flex", gap: 8 }}>
-                          <Button type="text" icon={<Edit2 size={16} />} onClick={() => handleEdit(item)} className="small-action-btn" />
+                          {(canManageLeaves || canUpdateLeavePolicy) && (
+                            <Button type="text" icon={<Edit2 size={16} />} onClick={() => handleEdit(item)} className="small-action-btn" />
+                          )}
                           <Button type="text" onClick={() => { setCurrentRecord(item); setIsDetailVisible(true); }} icon={<Maximize2 size={16} />} className="small-action-btn" />
                         </div>
                       </div>
@@ -647,7 +653,22 @@ export default function LeavePolicyPage() {
                 </Col>
                 <Col span={12}>
                   <Form.Item name="subOriginId" label={<Text strong style={{ fontSize: 13 }}>Specific Selection</Text>} rules={[{ required: true }]}>
-                    <Select disabled={!originType || !!editingKey} options={originType === "User" ? members : originType === "Grade" ? grades.map(g => ({ label: g.name, value: g.id })) : originType === "Department" ? departments.map(d => ({ label: d.name, value: d.id })) : []} />
+                    <Select
+                      disabled={!originType || !!editingKey}
+                      options={
+                        originType === "User"
+                          ? members
+                          : originType === "Grade"
+                            ? grades.map((g: any) => ({ label: g.name, value: g.id }))
+                            : originType === "Department"
+                              ? departments.map((d: any) => ({ label: d.name, value: d.id }))
+                              : originType === "Sub-department"
+                                ? subDepartments.map((sd: any) => ({ label: sd.name, value: sd.id }))
+                                : originType === "Position"
+                                  ? positions.map((p: any) => ({ label: p.title, value: p.id }))
+                                  : []
+                      }
+                    />
                   </Form.Item>
                 </Col>
               </Row>

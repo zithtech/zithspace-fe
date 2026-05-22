@@ -67,7 +67,14 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
 
 export default function GovernmentHolidaysPage() {
   const { isLoading: authLoading } = useAuth();
-  const { canManageLeaves } = usePermission();
+  const {
+    canManageLeaves,
+    canReadLeaveHoliday,
+    canCreateLeaveHoliday,
+    canUpdateLeaveHoliday,
+    canDeleteLeaveHoliday,
+  } = usePermission();
+  const hasAccess = canManageLeaves || canReadLeaveHoliday;
   const router = useRouter();
   const [api, contextHolder] = notification.useNotification();
 
@@ -95,10 +102,10 @@ export default function GovernmentHolidaysPage() {
   const [editExtraPosition, setEditExtraPosition] = useState<"before" | "after">("after");
 
   useEffect(() => {
-    if (!authLoading && !canManageLeaves) {
+    if (!authLoading && !hasAccess) {
       router.push('/dashboard');
     }
-  }, [authLoading, canManageLeaves, router]);
+  }, [authLoading, hasAccess, router]);
 
   useEffect(() => {
     const fetchSourceHolidays = async () => {
@@ -132,7 +139,7 @@ export default function GovernmentHolidaysPage() {
     }
   }, [holidays, searchText]);
 
-  if (authLoading || !canManageLeaves) return null;
+  if (authLoading || !hasAccess) return null;
 
   const filteredModalHolidays = apiHolidaysSource.filter((h) => {
     const isCountryMatch = h.country === modalCountry;
@@ -323,6 +330,7 @@ export default function GovernmentHolidaysPage() {
       render: (isFloater: boolean, record: CompanyGovernmentHoliday) => (
         <Switch
           checked={isFloater}
+          disabled={!(canManageLeaves || canUpdateLeaveHoliday)}
           checkedChildren={<Check size={12} />}
           unCheckedChildren={<X size={12} />}
           style={{ backgroundColor: isFloater ? "var(--text-holiday)" : "var(--bg-slate-100)" }}
@@ -335,7 +343,7 @@ export default function GovernmentHolidaysPage() {
       dataIndex: "status",
       key: "status",
       render: (status: string, record: CompanyGovernmentHoliday) => (
-        <Switch checked={status === "ACTIVE"} onChange={(checked) => handleStatusChange(checked, record.id)} />
+        <Switch checked={status === "ACTIVE"} disabled={!(canManageLeaves || canUpdateLeaveHoliday)} onChange={(checked) => handleStatusChange(checked, record.id)} />
       ),
     },
     {
@@ -345,24 +353,28 @@ export default function GovernmentHolidaysPage() {
       fixed: "right" as const,
       render: (_: any, record: CompanyGovernmentHoliday) => (
         <Space size={4}>
-          <Tooltip title="Adjust Duration">
-            <Button
-              type="text"
-              size="small"
-              icon={<Settings2 size={16} color="#64748b" />}
-              style={{ borderRadius: 6 }}
-              onClick={() => handleEditHoliday(record)}
-            />
-          </Tooltip>
-          <Popconfirm
-            title="Delete Holiday?"
-            onConfirm={() => handleDeleteHoliday(record.id)}
-            okText="Delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-          >
-            <Button type="text" size="small" danger icon={<Trash2 size={16} />} style={{ borderRadius: 6 }} />
-          </Popconfirm>
+          {(canManageLeaves || canUpdateLeaveHoliday) && (
+            <Tooltip title="Adjust Duration">
+              <Button
+                type="text"
+                size="small"
+                icon={<Settings2 size={16} color="#64748b" />}
+                style={{ borderRadius: 6 }}
+                onClick={() => handleEditHoliday(record)}
+              />
+            </Tooltip>
+          )}
+          {(canManageLeaves || canDeleteLeaveHoliday) && (
+            <Popconfirm
+              title="Delete Holiday?"
+              onConfirm={() => handleDeleteHoliday(record.id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Button type="text" size="small" danger icon={<Trash2 size={16} />} style={{ borderRadius: 6 }} />
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -428,15 +440,17 @@ export default function GovernmentHolidaysPage() {
                 onChange={e => setSearchText(e.target.value)}
                 allowClear
               />
-              <Button
-                type="primary"
-                size="large"
-                icon={<Plus size={18} />}
-                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600, background: "var(--premium-blue)" }}
-                onClick={() => setHolidayModalVisible(true)}
-              >
-                Apply Holidays
-              </Button>
+              {(canManageLeaves || canCreateLeaveHoliday) && (
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<Plus size={18} />}
+                  style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600, background: "var(--premium-blue)" }}
+                  onClick={() => setHolidayModalVisible(true)}
+                >
+                  Apply Holidays
+                </Button>
+              )}
             </div>
           </div>
 

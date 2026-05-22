@@ -93,7 +93,6 @@ export default function LeavesPage() {
   const [leaveBalances, setLeaveBalances] = useState<any[]>([]);
   const [hasLeaveConfig, setHasLeaveConfig] = useState(false);
 
-  // RBAC permissions
   const {
     canReadLeave,
     canCreateLeave,
@@ -102,7 +101,9 @@ export default function LeavesPage() {
     canManageLeaves,
     canReadLeaveDashboard,
     canReadLeaveType,
-    canReadLeavePolicy
+    canReadLeavePolicy,
+    canReadLeaveHoliday,
+    canReadLeaveAdjustment,
   } = usePermission();
   
   // Determine if user has approval rights
@@ -716,7 +717,7 @@ export default function LeavesPage() {
                   </span>
                 ),
               }] : []),
-              ...(canReadLeave ? [{
+              ...((canReadLeaveHoliday || canManageLeaves) ? [{
                 key: "holidays",
                 label: (
                   <span>
@@ -724,7 +725,7 @@ export default function LeavesPage() {
                   </span>
                 ),
               }] : []),
-              ...(canManageLeaves ? [{
+              ...((canReadLeaveAdjustment || canManageLeaves) ? [{
                 key: "adjustments",
                 label: (
                   <span>
@@ -732,7 +733,7 @@ export default function LeavesPage() {
                   </span>
                 ),
               }] : []),
-              ...(canReadLeaveType ? [{
+              ...((canReadLeaveType || canManageLeaves) ? [{
                 key: "configuration",
                 label: (
                   <span>
@@ -740,7 +741,7 @@ export default function LeavesPage() {
                   </span>
                 ),
               }] : []),
-              ...(canReadLeavePolicy ? [{
+              ...((canReadLeavePolicy || canManageLeaves) ? [{
                 key: "positions",
                 label: (
                   <span>
@@ -748,7 +749,7 @@ export default function LeavesPage() {
                   </span>
                 ),
               }] : []),
-              ...(canManageLeaves ? [{
+              ...((canReadLeaveHoliday || canManageLeaves) ? [{
                 key: "addLeaves",
                 label: (
                   <span>

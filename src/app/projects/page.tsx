@@ -16,7 +16,9 @@ import {
   Tag,
   Divider,
   Progress,
-  Empty
+  Empty,
+  message,
+  Alert
 } from "antd";
 import {
   ProjectOutlined,
@@ -44,13 +46,6 @@ export default function ProjectsPage() {
 
   const { data: stats, isLoading: statsLoading } = useTicketDashboardStats();
 
-  // Route guard - requires project.read permission
-  useEffect(() => {
-    if (!authLoading && !canReadProject) {
-      router.push('/dashboard');
-    }
-  }, [authLoading, canReadProject, router]);
-
   if (authLoading || statsLoading) {
     return (
       <MainLayout>
@@ -69,7 +64,20 @@ export default function ProjectsPage() {
     );
   }
 
-  if (!canReadProject) return null;
+  if (!canReadProject) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 20, maxWidth: 600, margin: '100px auto' }}>
+          <Alert
+            message="Permission Required"
+            description="Without project permission, you cannot read tickets."
+            type="warning"
+            showIcon
+          />
+        </div>
+      </MainLayout>
+    );
+  }
 
   const generalStats = stats?.generalStats || { total: 0, in_progress: 0, not_started: 0, completed: 0, blocked: 0 };
   const projectStats = stats?.projectStats || [];

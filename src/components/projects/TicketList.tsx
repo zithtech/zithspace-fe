@@ -735,6 +735,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     field: "status" | "assignee" | "title" | "priority" | "type" | "storyPoint",
     value: string | number | null
   ) => {
+    if (field === "assignee" && !canAssignTicket) {
+      message.error("Access Denied: You do not have permission to assign tickets.");
+      return;
+    }
     // Prepare update data
     const updateData: any = {};
     // Prepare optimistic cache data (optional override)
@@ -1117,9 +1121,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           <Space
             style={{ cursor: canUpdateTicket ? "pointer" : "default", transition: 'all 0.2s' }}
             className={canUpdateTicket ? "hover:translate-x-1" : ""}
-            onClick={() =>
-              canUpdateTicket && setEditingField({ ticketId: record.id, field: "assignee" })
-            }
+            onClick={() => {
+              if (canUpdateTicket) {
+                if (!canAssignTicket) {
+                  message.error("Access Denied: You do not have permission to assign tickets.");
+                  return;
+                }
+                setEditingField({ ticketId: record.id, field: "assignee" });
+              }
+            }}
           >
             <Avatar
               size="small"

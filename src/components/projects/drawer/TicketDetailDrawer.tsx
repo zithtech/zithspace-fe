@@ -415,6 +415,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   // Handlers
   const handleUpdate = async (field: string, value: any) => {
     if (!currentTicketId) return;
+    if (field === "assignee" && !canAssignTicket) {
+      message.error("Access Denied: You do not have permission to assign tickets.");
+      return;
+    }
     try {
       await updateTicketMutation.mutateAsync({
         id: currentTicketId,
@@ -1644,19 +1648,31 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                         <Row gutter={[0, 0]}>
                           <Col span={24}>
                             <DrawerField label="Assignee" variant="table">
-                              <EditableSelect
-                                value={
-                                  typeof ticket.assignee === "string"
-                                    ? ticket.assignee
-                                    : ticket.assignee?.id
-                                }
-                                options={projectMembers}
-                                onSave={(val) =>
-                                  handleUpdate("assignee", val)
-                                }
-                                mode="user"
-                                emptyText="Unassigned"
-                              />
+                              <div
+                                onClickCapture={(e) => {
+                                  if (!canAssignTicket) {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    message.error("Access Denied: You do not have permission to assign tickets.");
+                                  }
+                                }}
+                                style={{ width: "100%" }}
+                              >
+                                <EditableSelect
+                                  value={
+                                    typeof ticket.assignee === "string"
+                                      ? ticket.assignee
+                                      : ticket.assignee?.id
+                                  }
+                                  options={projectMembers}
+                                  onSave={(val) =>
+                                    handleUpdate("assignee", val)
+                                  }
+                                  mode="user"
+                                  emptyText="Unassigned"
+                                  disabled={!canAssignTicket}
+                                />
+                              </div>
                             </DrawerField>
                           </Col>
 

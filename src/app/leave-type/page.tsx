@@ -98,7 +98,8 @@ export default function LeaveTypePage() {
     canReadLeaveType, 
     canCreateLeaveType, 
     canUpdateLeaveType, 
-    canDeleteLeaveType 
+    canDeleteLeaveType,
+    canManageLeaves
   } = usePermission();
 
   const {
@@ -110,11 +111,13 @@ export default function LeaveTypePage() {
     deleteLeaveType,
   } = useLeaveTypes();
 
+  const hasAccess = canReadLeaveType || canManageLeaves;
+
   useEffect(() => {
-    if (!canReadLeaveType) {
+    if (!hasAccess) {
       router.push('/dashboard');
     }
-  }, [canReadLeaveType, router]);
+  }, [hasAccess, router]);
 
   useEffect(() => {
     fetchLeaveTypes();

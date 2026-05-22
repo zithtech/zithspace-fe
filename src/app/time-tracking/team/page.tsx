@@ -20,7 +20,11 @@ export default function TeamTimePage() {
   const [isManageModalOpen, setIsManageModalOpen] = React.useState(false);
   const [refreshKey, setRefreshKey] = React.useState(0);
 
-  const { canReadTimeTrackingTeam } = usePermission();
+  const {
+    canReadTimeTrackingTeam,
+    canCreateTimeTracking,
+    canManageTimeTrackingTime
+  } = usePermission();
   const { isLoading } = useAuth();
   const router = useRouter();
 
@@ -70,28 +74,32 @@ export default function TeamTimePage() {
           description="Monitor team productivity, work sessions, and daily capacity in real-time."
           extra={
             <>
-              <Button
-                onClick={() => setIsManageModalOpen(true)}
-                icon={<EditOutlined />}
-                style={{
-                  height: 38,
-                  borderRadius: 10,
-                  fontWeight: 500,
-                  padding: "0 18px",
-                  background: "var(--bg-pure-white)",
-                  border: "1px solid var(--border-slate-200)",
-                }}
-              >
-                Manage Time
-              </Button>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setPopoverOpen(true)}
-                className="mtt-add-time-btn"
-              >
-                Add Time
-              </Button>
+              {canManageTimeTrackingTime && (
+                <Button
+                  onClick={() => setIsManageModalOpen(true)}
+                  icon={<EditOutlined />}
+                  style={{
+                    height: 38,
+                    borderRadius: 10,
+                    fontWeight: 500,
+                    padding: "0 18px",
+                    background: "var(--bg-pure-white)",
+                    border: "1px solid var(--border-slate-200)",
+                  }}
+                >
+                  Manage Time
+                </Button>
+              )}
+              {canCreateTimeTracking && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setPopoverOpen(true)}
+                  className="mtt-add-time-btn"
+                >
+                  Add Time
+                </Button>
+              )}
             </>
           }
         />

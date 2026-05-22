@@ -8,6 +8,7 @@ import {
   Switch,
   Popconfirm,
   Spin,
+  message,
 } from 'antd';
 import {
   useCreateInvoiceTemplate,
@@ -59,6 +60,8 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
     visible && !!templateId
   );
 
+  const [messageApi, contextHolder] = message.useMessage();
+
   const createMutation = useCreateInvoiceTemplate();
   const updateMutation = useUpdateInvoiceTemplate();
 
@@ -95,9 +98,19 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
     };
 
     if (isEditing && templateId) {
-      updateMutation.mutate({ id: templateId, data: payload }, { onSuccess: onClose });
+      updateMutation.mutate({ id: templateId, data: payload }, {
+        onSuccess: onClose,
+        onError: (err: any) => {
+          messageApi.error(err.message || 'Failed to update template');
+        }
+      });
     } else {
-      createMutation.mutate(payload, { onSuccess: onClose });
+      createMutation.mutate(payload, {
+        onSuccess: onClose,
+        onError: (err: any) => {
+          messageApi.error(err.message || 'Failed to create template');
+        }
+      });
     }
   };
 
@@ -190,6 +203,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
         </div>
       }
     >
+      {contextHolder}
       {/* HEADER */}
       <div
         className="sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"

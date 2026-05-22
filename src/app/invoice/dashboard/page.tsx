@@ -36,16 +36,16 @@ dayjs.extend(isBetween);
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { canReadInvoice, canCreateInvoice } = usePermission();
+  const { canReadInvoice, canCreateInvoice, canReadInvoiceDashboard, canReadInvoiceHistory } = usePermission();
   const { isLoading: authLoading } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
   useEffect(() => {
-    if (!authLoading && !canReadInvoice) {
+    if (!authLoading && !canReadInvoice && !canReadInvoiceDashboard) {
       router.push("/dashboard");
     }
-  }, [authLoading, canReadInvoice, router]);
+  }, [authLoading, canReadInvoice, canReadInvoiceDashboard, router]);
 
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const [historyDrawerVisible, setHistoryDrawerVisible] = useState(false);
@@ -561,7 +561,7 @@ export default function DashboardPage() {
         </div>
       </MainLayout>
     );
-  if (!canReadInvoice) return null;
+  if (!canReadInvoice && !canReadInvoiceDashboard) return null;
 
   return (
     <MainLayout>
@@ -612,13 +612,15 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button
-                icon={<History size={14} />}
-                onClick={() => setHistoryDrawerVisible(true)}
-                style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
-              >
-                Email history
-              </Button>
+              {canReadInvoiceHistory && (
+                <Button
+                  icon={<History size={14} />}
+                  onClick={() => setHistoryDrawerVisible(true)}
+                  style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
+                >
+                  Email history
+                </Button>
+              )}
               {canCreateInvoice && (
                 <Button
                   type="primary"

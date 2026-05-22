@@ -87,7 +87,8 @@ export default function TopNav({
     canReadBookmark,
     canCreateBookmark,
     canDeleteBookmark,
-    canReadTimeTracking
+    canReadTimeTracking,
+    canCreateTimeTracking
   } = usePermission();
   const { token } = theme.useToken();
   const { theme: appTheme } = useTheme();
@@ -665,7 +666,7 @@ export default function TopNav({
         {!isCustomBreakpoint ? (
           <>
             <ThemeToggle />
-            {canReadTimeTracking && <TimeTrackerPopover />}
+            {canReadTimeTracking && canCreateTimeTracking && <TimeTrackerPopover />}
 
 
             {canReadMail && (
@@ -830,7 +831,7 @@ export default function TopNav({
             <Dropdown
               menu={{
                 items: [
-                  ...(hasPermission(Permissions.TIME_TRACKING_READ) ? [{
+                  ...(hasPermission(Permissions.TIME_TRACKING_READ) && hasPermission(Permissions.TIME_TRACKING_CREATE) ? [{
                     key: 'timer',
                     label: <TimeTrackerPopover isMenuItem />,
                     onClick: () => setPopoverOpen(true)

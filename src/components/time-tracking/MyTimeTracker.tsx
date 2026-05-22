@@ -8,6 +8,7 @@ import { PlayCircleOutlined as RunningIcon } from "@ant-design/icons";
 import { calculateNetDuration } from "@/utils/timeTrackingUtils";
 import { Table, Tag, Button, Typography, Space, Popconfirm, App, Tabs, Card, Row, Col } from "antd";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
+import { usePermission } from "@/hooks/usePermission";
 
 const { Text } = Typography;
 
@@ -17,6 +18,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
   const [loading, setLoading] = useState(false);
   const { stopAllTimers, pauseAllTimers, resumeAllTimers, activeEntry, refreshTrigger } = useTimeTrackerStore();
   const { open: openTicketDrawer } = useTicketDrawer();
+  const { canCreateTimeTracking, canDeleteTimeTracking, canManageTimeTrackingTime } = usePermission();
 
   const fetchEntries = async () => {
     try {
@@ -150,40 +152,47 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       key: "time",
       render: (val: number, record: TimeTrackingEntry) => {
         if (record.status === "RUNNING") {
-          return (
-            <Popconfirm
-              title="Stop All Active Timers"
-              description="Are you sure you want to stop all running timers?"
-              onConfirm={(e) => handleStopAll(e as any)}
-              onCancel={(e) => e?.stopPropagation()}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div className="pulse-indicator" />
-                <Tag
-                  color="processing"
-                  icon={<RunningIcon />}
-                  style={{
-                    cursor: "pointer",
-                    borderRadius: 6,
-                    fontWeight: 600,
-                    padding: '2px 10px',
-                    border: '1px solid #bae6fd'
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Running
-                </Tag>
-              </div>
-            </Popconfirm>
+          const tagEl = (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="pulse-indicator" />
+              <Tag
+                color="processing"
+                icon={<RunningIcon />}
+                style={{
+                  cursor: canCreateTimeTracking ? "pointer" : "default",
+                  borderRadius: 6,
+                  fontWeight: 600,
+                  padding: '2px 10px',
+                  border: '1px solid #bae6fd'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                Running
+              </Tag>
+            </div>
           );
+
+          if (canCreateTimeTracking) {
+            return (
+              <Popconfirm
+                title="Stop All Active Timers"
+                description="Are you sure you want to stop all running timers?"
+                onConfirm={(e) => handleStopAll(e as any)}
+                onCancel={(e) => e?.stopPropagation()}
+              >
+                {tagEl}
+              </Popconfirm>
+            );
+          }
+          return tagEl;
         }
         if (record.status === "PAUSED") {
           return (
             <Tag
               color="warning"
               icon={<PauseCircleOutlined />}
-              style={{ cursor: "pointer" }}
-              onClick={(e) => handleResumeAll(e)}
+              style={{ cursor: canCreateTimeTracking ? "pointer" : "default" }}
+              onClick={(e) => canCreateTimeTracking ? handleResumeAll(e) : null}
             >
               Paused ({formatDuration(val)})
             </Tag>
@@ -198,7 +207,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       align: "right" as const,
       render: (_: any, record: TimeTrackingEntry) => (
         <Space>
-          {record.status === "RUNNING" && (
+          {canCreateTimeTracking && record.status === "RUNNING" && (
             <Button
               type="text"
               icon={<PauseCircleOutlined />}
@@ -206,7 +215,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
               title="Pause All Timers"
             />
           )}
-          {record.status === "PAUSED" && (
+          {canCreateTimeTracking && record.status === "PAUSED" && (
             <Button
               type="text"
               icon={<PlayCircleOutlined style={{ color: '#1677ff' }} />}
@@ -214,9 +223,11 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
               title="Resume All Timers"
             />
           )}
-          <Popconfirm title="Delete this entry?" onConfirm={() => handleDelete(record.id)}>
-            <Button type="text" danger icon={<DeleteOutlined />} disabled={record.status === 'RUNNING'} />
-          </Popconfirm>
+          {canDeleteTimeTracking && (
+            <Popconfirm title="Delete this entry?" onConfirm={() => handleDelete(record.id)}>
+              <Button type="text" danger icon={<DeleteOutlined />} disabled={record.status === 'RUNNING'} />
+            </Popconfirm>
+          )}
         </Space>
       ),
     }
@@ -309,7 +320,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
             </div>
           </div>
         </div>
-        {runningCount > 0 && (
+        {canCreateTimeTracking && runningCount > 0 && (
           <Popconfirm
             title="Stop all running timers?"
             description="This will stop every active timer for the day."
@@ -327,7 +338,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       </div>
 
       <Table
-        columns={columns}
+        columns={columns.filter(col => col.key !== 'action' || canCreateTimeTracking || canDeleteTimeTracking)}
         dataSource={entries}
         rowKey="id"
         loading={loading}
@@ -341,7 +352,11 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
               </div>
               <div className="mtt-tracker-card__empty-title">No time logged for this day</div>
               <div className="mtt-tracker-card__empty-sub">
-                Start a timer or click <strong>Add Time</strong> to log a manual entry.
+                {canCreateTimeTracking ? (
+                  <>Start a timer or click <strong>Add Time</strong> to log a manual entry.</>
+                ) : (
+                  "You do not have permission to log or start timers."
+                )}
               </div>
             </div>
           )

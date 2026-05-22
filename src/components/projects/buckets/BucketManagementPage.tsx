@@ -867,14 +867,16 @@ export default function BucketManagementPage() {
             </Text>
             <Space size={12} style={{ marginTop: 18 }}>
               {allBuckets.length === 0 ? (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleCreate}
-                  className="bh-create-btn"
-                >
-                  Create your first bucket
-                </Button>
+                canCreateTicketBucket && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleCreate}
+                    className="bh-create-btn"
+                  >
+                    Create your first bucket
+                  </Button>
+                )
               ) : (
                 <Button onClick={resetFilters} className="bh-header-btn">
                   Reset filters

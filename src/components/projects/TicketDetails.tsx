@@ -18,6 +18,7 @@ import {
   useDeleteAttachment,
 } from "@/hooks/useTicketDetails";
 import { TicketDetailsProps } from "@/types/ticket";
+import { usePermission } from "@/hooks/usePermission";
 import { PRIORITY_OPTIONS, TYPE_OPTIONS } from "@/utils/ticketUtils";
 import {
   TicketDetailsHeader,
@@ -33,6 +34,7 @@ import {
 export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   const [form] = Form.useForm();
   const [editing, setEditing] = useState(false);
+  const { canAssignTicket } = usePermission();
 
   // React Query hooks for data fetching (parallel loading)
   const { data: ticket, isLoading: ticketLoading } = useTicketDetails(ticketId);
@@ -70,6 +72,18 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
+
+      // Check if assignee is being changed and user lacks assign permission
+      const originalAssigneeId = typeof ticket?.assignee === 'string' 
+        ? ticket.assignee 
+        : ticket?.assignee?.id || null;
+      
+      const newAssigneeId = values.assignee || null;
+
+      if (originalAssigneeId !== newAssigneeId && !canAssignTicket) {
+        message.error("Access Denied: You do not have permission to assign tickets.");
+        return;
+      }
 
       const updateData = {
         title: values.title,
@@ -182,6 +196,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                   onCancel={() => setEditing(false)}
                   isSaving={updateTicketMutation.isPending}
                   dataLoading={dataLoading}
+                  canAssignTicket={canAssignTicket}
                 />
               </Card>
             ) : (

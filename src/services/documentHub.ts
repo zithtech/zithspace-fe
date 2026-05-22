@@ -306,18 +306,20 @@ class DocumentHubService {
   }
 
 
-  static async deleteDocumentHub(id: string): Promise<void> {
+  static async deleteDocumentHub(id: string, permanent?: boolean): Promise<void> {
     try {
-      await apiClient.delete(`/api/documenthub/${id}`);
+      const url = permanent ? `/api/documenthub/${id}?permanent=true` : `/api/documenthub/${id}`;
+      await apiClient.delete(url);
     } catch (error: any) {
       console.error("Error deleting document hub:", error);
       throw error;
     }
   }
 
-  static async deleteTreeNode(nodeId: string): Promise<void> {
+  static async deleteTreeNode(nodeId: string, permanent?: boolean): Promise<void> {
     try {
-      await apiClient.delete(`/api/documenthub/node/${nodeId}`);
+      const url = permanent ? `/api/documenthub/node/${nodeId}?permanent=true` : `/api/documenthub/node/${nodeId}`;
+      await apiClient.delete(url);
     } catch (error: any) {
       console.error("Error deleting tree node:", error);
       const errorMessage =
@@ -335,9 +337,10 @@ class DocumentHubService {
     }
   }
 
-  static async deleteDocument(id: string): Promise<void> {
+  static async deleteDocument(id: string, permanent?: boolean): Promise<void> {
     try {
-      await apiClient.delete(`/api/documenthub/document/${id}`);
+      const url = permanent ? `/api/documenthub/document/${id}?permanent=true` : `/api/documenthub/document/${id}`;
+      await apiClient.delete(url);
     } catch (error: any) {
       console.error("Error deleting document:", error);
       throw error;

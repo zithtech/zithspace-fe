@@ -107,8 +107,9 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
       grouped[option.value] = [];
     });
     tickets.forEach((ticket) => {
-      if (grouped[ticket.status]) {
-        grouped[ticket.status].push(ticket);
+      const normalizedStatus = (ticket.status || 'not_started').toLowerCase().replace(/ /g, '_');
+      if (grouped[normalizedStatus]) {
+        grouped[normalizedStatus].push(ticket);
       }
     });
     return grouped;

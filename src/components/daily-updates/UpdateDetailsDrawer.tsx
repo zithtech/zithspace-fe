@@ -107,6 +107,81 @@ export default function UpdateDetailsDrawer({
         .udd-drawer .udd-anim {
           animation: uddFadeUp .35s cubic-bezier(.2,.6,.2,1) both;
         }
+        .udd-inline-note {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          grid-template-areas: "icon label" "icon text";
+          column-gap: 10px;
+          padding: 10px 12px;
+          background: var(--light-bg);
+          border: 1px solid var(--light-border);
+          border-radius: 10px;
+        }
+        .udd-inline-note-icon {
+          grid-area: icon;
+          color: var(--light-label);
+          margin-top: 1px;
+        }
+        .udd-inline-note-label {
+          grid-area: label;
+          font-size: 11px;
+          color: var(--light-label);
+          text-transform: uppercase;
+          letter-spacing: 0.4px;
+          margin-bottom: 2px;
+          font-weight: 600;
+        }
+        .udd-inline-note-text {
+          grid-area: text;
+          font-size: 13px;
+          color: var(--light-text);
+          line-height: 1.5;
+          white-space: pre-wrap;
+        }
+        [data-theme='dark'] .udd-inline-note {
+          grid-template-areas: "icon label" "text text";
+          column-gap: 8px;
+          row-gap: 10px;
+          background: var(--bg-pure-white);
+          border-radius: 12px;
+          padding: 16px;
+          border: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .udd-inline-note-icon {
+          color: var(--text-slate-600);
+          margin-top: 0;
+          display: flex;
+          align-items: center;
+        }
+        [data-theme='dark'] .udd-inline-note-label {
+          font-size: 13px;
+          color: var(--text-slate-900);
+          letter-spacing: 0.1px;
+          text-transform: none;
+          margin-bottom: 0;
+          display: flex;
+          align-items: center;
+        }
+        [data-theme='dark'] .udd-inline-note-text {
+          font-size: 14px;
+          color: var(--text-slate-700);
+          line-height: 1.65;
+        }
+
+        /* Highlight Blockers in Dark Theme */
+        [data-theme='dark'] .udd-inline-note-rose {
+          background: rgba(225, 29, 72, 0.08);
+          border-color: rgba(225, 29, 72, 0.2);
+        }
+        [data-theme='dark'] .udd-inline-note-rose .udd-inline-note-icon {
+          color: #fb7185;
+        }
+        [data-theme='dark'] .udd-inline-note-rose .udd-inline-note-label {
+          color: #fda4af;
+        }
+        [data-theme='dark'] .udd-inline-note-rose .udd-inline-note-text {
+          color: #ffe4e6;
+        }
         `
       }} />
 
@@ -501,7 +576,7 @@ export default function UpdateDetailsDrawer({
                       {project.blockers && (
                         <InlineNote
                           tone="rose"
-                          icon={<AlertCircle size={13} strokeWidth={2.4} />}
+                          icon={<AlertCircle size={15} strokeWidth={2.3} />}
                           label="Blockers"
                           text={project.blockers}
                         />
@@ -509,7 +584,7 @@ export default function UpdateDetailsDrawer({
                       {project.notes && (
                         <InlineNote
                           tone="sky"
-                          icon={<FileText size={13} strokeWidth={2.4} />}
+                          icon={<FileText size={15} strokeWidth={2.3} />}
                           label="Notes"
                           text={project.notes}
                         />
@@ -611,36 +686,18 @@ function InlineNote({
   }[tone];
 
   return (
-    <div style={{
-      padding: "10px 12px",
-      background: palette.bg,
-      border: `1px solid ${palette.border}`,
-      borderRadius: 10,
-      display: "flex",
-      gap: 10,
-      alignItems: "flex-start",
-    }}>
-      <div style={{ color: palette.labelColor, marginTop: 1, flexShrink: 0 }}>{icon}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <Text strong style={{
-          display: "block",
-          fontSize: 11,
-          color: palette.labelColor,
-          textTransform: "uppercase",
-          letterSpacing: 0.4,
-          marginBottom: 2,
-        }}>
-          {label}
-        </Text>
-        <Text style={{
-          fontSize: 13,
-          color: palette.color,
-          lineHeight: 1.5,
-          whiteSpace: "pre-wrap",
-        }}>
-          {text}
-        </Text>
-      </div>
+    <div 
+      className={`udd-inline-note udd-inline-note-${tone}`}
+      style={{
+        "--light-bg": palette.bg,
+        "--light-border": palette.border,
+        "--light-label": palette.labelColor,
+        "--light-text": palette.color,
+      } as React.CSSProperties}
+    >
+      <div className="udd-inline-note-icon">{icon}</div>
+      <div className="udd-inline-note-label">{label}</div>
+      <div className="udd-inline-note-text">{text}</div>
     </div>
   );
 }

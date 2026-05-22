@@ -122,8 +122,8 @@ export class ProjectService {
    */
   static async getNextCode(): Promise<string> {
     try {
-      const response = await api.get<{success: boolean; data: string}>("/api/projects/next-code");
-      return response.data.data;
+      const response = await api.get<string>("/api/projects/next-code");
+      return response;
     } catch (error) {
       console.error("Failed to fetch next project code:", error);
       return "";

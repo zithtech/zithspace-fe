@@ -449,7 +449,7 @@ export default function CreateBugDrawer({
                 <textarea
                   className="hb-cbd-textarea"
                   rows={5}
-                  placeholder="What's broken? Steps, observed behaviour, screenshots (paste images here)…"
+                  placeholder="What's broken? Steps, observed behaviour, attachments (paste images/videos here)…"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   onBlur={() => setDescriptionTouched(true)}
@@ -632,7 +632,7 @@ export default function CreateBugDrawer({
                   type="file"
                   multiple
                   hidden
-                  accept="image/*,application/pdf,.log,.txt"
+                  accept="image/*,video/*,application/pdf,.log,.txt"
                   onChange={(e) => {
                     if (e.target.files) addFiles(e.target.files);
                     e.target.value = "";
@@ -647,10 +647,10 @@ export default function CreateBugDrawer({
                     <UploadCloud size={20} />
                     <div>
                       <div className="hb-cbd-dropzone-title">
-                        Drop files, click to browse, or paste images
+                        Drop files, click to browse, or paste images/videos
                       </div>
                       <div className="hb-cbd-dropzone-sub">
-                        Images, PDFs, logs · max {MAX_FILE_MB}MB
+                        Images, Videos, PDFs, logs · max {MAX_FILE_MB}MB
                       </div>
                     </div>
                   </button>

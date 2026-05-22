@@ -31,6 +31,7 @@ interface TicketDetailsFormProps {
   taskLevels: Array<{ value: string; label: string }>;
   taskTypes: Array<{ value: string; label: string }>;
   dataLoading: boolean;
+  canAssignTicket?: boolean;
 }
 
 export default function TicketDetailsForm({
@@ -47,6 +48,7 @@ export default function TicketDetailsForm({
   taskLevels,
   taskTypes,
   dataLoading,
+  canAssignTicket = true,
 }: TicketDetailsFormProps) {
   // Populate form when ticket data is loaded
   useEffect(() => {
@@ -327,6 +329,7 @@ export default function TicketDetailsForm({
                 placeholder="Select assignee"
                 loading={dataLoading}
                 showSearch
+                disabled={!canAssignTicket}
                 filterOption={(input, option) => {
                   const member = members.find(
                     (m) => m.value === option?.value

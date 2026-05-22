@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Typography, Tag, Input, Empty, Space, Avatar, Tooltip, Progress, Badge, Spin, Modal, message, Button } from 'antd';
+import { Card, Row, Col, Typography, Tag, Input, Empty, Space, Avatar, Tooltip, Progress, Badge, Spin, Modal, message, Button, Alert } from 'antd';
 import {
   SearchOutlined,
   ProjectOutlined,
@@ -42,14 +42,6 @@ function ProjectSelectContent() {
   const [search, setSearch] = useState('');
   const [isRedirecting, setIsRedirecting] = useState(true);
   const queryClient = useQueryClient();
-
-  // Route guard
-  useEffect(() => {
-    if (!authLoading && !canReadProject) {
-      router.replace('/dashboard');
-      return;
-    }
-  }, [authLoading, canReadProject, router]);
 
   // Fetch projects
   const { data: response, isLoading: projectsLoading } = useQuery({
@@ -121,7 +113,18 @@ function ProjectSelectContent() {
   }, [authLoading, projectsLoading, projects, router, searchParams]);
 
   if (!canReadProject && !authLoading) {
-    return null;
+    return (
+      <MainLayout>
+        <div style={{ padding: 20, maxWidth: 600, margin: '100px auto' }}>
+          <Alert
+            message="Permission Required"
+            description="Without project permission, you cannot read tickets."
+            type="warning"
+            showIcon
+          />
+        </div>
+      </MainLayout>
+    );
   }
 
   const filteredProjects = projects.filter(p =>

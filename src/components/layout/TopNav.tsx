@@ -47,7 +47,7 @@ interface ShortcutItem {
 }
 import { Inbox } from '@novu/nextjs';
 import { Permissions } from '@/types/permissions';
-import { ModuleType, NAVIGATION_CONFIG, NAV_MOBILE_BREAKPOINT } from './navigationConfig';
+import { NavItem, ModuleType, NAVIGATION_CONFIG, NAV_MOBILE_BREAKPOINT } from './navigationConfig';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
@@ -87,7 +87,8 @@ export default function TopNav({
     canReadBookmark,
     canCreateBookmark,
     canDeleteBookmark,
-    canReadTimeTracking
+    canReadTimeTracking,
+    canCreateTimeTracking
   } = usePermission();
   const { token } = theme.useToken();
   const { theme: appTheme } = useTheme();
@@ -237,11 +238,37 @@ export default function TopNav({
     return false;
   });
 
+  const getFirstAllowedPath = (items: NavItem[]): string | undefined => {
+    for (const item of items) {
+      let hasItemPermission = true;
+      if (item.requiredPermission) {
+        hasItemPermission = hasPermission(item.requiredPermission);
+      } else if (item.requiredAnyPermission) {
+        hasItemPermission = hasAnyPermission(...item.requiredAnyPermission);
+      }
+
+      if (!hasItemPermission) {
+        continue;
+      }
+
+      if (item.children && item.children.length > 0) {
+        const childPath = getFirstAllowedPath(item.children);
+        if (childPath) return childPath;
+      } else if (item.path) {
+        return item.path;
+      }
+    }
+    return undefined;
+  };
+
   const handleModuleClick = (moduleKey: ModuleType) => {
     onModuleChange(moduleKey);
     const moduleConfig = NAVIGATION_CONFIG.find(m => m.key === moduleKey);
     if (moduleConfig) {
-      if (moduleConfig.defaultPath) {
+      const firstAllowedPath = getFirstAllowedPath(moduleConfig.items);
+      if (firstAllowedPath) {
+        router.push(firstAllowedPath);
+      } else if (moduleConfig.defaultPath) {
         router.push(moduleConfig.defaultPath);
       } else if (moduleConfig.items.length > 0) {
         const firstItem = moduleConfig.items[0];
@@ -639,7 +666,7 @@ export default function TopNav({
         {!isCustomBreakpoint ? (
           <>
             <ThemeToggle />
-            {canReadTimeTracking && <TimeTrackerPopover />}
+            {canReadTimeTracking && canCreateTimeTracking && <TimeTrackerPopover />}
 
 
             {canReadMail && (
@@ -804,7 +831,7 @@ export default function TopNav({
             <Dropdown
               menu={{
                 items: [
-                  ...(hasPermission(Permissions.TIME_TRACKING_READ) ? [{
+                  ...(hasPermission(Permissions.TIME_TRACKING_READ) && hasPermission(Permissions.TIME_TRACKING_CREATE) ? [{
                     key: 'timer',
                     label: <TimeTrackerPopover isMenuItem />,
                     onClick: () => setPopoverOpen(true)

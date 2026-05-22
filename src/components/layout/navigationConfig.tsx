@@ -179,15 +179,31 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     defaultPath: "/projects/select",
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
+      Permissions.PROJECT_TRASH_READ,
       Permissions.TICKET_READ,
+      Permissions.TICKET_CREATE,
       Permissions.TICKET_PLAN_READ,
       Permissions.TICKET_BUCKET_READ,
       Permissions.BUG_READ,
+      Permissions.TICKET_SETTING_READ,
+      Permissions.TICKET_TRASH_READ,
+      Permissions.TICKET_ARCHIVE_READ,
       Permissions.TIMESHEET_READ,
+      Permissions.TIMESHEET_CREATE,
+      Permissions.TIMESHEET_APPROVE,
+      Permissions.TIME_TRACKING_READ,
+      Permissions.TIME_TRACKING_TEAM_READ,
       Permissions.DAILY_UPDATE_READ,
+      Permissions.DAILY_UPDATE_CREATE,
       Permissions.DOCUMENT_READ,
+      Permissions.PROPOSAL_READ,
+      Permissions.SQUAD_READ,
       Permissions.ESCALATION_READ,
+      Permissions.ESCALATION_CREATE,
+      Permissions.ESCALATION_MANAGE,
       Permissions.LEAD_READ,
+      Permissions.LEAD_SETTING_READ,
+      Permissions.LEAD_TRASH_READ,
     ],
     items: [
       {
@@ -210,7 +226,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Plans",
             icon: I(Map),
             path: "/projects/plans",
-            requiredPermission: Permissions.PROJECT_READ,
+            requiredPermission: Permissions.TICKET_PLAN_READ,
           },
           {
             key: "/projects/create",
@@ -295,7 +311,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "timesheet-group",
         label: "Timesheet",
         icon: I(CalendarClock),
-        requiredPermission: Permissions.TIMESHEET_READ,
+        requiredAnyPermission: [
+          Permissions.TIMESHEET_READ,
+          Permissions.TIMESHEET_CREATE,
+          Permissions.TIMESHEET_APPROVE,
+        ],
         children: [
           {
             key: "/timesheet/dashboard",
@@ -331,7 +351,10 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "time-tracking",
         label: "Time Tracking",
         icon: I(Timer),
-        requiredPermission: Permissions.TIME_TRACKING_READ,
+        requiredAnyPermission: [
+          Permissions.TIME_TRACKING_READ,
+          Permissions.TIME_TRACKING_TEAM_READ,
+        ],
         children: [
           {
             key: "/time-tracking/my",
@@ -353,7 +376,10 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "daily-updates-group",
         label: "Daily Updates",
         icon: I(NotebookPen),
-        requiredPermission: Permissions.DAILY_UPDATE_READ,
+        requiredAnyPermission: [
+          Permissions.DAILY_UPDATE_READ,
+          Permissions.DAILY_UPDATE_CREATE,
+        ],
         children: [
           {
             key: "/daily-updates/submit",
@@ -396,7 +422,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "escalations-group",
         label: "Escalations",
         icon: I(Siren),
-        requiredPermission: Permissions.ESCALATION_READ,
+        requiredAnyPermission: [
+          Permissions.ESCALATION_READ,
+          Permissions.ESCALATION_CREATE,
+          Permissions.ESCALATION_MANAGE,
+        ],
         children: [
           {
             key: "/escalations",
@@ -432,7 +462,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "leads-group",
         label: "Lead Management",
         icon: I(Megaphone),
-        requiredPermission: Permissions.LEAD_READ,
+        requiredAnyPermission: [
+          Permissions.LEAD_READ,
+          Permissions.LEAD_SETTING_READ,
+          Permissions.LEAD_TRASH_READ,
+        ],
         children: [
           {
             key: "/leads",
@@ -649,14 +683,26 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "leave-management-group",
         label: "Leave Management",
         icon: I(CalendarDays),
-        requiredPermission: Permissions.LEAVE_READ,
+        requiredAnyPermission: [
+          Permissions.LEAVE_READ,
+          Permissions.LEAVE_DASHBOARD_READ,
+          Permissions.LEAVE_HOLIDAY_READ,
+          Permissions.LEAVE_ADJUSTMENT_READ,
+          Permissions.LEAVE_TYPE_READ,
+          Permissions.LEAVE_POLICY_READ,
+          Permissions.LEAVE_APPROVE,
+          Permissions.LEAVE_MANAGE,
+        ],
         children: [
           {
             key: "/leaves-dashboard",
             label: "Dashboard",
             icon: I(LayoutDashboard),
             path: "/leaves-dashboard",
-            requiredPermission: Permissions.LEAVE_READ,
+            requiredAnyPermission: [
+              Permissions.LEAVE_READ,
+              Permissions.LEAVE_DASHBOARD_READ,
+            ],
           },
           {
             key: "/apply-leave",
@@ -680,35 +726,50 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Government Holidays",
             icon: I(Landmark),
             path: "/government-holidays",
-            requiredPermission: Permissions.LEAVE_READ,
+            requiredAnyPermission: [
+              Permissions.LEAVE_HOLIDAY_READ,
+              Permissions.LEAVE_MANAGE,
+            ],
           },
           {
             key: "/leave-adjustments",
             label: "Leave Adjustment",
             icon: I(CalendarCog),
             path: "/leave-adjustments",
-            requiredPermission: Permissions.LEAVE_MANAGE,
+            requiredAnyPermission: [
+              Permissions.LEAVE_MANAGE,
+              Permissions.LEAVE_ADJUSTMENT_READ,
+            ],
           },
           {
             key: "/leave-type",
             label: "Leave Type",
             icon: I(Tag),
             path: "/leave-type",
-            requiredPermission: Permissions.LEAVE_MANAGE,
+            requiredAnyPermission: [
+              Permissions.LEAVE_MANAGE,
+              Permissions.LEAVE_TYPE_READ,
+            ],
           },
           {
             key: "/leave-policy",
             label: "Leave Policy",
             icon: I(BookOpen),
             path: "/leave-policy",
-            requiredPermission: Permissions.LEAVE_MANAGE,
+            requiredAnyPermission: [
+              Permissions.LEAVE_MANAGE,
+              Permissions.LEAVE_POLICY_READ,
+            ],
           },
           {
             key: "/add-goverment-leaves",
             label: "Add Govt Leaves",
             icon: I(CalendarHeart),
             path: "/add-goverment-leaves",
-            requiredPermission: Permissions.LEAVE_MANAGE,
+            requiredAnyPermission: [
+              Permissions.LEAVE_MANAGE,
+              Permissions.LEAVE_HOLIDAY_READ,
+            ],
           },
         ],
       },
@@ -845,6 +906,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     requiredAnyPermission: [
       Permissions.ACCOUNT_READ,
       Permissions.INVOICE_READ,
+      Permissions.INVOICE_DASHBOARD_READ,
+      Permissions.INVOICE_HISTORY_READ,
+      Permissions.INVOICE_TEMPLATE_READ,
+      Permissions.INVOICE_CUSTOMER_READ,
+      Permissions.INVOICE_TRASH_READ,
+      Permissions.INVOICE_MANAGE,
       Permissions.SALARY_READ,
     ],
     items: [
@@ -875,56 +942,81 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "invoice",
         label: "Invoice",
         icon: I(Receipt),
-        requiredPermission: Permissions.INVOICE_READ,
+        requiredAnyPermission: [
+          Permissions.INVOICE_READ,
+          Permissions.INVOICE_DASHBOARD_READ,
+          Permissions.INVOICE_HISTORY_READ,
+          Permissions.INVOICE_TEMPLATE_READ,
+          Permissions.INVOICE_CUSTOMER_READ,
+          Permissions.INVOICE_TRASH_READ,
+          Permissions.INVOICE_MANAGE,
+        ],
         children: [
           {
             key: "/invoice/",
             label: "Dashboard",
             icon: I(LineChart),
             path: "/invoice/dashboard",
-            requiredPermission: Permissions.INVOICE_READ,
+            requiredAnyPermission: [
+              Permissions.INVOICE_DASHBOARD_READ,
+            ],
           },
           {
             key: "/invoice/invoices",
             label: "Invoices",
             icon: I(Files),
             path: "/invoice/invoices",
-            requiredPermission: Permissions.INVOICE_READ,
+            requiredAnyPermission: [
+              Permissions.INVOICE_READ,
+            ],
           },
           {
             key: "/invoice/newinvoice",
             label: "New Invoice",
             icon: I(FilePlus),
             path: "/invoice/newinvoice",
-            requiredPermission: Permissions.INVOICE_CREATE,
+            requiredAnyPermission: [
+              Permissions.INVOICE_CREATE,
+            ],
           },
           {
             key: "/invoice/templates",
             label: "Template",
             icon: I(LayoutTemplate),
             path: "/invoice/templates",
-            requiredPermission: Permissions.INVOICE_CREATE,
+            requiredAnyPermission: [
+              Permissions.INVOICE_TEMPLATE_READ,
+            ],
           },
           {
             key: "/invoice/customers",
             label: "Customers",
             icon: I(Contact),
             path: "/invoice/customers",
-            requiredPermission: Permissions.INVOICE_READ,
+            requiredAnyPermission: [
+              Permissions.INVOICE_CUSTOMER_READ,
+              Permissions.INVOICE_MANAGE,
+            ],
           },
           {
             key: "/invoice/settings",
             label: "Settings",
             icon: I(Settings2),
             path: "/invoice/settings",
-            requiredPermission: Permissions.SETTINGS_UPDATE,
+            requiredAnyPermission: [
+              Permissions.INVOICE_SETTING_READ,
+              Permissions.INVOICE_MANAGE,
+            ],
           },
           {
             key: "/invoice/trash",
             label: "Trash",
             icon: I(Trash2),
             path: "/invoice/trash",
-            requiredPermission: Permissions.INVOICE_READ,
+            requiredAnyPermission: [
+              Permissions.INVOICE_TRASH_READ,
+              Permissions.INVOICE_MANAGE,
+            ],
           },
         ],
       },

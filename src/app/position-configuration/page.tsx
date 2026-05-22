@@ -243,7 +243,20 @@ const LeaveConfigListContent = ({
 
 export default function positionConfiguration() {
   const { isLoading: authLoading } = useAuth();
-  const { canManageOrg } = usePermission();
+  const {
+    canManageOrg,
+    canReadLeave,
+    canCreateLeave,
+    canManageLeaves,
+    canReadLeaveDashboard,
+    canReadLeaveType,
+    canReadLeavePolicy,
+    canReadLeaveHoliday,
+    canReadLeaveAdjustment,
+    canCreateLeavePolicy,
+    canUpdateLeavePolicy,
+    canDeleteLeavePolicy,
+  } = usePermission();
   const router = useRouter();
   const pathname = usePathname();
   const [api, contextHolder] = notification.useNotification();
@@ -259,11 +272,13 @@ export default function positionConfiguration() {
   const [isSaving, setIsSaving] = useState(false);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
+  const hasAccess = canManageOrg || canManageLeaves || canReadLeavePolicy;
+
   useEffect(() => {
-    if (!authLoading && !canManageOrg) {
+    if (!authLoading && !hasAccess) {
       router.push("/dashboard");
     }
-  }, [authLoading, canManageOrg, router]);
+  }, [authLoading, hasAccess, router]);
 
   const [members, setMembers] = useState<{ value: string; label: string }[]>([]);
   const [dataSource, setDataSource] = useState<PositionRecord[]>([]);
@@ -389,20 +404,24 @@ export default function positionConfiguration() {
           <Tooltip title="View">
             <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
           </Tooltip>
-          <Tooltip title="Edit">
-            <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Popconfirm
-              title="Delete this entire position configuration?"
-              onConfirm={() => handleDeleteOrigin(record)}
-              okButtonProps={{ loading: deletingKey === `${record.position}-${record.subOriginId}` }}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Button type="text" danger icon={<DeleteOutlined />} disabled={!!deletingKey} />
-            </Popconfirm>
-          </Tooltip>
+          {(canManageOrg || canManageLeaves || canUpdateLeavePolicy) && (
+            <Tooltip title="Edit">
+              <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+            </Tooltip>
+          )}
+          {(canManageOrg || canManageLeaves || canDeleteLeavePolicy) && (
+            <Tooltip title="Delete">
+              <Popconfirm
+                title="Delete this entire position configuration?"
+                onConfirm={() => handleDeleteOrigin(record)}
+                okButtonProps={{ loading: deletingKey === `${record.position}-${record.subOriginId}` }}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Button type="text" danger icon={<DeleteOutlined />} disabled={!!deletingKey} />
+              </Popconfirm>
+            </Tooltip>
+          )}
         </Space>
       ),
     },
@@ -559,7 +578,7 @@ export default function positionConfiguration() {
     );
   }
 
-  if (!canManageOrg) {
+  if (!hasAccess) {
     return null;
   }
 
@@ -592,13 +611,13 @@ export default function positionConfiguration() {
               if (key === "addLeaves") router.push("/add-goverment-leaves");
             }}
             items={[
-              { key: "dashboard", label: <span><AppstoreOutlined /> Dashboard</span> },
-              { key: "leaves", label: <span><ClockCircleOutlined /> My Leave Status</span> },
-              { key: "holidays", label: <span><ScheduleOutlined /> Government Holidays</span> },
-              { key: "adjustments", label: <span><EditOutlined /> Leave Adjustment</span> },
-              { key: "configuration", label: <span><SettingOutlined /> Leave Types</span> },
-              { key: "positions", label: <span><ApartmentOutlined /> Leave Policy</span> },
-              { key: "addLeaves", label: <span><PlusOutlined /> Add Government Leaves</span> },
+              ...(canReadLeaveDashboard ? [{ key: "dashboard", label: <span><AppstoreOutlined /> Dashboard</span> }] : []),
+              ...(canReadLeave ? [{ key: "leaves", label: <span><ClockCircleOutlined /> My Leave Status</span> }] : []),
+              ...((canReadLeaveHoliday || canManageLeaves) ? [{ key: "holidays", label: <span><ScheduleOutlined /> Government Holidays</span> }] : []),
+              ...((canReadLeaveAdjustment || canManageLeaves) ? [{ key: "adjustments", label: <span><EditOutlined /> Leave Adjustment</span> }] : []),
+              ...((canReadLeaveType || canManageLeaves) ? [{ key: "configuration", label: <span><SettingOutlined /> Leave Types</span> }] : []),
+              ...((canReadLeavePolicy || canManageLeaves) ? [{ key: "positions", label: <span><ApartmentOutlined /> Leave Policy</span> }] : []),
+              ...((canReadLeaveHoliday || canManageLeaves) ? [{ key: "addLeaves", label: <span><PlusOutlined /> Add Government Leaves</span> }] : []),
             ]}
           />
         </div>
@@ -644,17 +663,19 @@ export default function positionConfiguration() {
               style={{ width: 360 }}
               onChange={(e) => setSearchText(e.target.value)}
             />
-            <Button
-              type="primary"
-              style={{ width: 200 }}
-              onClick={() => {
-                setEditingKey(null);
-                form.resetFields();
-                setIsModalVisible(true);
-              }}
-            >
-              + Add Configuration
-            </Button>
+            {(canManageOrg || canManageLeaves || canCreateLeavePolicy) && (
+              <Button
+                type="primary"
+                style={{ width: 200 }}
+                onClick={() => {
+                  setEditingKey(null);
+                  form.resetFields();
+                  setIsModalVisible(true);
+                }}
+              >
+                + Add Configuration
+              </Button>
+            )}
           </div>
         </div>
 
@@ -697,24 +718,28 @@ export default function positionConfiguration() {
                     <Tooltip title="View" key="view">
                       <EyeOutlined onClick={() => handleView(item)} />
                     </Tooltip>,
-                    <Tooltip title="Edit" key="edit">
-                      <EditOutlined onClick={() => handleEdit(item)} />
-                    </Tooltip>,
-                    <Tooltip title="Delete" key="delete">
-                      <Popconfirm
-                        title="Delete this entire position configuration?"
-                        onConfirm={() => handleDeleteOrigin(item)}
-                        okButtonProps={{
-                          loading: deletingKey === `${item.position}-${item.subOriginId}`,
-                        }}
-                        okText="Yes"
-                        cancelText="No"
-                        disabled={!!deletingKey}
-                      >
-                        <DeleteOutlined style={{ color: deletingKey ? "grey" : "red" }} />
-                      </Popconfirm>
-                    </Tooltip>,
-                  ]}
+                    (canManageOrg || canManageLeaves || canUpdateLeavePolicy) ? (
+                      <Tooltip title="Edit" key="edit">
+                        <EditOutlined onClick={() => handleEdit(item)} />
+                      </Tooltip>
+                    ) : null,
+                    (canManageOrg || canManageLeaves || canDeleteLeavePolicy) ? (
+                      <Tooltip title="Delete" key="delete">
+                        <Popconfirm
+                          title="Delete this entire position configuration?"
+                          onConfirm={() => handleDeleteOrigin(item)}
+                          okButtonProps={{
+                            loading: deletingKey === `${item.position}-${item.subOriginId}`,
+                          }}
+                          okText="Yes"
+                          cancelText="No"
+                          disabled={!!deletingKey}
+                        >
+                          <DeleteOutlined style={{ color: deletingKey ? "grey" : "red" }} />
+                        </Popconfirm>
+                      </Tooltip>
+                    ) : null,
+                  ].filter(Boolean) as any[]}
                 >
                   <Card.Meta
                     avatar={

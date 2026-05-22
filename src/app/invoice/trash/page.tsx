@@ -16,6 +16,7 @@ import {
   Select,
   DatePicker,
   Tooltip,
+  Tag,
 } from "antd";
 import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
@@ -32,6 +33,10 @@ import {
   Inbox,
   X,
   Filter as FilterIcon,
+  Clock,
+  CheckCircle,
+  Mail,
+  DollarSign,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import isBetween from "dayjs/plugin/isBetween";
@@ -50,6 +55,45 @@ const { Title } = Typography;
 const { RangePicker } = DatePicker;
 
 dayjs.extend(isBetween);
+
+// Define the InvoiceStatus to match TypeScript interface
+type InvoiceStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'SENT' | 'PAID' | 'PARTIALLY_PAID' | 'OVERDUE' | 'CANCELLED';
+
+// Helper to convert backend status to frontend status
+const fromBackendStatus = (status: string): InvoiceStatus => {
+  if (status === 'APPROVAL') return 'APPROVED';
+  return status as InvoiceStatus;
+};
+
+// Status color mapping
+const getStatusColor = (status: InvoiceStatus) => {
+  const colors: Record<InvoiceStatus, string> = {
+    'DRAFT': 'default',
+    'PENDING': 'blue',
+    'APPROVED': 'cyan',
+    'SENT': 'geekblue',
+    'PAID': 'success',
+    'PARTIALLY_PAID': 'warning',
+    'OVERDUE': 'error',
+    'CANCELLED': 'default'
+  };
+  return colors[status] || 'default';
+};
+
+// Status icon mapping
+const getStatusIcon = (status: InvoiceStatus) => {
+  const icons: Record<InvoiceStatus, React.ReactNode> = {
+    'DRAFT': <Clock size={14} />,
+    'PENDING': <Clock size={14} />,
+    'APPROVED': <CheckCircle size={14} />,
+    'SENT': <Mail size={14} />,
+    'PAID': <CheckCircle size={14} style={{ color: '#52c41a' }} />,
+    'PARTIALLY_PAID': <DollarSign size={14} style={{ color: '#faad14' }} />,
+    'OVERDUE': <AlertCircle size={14} style={{ color: '#ff4d4f' }} />,
+    'CANCELLED': <XCircle size={14} style={{ color: '#bfbfbf' }} />
+  };
+  return icons[status] || <Clock size={14} />;
+};
 
 export default function InvoiceTrashPage() {
   const router = useRouter();
@@ -393,6 +437,37 @@ export default function InvoiceTrashPage() {
           {date ? dayjs(date).format("MMM D, YYYY") : "—"}
         </span>
       ),
+    },
+    {
+      title: "STATUS",
+      dataIndex: "status",
+      width: 140,
+      render: (status: string) => {
+        const frontendStatus = fromBackendStatus(status);
+        return (
+          <Tag
+            color={getStatusColor(frontendStatus)}
+            style={{
+              padding: "4px 10px",
+              borderRadius: 12,
+              fontSize: 11,
+              fontWeight: 600,
+              lineHeight: "1",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              border: "none",
+              textTransform: "uppercase",
+              letterSpacing: "0.02em"
+            }}
+          >
+            <div className="flex items-center gap-1.5 w-full">
+              {getStatusIcon(frontendStatus)}
+              <span>{frontendStatus}</span>
+            </div>
+          </Tag>
+        );
+      }
     },
     {
       title: "AMOUNT",
@@ -797,7 +872,7 @@ export default function InvoiceTrashPage() {
             )}
 
             {/* CONTENT */}
-            {isLoading ? (
+            {isLoading || (filteredInvoices.length === 0 && isFetching) ? (
               <div
                 className="flex flex-col justify-center items-center h-64 rounded-2xl"
                 style={{
@@ -872,6 +947,7 @@ export default function InvoiceTrashPage() {
                 }}
               >
                 <Table
+                  loading={isFetching}
                   size="middle"
                   rowSelection={rowSelection}
                   columns={columns}

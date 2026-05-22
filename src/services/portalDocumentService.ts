@@ -95,4 +95,30 @@ export const portalDocumentService = {
     }
     return doc.data?.data as PortalDocument;
   },
+
+  async update(
+    id: string,
+    patch: {
+      fileName?: string;
+      category?: string;
+      documentType?: string;
+      projectId?: string | null;
+    },
+  ): Promise<PortalDocument> {
+    const res = await portalClient.patch(
+      `/api/client-portal/documents/${id}`,
+      patch,
+    );
+    if (res.data?.success === false) {
+      throw new Error(res.data.error || "Failed to update document");
+    }
+    return res.data?.data as PortalDocument;
+  },
+
+  async remove(id: string): Promise<void> {
+    const res = await portalClient.delete(`/api/client-portal/documents/${id}`);
+    if (res.data?.success === false) {
+      throw new Error(res.data.error || "Failed to delete document");
+    }
+  },
 };

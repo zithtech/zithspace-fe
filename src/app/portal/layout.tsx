@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { ClientPortalAuthProvider } from "@/context/ClientPortalAuthContext";
+import { PortalSocketProvider } from "@/providers/PortalSocketProvider";
 import PortalShell from "./_components/PortalShell";
 
 export default function PortalLayout({
@@ -23,7 +24,9 @@ export default function PortalLayout({
 
   return (
     <ClientPortalAuthProvider>
-      {isAuthPage ? <>{children}</> : <PortalShell>{children}</PortalShell>}
+      <PortalSocketProvider>
+        {isAuthPage ? <>{children}</> : <PortalShell>{children}</PortalShell>}
+      </PortalSocketProvider>
     </ClientPortalAuthProvider>
   );
 }

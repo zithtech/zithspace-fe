@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { Modal, Form, Input, Select, Button, message, Row, Col } from 'antd';
+import React, { useEffect, useMemo } from 'react';
+import { Modal, Form, Input, Select, Button, message, Row, Col, Radio } from 'antd';
 import {
     FileZipOutlined,
     FileTextOutlined,
     ProjectOutlined,
     TagOutlined,
     PlusOutlined,
+    FolderOpenOutlined,
 } from '@ant-design/icons';
-import { documentHubService as DocumentHubService } from '@/services/documentHub';
+import { documentHubService as DocumentHubService, DocumentHub } from '@/services/documentHub';
 import {
     useUserProjects,
     useUserTicketsByProjects,
@@ -20,7 +21,7 @@ const { Option } = Select;
 interface CreateDocHubModalProps {
     open: boolean;
     onClose: () => void;
-    /** Called with the created hub id so the host can navigate. */
+    /** Called with the target hub id (existing or newly created) so the host can navigate. */
     onCreated?: (hubId: string) => void;
     /** Pre-fills the project select. */
     defaultProjectId?: string;
@@ -30,6 +31,12 @@ interface CreateDocHubModalProps {
     defaultName?: string;
     /** When true, hides the project/ticket selects (the link is implicit). */
     lockLink?: boolean;
+    /**
+     * Hubs already linked to the current ticket. When non-empty, the modal
+     * offers "Add to existing hub" as the default — submitting then creates a
+     * new file inside that hub instead of a brand-new hub.
+     */
+    existingHubs?: DocumentHub[];
 }
 
 const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
@@ -40,6 +47,7 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
     defaultTicketId,
     defaultName,
     lockLink = false,
+    existingHubs,
 }) => {
     const [form] = Form.useForm();
     const [isCreating, setIsCreating] = React.useState(false);
@@ -52,20 +60,63 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
     const { data: tickets = [], isLoading: ticketsLoading } =
         useUserTicketsByProjects(selectedProjectId);
 
+    // Hubs already linked to this ticket, sorted most-recent first so the
+    // default selection lands on the freshest one.
+    const sortedExistingHubs = useMemo<DocumentHub[]>(() => {
+        if (!existingHubs?.length) return [];
+        return [...existingHubs].sort((a, b) => {
+            const ta = new Date(a.updatedAt || a.createdAt || 0).getTime();
+            const tb = new Date(b.updatedAt || b.createdAt || 0).getTime();
+            return tb - ta;
+        });
+    }, [existingHubs]);
+    const hasExistingHubs = sortedExistingHubs.length > 0;
+
+    // 'existing' → create a new file inside the chosen hub.
+    // 'new' → create a fresh hub (original behavior).
+    type TargetMode = 'existing' | 'new';
+    const [targetMode, setTargetMode] = React.useState<TargetMode>(
+        hasExistingHubs ? 'existing' : 'new',
+    );
+    const [selectedHubId, setSelectedHubId] = React.useState<string | undefined>(
+        sortedExistingHubs[0]?.id,
+    );
+
     // Reset / pre-fill whenever the modal opens or the defaults change.
     useEffect(() => {
         if (!open) return;
         setSelectedProjectId(defaultProjectId);
+        const initialMode: TargetMode = hasExistingHubs ? 'existing' : 'new';
+        setTargetMode(initialMode);
+        setSelectedHubId(sortedExistingHubs[0]?.id);
         form.setFieldsValue({
-            name: defaultName || '',
+            name: initialMode === 'existing'
+                ? (defaultName ? defaultName.replace(/^.*?—\s*/, '') : '')
+                : (defaultName || ''),
             projectId: defaultProjectId,
             ticketId: defaultTicketId,
         });
-    }, [open, defaultProjectId, defaultTicketId, defaultName, form]);
+    }, [open, defaultProjectId, defaultTicketId, defaultName, form, hasExistingHubs, sortedExistingHubs]);
 
     const handleSubmit = async (values: any) => {
         try {
             setIsCreating(true);
+
+            if (targetMode === 'existing' && selectedHubId) {
+                // Add a new file (document) inside the chosen existing hub.
+                const fileNode = await DocumentHubService.createTreeNode({
+                    documentHubId: selectedHubId,
+                    type: 'file',
+                    title: values.name,
+                });
+                messageApi.success('Document added to hub');
+                form.resetFields();
+                setSelectedProjectId(undefined);
+                onClose();
+                onCreated?.(fileNode.documentHubId || selectedHubId);
+                return;
+            }
+
             const data = await DocumentHubService.createDocumentHub({
                 name: values.name,
                 projectId: values.projectId,
@@ -84,6 +135,8 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
             setIsCreating(false);
         }
     };
+
+    const addingToExisting = targetMode === 'existing' && hasExistingHubs;
 
     return (
         <>
@@ -135,15 +188,17 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
                                 className="text-[16px] font-bold tracking-tight m-0"
                                 style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}
                             >
-                                Create new document hub
+                                {addingToExisting ? 'Add document to hub' : 'Create new document hub'}
                             </h2>
                             <p
                                 className="m-0 mt-0.5 text-[12.5px]"
                                 style={{ color: 'var(--text-slate-400)' }}
                             >
-                                {lockLink
-                                    ? 'This hub will be linked to the current ticket automatically.'
-                                    : "A workspace for grouping related docs — wiki, specs, runbooks."}
+                                {addingToExisting
+                                    ? 'A new document will be created inside the selected hub.'
+                                    : lockLink
+                                        ? 'This hub will be linked to the current ticket automatically.'
+                                        : "A workspace for grouping related docs — wiki, specs, runbooks."}
                             </p>
                         </div>
                         <button
@@ -183,6 +238,79 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
                 {/* Body */}
                 <div className="px-6 pt-5 pb-2">
                     <Form form={form} layout="vertical" onFinish={handleSubmit}>
+                        {hasExistingHubs && (
+                            <div className="mb-4">
+                                <div
+                                    className="text-[11.5px] font-semibold uppercase tracking-[0.06em] mb-2"
+                                    style={{ color: 'var(--text-slate-400)' }}
+                                >
+                                    Target hub
+                                </div>
+                                <Radio.Group
+                                    value={targetMode}
+                                    onChange={(e) => setTargetMode(e.target.value as TargetMode)}
+                                    style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}
+                                >
+                                    <div
+                                        className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                                        style={{
+                                            border: `1px solid ${targetMode === 'existing' ? '#3B82F6' : 'var(--border-slate-200)'}`,
+                                            background: targetMode === 'existing' ? 'rgba(59, 130, 246, 0.06)' : 'var(--bg-pure-white)',
+                                            cursor: 'pointer',
+                                        }}
+                                        onClick={() => setTargetMode('existing')}
+                                    >
+                                        <Radio value="existing" style={{ marginRight: 0 }} />
+                                        <FolderOpenOutlined
+                                            style={{ color: '#3B82F6', fontSize: 14 }}
+                                        />
+                                        {sortedExistingHubs.length > 1 ? (
+                                            <Select
+                                                size="small"
+                                                value={selectedHubId}
+                                                onChange={(value) => {
+                                                    setSelectedHubId(value);
+                                                    setTargetMode('existing');
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                                style={{ flex: 1, minWidth: 0 }}
+                                                variant="borderless"
+                                                options={sortedExistingHubs.map((h) => ({
+                                                    value: h.id,
+                                                    label: `Add to: ${h.name}`,
+                                                }))}
+                                            />
+                                        ) : (
+                                            <span
+                                                className="text-[13px] font-medium truncate"
+                                                style={{ color: 'var(--text-slate-700)', flex: 1, minWidth: 0 }}
+                                            >
+                                                Add to: <span style={{ fontWeight: 600 }}>{sortedExistingHubs[0]?.name}</span>
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div
+                                        className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                                        style={{
+                                            border: `1px solid ${targetMode === 'new' ? '#3B82F6' : 'var(--border-slate-200)'}`,
+                                            background: targetMode === 'new' ? 'rgba(59, 130, 246, 0.06)' : 'var(--bg-pure-white)',
+                                            cursor: 'pointer',
+                                        }}
+                                        onClick={() => setTargetMode('new')}
+                                    >
+                                        <Radio value="new" style={{ marginRight: 0 }} />
+                                        <PlusOutlined style={{ color: 'var(--text-slate-400)', fontSize: 13 }} />
+                                        <span
+                                            className="text-[13px] font-medium"
+                                            style={{ color: 'var(--text-slate-700)' }}
+                                        >
+                                            Create new hub for this ticket
+                                        </span>
+                                    </div>
+                                </Radio.Group>
+                            </div>
+                        )}
+
                         <Form.Item
                             name="name"
                             label={
@@ -190,12 +318,17 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
                                     className="text-[11.5px] font-semibold uppercase tracking-[0.06em]"
                                     style={{ color: 'var(--text-slate-400)' }}
                                 >
-                                    Hub name
+                                    {addingToExisting ? 'Document title' : 'Hub name'}
                                 </span>
                             }
                             rules={[
-                                { required: true, message: 'Please enter a hub name' },
-                                { min: 2, message: 'Name must be at least 2 characters' },
+                                {
+                                    required: true,
+                                    message: addingToExisting
+                                        ? 'Please enter a document title'
+                                        : 'Please enter a hub name',
+                                },
+                                { min: 2, message: 'Must be at least 2 characters' },
                                 { max: 80, message: 'Up to 80 characters' },
                             ]}
                             className="mb-4"
@@ -203,7 +336,11 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
                             <Input
                                 size="large"
                                 autoFocus
-                                placeholder="e.g., Payments API documentation"
+                                placeholder={
+                                    addingToExisting
+                                        ? 'e.g., Scope Doc, Test Scope'
+                                        : 'e.g., Payments API documentation'
+                                }
                                 prefix={
                                     <FileTextOutlined
                                         style={{ color: 'var(--text-slate-400)', fontSize: 13 }}
@@ -220,7 +357,7 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
                             />
                         </Form.Item>
 
-                        {!lockLink && (
+                        {!lockLink && !addingToExisting && (
                             <>
                                 <div
                                     className="text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-2 mt-2"
@@ -361,28 +498,30 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
                                 <Form.Item name="ticketId" hidden>
                                     <Input />
                                 </Form.Item>
-                                <div
-                                    className="flex items-start gap-2 px-3 py-2 rounded-lg mt-1"
-                                    style={{
-                                        background: 'var(--bg-blue-50)',
-                                        border: '1px solid var(--border-blue-200)',
-                                    }}
-                                >
-                                    <TagOutlined
+                                {!addingToExisting && (
+                                    <div
+                                        className="flex items-start gap-2 px-3 py-2 rounded-lg mt-1"
                                         style={{
-                                            color: 'var(--text-blue-700)',
-                                            fontSize: 12,
-                                            marginTop: 3,
+                                            background: 'var(--bg-blue-50)',
+                                            border: '1px solid var(--border-blue-200)',
                                         }}
-                                    />
-                                    <span
-                                        className="text-[11.5px] leading-snug"
-                                        style={{ color: 'var(--text-slate-600)' }}
                                     >
-                                        This hub will be linked to the current ticket so its
-                                        documents surface alongside the ticket throughout ZithSpace.
-                                    </span>
-                                </div>
+                                        <TagOutlined
+                                            style={{
+                                                color: 'var(--text-blue-700)',
+                                                fontSize: 12,
+                                                marginTop: 3,
+                                            }}
+                                        />
+                                        <span
+                                            className="text-[11.5px] leading-snug"
+                                            style={{ color: 'var(--text-slate-600)' }}
+                                        >
+                                            This hub will be linked to the current ticket so its
+                                            documents surface alongside the ticket throughout ZithSpace.
+                                        </span>
+                                    </div>
+                                )}
                             </>
                         )}
                     </Form>
@@ -424,7 +563,7 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
                                 '0 4px 12px rgba(59, 130, 246, 0.32), inset 0 1px 0 rgba(255,255,255,0.18)',
                         }}
                     >
-                        Create hub
+                        {addingToExisting ? 'Add document' : 'Create hub'}
                     </Button>
                 </div>
             </Modal>

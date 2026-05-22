@@ -12,18 +12,10 @@ const ThemeToggle: React.FC = () => {
     <Tooltip title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>
       <Button
         type="text"
+        className="nav-action-btn"
         icon={theme === "light" ? <MoonOutlined /> : <SunOutlined />}
         onClick={toggleTheme}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "16px",
-          width: "36px",
-          height: "36px",
-          borderRadius: "8px",
-          transition: "all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1)",
-        }}
+        style={{ fontSize: "16px" }}
       />
     </Tooltip>
   );

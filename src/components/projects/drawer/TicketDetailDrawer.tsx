@@ -2225,6 +2225,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       }
       defaultTicketId={ticket?.id}
       lockLink
+      existingHubs={linkedHubs}
       onCreated={(hubId) => {
         onClose();
         queryClient.invalidateQueries({ queryKey: ['ticket', currentTicketId, 'documentHubs'] });
@@ -2242,6 +2243,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       }
       defaultTicketId={ticket?.id}
       lockedTicket={ticket as any}
+      existingHubs={linkedHubs}
       onCreated={(hubId) => {
         onClose();
         queryClient.invalidateQueries({ queryKey: ['ticket', currentTicketId, 'documentHubs'] });

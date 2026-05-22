@@ -31,6 +31,10 @@ import {
   Reply,
   MoreHorizontal,
   Calendar,
+  Wand2,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import {
   FilePdfOutlined,
@@ -238,6 +242,83 @@ export default function MailPage() {
     type: string;
   } | null>(null);
 
+  const [isFixingGrammar, setIsFixingGrammar] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isFixingReplyGrammar, setIsFixingReplyGrammar] = useState(false);
+  const [expandedMessages, setExpandedMessages] = useState<Record<string, boolean>>({});
+
+  const fixComposeGrammar = async () => {
+    const body = form.getFieldValue("body");
+    if (!body || !String(body).trim()) {
+      message.warning("Write something first, then fix grammar");
+      return;
+    }
+    setIsFixingGrammar(true);
+    try {
+      const res: any = await MailService.correctMailGrammar({ body });
+      const corrected = res?.body || res?.data?.body;
+      if (corrected) {
+        form.setFieldsValue({ body: corrected });
+        message.success("Grammar corrected");
+      } else {
+        message.error("Could not correct grammar");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Could not correct grammar");
+    } finally {
+      setIsFixingGrammar(false);
+    }
+  };
+
+  const enhanceComposeBody = async () => {
+    const body = form.getFieldValue("body");
+    const subject = form.getFieldValue("subject");
+    if (!body || !String(body).trim()) {
+      message.warning("Write something first, then enhance");
+      return;
+    }
+    setIsEnhancing(true);
+    try {
+      const res: any = await MailService.enhanceMailContent({ subject, body });
+      const enhanced = res?.body || res?.data?.body;
+      if (enhanced) {
+        form.setFieldsValue({ body: enhanced });
+        message.success("Email enhanced");
+      } else {
+        message.error("Could not enhance email");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Could not enhance email");
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const fixReplyGrammar = async () => {
+    if (!quickReply.trim()) {
+      message.warning("Type a reply first");
+      return;
+    }
+    setIsFixingReplyGrammar(true);
+    try {
+      const res: any = await MailService.correctMailGrammar({ body: quickReply });
+      const corrected = res?.body || res?.data?.body;
+      if (corrected) {
+        setQuickReply(typeof corrected === "string" ? corrected.replace(/<[^>]*>/g, "") : corrected);
+        message.success("Grammar corrected");
+      } else {
+        message.error("Could not correct grammar");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Could not correct grammar");
+    } finally {
+      setIsFixingReplyGrammar(false);
+    }
+  };
+
   const downloadAsZip = async (attachments: any[]) => {
     const zip = new JSZip();
     let filesAdded = 0;
@@ -390,7 +471,21 @@ export default function MailPage() {
         setDrawerVisible(true);
       }
     }
+    setExpandedMessages({});
   }, [selectedThreadId]);
+
+  const uniqueParticipants = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const m of messages as any[]) {
+      const e = m?.fromEmail;
+      if (e && !seen.has(e)) {
+        seen.add(e);
+        out.push(e);
+      }
+    }
+    return out;
+  }, [messages]);
 
   const openDraft = async (threadId: string) => {
     try {
@@ -443,87 +538,71 @@ export default function MailPage() {
           overflow: hidden;
         }
         .mail-sidebar {
-          width: 264px;
+          width: 224px;
           flex-shrink: 0;
           background: var(--mail-sidebar-bg);
-          backdrop-filter: blur(20px);
           border-right: 1px solid ${PALETTE.slate200};
           display: flex;
           flex-direction: column;
-          padding: 20px 16px;
+          padding: 12px 10px;
         }
         .mail-compose-btn {
-          height: 48px;
-          border: none;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #3B82F6 0%, #6366F1 60%, #8B5CF6 100%);
-          color: white;
+          height: 34px;
+          border: 1px solid var(--mail-pill-active-bg);
+          border-radius: 8px;
+          background: var(--mail-pill-active-bg);
+          color: var(--mail-pill-active-fg);
           font-weight: 600;
-          font-size: 14px;
+          font-size: 13px;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
+          gap: 8px;
           cursor: pointer;
-          box-shadow: 0 8px 24px -8px rgba(99, 102, 241, 0.55);
-          transition: all 0.2s ease;
+          transition: opacity 0.15s ease;
           width: 100%;
         }
-        .mail-compose-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 12px 28px -8px rgba(99, 102, 241, 0.7);
-        }
-        .mail-compose-btn:active { transform: translateY(0); }
+        .mail-compose-btn:hover { opacity: 0.88; }
 
         .mail-folder-item {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 10px 12px;
-          border-radius: 10px;
+          gap: 10px;
+          padding: 6px 10px;
+          border-radius: 6px;
           cursor: pointer;
-          transition: all 0.15s ease;
+          transition: background 0.12s ease;
           color: ${PALETTE.slate700};
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 500;
-          margin-bottom: 2px;
-          position: relative;
+          margin-bottom: 1px;
+          height: 30px;
         }
         .mail-folder-item:hover {
           background: var(--mail-folder-hover);
         }
         .mail-folder-item.active {
-          background: var(--mail-surface);
+          background: var(--mail-surface-2);
           color: ${PALETTE.slate900};
-          box-shadow: var(--mail-shadow-sm);
+          font-weight: 600;
         }
-        .mail-folder-item.active::before {
-          content: '';
-          position: absolute;
-          left: 0; top: 25%; bottom: 25%;
-          width: 3px; border-radius: 0 3px 3px 0;
-          background: linear-gradient(180deg, var(--mail-primary), var(--mail-violet));
-        }
-        .mail-folder-icon-wrap {
-          width: 32px; height: 32px;
-          border-radius: 8px;
+        .mail-folder-icon {
+          width: 16px; height: 16px;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
+          color: ${PALETTE.slate500};
         }
+        .mail-folder-item.active .mail-folder-icon { color: ${PALETTE.slate900}; }
         .mail-folder-count {
           margin-left: auto;
-          font-size: 12px;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 500;
           color: ${PALETTE.slate500};
-          background: ${PALETTE.slate100};
-          padding: 2px 8px;
-          border-radius: 999px;
-          min-width: 22px;
-          text-align: center;
+          font-variant-numeric: tabular-nums;
         }
         .mail-folder-item.active .mail-folder-count {
-          background: var(--mail-tint-blue);
-          color: var(--mail-primary);
+          color: ${PALETTE.slate700};
+          font-weight: 600;
         }
 
         .mail-main {
@@ -533,245 +612,252 @@ export default function MailPage() {
           min-width: 0;
         }
         .mail-topbar {
-          height: 72px;
-          padding: 0 28px;
+          height: 48px;
+          padding: 0 20px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 16px;
+          gap: 12px;
           background: var(--mail-topbar-bg);
-          backdrop-filter: blur(20px);
           border-bottom: 1px solid ${PALETTE.slate200};
+          flex-shrink: 0;
         }
         .mail-search {
           flex: 1;
-          max-width: 520px;
-          height: 42px;
-          background: var(--mail-surface);
+          max-width: 420px;
+          height: 30px;
+          background: var(--mail-surface-1);
           border: 1px solid ${PALETTE.slate200};
-          border-radius: 12px;
-          padding: 0 14px;
+          border-radius: 6px;
+          padding: 0 10px;
           display: flex;
           align-items: center;
-          gap: 10px;
-          transition: all 0.2s;
+          gap: 8px;
+          transition: border-color 0.15s, background 0.15s;
         }
         .mail-search:focus-within {
-          border-color: var(--mail-primary);
-          box-shadow: 0 0 0 4px var(--mail-focus-ring);
+          border-color: var(--mail-border-strong);
+          background: var(--mail-surface);
         }
         .mail-search input {
           flex: 1;
           border: none;
           outline: none;
           background: transparent;
-          font-size: 14px;
+          font-size: 13px;
           color: ${PALETTE.slate900};
         }
         .mail-search input::placeholder { color: ${PALETTE.slate400}; }
         .mail-kbd {
           font-family: ui-monospace, SFMono-Regular, monospace;
-          font-size: 11px;
+          font-size: 10px;
           color: ${PALETTE.slate500};
-          background: ${PALETTE.slate100};
-          padding: 2px 6px;
-          border-radius: 4px;
+          background: var(--mail-surface);
+          padding: 1px 5px;
+          border-radius: 3px;
           border: 1px solid ${PALETTE.slate200};
         }
         .mail-icon-btn {
-          width: 40px; height: 40px;
-          border-radius: 10px;
-          background: var(--mail-surface);
-          border: 1px solid ${PALETTE.slate200};
+          width: 30px; height: 30px;
+          border-radius: 6px;
+          background: transparent;
+          border: 1px solid transparent;
           display: flex; align-items: center; justify-content: center;
           cursor: pointer;
           color: ${PALETTE.slate700};
-          transition: all 0.15s ease;
+          transition: background 0.12s ease, border-color 0.12s ease;
         }
         .mail-icon-btn:hover {
-          border-color: ${PALETTE.slate300};
-          background: ${PALETTE.slate50};
+          background: var(--mail-surface-2);
+          border-color: ${PALETTE.slate200};
         }
 
         .mail-header-section {
-          padding: 24px 28px 12px;
+          padding: 14px 20px 8px;
+          display: flex; align-items: center; justify-content: space-between;
         }
         .mail-folder-title {
-          display: flex; align-items: center; gap: 12px;
+          display: flex; align-items: baseline; gap: 8px;
         }
         .mail-folder-title h1 {
-          font-size: 22px; font-weight: 700; margin: 0;
+          font-size: 15px; font-weight: 600; margin: 0;
           color: ${PALETTE.slate900};
           letter-spacing: -0.01em;
         }
-        .mail-folder-title .badge {
-          font-size: 12px; font-weight: 600;
-          color: var(--mail-primary);
-          background: var(--mail-tint-blue);
-          padding: 4px 10px;
-          border-radius: 999px;
+        .mail-folder-title .count {
+          font-size: 12px; font-weight: 500;
+          color: ${PALETTE.slate500};
+          font-variant-numeric: tabular-nums;
         }
 
         .mail-toolbar {
-          padding: 0 28px 12px;
-          display: flex; align-items: center; gap: 12px;
-          flex-wrap: wrap;
+          padding: 0 20px 10px;
+          display: flex; align-items: center; gap: 8px;
         }
         .filter-pill {
-          padding: 6px 14px;
-          border-radius: 999px;
-          background: var(--mail-surface);
-          border: 1px solid ${PALETTE.slate200};
-          font-size: 13px;
+          padding: 3px 10px;
+          height: 26px;
+          border-radius: 6px;
+          background: transparent;
+          border: 1px solid transparent;
+          font-size: 12px;
           font-weight: 500;
-          color: ${PALETTE.slate700};
+          color: ${PALETTE.slate500};
           cursor: pointer;
-          transition: all 0.15s;
+          transition: background 0.12s, color 0.12s;
         }
-        .filter-pill:hover { border-color: ${PALETTE.slate300}; }
+        .filter-pill:hover { color: ${PALETTE.slate900}; background: var(--mail-surface-2); }
         .filter-pill.active {
-          background: var(--mail-pill-active-bg);
-          color: var(--mail-pill-active-fg);
-          border-color: var(--mail-pill-active-bg);
+          background: var(--mail-surface-2);
+          color: ${PALETTE.slate900};
+          border-color: ${PALETTE.slate200};
         }
 
         .bulk-bar {
           margin-left: auto;
-          display: flex; align-items: center; gap: 8px;
-          padding: 4px 8px 4px 14px;
+          display: flex; align-items: center; gap: 4px;
+          padding: 2px 4px 2px 10px;
           background: var(--mail-surface);
           border: 1px solid ${PALETTE.slate200};
-          border-radius: 12px;
-          box-shadow: var(--mail-shadow-md);
+          border-radius: 6px;
+          height: 28px;
         }
         .bulk-bar .count {
-          font-size: 12px; font-weight: 600;
+          font-size: 11px; font-weight: 600;
           color: ${PALETTE.slate900};
           padding-right: 8px;
           border-right: 1px solid ${PALETTE.slate200};
         }
         .bulk-action-btn {
-          display: flex; align-items: center; gap: 6px;
-          padding: 6px 10px;
+          display: flex; align-items: center; gap: 5px;
+          padding: 3px 8px;
           background: transparent; border: none;
-          border-radius: 8px;
-          font-size: 13px; font-weight: 500;
+          border-radius: 4px;
+          font-size: 12px; font-weight: 500;
           color: ${PALETTE.slate700};
           cursor: pointer;
+          height: 22px;
         }
-        .bulk-action-btn:hover { background: ${PALETTE.slate100}; }
+        .bulk-action-btn:hover { background: var(--mail-surface-2); }
         .bulk-action-btn.danger { color: ${PALETTE.rose}; }
         .bulk-action-btn.danger:hover { background: var(--mail-tint-rose); }
 
         .mail-thread-list-wrap {
           flex: 1; overflow-y: auto;
-          padding: 4px 28px 28px;
+          padding: 0;
+          border-top: 1px solid ${PALETTE.slate200};
         }
         .mail-thread-card {
-          display: flex; align-items: flex-start; gap: 14px;
-          padding: 16px 18px;
+          display: flex; align-items: center; gap: 10px;
+          padding: 10px 20px;
           background: var(--mail-surface);
-          border: 1px solid ${PALETTE.slate200};
-          border-radius: 14px;
-          margin-bottom: 8px;
+          border-bottom: 1px solid ${PALETTE.slate100};
           cursor: pointer;
-          transition: all 0.15s ease;
+          transition: background 0.1s ease;
           position: relative;
         }
         .mail-thread-card:hover {
-          border-color: ${PALETTE.slate300};
-          box-shadow: var(--mail-shadow-lg);
-          transform: translateY(-1px);
+          background: var(--mail-surface-1);
         }
         .mail-thread-card.selected {
           background: var(--mail-card-selected-bg);
-          border-color: var(--mail-card-selected-border);
-          box-shadow: var(--mail-shadow-blue);
         }
-        .mail-thread-card.unread::before {
+        .mail-thread-card.selected::before {
           content: '';
           position: absolute;
-          left: 6px; top: 50%; transform: translateY(-50%);
+          left: 0; top: 0; bottom: 0;
+          width: 2px;
+          background: var(--mail-primary);
+        }
+        .mail-thread-card.unread .thread-sender,
+        .mail-thread-card.unread .thread-subject {
+          color: ${PALETTE.slate900};
+        }
+        .mail-thread-card.unread .unread-dot {
           width: 6px; height: 6px;
           border-radius: 50%;
           background: var(--mail-primary);
-          box-shadow: 0 0 0 3px var(--mail-focus-ring);
+          flex-shrink: 0;
+        }
+        .unread-dot {
+          width: 6px;
         }
         .thread-checkbox-wrap {
-          padding-top: 6px;
+          display: flex; align-items: center;
         }
         .thread-avatar {
-          width: 40px; height: 40px;
-          border-radius: 12px;
+          width: 28px; height: 28px;
+          border-radius: 6px;
           display: flex; align-items: center; justify-content: center;
-          font-weight: 600; font-size: 13px;
+          font-weight: 600; font-size: 11px;
           flex-shrink: 0;
           letter-spacing: 0.02em;
         }
         .thread-meta { flex: 1; min-width: 0; }
         .thread-row1 {
           display: flex; align-items: center; justify-content: space-between;
-          gap: 8px; margin-bottom: 2px;
+          gap: 8px; margin-bottom: 1px;
         }
         .thread-sender {
-          font-size: 14px; font-weight: 600;
-          color: ${PALETTE.slate900};
+          font-size: 13px; font-weight: 500;
+          color: ${PALETTE.slate700};
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        .thread-sender.unread { font-weight: 700; }
+        .thread-sender.unread { font-weight: 600; color: ${PALETTE.slate900}; }
         .thread-time {
-          font-size: 12px; color: ${PALETTE.slate500};
+          font-size: 11px; color: ${PALETTE.slate500};
           white-space: nowrap;
-          display: flex; align-items: center; gap: 6px;
+          display: flex; align-items: center; gap: 5px;
+          font-variant-numeric: tabular-nums;
         }
         .thread-subject {
-          font-size: 13.5px;
+          font-size: 12.5px;
           color: ${PALETTE.slate700};
-          font-weight: 500;
+          font-weight: 400;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-          margin-bottom: 2px;
         }
         .thread-subject.unread { color: ${PALETTE.slate900}; font-weight: 600; }
-        .thread-snippet {
-          font-size: 13px; color: ${PALETTE.slate500};
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        .thread-subject .snippet {
+          color: ${PALETTE.slate500};
+          font-weight: 400;
         }
 
         .mail-empty {
           display: flex; flex-direction: column; align-items: center;
-          justify-content: center; padding: 80px 20px;
+          justify-content: center; padding: 64px 20px;
           text-align: center;
         }
         .mail-empty-icon {
-          width: 72px; height: 72px;
-          border-radius: 20px;
-          background: linear-gradient(135deg, var(--mail-tint-blue) 0%, var(--mail-tint-violet) 100%);
+          width: 44px; height: 44px;
+          border-radius: 10px;
+          background: var(--mail-surface-2);
+          border: 1px solid ${PALETTE.slate200};
           display: flex; align-items: center; justify-content: center;
-          margin-bottom: 20px;
-          color: ${PALETTE.primary};
+          margin-bottom: 14px;
+          color: ${PALETTE.slate500};
         }
         .mail-empty h3 {
-          font-size: 17px; font-weight: 600;
+          font-size: 14px; font-weight: 600;
           color: ${PALETTE.slate900};
-          margin: 0 0 6px;
+          margin: 0 0 4px;
         }
         .mail-empty p {
-          font-size: 14px; color: ${PALETTE.slate500};
+          font-size: 13px; color: ${PALETTE.slate500};
           margin: 0;
         }
 
         .skeleton-row {
-          height: 88px; background: var(--mail-surface);
-          border: 1px solid ${PALETTE.slate200};
-          border-radius: 14px; margin-bottom: 8px;
-          padding: 16px;
-          display: flex; gap: 14px;
+          height: 56px; background: var(--mail-surface);
+          border-bottom: 1px solid ${PALETTE.slate100};
+          padding: 10px 20px;
+          display: flex; gap: 10px;
+          align-items: center;
         }
         .skeleton-shape {
           background: linear-gradient(90deg, ${PALETTE.slate100} 25%, ${PALETTE.slate200} 50%, ${PALETTE.slate100} 75%);
           background-size: 200% 100%;
           animation: skeletonShimmer 1.4s infinite linear;
-          border-radius: 8px;
+          border-radius: 4px;
         }
         @keyframes skeletonShimmer {
           0% { background-position: 200% 0; }
@@ -781,61 +867,138 @@ export default function MailPage() {
         /* Drawer overrides */
         .mail-detail-drawer .ant-drawer-header,
         .mail-compose-drawer .ant-drawer-header {
-          padding: 20px 28px;
+          padding: 14px 24px;
           border-bottom: 1px solid ${PALETTE.slate200};
+          background: var(--mail-surface);
         }
         .mail-detail-drawer .ant-drawer-body,
         .mail-compose-drawer .ant-drawer-body {
           padding: 0;
-          background: var(--mail-drawer-bg);
+          background: var(--mail-surface);
         }
         .mail-detail-drawer .ant-drawer-content,
         .mail-compose-drawer .ant-drawer-content {
-          background: var(--mail-drawer-bg);
-        }
-        .mail-detail-drawer .ant-drawer-header,
-        .mail-compose-drawer .ant-drawer-header {
           background: var(--mail-surface);
+        }
+        .mail-detail-drawer .ant-drawer-close,
+        .mail-compose-drawer .ant-drawer-close {
+          color: ${PALETTE.slate500};
         }
 
-        .message-card {
+        .convo-header {
+          padding: 18px 24px 14px;
+          border-bottom: 1px solid ${PALETTE.slate200};
           background: var(--mail-surface);
-          border: 1px solid ${PALETTE.slate200};
-          border-radius: 16px;
-          margin-bottom: 16px;
-          overflow: hidden;
         }
-        .message-card-header {
-          padding: 18px 22px 14px;
-          display: flex; align-items: flex-start; gap: 14px;
+        .convo-subject {
+          font-size: 18px; font-weight: 700;
+          color: ${PALETTE.slate900};
+          letter-spacing: -0.015em;
+          margin: 0;
+          line-height: 1.3;
+        }
+        .convo-meta {
+          margin-top: 6px;
+          display: flex; align-items: center; gap: 8px;
+          font-size: 11.5px; color: ${PALETTE.slate500};
+          font-weight: 500;
+        }
+        .convo-meta .dot { color: ${PALETTE.slate300}; font-size: 10px; }
+        .convo-meta .avatars { display: flex; align-items: center; }
+        .convo-meta .pa-avatar {
+          width: 20px; height: 20px;
+          border-radius: 5px;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 9px; font-weight: 700;
+          color: white;
+          margin-left: -5px;
+          border: 1.5px solid var(--mail-surface);
+          letter-spacing: 0.02em;
+        }
+        .convo-meta .pa-avatar:first-child { margin-left: 0; }
+
+        .msg-row {
+          padding: 0 24px;
           border-bottom: 1px solid ${PALETTE.slate100};
+          background: var(--mail-surface);
+          transition: background 0.12s;
         }
-        .message-card-body {
-          padding: 18px 22px 22px;
-          font-size: 14px; line-height: 1.65;
+        .msg-row:last-child { border-bottom: none; }
+        .msg-row.collapsed .msg-body,
+        .msg-row.collapsed .msg-attachments,
+        .msg-row.collapsed .msg-to { display: none; }
+        .msg-row.collapsed .msg-head {
+          padding: 11px 0;
+          cursor: pointer;
+        }
+        .msg-row.collapsed:hover { background: var(--mail-surface-1); }
+        .msg-row.collapsed .msg-snippet {
+          flex: 1; min-width: 0;
+          font-size: 12.5px;
+          color: ${PALETTE.slate500};
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          font-weight: 400;
+        }
+        .msg-head {
+          padding: 14px 0 6px;
+          display: flex; align-items: center; gap: 10px;
+        }
+        .msg-avatar {
+          width: 28px; height: 28px;
+          border-radius: 7px;
+          display: flex; align-items: center; justify-content: center;
+          font-weight: 600; font-size: 11px;
+          flex-shrink: 0;
+          letter-spacing: 0.02em;
+          color: white;
+        }
+        .msg-identity { min-width: 0; flex: 0 0 auto; }
+        .msg-name {
+          font-size: 13.5px; font-weight: 600;
+          color: ${PALETTE.slate900};
+          letter-spacing: -0.005em;
+          line-height: 1.2;
+        }
+        .msg-to {
+          font-size: 11.5px;
+          color: ${PALETTE.slate500};
+          margin-top: 1px;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .msg-time {
+          font-size: 11.5px;
+          color: ${PALETTE.slate500};
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+          display: flex; align-items: center; gap: 5px;
+          flex-shrink: 0;
+        }
+        .msg-body {
+          padding: 4px 0 16px 38px;
+          font-size: 13.5px; line-height: 1.65;
           color: ${PALETTE.slate700};
         }
-        .message-card-body img { max-width: 100%; height: auto; border-radius: 8px; }
+        .msg-body img { max-width: 100%; height: auto; border-radius: 6px; }
+        .msg-attachments { padding: 0 0 18px 38px; }
 
         .attach-card {
-          display: flex; align-items: center; gap: 12px;
-          padding: 12px;
-          background: var(--mail-surface-1);
+          display: flex; align-items: center; gap: 10px;
+          padding: 8px 10px;
+          background: var(--mail-surface);
           border: 1px solid ${PALETTE.slate200};
-          border-radius: 12px;
-          width: 320px;
-          transition: all 0.15s;
+          border-radius: 8px;
+          width: 280px;
+          transition: border-color 0.15s;
         }
         .attach-card:hover {
-          background: var(--mail-surface);
           border-color: ${PALETTE.slate300};
-          box-shadow: var(--mail-shadow-md);
+          background: var(--mail-surface-1);
         }
         .attach-icon {
-          width: 44px; height: 44px;
-          border-radius: 10px;
+          width: 32px; height: 32px;
+          border-radius: 6px;
           display: flex; align-items: center; justify-content: center;
-          font-size: 20px;
+          font-size: 15px;
           color: white;
           flex-shrink: 0;
         }
@@ -843,44 +1006,103 @@ export default function MailPage() {
         .quick-reply-wrap {
           background: var(--mail-surface);
           border-top: 1px solid ${PALETTE.slate200};
-          padding: 18px 22px;
+          padding: 14px 24px;
         }
         .quick-reply-box {
-          background: var(--mail-surface-1);
+          background: var(--mail-surface);
           border: 1px solid ${PALETTE.slate200};
-          border-radius: 14px;
-          padding: 12px 14px;
-          transition: all 0.2s;
+          border-radius: 8px;
+          padding: 10px 12px;
+          transition: border-color 0.15s;
         }
         .quick-reply-box:focus-within {
-          background: var(--mail-surface);
-          border-color: var(--mail-primary);
-          box-shadow: 0 0 0 4px var(--mail-focus-ring);
+          border-color: var(--mail-border-strong);
         }
 
         .compose-section {
           background: var(--mail-surface);
           border-bottom: 1px solid ${PALETTE.slate100};
-          padding: 12px 28px;
-          display: flex; align-items: center; gap: 12px;
+          padding: 6px 24px;
+          display: flex; align-items: center; gap: 10px;
+          min-height: 38px;
         }
         .compose-section-label {
-          font-size: 12px; font-weight: 600;
+          font-size: 12px; font-weight: 500;
           color: ${PALETTE.slate500};
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          width: 64px;
+          width: 36px;
           flex-shrink: 0;
         }
+        .compose-cc-toggle {
+          margin-left: auto;
+          display: flex; gap: 4px;
+          font-size: 11.5px; font-weight: 500;
+        }
+        .compose-cc-toggle button {
+          background: transparent; border: none;
+          color: ${PALETTE.slate500};
+          cursor: pointer;
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+        .compose-cc-toggle button:hover { background: var(--mail-surface-2); color: ${PALETTE.slate900}; }
+        .compose-cc-toggle button.active { color: var(--mail-primary); }
 
         .send-gradient-btn {
-          background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%) !important;
-          border: none !important;
-          height: 38px !important;
-          padding: 0 22px !important;
-          border-radius: 10px !important;
+          background: var(--mail-pill-active-bg) !important;
+          border: 1px solid var(--mail-pill-active-bg) !important;
+          height: 30px !important;
+          padding: 0 14px !important;
+          border-radius: 6px !important;
           font-weight: 600 !important;
-          box-shadow: 0 6px 18px -6px rgba(99, 102, 241, 0.55) !important;
+          font-size: 13px !important;
+          color: var(--mail-pill-active-fg) !important;
+        }
+        .send-gradient-btn:hover { opacity: 0.88 !important; }
+
+        .ai-pill {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 4px 10px;
+          height: 26px;
+          background: var(--mail-surface);
+          border: 1px solid ${PALETTE.slate200};
+          border-radius: 999px;
+          font-size: 12px; font-weight: 500;
+          color: ${PALETTE.slate700};
+          cursor: pointer;
+          transition: all 0.12s ease;
+        }
+        .ai-pill:hover:not(:disabled) {
+          border-color: var(--mail-primary);
+          color: var(--mail-primary);
+          background: var(--mail-tint-blue);
+        }
+        .ai-pill:disabled { opacity: 0.55; cursor: not-allowed; }
+        .ai-pill .ai-icon {
+          color: var(--mail-violet);
+        }
+        .ai-pill:hover:not(:disabled) .ai-icon {
+          color: var(--mail-primary);
+        }
+
+        .ai-toolbar {
+          display: flex; align-items: center; gap: 6px;
+          padding: 8px 24px;
+          background: var(--mail-surface);
+          border-bottom: 1px solid ${PALETTE.slate100};
+          flex-wrap: wrap;
+        }
+        .ai-toolbar-label {
+          font-size: 11.5px; font-weight: 500;
+          color: ${PALETTE.slate500};
+          margin-right: 4px;
+        }
+        .ai-pill {
+          padding: 3px 9px !important;
+          height: 24px !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          border: 1px solid ${PALETTE.slate200} !important;
+          font-size: 12px !important;
         }
 
         .mail-thread-list-wrap::-webkit-scrollbar { width: 8px; }
@@ -893,35 +1115,21 @@ export default function MailPage() {
       <div className="mail-shell">
         {/* ============== SIDEBAR ============== */}
         <aside className="mail-sidebar">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 4px 18px" }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: "linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "white",
-                boxShadow: "0 6px 16px -6px rgba(99, 102, 241, 0.6)",
-              }}
-            >
-              <Mail size={18} strokeWidth={2.4} />
-            </div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: PALETTE.slate900, letterSpacing: "-0.01em" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 8px 12px" }}>
+            <Mail size={15} strokeWidth={2.2} color={PALETTE.slate700} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: PALETTE.slate900, letterSpacing: "-0.005em", lineHeight: 1.2 }}>
                 Mail
               </div>
               {mailStatus?.connectedEmail && (
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 10.5,
                     color: PALETTE.slate500,
-                    maxWidth: 180,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
+                    marginTop: 1,
                   }}
                 >
                   {mailStatus.connectedEmail}
@@ -939,12 +1147,12 @@ export default function MailPage() {
                 setTimeout(() => form.resetFields(), 0);
               }}
             >
-              <PenSquare size={16} strokeWidth={2.4} />
+              <PenSquare size={13} strokeWidth={2.2} />
               Compose
             </button>
           )}
 
-          <div style={{ marginTop: 24, padding: "0 4px 8px", fontSize: 11, fontWeight: 600, color: PALETTE.slate400, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <div style={{ marginTop: 18, padding: "0 10px 6px", fontSize: 10.5, fontWeight: 600, color: PALETTE.slate400, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Folders
           </div>
 
@@ -959,47 +1167,21 @@ export default function MailPage() {
                   className={`mail-folder-item ${isActive ? "active" : ""}`}
                   onClick={() => setSelectedFolder(f.key)}
                 >
-                  <div
-                    className="mail-folder-icon-wrap"
-                    style={{
-                      background: isActive ? f.tint : "transparent",
-                      color: f.color,
-                    }}
-                  >
-                    <Icon size={16} strokeWidth={2.2} />
+                  <div className="mail-folder-icon">
+                    <Icon size={14} strokeWidth={2} />
                   </div>
                   <span>{f.label}</span>
                   {showCount && (
                     <span className="mail-folder-count">{threads.length}</span>
                   )}
                   {f.key === "INBOX" && !isActive && unreadCount > 0 && (
-                    <span className="mail-folder-count" style={{ background: "var(--mail-tint-blue)", color: "var(--mail-primary)" }}>
+                    <span className="mail-folder-count" style={{ color: "var(--mail-primary)", fontWeight: 600 }}>
                       {unreadCount}
                     </span>
                   )}
                 </div>
               );
             })}
-          </div>
-
-          <div
-            style={{
-              marginTop: 16,
-              padding: 14,
-              borderRadius: 12,
-              background: "linear-gradient(135deg, var(--mail-tint-blue) 0%, var(--mail-tint-violet) 100%)",
-              border: "1px solid var(--mail-tip-border)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <Sparkles size={14} color={PALETTE.violet} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: PALETTE.slate900 }}>
-                Pro tip
-              </span>
-            </div>
-            <p style={{ fontSize: 12, color: PALETTE.slate500, margin: 0, lineHeight: 1.5 }}>
-              Use the <span className="mail-kbd" style={{ fontSize: 10 }}>/</span> shortcut to quickly search any message.
-            </p>
           </div>
         </aside>
 
@@ -1070,23 +1252,9 @@ export default function MailPage() {
 
           <div className="mail-header-section">
             <div className="mail-folder-title">
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: activeFolder.tint,
-                  color: activeFolder.color,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <activeFolder.icon size={18} strokeWidth={2.2} />
-              </div>
               <h1>{activeFolder.label}</h1>
               {threads.length > 0 && (
-                <span className="badge">
+                <span className="count">
                   {threads.length} {threads.length === 1 ? "thread" : "threads"}
                 </span>
               )}
@@ -1109,7 +1277,7 @@ export default function MailPage() {
                 }
               }}
             />
-            <div style={{ width: 1, height: 22, background: PALETTE.slate200 }} />
+            <div style={{ width: 1, height: 16, background: PALETTE.slate200, margin: "0 4px" }} />
 
             {FILTERS.map((f) => (
               <button
@@ -1184,13 +1352,12 @@ export default function MailPage() {
           <div className="mail-thread-list-wrap">
             {threadsLoading && !isSyncing ? (
               <>
-                {[0, 1, 2, 3, 4, 5].map((i) => (
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
                   <div key={i} className="skeleton-row">
-                    <div className="skeleton-shape" style={{ width: 40, height: 40, borderRadius: 12 }} />
+                    <div className="skeleton-shape" style={{ width: 28, height: 28, borderRadius: 6 }} />
                     <div style={{ flex: 1 }}>
-                      <div className="skeleton-shape" style={{ height: 12, width: "30%", marginBottom: 8 }} />
-                      <div className="skeleton-shape" style={{ height: 10, width: "60%", marginBottom: 6 }} />
-                      <div className="skeleton-shape" style={{ height: 10, width: "85%" }} />
+                      <div className="skeleton-shape" style={{ height: 10, width: "26%", marginBottom: 6 }} />
+                      <div className="skeleton-shape" style={{ height: 9, width: "72%" }} />
                     </div>
                   </div>
                 ))}
@@ -1236,29 +1403,31 @@ export default function MailPage() {
                         }}
                       />
                     </div>
+                    {isUnread ? <span className="unread-dot" /> : <span className="unread-dot" style={{ background: "transparent" }} />}
                     <div className="thread-avatar" style={getAvatarStyle(sender)}>
                       {getInitials(sender)}
                     </div>
                     <div className="thread-meta">
                       <div className="thread-row1">
-                        <span className={`thread-sender ${isUnread ? "unread" : ""}`}>{sender}</span>
+                        <span className={`thread-sender ${isUnread ? "unread" : ""}`}>
+                          {sender}
+                          {isSent && item.toEmails && item.toEmails.length > 1 && (
+                            <span style={{ color: PALETTE.slate400, fontWeight: 400, marginLeft: 6 }}>
+                              +{item.toEmails.length - 1}
+                            </span>
+                          )}
+                        </span>
                         <span className="thread-time">
-                          {item.hasAttachments && <Paperclip size={12} />}
+                          {item.hasAttachments && <Paperclip size={11} />}
                           {dayjs(item.lastMessageAt).format("MMM D")}
                         </span>
                       </div>
                       <div className={`thread-subject ${isUnread ? "unread" : ""}`}>
                         {item.subject || "(No Subject)"}
+                        {item.snippet && (
+                          <span className="snippet"> — {item.snippet}</span>
+                        )}
                       </div>
-                      <div className="thread-snippet">
-                        {item.snippet || "No preview available"}
-                      </div>
-                      {isSent && item.toEmails && item.toEmails.length > 1 && (
-                        <div style={{ marginTop: 4, fontSize: 11, color: PALETTE.slate400 }}>
-                          + {item.toEmails.length - 1} more recipient
-                          {item.toEmails.length - 1 > 1 ? "s" : ""}
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
@@ -1294,13 +1463,8 @@ export default function MailPage() {
               </span>
             </div>
           ) : (
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: PALETTE.slate500, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
-                Conversation
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: PALETTE.slate900, letterSpacing: "-0.01em" }}>
-                {selectedThread?.subject || "(No Subject)"}
-              </div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: PALETTE.slate500 }}>
+              {selectedThread?.fromAddress || "Conversation"}
             </div>
           )
         }
@@ -1427,160 +1591,217 @@ export default function MailPage() {
             </div>
           ) : (
             <>
-              <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
-                {messages.map((msg: any) => {
+              <div className="convo-header">
+                <h2 className="convo-subject">{selectedThread?.subject || "(No Subject)"}</h2>
+                <div className="convo-meta">
+                  <div className="avatars">
+                    {uniqueParticipants.slice(0, 4).map((p) => (
+                      <div key={p} className="pa-avatar" style={getAvatarStyle(p)} title={p}>
+                        {getInitials(p)}
+                      </div>
+                    ))}
+                    {uniqueParticipants.length > 4 && (
+                      <div
+                        className="pa-avatar"
+                        style={{ background: PALETTE.slate200, color: PALETTE.slate700 }}
+                      >
+                        +{uniqueParticipants.length - 4}
+                      </div>
+                    )}
+                  </div>
+                  <span>
+                    {messages.length} {messages.length === 1 ? "message" : "messages"}
+                  </span>
+                  <span className="dot">•</span>
+                  <span>
+                    {uniqueParticipants.length}{" "}
+                    {uniqueParticipants.length === 1 ? "participant" : "participants"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="convo-body">
+                {messages.map((msg: any, idx: number) => {
                   const fromName = msg.fromEmail || "Unknown";
+                  const isLast = idx === messages.length - 1;
+                  const isExpanded =
+                    msg.id in expandedMessages ? expandedMessages[msg.id] : isLast;
+                  const toggleExpand = () =>
+                    setExpandedMessages((prev) => ({ ...prev, [msg.id]: !isExpanded }));
                   return (
-                    <div key={msg.id} className="message-card">
-                      <div className="message-card-header">
-                        <div
-                          className="thread-avatar"
-                          style={{ ...getAvatarStyle(fromName), width: 44, height: 44 }}
-                        >
+                    <div
+                      key={msg.id}
+                      className={`msg-row ${!isExpanded ? "collapsed" : ""}`}
+                    >
+                      <div
+                        className="msg-head"
+                        onClick={!isExpanded ? toggleExpand : undefined}
+                      >
+                        <div className="msg-avatar" style={getAvatarStyle(fromName)}>
                           {getInitials(fromName)}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: 14, fontWeight: 600, color: PALETTE.slate900 }}>
-                                {fromName}
-                              </div>
-                              <div style={{ fontSize: 12, color: PALETTE.slate500, marginTop: 2 }}>
+
+                        {!isExpanded ? (
+                          <>
+                            <div className="msg-identity">
+                              <div className="msg-name">{fromName}</div>
+                            </div>
+                            <div className="msg-snippet">
+                              {msg.snippet || (msg.bodyText ? msg.bodyText.slice(0, 140) : "")}
+                            </div>
+                            <span className="msg-time">
+                              {dayjs(msg.receivedAt).format("MMM D")}
+                            </span>
+                            <ChevronDown size={14} color={PALETTE.slate400} style={{ flexShrink: 0 }} />
+                          </>
+                        ) : (
+                          <>
+                            <div className="msg-identity" style={{ flex: 1, minWidth: 0 }}>
+                              <div className="msg-name">{fromName}</div>
+                              <div className="msg-to">
                                 to{" "}
                                 {Array.isArray(msg.toEmails)
                                   ? msg.toEmails.join(", ")
                                   : msg.toEmails}
                               </div>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                              <span
-                                style={{
-                                  fontSize: 12,
-                                  color: PALETTE.slate500,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 4,
-                                }}
-                              >
-                                <Clock size={12} />
-                                {dayjs(msg.receivedAt).format("MMM D, h:mm A")}
-                              </span>
-                              {canCreateMail && (
-                                <Tooltip title="Reply">
-                                  <button
-                                    className="mail-icon-btn"
-                                    style={{ width: 30, height: 30 }}
-                                    onClick={() => {
-                                      const ta = document.getElementById("quick-reply-textarea");
-                                      if (ta) ta.focus();
-                                    }}
-                                  >
-                                    <Reply size={14} />
-                                  </button>
-                                </Tooltip>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+                            <span className="msg-time">
+                              <Clock size={11} />
+                              {dayjs(msg.receivedAt).format("MMM D, h:mm A")}
+                            </span>
+                            {canCreateMail && (
+                              <Tooltip title="Reply">
+                                <button
+                                  className="mail-icon-btn"
+                                  style={{ width: 26, height: 26 }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const ta = document.getElementById("quick-reply-textarea");
+                                    if (ta) ta.focus();
+                                  }}
+                                >
+                                  <Reply size={13} />
+                                </button>
+                              </Tooltip>
+                            )}
+                            {messages.length > 1 && (
+                              <Tooltip title="Collapse">
+                                <button
+                                  className="mail-icon-btn"
+                                  style={{ width: 26, height: 26 }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleExpand();
+                                  }}
+                                >
+                                  <ChevronUp size={13} />
+                                </button>
+                              </Tooltip>
+                            )}
+                          </>
+                        )}
                       </div>
 
-                      <div className="message-card-body">
+                      <div className="msg-body">
                         {msg.bodyHtml ? (
                           <div dangerouslySetInnerHTML={{ __html: msg.bodyHtml }} />
                         ) : (
                           <div style={{ whiteSpace: "pre-wrap" }}>{msg.bodyText}</div>
                         )}
+                      </div>
 
-                        {msg.attachments && msg.attachments.length > 0 && (
-                          <div style={{ marginTop: 24, paddingTop: 18, borderTop: `1px solid ${PALETTE.slate100}` }}>
-                            <div
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="msg-attachments">
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              marginBottom: 8,
+                              fontSize: 11.5,
+                              fontWeight: 500,
+                              color: PALETTE.slate500,
+                            }}
+                          >
+                            <Paperclip size={12} />
+                            <span>
+                              {msg.attachments.length}{" "}
+                              {msg.attachments.length > 1 ? "attachments" : "attachment"}
+                            </span>
+                            <span style={{ color: PALETTE.slate300 }}>•</span>
+                            <button
+                              onClick={() => downloadAsZip(msg.attachments)}
                               style={{
+                                background: "none",
+                                border: "none",
+                                color: PALETTE.primary,
+                                fontSize: 11.5,
+                                fontWeight: 500,
+                                cursor: "pointer",
+                                padding: 0,
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 8,
-                                marginBottom: 14,
+                                gap: 3,
                               }}
                             >
-                              <Paperclip size={14} color={PALETTE.slate500} />
-                              <span style={{ fontSize: 13, fontWeight: 600, color: PALETTE.slate900 }}>
-                                {msg.attachments.length} Attachment
-                                {msg.attachments.length > 1 ? "s" : ""}
-                              </span>
-                              <span style={{ color: PALETTE.slate300 }}>•</span>
-                              <button
-                                onClick={() => downloadAsZip(msg.attachments)}
-                                style={{
-                                  background: "none",
-                                  border: "none",
-                                  color: PALETTE.primary,
-                                  fontSize: 13,
-                                  fontWeight: 600,
-                                  cursor: "pointer",
-                                  padding: 0,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 4,
-                                }}
-                              >
-                                <Download size={12} />
-                                Download all
-                              </button>
-                            </div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-                              {msg.attachments.map((att: any) => (
-                                <div key={att.id} className="attach-card">
+                              <Download size={11} />
+                              Download all
+                            </button>
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                            {msg.attachments.map((att: any) => (
+                              <div key={att.id} className="attach-card">
+                                <div
+                                  className="attach-icon"
+                                  style={{ background: getFileColor(att.fileName) }}
+                                >
+                                  {getFileIcon(att.fileName)}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
                                   <div
-                                    className="attach-icon"
-                                    style={{ background: getFileColor(att.fileName) }}
+                                    style={{
+                                      fontSize: 12.5,
+                                      fontWeight: 500,
+                                      color: PALETTE.slate900,
+                                      whiteSpace: "nowrap",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                    }}
                                   >
-                                    {getFileIcon(att.fileName)}
+                                    {att.fileName}
                                   </div>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div
-                                      style={{
-                                        fontSize: 13,
-                                        fontWeight: 600,
-                                        color: PALETTE.slate900,
-                                        whiteSpace: "nowrap",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                      }}
-                                    >
-                                      {att.fileName}
-                                    </div>
-                                    <div style={{ fontSize: 11, color: PALETTE.slate500, marginTop: 2 }}>
-                                      {formatFileSize(att.size)}
-                                    </div>
+                                  <div style={{ fontSize: 10.5, color: PALETTE.slate500, marginTop: 1 }}>
+                                    {formatFileSize(att.size)}
                                   </div>
-                                  <Tooltip title="Preview">
-                                    <button
-                                      className="mail-icon-btn"
-                                      style={{ width: 30, height: 30 }}
-                                      onClick={() => previewAttachment(att)}
-                                    >
-                                      <Eye size={14} />
+                                </div>
+                                <Tooltip title="Preview">
+                                  <button
+                                    className="mail-icon-btn"
+                                    style={{ width: 24, height: 24 }}
+                                    onClick={() => previewAttachment(att)}
+                                  >
+                                    <Eye size={12} />
+                                  </button>
+                                </Tooltip>
+                                <a
+                                  href={`/api/mail/attachments/download?url=${encodeURIComponent(
+                                    att.downloadUrl
+                                  )}&filename=${encodeURIComponent(att.fileName)}`}
+                                  download={att.fileName}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <Tooltip title="Download">
+                                    <button className="mail-icon-btn" style={{ width: 24, height: 24 }}>
+                                      <Download size={12} />
                                     </button>
                                   </Tooltip>
-                                  <a
-                                    href={`/api/mail/attachments/download?url=${encodeURIComponent(
-                                      att.downloadUrl
-                                    )}&filename=${encodeURIComponent(att.fileName)}`}
-                                    download={att.fileName}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    <Tooltip title="Download">
-                                      <button className="mail-icon-btn" style={{ width: 30, height: 30 }}>
-                                        <Download size={14} />
-                                      </button>
-                                    </Tooltip>
-                                  </a>
-                                </div>
-                              ))}
-                            </div>
+                                </a>
+                              </div>
+                            ))}
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1606,14 +1827,28 @@ export default function MailPage() {
                         marginTop: 10,
                         paddingTop: 10,
                         borderTop: `1px solid ${PALETTE.slate200}`,
+                        gap: 8,
                       }}
                     >
-                      <div style={{ display: "flex", gap: 8 }}>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                         <Tooltip title="Attach">
-                          <button className="mail-icon-btn" style={{ width: 32, height: 32 }}>
-                            <Paperclip size={14} />
+                          <button type="button" className="mail-icon-btn" style={{ width: 28, height: 28 }}>
+                            <Paperclip size={13} />
                           </button>
                         </Tooltip>
+                        <button
+                          type="button"
+                          className="ai-pill"
+                          onClick={fixReplyGrammar}
+                          disabled={isFixingReplyGrammar || !quickReply.trim()}
+                        >
+                          {isFixingReplyGrammar ? (
+                            <Spin size="small" />
+                          ) : (
+                            <CheckCircle2 size={13} className="ai-icon" />
+                          )}
+                          Fix grammar
+                        </button>
                       </div>
                       <Button
                         type="primary"
@@ -1668,29 +1903,8 @@ export default function MailPage() {
         }}
         open={composeVisible}
         title={
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: "linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "white",
-              }}
-            >
-              <PenSquare size={16} />
-            </div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: PALETTE.slate500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                {currentDraftId ? "Editing draft" : "New message"}
-              </div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: PALETTE.slate900 }}>
-                Compose
-              </div>
-            </div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: PALETTE.slate900, letterSpacing: "-0.005em" }}>
+            {currentDraftId ? "Draft" : "New message"}
           </div>
         }
         extra={
@@ -1723,7 +1937,7 @@ export default function MailPage() {
                   }
                 }}
                 loading={isSavingDraft}
-                style={{ borderRadius: 10, height: 38, fontWeight: 600 }}
+                style={{ borderRadius: 6, height: 30, fontWeight: 600, fontSize: 13 }}
               >
                 Save Draft
               </Button>
@@ -1788,112 +2002,139 @@ export default function MailPage() {
         >
           <div className="compose-section">
             <div className="compose-section-label">From</div>
-            {!mailStatus ? (
-              <Spin size="small" />
-            ) : (
-              <span style={{ fontSize: 14, color: PALETTE.slate900, fontWeight: 500 }}>
-                {mailStatus.connectedEmail || "No connected email found"}
-              </span>
-            )}
-          </div>
-
-          <Form.Item
-            name="to"
-            rules={[{ required: true, message: "Recipient is required" }]}
-            style={{ margin: 0 }}
-          >
-            <Select
-              mode="tags"
-              placeholder="Recipients"
-              tokenSeparators={[",", " "]}
-              options={contacts
-                .map((u: any) => ({
-                  value: u.email || "",
-                  label: `${u.name} (${u.email || "No Email"})`,
-                }))
-                .filter((u: any) => u.value)}
-              filterOption={(input, option) =>
-                (option?.label ?? "")
-                  .toString()
-                  .toLowerCase()
-                  .includes(input.toLowerCase()) ||
-                (option?.value ?? "")
-                  .toString()
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
-              variant="borderless"
-              style={{ width: "100%" }}
-              popupMatchSelectWidth={false}
-              tagRender={(props) => (
-                <span
-                  style={{
-                    background: "var(--mail-tint-blue)",
-                    color: "var(--mail-primary)",
-                    padding: "2px 8px",
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    margin: "2px 4px 2px 0",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  {props.label}
-                  <X
-                    size={12}
-                    style={{ cursor: "pointer" }}
-                    onClick={props.onClose as any}
-                  />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {!mailStatus ? (
+                <Spin size="small" />
+              ) : (
+                <span style={{ fontSize: 13, color: PALETTE.slate700 }}>
+                  {mailStatus.connectedEmail || "No connected email found"}
                 </span>
               )}
-              suffixIcon={null}
-              dropdownStyle={{ borderRadius: 10 }}
-              popupClassName="compose-recipient-dropdown"
-              className="compose-select"
-              {...({ style: { width: "100%", padding: "10px 28px" } } as any)}
-            />
-          </Form.Item>
-          <div style={{ borderBottom: `1px solid ${PALETTE.slate100}` }} />
+            </div>
+            <div className="compose-cc-toggle">
+              <button
+                type="button"
+                className={showCc ? "active" : ""}
+                onClick={() => setShowCc((v) => !v)}
+              >
+                Cc
+              </button>
+              <button
+                type="button"
+                className={showBcc ? "active" : ""}
+                onClick={() => setShowBcc((v) => !v)}
+              >
+                Bcc
+              </button>
+            </div>
+          </div>
 
-          <Form.Item name="cc" style={{ margin: 0 }}>
-            <Select
-              mode="tags"
-              placeholder="Cc"
-              tokenSeparators={[",", " "]}
-              options={contacts
-                .map((u: any) => ({
-                  value: u.email || "",
-                  label: `${u.name} (${u.email || "No Email"})`,
-                }))
-                .filter((u: any) => u.value)}
-              variant="borderless"
-              style={{ width: "100%", padding: "10px 28px" }}
-              popupMatchSelectWidth={false}
-              suffixIcon={null}
-            />
-          </Form.Item>
-          <div style={{ borderBottom: `1px solid ${PALETTE.slate100}` }} />
+          <div className="compose-section">
+            <div className="compose-section-label">To</div>
+            <Form.Item
+              name="to"
+              rules={[{ required: true, message: "Recipient is required" }]}
+              style={{ margin: 0, flex: 1, minWidth: 0 }}
+            >
+              <Select
+                mode="tags"
+                placeholder="Recipients"
+                tokenSeparators={[",", " "]}
+                options={contacts
+                  .map((u: any) => ({
+                    value: u.email || "",
+                    label: `${u.name} (${u.email || "No Email"})`,
+                  }))
+                  .filter((u: any) => u.value)}
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toString()
+                    .toLowerCase()
+                    .includes(input.toLowerCase()) ||
+                  (option?.value ?? "")
+                    .toString()
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                variant="borderless"
+                style={{ width: "100%" }}
+                popupMatchSelectWidth={false}
+                tagRender={(props) => (
+                  <span
+                    style={{
+                      background: "var(--mail-surface-2)",
+                      color: PALETTE.slate900,
+                      padding: "1px 7px",
+                      borderRadius: 4,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      margin: "1px 4px 1px 0",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {props.label}
+                    <X
+                      size={11}
+                      style={{ cursor: "pointer" }}
+                      onClick={props.onClose as any}
+                    />
+                  </span>
+                )}
+                suffixIcon={null}
+                dropdownStyle={{ borderRadius: 8 }}
+                popupClassName="compose-recipient-dropdown"
+                className="compose-select"
+              />
+            </Form.Item>
+          </div>
 
-          <Form.Item name="bcc" style={{ margin: 0 }}>
-            <Select
-              mode="tags"
-              placeholder="Bcc"
-              tokenSeparators={[",", " "]}
-              options={contacts
-                .map((u: any) => ({
-                  value: u.email || "",
-                  label: `${u.name} (${u.email || "No Email"})`,
-                }))
-                .filter((u: any) => u.value)}
-              variant="borderless"
-              style={{ width: "100%", padding: "10px 28px" }}
-              popupMatchSelectWidth={false}
-              suffixIcon={null}
-            />
-          </Form.Item>
-          <div style={{ borderBottom: `1px solid ${PALETTE.slate100}` }} />
+          {showCc && (
+            <div className="compose-section">
+              <div className="compose-section-label">Cc</div>
+              <Form.Item name="cc" style={{ margin: 0, flex: 1, minWidth: 0 }}>
+                <Select
+                  mode="tags"
+                  placeholder="Cc recipients"
+                  tokenSeparators={[",", " "]}
+                  options={contacts
+                    .map((u: any) => ({
+                      value: u.email || "",
+                      label: `${u.name} (${u.email || "No Email"})`,
+                    }))
+                    .filter((u: any) => u.value)}
+                  variant="borderless"
+                  style={{ width: "100%" }}
+                  popupMatchSelectWidth={false}
+                  suffixIcon={null}
+                />
+              </Form.Item>
+            </div>
+          )}
+
+          {showBcc && (
+            <div className="compose-section">
+              <div className="compose-section-label">Bcc</div>
+              <Form.Item name="bcc" style={{ margin: 0, flex: 1, minWidth: 0 }}>
+                <Select
+                  mode="tags"
+                  placeholder="Bcc recipients"
+                  tokenSeparators={[",", " "]}
+                  options={contacts
+                    .map((u: any) => ({
+                      value: u.email || "",
+                      label: `${u.name} (${u.email || "No Email"})`,
+                    }))
+                    .filter((u: any) => u.value)}
+                  variant="borderless"
+                  style={{ width: "100%" }}
+                  popupMatchSelectWidth={false}
+                  suffixIcon={null}
+                />
+              </Form.Item>
+            </div>
+          )}
 
           <Form.Item
             name="subject"
@@ -1904,16 +2145,53 @@ export default function MailPage() {
               placeholder="Subject"
               variant="borderless"
               style={{
-                padding: "14px 28px",
+                padding: "12px 24px",
                 fontSize: 16,
                 fontWeight: 600,
                 color: PALETTE.slate900,
+                letterSpacing: "-0.01em",
               }}
             />
           </Form.Item>
           <div style={{ borderBottom: `1px solid ${PALETTE.slate100}` }} />
 
-          <div style={{ background: "white", padding: "16px 28px" }}>
+          <div className="ai-toolbar">
+            <span className="ai-toolbar-label">AI Assist</span>
+            <button
+              type="button"
+              className="ai-pill"
+              onClick={fixComposeGrammar}
+              disabled={isFixingGrammar || isEnhancing}
+            >
+              {isFixingGrammar ? (
+                <Spin size="small" />
+              ) : (
+                <CheckCircle2 size={13} className="ai-icon" />
+              )}
+              Fix grammar
+            </button>
+            <button
+              type="button"
+              className="ai-pill"
+              onClick={enhanceComposeBody}
+              disabled={isFixingGrammar || isEnhancing}
+            >
+              {isEnhancing ? (
+                <Spin size="small" />
+              ) : (
+                <Wand2 size={13} className="ai-icon" />
+              )}
+              Enhance writing
+            </button>
+            <Tooltip title="AI cleans up tone, clarity, and grammar while preserving your message.">
+              <span style={{ fontSize: 11, color: PALETTE.slate400, marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
+                <Sparkles size={11} color={PALETTE.violet} />
+                Powered by AI
+              </span>
+            </Tooltip>
+          </div>
+
+          <div style={{ background: "var(--mail-surface)", padding: "16px 24px" }}>
             <Form.Item
               name="body"
               rules={[{ required: true, message: "Message body is required" }]}
@@ -1929,13 +2207,13 @@ export default function MailPage() {
 
           <div
             style={{
-              padding: "14px 28px",
-              background: "white",
+              padding: "12px 24px",
+              background: "var(--mail-surface)",
               borderTop: `1px solid ${PALETTE.slate200}`,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: 16,
+              gap: 12,
               flexWrap: "wrap",
             }}
           >
@@ -1974,7 +2252,7 @@ export default function MailPage() {
               >
                 <Button
                   icon={<PaperClipOutlined />}
-                  style={{ borderRadius: 10, height: 36, fontWeight: 500 }}
+                  style={{ borderRadius: 6, height: 30, fontWeight: 500, fontSize: 13 }}
                 >
                   Attach files
                 </Button>
@@ -1986,8 +2264,8 @@ export default function MailPage() {
                 showTime
                 placeholder="Schedule send"
                 disabledDate={(current) => current && current < dayjs().startOf("day")}
-                style={{ borderRadius: 10, height: 36 }}
-                suffixIcon={<Calendar size={14} />}
+                style={{ borderRadius: 6, height: 30, fontSize: 13 }}
+                suffixIcon={<Calendar size={13} />}
               />
             </Form.Item>
           </div>

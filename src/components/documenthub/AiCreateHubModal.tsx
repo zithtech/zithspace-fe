@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Modal, Input, Button, Typography, message, Select, Spin } from "antd";
+import { Modal, Input, Button, Typography, message, Select, Spin, Radio } from "antd";
 import {
   ThunderboltOutlined,
   SendOutlined,
@@ -9,9 +9,11 @@ import {
   ArrowLeftOutlined,
   TagOutlined,
   WarningOutlined,
+  FolderOpenOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import TicketService, { Ticket } from "@/services/ticketService";
-import { documentHubService as DocumentHubService } from "@/services/documentHub";
+import { documentHubService as DocumentHubService, DocumentHub } from "@/services/documentHub";
 import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
@@ -41,6 +43,12 @@ interface AiCreateHubModalProps {
    * description.
    */
   lockedTicket?: Ticket | null;
+  /**
+   * Hubs already linked to the current ticket. When non-empty, the modal
+   * offers "Add to existing hub" as the default — generation then creates a
+   * new file/document inside that hub instead of a brand-new hub.
+   */
+  existingHubs?: DocumentHub[];
 }
 
 const LOADING_MESSAGES = [
@@ -268,15 +276,40 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
   defaultProjectId,
   defaultTicketId,
   lockedTicket,
+  existingHubs,
 }) => {
   const [step, setStep] = useState<Step>("input");
   // When opened from inside a specific ticket, the textarea starts blank
   // (no ticket number prefill); otherwise reflect the caller's defaultPrompt.
   const [prompt, setPrompt] = useState(lockedTicket ? "" : defaultPrompt || "");
 
+  // Hubs already linked to this ticket, most-recent first so the default
+  // selection lands on the freshest one.
+  const sortedExistingHubs = useMemo<DocumentHub[]>(() => {
+    if (!existingHubs?.length) return [];
+    return [...existingHubs].sort((a, b) => {
+      const ta = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const tb = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return tb - ta;
+    });
+  }, [existingHubs]);
+  const hasExistingHubs = sortedExistingHubs.length > 0;
+
+  type TargetMode = "existing" | "new";
+  const [targetMode, setTargetMode] = useState<TargetMode>(
+    hasExistingHubs ? "existing" : "new",
+  );
+  const [selectedHubId, setSelectedHubId] = useState<string | undefined>(
+    sortedExistingHubs[0]?.id,
+  );
+
   useEffect(() => {
-    if (open) setPrompt(lockedTicket ? "" : defaultPrompt || "");
-  }, [open, defaultPrompt, lockedTicket]);
+    if (open) {
+      setPrompt(lockedTicket ? "" : defaultPrompt || "");
+      setTargetMode(hasExistingHubs ? "existing" : "new");
+      setSelectedHubId(sortedExistingHubs[0]?.id);
+    }
+  }, [open, defaultPrompt, lockedTicket, hasExistingHubs, sortedExistingHubs]);
 
   const lockedTicketDescriptionText = useMemo(
     () => stripHtml(lockedTicket?.description),
@@ -378,12 +411,18 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
       const hubName = (draft.hubName || trimmed).slice(0, 80);
       const firstFileTitle = (draft.fileTitle || "Overview").slice(0, 60);
 
-      const hub = await DocumentHubService.createDocumentHub({
-        name: hubName,
-        projectId: defaultProjectId,
-        ticketId: defaultTicketId,
-        visibility: 'public',
-      });
+      // Branch: reuse an existing hub linked to this ticket, or create a new one.
+      const addingToExisting = targetMode === "existing" && !!selectedHubId;
+      const targetHubId = addingToExisting
+        ? selectedHubId!
+        : (
+            await DocumentHubService.createDocumentHub({
+              name: hubName,
+              projectId: defaultProjectId,
+              ticketId: defaultTicketId,
+              visibility: 'public',
+            })
+          ).id;
 
       // Server already cleans ticket artifacts; parse the HTML into BlockNote blocks.
       const rawContent = draft.contentHtml || "";
@@ -423,36 +462,48 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
         ];
       }
 
-      // The backend auto-creates a "Getting Started" file when a hub is made.
-      // Reuse it (rename + replace content) so we end up with a single doc.
-      const fullHub = await DocumentHubService.getDocumentHub(hub.id);
-      const existingFile = fullHub.treeNodes?.find(
-        (n) => n.type === "file" && n.documentId
-      );
-
       let targetDocId: string | null = null;
       let targetNodeId: string | null = null;
 
-      if (existingFile && existingFile.documentId) {
-        targetDocId = existingFile.documentId;
-        targetNodeId = existingFile.id;
-      } else {
+      if (addingToExisting) {
+        // Always create a fresh file inside the existing hub — don't overwrite
+        // any pre-existing document the user has already authored.
         const fileNode = await DocumentHubService.createTreeNode({
-          documentHubId: hub.id,
+          documentHubId: targetHubId,
           type: "file",
           title: firstFileTitle,
         });
         targetDocId = fileNode.documentId;
         targetNodeId = fileNode.id;
-      }
+      } else {
+        // The backend auto-creates a "Getting Started" file when a hub is made.
+        // Reuse it (rename + replace content) so we end up with a single doc.
+        const fullHub = await DocumentHubService.getDocumentHub(targetHubId);
+        const autoCreatedFile = fullHub.treeNodes?.find(
+          (n) => n.type === "file" && n.documentId
+        );
 
-      if (targetNodeId && existingFile) {
-        try {
-          await DocumentHubService.updateTreeNode(targetNodeId, {
+        if (autoCreatedFile && autoCreatedFile.documentId) {
+          targetDocId = autoCreatedFile.documentId;
+          targetNodeId = autoCreatedFile.id;
+        } else {
+          const fileNode = await DocumentHubService.createTreeNode({
+            documentHubId: targetHubId,
+            type: "file",
             title: firstFileTitle,
           });
-        } catch (err) {
-          console.error("Failed to rename auto-created file", err);
+          targetDocId = fileNode.documentId;
+          targetNodeId = fileNode.id;
+        }
+
+        if (targetNodeId && autoCreatedFile) {
+          try {
+            await DocumentHubService.updateTreeNode(targetNodeId, {
+              title: firstFileTitle,
+            });
+          } catch (err) {
+            console.error("Failed to rename auto-created file", err);
+          }
         }
       }
 
@@ -462,8 +513,10 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
         });
       }
 
-      messageApi.success("Document Hub generated");
-      onCreated(hub.id);
+      messageApi.success(
+        addingToExisting ? "Document added to hub" : "Document Hub generated"
+      );
+      onCreated(targetHubId);
     } catch (error) {
       console.error("AI hub generation failed", error);
       messageApi.error("Failed to generate. Please try again.");
@@ -518,10 +571,12 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Title level={5} style={{ margin: 0, color: "#fff", fontWeight: 700 }}>
-                Create with Zai
+                {targetMode === "existing" && hasExistingHubs ? "Add doc with Zai" : "Create with Zai"}
               </Title>
               <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.78)" }}>
-                Describe the documentation you need, Zai will draft it for you.
+                {targetMode === "existing" && hasExistingHubs
+                  ? "A new document will be drafted inside the selected hub."
+                  : "Describe the documentation you need, Zai will draft it for you."}
               </Text>
             </div>
           </div>
@@ -530,6 +585,96 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
         {/* Body */}
         {step === "input" && (
           <div style={{ padding: "20px 24px 22px" }}>
+            {hasExistingHubs && (
+              <div style={{ marginBottom: 16 }}>
+                <Text
+                  style={{
+                    display: "block",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "var(--text-slate-400)",
+                    marginBottom: 8,
+                  }}
+                >
+                  Target hub
+                </Text>
+                <Radio.Group
+                  value={targetMode}
+                  onChange={(e) => setTargetMode(e.target.value as TargetMode)}
+                  style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}
+                >
+                  <div
+                    onClick={() => setTargetMode("existing")}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 12px",
+                      borderRadius: 10,
+                      border: `1px solid ${targetMode === "existing" ? PURPLE : "var(--border-slate-200)"}`,
+                      background: targetMode === "existing" ? "rgba(114, 46, 209, 0.06)" : "var(--bg-pure-white)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Radio value="existing" style={{ marginRight: 0 }} />
+                    <FolderOpenOutlined style={{ color: PURPLE, fontSize: 14 }} />
+                    {sortedExistingHubs.length > 1 ? (
+                      <Select
+                        size="small"
+                        value={selectedHubId}
+                        onChange={(value) => {
+                          setSelectedHubId(value);
+                          setTargetMode("existing");
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        variant="borderless"
+                        style={{ flex: 1, minWidth: 0 }}
+                        options={sortedExistingHubs.map((h) => ({
+                          value: h.id,
+                          label: `Add to: ${h.name}`,
+                        }))}
+                      />
+                    ) : (
+                      <span
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          fontSize: 13,
+                          color: "var(--text-slate-700)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Add to: <span style={{ fontWeight: 600 }}>{sortedExistingHubs[0]?.name}</span>
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    onClick={() => setTargetMode("new")}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 12px",
+                      borderRadius: 10,
+                      border: `1px solid ${targetMode === "new" ? PURPLE : "var(--border-slate-200)"}`,
+                      background: targetMode === "new" ? "rgba(114, 46, 209, 0.06)" : "var(--bg-pure-white)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Radio value="new" style={{ marginRight: 0 }} />
+                    <PlusOutlined style={{ color: "var(--text-slate-400)", fontSize: 13 }} />
+                    <span style={{ fontSize: 13, color: "var(--text-slate-700)" }}>
+                      Create new hub for this ticket
+                    </span>
+                  </div>
+                </Radio.Group>
+              </div>
+            )}
+
             {/* Ticket picker — hidden when launched from inside a ticket. */}
             {!lockedTicket && (
               <>

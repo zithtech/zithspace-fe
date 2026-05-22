@@ -597,6 +597,7 @@ export default function AccountsPage() {
                 <Button
                   type="primary"
                   size="middle"
+                  className="accounts-add-btn"
                   icon={<PlusOutlined />}
                   style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600 }}
                   onClick={showAddModal}
@@ -919,6 +920,7 @@ export default function AccountsPage() {
                   type="primary"
                   size="middle"
                   loading={formLoading}
+                  className="accounts-add-btn"
                   onClick={() => form.submit()}
                   icon={modalType === 'edit' ? <EditOutlined /> : <PlusOutlined />}
                   style={{ borderRadius: 8, height: 38, padding: '0 18px', fontWeight: 600 }}
@@ -1350,7 +1352,6 @@ export default function AccountsPage() {
         }
         .accounts-stat-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 18px 40px -22px color-mix(in srgb, var(--stat-accent) 55%, transparent);
         }
         .accounts-stat-card__glow {
           position: absolute;
@@ -2180,6 +2181,12 @@ export default function AccountsPage() {
         .accounts-tx-form .ant-input-number-input {
           font-variant-numeric: tabular-nums;
           font-weight: 600;
+        }
+        .accounts-add-btn {
+          box-shadow: none !important;
+        }
+        .accounts-add-btn:hover {
+          box-shadow: none !important;
         }
       `}} />
     </MainLayout>

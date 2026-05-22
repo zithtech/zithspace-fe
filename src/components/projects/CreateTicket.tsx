@@ -663,7 +663,7 @@ export default function CreateTicket() {
                                 {member.label.charAt(0)}
                               </Avatar>
                               <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.4 }}>
-                                <Text strong style={{ fontSize: 13, color: "#262626", display: "block" }}>{member.label}</Text>
+                                <Text strong style={{ fontSize: 13, color: "inherit", display: "block" }}>{member.label}</Text>
                                 <Text type="secondary" style={{ fontSize: 11, display: "block" }}>
                                   {typeof member.position === 'object' ? (member.position as any)?.title : member.position}
                                 </Text>
@@ -698,7 +698,7 @@ export default function CreateTicket() {
                                 {member.label.charAt(0)}
                               </Avatar>
                               <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.4 }}>
-                                <Text strong style={{ fontSize: 13, color: "#262626", display: "block" }}>{member.label}</Text>
+                                <Text strong style={{ fontSize: 13, color: "inherit", display: "block" }}>{member.label}</Text>
                                 <Text type="secondary" style={{ fontSize: 11, display: "block" }}>
                                   {typeof member.position === 'object' ? (member.position as any)?.title : member.position}
                                 </Text>

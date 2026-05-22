@@ -849,7 +849,6 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
           .bd-kpi:hover {
             transform: translateY(-2px);
             border-color: var(--c1);
-            box-shadow: 0 6px 18px -8px var(--c1);
           }
           .bd-kpi-icon {
             width: 36px;

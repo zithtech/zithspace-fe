@@ -421,7 +421,8 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
         id: currentTicketId,
         data: { [field]: value }
       });
-      message.success(`${field} updated`);
+      const formattedField = field.charAt(0).toUpperCase() + field.slice(1);
+      message.success(`${formattedField} updated`);
     } catch (error) {
       message.error("Failed to update");
     }
@@ -1648,10 +1649,15 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                           <Col span={24}>
                             <DrawerField label="Assignee" variant="table">
                               <EditableSelect
+                                isMultiple
                                 value={
-                                  typeof ticket.assignee === "string"
-                                    ? ticket.assignee
-                                    : ticket.assignee?.id
+                                  ticket.metadata?.assigneeIds && Array.isArray(ticket.metadata.assigneeIds)
+                                    ? ticket.metadata.assigneeIds
+                                    : Array.isArray(ticket.assignee) 
+                                      ? ticket.assignee.map((a: any) => typeof a === 'string' ? a : a.id)
+                                      : typeof ticket.assignee === "string"
+                                      ? [ticket.assignee]
+                                      : ticket.assignee?.id ? [ticket.assignee.id] : []
                                 }
                                 options={projectMembers}
                                 onSave={(val) =>

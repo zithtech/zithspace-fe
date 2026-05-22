@@ -771,7 +771,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           // Note: The optimistic update hook will handle rolling back the data in the cache
         },
         onSuccess: () => {
-          message.success(`${field} updated`);
+          const formattedField = field.charAt(0).toUpperCase() + field.slice(1);
+          message.success(`${formattedField} updated`);
         }
       }
     );
@@ -1650,6 +1651,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               classNames={{ root: 'tickets-table-settings-popover' }}
               content={
                 <div style={{ width: 240 }}>
+                  {/*
                   <div
                     style={{
                       display: 'flex',
@@ -1676,6 +1678,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       { label: 'Roomy', value: 'spacious' },
                     ]}
                   />
+                  */}
                   <div
                     style={{
                       display: 'flex',
@@ -2057,7 +2060,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   }}>
                     <Space size={[12, 8]} wrap>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)' }} />
-                      <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)' }}>
+                      <Text 
+                        style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)', maxWidth: 350 }}
+                        ellipsis={{ tooltip: true }}
+                      >
                         {activeSprint?.version || 'Active Sprint'}
                       </Text>
                       <Space size={6}>
@@ -2248,16 +2254,16 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                         </Button>
                       )}
                       {activeSprint?.id && (
-                        <Button
-                          type="default"
-                          size="middle"
-                          icon={<LineChartOutlined style={{ color: '#6366f1' }} />}
-                          onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
-                          className="saas-button-item"
-                          style={{ height: 32, fontWeight: 600 }}
-                        >
-                          View Report
-                        </Button>
+                        <Tooltip title="View Report">
+                          <Button
+                            type="default"
+                            size="middle"
+                            icon={<LineChartOutlined style={{ color: '#6366f1' }} />}
+                            onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
+                            className="saas-button-item"
+                            style={{ height: 32, width: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          />
+                        </Tooltip>
                       )}
                     </Space>
                   </div>
@@ -2410,7 +2416,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 </div>
               }
             >
-              <div className="tickets-table-shell" data-density={tableDensity}>
+              <div className="tickets-table-shell" data-density="comfortable">
                 <Table
                   rowSelection={backlogRowSelection}
                   columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}

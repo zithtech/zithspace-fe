@@ -200,7 +200,6 @@ export default function BucketManagementPage() {
         style={{ ["--accent" as any]: accent, cursor: ticketCount > 0 ? 'pointer' : 'default' }}
       >
         <div className="bh-card-accent" />
-        <div className="bh-card-glow" />
 
         <div className="bh-card-head">
           <div className="bh-card-icon">
@@ -970,8 +969,6 @@ export default function BucketManagementPage() {
           }
           .bh-create-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 18px rgba(139, 92, 246, 0.35),
-              inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
             background: linear-gradient(135deg, #9b6dfd 0%, #7c3aed 100%) !important;
           }
 
@@ -1012,7 +1009,6 @@ export default function BucketManagementPage() {
           .bh-kpi:hover {
             transform: translateY(-2px);
             border-color: var(--kpi-c1);
-            box-shadow: 0 6px 18px -8px var(--kpi-c1);
           }
           .bh-kpi-icon {
             width: 38px;
@@ -1212,7 +1208,6 @@ export default function BucketManagementPage() {
           .bh-card:hover {
             transform: translateY(-3px);
             border-color: var(--accent);
-            box-shadow: 0 12px 28px -14px var(--accent);
           }
           .bh-card-accent {
             position: absolute;

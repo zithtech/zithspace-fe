@@ -425,7 +425,8 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
         id: currentTicketId,
         data: { [field]: value }
       });
-      message.success(`${field} updated`);
+      const formattedField = field.charAt(0).toUpperCase() + field.slice(1);
+      message.success(`${formattedField} updated`);
     } catch (error) {
       message.error("Failed to update");
     }
@@ -1651,31 +1652,19 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                         <Row gutter={[0, 0]}>
                           <Col span={24}>
                             <DrawerField label="Assignee" variant="table">
-                              <div
-                                onClickCapture={(e) => {
-                                  if (!canAssignTicket) {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    message.error("Access Denied: You do not have permission to assign tickets.");
-                                  }
-                                }}
-                                style={{ width: "100%" }}
-                              >
-                                <EditableSelect
-                                  value={
-                                    typeof ticket.assignee === "string"
-                                      ? ticket.assignee
-                                      : ticket.assignee?.id
-                                  }
-                                  options={projectMembers}
-                                  onSave={(val) =>
-                                    handleUpdate("assignee", val)
-                                  }
-                                  mode="user"
-                                  emptyText="Unassigned"
-                                  disabled={!canAssignTicket}
-                                />
-                              </div>
+                              <EditableSelect
+                                value={
+                                  typeof ticket.assignee === "string"
+                                    ? ticket.assignee
+                                    : ticket.assignee?.id
+                                }
+                                options={projectMembers}
+                                onSave={(val) =>
+                                  handleUpdate("assignee", val)
+                                }
+                                mode="user"
+                                emptyText="Unassigned"
+                              />
                             </DrawerField>
                           </Col>
 

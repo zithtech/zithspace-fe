@@ -64,6 +64,7 @@ import { SprintCompletionModal } from "./sprint-completion";
 import { useSocket } from "@/providers/SocketProvider";
 import { usePermission } from "@/hooks/usePermission";
 import { useTheme } from "@/context/ThemeContext";
+import { TicketDetailDrawer } from "@/components/projects/drawer/TicketDetailDrawer";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -118,6 +119,9 @@ export default function SprintPlanComponent() {
   // Sprint Completion Modal state
   const [sprintCompletionModalOpen, setSprintCompletionModalOpen] = useState(false);
   const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
+
+  // Ticket Detail Drawer state
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
   // Table Filters state
   const [tableFilters, setTableFilters] = useState({
@@ -1790,7 +1794,7 @@ export default function SprintPlanComponent() {
                           const pcfg = prioCfg((ticket as any).priority || 'None');
                           const aColor = ticket.assignee ? '#3b82f6' : '#94a3b8';
                           return (
-                            <div key={ticket.id} className="sp-ticket-row" onClick={() => router.push(`/tickets/${ticket.id}`)}>
+                            <div key={ticket.id} className="sp-ticket-row" onClick={() => setSelectedTicketId(ticket.id)}>
                               <div className="sp-ticket-row-accent" style={{ background: cfg.c }} />
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
@@ -1847,6 +1851,13 @@ export default function SprintPlanComponent() {
             setSelectedSprintId(null);
           }}
           onSuccess={handleSprintCompletionSuccess}
+        />
+
+        {/* Ticket Details Drawer */}
+        <TicketDetailDrawer
+          ticketId={selectedTicketId}
+          open={!!selectedTicketId}
+          onClose={() => setSelectedTicketId(null)}
         />
 
         <style jsx global>{`

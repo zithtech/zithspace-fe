@@ -224,10 +224,10 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
             {/* Hero header — matches PublicHubView so a doc shared from inside
                 the hub looks identical to one shared from the main table. */}
             <header
+                className="public-doc-header"
                 style={{
                     height: 60,
                     flexShrink: 0,
-                    padding: '0 20px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -284,11 +284,10 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                             </span>
                             {doc?.documentHub?.name ? (
                                 <span
-                                    className="inline-flex items-center gap-1 truncate"
+                                    className="inline-flex items-center gap-1 truncate public-hub-name"
                                     style={{
                                         fontSize: 11,
                                         color: '#64748b',
-                                        maxWidth: 280,
                                     }}
                                 >
                                     <FolderOpenOutlined style={{ fontSize: 10 }} />
@@ -322,7 +321,7 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                             (e.currentTarget as HTMLButtonElement).style.filter = 'none';
                         }}
                     >
-                        Download PDF
+                        <span className="public-download-text">Download PDF</span>
                     </Button>
                 </div>
             </header>
@@ -339,16 +338,16 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                 {doc ? (
                     <div
                         ref={contentRef}
+                        className="public-doc-container"
                         style={{
                             maxWidth: 820,
                             margin: '0 auto',
-                            padding: '40px 28px 80px',
                         }}
                     >
                         <header style={{ marginBottom: 28 }}>
                             <h1
+                                className="public-doc-title"
                                 style={{
-                                    fontSize: 30,
                                     fontWeight: 800,
                                     margin: 0,
                                     marginBottom: 12,
@@ -463,6 +462,40 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                         font-size: 15px;
                         line-height: 1.7;
                         color: #1e293b;
+                    }
+                    .public-doc-header {
+                        padding: 0 20px;
+                    }
+                    .public-hub-name {
+                        max-width: 280px;
+                    }
+                    .public-doc-container {
+                        padding: 40px 28px 80px;
+                    }
+                    .public-doc-title {
+                        font-size: 30px;
+                    }
+                    @media (max-width: 768px) {
+                        .public-doc-header {
+                            padding: 0 12px;
+                        }
+                        .public-hub-name {
+                            max-width: 120px;
+                        }
+                        .public-doc-container {
+                            padding: 24px 16px 60px;
+                        }
+                        .public-doc-title {
+                            font-size: 24px;
+                        }
+                    }
+                    @media (max-width: 444px) {
+                        .public-download-text {
+                            display: none;
+                        }
+                        .public-hub-name {
+                            display: none;
+                        }
                     }
                 `,
                 }}

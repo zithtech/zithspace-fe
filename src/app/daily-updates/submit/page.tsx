@@ -805,23 +805,24 @@ function SubmitDailyUpdateContent() {
             <Text style={{ fontSize: 12, color: "var(--text-slate-600)", fontWeight: 500 }}>
               {dayjs().format("dddd, MMMM D, YYYY")}
             </Text>
-            {alreadySubmitted && (
-              <Tag color="success" style={{
-                margin: 0,
-                borderRadius: 6,
-                fontSize: 10,
-                fontWeight: 600,
-                textTransform: "uppercase",
-                padding: "0 8px"
-              }}>
-                Submitted
-              </Tag>
-            )}
           </div>
         }
         description="Document your daily progress, accomplishments, and blockers."
         extra={
           <Space size={10} align="center">
+            {alreadySubmitted && (
+              <Tag color="success" style={{
+                margin: 0,
+                borderRadius: 6,
+                fontSize: 11,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                padding: "4px 10px",
+                marginRight: 4
+              }}>
+                Submitted
+              </Tag>
+            )}
             <div style={{
               display: "inline-flex",
               alignItems: "center",
@@ -1261,7 +1262,7 @@ function SubmitDailyUpdateContent() {
                             className="dud-task-row"
                             style={{
                               display: "grid",
-                              gridTemplateColumns: "112px 1fr 170px 32px",
+                              gridTemplateColumns: "112px minmax(0, 1fr) 170px 32px",
                               gap: 8,
                               alignItems: "stretch",
                               background: "var(--bg-pure-white)",

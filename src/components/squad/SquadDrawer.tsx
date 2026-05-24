@@ -511,7 +511,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
         </>
       )}
 
-      <Form form={form} layout="vertical" onFinish={onFinish} preserve={false}>
+      <Form form={form} layout="vertical" onFinish={onFinish}>
         {initialData ? (
           <>
             <div className="squad-section-title">

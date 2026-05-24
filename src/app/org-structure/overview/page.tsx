@@ -1,7 +1,14 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
-import { Card, Typography, Space, Tag, notification, Row, Col, Spin, Tree, Divider } from "antd";
-import { Layout, Building2, Layers, User, ShieldCheck } from "lucide-react";
+import { Typography, Tag, Row, Col, Spin, Tree, Tooltip, Skeleton, Input } from "antd";
+import {
+  Layout,
+  Building2,
+  Layers,
+  User,
+  ShieldCheck,
+  Search,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -9,8 +16,95 @@ import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { useGrades } from "@/hooks/useGrades";
 import { usePositions } from "@/hooks/usePositions";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
+
+/* -------------------------------------------------------------------------- */
+/*                              Premium StatCard                              */
+/* -------------------------------------------------------------------------- */
+
+interface StatCardProps {
+  label: string;
+  value: React.ReactNode;
+  icon: React.ReactNode;
+  accent: string;
+  subtle?: string;
+  loading?: boolean;
+  chart?: React.ReactNode;
+}
+
+const StatCard: React.FC<StatCardProps> = ({
+  label,
+  value,
+  icon,
+  accent,
+  subtle,
+  loading,
+  chart,
+}) => (
+  <div className="org-ov-stat-card" style={{ ['--ov-accent' as any]: accent }}>
+    <div className="org-ov-stat-head">
+      <div
+        className="org-ov-stat-icon"
+        style={{
+          background: `${accent}14`,
+          color: accent,
+          boxShadow: `inset 0 0 0 1px ${accent}26`,
+        }}
+      >
+        {icon}
+      </div>
+      <Text className="org-ov-stat-label">{label}</Text>
+      <div className="org-ov-stat-value-wrap">
+        {loading ? (
+          <Skeleton.Input active size="small" style={{ width: 56, height: 22 }} />
+        ) : (
+          <span className="org-ov-stat-value">{value}</span>
+        )}
+      </div>
+    </div>
+    {subtle && <Text className="org-ov-stat-subtle">{subtle}</Text>}
+    {chart && <div className="org-ov-stat-chart">{chart}</div>}
+    <span
+      className="org-ov-stat-accent"
+      style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
+    />
+  </div>
+);
+
+interface MiniBarProps {
+  segments: { value: number; color: string; label: string }[];
+}
+const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  return (
+    <div className="org-ov-minibar">
+      <div className="org-ov-minibar-track">
+        {segments.map((s, i) => (
+          <Tooltip key={i} title={`${s.label}: ${s.value}`}>
+            <span
+              className="org-ov-minibar-seg"
+              style={{ width: `${(s.value / total) * 100}%`, background: s.color }}
+            />
+          </Tooltip>
+        ))}
+      </div>
+      <div className="org-ov-minibar-legend">
+        {segments.map((s, i) => (
+          <span key={i} className="org-ov-minibar-legend-item">
+            <span className="org-ov-minibar-dot" style={{ background: s.color }} />
+            {s.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                 Page                                       */
+/* -------------------------------------------------------------------------- */
 
 export default function OverviewPage() {
   const router = useRouter();
@@ -18,9 +112,11 @@ export default function OverviewPage() {
   const { canReadOrgDashboard } = usePermission();
   const [activeStep, setActiveStep] = useState<string | null>(null);
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
+  const [treeSearch, setTreeSearch] = useState<string>('');
 
   const { dataSource: grades, loading: gradesLoading } = useGrades();
   const { dataSource: positions, loading: positionsLoading } = usePositions();
+  const loading = gradesLoading || positionsLoading;
 
   useEffect(() => {
     if (!authLoading && !canReadOrgDashboard) {
@@ -45,6 +141,31 @@ export default function OverviewPage() {
     };
   };
 
+  // Org-wide stats
+  const orgStats = useMemo(() => {
+    const deptIds = new Set(positions.map((p) => p.departmentId).filter(Boolean));
+    const subDeptIds = new Set(positions.map((p) => p.subDepartmentId).filter(Boolean));
+    const positionsWithSubDept = positions.filter((p) => p.subDepartmentId).length;
+    const positionsDirect = positions.length - positionsWithSubDept;
+
+    // Grade with most positions
+    const gradeCounts = grades.map((g) => ({
+      name: g.name,
+      count: positions.filter((p) => p.gradeId === g.key).length,
+    }));
+    const topGrade = gradeCounts.sort((a, b) => b.count - a.count)[0];
+
+    return {
+      grades: grades.length,
+      departments: deptIds.size,
+      subDepartments: subDeptIds.size,
+      positions: positions.length,
+      positionsWithSubDept,
+      positionsDirect,
+      topGrade,
+    };
+  }, [grades, positions]);
+
   const selectedGrade = grades.find((g) => g.key === activeStep);
 
   const treeData = useMemo(() => {
@@ -52,21 +173,35 @@ export default function OverviewPage() {
 
     const gradePositions = positions.filter((p) => p.gradeId === selectedGrade.key);
 
-    const deptMap = new Map<string, {
-      id: string;
-      name: string;
-      positions: any[];
-      subDepts: Map<string, { name: string; positions: any[] }>;
-    }>();
+    // Apply search filter at the position level
+    const q = treeSearch.trim().toLowerCase();
+    const filteredPositions = q
+      ? gradePositions.filter(
+          (p) =>
+            (p.title || '').toLowerCase().includes(q) ||
+            (p.departmentName || '').toLowerCase().includes(q) ||
+            (p.subDepartmentName || '').toLowerCase().includes(q),
+        )
+      : gradePositions;
 
-    gradePositions.forEach((pos) => {
+    const deptMap = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        positions: any[];
+        subDepts: Map<string, { name: string; positions: any[] }>;
+      }
+    >();
+
+    filteredPositions.forEach((pos) => {
       const deptId = pos.departmentId;
       if (!deptId) return;
 
       if (!deptMap.has(deptId)) {
         deptMap.set(deptId, {
           id: deptId,
-          name: pos.departmentName || "Unknown Dept",
+          name: pos.departmentName || 'Unknown Dept',
           positions: [],
           subDepts: new Map(),
         });
@@ -76,7 +211,7 @@ export default function OverviewPage() {
       if (pos.subDepartmentId) {
         if (!deptEntry.subDepts.has(pos.subDepartmentId)) {
           deptEntry.subDepts.set(pos.subDepartmentId, {
-            name: pos.subDepartmentName || "Unknown Sub-Dept",
+            name: pos.subDepartmentName || 'Unknown Sub-Dept',
             positions: [],
           });
         }
@@ -89,22 +224,26 @@ export default function OverviewPage() {
     const deptNodes = Array.from(deptMap.values()).map((d) => {
       const subDeptNodes = Array.from(d.subDepts.entries()).map(([sdId, sdData]) => ({
         title: (
-          <div className="org-node sub-dept-node">
-            <div className="node-icon-wrapper orange"><Layers size={14} /></div>
-            <div className="node-content">
-              <Text strong className="node-title">{sdData.name}</Text>
-              <Tag className="node-tag orange">Sub-Department</Tag>
+          <div className="org-ov-node is-sub">
+            <div className="org-ov-node__icon is-orange">
+              <Layers size={14} />
             </div>
+            <div className="org-ov-node__text">
+              <span className="org-ov-node__title">{sdData.name}</span>
+              <span className="org-ov-node__tag is-orange">Sub-Department</span>
+            </div>
+            <span className="org-ov-node__count">{sdData.positions.length}</span>
           </div>
         ),
         key: `sd-${sdId}-${d.id}`,
         children: sdData.positions.map((p) => ({
           title: (
-            <div className="org-node position-node">
-              <div className="node-icon-wrapper purple"><User size={12} /></div>
-              <div className="node-content">
-                <Text className="node-title">{p.title}</Text>
-                <Tag className="node-tag purple mini">Position</Tag>
+            <div className="org-ov-node is-pos">
+              <div className="org-ov-node__icon is-purple">
+                <User size={12} />
+              </div>
+              <div className="org-ov-node__text">
+                <span className="org-ov-node__title is-small">{p.title}</span>
               </div>
             </div>
           ),
@@ -115,11 +254,12 @@ export default function OverviewPage() {
 
       const directPosNodes = d.positions.map((p) => ({
         title: (
-          <div className="org-node position-node">
-            <div className="node-icon-wrapper purple"><User size={12} /></div>
-            <div className="node-content">
-              <Text className="node-title">{p.title}</Text>
-              <Tag className="node-tag purple mini">Position</Tag>
+          <div className="org-ov-node is-pos">
+            <div className="org-ov-node__icon is-purple">
+              <User size={12} />
+            </div>
+            <div className="org-ov-node__text">
+              <span className="org-ov-node__title is-small">{p.title}</span>
             </div>
           </div>
         ),
@@ -127,14 +267,19 @@ export default function OverviewPage() {
         isLeaf: true,
       }));
 
+      const childCount = d.positions.length + Array.from(d.subDepts.values()).reduce((s, sd) => s + sd.positions.length, 0);
+
       return {
         title: (
-          <div className="org-node dept-node">
-            <div className="node-icon-wrapper cyan"><Building2 size={16} /></div>
-            <div className="node-content">
-              <Text strong className="node-title">{d.name}</Text>
-              <Tag className="node-tag cyan">Department</Tag>
+          <div className="org-ov-node is-dept">
+            <div className="org-ov-node__icon is-cyan">
+              <Building2 size={16} />
             </div>
+            <div className="org-ov-node__text">
+              <span className="org-ov-node__title">{d.name}</span>
+              <span className="org-ov-node__tag is-cyan">Department</span>
+            </div>
+            <span className="org-ov-node__count">{childCount}</span>
           </div>
         ),
         key: `dept-${d.id}`,
@@ -142,27 +287,35 @@ export default function OverviewPage() {
       };
     });
 
-    return [{
-      title: (
-        <div className="org-node grade-root-node">
-          <div className="node-icon-wrapper blue"><ShieldCheck size={18} /></div>
-          <div className="node-content">
-            <Text strong className="node-main-title">{selectedGrade.name} ({selectedGrade.code})</Text>
-            <Tag className="node-tag blue premium">Grade Level</Tag>
+    return [
+      {
+        title: (
+          <div className="org-ov-node is-grade-root">
+            <div className="org-ov-node__icon is-blue">
+              <ShieldCheck size={18} />
+            </div>
+            <div className="org-ov-node__text">
+              <span className="org-ov-node__title is-main">
+                <span>{selectedGrade.name}</span>
+                <span className="org-ov-node__code">{selectedGrade.code}</span>
+              </span>
+              <span className="org-ov-node__tag is-blue is-premium">Grade Level</span>
+            </div>
+            <span className="org-ov-node__count is-strong">{filteredPositions.length}</span>
           </div>
-        </div>
-      ),
-      key: `grade-${selectedGrade.key}`,
-      children: deptNodes,
-    }];
-  }, [selectedGrade, positions]);
+        ),
+        key: `grade-${selectedGrade.key}`,
+        children: deptNodes,
+      },
+    ];
+  }, [selectedGrade, positions, treeSearch]);
 
   // Auto-expand tree when data changes
   useEffect(() => {
     if (treeData && treeData.length > 0) {
       const getAllKeys = (nodes: any[]): React.Key[] => {
         let keys: React.Key[] = [];
-        nodes.forEach(node => {
+        nodes.forEach((node) => {
           keys.push(node.key);
           if (node.children) {
             keys.push(...getAllKeys(node.children));
@@ -178,7 +331,7 @@ export default function OverviewPage() {
     return (
       <ProtectedRoute>
         <MainLayout>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#ffffff' }}>
+          <div className="org-ov-shell" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <Spin size="large" tip="Loading Organization View..." />
           </div>
         </MainLayout>
@@ -188,290 +341,263 @@ export default function OverviewPage() {
 
   if (!canReadOrgDashboard) return null;
 
+  const filteredCount = treeData[0]?.children
+    ? treeData[0].children.reduce((acc: number, dept: any) => {
+        const subPositions = dept.children
+          ? dept.children.reduce(
+              (s: number, c: any) => s + (c.isLeaf ? 1 : c.children?.length || 0),
+              0,
+            )
+          : 0;
+        return acc + subPositions;
+      }, 0)
+    : 0;
+
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: "24px 32px", background: "#ffffff", height: "calc(100vh - 64px)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-
-          {/* Header Section */}
-          <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-end", flex: "0 0 auto" }}>
-            <div style={{ flex: 1 }}>
-              <Space size={12} align="center">
-                <div style={{ background: "rgba(22, 119, 255, 0.08)", padding: 10, borderRadius: 12, color: "#1677ff", display: "flex" }}>
-                  <Layout size={24} />
-                </div>
-                <div>
-                  <Typography.Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Organization Overview</Typography.Title>
-                  <Text style={{ color: "#64748b", fontSize: 15 }}>Visualize the organizational hierarchy, reporting lines, and grade distributions.</Text>
-                </div>
-              </Space>
-            </div>
-            <div>
-              <Tag style={{ borderRadius: 6, padding: "4px 12px", border: "1px solid #e2e8f0", background: "#f8fafc", color: "#475569", fontWeight: 600 }}>
-                {grades.length} GRADE LEVELS
+        <div className="org-ov-shell">
+          <TimeTrackingHeader
+            icon={<Layout size={20} color="#3b82f6" />}
+            title="Organization Overview"
+            description="Visualize the organizational hierarchy, reporting lines, and grade distributions."
+            style={{
+              borderBottom: '1px solid var(--border-slate-200)',
+              padding: '8.5px 32px',
+              marginBottom: 20,
+            }}
+            extra={
+              <Tag className="org-ov-header-chip">
+                <ShieldCheck size={12} />
+                {grades.length} GRADE LEVEL{grades.length === 1 ? '' : 'S'}
               </Tag>
+            }
+          />
+
+          <div className="org-ov-content">
+            {/* Stats overview */}
+            <div className="org-ov-stat-grid">
+              <StatCard
+                label="Grades"
+                value={orgStats.grades}
+                icon={<ShieldCheck size={14} />}
+                accent="#3b82f6"
+                subtle={
+                  orgStats.topGrade
+                    ? `Top: ${orgStats.topGrade.name} (${orgStats.topGrade.count} pos)`
+                    : 'No grades yet'
+                }
+                loading={loading && orgStats.grades === 0}
+              />
+
+              <StatCard
+                label="Departments"
+                value={orgStats.departments}
+                icon={<Building2 size={14} />}
+                accent="#0891b2"
+                subtle="Top-level org units"
+                loading={loading && orgStats.departments === 0}
+              />
+
+              <StatCard
+                label="Sub-Departments"
+                value={orgStats.subDepartments}
+                icon={<Layers size={14} />}
+                accent="#f97316"
+                subtle="Nested business units"
+                loading={loading && orgStats.subDepartments === 0}
+              />
+
+              <StatCard
+                label="Positions"
+                value={orgStats.positions}
+                icon={<User size={14} />}
+                accent="#8b5cf6"
+                subtle={
+                  orgStats.positions > 0
+                    ? `${orgStats.positionsWithSubDept} in sub-depts, ${orgStats.positionsDirect} direct`
+                    : 'No positions yet'
+                }
+                loading={loading && orgStats.positions === 0}
+                chart={
+                  orgStats.positions > 0 ? (
+                    <MiniBar
+                      segments={[
+                        {
+                          value: orgStats.positionsWithSubDept,
+                          color: '#f97316',
+                          label: `${orgStats.positionsWithSubDept} in sub-depts`,
+                        },
+                        {
+                          value: orgStats.positionsDirect,
+                          color: '#8b5cf6',
+                          label: `${orgStats.positionsDirect} direct`,
+                        },
+                      ]}
+                    />
+                  ) : null
+                }
+              />
             </div>
-          </div>
 
-          <Row gutter={24} style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
-            {/* Grade Selector */}
-            <Col span={8} style={{ height: "100%", overflow: "hidden", paddingRight: 12, paddingBottom: 24, display: "flex", flexDirection: "column" }}>
-              <div className="hierarchy-viz-card" style={{ borderRadius: 20, padding: "32px 0 32px 32px", height: "100%", display: "flex", flexDirection: "column" }}>
-                <div style={{ marginBottom: 24, paddingBottom: 16, borderBottom: "1px solid #f1f5f9", paddingRight: 32, flex: "0 0 auto" }}>
-                  <Text strong style={{ fontSize: 15, color: "#1e293b" }}>Grade Distribution</Text>
-                  <div style={{ fontSize: 11, color: "#64748b" }}>Overview of {grades.length} organizational levels</div>
-                </div>
-                <div className="custom-scrollbar" style={{ flex: 1, overflowY: "auto", paddingRight: 32 }}>
-                  <Space direction="vertical" size={12} style={{ width: "100%" }}>
-                    {gradesLoading || positionsLoading ? (
-                      Array.from({ length: 4 }).map((_, i) => <Card key={i} loading style={{ borderRadius: 12, border: "1px solid #f1f5f9" }} />)
-                    ) : (
-                      grades.map((item) => {
-                        const active = activeStep === item.key;
-                        const stats = getGradeStats(item.key);
-                        return (
-                          <div
-                            key={item.key}
-                            onClick={() => setActiveStep(item.key)}
-                            className={`grade-selector-card ${active ? "active" : ""}`}
-                            style={{
-                              cursor: "pointer",
-                              padding: "16px 20px",
-                              borderRadius: 16,
-                              border: active ? "1px solid #2563eb" : "1px solid #e2e8f0",
-                              background: active ? "#eff6ff" : "#ffffff",
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              marginBottom: 8,
-                              position: "relative",
-                              transition: "all 0.3s ease"
-                            }}
-                          >
-                            <div style={{ flex: 1 }}>
-                              <Text strong style={{
-                                display: "block",
-                                color: active ? "#1e40af" : "#1e293b",
-                                fontSize: 15,
-                                marginBottom: 2
-                              }}>
-                                {item.name}
-                              </Text>
-                              <Space size={4}>
-                                <Tag style={{
-                                  margin: 0,
-                                  fontSize: 9,
-                                  fontWeight: 700,
-                                  background: active ? "#dbeafe" : "#f1f5f9",
-                                  color: active ? "#1e40af" : "#64748b",
-                                  border: "none",
-                                  borderRadius: 4
-                                }}>
-                                  {item.code}
-                                </Tag>
-                              </Space>
-                            </div>
-                            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                              <div className="selector-stat-group">
-                                <div className={`selector-stat-value ${active ? "active" : ""}`}>{stats.positions}</div>
-                                <div className="selector-stat-label">POS</div>
-                              </div>
-                              <div className="selector-stat-group">
-                                <div className={`selector-stat-value ${active ? "active" : ""}`}>{stats.departments}</div>
-                                <div className="selector-stat-label">DEPT</div>
-                              </div>
-                              <div className="selector-stat-group">
-                                <div className={`selector-stat-value ${active ? "active" : ""}`}>{stats.subDepartments}</div>
-                                <div className="selector-stat-label">SUB</div>
-                              </div>
-                            </div>
-                            {active && <div style={{
-                              position: "absolute",
-                              left: 0,
-                              top: 12,
-                              bottom: 12,
-                              width: 4,
-                              background: "#2563eb",
-                              borderRadius: "0 4px 4px 0"
-                            }} />}
-                          </div>
-                        );
-                      })
-                    )}
-                  </Space>
-                </div>
-              </div>
-            </Col>
-
-            {/* Hierarchy Tree */}
-            <Col span={16} style={{ height: "100%", overflow: "hidden", paddingLeft: 12, paddingBottom: 24, display: "flex", flexDirection: "column" }}>
-              {selectedGrade ? (
-                <div className="hierarchy-viz-card" style={{ borderRadius: 20, padding: "32px 0 32px 32px", height: "100%", display: "flex", flexDirection: "column" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, paddingBottom: 16, borderBottom: "1px solid #f1f5f9", paddingRight: 32, flex: "0 0 auto" }}>
-                    <Space size={12}>
-                      <div style={{ background: "rgba(22, 119, 255, 0.08)", padding: 8, borderRadius: 10, color: "#1677ff", display: "flex" }}>
-                        <ShieldCheck size={20} />
+            {/* Body — two columns */}
+            <Row gutter={20} className="org-ov-body">
+              {/* Grade Selector */}
+              <Col xs={24} lg={9} xl={8}>
+                <div className="org-ov-panel">
+                  <div className="org-ov-panel__header">
+                    <div className="org-ov-panel__icon is-blue">
+                      <ShieldCheck size={14} />
+                    </div>
+                    <div className="org-ov-panel__text">
+                      <div className="org-ov-panel__title">Grade Distribution</div>
+                      <div className="org-ov-panel__sub">
+                        Overview of {grades.length} organizational level{grades.length === 1 ? '' : 's'}
                       </div>
-                      <div>
-                        <Text strong style={{ fontSize: 15, color: "#1e293b" }}>Hierarchy Visualization</Text>
-                        <div style={{ fontSize: 11, color: "#64748b" }}>Deep structural mapping for <Text strong style={{ color: "#1677ff" }}>{selectedGrade.name}</Text></div>
-                      </div>
-                    </Space>
-                    <div style={{ display: "flex", gap: 16 }}>
-                      <Space size={6}><div style={{ width: 8, height: 8, borderRadius: 2, background: "#00b8d4" }} /><Text style={{ fontSize: 10, color: "#64748b" }}>DEPT</Text></Space>
-                      <Space size={6}><div style={{ width: 8, height: 8, borderRadius: 2, background: "#ff9800" }} /><Text style={{ fontSize: 10, color: "#64748b" }}>SUB-DEPT</Text></Space>
-                      <Space size={6}><div style={{ width: 8, height: 8, borderRadius: 2, background: "#9c27b0" }} /><Text style={{ fontSize: 10, color: "#64748b" }}>POSITION</Text></Space>
                     </div>
                   </div>
-                  <div className="hierarchy-container custom-scrollbar" style={{ flex: 1, overflowY: "auto", paddingRight: 32 }}>
-                    <Tree
-                      showLine={{ showLeafIcon: false }}
-                      expandedKeys={expandedKeys}
-                      onExpand={(keys) => setExpandedKeys(keys)}
-                      treeData={treeData}
-                      switcherIcon={<div style={{ color: "#94a3b8", fontSize: 12 }}>▼</div>}
-                      style={{ background: 'transparent' }}
-                    />
+
+                  <div className="org-ov-panel__body org-ov-scroll">
+                    {gradesLoading || positionsLoading ? (
+                      <div style={{ padding: 16 }}>
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <Skeleton key={i} active paragraph={{ rows: 1 }} style={{ marginBottom: 16 }} />
+                        ))}
+                      </div>
+                    ) : grades.length === 0 ? (
+                      <div className="org-ov-empty">
+                        <ShieldCheck size={28} className="org-ov-empty__icon" />
+                        <div className="org-ov-empty__title">No grades defined</div>
+                        <div className="org-ov-empty__sub">
+                          Add grade levels in the Grades configuration page.
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="org-ov-grade-list">
+                        {grades.map((item) => {
+                          const isActive = activeStep === item.key;
+                          const stats = getGradeStats(item.key);
+                          return (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={() => setActiveStep(item.key)}
+                              className={`org-ov-grade${isActive ? ' is-active' : ''}`}
+                            >
+                              <span className="org-ov-grade__accent" />
+                              <div className="org-ov-grade__name-block">
+                                <span className="org-ov-grade__name">{item.name}</span>
+                                <span className="org-ov-grade__code">{item.code}</span>
+                              </div>
+                              <div className="org-ov-grade__stats">
+                                <span className="org-ov-grade__stat">
+                                  <span className="org-ov-grade__stat-value">{stats.positions}</span>
+                                  <span className="org-ov-grade__stat-label">POS</span>
+                                </span>
+                                <span className="org-ov-grade__stat">
+                                  <span className="org-ov-grade__stat-value">{stats.departments}</span>
+                                  <span className="org-ov-grade__stat-label">DEPT</span>
+                                </span>
+                                <span className="org-ov-grade__stat">
+                                  <span className="org-ov-grade__stat-value">{stats.subDepartments}</span>
+                                  <span className="org-ov-grade__stat-label">SUB</span>
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
-              ) : (
-                <div style={{ border: "1px dashed #e2e8f0", borderRadius: 16, height: 400, display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column", gap: 12 }}>
-                  <Layout size={48} style={{ color: "#94a3b8" }} />
-                  <Text style={{ color: "#64748b" }}>Select a grade level to visualize the hierarchy</Text>
-                </div>
-              )}
-            </Col>
-          </Row>
+              </Col>
+
+              {/* Hierarchy Tree */}
+              <Col xs={24} lg={15} xl={16}>
+                {selectedGrade ? (
+                  <div className="org-ov-panel">
+                    <div className="org-ov-panel__header">
+                      <div className="org-ov-panel__icon is-purple">
+                        <ShieldCheck size={14} />
+                      </div>
+                      <div className="org-ov-panel__text">
+                        <div className="org-ov-panel__title">Hierarchy Visualization</div>
+                        <div className="org-ov-panel__sub">
+                          Mapping for <strong>{selectedGrade.name}</strong> · {filteredCount} position
+                          {filteredCount === 1 ? '' : 's'}
+                          {treeSearch && ` matching "${treeSearch}"`}
+                        </div>
+                      </div>
+                      <div className="org-ov-legend">
+                        <span className="org-ov-legend__item">
+                          <span className="org-ov-legend__dot is-cyan" />
+                          DEPT
+                        </span>
+                        <span className="org-ov-legend__item">
+                          <span className="org-ov-legend__dot is-orange" />
+                          SUB
+                        </span>
+                        <span className="org-ov-legend__item">
+                          <span className="org-ov-legend__dot is-purple" />
+                          POS
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Search */}
+                    <div className="org-ov-panel__toolbar">
+                      <Input
+                        className="org-ov-search"
+                        prefix={
+                          <Search size={14} color="var(--text-slate-400)" style={{ marginRight: 4 }} />
+                        }
+                        placeholder="Search position, department, or sub-department…"
+                        value={treeSearch}
+                        onChange={(e) => setTreeSearch(e.target.value)}
+                        allowClear
+                      />
+                    </div>
+
+                    <div className="org-ov-panel__body org-ov-scroll org-ov-tree-wrap">
+                      {treeData.length > 0 && treeData[0]?.children?.length === 0 ? (
+                        <div className="org-ov-empty">
+                          <Search size={28} className="org-ov-empty__icon" />
+                          <div className="org-ov-empty__title">
+                            {treeSearch ? 'No matches' : 'No structure yet'}
+                          </div>
+                          <div className="org-ov-empty__sub">
+                            {treeSearch
+                              ? 'Try a different keyword or clear the filter.'
+                              : 'No departments or positions assigned to this grade.'}
+                          </div>
+                        </div>
+                      ) : (
+                        <Tree
+                          className="org-ov-tree"
+                          showLine={{ showLeafIcon: false }}
+                          expandedKeys={expandedKeys}
+                          onExpand={(keys) => setExpandedKeys(keys)}
+                          treeData={treeData}
+                          switcherIcon={<span className="org-ov-tree__switcher">▾</span>}
+                        />
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="org-ov-panel">
+                    <div className="org-ov-empty org-ov-empty--full">
+                      <Layout size={40} className="org-ov-empty__icon" />
+                      <div className="org-ov-empty__title">Select a grade level</div>
+                      <div className="org-ov-empty__sub">
+                        Pick a grade from the left to visualize its hierarchy.
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Col>
+            </Row>
+          </div>
         </div>
-
-        <style dangerouslySetInnerHTML={{
-          __html: `
-          .org-node { 
-            display: flex; 
-            align-items: center; 
-            padding: 10px 0; 
-            border-radius: 8px;
-            transition: all 0.2s ease;
-          }
-          .node-icon-wrapper { 
-            width: 44px; 
-            height: 44px; 
-            border-radius: 12px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            margin-right: 16px;
-            border: 1px solid transparent;
-          }
-          .node-icon-wrapper.blue { background: rgba(30, 64, 175, 0.08); color: #1e40af; border-color: rgba(30, 64, 175, 0.1); }
-          .node-icon-wrapper.cyan { background: rgba(8, 145, 178, 0.08); color: #0891b2; border-color: rgba(8, 145, 178, 0.1); }
-          .node-icon-wrapper.orange { background: rgba(194, 65, 12, 0.08); color: #c2410c; border-color: rgba(194, 65, 12, 0.1); }
-          .node-icon-wrapper.purple { background: rgba(126, 34, 206, 0.08); color: #7e22ce; border-color: rgba(126, 34, 206, 0.1); }
-          
-          .node-content { display: flex; flex-direction: column; gap: 2px; }
-          .node-title { font-size: 15px; color: #1e293b; line-height: 1.4; font-weight: 600; }
-          .node-main-title { font-size: 18px; color: #0f172a; font-weight: 700; letter-spacing: -0.01em; }
-          
-          .node-tag { 
-            border: 1px solid transparent !important; 
-            font-size: 10px !important; 
-            padding: 2px 8px !important; 
-            border-radius: 6px !important; 
-            margin: 4px 0 0 0 !important; 
-            width: fit-content; 
-            text-transform: uppercase; 
-            font-weight: 700; 
-            height: auto; 
-            line-height: normal; 
-          }
-          .node-tag.blue { background: #eff6ff !important; color: #1e40af !important; border-color: #dbeafe !important; }
-          .node-tag.cyan { background: #ecfeff !important; color: #0891b2 !important; border-color: #cffafe !important; }
-          .node-tag.orange { background: #fff7ed !important; color: #c2410c !important; border-color: #ffedd5 !important; }
-          .node-tag.purple { background: #faf5ff !important; color: #7e22ce !important; border-color: #f3e8ff !important; }
-          
-          .node-tag.premium { 
-             background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
-             box-shadow: 0 2px 4px rgba(30, 64, 175, 0.05);
-          }
-
-          .node-tag.mini { height: 18px; line-height: 18px; font-size: 9px !important; }
-
-          .custom-scrollbar::-webkit-scrollbar {
-            display: none;
-          }
-          .custom-scrollbar {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-          }
-
-          .hierarchy-container .ant-tree .ant-tree-node-content-wrapper {
-            padding: 4px 8px !important;
-            border-radius: 12px !important;
-            transition: background-color 0.2s ease;
-          }
-          .hierarchy-container .ant-tree .ant-tree-node-content-wrapper:hover { 
-            background-color: #f8fafc !important; 
-          }
-          .hierarchy-container .ant-tree .ant-tree-node-selected { 
-            background-color: #f1f5f9 !important; 
-          }
-          .hierarchy-container .ant-tree-switcher { 
-            display: flex !important; 
-            align-items: center !important; 
-            justify-content: center !important; 
-            width: 32px !important;
-          }
-          
-          .hierarchy-container .ant-tree-indent-unit {
-             width: 32px !important;
-          }
-          
-          /* Custom hierarchy container styling */
-          .hierarchy-viz-card {
-            border: 1px solid #e2e8f0 !important;
-            background: linear-gradient(to bottom right, #ffffff, #fcfdff) !important;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
-          }
-
-          .grade-selector-card:hover {
-            border-color: #cbd5e1 !important;
-            transform: translateX(4px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-          }
-          .grade-selector-card.active {
-            box-shadow: 0 8px 16px rgba(37, 99, 235, 0.08) !important;
-          }
-          
-          .selector-stat-group {
-            text-align: center;
-            min-width: 32px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-          }
-          .selector-stat-value {
-            font-weight: 800;
-            font-size: 14px;
-            color: #475569;
-            line-height: 1;
-            transition: all 0.3s ease;
-          }
-          .selector-stat-value.active {
-            color: #1e40af;
-            transform: scale(1.1);
-          }
-          .selector-stat-label {
-            font-size: 8px;
-            color: #94a3b8;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-          }
-
-          /* Ensure no heavy shadows but allow subtle ones for depth */
-          .grade-card-hover:hover { transform: translateY(-2px); }
-        `}} />
       </MainLayout>
     </ProtectedRoute>
   );

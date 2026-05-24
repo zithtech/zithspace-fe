@@ -128,7 +128,7 @@ export default function TicketSettings() {
               <List
                 itemLayout="horizontal"
                 dataSource={[
-                  { title: 'Bi-directional Issue Sync', description: 'Real-time state synchronization between GitHub and ZithSpace.', icon: <LinkOutlined />, status: 'active', meta: 'Last sync: 2m ago' },
+                  { title: 'Bi-directional Issue Sync', description: 'Real-time state synchronization between GitHub and Zukvo.', icon: <LinkOutlined />, status: 'active', meta: 'Last sync: 2m ago' },
                   { title: 'Automated Pull Requests', description: 'Automatic ticket linking and status transition on PR updates.', icon: <PullRequestOutlined />, status: 'active', meta: '12 events/hr' },
                   { title: 'Source Code Mapping', description: 'Trace commit authorship and link to specific task definitions.', icon: <BranchesOutlined />, status: 'inactive', meta: 'Setup required' },
                   { title: 'Deployment Triggers', description: 'Update ticket lifecycles based on CI/CD deployment status.', icon: <ThunderboltOutlined />, status: 'inactive', meta: 'Beta' }

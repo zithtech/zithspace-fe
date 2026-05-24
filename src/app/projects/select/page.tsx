@@ -973,7 +973,7 @@ export default function ProjectSelectPage() {
               background: 'var(--bg-pure-white)',
             }}
           >
-            <Spin size="large" tip="Loading ZithSpace..." />
+            <Spin size="large" tip="Loading Zukvo..." />
           </div>
         </MainLayout>
       }

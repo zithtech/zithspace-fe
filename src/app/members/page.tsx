@@ -22,6 +22,7 @@ import {
   Tooltip,
   Avatar,
   Badge,
+  Skeleton,
 } from "antd";
 import {
   PlusOutlined,
@@ -517,76 +518,88 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
 };
 
 
-const StatCard = ({
+/* -------------------------------------------------------------------------- */
+/*                              Premium StatCard                              */
+/* -------------------------------------------------------------------------- */
+
+interface StatCardProps {
+  label: string;
+  value: React.ReactNode;
+  icon: React.ReactNode;
+  accent: string;
+  subtle?: string;
+  loading?: boolean;
+  chart?: React.ReactNode;
+}
+
+const StatCard: React.FC<StatCardProps> = ({
   label,
   value,
   icon,
-  color,
+  accent,
+  subtle,
   loading,
-}: {
-  label: string;
-  value: number | string;
-  icon: React.ReactNode;
-  color: string;
-  loading?: boolean;
+  chart,
 }) => (
-  <Card
-    bordered={false}
-    className="mm-stat-card"
-    styles={{ body: { padding: "18px 20px" } }}
-    style={{
-      borderRadius: 14,
-      border: "1px solid var(--border-slate-100)",
-      background: "var(--bg-pure-white)",
-      boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
-    }}
-  >
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <Text
-          style={{
-            fontSize: 11,
-            color: "var(--text-slate-500)",
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-            fontWeight: 600,
-          }}
-        >
-          {label}
-        </Text>
-        <Title
-          level={3}
-          style={{
-            margin: 0,
-            fontWeight: 700,
-            fontSize: 26,
-            color: "var(--text-slate-900)",
-            letterSpacing: "-0.02em",
-            opacity: loading ? 0.4 : 1,
-          }}
-        >
-          {value}
-        </Title>
-      </div>
+  <div className="mm-stat-card" style={{ ["--mm-accent" as any]: accent }}>
+    <div className="mm-stat-head">
       <div
+        className="mm-stat-icon"
         style={{
-          width: 40,
-          height: 40,
-          borderRadius: 10,
-          background: `${color}14`,
-          color,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 18,
-          border: `1px solid ${color}1f`,
+          background: `${accent}14`,
+          color: accent,
+          boxShadow: `inset 0 0 0 1px ${accent}26`,
         }}
       >
         {icon}
       </div>
+      <Text className="mm-stat-label">{label}</Text>
+      <div className="mm-stat-value-wrap">
+        {loading ? (
+          <Skeleton.Input active size="small" style={{ width: 56, height: 22 }} />
+        ) : (
+          <span className="mm-stat-value">{value}</span>
+        )}
+      </div>
     </div>
-  </Card>
+    {subtle && <Text className="mm-stat-subtle">{subtle}</Text>}
+    {chart && <div className="mm-stat-chart">{chart}</div>}
+    <span
+      className="mm-stat-accent"
+      style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
+    />
+  </div>
 );
+
+/* Mini distribution bar */
+interface MiniBarProps {
+  segments: { value: number; color: string; label: string }[];
+}
+const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  return (
+    <div className="mm-minibar">
+      <div className="mm-minibar-track">
+        {segments.map((s, i) => (
+          <Tooltip key={i} title={`${s.label}: ${s.value}`}>
+            <span
+              className="mm-minibar-seg"
+              style={{ width: `${(s.value / total) * 100}%`, background: s.color }}
+            />
+          </Tooltip>
+        ))}
+      </div>
+      <div className="mm-minibar-legend">
+        {segments.map((s, i) => (
+          <span key={i} className="mm-minibar-legend-item">
+            <span className="mm-minibar-dot" style={{ background: s.color }} />
+            {s.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export default function MembersPage() {
   const { user, isLoading } = useAuth();
@@ -614,6 +627,9 @@ export default function MembersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | undefined>(undefined);
   const [positionFilter, setPositionFilter] = useState<string | undefined>(
+    undefined,
+  );
+  const [reportsToFilter, setReportsToFilter] = useState<string | undefined>(
     undefined,
   );
 
@@ -645,6 +661,7 @@ export default function MembersPage() {
         search: searchTerm,
         role: roleFilter,
         position: positionFilter,
+        reportsToId: reportsToFilter,
       });
 
       setMembers(response.data);
@@ -721,6 +738,7 @@ export default function MembersPage() {
     searchTerm,
     roleFilter,
     positionFilter,
+    reportsToFilter,
   ]);
 
   const handleSubmit = async (values: any) => {
@@ -840,9 +858,15 @@ export default function MembersPage() {
     setSearchTerm("");
     setRoleFilter(undefined);
     setPositionFilter(undefined);
+    setReportsToFilter(undefined);
   };
 
-  const hasActiveFilters = !!(searchTerm || roleFilter || positionFilter);
+  const hasActiveFilters = !!(
+    searchTerm ||
+    roleFilter ||
+    positionFilter ||
+    reportsToFilter
+  );
 
   const columns: ColumnsType<Member> = [
     {
@@ -1140,45 +1164,133 @@ export default function MembersPage() {
         />
 
         <div style={{ padding: "8px 32px 32px 32px" }}>
-          {/* Stats */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                label="Total Members"
-                value={memberStats.total}
-                icon={<TeamOutlined />}
-                color="#6366f1"
-                loading={loading}
-              />
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                label="Super Admins"
-                value={memberStats.superAdmin}
-                icon={<CrownOutlined />}
-                color="#e11d48"
-                loading={loading}
-              />
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                label="Team Admins"
-                value={memberStats.admin}
-                icon={<SafetyCertificateOutlined />}
-                color="#f59e0b"
-                loading={loading}
-              />
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                label="Regular Users"
-                value={memberStats.user}
-                icon={<IdcardOutlined />}
-                color="#10b981"
-                loading={loading}
-              />
-            </Col>
-          </Row>
+          {/* Premium stats grid */}
+          <div className="mm-stat-grid">
+            <StatCard
+              label="Total Members"
+              value={memberStats.total}
+              icon={<TeamOutlined />}
+              accent="#6366f1"
+              subtle="Across all roles"
+              loading={loading && memberStats.total === 0}
+              chart={
+                memberStats.total > 0 ? (
+                  <MiniBar
+                    segments={[
+                      {
+                        value: memberStats.superAdmin,
+                        color: "#e11d48",
+                        label: `${memberStats.superAdmin} super`,
+                      },
+                      {
+                        value: memberStats.admin,
+                        color: "#f59e0b",
+                        label: `${memberStats.admin} admin`,
+                      },
+                      {
+                        value: memberStats.user,
+                        color: "#10b981",
+                        label: `${memberStats.user} user`,
+                      },
+                    ]}
+                  />
+                ) : null
+              }
+            />
+
+            <StatCard
+              label="Super Admins"
+              value={memberStats.superAdmin}
+              icon={<CrownOutlined />}
+              accent="#e11d48"
+              subtle={
+                memberStats.total > 0
+                  ? `${Math.round((memberStats.superAdmin / memberStats.total) * 100)}% of total`
+                  : "No members"
+              }
+              loading={loading && memberStats.total === 0}
+              chart={
+                memberStats.total > 0 ? (
+                  <div className="mm-progress-row">
+                    <div className="mm-progress-track">
+                      <span
+                        className="mm-progress-fill"
+                        style={{
+                          width: `${(memberStats.superAdmin / memberStats.total) * 100}%`,
+                          background: "linear-gradient(90deg, #e11d48, #f43f5e)",
+                        }}
+                      />
+                    </div>
+                    <span className="mm-progress-label">
+                      {Math.round((memberStats.superAdmin / memberStats.total) * 100)}%
+                    </span>
+                  </div>
+                ) : null
+              }
+            />
+
+            <StatCard
+              label="Team Admins"
+              value={memberStats.admin}
+              icon={<SafetyCertificateOutlined />}
+              accent="#f59e0b"
+              subtle={
+                memberStats.total > 0
+                  ? `${Math.round((memberStats.admin / memberStats.total) * 100)}% of total`
+                  : "No members"
+              }
+              loading={loading && memberStats.total === 0}
+              chart={
+                memberStats.total > 0 ? (
+                  <div className="mm-progress-row">
+                    <div className="mm-progress-track">
+                      <span
+                        className="mm-progress-fill"
+                        style={{
+                          width: `${(memberStats.admin / memberStats.total) * 100}%`,
+                          background: "linear-gradient(90deg, #f59e0b, #fbbf24)",
+                        }}
+                      />
+                    </div>
+                    <span className="mm-progress-label">
+                      {Math.round((memberStats.admin / memberStats.total) * 100)}%
+                    </span>
+                  </div>
+                ) : null
+              }
+            />
+
+            <StatCard
+              label="Regular Users"
+              value={memberStats.user}
+              icon={<IdcardOutlined />}
+              accent="#10b981"
+              subtle={
+                memberStats.total > 0
+                  ? `${Math.round((memberStats.user / memberStats.total) * 100)}% of total`
+                  : "No members"
+              }
+              loading={loading && memberStats.total === 0}
+              chart={
+                memberStats.total > 0 ? (
+                  <div className="mm-progress-row">
+                    <div className="mm-progress-track">
+                      <span
+                        className="mm-progress-fill"
+                        style={{
+                          width: `${(memberStats.user / memberStats.total) * 100}%`,
+                          background: "linear-gradient(90deg, #10b981, #34d399)",
+                        }}
+                      />
+                    </div>
+                    <span className="mm-progress-label">
+                      {Math.round((memberStats.user / memberStats.total) * 100)}%
+                    </span>
+                  </div>
+                ) : null
+              }
+            />
+          </div>
 
           {/* Alerts */}
           {error && (
@@ -1215,108 +1327,128 @@ export default function MembersPage() {
             }}
             styles={{ body: { padding: 0 } }}
           >
-            {/* Toolbar */}
-            <div
-              className="mm-toolbar"
-              style={{
-                padding: "16px 20px",
-                borderBottom: "1px solid var(--border-slate-100)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 12,
-                background: "var(--bg-pure-white)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <FilterOutlined style={{ color: "var(--text-slate-400)", fontSize: 14 }} />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: "var(--text-slate-500)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    fontWeight: 600,
-                  }}
-                >
-                  {pagination.total} {pagination.total === 1 ? "member" : "members"}
-                </Text>
-              </div>
+            {/* Toolbar — single row */}
+            <div className="mm-toolbar-v2">
+              <Input
+                placeholder="Search name, email…"
+                prefix={
+                  <SearchOutlined style={{ color: "var(--text-slate-400)", marginRight: 6 }} />
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="mm-search"
+                allowClear
+              />
 
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 10,
-                  alignItems: "center",
-                }}
-              >
-                <Input
-                  placeholder="Search by name, email…"
-                  prefix={
-                    <SearchOutlined style={{ color: "var(--text-slate-400)" }} />
-                  }
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="mm-search"
-                  style={{ width: 280, height: 38 }}
-                  allowClear
-                />
-
-                <Select
-                  placeholder="All roles"
-                  value={roleFilter}
-                  onChange={setRoleFilter}
-                  className="mm-select"
-                  style={{ width: 160, height: 38 }}
-                  allowClear
-                  suffixIcon={<UserOutlined style={{ color: "var(--text-slate-400)" }} />}
-                >
-                  <Option value="super_admin">Super Admin</Option>
-                  <Option value="admin">Admin</Option>
-                  <Option value="user">User</Option>
-                  {availableRoles
+              <Select
+                placeholder={
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <UserOutlined style={{ fontSize: 12, color: "var(--text-slate-400)" }} />
+                    Role
+                  </span>
+                }
+                value={roleFilter}
+                onChange={setRoleFilter}
+                className="mm-select"
+                allowClear
+                style={{ flex: "1 1 140px", minWidth: 130, maxWidth: 180 }}
+                options={[
+                  { value: "super_admin", label: "Super Admin" },
+                  { value: "admin", label: "Admin" },
+                  { value: "user", label: "User" },
+                  ...availableRoles
                     .filter((r) => !["user", "admin", "super_admin"].includes(r.slug))
-                    .map((r) => (
-                      <Option key={r.id} value={r.slug}>
-                        {r.name}
-                      </Option>
-                    ))}
-                </Select>
+                    .map((r) => ({ value: r.slug, label: r.name })),
+                ]}
+              />
 
-                <Select
-                  placeholder="All positions"
-                  value={positionFilter}
-                  onChange={setPositionFilter}
-                  className="mm-select"
-                  style={{ width: 200, height: 38 }}
-                  allowClear
-                  loading={positionsLoading}
-                  showSearch
-                  optionFilterProp="children"
-                >
-                  {positions.map((position) => (
-                    <Option key={position.id} value={position.title}>
-                      {position.title}
-                    </Option>
-                  ))}
-                </Select>
+              <Select
+                placeholder={
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <IdcardOutlined style={{ fontSize: 12, color: "var(--text-slate-400)" }} />
+                    Position
+                  </span>
+                }
+                value={positionFilter}
+                onChange={setPositionFilter}
+                className="mm-select"
+                allowClear
+                loading={positionsLoading}
+                showSearch
+                optionFilterProp="label"
+                style={{ flex: "1 1 180px", minWidth: 160, maxWidth: 220 }}
+                options={positions.map((position) => ({
+                  value: position.title,
+                  label: position.title,
+                }))}
+              />
 
-                {hasActiveFilters && (
+              <Select
+                placeholder={
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <CrownOutlined style={{ fontSize: 12, color: "var(--text-slate-400)" }} />
+                    Reports to
+                  </span>
+                }
+                value={reportsToFilter}
+                onChange={setReportsToFilter}
+                className="mm-select"
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                style={{ flex: "1 1 200px", minWidth: 180, maxWidth: 260 }}
+                options={managers.map((manager) => ({
+                  value: manager.id,
+                  label: manager.name,
+                  rich: (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <Avatar
+                        size={22}
+                        style={{
+                          background: gradientFor(manager.id || manager.name),
+                          fontSize: 10,
+                          fontWeight: 600,
+                          color: "#fff",
+                        }}
+                      >
+                        {manager.name?.charAt(0)?.toUpperCase()}
+                      </Avatar>
+                      <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
+                        <span style={{ fontWeight: 600, color: "var(--text-slate-800)", fontSize: 13 }}>
+                          {manager.name}
+                        </span>
+                        {manager.position?.title && (
+                          <span style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
+                            {manager.position.title}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ),
+                }))}
+                optionRender={(option) => (option.data as any).rich}
+              />
+
+              {hasActiveFilters && (
+                <Tooltip title="Clear all filters">
                   <Button
                     icon={<ReloadOutlined />}
                     onClick={handleClearFilters}
                     className="mm-clear-btn"
-                    style={{
-                      height: 38,
-                      borderRadius: 8,
-                      fontWeight: 500,
-                    }}
                   >
                     Reset
                   </Button>
-                )}
+                </Tooltip>
+              )}
+
+              <div className="mm-toolbar-v2__divider" />
+
+              <div className="mm-toolbar-v2__meta">
+                <FilterOutlined style={{ color: "var(--text-slate-400)", fontSize: 12 }} />
+                <Text className="mm-count-text">
+                  <strong>{pagination.total}</strong>{" "}
+                  {pagination.total === 1 ? "member" : "members"}
+                </Text>
               </div>
             </div>
 
@@ -1452,186 +1584,6 @@ export default function MembersPage() {
           />
         </Drawer>
 
-        <style jsx global>{`
-          .mm-stat-card {
-            transition: transform 0.18s ease, box-shadow 0.18s ease,
-              border-color 0.18s ease;
-          }
-          .mm-stat-card:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06) !important;
-            border-color: var(--border-slate-200) !important;
-          }
-          .mm-search.ant-input-affix-wrapper,
-          .mm-select .ant-select-selector {
-            border-radius: 10px !important;
-            background: var(--bg-secondary) !important;
-            border-color: var(--border-slate-200) !important;
-            transition: all 0.15s ease;
-          }
-          .mm-search.ant-input-affix-wrapper:hover,
-          .mm-select:hover .ant-select-selector {
-            border-color: #c4b5fd !important;
-          }
-          .mm-search.ant-input-affix-wrapper-focused,
-          .mm-select.ant-select-focused .ant-select-selector {
-            border-color: #8b5cf6 !important;
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12) !important;
-          }
-          .mm-clear-btn {
-            background: var(--bg-secondary) !important;
-            border: 1px solid var(--border-slate-200) !important;
-            color: var(--text-slate-600) !important;
-          }
-          .mm-clear-btn:hover {
-            border-color: #8b5cf6 !important;
-            color: #8b5cf6 !important;
-          }
-          .mm-action-btn:hover {
-            background: var(--bg-slate-50) !important;
-            color: #8b5cf6 !important;
-          }
-          .mm-table .ant-table-thead > tr > th {
-            background: var(--bg-table-header) !important;
-            color: var(--text-slate-500) !important;
-            font-weight: 600 !important;
-            font-size: 11px !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.06em !important;
-            border-bottom: 1px solid var(--border-slate-100) !important;
-            padding: 12px 16px !important;
-          }
-          .mm-table .ant-table-tbody > tr > td {
-            padding: 14px 16px !important;
-            border-bottom: 1px solid var(--border-slate-100) !important;
-          }
-          .mm-table .ant-table-tbody > tr:hover > td {
-            background: var(--bg-slate-50) !important;
-          }
-          .mm-table .ant-pagination .ant-pagination-item-active {
-            border-color: #8b5cf6 !important;
-          }
-          .mm-table .ant-pagination .ant-pagination-item-active a {
-            color: #8b5cf6 !important;
-          }
-          .mm-modal .ant-modal-content {
-            background-color: var(--bg-pure-white) !important;
-            border-radius: 14px !important;
-            padding: 20px 24px !important;
-          }
-          .mm-modal .ant-modal-header {
-            background-color: var(--bg-pure-white) !important;
-            border-bottom: 1px solid var(--border-slate-100) !important;
-            padding-bottom: 16px !important;
-            margin-bottom: 20px !important;
-          }
-          .mm-modal .ant-modal-close {
-            top: 22px !important;
-            right: 22px !important;
-          }
-          .mm-modal .ant-form-item-label > label {
-            font-weight: 600 !important;
-            color: var(--text-slate-700, var(--text-slate-600)) !important;
-            font-size: 12.5px !important;
-          }
-          .mm-modal .ant-input,
-          .mm-modal .ant-select-selector,
-          .mm-modal .ant-input-affix-wrapper {
-            border-radius: 8px !important;
-            border-color: var(--border-slate-200) !important;
-            background: var(--bg-secondary) !important;
-          }
-          .mm-modal .ant-input:focus,
-          .mm-modal .ant-input-focused,
-          .mm-modal .ant-select-focused .ant-select-selector,
-          .mm-modal .ant-input-affix-wrapper-focused {
-            border-color: #8b5cf6 !important;
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12) !important;
-          }
-          .mm-drawer .ant-drawer-content {
-            background: var(--bg-pure-white) !important;
-            border-radius: 0 !important;
-          }
-          .mm-drawer .ant-drawer-body { padding: 0 !important; }
-          .mm-drawer-close {
-            position: absolute;
-            top: 16px; right: 16px;
-            width: 32px; height: 32px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.7);
-            border: 1px solid var(--border-slate-200);
-            color: var(--text-slate-500);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            backdrop-filter: blur(8px);
-          }
-          .mm-drawer-close:hover {
-            background: var(--bg-pure-white);
-            color: #ef4444;
-            border-color: #fca5a5;
-          }
-          [data-theme='dark'] .mm-drawer-close {
-            background: rgba(31,41,55,0.7);
-          }
-          .mm-drawer .ant-form-item-label > label {
-            font-weight: 600 !important;
-            color: var(--text-slate-700, var(--text-slate-600)) !important;
-            font-size: 12px !important;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-          }
-          .mm-drawer .ant-input,
-          .mm-drawer .ant-select-selector,
-          .mm-drawer .ant-input-affix-wrapper {
-            border-radius: 9px !important;
-            border-color: var(--border-slate-200) !important;
-            background: var(--bg-secondary) !important;
-            min-height: 40px;
-          }
-          .mm-drawer .ant-select-single .ant-select-selector {
-            height: 40px !important;
-            display: flex; align-items: center;
-          }
-          .mm-drawer .ant-input:focus,
-          .mm-drawer .ant-input-focused,
-          .mm-drawer .ant-select-focused .ant-select-selector,
-          .mm-drawer .ant-input-affix-wrapper-focused,
-          .mm-drawer .ant-input-affix-wrapper:focus-within {
-            border-color: #8b5cf6 !important;
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12) !important;
-          }
-          .mm-day-pill {
-            width: 38px; height: 38px;
-            border-radius: 10px;
-            border: 1px solid var(--border-slate-200);
-            background: var(--bg-secondary);
-            color: var(--text-slate-500);
-            font-size: 13px; font-weight: 700;
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.15s ease;
-          }
-          .mm-day-pill:hover {
-            border-color: #c4b5fd;
-            color: #8b5cf6;
-          }
-          .mm-day-pill.active {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            border-color: transparent;
-            color: #fff;
-            box-shadow: 0 3px 8px rgba(139,92,246,0.30);
-          }
-          @media (max-width: 768px) {
-            .mm-toolbar > div:last-child {
-              width: 100%;
-            }
-            .mm-search,
-            .mm-select {
-              width: 100% !important;
-            }
-          }
-        `}</style>
       </div>
     </MainLayout>
   );

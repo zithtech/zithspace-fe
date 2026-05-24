@@ -125,15 +125,15 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
               percent={statistics.completionPercentage}
               size={88}
               strokeWidth={9}
-              strokeColor={{ '0%': '#FFFFFF', '100%': '#A7F3D0' }}
-              trailColor="rgba(255, 255, 255, 0.18)"
+              strokeColor={{ '0%': '#4F46E5', '100%': '#10B981' }}
+              trailColor="var(--sc-border-soft)"
               format={(percent) => (
-                <span style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>
+                <span style={{ color: 'var(--sc-text)', fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>
                   {percent}%
                 </span>
               )}
             />
-            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', opacity: 0.85 }}>
+            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--sc-text-muted)' }}>
               Progress
             </span>
           </div>

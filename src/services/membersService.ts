@@ -59,6 +59,7 @@ export interface MembersFilters {
   search?: string;
   role?: string;
   position?: string;
+  reportsToId?: string;
   isActive?: boolean | string; // Backend accepts 'true'/'false'/'all'
 
 }

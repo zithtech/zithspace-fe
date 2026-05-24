@@ -1,7 +1,36 @@
 "use client";
+
 import React, { useState, useMemo, useEffect } from "react";
-import { Card, Typography, Button, Space, Input, Table, Tag, Form, Select, Row, Col, Divider, notification, Spin, Tooltip, Switch, Drawer, Popconfirm } from "antd";
-import { Trophy, Edit, Plus, Search, Filter, Layers, ShieldCheck, User, Trash2 } from "lucide-react";
+import {
+  Typography,
+  Button,
+  Input,
+  Table,
+  Form,
+  Select,
+  Row,
+  Col,
+  notification,
+  Spin,
+  Tooltip,
+  Switch,
+  Drawer,
+  Popconfirm,
+} from "antd";
+import {
+  Trophy,
+  Edit,
+  Plus,
+  Search,
+  Layers,
+  ShieldCheck,
+  User,
+  Trash2,
+  X,
+  Tag as TagIcon,
+  Settings,
+  Building2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -11,20 +40,22 @@ import { useDepartments } from "@/hooks/useDepartments";
 import { useGrades } from "@/hooks/useGrades";
 import { useSubDepartments } from "@/hooks/useSubDepartments";
 import { usePositions, PositionViewData } from "@/hooks/usePositions";
+import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { OrgStatCard, OrgMiniBar } from "@/components/org-structure/OrgPageWidgets";
 
 const { Text } = Typography;
 
 export default function PositionsPage() {
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
-  const { 
-    canReadOrgPosition, 
-    canCreateOrgPosition, 
-    canUpdateOrgPosition, 
-    canDeleteOrgPosition 
+  const {
+    canReadOrgPosition,
+    canCreateOrgPosition,
+    canUpdateOrgPosition,
+    canDeleteOrgPosition,
   } = usePermission();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -56,8 +87,8 @@ export default function PositionsPage() {
     return (
       <ProtectedRoute>
         <MainLayout>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#ffffff' }}>
-            <Spin size="large" tip="Loading Position Data..." />
+          <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <Spin size="large" tip="Loading Positions..." />
           </div>
         </MainLayout>
       </ProtectedRoute>
@@ -70,26 +101,25 @@ export default function PositionsPage() {
   const totalPositions = validPositions.length;
   const activePositions = validPositions.filter((p) => p.isActive).length;
   const inactivePositions = totalPositions - activePositions;
+  const uniqueDepts = new Set(validPositions.map((p) => p.departmentId).filter(Boolean)).size;
+  const uniqueGrades = new Set(validPositions.map((p) => p.gradeId).filter(Boolean)).size;
 
   const generateCodeFromName = (name: string): string => {
-    if (!name || typeof name !== 'string') return '';
-    return name.trim().toUpperCase().replace(/\s+/g, '_');
+    if (!name || typeof name !== "string") return "";
+    return name.trim().toUpperCase().replace(/\s+/g, "_");
   };
 
   const handleAdd = () => {
     setEditingKey(null);
     form.resetFields();
     form.setFieldsValue({ status: true });
-    setIsModalOpen(true);
+    setIsDrawerOpen(true);
   };
 
   const handleEdit = (record: PositionViewData) => {
     setEditingKey(record.id);
-    form.setFieldsValue({
-      ...record,
-      status: record.isActive,
-    });
-    setIsModalOpen(true);
+    form.setFieldsValue({ ...record, status: record.isActive });
+    setIsDrawerOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -107,20 +137,13 @@ export default function PositionsPage() {
   const handleSave = async () => {
     try {
       const formValues = await form.validateFields();
-      const payload = {
-        ...formValues,
-        isActive: formValues.status,
-      };
+      const payload = { ...formValues, isActive: formValues.status };
       setSubmitting(true);
-      let success = false;
-      if (editingKey) {
-        success = await updatePosition(editingKey, payload);
-      } else {
-        success = await createPosition(payload);
-      }
-      
+      const success = editingKey
+        ? await updatePosition(editingKey, payload)
+        : await createPosition(payload);
       if (success) {
-        setIsModalOpen(false);
+        setIsDrawerOpen(false);
         api.success({
           message: `Position ${editingKey ? "Updated" : "Created"}`,
           description: `The role "${payload.title}" has been successfully saved.`,
@@ -146,73 +169,45 @@ export default function PositionsPage() {
         !statusFilter || (statusFilter === "active" ? item.isActive : !item.isActive);
       const matchesGrade = !gradeFilter || item.gradeId === gradeFilter;
       const matchesDepartment = !departmentFilter || item.departmentId === departmentFilter;
-      const matchesSubDepartment = !subDepartmentFilter || item.subDepartmentId === subDepartmentFilter;
-      
+      const matchesSubDepartment =
+        !subDepartmentFilter || item.subDepartmentId === subDepartmentFilter;
       return matchesSearch && matchesStatus && matchesGrade && matchesDepartment && matchesSubDepartment;
     });
-  }, [positions, searchText, statusFilter, gradeFilter, departmentFilter, subDepartmentFilter]);
-
-  const StatCard = ({ label, value, icon: Icon, color }: any) => (
-    <Card 
-      bodyStyle={{ padding: "16px 20px" }} 
-      style={{ borderRadius: 12, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
-        </div>
-        <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
-          <Icon size={20} />
-        </div>
-      </div>
-    </Card>
-  );
+  }, [validPositions, searchText, statusFilter, gradeFilter, departmentFilter, subDepartmentFilter]);
 
   const columns = [
     {
-      title: "Position Identity",
+      title: "Position",
       key: "identity",
       width: "30%",
-      onHeaderCell: () => ({
-        style: { paddingLeft: 24 }
-      }),
-      onCell: () => ({
-        style: { paddingLeft: 24 }
-      }),
       render: (_: any, record: PositionViewData) => (
-        <Space size={12}>
-          <div style={{ 
-            width: 36, height: 36, borderRadius: 10, background: "rgba(22, 119, 255, 0.08)", color: "#1677ff",
-            display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14
-          }}>
-            {record.code?.substring(0, 2) || "PS"}
+        <div className="orgx-row-name">
+          <div className="orgx-row-name__avatar">{record.code?.substring(0, 2) || "PS"}</div>
+          <div className="orgx-row-name__text">
+            <div className="orgx-row-name__title">{record.title}</div>
+            <span className="orgx-row-name__code">{record.code}</span>
           </div>
-          <div>
-            <Text strong style={{ display: "block", color: "#1e293b", fontSize: 14 }}>{record.title}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>CODE: {record.code}</Text>
-          </div>
-        </Space>
-      ),
-    },
-    {
-      title: "Organization Context",
-      key: "context",
-      render: (_: any, record: PositionViewData) => (
-        <div>
-          <Text style={{ display: "block", fontSize: 13, color: "#1e293b", fontWeight: 500 }}>{record.departmentName || "General"}</Text>
-          <Text type="secondary" style={{ fontSize: 11 }}>{record.subDepartmentName || "—"}</Text>
         </div>
       ),
     },
     {
-      title: "Grade Level",
+      title: "Context",
+      key: "context",
+      render: (_: any, record: PositionViewData) => (
+        <div className="orgx-row-context">
+          <span className="orgx-row-context__main">{record.departmentName || "General"}</span>
+          {record.subDepartmentName && (
+            <span className="orgx-row-context__sub">{record.subDepartmentName}</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Grade",
       dataIndex: "gradeName",
       key: "gradeName",
       render: (grade: string) => (
-        <Tag style={{ borderRadius: 6, fontWeight: 500, background: "#f1f5f9", border: 0, color: "#475569" }}>
-          {grade || "N/A"}
-        </Tag>
+        <span className={`orgx-row-soft-tag${!grade ? " is-muted" : ""}`}>{grade || "Not assigned"}</span>
       ),
     },
     {
@@ -221,273 +216,375 @@ export default function PositionsPage() {
       key: "isActive",
       width: 120,
       render: (isActive: boolean) => (
-        <Tag style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }} color={isActive ? "success" : "default"}>
-          {isActive ? "ACTIVE" : "INACTIVE"}
-        </Tag>
+        <span className={`orgx-status-pill ${isActive ? "is-active" : "is-inactive"}`}>
+          <span className="orgx-status-dot" />
+          {isActive ? "Active" : "Inactive"}
+        </span>
       ),
     },
     {
-      title: "Actions",
+      title: "",
       key: "actions",
       align: "right" as const,
-      width: 120,
-      render: (_: any, record: PositionViewData) => {
-        return (
-          <Space size={8}>
-            {canUpdateOrgPosition && (
-              <Tooltip title="Edit Position">
-                <Button
-                  type="text"
-                  icon={<Edit size={18} style={{ color: "#64748b" }} />}
-                  onClick={() => handleEdit(record)}
-                  className="action-btn"
-                />
+      width: 100,
+      render: (_: any, record: PositionViewData) => (
+        <div className="orgx-row-actions">
+          {canUpdateOrgPosition && (
+            <Tooltip title="Edit Position">
+              <Button type="text" size="small" icon={<Edit size={15} />} onClick={() => handleEdit(record)} />
+            </Tooltip>
+          )}
+          {canDeleteOrgPosition && (
+            <Popconfirm
+              title="Remove position?"
+              description="This will permanently delete this role."
+              onConfirm={() => handleDelete(record.id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="Delete">
+                <Button type="text" size="small" danger icon={<Trash2 size={15} />} />
               </Tooltip>
-            )}
-            {canDeleteOrgPosition && (
-              <Popconfirm
-                title="Remove Position"
-                description="Are you sure you want to delete this role?"
-                onConfirm={() => handleDelete(record.id)}
-                okText="Delete"
-                cancelText="Cancel"
-                okButtonProps={{ danger: true }}
-              >
-                <Button
-                  type="text"
-                  danger
-                  icon={<Trash2 size={18} />}
-                  className="action-btn-danger"
-                />
-              </Popconfirm>
-            )}
-          </Space>
-        );
-      },
+            </Popconfirm>
+          )}
+        </div>
+      ),
     },
   ];
+
+  const hasAdvancedFilter = !!gradeFilter || !!departmentFilter || !!subDepartmentFilter;
 
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
-          {contextHolder}
-
-          {/* Header Section */}
-          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-            <div style={{ flex: 1 }}>
-              <Space size={12} align="center">
-                <div style={{ background: "rgba(22, 119, 255, 0.08)", padding: 10, borderRadius: 12, color: "#1677ff", display: "flex" }}>
-                  <Trophy size={24} />
-                </div>
-                <div>
-                  <Typography.Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Positions</Typography.Title>
-                  <Text style={{ color: "#64748b", fontSize: 15 }}>Define and manage organization roles, grade assignments, and designations.</Text>
-                </div>
-              </Space>
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <Select
-                placeholder="Status"
-                allowClear
-                prefix={<Filter size={14} style={{ marginRight: 4 }} />}
-                style={{ width: 120, height: 44 }}
-                onChange={(value) => setStatusFilter(value)}
-                dropdownStyle={{ borderRadius: 10 }}
-              >
-                <Select.Option value="active">Active</Select.Option>
-                <Select.Option value="inactive">Inactive</Select.Option>
-              </Select>
-              <Select
-                placeholder="Grade"
-                allowClear
-                style={{ width: 140, height: 44 }}
-                onChange={(value) => setGradeFilter(value)}
-                loading={gradesLoading}
-                dropdownStyle={{ borderRadius: 10 }}
-              >
-                {grades?.map((g: any) => (
-                  <Select.Option key={g.key} value={g.key}>{g.name}</Select.Option>
-                ))}
-              </Select>
-              <Input 
-                placeholder="Search positions..." 
-                prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
-                style={{ width: 220, borderRadius: 10, height: 44 }}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
-              {canCreateOrgPosition && (
-                <Button 
-                  type="primary" size="large" icon={<Plus size={18} />} 
-                  style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
+        {contextHolder}
+        <div className="orgx-shell">
+          <TimeTrackingHeader
+            icon={<Trophy size={20} color="#3b82f6" />}
+            title="Positions"
+            description="Define and manage organization roles, grade assignments, and designations."
+            style={{
+              borderBottom: "1px solid var(--border-slate-200)",
+              padding: "8.5px 32px",
+              marginBottom: 20,
+            }}
+            extra={
+              canCreateOrgPosition && (
+                <Button
+                  type="primary"
+                  icon={<Plus size={15} />}
                   onClick={handleAdd}
+                  className="orgx-primary-btn"
                 >
-                   Add Role
+                  New Position
                 </Button>
-              )}
+              )
+            }
+          />
+
+          <div className="orgx-content">
+            <div className="orgx-stat-grid">
+              <OrgStatCard
+                label="Total Positions"
+                value={totalPositions}
+                icon={<Layers size={14} />}
+                accent="#3b82f6"
+                subtle="Defined roles"
+                loading={loading && totalPositions === 0}
+                chart={
+                  totalPositions > 0 ? (
+                    <OrgMiniBar
+                      segments={[
+                        { value: activePositions, color: "#10b981", label: `${activePositions} active` },
+                        { value: inactivePositions, color: "#94a3b8", label: `${inactivePositions} inactive` },
+                      ]}
+                    />
+                  ) : null
+                }
+              />
+              <OrgStatCard
+                label="Active"
+                value={activePositions}
+                icon={<ShieldCheck size={14} />}
+                accent="#10b981"
+                subtle={
+                  totalPositions > 0
+                    ? `${Math.round((activePositions / totalPositions) * 100)}% open for hiring`
+                    : "No positions yet"
+                }
+                loading={loading && totalPositions === 0}
+              />
+              <OrgStatCard
+                label="Departments"
+                value={uniqueDepts}
+                icon={<Building2 size={14} />}
+                accent="#8b5cf6"
+                subtle="With assigned roles"
+                loading={loading && totalPositions === 0}
+              />
+              <OrgStatCard
+                label="Grade Levels"
+                value={uniqueGrades}
+                icon={<User size={14} />}
+                accent="#f59e0b"
+                subtle="Distinct levels in use"
+                loading={loading && totalPositions === 0}
+              />
+            </div>
+
+            <div className="orgx-panel">
+              <div className="orgx-toolbar">
+                <Input
+                  className="orgx-search"
+                  prefix={<Search size={14} color="var(--text-slate-400)" style={{ marginRight: 4 }} />}
+                  placeholder="Search by title or code…"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                />
+                <Select
+                  className="orgx-select"
+                  placeholder="All statuses"
+                  allowClear
+                  style={{ minWidth: 140 }}
+                  value={statusFilter || undefined}
+                  onChange={(v) => setStatusFilter(v || null)}
+                  options={[
+                    { value: "active", label: "Active" },
+                    { value: "inactive", label: "Inactive" },
+                  ]}
+                />
+                <Select
+                  className="orgx-select"
+                  placeholder="All grades"
+                  allowClear
+                  style={{ minWidth: 160 }}
+                  loading={gradesLoading}
+                  value={gradeFilter || undefined}
+                  onChange={(v) => setGradeFilter(v || null)}
+                  options={grades?.map((g: any) => ({ value: g.key, label: g.name }))}
+                />
+                <Select
+                  className="orgx-select"
+                  placeholder="All departments"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  style={{ minWidth: 180 }}
+                  loading={departmentsLoading}
+                  value={departmentFilter || undefined}
+                  onChange={(v) => {
+                    setDepartmentFilter(v || null);
+                    setSubDepartmentFilter(null);
+                  }}
+                  options={departments.map((d) => ({ value: d.id, label: d.name }))}
+                />
+                <Select
+                  className="orgx-select"
+                  placeholder="All sub-depts"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  style={{ minWidth: 180 }}
+                  loading={subDepartmentsLoading}
+                  value={subDepartmentFilter || undefined}
+                  onChange={(v) => setSubDepartmentFilter(v || null)}
+                  options={subDepartments
+                    .filter((sd) => !departmentFilter || sd.parentDepartmentId === departmentFilter)
+                    .map((sd) => ({ value: sd.id, label: sd.name }))}
+                />
+                {hasAdvancedFilter && (
+                  <Button
+                    className="orgx-clear-btn"
+                    onClick={() => {
+                      setGradeFilter(null);
+                      setDepartmentFilter(null);
+                      setSubDepartmentFilter(null);
+                    }}
+                  >
+                    Reset
+                  </Button>
+                )}
+                <div className="orgx-toolbar__divider" />
+                <Text className="orgx-count-text">
+                  <strong>{filteredData.length}</strong> of {totalPositions}
+                </Text>
+              </div>
+
+              <Table
+                className="orgx-table"
+                rowKey="id"
+                columns={columns}
+                dataSource={filteredData}
+                loading={loading}
+                size="middle"
+                pagination={{ pageSize: 12, position: ["bottomRight"] }}
+              />
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-             <Select
-                placeholder="Department"
-                allowClear
-                style={{ width: 200, height: 40 }}
-                onChange={(value) => setDepartmentFilter(value)}
-                loading={departmentsLoading}
-                dropdownStyle={{ borderRadius: 10 }}
-              >
-                {departments.map((d) => (
-                  <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>
-                ))}
-            </Select>
-            <Select
-                placeholder="Sub-Department"
-                allowClear
-                style={{ width: 200, height: 40 }}
-                onChange={(value) => setSubDepartmentFilter(value)}
-                loading={subDepartmentsLoading}
-                dropdownStyle={{ borderRadius: 10 }}
-              >
-                {subDepartments
-                  .filter((sd) => !departmentFilter || sd.parentDepartmentId === departmentFilter)
-                  .map((sd) => (
-                    <Select.Option key={sd.id} value={sd.id}>{sd.name}</Select.Option>
-                  ))}
-            </Select>
-          </div>
-
-          {/* Metrics Grid */}
-          <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
-            <Col xs={24} sm={8}><StatCard label="Total Positions" value={totalPositions} icon={Layers} color="#3b82f6" /></Col>
-            <Col xs={24} sm={8}><StatCard label="Active Roles" value={activePositions} icon={ShieldCheck} color="#10b981" /></Col>
-            <Col xs={24} sm={8}><StatCard label="Inactive Roles" value={inactivePositions} icon={User} color="#f59e0b" /></Col>
-          </Row>
-
-          {/* Table Card */}
-          <Card 
-            bodyStyle={{ padding: 0 }} 
-            style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}
+          {/* Drawer */}
+          <Drawer
+            className="orgx-drawer"
+            width={560}
+            open={isDrawerOpen}
+            onClose={() => setIsDrawerOpen(false)}
+            closable={false}
+            styles={{ header: { display: "none" }, footer: { padding: 0, border: "none" } }}
+            footer={
+              <div className="orgx-drawer__footer">
+                <Button onClick={() => setIsDrawerOpen(false)} className="orgx-btn-ghost">
+                  Cancel
+                </Button>
+                <Button
+                  type="primary"
+                  loading={submitting}
+                  onClick={handleSave}
+                  className="orgx-btn-primary"
+                >
+                  {editingKey ? "Save Changes" : "Create Position"}
+                </Button>
+              </div>
+            }
           >
-            <Table
-              rowKey="id"
-              columns={columns}
-              dataSource={filteredData}
-              loading={loading}
-              size="middle"
-              pagination={{ pageSize: 12, position: ["bottomRight"] }}
-            />
-          </Card>
-        </div>
+            <button
+              type="button"
+              className="orgx-drawer__close"
+              onClick={() => setIsDrawerOpen(false)}
+              aria-label="Close"
+            >
+              <X size={14} />
+            </button>
 
-        {/* Configuration Drawer */}
-        <Drawer
-          title={
-            <Space size={12}>
-              <div style={{ background: "rgba(22, 119, 255, 0.08)", padding: 8, borderRadius: 10, color: "#1677ff", display: "flex" }}>
-                <Edit size={20} />
+            <div className="orgx-drawer__hero">
+              <div className="orgx-drawer__hero-icon">
+                <Trophy size={18} />
               </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{editingKey ? "Edit Position" : "Create New Role"}</div>
-                <div style={{ fontSize: 12, fontWeight: 400, color: "#64748b" }}>Configure role designations and grade assignments</div>
-              </div>
-            </Space>
-          }
-          width={520}
-          open={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          footer={
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "8px 0" }}>
-              <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
-              <Button 
-                type="primary" loading={submitting} onClick={handleSave} 
-                style={{ borderRadius: 8, height: 40, padding: "0 24px", fontWeight: 600 }}
-              >
-                {editingKey ? "Update Role" : "Create Role"}
-              </Button>
-            </div>
-          }
-          className="config-drawer"
-        >
-          <Form form={form} layout="vertical" requiredMark={false} onValuesChange={(changed) => { if (changed.title !== undefined && !editingKey) { form.setFieldsValue({ code: generateCodeFromName(changed.title) }); } }}>
-            <div style={{ marginBottom: 24 }}>
-              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 16 }}>Identity & Label</Text>
-              <Row gutter={16}>
-                <Col span={14}>
-                  <Form.Item name="title" label={<Text strong style={{ fontSize: 13 }}>Position Title</Text>} rules={[{ required: true, message: "Required" }]}>
-                    <Input placeholder="e.g. Senior Software Engineer" />
-                  </Form.Item>
-                </Col>
-                <Col span={10}>
-                   <Form.Item name="code" label={<Text strong style={{ fontSize: 13 }}>Code</Text>} rules={[{ required: true }]}>
-                    <Input placeholder="Auto-generated" disabled />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
-            <Divider />
-            <div style={{ marginBottom: 24 }}>
-              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 16 }}>Classification & Sorting</Text>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="gradeId" label={<Text strong style={{ fontSize: 13 }}>Grade Assignment</Text>} rules={[{ required: true, message: "Required" }]}>
-                    <Select placeholder="Select Grade" loading={gradesLoading} dropdownStyle={{ borderRadius: 8 }}>
-                      {grades.map((g) => (
-                        <Select.Option key={g.key} value={g.key}>{g.name}</Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                   <Form.Item name="departmentId" label={<Text strong style={{ fontSize: 13 }}>Primary Department</Text>} rules={[{ required: true, message: "Required" }]}>
-                    <Select placeholder="Select Dept" loading={departmentsLoading} dropdownStyle={{ borderRadius: 8 }}>
-                      {departments.map((d) => (
-                        <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Form.Item name="subDepartmentId" label={<Text strong style={{ fontSize: 13 }}>Specialized Sub-Unit (Optional)</Text>}>
-                <Select placeholder="Select Sub-Dept" loading={subDepartmentsLoading} allowClear dropdownStyle={{ borderRadius: 8 }}>
-                  {subDepartments.map((sd) => (
-                    <Select.Option key={sd.id} value={sd.id}>{sd.name}</Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </div>
-            <Divider />
-            <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #f1f5f9" }}>
-              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 20 }}>Operational Controls</Text>
-              <Form.Item name="status" valuePropName="checked" initialValue={true}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <Text strong style={{ fontSize: 14, display: "block" }}>Display Status</Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>Enable this position for active recruitment and usage.</Text>
-                  </div>
-                  <Switch />
+              <div className="orgx-drawer__hero-text">
+                <div className="orgx-drawer__hero-eyebrow">Position</div>
+                <div className="orgx-drawer__hero-title">
+                  {editingKey ? "Edit Position" : "New Position"}
                 </div>
-              </Form.Item>
-              <Divider style={{ margin: "16px 0" }} />
-              <Form.Item name="description" label={<Text strong style={{ fontSize: 13 }}>Role description</Text>}>
-                <Input.TextArea rows={4} placeholder="Briefly define the core responsibilities..." />
-              </Form.Item>
+                <div className="orgx-drawer__hero-sub">
+                  Configure a role with its grade and department classification.
+                </div>
+              </div>
             </div>
-          </Form>
-        </Drawer>
 
-        <style dangerouslySetInnerHTML={{ __html: `
-          .action-btn:hover { background: #f1f5f9 !important; color: #1677ff !important; }
-          .action-btn-danger:hover { background: #fef2f2 !important; color: #ef4444 !important; }
-          .ant-table-thead > tr > th {
-            background: #f8fafc !important; color: #64748b !important; font-weight: 600 !important;
-            text-transform: uppercase !important; font-size: 11px !important; letter-spacing: 0.05em !important;
-          }
-          .ant-table-row:hover > td { background: #f8fafc !important; }
-          .config-drawer .ant-drawer-header { border-bottom: 1px solid #f1f5f9 !important; padding: 24px !important; }
-          .config-drawer .ant-drawer-footer { border-top: 1px solid #f1f5f9 !important; padding: 16px 24px !important; }
-          .ant-input:focus, .ant-input-focused, .ant-select:focus, .ant-select-focused { border-color: #3b82f6 !important; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important; }
-        `}} />
+            <div className="orgx-drawer__body">
+              <Form
+                form={form}
+                layout="vertical"
+                requiredMark={false}
+                onValuesChange={(changed) => {
+                  if (changed.title !== undefined && !editingKey) {
+                    form.setFieldsValue({ code: generateCodeFromName(changed.title) });
+                  }
+                }}
+              >
+                <div className="orgx-section">
+                  <div className="orgx-section__title">
+                    <TagIcon size={11} /> Identity
+                  </div>
+                  <Row gutter={12}>
+                    <Col span={15}>
+                      <Form.Item
+                        name="title"
+                        label="Position title"
+                        rules={[{ required: true, message: "Required" }]}
+                      >
+                        <Input placeholder="e.g. Senior Software Engineer" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={9}>
+                      <Form.Item
+                        name="code"
+                        label="Code"
+                        rules={[{ required: true, message: "Required" }]}
+                      >
+                        <Input placeholder="Auto-generated" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+
+                <div className="orgx-section">
+                  <div className="orgx-section__title">
+                    <Building2 size={11} /> Classification
+                  </div>
+                  <Row gutter={12}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="gradeId"
+                        label="Grade"
+                        rules={[{ required: true, message: "Required" }]}
+                      >
+                        <Select
+                          placeholder="Select grade"
+                          loading={gradesLoading}
+                          showSearch
+                          optionFilterProp="label"
+                          options={grades.map((g: any) => ({ value: g.key, label: g.name }))}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="departmentId"
+                        label="Department"
+                        rules={[{ required: true, message: "Required" }]}
+                      >
+                        <Select
+                          placeholder="Select department"
+                          loading={departmentsLoading}
+                          showSearch
+                          optionFilterProp="label"
+                          options={departments.map((d) => ({ value: d.id, label: d.name }))}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Form.Item name="subDepartmentId" label="Sub-department (optional)">
+                    <Select
+                      placeholder="Select sub-department"
+                      loading={subDepartmentsLoading}
+                      allowClear
+                      showSearch
+                      optionFilterProp="label"
+                      options={subDepartments.map((sd) => ({ value: sd.id, label: sd.name }))}
+                    />
+                  </Form.Item>
+                </div>
+
+                <div className="orgx-section">
+                  <div className="orgx-section__title">
+                    <Settings size={11} /> Operations
+                  </div>
+                  <div className="orgx-toggle-row">
+                    <div className="orgx-toggle-row__text">
+                      <div className="orgx-toggle-row__title">Active status</div>
+                      <div className="orgx-toggle-row__sub">
+                        Enable this position for recruitment and assignment.
+                      </div>
+                    </div>
+                    <Form.Item name="status" valuePropName="checked" initialValue={true} style={{ margin: 0 }}>
+                      <Switch />
+                    </Form.Item>
+                  </div>
+                  <Form.Item name="description" label="Role description (optional)">
+                    <Input.TextArea
+                      rows={3}
+                      placeholder="Define the core responsibilities…"
+                      maxLength={240}
+                      showCount
+                    />
+                  </Form.Item>
+                </div>
+              </Form>
+            </div>
+          </Drawer>
+        </div>
       </MainLayout>
     </ProtectedRoute>
   );

@@ -1,26 +1,26 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Typography,
   Button,
   Table,
   Tag,
   Space,
-  Card,
-  Tabs,
-  Modal,
   Form,
   Input,
-  InputNumber,
-  Select,
   Row,
   Col,
   notification,
   Popconfirm,
   Tooltip,
   ColorPicker,
-  Switch
+  Switch,
+  Segmented,
+  Drawer,
+  Skeleton,
+  Empty,
+  Slider,
 } from 'antd';
 import {
   SettingOutlined,
@@ -29,21 +29,30 @@ import {
   DeleteOutlined,
   BlockOutlined,
   UpSquareOutlined,
-  BgColorsOutlined,
-  InfoCircleOutlined,
   CheckSquareOutlined,
   CheckCircleFilled,
-  ExclamationCircleFilled,
-  CloseCircleFilled
+  CloseCircleFilled,
+  CloseOutlined,
+  InfoCircleOutlined,
+  TagsOutlined,
+  FireOutlined,
+  FlagOutlined,
+  StarOutlined,
+  BulbOutlined,
+  CheckOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+  AppstoreOutlined,
+  BgColorsOutlined,
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import { EscalationSettingsService } from '@/services/escalationSettings';
+import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 
-const { Title, Text, Paragraph } = Typography;
-const { Option } = Select;
+const { Text } = Typography;
 
 const BLUE_PRIMARY = 'var(--premium-blue)';
 
@@ -63,555 +72,1112 @@ interface EscalationPriority {
   isActive: boolean;
 }
 
+interface EscalationStatus {
+  id: string;
+  name: string;
+  color: string | null;
+  isActive: boolean;
+  isDefault?: boolean;
+  isFinal?: boolean;
+}
+
+type TabKey = 'categories' | 'priorities' | 'statuses';
+
+/* -------------------------------------------------------------------------- */
+/*                              Premium StatCard                              */
+/* -------------------------------------------------------------------------- */
+
+interface StatCardProps {
+  label: string;
+  value: React.ReactNode;
+  icon: React.ReactNode;
+  accent: string;
+  subtle?: string;
+  loading?: boolean;
+  chart?: React.ReactNode;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ label, value, icon, accent, subtle, loading, chart }) => (
+  <div className="es-stat-card" style={{ ['--es-accent' as any]: accent }}>
+    <div className="es-stat-head">
+      <div
+        className="es-stat-icon"
+        style={{
+          background: `${accent}14`,
+          color: accent,
+          boxShadow: `inset 0 0 0 1px ${accent}26`,
+        }}
+      >
+        {icon}
+      </div>
+      <Text className="es-stat-label">{label}</Text>
+      <div className="es-stat-value-wrap">
+        {loading ? (
+          <Skeleton.Input active size="small" style={{ width: 56, height: 22 }} />
+        ) : (
+          <span className="es-stat-value">{value}</span>
+        )}
+      </div>
+    </div>
+    {subtle && <Text className="es-stat-subtle">{subtle}</Text>}
+    {chart && <div className="es-stat-chart">{chart}</div>}
+    <span
+      className="es-stat-accent"
+      style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
+    />
+  </div>
+);
+
+interface MiniBarProps {
+  segments: { value: number; color: string; label: string }[];
+}
+const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  return (
+    <div className="es-minibar">
+      <div className="es-minibar-track">
+        {segments.map((s, i) => (
+          <Tooltip key={i} title={`${s.label}: ${s.value}`}>
+            <span
+              className="es-minibar-seg"
+              style={{ width: `${(s.value / total) * 100}%`, background: s.color }}
+            />
+          </Tooltip>
+        ))}
+      </div>
+      <div className="es-minibar-legend">
+        {segments.map((s, i) => (
+          <span key={i} className="es-minibar-legend-item">
+            <span className="es-minibar-dot" style={{ background: s.color }} />
+            {s.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
+/*                       Color preset swatches                                */
+/* -------------------------------------------------------------------------- */
+
+const COLOR_PRESETS: { hex: string; name: string }[] = [
+  { hex: '#3b82f6', name: 'Blue' },
+  { hex: '#6366f1', name: 'Indigo' },
+  { hex: '#8b5cf6', name: 'Purple' },
+  { hex: '#ec4899', name: 'Pink' },
+  { hex: '#ef4444', name: 'Red' },
+  { hex: '#f97316', name: 'Orange' },
+  { hex: '#f59e0b', name: 'Amber' },
+  { hex: '#84cc16', name: 'Lime' },
+  { hex: '#10b981', name: 'Emerald' },
+  { hex: '#14b8a6', name: 'Teal' },
+  { hex: '#0ea5e9', name: 'Sky' },
+  { hex: '#94a3b8', name: 'Slate' },
+];
+
+const normalizeHex = (v: any): string => {
+  if (!v) return '#3b82f6';
+  if (typeof v === 'string') return v;
+  return v?.toHexString?.() || '#3b82f6';
+};
+
+const severityBucket = (w: number): { label: string; color: string } => {
+  if (w >= 80) return { label: 'Critical', color: '#ef4444' };
+  if (w >= 60) return { label: 'High', color: '#f97316' };
+  if (w >= 30) return { label: 'Medium', color: '#f59e0b' };
+  return { label: 'Low', color: '#10b981' };
+};
+
+/* -------------------------------------------------------------------------- */
+/*                    Drawer Body — premium SaaS form                         */
+/* -------------------------------------------------------------------------- */
+
+interface SettingsDrawerBodyProps {
+  activeTab: TabKey;
+  form: any;
+  editingItem: any;
+  onSubmit: (values: any) => void;
+}
+
+const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
+  activeTab,
+  form,
+  editingItem,
+  onSubmit,
+}) => {
+  // Live values
+  const watchedName: string = Form.useWatch('name', form) || '';
+  const watchedDescription: string = Form.useWatch('description', form) || '';
+  const watchedColorRaw = Form.useWatch('color', form);
+  const watchedColor = normalizeHex(watchedColorRaw);
+  const watchedWeight: number = Form.useWatch('weight', form) ?? 0;
+  const watchedIsActive: boolean = Form.useWatch('isActive', form) ?? true;
+  const watchedIsDefault: boolean = Form.useWatch('isDefault', form) ?? false;
+  const watchedIsFinal: boolean = Form.useWatch('isFinal', form) ?? false;
+
+  const bucket = severityBucket(watchedWeight);
+
+  // Step done flags
+  const stepIdentityDone = !!watchedName.trim();
+  const stepAppearanceDone = !!watchedColor;
+
+  /* Preview chip */
+  const previewChip = () => {
+    const displayName = watchedName.trim() || `New ${activeTab === 'categories' ? 'category' : activeTab === 'priorities' ? 'priority' : 'status'}`;
+
+    if (activeTab === 'categories') {
+      return (
+        <div className="es-preview-chip is-category" style={{ ['--swatch' as any]: watchedColor }}>
+          <span className="es-preview-chip__bar" />
+          <span className="es-preview-chip__name">{displayName}</span>
+        </div>
+      );
+    }
+    if (activeTab === 'priorities') {
+      return (
+        <div className="es-preview-chip is-priority" style={{ ['--swatch' as any]: watchedColor }}>
+          <span className="es-preview-chip__dot" />
+          <span className="es-preview-chip__name">{displayName.toUpperCase()}</span>
+          <span className="es-preview-chip__weight">{watchedWeight}</span>
+        </div>
+      );
+    }
+    return (
+      <div className="es-preview-chip is-status" style={{ ['--swatch' as any]: watchedColor }}>
+        <span className="es-preview-chip__pulse" />
+        <span className="es-preview-chip__name">{displayName}</span>
+        {watchedIsDefault && (
+          <span className="es-preview-chip__flag is-default">
+            <StarOutlined /> Default
+          </span>
+        )}
+        {watchedIsFinal && (
+          <span className="es-preview-chip__flag is-final">
+            <CheckCircleFilled /> Final
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <>
+      {/* Hero with live preview */}
+      <div className="es-drawer__hero">
+        <div className="es-drawer__hero-top">
+          <div className="es-drawer__hero-icon">
+            {activeTab === 'categories' ? (
+              <TagsOutlined />
+            ) : activeTab === 'priorities' ? (
+              <FireOutlined />
+            ) : (
+              <FlagOutlined />
+            )}
+          </div>
+          <div className="es-drawer__hero-text">
+            <div className="es-drawer__hero-title">
+              {editingItem ? 'Edit' : 'New'}{' '}
+              {activeTab === 'categories' ? 'Category' : activeTab === 'priorities' ? 'Priority' : 'Status'}
+            </div>
+            <div className="es-drawer__hero-sub">
+              {activeTab === 'categories' && 'Define an issue type for grouping escalations.'}
+              {activeTab === 'priorities' && 'Add a severity level with a numeric weight for triage.'}
+              {activeTab === 'statuses' && 'Define a lifecycle stage and its behaviour.'}
+            </div>
+          </div>
+        </div>
+
+        <div className="es-drawer__hero-preview">
+          <span className="es-drawer__hero-preview-label">Live preview</span>
+          {previewChip()}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="es-drawer__body">
+        <Form form={form} layout="vertical" onFinish={onSubmit} requiredMark={false}>
+          {/* Section 1: Identity */}
+          <div className={`es-section${stepIdentityDone ? ' is-done' : ''}`}>
+            <div className="es-section__header">
+              <div className="es-section__step">{stepIdentityDone ? <CheckOutlined /> : '1'}</div>
+              <div className="es-section__icon">
+                <AppstoreOutlined />
+              </div>
+              <div className="es-section__text">
+                <div className="es-section__title">Identity</div>
+                <div className="es-section__sub">A clear name everyone can recognise</div>
+              </div>
+            </div>
+
+            <Form.Item
+              name="name"
+              label="Display name"
+              rules={[{ required: true, message: 'Enter a name' }]}
+            >
+              <Input
+                placeholder={
+                  activeTab === 'categories'
+                    ? 'e.g. Deployment Failure'
+                    : activeTab === 'priorities'
+                      ? 'e.g. Critical'
+                      : 'e.g. In Review'
+                }
+                className="es-input"
+                maxLength={64}
+                showCount
+              />
+            </Form.Item>
+
+            {activeTab === 'categories' && (
+              <Form.Item name="description" label="Description (optional)">
+                <Input.TextArea
+                  rows={3}
+                  placeholder="Briefly describe when this category should be used"
+                  className="es-textarea"
+                  maxLength={240}
+                  showCount
+                />
+              </Form.Item>
+            )}
+          </div>
+
+          {/* Section: Severity (priorities only) */}
+          {activeTab === 'priorities' && (
+            <div className="es-section">
+              <div className="es-section__header">
+                <div className="es-section__step">2</div>
+                <div className="es-section__icon" style={{ color: bucket.color, background: `${bucket.color}14` }}>
+                  <FireOutlined />
+                </div>
+                <div className="es-section__text">
+                  <div className="es-section__title">Severity weight</div>
+                  <div className="es-section__sub">Higher weight = higher severity. 80+ shows as High Priority on the dashboard.</div>
+                </div>
+                <div className="es-section__badge" style={{ background: `${bucket.color}14`, color: bucket.color, borderColor: `${bucket.color}40` }}>
+                  {bucket.label}
+                </div>
+              </div>
+
+              <div className="es-severity">
+                <Form.Item name="weight" style={{ marginBottom: 0 }}>
+                  <Slider
+                    min={0}
+                    max={100}
+                    className="es-severity-slider"
+                    tooltip={{ formatter: (v) => `${v}` }}
+                    marks={{
+                      0: <span className="es-severity-mark">Low</span>,
+                      30: <span className="es-severity-mark">Med</span>,
+                      60: <span className="es-severity-mark">High</span>,
+                      80: <span className="es-severity-mark is-critical">Critical</span>,
+                      100: '',
+                    }}
+                  />
+                </Form.Item>
+                <div className="es-severity-value">
+                  <span className="es-severity-value__big">{watchedWeight}</span>
+                  <span className="es-severity-value__sub">/ 100</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section: Appearance (compact) */}
+          <div className={`es-section${stepAppearanceDone ? ' is-done' : ''}`}>
+            <div className="es-section__header">
+              <div className="es-section__step">
+                {stepAppearanceDone ? <CheckOutlined /> : activeTab === 'priorities' ? '3' : '2'}
+              </div>
+              <div className="es-section__icon">
+                <BgColorsOutlined />
+              </div>
+              <div className="es-section__text">
+                <div className="es-section__title">Appearance</div>
+                <div className="es-section__sub">Pick a color &amp; visibility</div>
+              </div>
+            </div>
+
+            <div className="es-appearance-row">
+              <div className="es-swatch-row">
+                {COLOR_PRESETS.map((c) => {
+                  const isSelected = watchedColor.toLowerCase() === c.hex.toLowerCase();
+                  return (
+                    <Tooltip key={c.hex} title={c.name}>
+                      <button
+                        type="button"
+                        className={`es-swatch${isSelected ? ' is-selected' : ''}`}
+                        style={{ background: c.hex }}
+                        onClick={() => form.setFieldValue('color', c.hex)}
+                        aria-label={c.name}
+                      >
+                        {isSelected && <CheckOutlined />}
+                      </button>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+
+              <Form.Item name="color" noStyle>
+                <ColorPicker
+                  showText
+                  className="es-colorpicker"
+                  size="middle"
+                />
+              </Form.Item>
+            </div>
+
+            <div className="es-visibility-row">
+              <Form.Item
+                name="isActive"
+                valuePropName="checked"
+                initialValue={true}
+                noStyle
+              >
+                <Switch size="small" />
+              </Form.Item>
+              <div className={`es-visibility-state${watchedIsActive ? ' is-on' : ' is-off'}`}>
+                {watchedIsActive ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+                <span>
+                  {watchedIsActive ? 'Visible to new escalations' : 'Hidden from new escalations'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Behavior (statuses only) */}
+          {activeTab === 'statuses' && (
+            <div className="es-section">
+              <div className="es-section__header">
+                <div className="es-section__step">3</div>
+                <div className="es-section__icon">
+                  <BulbOutlined />
+                </div>
+                <div className="es-section__text">
+                  <div className="es-section__title">Behavior</div>
+                  <div className="es-section__sub">How this status behaves in the lifecycle</div>
+                </div>
+              </div>
+
+              <div className="es-toggle-cards">
+                <Form.Item name="isDefault" valuePropName="checked" style={{ marginBottom: 0 }} noStyle>
+                  <Switch />
+                </Form.Item>
+                <button
+                  type="button"
+                  className={`es-toggle-card${watchedIsDefault ? ' is-on is-default' : ''}`}
+                  onClick={() => form.setFieldValue('isDefault', !watchedIsDefault)}
+                >
+                  <div className="es-toggle-card__icon">
+                    <StarOutlined />
+                  </div>
+                  <div className="es-toggle-card__text">
+                    <div className="es-toggle-card__title">Default status</div>
+                    <div className="es-toggle-card__sub">New escalations start with this status</div>
+                  </div>
+                  <span className={`es-toggle-card__switch${watchedIsDefault ? ' is-on' : ''}`}>
+                    <span className="es-toggle-card__thumb" />
+                  </span>
+                </button>
+
+                <Form.Item name="isFinal" valuePropName="checked" style={{ marginBottom: 0 }} noStyle>
+                  <Switch />
+                </Form.Item>
+                <button
+                  type="button"
+                  className={`es-toggle-card${watchedIsFinal ? ' is-on is-final' : ''}`}
+                  onClick={() => form.setFieldValue('isFinal', !watchedIsFinal)}
+                >
+                  <div className="es-toggle-card__icon">
+                    <CheckCircleFilled />
+                  </div>
+                  <div className="es-toggle-card__text">
+                    <div className="es-toggle-card__title">Final state</div>
+                    <div className="es-toggle-card__sub">Terminal stage — counts toward "resolved" stats</div>
+                  </div>
+                  <span className={`es-toggle-card__switch${watchedIsFinal ? ' is-on' : ''}`}>
+                    <span className="es-toggle-card__thumb" />
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="es-info-banner">
+            <InfoCircleOutlined />
+            <span>
+              {editingItem ? 'Saving will update this item across all related escalations instantly.' : 'This item becomes available the moment you save.'}
+            </span>
+          </div>
+
+          {/* Description suppressed in form summary, but description still bound for categories */}
+          {activeTab !== 'categories' && watchedDescription && null}
+        </Form>
+      </div>
+    </>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                 Page                                       */
+/* -------------------------------------------------------------------------- */
+
 export default function EscalationSettingsPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const { canManageEscalations } = usePermission();
-  const [activeTab, setActiveTab] = useState('1');
+
+  const [activeTab, setActiveTab] = useState<TabKey>('categories');
   const [categories, setCategories] = useState<EscalationCategory[]>([]);
   const [priorities, setPriorities] = useState<EscalationPriority[]>([]);
-  const [statuses, setStatuses] = useState<any[]>([]);
+  const [statuses, setStatuses] = useState<EscalationStatus[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Modal states
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
+
   const [notify, contextHolder] = notification.useNotification();
 
   const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
     notify[type]({
       message: <span className="premium-notif-title">{title}</span>,
       description: <span className="premium-notif-desc">{description}</span>,
-      icon: type === 'success' ? <CheckCircleFilled style={{ color: '#10B981' }} /> : <CloseCircleFilled style={{ color: '#EF4444' }} />,
+      icon:
+        type === 'success' ? (
+          <CheckCircleFilled style={{ color: '#10B981' }} />
+        ) : (
+          <CloseCircleFilled style={{ color: '#EF4444' }} />
+        ),
       className: 'premium-notification',
       placement: 'topRight',
       duration: 4,
     });
   };
 
-  const fetchCategories = async () => {
+  /* ----------------------------- Fetchers ---------------------------------- */
+
+  const fetchAll = async () => {
     setLoading(true);
     try {
-      const data = await EscalationSettingsService.getCategories();
-      setCategories(data);
+      const [c, p, s] = await Promise.all([
+        EscalationSettingsService.getCategories(),
+        EscalationSettingsService.getPriorities(),
+        EscalationSettingsService.getStatuses(),
+      ]);
+      setCategories(c || []);
+      setPriorities(p || []);
+      setStatuses(s || []);
     } catch (error: any) {
-      notifyPremium('error', 'Fetch Failed', 'Failed to fetch categories: ' + (error.message || 'Unknown error'));
+      notifyPremium(
+        'error',
+        'Fetch Failed',
+        'Failed to fetch settings: ' + (error.message || 'Unknown error'),
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchPriorities = async () => {
-    setLoading(true);
-    try {
-      const data = await EscalationSettingsService.getPriorities();
-      setPriorities(data);
-    } catch (error: any) {
-      notifyPremium('error', 'Fetch Failed', 'Failed to fetch priorities: ' + (error.message || 'Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStatuses = async () => {
-    setLoading(true);
-    try {
-      const data = await EscalationSettingsService.getStatuses();
-      setStatuses(data);
-    } catch (error: any) {
-      notifyPremium('error', 'Fetch Failed', 'Failed to fetch statuses: ' + (error.message || 'Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ─── Route Guard ────────────────────────────────────────────────────────────
+  // Route guard
   useEffect(() => {
     if (!authLoading && user && !canManageEscalations) {
-      router.push("/escalations");
+      router.push('/escalations');
     }
   }, [user, authLoading, canManageEscalations, router]);
 
   useEffect(() => {
-    if (canManageEscalations) {
-      if (activeTab === '1') fetchCategories();
-      else if (activeTab === '2') fetchPriorities();
-      else fetchStatuses();
-    }
-  }, [activeTab, canManageEscalations]);
+    if (canManageEscalations) fetchAll();
+  }, [canManageEscalations]);
 
-  const handleOpenModal = (item: any = null) => {
+  /* ----------------------------- Stats ------------------------------------- */
+
+  const stats = useMemo(() => {
+    return {
+      categoriesTotal: categories.length,
+      categoriesActive: categories.filter((c) => c.isActive).length,
+      categoriesInactive: categories.filter((c) => !c.isActive).length,
+      prioritiesTotal: priorities.length,
+      prioritiesActive: priorities.filter((p) => p.isActive).length,
+      prioritiesAvgWeight:
+        priorities.length > 0
+          ? Math.round(
+              priorities.reduce((sum, p) => sum + (p.weight || 0), 0) / priorities.length,
+            )
+          : 0,
+      statusesTotal: statuses.length,
+      statusesActive: statuses.filter((s) => s.isActive).length,
+      statusesDefault: statuses.filter((s) => s.isDefault).length,
+      statusesFinal: statuses.filter((s) => s.isFinal).length,
+    };
+  }, [categories, priorities, statuses]);
+
+  /* --------------------------- Modal handlers ------------------------------ */
+
+  const handleOpenDrawer = (item: any = null) => {
     setEditingItem(item);
     if (item) {
       form.setFieldsValue({
         ...item,
-        color: item.color || BLUE_PRIMARY
+        color: item.color || '#3b82f6',
       });
     } else {
       form.resetFields();
-      form.setFieldsValue({ color: BLUE_PRIMARY, weight: 0, isActive: true });
+      form.setFieldsValue({ color: '#3b82f6', weight: 0, isActive: true });
     }
-    setIsModalOpen(true);
+    setDrawerOpen(true);
   };
 
   const handleSave = async (values: any) => {
-    const isCategory = activeTab === '1';
-    const isPriority = activeTab === '2';
-    const isStatus = activeTab === '3';
-
-    // Convert color to hex string if it's from AntD ColorPicker
-    const colorValue = typeof values.color === 'string' ? values.color : values.color?.toHexString?.() || values.color;
-
+    const colorValue =
+      typeof values.color === 'string' ? values.color : values.color?.toHexString?.() || values.color;
     const payload = { ...values, color: colorValue };
 
+    setSaving(true);
     try {
-      if (isCategory) {
-        if (editingItem) await EscalationSettingsService.updateCategory(editingItem.id, payload);
+      if (activeTab === 'categories') {
+        if (editingItem)
+          await EscalationSettingsService.updateCategory(editingItem.id, payload);
         else await EscalationSettingsService.createCategory(payload);
-        notifyPremium('success', 
-          `Category ${editingItem ? 'Updated' : 'Created'}`, 
-          `The escalation category has been successfully ${editingItem ? 'modified' : 'added'}.`
+        notifyPremium(
+          'success',
+          `Category ${editingItem ? 'Updated' : 'Created'}`,
+          `The category has been ${editingItem ? 'updated' : 'added'} successfully.`,
         );
-      } else if (isPriority) {
-        if (editingItem) await EscalationSettingsService.updatePriority(editingItem.id, payload);
+      } else if (activeTab === 'priorities') {
+        if (editingItem)
+          await EscalationSettingsService.updatePriority(editingItem.id, payload);
         else await EscalationSettingsService.createPriority(payload);
-        notifyPremium('success', 
-          `Priority ${editingItem ? 'Updated' : 'Created'}`, 
-          `The escalation priority level has been successfully ${editingItem ? 'modified' : 'added'}.`
+        notifyPremium(
+          'success',
+          `Priority ${editingItem ? 'Updated' : 'Created'}`,
+          `The priority has been ${editingItem ? 'updated' : 'added'} successfully.`,
         );
-      } else if (isStatus) {
-        if (editingItem) await EscalationSettingsService.updateStatus(editingItem.id, payload);
+      } else {
+        if (editingItem)
+          await EscalationSettingsService.updateStatus(editingItem.id, payload);
         else await EscalationSettingsService.createStatus(payload);
-        notifyPremium('success', 
-          `Status ${editingItem ? 'Updated' : 'Created'}`, 
-          `The escalation status state has been successfully ${editingItem ? 'modified' : 'added'}.`
+        notifyPremium(
+          'success',
+          `Status ${editingItem ? 'Updated' : 'Created'}`,
+          `The status has been ${editingItem ? 'updated' : 'added'} successfully.`,
         );
       }
-
-      setIsModalOpen(false);
-
-      if (isCategory) fetchCategories();
-      else if (isPriority) fetchPriorities();
-      else fetchStatuses();
+      setDrawerOpen(false);
+      fetchAll();
     } catch (error: any) {
       notifyPremium('error', 'Save Failed', 'Failed to save: ' + (error.message || 'Unknown error'));
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      if (activeTab === '1') {
-        await EscalationSettingsService.deactivateCategory(id);
-        fetchCategories();
-      } else if (activeTab === '2') {
-        await EscalationSettingsService.deactivatePriority(id);
-        fetchPriorities();
-      } else if (activeTab === '3') {
-        await EscalationSettingsService.deactivateStatus(id);
-        fetchStatuses();
-      }
-      notifyPremium('success', 'Deactivated Successfully', 'The item has been successfully retired from escalation settings.');
+      if (activeTab === 'categories') await EscalationSettingsService.deactivateCategory(id);
+      else if (activeTab === 'priorities') await EscalationSettingsService.deactivatePriority(id);
+      else await EscalationSettingsService.deactivateStatus(id);
+      notifyPremium(
+        'success',
+        'Deactivated',
+        'The item has been retired from escalation settings.',
+      );
+      fetchAll();
     } catch (error: any) {
-      notifyPremium('error', 'Deactivation Failed', 'Failed to deactivate: ' + (error.message || 'Unknown error'));
+      notifyPremium(
+        'error',
+        'Deactivation Failed',
+        'Failed to deactivate: ' + (error.message || 'Unknown error'),
+      );
     }
   };
 
+  /* ----------------------------- Columns ----------------------------------- */
+
   const categoryColumns = [
     {
-      title: 'Name',
+      title: 'Category',
       dataIndex: 'name',
       key: 'name',
       render: (name: string, record: EscalationCategory) => (
-        <Space>
-          <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: record.color || BLUE_PRIMARY }} />
-          <Text strong>{name}</Text>
-        </Space>
-      )
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-      render: (desc: string) => <Text type="secondary" style={{ fontSize: 13, color: 'var(--text-slate-400)' }}>{desc || 'No description'}</Text>
+        <div className="es-row-main">
+          <span
+            className="es-color-chip"
+            style={{ ['--swatch' as any]: record.color || BLUE_PRIMARY }}
+          />
+          <div className="es-row-text">
+            <div className="es-row-title">{name}</div>
+            {record.description && <div className="es-row-sub">{record.description}</div>}
+          </div>
+        </div>
+      ),
     },
     {
       title: 'Status',
       dataIndex: 'isActive',
       key: 'isActive',
+      width: 120,
       render: (active: boolean) => (
-        <Tag color={active ? 'success' : 'default'} bordered={false}>
+        <span className={`es-status-pill ${active ? 'is-active' : 'is-inactive'}`}>
+          <span className="es-status-dot" />
           {active ? 'Active' : 'Inactive'}
-        </Tag>
-      )
+        </span>
+      ),
     },
     {
-      title: 'Actions',
+      title: '',
       key: 'actions',
+      width: 100,
       align: 'right' as const,
-      render: (_: any, record: EscalationCategory) => (
-        <Space>
-          {canManageEscalations && (
-            <>
-              <Tooltip title="Edit">
-                <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
+      render: (_: any, record: EscalationCategory) =>
+        canManageEscalations && (
+          <div className="es-row-actions">
+            <Tooltip title="Edit">
+              <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleOpenDrawer(record)} />
+            </Tooltip>
+            <Popconfirm
+              title="Retire this category?"
+              description="Inactive items won't appear in new escalations."
+              onConfirm={() => handleDelete(record.id)}
+              okText="Retire"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="Retire">
+                <Button type="text" size="small" danger icon={<DeleteOutlined />} />
               </Tooltip>
-              <Popconfirm title="Are you sure you want to retire this category?" onConfirm={() => handleDelete(record.id)}>
-                <Tooltip title="Retire">
-                  <Button type="text" danger icon={<DeleteOutlined />} />
-                </Tooltip>
-              </Popconfirm>
-            </>
-          )}
-        </Space>
-      )
-    }
+            </Popconfirm>
+          </div>
+        ),
+    },
   ];
 
   const priorityColumns = [
     {
-      title: 'Priority Name',
+      title: 'Priority',
       dataIndex: 'name',
       key: 'name',
       render: (name: string, record: EscalationPriority) => (
-        <Space>
-          <Tag color={record.color || BLUE_PRIMARY} style={{ fontWeight: 600 }}>{name}</Tag>
-        </Space>
-      )
+        <div className="es-row-main">
+          <span
+            className="es-color-chip is-square"
+            style={{ ['--swatch' as any]: record.color || BLUE_PRIMARY }}
+          />
+          <div className="es-row-text">
+            <div className="es-row-title">{name}</div>
+            <div className="es-row-sub">Weight {record.weight}</div>
+          </div>
+        </div>
+      ),
     },
     {
-      title: 'Weight (Complexity)',
+      title: 'Severity',
       dataIndex: 'weight',
       key: 'weight',
-      render: (weight: number) => <Text strong>{weight}</Text>
+      width: 220,
+      render: (weight: number) => (
+        <div className="es-weight-row">
+          <div className="es-weight-track">
+            <span
+              className="es-weight-fill"
+              style={{ width: `${Math.min(100, Math.max(0, weight))}%` }}
+            />
+          </div>
+          <span className="es-weight-label">{weight}</span>
+        </div>
+      ),
     },
     {
       title: 'Status',
       dataIndex: 'isActive',
       key: 'isActive',
+      width: 120,
       render: (active: boolean) => (
-        <Tag color={active ? 'success' : 'default'} bordered={false}>
+        <span className={`es-status-pill ${active ? 'is-active' : 'is-inactive'}`}>
+          <span className="es-status-dot" />
           {active ? 'Active' : 'Inactive'}
-        </Tag>
-      )
+        </span>
+      ),
     },
     {
-      title: 'Actions',
+      title: '',
       key: 'actions',
+      width: 100,
       align: 'right' as const,
-      render: (_: any, record: EscalationPriority) => (
-        <Space>
-          {canManageEscalations && (
-            <>
-              <Tooltip title="Edit">
-                <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
+      render: (_: any, record: EscalationPriority) =>
+        canManageEscalations && (
+          <div className="es-row-actions">
+            <Tooltip title="Edit">
+              <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleOpenDrawer(record)} />
+            </Tooltip>
+            <Popconfirm
+              title="Retire this priority?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Retire"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="Retire">
+                <Button type="text" size="small" danger icon={<DeleteOutlined />} />
               </Tooltip>
-              <Popconfirm title="Are you sure you want to retire this priority?" onConfirm={() => handleDelete(record.id)}>
-                <Tooltip title="Retire">
-                  <Button type="text" danger icon={<DeleteOutlined />} />
-                </Tooltip>
-              </Popconfirm>
-            </>
-          )}
-        </Space>
-      )
-    }
+            </Popconfirm>
+          </div>
+        ),
+    },
   ];
 
   const statusColumns = [
     {
-      title: 'Status Name',
+      title: 'Status',
       dataIndex: 'name',
       key: 'name',
-      render: (name: string, record: any) => (
-        <Space>
-          <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: record.color || BLUE_PRIMARY }} />
-          <Text strong>{name}</Text>
-        </Space>
-      )
+      render: (name: string, record: EscalationStatus) => (
+        <div className="es-row-main">
+          <span
+            className="es-color-chip"
+            style={{ ['--swatch' as any]: record.color || BLUE_PRIMARY }}
+          />
+          <div className="es-row-text">
+            <div className="es-row-title">{name}</div>
+            <div className="es-row-flags">
+              {record.isDefault && (
+                <span className="es-flag is-default">
+                  <StarOutlined /> Default
+                </span>
+              )}
+              {record.isFinal && (
+                <span className="es-flag is-final">
+                  <CheckCircleFilled /> Final
+                </span>
+              )}
+              {!record.isDefault && !record.isFinal && (
+                <span className="es-row-sub">Intermediate state</span>
+              )}
+            </div>
+          </div>
+        </div>
+      ),
     },
     {
-      title: 'Active',
+      title: 'Status',
       dataIndex: 'isActive',
       key: 'isActive',
+      width: 120,
       render: (active: boolean) => (
-        <Tag color={active ? 'success' : 'default'} bordered={false}>
-          {active ? 'Yes' : 'No'}
-        </Tag>
-      )
+        <span className={`es-status-pill ${active ? 'is-active' : 'is-inactive'}`}>
+          <span className="es-status-dot" />
+          {active ? 'Active' : 'Inactive'}
+        </span>
+      ),
     },
     {
-      title: 'Default',
-      dataIndex: 'isDefault',
-      key: 'isDefault',
-      render: (isDefault: boolean) => (
-        isDefault ? <Tag color="blue" bordered={false}>DEFAULT</Tag> : null
-      )
-    },
-    {
-      title: 'Final',
-      dataIndex: 'isFinal',
-      key: 'isFinal',
-      render: (isFinal: boolean) => (
-        isFinal ? <Tag color="orange" bordered={false}>FINAL</Tag> : null
-      )
-    },
-    {
-      title: 'Actions',
+      title: '',
       key: 'actions',
+      width: 100,
       align: 'right' as const,
-      render: (_: any, record: any) => (
-        <Space>
-          {canManageEscalations && (
-            <>
-              <Tooltip title="Edit">
-                <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
+      render: (_: any, record: EscalationStatus) =>
+        canManageEscalations && (
+          <div className="es-row-actions">
+            <Tooltip title="Edit">
+              <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleOpenDrawer(record)} />
+            </Tooltip>
+            <Popconfirm
+              title="Retire this status?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Retire"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="Retire">
+                <Button type="text" size="small" danger icon={<DeleteOutlined />} />
               </Tooltip>
-              <Popconfirm title="Are you sure you want to retire this status?" onConfirm={() => handleDelete(record.id)}>
-                <Tooltip title="Retire">
-                  <Button type="text" danger icon={<DeleteOutlined />} />
-                </Tooltip>
-              </Popconfirm>
-            </>
-          )}
-        </Space>
-      )
-    }
+            </Popconfirm>
+          </div>
+        ),
+    },
   ];
+
+  /* ----------------------------- Active section --------------------------- */
+
+  const activeSection = useMemo(() => {
+    if (activeTab === 'categories') {
+      return {
+        data: categories,
+        columns: categoryColumns,
+        singular: 'Category',
+        empty: 'No categories yet — create one to start grouping escalations.',
+      };
+    }
+    if (activeTab === 'priorities') {
+      return {
+        data: priorities,
+        columns: priorityColumns,
+        singular: 'Priority',
+        empty: 'No priorities yet — add severity levels to triage escalations.',
+      };
+    }
+    return {
+      data: statuses,
+      columns: statusColumns,
+      singular: 'Status',
+      empty: 'No statuses yet — define the lifecycle stages of an escalation.',
+    };
+  }, [activeTab, categories, priorities, statuses, canManageEscalations]);
+
+  /* ------------------------------ Render ----------------------------------- */
 
   return (
     <MainLayout>
-      <div style={{ 
-        margin: "0 -24px", 
-        padding: "24px 32px", 
-        background: "var(--bg-pure-white)", 
-        minHeight: "calc(100vh - 64px)" 
-      }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-
-          {/* Header */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 24,
-            paddingBottom: 16,
-            borderBottom: '1px solid var(--border-slate-100)'
-          }}>
-            <Space direction="vertical" size={4}>
-              <Title level={2} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-slate-900)' }}>Escalation Settings</Title>
-              <Text type="secondary" style={{ fontSize: 14, color: 'var(--text-slate-400)' }}>Manage master data for categories, priorities, and statuses.</Text>
-            </Space>
-            {canManageEscalations && (
+      {contextHolder}
+      <div className="es-shell">
+        <TimeTrackingHeader
+          icon={<SettingOutlined style={{ fontSize: 20, color: BLUE_PRIMARY }} />}
+          title="Escalation Settings"
+          description="Manage the master data: categories, priorities, and lifecycle statuses."
+          style={{
+            borderBottom: '1px solid var(--border-slate-200)',
+            padding: '8.5px 32px',
+            marginBottom: 20,
+          }}
+          extra={
+            canManageEscalations && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
-                size="large"
-                onClick={() => handleOpenModal()}
-                style={{
-                  borderRadius: 10,
-                  background: BLUE_PRIMARY,
-                  fontWeight: 600,
-                  height: 44,
-                  padding: '0 24px',
-                  boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)'
-                }}
+                onClick={() => handleOpenDrawer()}
+                className="es-primary-btn"
               >
-                Add {activeTab === '1' ? 'Category' : activeTab === '2' ? 'Priority' : 'Status'}
+                Add {activeSection.singular}
               </Button>
-            )}
+            )
+          }
+        />
+
+        <div className="es-content">
+          {/* Stats overview */}
+          <div className="es-stat-grid">
+            <StatCard
+              label="Categories"
+              value={stats.categoriesTotal}
+              icon={<TagsOutlined />}
+              accent="#3b82f6"
+              subtle="Issue type buckets"
+              loading={loading && stats.categoriesTotal === 0}
+              chart={
+                stats.categoriesTotal > 0 ? (
+                  <MiniBar
+                    segments={[
+                      {
+                        value: stats.categoriesActive,
+                        color: '#10b981',
+                        label: `${stats.categoriesActive} active`,
+                      },
+                      {
+                        value: stats.categoriesInactive,
+                        color: '#94a3b8',
+                        label: `${stats.categoriesInactive} retired`,
+                      },
+                    ]}
+                  />
+                ) : null
+              }
+            />
+
+            <StatCard
+              label="Priorities"
+              value={stats.prioritiesTotal}
+              icon={<FireOutlined />}
+              accent="#ef4444"
+              subtle={
+                stats.prioritiesTotal > 0
+                  ? `Avg weight ${stats.prioritiesAvgWeight}`
+                  : 'No priorities yet'
+              }
+              loading={loading && stats.prioritiesTotal === 0}
+              chart={
+                stats.prioritiesTotal > 0 ? (
+                  <div className="es-cv-row">
+                    <span className="es-cv-dot is-active" />
+                    <span>
+                      <strong>{stats.prioritiesActive}</strong> active levels
+                    </span>
+                  </div>
+                ) : null
+              }
+            />
+
+            <StatCard
+              label="Statuses"
+              value={stats.statusesTotal}
+              icon={<FlagOutlined />}
+              accent="#10b981"
+              subtle="Lifecycle stages"
+              loading={loading && stats.statusesTotal === 0}
+              chart={
+                stats.statusesTotal > 0 ? (
+                  <MiniBar
+                    segments={[
+                      {
+                        value: stats.statusesDefault,
+                        color: '#3b82f6',
+                        label: `${stats.statusesDefault} default`,
+                      },
+                      {
+                        value: stats.statusesFinal,
+                        color: '#f59e0b',
+                        label: `${stats.statusesFinal} final`,
+                      },
+                      {
+                        value: Math.max(
+                          stats.statusesTotal - stats.statusesDefault - stats.statusesFinal,
+                          0,
+                        ),
+                        color: '#94a3b8',
+                        label: `${Math.max(
+                          stats.statusesTotal - stats.statusesDefault - stats.statusesFinal,
+                          0,
+                        )} other`,
+                      },
+                    ]}
+                  />
+                ) : null
+              }
+            />
           </div>
 
-          <Card
-            style={{
-              borderRadius: 20,
-              border: '1px solid var(--border-slate-200)',
-              background: 'var(--bg-pure-white)',
-              boxShadow: 'var(--card-shadow)',
-              overflow: 'hidden'
-            }}
-            bodyStyle={{ padding: 0 }}
-          >
-            <Tabs
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              style={{ padding: '0 24px' }}
-              items={[
-                {
-                  key: '1',
-                  label: <Space><BlockOutlined /> Categories</Space>,
-                  children: (
-                    <div style={{ padding: '24px 0' }}>
-                      <Table
-                        dataSource={categories}
-                        columns={categoryColumns}
-                        loading={loading}
-                        rowKey="id"
-                        pagination={false}
-                        className="premium-table"
-                      />
-                    </div>
-                  )
-                },
-                {
-                  key: '2',
-                  label: <Space><UpSquareOutlined /> Priorities</Space>,
-                  children: (
-                    <div style={{ padding: '24px 0' }}>
-                      <Table
-                        dataSource={priorities}
-                        columns={priorityColumns}
-                        loading={loading}
-                        rowKey="id"
-                        pagination={false}
-                        className="premium-table"
-                      />
-                    </div>
-                  )
-                },
-                {
-                  key: '3',
-                  label: <Space><CheckSquareOutlined /> Statuses</Space>,
-                  children: (
-                    <div style={{ padding: '24px 0' }}>
-                      <Table
-                        dataSource={statuses}
-                        columns={statusColumns}
-                        loading={loading}
-                        rowKey="id"
-                        pagination={false}
-                        className="premium-table"
-                      />
-                    </div>
-                  )
-                }
-              ]}
-            />
-          </Card>
+          {/* Switcher + content card */}
+          <div className="es-panel">
+            <div className="es-panel__header">
+              <Segmented
+                className="es-segmented"
+                value={activeTab}
+                onChange={(val) => setActiveTab(val as TabKey)}
+                options={[
+                  {
+                    label: (
+                      <span className="es-seg-opt">
+                        <BlockOutlined />
+                        Categories
+                        <span className="es-seg-pill">{categories.length}</span>
+                      </span>
+                    ),
+                    value: 'categories',
+                  },
+                  {
+                    label: (
+                      <span className="es-seg-opt">
+                        <UpSquareOutlined />
+                        Priorities
+                        <span className="es-seg-pill">{priorities.length}</span>
+                      </span>
+                    ),
+                    value: 'priorities',
+                  },
+                  {
+                    label: (
+                      <span className="es-seg-opt">
+                        <CheckSquareOutlined />
+                        Statuses
+                        <span className="es-seg-pill">{statuses.length}</span>
+                      </span>
+                    ),
+                    value: 'statuses',
+                  },
+                ]}
+              />
 
-          {/* Modal for CRUD */}
-          <Modal
-            title={<Title level={4} style={{ margin: 0, color: 'var(--text-slate-900)' }}>{editingItem ? 'Edit' : 'Create'} {activeTab === '1' ? 'Escalation Category' : activeTab === '2' ? 'Escalation Priority' : 'Escalation Status'}</Title>}
-            open={isModalOpen}
-            onCancel={() => setIsModalOpen(false)}
-            onOk={() => form.submit()}
-            okText="Save Changes"
-            centered
-            width={520}
-            bodyStyle={{ padding: '24px 0', background: 'var(--bg-pure-white)' }}
-          >
-            <Form form={form} layout="vertical" onFinish={handleSave} style={{ padding: '0 24px' }}>
-              <Form.Item name="name" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Display Name</Text>} rules={[{ required: true }]}>
-                <Input placeholder="e.g. Deployment Failure" size="large" style={{ borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)', color: 'var(--text-slate-900)' }} />
-              </Form.Item>
+              <Text className="es-panel__meta">
+                <strong>{activeSection.data.length}</strong>{' '}
+                {activeSection.singular.toLowerCase()}
+                {activeSection.data.length === 1 ? '' : 's'}
+              </Text>
+            </div>
 
-              {activeTab === '1' ? (
-                <Form.Item name="description" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Description</Text>}>
-                  <Input.TextArea rows={3} placeholder="Briefly describe when this category should be used" style={{ borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)', color: 'var(--text-slate-900)' }} />
-                </Form.Item>
-              ) : (
-                <Form.Item name="weight" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Priority Weight (Order)</Text>}>
-                  <InputNumber min={0} max={100} style={{ width: '100%', borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)' }} size="large" />
-                </Form.Item>
-              )}
-
-              <Row gutter={24}>
-                <Col span={12}>
-                  <Form.Item name="color" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Visual Color</Text>}>
-                    <ColorPicker showText />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="isActive" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Status</Text>} initialValue={true}>
-                    <Select size="large" style={{ borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)' }}>
-                      <Option value={true}>Active</Option>
-                      <Option value={false}>Inactive</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              {activeTab === '3' && (
-                <div style={{ background: 'var(--bg-sky-50)', padding: '16px 20px', borderRadius: 12, marginBottom: 20, border: '1px solid var(--border-sky-100)' }}>
-                  <Row gutter={24}>
-                    <Col span={12}>
-                      <Form.Item name="isDefault" valuePropName="checked" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Default Status</Text>} style={{ marginBottom: 0 }}>
-                        <Switch />
-                      </Form.Item>
-                      <Text type="secondary" style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>Set as default for new escalations.</Text>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item name="isFinal" valuePropName="checked" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Final State</Text>} style={{ marginBottom: 0 }}>
-                        <Switch />
-                      </Form.Item>
-                      <Text type="secondary" style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>Mark as a terminal/closed state.</Text>
-                    </Col>
-                  </Row>
+            <div className="es-panel__body">
+              {!loading && activeSection.data.length === 0 ? (
+                <div className="es-empty">
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description={
+                      <span style={{ color: 'var(--text-slate-500)', fontSize: 13 }}>
+                        {activeSection.empty}
+                      </span>
+                    }
+                  >
+                    {canManageEscalations && (
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => handleOpenDrawer()}
+                        className="es-primary-btn"
+                      >
+                        Add {activeSection.singular}
+                      </Button>
+                    )}
+                  </Empty>
                 </div>
+              ) : (
+                <Table
+                  className="premium-table es-table"
+                  dataSource={activeSection.data as any}
+                  columns={activeSection.columns as any}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={false}
+                />
               )}
-
-              <div style={{ background: 'var(--bg-slate-50)', padding: 16, borderRadius: 12, marginTop: 8 }}>
-                <Space>
-                  <InfoCircleOutlined style={{ color: BLUE_PRIMARY }} />
-                  <Text type="secondary" style={{ fontSize: 12, color: 'var(--text-slate-400)' }}>
-                    Changes will reflect immediately across all new and existing manual escalations.
-                  </Text>
-                </Space>
-              </div>
-            </Form>
-          </Modal>
-
+            </div>
+          </div>
         </div>
 
-        <style jsx global>{`
-          .premium-table .ant-table-thead > tr > th {
-            background: var(--bg-slate-50);
-            color: var(--text-slate-600);
-            font-weight: 700;
-            text-transform: uppercase;
-            font-size: 11px;
-            letter-spacing: 0.05em;
-            border-bottom: 1px solid var(--border-slate-200);
-            padding: 12px 16px;
+        {/* CRUD Drawer */}
+        <Drawer
+          className="es-drawer"
+          placement="right"
+          width={620}
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          closable={false}
+          styles={{
+            header: { display: 'none' },
+            body: { padding: 0, background: 'var(--bg-pure-white)' },
+            content: { background: 'var(--bg-pure-white)' },
+            footer: { padding: 0, border: 'none' },
+          }}
+          footer={
+            <div className="es-drawer__footer">
+              <Button onClick={() => setDrawerOpen(false)} className="es-btn-ghost">
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                loading={saving}
+                onClick={() => form.submit()}
+                className="es-btn-primary"
+              >
+                {editingItem ? 'Save Changes' : `Create ${activeSection.singular}`}
+              </Button>
+            </div>
           }
-          .premium-table .ant-table-tbody > tr > td {
-            padding: 16px;
-            border-bottom: 1px solid var(--border-slate-100);
-            background: var(--bg-pure-white);
-            color: var(--text-slate-700);
-          }
-          .premium-table .ant-table-row:hover > td {
-            background: var(--bg-slate-50) !important;
-          }
-          .ant-tabs-nav {
-            margin-bottom: 0 !important;
-            padding: 8px 24px 0 !important;
-            background: var(--bg-slate-50);
-            border-bottom: 1px solid var(--border-slate-200);
-          }
-          .ant-tabs-tab {
-            padding: 12px 16px !important;
-            margin: 0 8px 0 0 !important;
-            font-weight: 500 !important;
-            color: var(--text-slate-400) !important;
-          }
-          .ant-tabs-tab-active .ant-tabs-tab-btn {
-            color: var(--premium-blue) !important;
-            font-weight: 700 !important;
-          }
-          .ant-tabs-ink-bar {
-            height: 3px !important;
-            background: var(--premium-blue) !important;
-            border-radius: 3px 3px 0 0;
-          }
-          .ant-modal-content, .ant-modal-header {
-            background: var(--bg-pure-white) !important;
-          }
-          .ant-modal-title {
-            color: var(--text-slate-900) !important;
-            background: var(--bg-pure-white) !important;
-          }
-        `}</style>
+        >
+          <button
+            className="es-drawer__close"
+            onClick={() => setDrawerOpen(false)}
+            aria-label="Close"
+          >
+            <CloseOutlined />
+          </button>
+
+          {drawerOpen && (
+            <SettingsDrawerBody
+              activeTab={activeTab}
+              form={form}
+              editingItem={editingItem}
+              onSubmit={handleSave}
+            />
+          )}
+        </Drawer>
       </div>
     </MainLayout>
   );

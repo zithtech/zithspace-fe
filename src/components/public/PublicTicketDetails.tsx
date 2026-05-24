@@ -90,7 +90,7 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
             }}>
                 <div style={{ maxWidth: 1200, width: '100%', margin: '0 auto', display: 'flex', alignItems: 'center' }}>
                     <Text strong style={{ fontSize: 20, color: "#1677ff", fontWeight: 700 }}>
-                        Zithspace
+                        Zukvo
                     </Text>
                 </div>
             </div>
@@ -361,7 +361,7 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                 </div>
             </Content>
             <Footer style={{ textAlign: "center", background: 'transparent' }}>
-                Zithspace ©{new Date().getFullYear()} - Public Ticket View
+                Zukvo ©{new Date().getFullYear()} - Public Ticket View
             </Footer>
         </Layout>
     );

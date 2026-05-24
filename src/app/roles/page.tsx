@@ -29,6 +29,8 @@ import {
   Select,
   Avatar,
   List,
+  Segmented,
+  Skeleton,
 } from "antd";
 import {
   SafetyOutlined,
@@ -41,6 +43,19 @@ import {
   BorderOutlined,
   TeamOutlined,
   MinusCircleOutlined,
+  SearchOutlined,
+  ReloadOutlined,
+  KeyOutlined,
+  CrownOutlined,
+  AppstoreOutlined,
+  SettingOutlined,
+  ApartmentOutlined,
+  RocketOutlined,
+  RiseOutlined,
+  BankOutlined,
+  ApiOutlined,
+  EllipsisOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { RBACService, RBACRole, RBACPermission, RBACRoleDetail } from "@/services/rbacService";
@@ -93,7 +108,116 @@ const RESOURCE_LABELS: Record<string, string> = {
   time_tracking: "Time Tracking",
 };
 
-/** Logical grouping for permissions drawer */
+/** Access Control drawer — premium SaaS tab groups */
+interface AccessGroup {
+  key: string;
+  label: string;
+  icon: React.ReactNode;
+  resources: string[] | null; // null for 'all' or 'others'
+  accent: string;
+}
+
+const ACCESS_GROUPS: AccessGroup[] = [
+  {
+    key: 'all',
+    label: 'All',
+    icon: <AppstoreOutlined />,
+    resources: null,
+    accent: '#8b5cf6',
+  },
+  {
+    key: 'execution',
+    label: 'Execution Suite',
+    icon: <RocketOutlined />,
+    resources: ['ticket', 'document', 'project', 'squad'],
+    accent: '#3b82f6',
+  },
+  {
+    key: 'workforce',
+    label: 'Workforce Ops',
+    icon: <TeamOutlined />,
+    resources: ['daily_update', 'time_tracking', 'performance', 'escalation'],
+    accent: '#10b981',
+  },
+  {
+    key: 'growth',
+    label: 'Growth Suite',
+    icon: <RiseOutlined />,
+    resources: ['lead', 'proposal', 'pipeline'],
+    accent: '#f59e0b',
+  },
+  {
+    key: 'organization',
+    label: 'Organization Suite',
+    icon: <ApartmentOutlined />,
+    resources: ['client', 'role', 'user', 'org'],
+    accent: '#ec4899',
+  },
+  {
+    key: 'finance',
+    label: 'Finance Suite',
+    icon: <BankOutlined />,
+    resources: ['invoice', 'account', 'payroll', 'salary', 'reimbursement', 'vendor'],
+    accent: '#0ea5e9',
+  },
+  {
+    key: 'connect',
+    label: 'Connect',
+    icon: <ApiOutlined />,
+    resources: ['dashboard', 'integration', 'mail', 'calendar'],
+    accent: '#6366f1',
+  },
+  {
+    key: 'others',
+    label: 'Others',
+    icon: <EllipsisOutlined />,
+    resources: null,
+    accent: '#94a3b8',
+  },
+];
+
+const ASSIGNED_RESOURCES = new Set(
+  ACCESS_GROUPS.flatMap((g) => g.resources || []),
+);
+
+const getResourcesForGroup = (groupKey: string, allResources: string[]): string[] => {
+  if (groupKey === 'all') return allResources;
+  if (groupKey === 'others') {
+    return allResources.filter((r) => !ASSIGNED_RESOURCES.has(r));
+  }
+  const group = ACCESS_GROUPS.find((g) => g.key === groupKey);
+  return (group?.resources || []).filter((r) => allResources.includes(r));
+};
+
+/** Avatar gradient palette (consistent per user id) */
+const AVATAR_PALETTE: [string, string][] = [
+  ['#6366f1', '#8b5cf6'],
+  ['#0ea5e9', '#06b6d4'],
+  ['#10b981', '#14b8a6'],
+  ['#f59e0b', '#f97316'],
+  ['#ec4899', '#f43f5e'],
+  ['#8b5cf6', '#d946ef'],
+  ['#3b82f6', '#6366f1'],
+];
+
+const gradientFor = (seed: string): string => {
+  const idx =
+    Math.abs(seed.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) %
+    AVATAR_PALETTE.length;
+  const [a, b] = AVATAR_PALETTE[idx];
+  return `linear-gradient(135deg, ${a} 0%, ${b} 100%)`;
+};
+
+const initialsOf = (name: string): string =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || '?';
+
+/** Logical grouping (legacy — kept for reference) */
 const PERMISSION_MODULES = [
   {
     title: "Home",
@@ -118,6 +242,200 @@ const PERMISSION_MODULES = [
   }
 ];
 
+/* -------------------------------------------------------------------------- */
+/*                              Premium StatCard                              */
+/* -------------------------------------------------------------------------- */
+
+interface StatCardProps {
+  label: string;
+  value: React.ReactNode;
+  icon: React.ReactNode;
+  accent: string;
+  subtle?: string;
+  loading?: boolean;
+  chart?: React.ReactNode;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ label, value, icon, accent, subtle, loading, chart }) => (
+  <div className="rp-stat-card" style={{ ['--rp-accent' as any]: accent }}>
+    <div className="rp-stat-head">
+      <div
+        className="rp-stat-icon"
+        style={{
+          background: `${accent}14`,
+          color: accent,
+          boxShadow: `inset 0 0 0 1px ${accent}26`,
+        }}
+      >
+        {icon}
+      </div>
+      <Text className="rp-stat-label">{label}</Text>
+      <div className="rp-stat-value-wrap">
+        {loading ? (
+          <Skeleton.Input active size="small" style={{ width: 56, height: 22 }} />
+        ) : (
+          <span className="rp-stat-value">{value}</span>
+        )}
+      </div>
+    </div>
+    {subtle && <Text className="rp-stat-subtle">{subtle}</Text>}
+    {chart && <div className="rp-stat-chart">{chart}</div>}
+    <span
+      className="rp-stat-accent"
+      style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
+    />
+  </div>
+);
+
+interface MiniBarProps {
+  segments: { value: number; color: string; label: string }[];
+}
+const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  return (
+    <div className="rp-minibar">
+      <div className="rp-minibar-track">
+        {segments.map((s, i) => (
+          <Tooltip key={i} title={`${s.label}: ${s.value}`}>
+            <span
+              className="rp-minibar-seg"
+              style={{ width: `${(s.value / total) * 100}%`, background: s.color }}
+            />
+          </Tooltip>
+        ))}
+      </div>
+      <div className="rp-minibar-legend">
+        {segments.map((s, i) => (
+          <span key={i} className="rp-minibar-legend-item">
+            <span className="rp-minibar-dot" style={{ background: s.color }} />
+            {s.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
+/*                Role Form Content (used in Create & Edit modals)            */
+/* -------------------------------------------------------------------------- */
+
+const slugify = (s: string): string =>
+  s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s_-]/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/__+/g, '_');
+
+interface RoleFormContentProps {
+  form: any;
+  mode: 'create' | 'edit';
+  existingSlug?: string;
+}
+
+const RoleFormContent: React.FC<RoleFormContentProps> = ({ form, mode, existingSlug }) => {
+  const watchedName: string = Form.useWatch('name', form) || '';
+  const watchedDesc: string = Form.useWatch('description', form) || '';
+
+  const previewName = watchedName.trim() || (mode === 'create' ? 'New role name' : 'Role name');
+  const previewSlug = mode === 'edit'
+    ? existingSlug || slugify(watchedName)
+    : (watchedName ? slugify(watchedName) : 'auto_generated');
+  const initials = previewName
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'NR';
+
+  return (
+    <div className="rp-rm-body">
+      {/* Live preview tile */}
+      <div className="rp-rm-preview">
+        <div className="rp-rm-preview__label">Live preview</div>
+        <div className="rp-rm-preview__card">
+          <div className={`rp-rm-preview__avatar${watchedName ? '' : ' is-empty'}`}>
+            {initials}
+          </div>
+          <div className="rp-rm-preview__text">
+            <div className={`rp-rm-preview__name${watchedName ? '' : ' is-placeholder'}`}>
+              {previewName}
+            </div>
+            <div className="rp-rm-preview__slug">{previewSlug}</div>
+          </div>
+          {mode === 'edit' && (
+            <span className="rp-rm-preview__badge">EDITING</span>
+          )}
+        </div>
+      </div>
+
+      {/* Fields */}
+      <Form.Item
+        name="name"
+        label="Role name"
+        rules={[
+          { required: true, message: 'Please enter a role name' },
+          { max: 64, message: 'Keep it under 64 characters' },
+        ]}
+      >
+        <Input
+          placeholder="e.g. Project Manager"
+          className="rp-rm-input"
+          maxLength={64}
+          autoFocus
+          showCount
+        />
+      </Form.Item>
+
+      <Form.Item
+        name="description"
+        label={
+          <span>
+            Description{' '}
+            <span className="rp-rm-optional">(optional)</span>
+          </span>
+        }
+      >
+        <TextArea
+          rows={3}
+          placeholder="Describe what this role can do, who should be assigned, and any caveats…"
+          className="rp-rm-textarea"
+          maxLength={200}
+          showCount
+        />
+      </Form.Item>
+
+      {/* Helper hint */}
+      <div className="rp-rm-hint">
+        <SafetyOutlined className="rp-rm-hint__icon" />
+        <div>
+          <div className="rp-rm-hint__title">
+            {mode === 'create' ? "What's next?" : 'Heads up'}
+          </div>
+          <div className="rp-rm-hint__text">
+            {mode === 'create'
+              ? 'Permissions are configured separately. After creating, open the role and click the settings icon to grant access.'
+              : 'Renaming a role only changes its display name — the slug and assigned permissions stay the same.'}
+          </div>
+        </div>
+      </div>
+
+      {/* Live char count for description (visual only) */}
+      {watchedDesc.length > 0 && watchedDesc.length < 30 && (
+        <div className="rp-rm-tip">
+          Tip: a few more words help teammates understand this role.
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                 Page                                       */
+/* -------------------------------------------------------------------------- */
+
 export default function RolesPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -128,6 +446,10 @@ export default function RolesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // Filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleTypeFilter, setRoleTypeFilter] = useState<"all" | "system" | "custom">("all");
 
   // ── Create role modal ──────────────────────────────────────────────────────
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -148,6 +470,7 @@ export default function RolesPage() {
   const [allMembers, setAllMembers] = useState<Array<{ value: string; label: string }>>([]);
   const [assigningMemberId, setAssigningMemberId] = useState<string | undefined>(undefined);
   const [assignLoading, setAssignLoading] = useState(false);
+  const [memberSearch, setMemberSearch] = useState<string>('');
 
   // ── Permissions drawer ─────────────────────────────────────────────────────
   const [drawerRole, setDrawerRole] = useState<RBACRole | null>(null);
@@ -155,6 +478,8 @@ export default function RolesPage() {
   const [drawerSaving, setDrawerSaving] = useState(false);
   const [drawerLoadingPerms, setDrawerLoadingPerms] = useState(false);
   const [selectedPermIds, setSelectedPermIds] = useState<string[]>([]);
+  const [accessTab, setAccessTab] = useState<string>('all');
+  const [permSearch, setPermSearch] = useState<string>('');
 
   // ── Auto-clear messages ────────────────────────────────────────────────────
   useEffect(() => {
@@ -169,13 +494,41 @@ export default function RolesPage() {
 
   // Calculate role stats
   const roleStats = React.useMemo(() => {
+    const totalMembers = roles.reduce((sum, r) => sum + (r._count?.userRoles || 0), 0);
+    const assignedPerms = roles.reduce((sum, r) => sum + (r._count?.rolePermissions || 0), 0);
     return {
       total: roles.length,
       system: roles.filter(r => r.isSystem).length,
       custom: roles.filter(r => !r.isSystem).length,
-      permissions: Object.values(allPermissions).flat().length
+      permissions: Object.values(allPermissions).flat().length,
+      assignedPerms,
+      totalMembers,
     };
   }, [roles, allPermissions]);
+
+  // Filtered roles
+  const filteredRoles = React.useMemo(() => {
+    let list = [...roles];
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      list = list.filter(
+        r =>
+          r.name.toLowerCase().includes(q) ||
+          r.slug.toLowerCase().includes(q) ||
+          (r.description || "").toLowerCase().includes(q),
+      );
+    }
+    if (roleTypeFilter === "system") list = list.filter(r => r.isSystem);
+    else if (roleTypeFilter === "custom") list = list.filter(r => !r.isSystem);
+    return list;
+  }, [roles, searchTerm, roleTypeFilter]);
+
+  const hasActiveFilter = !!searchTerm || roleTypeFilter !== "all";
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setRoleTypeFilter("all");
+  };
 
   // ── Route guard ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -238,6 +591,7 @@ export default function RolesPage() {
     setMembersDrawerOpen(true);
     setRoleMembers([]);
     setAssigningMemberId(undefined);
+    setMemberSearch('');
     setMembersDrawerLoading(true);
     try {
       const [fullRole, selectMembers] = await Promise.all([
@@ -337,6 +691,8 @@ export default function RolesPage() {
     setDrawerRole(role);
     setDrawerOpen(true);
     setSelectedPermIds([]);
+    setAccessTab('all');
+    setPermSearch('');
     setDrawerLoadingPerms(true);
     try {
       const full = await RBACService.getRoleById(role.id);
@@ -389,44 +745,22 @@ export default function RolesPage() {
   // ── Columns ────────────────────────────────────────────────────────────────
   const columns: ColumnsType<RBACRole> = [
     {
-      title: "Role Name",
+      title: "Role",
       key: "name",
-      width: 250,
+      width: 280,
       render: (_, record) => (
-        <Space size={12}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              background: record.isSystem ? "var(--bg-blue-50)" : "var(--bg-green-50)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: record.isSystem ? "var(--premium-blue)" : "var(--text-holiday)",
-              fontSize: 18,
-            }}
-          >
-            <SafetyOutlined />
+        <div className="rp-row-name">
+          <div className={`rp-row-name__avatar${record.isSystem ? ' is-system' : ' is-custom'}`}>
+            {record.isSystem ? <LockOutlined /> : <CrownOutlined />}
           </div>
-          <div>
-            <Space size={4} align="center">
-              <Text strong style={{ fontSize: 14, letterSpacing: '-0.2px', color: 'var(--text-slate-900)' }}>
-                {record.name}
-              </Text>
-              {record.isSystem && (
-                <Tag bordered={false} color="blue" style={{ fontSize: 10, borderRadius: 4 }}>
-                  SYSTEM
-                </Tag>
-              )}
-            </Space>
-            <div style={{ marginTop: -2 }}>
-              <Text style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--text-slate-400)' }}>
-                {record.slug}
-              </Text>
+          <div className="rp-row-name__text">
+            <div className="rp-row-name__title-row">
+              <span className="rp-row-name__title">{record.name}</span>
+              {record.isSystem && <span className="rp-system-tag">SYSTEM</span>}
             </div>
+            <div className="rp-row-name__slug">{record.slug}</div>
           </div>
-        </Space>
+        </div>
       ),
     },
     {
@@ -434,54 +768,57 @@ export default function RolesPage() {
       dataIndex: "description",
       key: "description",
       render: (text) => (
-        <Text style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>
-          {text || "—"}
-        </Text>
+        <span className="rp-row-desc">{text || "—"}</span>
       ),
     },
     {
       title: "Permissions",
       key: "perms",
-      width: 110,
-      align: "center",
-      render: (_, record) => (
-        <Badge
-          count={record._count?.rolePermissions ?? 0}
-          style={{ backgroundColor: "var(--premium-blue)" }}
-          overflowCount={999}
-          showZero
-        />
-      ),
+      width: 130,
+      align: "center" as const,
+      render: (_, record) => {
+        const count = record._count?.rolePermissions ?? 0;
+        return (
+          <span className={`rp-pill is-perms${count === 0 ? ' is-empty' : ''}`}>
+            <KeyOutlined />
+            {count}
+          </span>
+        );
+      },
     },
     {
       title: "Members",
       key: "users",
-      width: 90,
-      align: "center",
-      render: (_, record) => (
-        <Space size={4}>
-          <UserOutlined style={{ color: "var(--text-slate-400)", fontSize: 12 }} />
-          <Text style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>{record._count?.userRoles ?? 0}</Text>
-        </Space>
-      ),
+      width: 110,
+      align: "center" as const,
+      render: (_, record) => {
+        const count = record._count?.userRoles ?? 0;
+        return (
+          <span className={`rp-pill is-members${count === 0 ? ' is-empty' : ''}`}>
+            <UserOutlined />
+            {count}
+          </span>
+        );
+      },
     },
     {
       title: "Status",
       key: "status",
-      width: 80,
+      width: 110,
       render: (_, record) => (
-        <Tag color={record.isActive ? "green" : "default"} style={{ fontSize: 10 }}>
-          {record.isActive ? "Active" : "Inactive"}
-        </Tag>
+        <span className={`rp-status-pill ${record.isActive ? 'is-active' : 'is-inactive'}`}>
+          <span className="rp-status-dot" />
+          {record.isActive ? 'Active' : 'Inactive'}
+        </span>
       ),
     },
     {
-      title: "Actions",
+      title: "",
       key: "actions",
-      width: 130,
-      align: "center",
+      width: 140,
+      align: "right" as const,
       render: (_, record) => (
-        <Space size={4}>
+        <div className="rp-row-actions">
           {canAssignRole && (
             <Tooltip title="Manage members">
               <Button
@@ -507,7 +844,7 @@ export default function RolesPage() {
             <Tooltip title="Edit permissions">
               <Button
                 type="text"
-                icon={<SafetyOutlined />}
+                icon={<SettingOutlined />}
                 size="small"
                 onClick={() => openPermissionsDrawer(record)}
               />
@@ -526,12 +863,7 @@ export default function RolesPage() {
               </Tooltip>
             </Popconfirm>
           )}
-          {record.isSystem && (
-            <Tooltip title="System roles cannot be deleted or renamed">
-              <LockOutlined style={{ color: "var(--text-slate-300)" }} />
-            </Tooltip>
-          )}
-        </Space>
+        </div>
       ),
     },
   ];
@@ -545,24 +877,23 @@ export default function RolesPage() {
 
   return (
     <MainLayout>
-      <div style={{
-        margin: "0 -24px",
-        backgroundColor: 'var(--bg-pure-white)',
-        minHeight: 'calc(100vh - 64px)'
-      }}>
+      <div className="rp-shell">
         <TimeTrackingHeader
-          style={{ padding: '8.5px 32px' }}
+          style={{
+            borderBottom: '1px solid var(--border-slate-200)',
+            padding: '8.5px 32px',
+            marginBottom: 20,
+          }}
           icon={<SafetyOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
           title="Roles & Permissions"
-          description="Manage and oversee system-wide access control and role assignments"
+          description="Manage and oversee system-wide access control and role assignments."
           extra={
             canCreateRole ? (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={() => setCreateModalOpen(true)}
-                size="large"
-                style={{ borderRadius: 8 }}
+                className="rp-primary-btn"
               >
                 Create Role
               </Button>
@@ -570,43 +901,115 @@ export default function RolesPage() {
           }
         />
 
-        <div style={{ padding: "24px 32px 32px 32px" }}>
+        <div className="rp-content">
+          {/* Premium stats grid */}
+          <div className="rp-stat-grid">
+            <StatCard
+              label="Total Roles"
+              value={roleStats.total}
+              icon={<SafetyOutlined />}
+              accent="#3b82f6"
+              subtle="Across all access tiers"
+              loading={loading && roleStats.total === 0}
+              chart={
+                roleStats.total > 0 ? (
+                  <MiniBar
+                    segments={[
+                      {
+                        value: roleStats.system,
+                        color: '#3b82f6',
+                        label: `${roleStats.system} system`,
+                      },
+                      {
+                        value: roleStats.custom,
+                        color: '#8b5cf6',
+                        label: `${roleStats.custom} custom`,
+                      },
+                    ]}
+                  />
+                ) : null
+              }
+            />
 
-          {/* Stats Cards */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={24} sm={12} lg={6}>
-              <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
-                <Space direction="vertical" size={4}>
-                  <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Total Roles</Text>
-                  <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-slate-900)' }}>{roleStats.total}</Title>
-                </Space>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
-                <Space direction="vertical" size={4}>
-                  <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>System Roles</Text>
-                  <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--premium-blue)' }}>{roleStats.system}</Title>
-                </Space>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
-                <Space direction="vertical" size={4}>
-                  <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Custom Roles</Text>
-                  <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-holiday)' }}>{roleStats.custom}</Title>
-                </Space>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
-                <Space direction="vertical" size={4}>
-                  <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Total Permissions</Text>
-                  <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--warning-yellow, #faad14)' }}>{roleStats.permissions}</Title>
-                </Space>
-              </Card>
-            </Col>
-          </Row>
+            <StatCard
+              label="System Roles"
+              value={roleStats.system}
+              icon={<LockOutlined />}
+              accent="#3b82f6"
+              subtle="Locked baseline roles"
+              loading={loading && roleStats.total === 0}
+              chart={
+                roleStats.total > 0 ? (
+                  <div className="rp-cv-row">
+                    <KeyOutlined style={{ fontSize: 11 }} />
+                    <span>
+                      <strong>
+                        {Math.round((roleStats.system / Math.max(roleStats.total, 1)) * 100)}%
+                      </strong>{' '}
+                      of roles
+                    </span>
+                  </div>
+                ) : null
+              }
+            />
+
+            <StatCard
+              label="Custom Roles"
+              value={roleStats.custom}
+              icon={<ApartmentOutlined />}
+              accent="#8b5cf6"
+              subtle="Created by your team"
+              loading={loading && roleStats.total === 0}
+              chart={
+                roleStats.total > 0 ? (
+                  <div className="rp-cv-row">
+                    <TeamOutlined style={{ fontSize: 11 }} />
+                    <span>
+                      <strong>{roleStats.totalMembers}</strong> total members
+                    </span>
+                  </div>
+                ) : null
+              }
+            />
+
+            <StatCard
+              label="Permissions"
+              value={roleStats.permissions}
+              icon={<KeyOutlined />}
+              accent="#f59e0b"
+              subtle={
+                roleStats.permissions > 0
+                  ? `${roleStats.assignedPerms} assigned across roles`
+                  : 'No permissions defined'
+              }
+              loading={loading && roleStats.permissions === 0}
+              chart={
+                roleStats.total > 0 && roleStats.permissions > 0 ? (
+                  <div className="rp-progress-row">
+                    <div className="rp-progress-track">
+                      <span
+                        className="rp-progress-fill"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.round(
+                              (roleStats.assignedPerms /
+                                Math.max(roleStats.permissions * roleStats.total, 1)) *
+                                100,
+                            ),
+                          )}%`,
+                          background: 'linear-gradient(90deg, #f59e0b, #fbbf24)',
+                        }}
+                      />
+                    </div>
+                    <span className="rp-progress-label">
+                      {roleStats.assignedPerms}/{roleStats.permissions * roleStats.total}
+                    </span>
+                  </div>
+                ) : null
+              }
+            />
+          </div>
 
           {/* Alerts */}
           {error && (
@@ -615,7 +1018,7 @@ export default function RolesPage() {
               type="error"
               showIcon
               closable
-              style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
+              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
               onClose={() => setError("")}
             />
           )}
@@ -625,261 +1028,493 @@ export default function RolesPage() {
               type="success"
               showIcon
               closable
-              style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
+              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
               onClose={() => setSuccess("")}
             />
           )}
 
-          {/* Roles Table Container */}
-          <Card
-            bordered={false}
-            style={{
-              marginBottom: 16,
-              borderRadius: 12,
-              border: '1px solid var(--border-slate-100)',
-              boxShadow: 'none',
-              background: 'var(--bg-pure-white)'
-            }}
-            styles={{ body: { padding: 0 } }}
-          >
+          {/* Roles panel */}
+          <div className="rp-panel">
+            {/* Single-row toolbar */}
+            <div className="rp-toolbar">
+              <Input
+                className="rp-search"
+                prefix={
+                  <SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 6 }} />
+                }
+                placeholder="Search by role name, slug, or description…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                allowClear
+              />
+
+              <Segmented
+                className="rp-segmented"
+                value={roleTypeFilter}
+                onChange={(v) => setRoleTypeFilter(v as any)}
+                options={[
+                  {
+                    label: (
+                      <span className="rp-seg-opt">
+                        <AppstoreOutlined />
+                        All
+                        <span className="rp-seg-pill">{roleStats.total}</span>
+                      </span>
+                    ),
+                    value: 'all',
+                  },
+                  {
+                    label: (
+                      <span className="rp-seg-opt">
+                        <LockOutlined />
+                        System
+                        <span className="rp-seg-pill">{roleStats.system}</span>
+                      </span>
+                    ),
+                    value: 'system',
+                  },
+                  {
+                    label: (
+                      <span className="rp-seg-opt">
+                        <CrownOutlined />
+                        Custom
+                        <span className="rp-seg-pill">{roleStats.custom}</span>
+                      </span>
+                    ),
+                    value: 'custom',
+                  },
+                ]}
+              />
+
+              {hasActiveFilter && (
+                <Tooltip title="Clear all filters">
+                  <Button
+                    type="text"
+                    icon={<ReloadOutlined />}
+                    onClick={handleClearFilters}
+                    className="rp-clear-btn"
+                  >
+                    Reset
+                  </Button>
+                </Tooltip>
+              )}
+
+              <div className="rp-toolbar__divider" />
+
+              <Text className="rp-count-text">
+                <strong>{filteredRoles.length}</strong> of {roleStats.total}
+              </Text>
+            </div>
+
+            {/* Table */}
             <Table
+              className="premium-table rp-table"
               columns={columns}
-              dataSource={roles}
+              dataSource={filteredRoles}
               rowKey="id"
               loading={loading}
               pagination={false}
               scroll={{ x: 1000 }}
             />
-          </Card>
+          </div>
         </div>
 
-        {/* ── Create Role Modal ── */}
+        {/* ── Create Role Modal (premium) ── */}
         <Modal
-          title="Create New Role"
+          className="rp-role-modal"
           open={createModalOpen}
           onCancel={() => {
             setCreateModalOpen(false);
             createForm.resetFields();
           }}
           footer={null}
-          width={480}
+          closable={false}
+          width={520}
+          centered
+          destroyOnHidden
         >
-          <Form form={createForm} layout="vertical" onFinish={handleCreateRole} style={{ marginTop: 16 }}>
-            <Form.Item
-              name="name"
-              label="Role Name"
-              rules={[{ required: true, message: "Please enter a role name" }]}
+          <div className="rp-rm-hero">
+            <div className="rp-rm-hero__icon">
+              <PlusOutlined />
+            </div>
+            <div className="rp-rm-hero__text">
+              <div className="rp-rm-hero__eyebrow">Roles &amp; Permissions</div>
+              <div className="rp-rm-hero__title">Create new role</div>
+              <div className="rp-rm-hero__sub">
+                Define a reusable bundle of permissions for your team.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="rp-rm-hero__close"
+              onClick={() => {
+                setCreateModalOpen(false);
+                createForm.resetFields();
+              }}
+              aria-label="Close"
             >
-              <Input placeholder="e.g. Project Manager" />
-            </Form.Item>
-            <Form.Item name="description" label="Description">
-              <TextArea
-                rows={3}
-                placeholder="Describe what this role can do..."
-                maxLength={200}
-                showCount
-              />
-            </Form.Item>
-            <div style={{ textAlign: "right" }}>
-              <Space>
-                <Button
-                  onClick={() => {
-                    setCreateModalOpen(false);
-                    createForm.resetFields();
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button type="primary" htmlType="submit" loading={createLoading}>
-                  Create Role
-                </Button>
-              </Space>
+              <CloseOutlined />
+            </button>
+          </div>
+
+          <Form form={createForm} layout="vertical" onFinish={handleCreateRole} requiredMark={false}>
+            <RoleFormContent form={createForm} mode="create" />
+
+            <div className="rp-rm-footer">
+              <Button
+                onClick={() => {
+                  setCreateModalOpen(false);
+                  createForm.resetFields();
+                }}
+                className="rp-rm-btn-ghost"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={createLoading}
+                icon={<PlusOutlined />}
+                className="rp-rm-btn-primary"
+              >
+                Create Role
+              </Button>
             </div>
           </Form>
         </Modal>
 
-        {/* ── Edit Role Modal ── */}
+        {/* ── Edit Role Modal (premium) ── */}
         <Modal
-          title={`Edit Role — ${editingRole?.name}`}
+          className="rp-role-modal"
           open={editModalOpen}
           onCancel={() => setEditModalOpen(false)}
           footer={null}
-          width={480}
+          closable={false}
+          width={520}
+          centered
+          destroyOnHidden
         >
-          <Form form={editForm} layout="vertical" onFinish={handleEditRole} style={{ marginTop: 16 }}>
-            <Form.Item
-              name="name"
-              label="Role Name"
-              rules={[{ required: true, message: "Please enter a role name" }]}
+          <div className="rp-rm-hero is-edit">
+            <div className="rp-rm-hero__icon">
+              <EditOutlined />
+            </div>
+            <div className="rp-rm-hero__text">
+              <div className="rp-rm-hero__eyebrow">Editing role</div>
+              <div className="rp-rm-hero__title">{editingRole?.name || 'Edit role'}</div>
+              <div className="rp-rm-hero__sub">
+                Update the display name &amp; description. Permissions are unchanged.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="rp-rm-hero__close"
+              onClick={() => setEditModalOpen(false)}
+              aria-label="Close"
             >
-              <Input />
-            </Form.Item>
-            <Form.Item name="description" label="Description">
-              <TextArea rows={3} maxLength={200} showCount />
-            </Form.Item>
-            <div style={{ textAlign: "right" }}>
-              <Space>
-                <Button onClick={() => setEditModalOpen(false)}>Cancel</Button>
-                <Button type="primary" htmlType="submit" loading={editLoading}>
-                  Save Changes
-                </Button>
-              </Space>
+              <CloseOutlined />
+            </button>
+          </div>
+
+          <Form form={editForm} layout="vertical" onFinish={handleEditRole} requiredMark={false}>
+            <RoleFormContent
+              form={editForm}
+              mode="edit"
+              existingSlug={editingRole?.slug}
+            />
+
+            <div className="rp-rm-footer">
+              <Button onClick={() => setEditModalOpen(false)} className="rp-rm-btn-ghost">
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={editLoading}
+                className="rp-rm-btn-primary"
+              >
+                Save Changes
+              </Button>
             </div>
           </Form>
         </Modal>
 
-        {/* ── Permissions Drawer ── */}
+        {/* ── Access Control Drawer (premium) ── */}
         <Drawer
-          title={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{
-                width: 48,
-                height: 48,
-                borderRadius: 12,
-                background: 'var(--bg-blue-50)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--premium-blue)',
-                fontSize: 24,
-                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-              }}>
-                <SafetyOutlined />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <Space size={8}>
-                  <Text strong style={{ fontSize: 20, color: 'var(--text-slate-900)', letterSpacing: '-0.5px' }}>
-                    Access Control: {drawerRole?.name}
-                  </Text>
-                  {drawerRole?.isSystem && (
-                    <Tag color="blue" bordered={false} style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>SYSTEM ROLE</Tag>
-                  )}
-                </Space>
-                <Text style={{ fontSize: 13, fontWeight: 400, marginTop: 2, color: 'var(--text-slate-500)' }}>
-                  Define granular permissions and operational limits for this role.
-                </Text>
-              </div>
-            </div>
-          }
+          className="rp-acc-drawer"
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
-          width={820}
+          width={1080}
+          closable={false}
           styles={{
-            header: { borderBottom: '1px solid var(--border-slate-100)', padding: '24px 32px', background: 'var(--bg-pure-white)' },
-            body: { padding: '0 0 80px 0', background: 'var(--bg-secondary)' },
-            footer: { borderTop: '1px solid var(--border-slate-100)', padding: '16px 32px', background: 'var(--bg-pure-white)' }
+            header: { display: 'none' },
+            body: { padding: 0, background: 'var(--bg-pure-white)' },
+            content: { background: 'var(--bg-pure-white)' },
+            footer: { padding: 0, border: 'none' },
           }}
           footer={
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <Button onClick={() => setDrawerOpen(false)} size="large" style={{ borderRadius: 10, padding: '0 24px' }}>
-                Cancel
-              </Button>
-              {canUpdateRole && (
-                <Button
-                  type="primary"
-                  size="large"
-                  loading={drawerSaving}
-                  onClick={handleSavePermissions}
-                  style={{ borderRadius: 10, padding: '0 32px', fontWeight: 600, background: 'var(--premium-blue)' }}
-                >
-                  Save Configuration
+            <div className="rp-acc-footer">
+              <div className="rp-acc-footer__meta">
+                <KeyOutlined />
+                <span>
+                  <strong>{selectedPermIds.length}</strong> permission{selectedPermIds.length === 1 ? '' : 's'} selected
+                </span>
+              </div>
+              <div className="rp-acc-footer__actions">
+                <Button onClick={() => setDrawerOpen(false)} className="rp-acc-btn-ghost">
+                  Cancel
                 </Button>
-              )}
+                {canUpdateRole && (
+                  <Button
+                    type="primary"
+                    loading={drawerSaving}
+                    onClick={handleSavePermissions}
+                    className="rp-acc-btn-primary"
+                  >
+                    Save Configuration
+                  </Button>
+                )}
+              </div>
             </div>
           }
         >
+          {/* Hero header */}
+          <div className="rp-acc-hero">
+            <div className="rp-acc-hero__icon">
+              <SafetyOutlined />
+            </div>
+            <div className="rp-acc-hero__text">
+              <div className="rp-acc-hero__eyebrow">Access Control</div>
+              <div className="rp-acc-hero__title-row">
+                <span className="rp-acc-hero__title">{drawerRole?.name || '—'}</span>
+                {drawerRole?.isSystem && <span className="rp-acc-hero__badge">SYSTEM ROLE</span>}
+              </div>
+              <div className="rp-acc-hero__sub">
+                Define granular permissions and operational limits for this role.
+              </div>
+            </div>
+            <button
+              className="rp-acc-hero__close"
+              onClick={() => setDrawerOpen(false)}
+              aria-label="Close"
+            >
+              <CloseOutlined />
+            </button>
+          </div>
+
           {drawerLoadingPerms ? (
-            <div style={{ textAlign: "center", paddingTop: 80 }}>
+            <div style={{ textAlign: 'center', paddingTop: 80 }}>
               <Spin tip="Loading permissions">
                 <div style={{ height: 40 }} />
               </Spin>
             </div>
           ) : (
-            <div>
-              {/* Selection Toolbar */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "12px 24px",
-                  background: "var(--bg-slate-50)",
-                  borderBottom: "1px solid var(--border-slate-100)",
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 1,
-                  marginBottom: 16
-                }}
-              >
-                <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-900)' }}>
-                  <Badge
-                    count={selectedPermIds.length}
-                    style={{ backgroundColor: 'var(--premium-blue)', marginRight: 8 }}
-                  />
-                  Permissions Selected
-                </Text>
-                {canUpdateRole && (
-                  <Space size={16}>
-                    <Button
-                      type="link"
-                      size="small"
-                      icon={<CheckSquareOutlined />}
-                      onClick={selectAll}
-                      style={{ fontSize: 12, padding: 0 }}
-                    >
-                      Select All
-                    </Button>
-                    <Button
-                      type="link"
-                      size="small"
-                      icon={<BorderOutlined />}
-                      onClick={clearAll}
-                      style={{ fontSize: 12, padding: 0, color: '#ff4d4f' }}
-                    >
-                      Clear All
-                    </Button>
-                  </Space>
-                )}
-              </div>
+            (() => {
+              const allResources = Object.keys(allPermissions);
+              const tabResources = getResourcesForGroup(accessTab, allResources);
+              const searchQ = permSearch.trim().toLowerCase();
 
-              {/* Permission Groups */}
-              <div style={{ padding: '24px 32px' }}>
-                {PERMISSION_MODULES.map((module) => {
-                  const moduleResources = module.resources.filter(r => allPermissions[r]);
-                  if (moduleResources.length === 0) return null;
+              // Filter perms by search across the current tab
+              const filteredByResource: Record<string, RBACPermission[]> = {};
+              tabResources.forEach((res) => {
+                const perms = allPermissions[res] || [];
+                if (!searchQ) {
+                  filteredByResource[res] = perms;
+                  return;
+                }
+                const label = (RESOURCE_LABELS[res] || res).toLowerCase();
+                if (label.includes(searchQ)) {
+                  filteredByResource[res] = perms;
+                  return;
+                }
+                const matching = perms.filter(
+                  (p) =>
+                    p.name.toLowerCase().includes(searchQ) ||
+                    p.action.toLowerCase().includes(searchQ) ||
+                    (p.description || '').toLowerCase().includes(searchQ),
+                );
+                if (matching.length > 0) filteredByResource[res] = matching;
+              });
 
-                  return (
-                    <div key={module.title} style={{ marginBottom: 40 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                        <div style={{ width: 6, height: 24, background: 'var(--premium-blue)', borderRadius: 3 }} />
-                        <Title level={4} style={{ margin: 0, fontSize: 18, color: 'var(--text-slate-900)', letterSpacing: '-0.3px' }}>
-                          {module.title} Module
-                        </Title>
+              const visibleResources = Object.keys(filteredByResource);
+
+              // Counts per group for tab pills
+              const groupCounts: Record<string, number> = {};
+              ACCESS_GROUPS.forEach((g) => {
+                const res = getResourcesForGroup(g.key, allResources);
+                groupCounts[g.key] = res.reduce(
+                  (sum, r) => sum + (allPermissions[r]?.length || 0),
+                  0,
+                );
+              });
+
+              const totalPerms = allResources.reduce(
+                (s, r) => s + (allPermissions[r]?.length || 0),
+                0,
+              );
+              const selectedInTabPerms = tabResources.reduce((sum, r) => {
+                const perms = allPermissions[r] || [];
+                return sum + perms.filter((p) => selectedPermIds.includes(p.id)).length;
+              }, 0);
+              const tabTotalPerms = tabResources.reduce(
+                (sum, r) => sum + (allPermissions[r]?.length || 0),
+                0,
+              );
+
+              const handleSelectTab = () => {
+                const ids = tabResources.flatMap((r) =>
+                  (allPermissions[r] || []).map((p) => p.id),
+                );
+                setSelectedPermIds((prev) => [...new Set([...prev, ...ids])]);
+              };
+              const handleClearTab = () => {
+                const ids = new Set(
+                  tabResources.flatMap((r) =>
+                    (allPermissions[r] || []).map((p) => p.id),
+                  ),
+                );
+                setSelectedPermIds((prev) => prev.filter((id) => !ids.has(id)));
+              };
+
+              return (
+                <div className="rp-acc-body">
+                  {/* Sticky tabs + search + toolbar */}
+                  <div className="rp-acc-sticky">
+                    {/* Tabs row */}
+                    <div className="rp-acc-tabs">
+                      {ACCESS_GROUPS.map((g) => {
+                        const count = groupCounts[g.key] || 0;
+                        const isActive = accessTab === g.key;
+                        return (
+                          <button
+                            key={g.key}
+                            type="button"
+                            className={`rp-acc-tab${isActive ? ' is-active' : ''}`}
+                            onClick={() => setAccessTab(g.key)}
+                            style={{ ['--tab-accent' as any]: g.accent }}
+                          >
+                            <span className="rp-acc-tab__icon">{g.icon}</span>
+                            <span className="rp-acc-tab__label">{g.label}</span>
+                            <span className="rp-acc-tab__count">{count}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Search + toolbar */}
+                    <div className="rp-acc-toolbar">
+                      <Input
+                        className="rp-acc-search"
+                        prefix={
+                          <SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 6 }} />
+                        }
+                        placeholder="Search permission by name, action, or description…"
+                        value={permSearch}
+                        onChange={(e) => setPermSearch(e.target.value)}
+                        allowClear
+                      />
+
+                      <div className="rp-acc-toolbar__meta">
+                        <span className="rp-acc-pill">
+                          <KeyOutlined />
+                          <strong>{selectedInTabPerms}</strong>
+                          <span className="rp-acc-pill__sep">/</span>
+                          {tabTotalPerms} in tab
+                        </span>
+                        <span className="rp-acc-pill is-muted">
+                          <span className="rp-acc-pill__dot" />
+                          <strong>{selectedPermIds.length}</strong>
+                          <span className="rp-acc-pill__sep">/</span>
+                          {totalPerms} total
+                        </span>
                       </div>
 
-                      {moduleResources.map((resource) => {
-                        const perms = allPermissions[resource];
+                      {canUpdateRole && (
+                        <div className="rp-acc-toolbar__actions">
+                          <Button
+                            size="small"
+                            icon={<CheckSquareOutlined />}
+                            onClick={accessTab === 'all' ? selectAll : handleSelectTab}
+                            className="rp-acc-link"
+                          >
+                            Select {accessTab === 'all' ? 'all' : 'tab'}
+                          </Button>
+                          <Button
+                            size="small"
+                            icon={<BorderOutlined />}
+                            onClick={accessTab === 'all' ? clearAll : handleClearTab}
+                            className="rp-acc-link is-danger"
+                          >
+                            Clear {accessTab === 'all' ? 'all' : 'tab'}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Tab progress bar */}
+                    {tabTotalPerms > 0 && (
+                      <div className="rp-acc-progress">
+                        <div className="rp-acc-progress__track">
+                          <span
+                            className="rp-acc-progress__fill"
+                            style={{
+                              width: `${(selectedInTabPerms / tabTotalPerms) * 100}%`,
+                              background: `linear-gradient(90deg, ${
+                                ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
+                                '#8b5cf6'
+                              }, ${
+                                ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
+                                '#8b5cf6'
+                              }aa)`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Resource groups */}
+                  <div className="rp-acc-groups">
+                    {visibleResources.length === 0 ? (
+                      <div className="rp-acc-empty">
+                        <SearchOutlined className="rp-acc-empty__icon" />
+                        <div className="rp-acc-empty__title">
+                          {permSearch ? 'No permissions match your search' : 'No permissions in this group'}
+                        </div>
+                        <div className="rp-acc-empty__sub">
+                          {permSearch
+                            ? 'Try a different keyword or switch tabs.'
+                            : 'This tab has no resources to manage.'}
+                        </div>
+                      </div>
+                    ) : (
+                      visibleResources.map((resource) => {
+                        const perms = filteredByResource[resource];
+                        const allPermsForRes = allPermissions[resource];
                         const label = RESOURCE_LABELS[resource] || resource;
-                        const selectedCount = perms.filter((p) => selectedPermIds.includes(p.id)).length;
-                        const allInGroup = selectedCount === perms.length;
+                        const selectedCount = allPermsForRes.filter((p) =>
+                          selectedPermIds.includes(p.id),
+                        ).length;
+                        const allInGroup = selectedCount === allPermsForRes.length;
                         const someInGroup = selectedCount > 0 && !allInGroup;
 
+                        // Sub-grouping logic (preserved)
                         const subGroups: Record<string, RBACPermission[]> = {};
-                        perms.forEach(p => {
+                        perms.forEach((p) => {
                           const parts = p.name.split('.');
                           let subKey = `${label} Core`;
-                          
                           if (p.name === 'time_tracking.manage_time') {
                             subKey = 'Team Module';
-                          }
-                          // Handle sub-modules (e.g., ticket.bucket.read -> Bucket Module)
-                          else if (parts.length > 2) {
-                            const subName = parts[1].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                          } else if (parts.length > 2) {
+                            const subName = parts[1]
+                              .split('_')
+                              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                              .join(' ');
                             subKey = `${subName} ${label.includes('Settings') ? 'Config' : 'Module'}`;
-                          } 
-                          // Handle merged modules (e.g., bug.read inside ticket resource)
-                          else if (parts[0] !== resource) {
-                            const subName = parts[0].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                          } else if (parts[0] !== resource) {
+                            const subName = parts[0]
+                              .split('_')
+                              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                              .join(' ');
                             subKey = `${subName} Module`;
                           }
                           if (!subGroups[subKey]) subGroups[subKey] = [];
@@ -887,236 +1522,51 @@ export default function RolesPage() {
                         });
 
                         return (
-                          <div
-                            key={resource}
-                            style={{
-                              marginBottom: 24,
-                              border: '1px solid var(--border-slate-200)',
-                              borderRadius: 16,
-                              overflow: 'hidden',
-                              background: 'var(--bg-pure-white)',
-                              boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
-                            }}
-                          >
-                            {/* Group Header */}
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: 'space-between',
-                                padding: "14px 20px",
-                                background: 'var(--bg-slate-50)',
-                                borderBottom: '1px solid var(--border-slate-100)'
-                              }}
-                            >
-                              <Space size={14}>
-                                <Checkbox
-                                  checked={allInGroup}
-                                  indeterminate={someInGroup}
-                                  onChange={() => toggleResource(perms)}
-                                  disabled={!canUpdateRole}
-                                  style={{ transform: 'scale(1.1)' }}
-                                />
-                                <Text strong style={{ fontSize: 15, color: 'var(--text-slate-900)' }}>
-                                  {label}
-                                </Text>
-                              </Space>
-                              <Badge
-                                count={`${selectedCount} / ${perms.length}`}
-                                style={{ backgroundColor: selectedCount === perms.length ? 'var(--text-holiday)' : 'var(--text-slate-400)', boxShadow: 'none' }}
+                          <div key={resource} className="rp-acc-card">
+                            <div className="rp-acc-card__header">
+                              <Checkbox
+                                checked={allInGroup}
+                                indeterminate={someInGroup}
+                                onChange={() => toggleResource(allPermsForRes)}
+                                disabled={!canUpdateRole}
+                                className="rp-acc-card__check"
                               />
-                            </div>
-
-                            {/* Sub-groups within Resource */}
-                            <div style={{ padding: '20px' }}>
-                              {Object.entries(subGroups).map(([subTitle, subPerms], idx) => (
-                                <div key={subTitle} style={{ marginBottom: idx === Object.entries(subGroups).length - 1 ? 0 : 24 }}>
-                                  <div style={{ marginBottom: 12, paddingBottom: 8, borderBottom: '1px dashed var(--border-slate-100)' }}>
-                                    <Text strong style={{ fontSize: 13, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
-                                      {subTitle}
-                                    </Text>
-                                  </div>
-                                  <Row gutter={[16, 16]}>
-                                    {subPerms.map((perm) => (
-                                      <Col key={perm.id} xs={24} sm={12} lg={8}>
-                                        <div 
-                                          onClick={() => canUpdateRole && togglePermission(perm.id)}
-                                          style={{
-                                            padding: '10px 14px',
-                                            borderRadius: 10,
-                                            border: '1px solid transparent',
-                                            background: selectedPermIds.includes(perm.id) ? 'var(--bg-blue-50)' : 'var(--bg-slate-50)',
-                                            borderColor: selectedPermIds.includes(perm.id) ? 'var(--border-blue-200)' : 'transparent',
-                                            cursor: canUpdateRole ? 'pointer' : 'default',
-                                            transition: 'all 0.2s ease',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 10
-                                          }}
-                                        >
-                                          <Checkbox
-                                            checked={selectedPermIds.includes(perm.id)}
-                                            disabled={!canUpdateRole}
-                                            style={{ pointerEvents: 'none' }}
-                                          />
-                                          <div style={{ flex: 1, overflow: 'hidden' }}>
-                                            <Text strong style={{ fontSize: 13, display: 'block', color: selectedPermIds.includes(perm.id) ? 'var(--premium-blue)' : 'var(--text-slate-700)' }}>
-                                              {(() => {
-                                                const name = perm.name;
-                                                const action = perm.action;
-                                                
-                                                // If it's a bug permission, make it explicit
-                                                if (name.startsWith('bug.')) {
-                                                  if (action.includes('trash.')) {
-                                                    const subAction = action.split('.')[1];
-                                                    return `Bug ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
-                                                  }
-                                                  if (action.includes('archive.')) {
-                                                    const subAction = action.split('.')[1];
-                                                    return `Bug Archive ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
-                                                  }
-                                                  return `Bug ${action.charAt(0).toUpperCase() + action.slice(1)}`;
-                                                }
-
-                                                // Default formatting
-                                                if (action.includes('.')) {
-                                                  return action.split('.').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-                                                }
-                                                return action.charAt(0).toUpperCase() + action.slice(1);
-                                              })()}
-                                            </Text>
-                                            {perm.description && (
-                                              <Text type="secondary" style={{ fontSize: 11, display: 'block' }} ellipsis>
-                                                {perm.description}
-                                              </Text>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </Col>
-                                    ))}
-                                  </Row>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-
-                {/* Handle any resources not assigned to a module */}
-                {Object.entries(allPermissions)
-                  .filter(([res]) => !PERMISSION_MODULES.some(m => m.resources.includes(res)))
-                  .length > 0 && (
-                    <div style={{ marginBottom: 40 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                        <div style={{ width: 6, height: 24, background: 'var(--text-slate-400)', borderRadius: 3 }} />
-                        <Title level={4} style={{ margin: 0, fontSize: 18, color: 'var(--text-slate-400)', letterSpacing: '-0.3px' }}>
-                          Other Permissions
-                        </Title>
-                      </div>
-                      {Object.entries(allPermissions)
-                        .filter(([res]) => !PERMISSION_MODULES.some(m => m.resources.includes(res)))
-                        .map(([resource, perms]) => {
-                          const label = RESOURCE_LABELS[resource] || resource;
-                          const selectedCount = perms.filter((p) => selectedPermIds.includes(p.id)).length;
-                          const allInGroup = selectedCount === perms.length;
-                          const someInGroup = selectedCount > 0 && !allInGroup;
-
-                          // Group by sub-resource
-                          const subGroups: Record<string, RBACPermission[]> = {};
-                          perms.forEach(p => {
-                            const parts = p.name.split('.');
-                            let subKey = `${label} Core`;
-                            if (p.name === 'time_tracking.manage_time') {
-                              subKey = 'Team Module';
-                            }
-                            else if (parts.length > 2) {
-                              const subName = parts[1].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-                              subKey = `${subName} ${label.includes('Settings') ? 'Config' : 'Module'}`;
-                            }
-                            if (!subGroups[subKey]) subGroups[subKey] = [];
-                            subGroups[subKey].push(p);
-                          });
-
-                          return (
-                            <div
-                              key={resource}
-                              style={{
-                                marginBottom: 24,
-                                border: '1px solid var(--border-slate-200)',
-                                borderRadius: 16,
-                                overflow: 'hidden',
-                                background: 'var(--bg-pure-white)',
-                                boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
-                              }}
-                            >
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: 'space-between',
-                                  padding: "14px 20px",
-                                  background: 'var(--bg-slate-50)',
-                                  borderBottom: '1px solid var(--border-slate-100)'
-                                }}
-                              >
-                                <Space size={14}>
-                                  <Checkbox
-                                    checked={allInGroup}
-                                    indeterminate={someInGroup}
-                                    onChange={() => toggleResource(perms)}
-                                    disabled={!canUpdateRole}
-                                    style={{ transform: 'scale(1.1)' }}
-                                  />
-                                  <Text strong style={{ fontSize: 15, color: 'var(--text-slate-900)' }}>
-                                    {label}
-                                  </Text>
-                                </Space>
-                                <Badge
-                                  count={`${selectedCount} / ${perms.length}`}
-                                  style={{ backgroundColor: selectedCount === perms.length ? 'var(--text-holiday)' : 'var(--text-slate-400)', boxShadow: 'none' }}
-                                />
+                              <div className="rp-acc-card__text">
+                                <div className="rp-acc-card__title">{label}</div>
+                                <div className="rp-acc-card__sub">{resource}</div>
                               </div>
-                              <div style={{ padding: '20px' }}>
-                                {Object.entries(subGroups).map(([subTitle, subPerms], idx) => (
-                                  <div key={subTitle} style={{ marginBottom: idx === Object.entries(subGroups).length - 1 ? 0 : 24 }}>
-                                    <div style={{ marginBottom: 12, paddingBottom: 8, borderBottom: '1px dashed var(--border-slate-100)' }}>
-                                      <Text strong style={{ fontSize: 13, color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
-                                        {subTitle}
-                                      </Text>
-                                    </div>
-                                    <Row gutter={[16, 16]}>
-                                      {subPerms.map((perm) => (
+                              <span
+                                className={`rp-acc-card__count${
+                                  allInGroup ? ' is-full' : someInGroup ? ' is-partial' : ''
+                                }`}
+                              >
+                                {selectedCount} / {allPermsForRes.length}
+                              </span>
+                            </div>
+
+                            <div className="rp-acc-card__body">
+                              {Object.entries(subGroups).map(([subTitle, subPerms]) => (
+                                <div key={subTitle} className="rp-acc-subgroup">
+                                  <div className="rp-acc-subgroup__title">{subTitle}</div>
+                                  <Row gutter={[10, 10]}>
+                                    {subPerms.map((perm) => {
+                                      const isSelected = selectedPermIds.includes(perm.id);
+                                      return (
                                         <Col key={perm.id} xs={24} sm={12} lg={8}>
-                                          <div 
+                                          <div
                                             onClick={() => canUpdateRole && togglePermission(perm.id)}
-                                            style={{
-                                              padding: '10px 14px',
-                                              borderRadius: 10,
-                                              border: '1px solid transparent',
-                                              background: selectedPermIds.includes(perm.id) ? 'var(--bg-slate-100)' : 'var(--bg-slate-50)',
-                                              borderColor: selectedPermIds.includes(perm.id) ? 'var(--border-slate-200)' : 'transparent',
-                                              cursor: canUpdateRole ? 'pointer' : 'default',
-                                              transition: 'all 0.2s ease',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: 10
-                                            }}
+                                            className={`rp-acc-perm${isSelected ? ' is-selected' : ''}${!canUpdateRole ? ' is-readonly' : ''}`}
                                           >
                                             <Checkbox
-                                              checked={selectedPermIds.includes(perm.id)}
+                                              checked={isSelected}
                                               disabled={!canUpdateRole}
-                                              style={{ pointerEvents: 'none' }}
+                                              className="rp-acc-perm__check"
                                             />
-                                            <div style={{ flex: 1, overflow: 'hidden' }}>
-                                              <Text strong style={{ fontSize: 13, display: 'block', color: selectedPermIds.includes(perm.id) ? 'var(--premium-blue)' : 'var(--text-slate-700)' }}>
+                                            <div className="rp-acc-perm__text">
+                                              <div className="rp-acc-perm__title">
                                                 {(() => {
                                                   const name = perm.name;
                                                   const action = perm.action;
-                                                  
-                                                  // If it's a bug permission, make it explicit
                                                   if (name.startsWith('bug.')) {
                                                     if (action.includes('trash.')) {
                                                       const subAction = action.split('.')[1];
@@ -1128,226 +1578,270 @@ export default function RolesPage() {
                                                     }
                                                     return `Bug ${action.charAt(0).toUpperCase() + action.slice(1)}`;
                                                   }
-
-                                                  // If it's a proposal permission merged into lead
                                                   if (name.startsWith('proposal.')) {
                                                     return `Proposal ${action.charAt(0).toUpperCase() + action.slice(1)}`;
                                                   }
-
-
-
-                                                  // Default formatting
                                                   if (action.includes('.')) {
-                                                    return action.split('.').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                                                    return action
+                                                      .split('.')
+                                                      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                                                      .join(' ');
                                                   }
                                                   return action.charAt(0).toUpperCase() + action.slice(1);
                                                 })()}
-                                              </Text>
+                                              </div>
                                               {perm.description && (
-                                                <Text type="secondary" style={{ fontSize: 11, display: 'block' }} ellipsis>
+                                                <div className="rp-acc-perm__desc">
                                                   {perm.description}
-                                                </Text>
+                                                </div>
                                               )}
                                             </div>
                                           </div>
                                         </Col>
-                                      ))}
-                                    </Row>
-                                  </div>
-                                ))}
-                              </div>
+                                      );
+                                    })}
+                                  </Row>
+                                </div>
+                              ))}
                             </div>
-                          );
-                        })}
-                    </div>
-                  )}
-              </div>
-            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              );
+            })()
           )}
         </Drawer>
 
-        {/* ── Members Drawer ── */}
+        {/* ── Members Drawer (premium) ── */}
         <Drawer
-          title={
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <Space size={8}>
-                <TeamOutlined style={{ color: 'var(--premium-blue)' }} />
-                <Text strong style={{ fontSize: 16, color: 'var(--text-slate-900)' }}>Manage Members</Text>
-              </Space>
-              <Text style={{ fontSize: 12, fontWeight: 400, marginTop: 4, color: 'var(--text-slate-500)' }}>
-                Assign or remove users from the <strong style={{ color: 'var(--text-slate-900)' }}>{membersDrawerRole?.name}</strong> role
-              </Text>
-            </div>
-          }
+          className="rp-mb-drawer"
           open={membersDrawerOpen}
           onClose={() => setMembersDrawerOpen(false)}
-          width={480}
+          width={560}
+          closable={false}
           styles={{
-            header: { borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
-            body: { padding: '24px', background: 'var(--bg-pure-white)' }
+            header: { display: 'none' },
+            body: { padding: 0, background: 'var(--bg-pure-white)' },
+            content: { background: 'var(--bg-pure-white)' },
+            footer: { padding: 0, border: 'none' },
           }}
+          footer={
+            <div className="rp-mb-footer">
+              <div className="rp-mb-footer__meta">
+                <TeamOutlined />
+                <span>
+                  <strong>{roleMembers.length}</strong> member{roleMembers.length === 1 ? '' : 's'} assigned
+                </span>
+              </div>
+              <Button onClick={() => setMembersDrawerOpen(false)} className="rp-mb-btn-ghost">
+                Done
+              </Button>
+            </div>
+          }
         >
+          {/* Hero */}
+          <div className="rp-mb-hero">
+            <div className="rp-mb-hero__icon">
+              <TeamOutlined />
+            </div>
+            <div className="rp-mb-hero__text">
+              <div className="rp-mb-hero__eyebrow">Manage Members</div>
+              <div className="rp-mb-hero__title-row">
+                <span className="rp-mb-hero__title">{membersDrawerRole?.name || '—'}</span>
+                <span className="rp-mb-hero__count">{roleMembers.length}</span>
+              </div>
+              <div className="rp-mb-hero__sub">
+                Assign or remove members from this role. Permission changes take effect immediately.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="rp-mb-hero__close"
+              onClick={() => setMembersDrawerOpen(false)}
+              aria-label="Close"
+            >
+              <CloseOutlined />
+            </button>
+          </div>
+
           {membersDrawerLoading ? (
-            <div style={{ textAlign: "center", paddingTop: 80 }}>
+            <div style={{ textAlign: 'center', paddingTop: 80 }}>
               <Spin tip="Loading members">
                 <div style={{ height: 40 }} />
               </Spin>
             </div>
           ) : (
-            <div>
-              {/* Add member section */}
-              {canAssignRole && (
-                <div style={{
-                  marginBottom: 24,
-                  padding: 16,
-                  background: 'var(--bg-slate-50)',
-                  borderRadius: 10,
-                  border: '1px solid var(--border-slate-100)'
-                }}>
-                  <Text strong style={{ fontSize: 13, display: "block", marginBottom: 12, color: 'var(--text-slate-900)' }}>
-                    Assign New Member
-                  </Text>
-                  <Space.Compact style={{ width: "100%" }}>
-                    <Select
-                      placeholder="Search and select member..."
-                      showSearch
-                      style={{ flex: 1, height: 40 }}
-                      value={assigningMemberId}
-                      onChange={setAssigningMemberId}
-                      filterOption={(input, option) =>
-                        (option?.label as string ?? "").toLowerCase().includes(input.toLowerCase())
-                      }
-                      options={allMembers.filter(
-                        (m) => !roleMembers.some((rm) => rm.user.id === m.value)
-                      )}
-                    />
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      loading={assignLoading}
-                      disabled={!assigningMemberId}
-                      onClick={handleAssignMember}
-                      style={{ height: 40, borderRadius: '0 6px 6px 0' }}
-                    >
-                      Assign
-                    </Button>
-                  </Space.Compact>
-                </div>
-              )}
+            (() => {
+              const availableMembers = allMembers.filter(
+                (m) => !roleMembers.some((rm) => rm.user.id === m.value),
+              );
+              const searchQ = memberSearch.trim().toLowerCase();
+              const filteredMembers = searchQ
+                ? roleMembers.filter(
+                    (e) =>
+                      (e.user.name || '').toLowerCase().includes(searchQ) ||
+                      (e.user.workEmail || '').toLowerCase().includes(searchQ),
+                  )
+                : roleMembers;
 
-              {/* Current members list */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <Text strong style={{ fontSize: 14, color: 'var(--text-slate-900)' }}>
-                  Current Members
-                </Text>
-                <Badge
-                  count={roleMembers.length}
-                  showZero
-                  overflowCount={999}
-                  style={{ backgroundColor: 'var(--bg-slate-100)', color: 'var(--text-slate-500)', boxShadow: 'none' }}
-                />
-              </div>
+              return (
+                <div className="rp-mb-body">
+                  {/* Assign card */}
+                  {canAssignRole && (
+                    <div className="rp-mb-assign">
+                      <div className="rp-mb-assign__header">
+                        <div className="rp-mb-assign__icon">
+                          <UserOutlined />
+                        </div>
+                        <div className="rp-mb-assign__text">
+                          <div className="rp-mb-assign__title">Assign new member</div>
+                          <div className="rp-mb-assign__sub">
+                            {availableMembers.length > 0
+                              ? `${availableMembers.length} member${availableMembers.length === 1 ? '' : 's'} available to assign`
+                              : 'All members are already assigned to this role'}
+                          </div>
+                        </div>
+                      </div>
 
-              {roleMembers.length === 0 ? (
-                <div style={{
-                  textAlign: "center",
-                  padding: "48px 0",
-                  background: 'var(--bg-slate-50)',
-                  borderRadius: 10,
-                  border: '1px dashed var(--border-slate-200)'
-                }}>
-                  <TeamOutlined style={{ fontSize: 32, marginBottom: 12, color: 'var(--text-slate-300)' }} />
-                  <br />
-                  <span style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>No members assigned to this role</span>
-                </div>
-              ) : (
-                <div style={{ border: '1px solid var(--border-slate-100)', borderRadius: 10, overflow: 'hidden', background: 'var(--bg-pure-white)' }}>
-                  <List
-                    size="large"
-                    dataSource={roleMembers}
-                    renderItem={(entry) => (
-                      <List.Item
-                        style={{ padding: '12px 16px' }}
-                        actions={
-                          canAssignRole
-                            ? [
-                              <Popconfirm
-                                key="remove"
-                                title="Remove from role?"
-                                description={`Are you sure you want to remove ${entry.user.name} from this role?`}
-                                onConfirm={() => handleRemoveMember(entry.user.id)}
-                                okText="Remove"
-                                okButtonProps={{ danger: true }}
-                              >
-                                <Button
-                                  type="text"
-                                  icon={<MinusCircleOutlined />}
-                                  size="small"
-                                  danger
-                                  className="hover-danger-bg"
-                                />
-                              </Popconfirm>,
-                            ]
-                            : []
-                        }
-                      >
-                        <List.Item.Meta
-                          avatar={
-                            <Avatar
-                              style={{ backgroundColor: 'var(--premium-blue)' }}
-                              icon={<UserOutlined />}
-                              size={40}
-                            />
+                      <div className="rp-mb-assign__row">
+                        <Select
+                          className="rp-mb-select"
+                          placeholder="Search by name…"
+                          showSearch
+                          allowClear
+                          value={assigningMemberId}
+                          onChange={setAssigningMemberId}
+                          disabled={availableMembers.length === 0}
+                          style={{ flex: 1 }}
+                          optionFilterProp="label"
+                          filterOption={(input, option: any) =>
+                            (option?.label || '').toLowerCase().includes(input.toLowerCase())
                           }
-                          title={
-                            <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>
-                              {entry.user.name}
-                            </Text>
-                          }
-                          description={
-                            <div style={{ marginTop: -2 }}>
-                              <Text style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>
-                                {entry.user.workEmail || 'No email provided'}
-                              </Text>
-                            </div>
-                          }
+                          options={availableMembers.map((m) => ({
+                            value: m.value,
+                            label: m.label,
+                            rich: (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <Avatar
+                                  size={24}
+                                  style={{
+                                    background: gradientFor(m.value),
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    color: '#fff',
+                                  }}
+                                >
+                                  {initialsOf(m.label)}
+                                </Avatar>
+                                <span style={{ fontWeight: 600, color: 'var(--text-slate-800)', fontSize: 13 }}>
+                                  {m.label}
+                                </span>
+                              </div>
+                            ),
+                          }))}
+                          optionRender={(option) => (option.data as any).rich}
                         />
-                      </List.Item>
+                        <Button
+                          type="primary"
+                          icon={<PlusOutlined />}
+                          loading={assignLoading}
+                          disabled={!assigningMemberId}
+                          onClick={handleAssignMember}
+                          className="rp-mb-assign__btn"
+                        >
+                          Assign
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Current members header + search */}
+                  <div className="rp-mb-list-header">
+                    <div className="rp-mb-list-header__title">
+                      <span>Current members</span>
+                      <span className="rp-mb-list-header__count">{roleMembers.length}</span>
+                    </div>
+                    {roleMembers.length > 0 && (
+                      <Input
+                        className="rp-mb-search"
+                        prefix={
+                          <SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 6 }} />
+                        }
+                        placeholder="Filter assigned members…"
+                        value={memberSearch}
+                        onChange={(e) => setMemberSearch(e.target.value)}
+                        allowClear
+                      />
                     )}
-                  />
+                  </div>
+
+                  {roleMembers.length === 0 ? (
+                    <div className="rp-mb-empty">
+                      <div className="rp-mb-empty__illustration">
+                        <TeamOutlined />
+                      </div>
+                      <div className="rp-mb-empty__title">No members yet</div>
+                      <div className="rp-mb-empty__sub">
+                        Assign your first member from the picker above to grant access.
+                      </div>
+                    </div>
+                  ) : filteredMembers.length === 0 ? (
+                    <div className="rp-mb-empty">
+                      <div className="rp-mb-empty__illustration">
+                        <SearchOutlined />
+                      </div>
+                      <div className="rp-mb-empty__title">No matches</div>
+                      <div className="rp-mb-empty__sub">
+                        Try a different name or email keyword.
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rp-mb-list">
+                      {filteredMembers.map((entry) => (
+                        <div key={entry.user.id} className="rp-mb-row">
+                          <div
+                            className="rp-mb-row__avatar"
+                            style={{ background: gradientFor(entry.user.id) }}
+                          >
+                            {initialsOf(entry.user.name || '?')}
+                          </div>
+                          <div className="rp-mb-row__text">
+                            <div className="rp-mb-row__name">{entry.user.name}</div>
+                            <div className="rp-mb-row__email">
+                              {entry.user.workEmail || 'No email provided'}
+                            </div>
+                          </div>
+                          {canAssignRole && (
+                            <Popconfirm
+                              title="Remove from role?"
+                              description={`Are you sure you want to remove ${entry.user.name} from this role?`}
+                              onConfirm={() => handleRemoveMember(entry.user.id)}
+                              okText="Remove"
+                              okButtonProps={{ danger: true }}
+                            >
+                              <Tooltip title="Remove from role">
+                                <button
+                                  type="button"
+                                  className="rp-mb-row__remove"
+                                  aria-label={`Remove ${entry.user.name}`}
+                                >
+                                  <MinusCircleOutlined />
+                                </button>
+                              </Tooltip>
+                            </Popconfirm>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })()
           )}
         </Drawer>
-        <style jsx global>{`
-          .ant-form-item-label > label {
-            font-weight: 500;
-            color: var(--text-slate-600) !important;
-            font-size: 13px;
-          }
-          .ant-input, .ant-input-number, .ant-select-selector, .ant-picker, .ant-input-affix-wrapper {
-            border-radius: 8px !important;
-            border-color: var(--border-slate-200) !important;
-            background: var(--bg-pure-white) !important;
-            color: var(--text-slate-900) !important;
-          }
-          .ant-input:focus, .ant-input-number:focus, .ant-select-selector:focus {
-            border-color: var(--premium-blue) !important;
-            outline: none;
-          }
-          .ant-table-thead > tr > th {
-            background: var(--bg-table-header) !important;
-            border-bottom: 2px solid var(--border-slate-100) !important;
-            color: var(--text-slate-900) !important;
-          }
-          .ant-table-row:hover > td {
-            background: var(--bg-slate-50) !important;
-          }
-          .ant-drawer-content {
-            background-color: var(--bg-pure-white) !important;
-          }
-        `}</style>
       </div>
     </MainLayout>
   );

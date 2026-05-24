@@ -2742,7 +2742,7 @@ const DocumentHubPage = () => {
               <ProjectOutlined style={{ color: 'var(--text-blue-700)', fontSize: 12, marginTop: 3 }} />
               <span className="text-[11.5px] leading-snug" style={{ color: 'var(--text-slate-600)' }}>
                 Linking a project or ticket attaches this hub's docs to that work item, so
-                they show up alongside it everywhere else in ZithSpace.
+                they show up alongside it everywhere else in Zukvo.
               </span>
             </div>
           </Form>

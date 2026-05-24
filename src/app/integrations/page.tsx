@@ -42,7 +42,7 @@ const PROVIDERS: ProviderConfig[] = [
     name: "Zoho Workspace",
     icon: <CalendarOutlined />,
     color: "#F44336",
-    description: "Manage Zoho emails and events within Zithspace."
+    description: "Manage Zoho emails and events within Zukvo."
   },
   {
     key: "MICROSOFT",
@@ -208,7 +208,7 @@ export default function IntegrationPage() {
         <TimeTrackingHeader
           icon={<Blocks size={20} color="#8b5cf6" />}
           title="Integrations"
-          description="Connect your favorite tools to Zithspace to streamline your workflow and sync your schedule."
+          description="Connect your favorite tools to Zukvo to streamline your workflow and sync your schedule."
           extra={
             <Input
               placeholder="Search integrations..."

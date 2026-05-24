@@ -482,7 +482,7 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
                                     >
                                         Linking a project or ticket attaches this hub's docs to that
                                         work item, so they show up alongside it everywhere else in
-                                        ZithSpace.
+                                        Zukvo.
                                     </span>
                                 </div>
                             </>
@@ -518,7 +518,7 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
                                             style={{ color: 'var(--text-slate-600)' }}
                                         >
                                             This hub will be linked to the current ticket so its
-                                            documents surface alongside the ticket throughout ZithSpace.
+                                            documents surface alongside the ticket throughout Zukvo.
                                         </span>
                                     </div>
                                 )}

@@ -992,7 +992,7 @@ export default function ViewInvoicePage() {
                       color: "#1a73e8",
                     }}
                   >
-                    Zithspace
+                    Zukvo
                   </span>
                   <span
                     style={{
@@ -1027,7 +1027,7 @@ export default function ViewInvoicePage() {
                   textDecoration: "none",
                 }}
               >
-                zithspace.com/invoice
+                zukvo.com/invoice
               </a>{" "}
               to create truly professional invoices
             </div>

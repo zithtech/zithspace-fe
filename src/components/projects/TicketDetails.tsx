@@ -10,6 +10,7 @@ import {
   useTicketAttachments,
   useUpdateTicket,
   useAddComment,
+  useUpdateComment,
   useDeleteComment,
   useAddRelatedLink,
   useUpdateRelatedLink,
@@ -18,6 +19,7 @@ import {
   useDeleteAttachment,
 } from "@/hooks/useTicketDetails";
 import { TicketDetailsProps } from "@/types/ticket";
+import { usePermission } from "@/hooks/usePermission";
 import { PRIORITY_OPTIONS, TYPE_OPTIONS } from "@/utils/ticketUtils";
 import {
   TicketDetailsHeader,
@@ -33,6 +35,7 @@ import {
 export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   const [form] = Form.useForm();
   const [editing, setEditing] = useState(false);
+  const { canAssignTicket } = usePermission();
 
   // React Query hooks for data fetching (parallel loading)
   const { data: ticket, isLoading: ticketLoading } = useTicketDetails(ticketId);
@@ -43,6 +46,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   // Mutation hooks
   const updateTicketMutation = useUpdateTicket();
   const addCommentMutation = useAddComment();
+  const updateCommentMutation = useUpdateComment();
   const deleteCommentMutation = useDeleteComment();
   const addLinkMutation = useAddRelatedLink();
   const updateLinkMutation = useUpdateRelatedLink();
@@ -70,6 +74,18 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
+
+      // Check if assignee is being changed and user lacks assign permission
+      const originalAssigneeId = typeof ticket?.assignee === 'string' 
+        ? ticket.assignee 
+        : ticket?.assignee?.id || null;
+      
+      const newAssigneeId = values.assignee || null;
+
+      if (originalAssigneeId !== newAssigneeId && !canAssignTicket) {
+        message.error("Access Denied: You do not have permission to assign tickets.");
+        return;
+      }
 
       const updateData = {
         title: values.title,
@@ -113,7 +129,13 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   };
 
   const handleDeleteComment = async (commentId: string) => {
+    if (!ticketId) return;
     await deleteCommentMutation.mutateAsync({ ticketId, commentId });
+  };
+
+  const handleEditComment = async (commentId: string, comment: string) => {
+    if (!ticketId) return;
+    await updateCommentMutation.mutateAsync({ ticketId, commentId, comment });
   };
 
   const handleAddLink = async (linkType: any, linkData: any) => {
@@ -182,6 +204,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                   onCancel={() => setEditing(false)}
                   isSaving={updateTicketMutation.isPending}
                   dataLoading={dataLoading}
+                  canAssignTicket={canAssignTicket}
                 />
               </Card>
             ) : (
@@ -194,8 +217,10 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
               comments={comments}
               isEditing={editing}
               onAddComment={handleAddComment}
+              onEditComment={handleEditComment}
               onDeleteComment={handleDeleteComment}
               isAddingComment={addCommentMutation.isPending}
+              isEditingComment={updateCommentMutation.isPending}
               isDeletingComment={deleteCommentMutation.isPending}
             />
           </div>

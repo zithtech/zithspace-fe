@@ -518,7 +518,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                                 (e.currentTarget as HTMLButtonElement).style.filter = 'none';
                             }}
                         >
-                            Download PDF
+                            <span className="public-download-text">Download PDF</span>
                         </Button>
                     )}
                 </div>
@@ -720,6 +720,11 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                         font-size: 15px;
                         line-height: 1.7;
                         color: #1e293b;
+                    }
+                    @media (max-width: 444px) {
+                        .public-download-text {
+                            display: none;
+                        }
                     }
                 `,
                 }}

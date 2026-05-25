@@ -31,6 +31,7 @@ import {
   PortalMomListAttachment,
   PortalMomMeta,
 } from "@/services/portalMomService";
+import { usePortalSocket } from "@/providers/PortalSocketProvider";
 
 /* ─────────────────────────────────────────────────────────
  * Design tokens — premium dense
@@ -150,6 +151,22 @@ export default function PortalMomPage() {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
+
+  // Real-time: staff creates/edits/deletes a meeting → reload list here.
+  const { socket, connected } = usePortalSocket();
+  useEffect(() => {
+    if (!socket || !connected) return;
+    const handler = () => load();
+    socket.on("mom:created", handler);
+    socket.on("mom:updated", handler);
+    socket.on("mom:deleted", handler);
+    return () => {
+      socket.off("mom:created", handler);
+      socket.off("mom:updated", handler);
+      socket.off("mom:deleted", handler);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket, connected]);
 
   const filteredItems = useMemo(() => {
     if (!dateRange || !dateRange[0] || !dateRange[1]) return items;

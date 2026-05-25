@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Button, Tag, Space, Typography, Tooltip, Row, Col, Input } from "antd";
+import { Button, Tag, Space, Typography, Tooltip, Row, Col, Input, Modal } from "antd";
 import {
   DeleteOutlined,
   DownloadOutlined,
@@ -17,6 +17,7 @@ import {
   EditOutlined,
   CheckOutlined,
   CloseOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -58,6 +59,7 @@ export default function AttachmentList({
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editingName, setEditingName] = React.useState<string>("");
   const [renamingId, setRenamingId] = React.useState<string | null>(null);
+  const [viewingAttachment, setViewingAttachment] = React.useState<Attachment | null>(null);
 
   const getFileIcon = (fileType: string) => {
     const type = fileType.toLowerCase();
@@ -243,11 +245,11 @@ export default function AttachmentList({
                     </Tooltip>
                   )}
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <Text type="secondary" style={{ fontSize: "11px", color: 'var(--text-secondary)' }}>
+                    <Text type="secondary" style={{ fontSize: "11px", color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                       {formatFileSize(attachment.fileSize)}
                     </Text>
                     <span style={{ color: "var(--border-color)" }}>•</span>
-                    <Text type="secondary" style={{ fontSize: "11px", color: 'var(--text-secondary)' }}>
+                    <Text type="secondary" style={{ fontSize: "11px", color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                       {dayjs(attachment.uploadedAt).format("MMM DD")}
                     </Text>
                   </div>
@@ -261,6 +263,16 @@ export default function AttachmentList({
                   transition: "opacity 0.2s",
                   marginLeft: 8
                 }}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<EyeOutlined style={{ fontSize: 13, color: "#52c41a" }} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewingAttachment(attachment);
+                    }}
+                    style={{ background: "#f6ffed", borderRadius: 6 }}
+                  />
                   <Button
                     type="text"
                     size="small"
@@ -299,6 +311,50 @@ export default function AttachmentList({
         })}
       </Row>
 
+      <Modal
+        title={viewingAttachment?.fileName}
+        open={!!viewingAttachment}
+        onCancel={() => setViewingAttachment(null)}
+        footer={null}
+        width={800}
+        centered
+        destroyOnClose
+        className="attachment-viewer-modal"
+      >
+        {viewingAttachment && (
+          <div style={{ width: '100%', height: '60vh', overflow: 'hidden' }}>
+            {viewingAttachment.fileType.toLowerCase().includes('image') ? (
+              <img 
+                src={viewingAttachment.fileUrl} 
+                alt={viewingAttachment.fileName}
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              />
+            ) : viewingAttachment.fileType.toLowerCase().includes('pdf') ? (
+              <iframe 
+                src={viewingAttachment.fileUrl} 
+                width="100%" 
+                height="100%" 
+                style={{ border: 'none' }}
+                title={viewingAttachment.fileName}
+              />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'var(--bg-secondary)', borderRadius: 8 }}>
+                <FileOutlined style={{ fontSize: 64, color: 'var(--text-secondary)', marginBottom: 16 }} />
+                <Typography.Text type="secondary">Preview not available for this file type.</Typography.Text>
+                <Button 
+                  type="primary" 
+                  icon={<DownloadOutlined />} 
+                  style={{ marginTop: 16 }}
+                  onClick={(e) => handleDownload(e, viewingAttachment.fileUrl, viewingAttachment.fileName)}
+                >
+                  Download File
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
       <style jsx global>{`
         .attachment-card:hover {
           border-color: #1890ff40 !important;
@@ -309,6 +365,28 @@ export default function AttachmentList({
         }
         .attachment-card:hover .attachment-actions {
           opacity: 1 !important;
+        }
+        .attachment-viewer-modal .ant-modal-content {
+          background-color: var(--bg-pure-white) !important;
+          padding: 0 !important;
+          overflow: hidden;
+        }
+        .attachment-viewer-modal .ant-modal-header {
+          background-color: transparent !important;
+          border-bottom: none !important;
+          padding: 16px 24px 0 !important;
+          margin-bottom: 0 !important;
+        }
+        .attachment-viewer-modal .ant-modal-body {
+          padding: 16px 24px 24px !important;
+        }
+        .attachment-viewer-modal .ant-modal-title {
+          color: var(--text-primary) !important;
+        }
+        .attachment-viewer-modal .ant-modal-close {
+          top: 16px !important;
+          right: 24px !important;
+          color: var(--text-secondary) !important;
         }
       `}</style>
     </div>

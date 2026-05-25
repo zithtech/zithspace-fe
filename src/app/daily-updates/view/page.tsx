@@ -281,11 +281,16 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
           grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
           gap: 16px;
         }
+        @keyframes dudPulseDot {
+          0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+          70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
       `}} />
 
       <TimeTrackingHeader
         style={{ 
-          padding: '5px 32px', 
+          padding: '3px 32px', 
           borderBottom: '1px solid var(--border-slate-200)',
           marginBottom: 20
         }}
@@ -296,15 +301,26 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             <Text style={{ fontSize: 12, color: "var(--text-slate-600)", fontWeight: 500 }}>
               {canViewTeam ? "Team Overview" : "Personal Log"}
             </Text>
-            <div style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--border-color)" }} />
-            <Text style={{ fontSize: 12, color: "var(--text-slate-600)" }}>
-              {updates.length} Updates found
-            </Text>
           </div>
         }
         description="Review team updates and track daily work statuses."
         extra={
-          <Space size="middle">
+          <Space size="middle" align="center">
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 4 }}>
+              <div
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: "#10b981",
+                  boxShadow: "0 0 0 0 rgba(16, 185, 129, 0.7)",
+                  animation: "dudPulseDot 2s infinite"
+                }}
+              />
+              <Text style={{ fontSize: 13, fontWeight: 600, color: "var(--text-slate-700)" }}>
+                {updates.length} Updates found
+              </Text>
+            </div>
             {canViewTeam && (
               <Button
                 icon={<Clock size={16} />}

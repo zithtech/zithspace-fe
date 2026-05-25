@@ -336,6 +336,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   // Mutations
   const updateTicketMutation = useUpdateTicket();
   const addCommentMutation = useAddComment();
+  const updateCommentMutation = useUpdateComment();
   const deleteCommentMutation = useDeleteComment();
   const uploadAttachmentMutation = useUploadAttachment();
   const deleteAttachmentMutation = useDeleteAttachment();
@@ -415,12 +416,17 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   // Handlers
   const handleUpdate = async (field: string, value: any) => {
     if (!currentTicketId) return;
+    if (field === "assignee" && !canAssignTicket) {
+      message.error("Access Denied: You do not have permission to assign tickets.");
+      return;
+    }
     try {
       await updateTicketMutation.mutateAsync({
         id: currentTicketId,
         data: { [field]: value }
       });
-      message.success(`${field} updated`);
+      const formattedField = field.charAt(0).toUpperCase() + field.slice(1);
+      message.success(`${formattedField} updated`);
     } catch (error) {
       message.error("Failed to update");
     }
@@ -1326,8 +1332,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                         comments={comments}
                         isEditing={false} // pass false to enable Edit/Delete actions on items
                         onAddComment={async (c) => await addCommentMutation.mutateAsync({ ticketId: currentTicketId, comment: c })}
+                        onEditComment={async (id, c) => await updateCommentMutation.mutateAsync({ ticketId: currentTicketId, commentId: id, comment: c })}
                         onDeleteComment={async (id) => await deleteCommentMutation.mutateAsync({ ticketId: currentTicketId, commentId: id })}
                         isAddingComment={addCommentMutation.isPending}
+                        isEditingComment={updateCommentMutation.isPending}
                         isDeletingComment={deleteCommentMutation.isPending}
                       />
                     )
@@ -2206,6 +2214,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       }
       defaultTicketId={ticket?.id}
       lockLink
+      existingHubs={linkedHubs}
       onCreated={(hubId) => {
         onClose();
         queryClient.invalidateQueries({ queryKey: ['ticket', currentTicketId, 'documentHubs'] });
@@ -2223,6 +2232,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       }
       defaultTicketId={ticket?.id}
       lockedTicket={ticket as any}
+      existingHubs={linkedHubs}
       onCreated={(hubId) => {
         onClose();
         queryClient.invalidateQueries({ queryKey: ['ticket', currentTicketId, 'documentHubs'] });

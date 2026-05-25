@@ -14,8 +14,8 @@ interface Option {
 }
 
 interface EditableSelectProps {
-    value: string | undefined;
-    onSave: (value: string) => Promise<void>;
+    value: string | string[] | undefined;
+    onSave: (value: string | string[] | any) => Promise<void>;
     options: Option[];
     placeholder?: string;
     label?: string;
@@ -48,7 +48,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
         }
     }, [isEditing]);
 
-    const handleChange = async (newValue: string) => {
+    const handleChange = async (newValue: string | string[]) => {
         try {
             setLoading(true);
             await onSave(newValue);
@@ -61,7 +61,9 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
     };
 
     const normalize = (val: string | undefined) => val?.toLowerCase().replace(/ /g, '_');
-    const selectedOption = options.find(opt => normalize(opt.value) === normalize(value));
+    
+    const selectedOption = options.find(opt => normalize(opt.value) === normalize(value as string));
+
     const hasValue = !!value;
     const internalValue = selectedOption ? selectedOption.value : value;
 
@@ -101,16 +103,13 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
         );
     }
 
-    const renderValue = () => {
-        if (!hasValue || !selectedOption) {
-            return <Text type="secondary" style={{ fontStyle: 'italic', fontSize: '13px' }}>{emptyText}</Text>;
-        }
+    const renderSingleValue = (opt: Option | undefined) => {
+        if (!opt) return null;
 
         if (mode === 'tag') {
-            // Use Tag styling if color available, otherwise default
             return (
-                <Tag color={selectedOption.color || 'default'} style={{ margin: 0 }}>
-                    {selectedOption.label}
+                <Tag color={opt.color || 'default'} style={{ margin: 0 }}>
+                    {opt.label}
                 </Tag>
             );
         }
@@ -123,7 +122,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                 gold: '#f59e0b', orange: '#f97316', volcano: '#ef4444', red: '#dc2626',
                 default: '#94a3b8',
             };
-            const c = selectedOption.color || 'default';
+            const c = opt.color || 'default';
             const dotColor = c.startsWith('#') ? c : (dotColorMap[c] || dotColorMap.default);
             return (
                 <Space size={6} align="center">
@@ -136,7 +135,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                         }}
                     />
                     <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-primary)' }}>
-                        {selectedOption.label}
+                        {opt.label}
                     </Text>
                 </Space>
             );
@@ -147,17 +146,25 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                 <Space size={4}>
                     <Avatar
                         size="small"
-                        src={selectedOption.avatarUrl}
+                        src={opt.avatarUrl}
                         style={{ width: 20, height: 20, fontSize: 12, lineHeight: '20px', backgroundColor: '#1677ff' }}
                     >
-                        {selectedOption.label.charAt(0)}
+                        {opt.label.charAt(0)}
                     </Avatar>
-                    <Text style={textStyle}>{selectedOption.label}</Text>
+                    <Text style={textStyle}>{opt.label}</Text>
                 </Space>
             );
         }
 
-        return <Text style={textStyle}>{selectedOption.label}</Text>;
+        return <Text style={textStyle}>{opt.label}</Text>;
+    };
+
+    const renderValue = () => {
+        if (!hasValue || !selectedOption) {
+            return <Text type="secondary" style={{ fontStyle: 'italic', fontSize: '13px' }}>{emptyText}</Text>;
+        }
+
+        return renderSingleValue(selectedOption);
     };
 
     return (

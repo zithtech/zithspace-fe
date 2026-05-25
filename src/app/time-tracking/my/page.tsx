@@ -23,7 +23,12 @@ export default function MyTimePage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [manageModalOpen, setManageModalOpen] = useState(false);
 
-  const { canReadTimeTracking } = usePermission();
+  const {
+    canReadTimeTracking,
+    canCreateTimeTracking,
+    canDeleteTimeTracking,
+    canManageTimeTrackingTime
+  } = usePermission();
   const { isLoading } = useAuth();
   const router = useRouter();
 
@@ -104,14 +109,16 @@ export default function MyTimePage() {
                   Today
                 </Button>
               )}
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setPopoverOpen(true)}
-                className="mtt-add-time-btn"
-              >
-                Add Time
-              </Button>
+              {canCreateTimeTracking && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setPopoverOpen(true)}
+                  className="mtt-add-time-btn"
+                >
+                  Add Time
+                </Button>
+              )}
             </>
           }
         />

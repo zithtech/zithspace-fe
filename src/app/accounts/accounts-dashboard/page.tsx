@@ -28,6 +28,7 @@ import {
   Empty,
   Drawer,
   Switch,
+  App,
 } from 'antd';
 import {
   PlusOutlined,
@@ -94,6 +95,7 @@ const StatCard = ({ label, value, icon: Icon, color, subValue, accent }: any) =>
 );
 
 export default function AccountsPage() {
+  const { message: messageApi } = App.useApp();
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [form] = Form.useForm();
@@ -101,8 +103,11 @@ export default function AccountsPage() {
     canReadAccount,
     canCreateAccount,
     canUpdateAccount,
-    canDeleteAccount
+    canDeleteAccount,
+    canReadUser
   } = usePermission();
+
+  const hasShownError = React.useRef(false);
 
   // Protect route - requires account.read permission
   useEffect(() => {
@@ -110,6 +115,14 @@ export default function AccountsPage() {
       router.push('/dashboard');
     }
   }, [user, isLoading, canReadAccount, router]);
+
+  // Alert if member module read permission is missing
+  useEffect(() => {
+    if (!isLoading && user && !canReadUser && !hasShownError.current) {
+      messageApi.error("Members permission is missing");
+      hasShownError.current = true;
+    }
+  }, [user, isLoading, canReadUser, messageApi]);
 
   // State management
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -205,6 +218,7 @@ export default function AccountsPage() {
 
   // Fetch members
   const fetchMembers = async () => {
+    if (!canReadUser) return;
     try {
       const response = await MembersService.getMembers({ limit: 100 });
       setMembers(response.data);
@@ -597,6 +611,7 @@ export default function AccountsPage() {
                 <Button
                   type="primary"
                   size="middle"
+                  className="accounts-add-btn"
                   icon={<PlusOutlined />}
                   style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600 }}
                   onClick={showAddModal}
@@ -919,6 +934,7 @@ export default function AccountsPage() {
                   type="primary"
                   size="middle"
                   loading={formLoading}
+                  className="accounts-add-btn"
                   onClick={() => form.submit()}
                   icon={modalType === 'edit' ? <EditOutlined /> : <PlusOutlined />}
                   style={{ borderRadius: 8, height: 38, padding: '0 18px', fontWeight: 600 }}
@@ -1350,7 +1366,6 @@ export default function AccountsPage() {
         }
         .accounts-stat-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 18px 40px -22px color-mix(in srgb, var(--stat-accent) 55%, transparent);
         }
         .accounts-stat-card__glow {
           position: absolute;
@@ -2180,6 +2195,12 @@ export default function AccountsPage() {
         .accounts-tx-form .ant-input-number-input {
           font-variant-numeric: tabular-nums;
           font-weight: 600;
+        }
+        .accounts-add-btn {
+          box-shadow: none !important;
+        }
+        .accounts-add-btn:hover {
+          box-shadow: none !important;
         }
       `}} />
     </MainLayout>

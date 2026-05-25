@@ -1257,21 +1257,7 @@ function DashboardContent() {
                       }}
                       styles={{ body: { padding: 18, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
                     >
-                      {todayAttendance?.canClockOut && (
-                        <div
-                          aria-hidden
-                          style={{
-                            position: "absolute",
-                            top: -40,
-                            right: -40,
-                            width: 220,
-                            height: 220,
-                            borderRadius: "50%",
-                            background: `radial-gradient(circle, ${token.colorPrimary}1A 0%, transparent 70%)`,
-                            pointerEvents: "none",
-                          }}
-                        />
-                      )}
+
                       <div
                         style={{
                           display: "flex",
@@ -1577,8 +1563,6 @@ function DashboardContent() {
                                       height: 40,
                                       fontWeight: 600,
                                       fontSize: 13,
-                                      boxShadow:
-                                        "0 6px 16px -8px rgba(239, 68, 68, 0.55)",
                                     }}
                                   >
                                     End Shift · Clock Out
@@ -1753,21 +1737,7 @@ function DashboardContent() {
                             )
                           }
                         >
-                          {/* Soft ambient accent */}
-                          <div
-                            aria-hidden
-                            style={{
-                              position: "absolute",
-                              top: -50,
-                              right: -50,
-                              width: 220,
-                              height: 220,
-                              borderRadius: "50%",
-                              background: `radial-gradient(circle, ${accentTM}1A 0%, transparent 70%)`,
-                              pointerEvents: "none",
-                              zIndex: 0,
-                            }}
-                          />
+
                           <div
                             style={{
                               flex: 1,
@@ -2580,21 +2550,7 @@ function DashboardContent() {
                             </Button>
                           }
                         >
-                          {/* Soft ambient accent */}
-                          <div
-                            aria-hidden
-                            style={{
-                              position: "absolute",
-                              top: -80,
-                              right: -80,
-                              width: 280,
-                              height: 280,
-                              borderRadius: "50%",
-                              background: `radial-gradient(circle, ${accent}1A 0%, transparent 70%)`,
-                              pointerEvents: "none",
-                              zIndex: 0,
-                            }}
-                          />
+
                           {recentTickets.length === 0 ? (
                             <div
                               style={{
@@ -2710,20 +2666,7 @@ function DashboardContent() {
                                       } as React.CSSProperties
                                     }
                                   >
-                                    {/* Status corner glow */}
-                                    <span
-                                      aria-hidden
-                                      style={{
-                                        position: "absolute",
-                                        top: -30,
-                                        right: -30,
-                                        width: 90,
-                                        height: 90,
-                                        borderRadius: "50%",
-                                        background: `radial-gradient(circle, ${sm.color}26 0%, transparent 70%)`,
-                                        pointerEvents: "none",
-                                      }}
-                                    />
+
                                     {/* Priority left bar */}
                                     <div
                                       aria-hidden
@@ -2990,21 +2933,7 @@ function DashboardContent() {
                             </div>
                           }
                         >
-                          {/* Soft ambient accent */}
-                          <div
-                            aria-hidden
-                            style={{
-                              position: "absolute",
-                              top: -50,
-                              right: -50,
-                              width: 220,
-                              height: 220,
-                              borderRadius: "50%",
-                              background: `radial-gradient(circle, ${accentQA}1F 0%, transparent 70%)`,
-                              pointerEvents: "none",
-                              zIndex: 0,
-                            }}
-                          />
+
                           <div
                             style={{
                               display: "flex",
@@ -4232,98 +4161,6 @@ function DashboardContent() {
                                 "Recent Tickets",
                                 accent,
                               )}
-                              {recentTickets.length > 0 && (
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    letterSpacing: "0.4px",
-                                    color: accent,
-                                    background: `${accent}14`,
-                                    border: `1px solid ${accent}33`,
-                                    padding: "2px 7px",
-                                    borderRadius: 999,
-                                    fontVariantNumeric: "tabular-nums",
-                                  }}
-                                >
-                                  {recentTickets.length} TOTAL
-                                </span>
-                              )}
-                              {activeCount > 0 && (
-                                <Tooltip title={`${activeCount} active`}>
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      color: "#0EA5E9",
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 6,
-                                        height: 6,
-                                        borderRadius: "50%",
-                                        background: "#0EA5E9",
-                                        boxShadow: "0 0 8px #0EA5E980",
-                                        animation:
-                                          "pulse-soft 2s infinite ease-in-out",
-                                      }}
-                                    />
-                                    ACTIVE
-                                  </span>
-                                </Tooltip>
-                              )}
-                              {testingCount > 0 && (
-                                <Tooltip title={`${testingCount} in testing`}>
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      color: "#F59E0B",
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 6,
-                                        height: 6,
-                                        borderRadius: "50%",
-                                        background: "#F59E0B",
-                                      }}
-                                    />
-                                    TESTING
-                                  </span>
-                                </Tooltip>
-                              )}
-                              {notStartedCount > 0 && (
-                                <Tooltip title={`${notStartedCount} not started`}>
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 5,
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      color: "#94A3B8",
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: 6,
-                                        height: 6,
-                                        borderRadius: "50%",
-                                        background: "#94A3B8",
-                                      }}
-                                    />
-                                    NOT STARTED
-                                  </span>
-                                </Tooltip>
-                              )}
                             </div>
                           }
                           extra={
@@ -4337,20 +4174,7 @@ function DashboardContent() {
                             </Button>
                           }
                         >
-                          {/* Soft ambient accent */}
-                          <div
-                            aria-hidden
-                            style={{
-                              position: "absolute",
-                              top: -60,
-                              right: -60,
-                              width: 220,
-                              height: 220,
-                              borderRadius: "50%",
-                              background: `radial-gradient(circle, ${accent}1A 0%, transparent 70%)`,
-                              pointerEvents: "none",
-                            }}
-                          />
+
                           <div
                             style={{
                               flex: 1,
@@ -4856,20 +4680,7 @@ function DashboardContent() {
                             </Button>
                           }
                         >
-                          {/* Soft ambient accent */}
-                          <div
-                            aria-hidden
-                            style={{
-                              position: "absolute",
-                              top: -60,
-                              right: -60,
-                              width: 220,
-                              height: 220,
-                              borderRadius: "50%",
-                              background: `radial-gradient(circle, ${accent}1A 0%, transparent 70%)`,
-                              pointerEvents: "none",
-                            }}
-                          />
+
                           <div
                             style={{
                               flex: 1,
@@ -5449,20 +5260,7 @@ function DashboardContent() {
                             </Button>
                           }
                         >
-                          {/* Soft ambient accent */}
-                          <div
-                            aria-hidden
-                            style={{
-                              position: "absolute",
-                              top: -60,
-                              right: -60,
-                              width: 220,
-                              height: 220,
-                              borderRadius: "50%",
-                              background: `radial-gradient(circle, ${accent}1A 0%, transparent 70%)`,
-                              pointerEvents: "none",
-                            }}
-                          />
+
                           <div
                             style={{
                               flex: 1,

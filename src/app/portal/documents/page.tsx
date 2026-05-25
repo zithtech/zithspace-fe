@@ -39,6 +39,8 @@ import {
   Briefcase,
   ChevronDown,
   ArrowUpRight,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   portalDocumentService,
@@ -46,6 +48,7 @@ import {
   PortalDocumentMeta,
   DocumentSource,
 } from "@/services/portalDocumentService";
+import { usePortalSocket } from "@/providers/PortalSocketProvider";
 
 /* ─────────────────────────────────────────────────────────
  * Design tokens — premium dense
@@ -138,6 +141,9 @@ export default function PortalDocumentsPage() {
   const [source, setSource] = useState<DocumentSource>("all");
   const [uploadOpen, setUploadOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "card">("list");
+  const [editingDoc, setEditingDoc] = useState<PortalDocument | null>(null);
+  const [deletingDoc, setDeletingDoc] = useState<PortalDocument | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -169,6 +175,22 @@ export default function PortalDocumentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
+  // Real-time: staff/another portal user mutates a document → reload here.
+  const { socket, connected } = usePortalSocket();
+  useEffect(() => {
+    if (!socket || !connected) return;
+    const handler = () => load();
+    socket.on("client_document:created", handler);
+    socket.on("client_document:updated", handler);
+    socket.on("client_document:deleted", handler);
+    return () => {
+      socket.off("client_document:created", handler);
+      socket.off("client_document:updated", handler);
+      socket.off("client_document:deleted", handler);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket, connected]);
+
   const handleOpen = async (
     doc: PortalDocument,
     mode: "view" | "download",
@@ -185,6 +207,21 @@ export default function PortalDocumentsPage() {
       document.body.removeChild(a);
     } else {
       window.open(doc.fileUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingDoc) return;
+    setDeleting(true);
+    try {
+      await portalDocumentService.remove(deletingDoc.id);
+      message.success("Document removed");
+      setDeletingDoc(null);
+      load();
+    } catch (err: any) {
+      message.error(err?.message || "Could not remove document");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -294,9 +331,19 @@ export default function PortalDocumentsPage() {
             />
           </div>
         ) : viewMode === "list" ? (
-          <DocumentsTable docs={docs} onOpen={handleOpen} />
+          <DocumentsTable
+            docs={docs}
+            onOpen={handleOpen}
+            onEdit={(d) => setEditingDoc(d)}
+            onDelete={(d) => setDeletingDoc(d)}
+          />
         ) : (
-          <DocumentsGrid docs={docs} onOpen={handleOpen} />
+          <DocumentsGrid
+            docs={docs}
+            onOpen={handleOpen}
+            onEdit={(d) => setEditingDoc(d)}
+            onDelete={(d) => setDeletingDoc(d)}
+          />
         )}
 
         <UploadModal
@@ -308,6 +355,36 @@ export default function PortalDocumentsPage() {
             load();
           }}
         />
+
+        <EditDocumentModal
+          doc={editingDoc}
+          projects={meta?.projects ?? []}
+          onClose={() => setEditingDoc(null)}
+          onSaved={() => {
+            setEditingDoc(null);
+            load();
+          }}
+        />
+
+        <Modal
+          open={!!deletingDoc}
+          onCancel={() => setDeletingDoc(null)}
+          onOk={handleDelete}
+          okText="Delete"
+          okButtonProps={{ danger: true, loading: deleting }}
+          cancelButtonProps={{ disabled: deleting }}
+          title="Delete this document?"
+          centered
+          width={420}
+        >
+          <p style={{ color: T.textMuted, fontSize: 13, margin: 0 }}>
+            <strong style={{ color: T.text }}>
+              {deletingDoc?.fileName || "This document"}
+            </strong>{" "}
+            will be permanently removed from the portal and storage. This can't
+            be undone.
+          </p>
+        </Modal>
       </div>
 
       <style>{`
@@ -944,7 +1021,9 @@ const FilterBar: React.FC<{
 const DocumentsTable: React.FC<{
   docs: PortalDocument[];
   onOpen: (doc: PortalDocument, mode: "view" | "download") => void;
-}> = ({ docs, onOpen }) => (
+  onEdit: (doc: PortalDocument) => void;
+  onDelete: (doc: PortalDocument) => void;
+}> = ({ docs, onOpen, onEdit, onDelete }) => (
   <div
     style={{
       background: T.cardBg,
@@ -1178,6 +1257,32 @@ const DocumentsTable: React.FC<{
                         </button>
                       </Tooltip>
                     )}
+                    {doc.uploadedByPortal && (
+                      <>
+                        <Tooltip title="Edit details">
+                          <button
+                            onClick={() => onEdit(doc)}
+                            style={iconBtn(false)}
+                            aria-label="Edit"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <button
+                            onClick={() => onDelete(doc)}
+                            style={{
+                              ...iconBtn(false),
+                              color: "#b91c1c",
+                              borderColor: "#fecaca",
+                            }}
+                            aria-label="Delete"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </Tooltip>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -1254,7 +1359,9 @@ const SourcePill: React.FC<{ uploadedByPortal: boolean }> = ({
 const DocumentsGrid: React.FC<{
   docs: PortalDocument[];
   onOpen: (doc: PortalDocument, mode: "view" | "download") => void;
-}> = ({ docs, onOpen }) => (
+  onEdit: (doc: PortalDocument) => void;
+  onDelete: (doc: PortalDocument) => void;
+}> = ({ docs, onOpen, onEdit, onDelete }) => (
   <div
     style={{
       display: "grid",
@@ -1263,7 +1370,13 @@ const DocumentsGrid: React.FC<{
     }}
   >
     {docs.map((doc) => (
-      <DocCard key={doc.id} doc={doc} onOpen={onOpen} />
+      <DocCard
+        key={doc.id}
+        doc={doc}
+        onOpen={onOpen}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
     ))}
   </div>
 );
@@ -1271,7 +1384,9 @@ const DocumentsGrid: React.FC<{
 const DocCard: React.FC<{
   doc: PortalDocument;
   onOpen: (doc: PortalDocument, mode: "view" | "download") => void;
-}> = ({ doc, onOpen }) => {
+  onEdit: (doc: PortalDocument) => void;
+  onDelete: (doc: PortalDocument) => void;
+}> = ({ doc, onOpen, onEdit, onDelete }) => {
   const [hover, setHover] = useState(false);
   const { Icon, color } = iconForFile(doc.fileName);
   const looksExternal = isExternalLink(doc.fileUrl);
@@ -1492,6 +1607,32 @@ const DocCard: React.FC<{
                 <Download size={12} />
               </button>
             </Tooltip>
+          )}
+          {doc.uploadedByPortal && (
+            <>
+              <Tooltip title="Edit details">
+                <button
+                  onClick={() => onEdit(doc)}
+                  style={iconBtn(hover)}
+                  aria-label="Edit"
+                >
+                  <Pencil size={12} />
+                </button>
+              </Tooltip>
+              <Tooltip title="Delete">
+                <button
+                  onClick={() => onDelete(doc)}
+                  style={{
+                    ...iconBtn(hover),
+                    color: "#b91c1c",
+                    borderColor: "#fecaca",
+                  }}
+                  aria-label="Delete"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </Tooltip>
+            </>
           )}
         </div>
       </div>
@@ -1993,3 +2134,237 @@ const FieldLabel: React.FC<{
     {children}
   </div>
 );
+
+/* ─────────────────────────────────────────────────────────
+ * Edit modal — metadata-only (file is not replaced)
+ * ─────────────────────────────────────────────────────── */
+function EditDocumentModal({
+  doc,
+  projects,
+  onClose,
+  onSaved,
+}: {
+  doc: PortalDocument | null;
+  projects: { id: string; name: string; code: string | null }[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [fileName, setFileName] = useState("");
+  const [category, setCategory] = useState("");
+  const [docType, setDocType] = useState("");
+  const [projectId, setProjectId] = useState<string | undefined>(undefined);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (doc) {
+      setFileName(doc.fileName || "");
+      setCategory(doc.category || "");
+      setDocType(doc.documentType || "");
+      setProjectId(doc.projectId || undefined);
+    }
+  }, [doc]);
+
+  const handleSave = async () => {
+    if (!doc) return;
+    if (!fileName.trim()) {
+      message.warning("Display name is required");
+      return;
+    }
+    setSaving(true);
+    try {
+      await portalDocumentService.update(doc.id, {
+        fileName: fileName.trim(),
+        category: category.trim() || undefined,
+        documentType: docType.trim() || undefined,
+        projectId: projectId ?? null,
+      });
+      message.success("Document updated");
+      onSaved();
+    } catch (err: any) {
+      message.error(err?.message || "Could not update document");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <ConfigProvider
+      theme={{
+        algorithm: antdTheme.defaultAlgorithm,
+        components: {
+          Modal: { contentBg: "#ffffff", headerBg: "#ffffff" },
+          Input: {
+            colorBgContainer: "#ffffff",
+            colorText: "#0f172a",
+            colorTextPlaceholder: "#94a3b8",
+            colorBorder: "#e2e8f0",
+          },
+        },
+      }}
+    >
+      <Modal
+        open={!!doc}
+        onCancel={onClose}
+        footer={null}
+        closable={false}
+        width={520}
+        destroyOnClose
+        styles={{ body: { padding: 0 } }}
+      >
+        <div
+          style={{
+            padding: "18px 22px 14px",
+            borderBottom: `1px solid ${T.border}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: T.accentBg,
+              border: `1px solid ${T.accentBorder}`,
+              color: T.accent,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Pencil size={16} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 700,
+                color: T.text,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Edit document
+            </div>
+            <div
+              style={{
+                marginTop: 2,
+                fontSize: 12,
+                color: T.textSubtle,
+                fontWeight: 500,
+              }}
+            >
+              Update name and classification. The file itself isn't replaced.
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 7,
+              background: T.cardBg,
+              border: `1px solid ${T.border}`,
+              color: T.textMuted,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+            aria-label="Close"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        <div style={{ padding: "16px 22px 4px", display: "flex", flexDirection: "column", gap: 10 }}>
+          <FieldLabel label="Display name">
+            <Input
+              value={fileName}
+              onChange={(e) => setFileName(e.target.value)}
+              placeholder="Document name"
+              style={{ height: 34 }}
+            />
+          </FieldLabel>
+          <FieldLabel label="Category">
+            <Input
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="e.g. Client Uploads, Specs"
+              style={{ height: 34 }}
+            />
+          </FieldLabel>
+          <FieldLabel label="Document type">
+            <Input
+              value={docType}
+              onChange={(e) => setDocType(e.target.value)}
+              placeholder="e.g. Attachment, Report"
+              style={{ height: 34 }}
+            />
+          </FieldLabel>
+          <FieldLabel label="Project (optional)">
+            <Select
+              popupClassName="portal-docs-popup"
+              allowClear
+              placeholder="Link to a project"
+              value={projectId}
+              onChange={(v) => setProjectId(v as string | undefined)}
+              style={{ width: "100%", height: 34 }}
+              options={projects.map((proj) => ({
+                value: proj.id,
+                label: proj.name,
+                code: proj.code,
+              }))}
+            />
+          </FieldLabel>
+        </div>
+
+        <div
+          style={{
+            padding: "14px 22px 16px",
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 8,
+          }}
+        >
+          <button
+            onClick={onClose}
+            disabled={saving}
+            style={{
+              padding: "8px 14px",
+              background: T.cardBg,
+              border: `1px solid ${T.border}`,
+              color: T.textMuted,
+              borderRadius: 8,
+              fontSize: 12.5,
+              fontWeight: 600,
+              cursor: saving ? "not-allowed" : "pointer",
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              padding: "8px 14px",
+              background: saving
+                ? T.borderHover
+                : "linear-gradient(135deg, #4338ca 0%, #6366f1 100%)",
+              border: "1px solid #3730a3",
+              color: "#fff",
+              borderRadius: 8,
+              fontSize: 12.5,
+              fontWeight: 600,
+              cursor: saving ? "not-allowed" : "pointer",
+            }}
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      </Modal>
+    </ConfigProvider>
+  );
+}

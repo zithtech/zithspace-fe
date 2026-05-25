@@ -10,6 +10,8 @@ import {
   RollbackOutlined,
   EyeOutlined,
   SettingOutlined,
+  CrownOutlined,
+  StarOutlined,
 } from '@ant-design/icons';
 import { Squad, SquadService } from '@/services/squadService';
 import { usePermission } from '@/hooks/usePermission';
@@ -21,9 +23,11 @@ interface SquadCardProps {
   onRefresh: () => void;
 }
 
-const HEAD_AVATAR_BG = 'linear-gradient(135deg, #10b981, #059669)';
-const SUBHEAD_AVATAR_BG = 'linear-gradient(135deg, #f59e0b, #d97706)';
-const MEMBER_AVATAR_BG = 'linear-gradient(135deg, #3b82f6, #6366f1)';
+const ROLE_BG = {
+  HEAD: 'linear-gradient(135deg, #10b981, #059669)',
+  SUB_HEAD: 'linear-gradient(135deg, #f59e0b, #d97706)',
+  MEMBER: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+} as const;
 
 const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefresh }) => {
   const { message, modal } = App.useApp();
@@ -66,7 +70,7 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
 
   const menuItems: MenuProps['items'] = useMemo(() => {
     const items: MenuProps['items'] = [];
-    
+
     if (canUpdateSquad) {
       items.push({
         key: 'archive',
@@ -86,14 +90,17 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
         onClick: handleDelete,
       });
     }
-    
+
     return items;
   }, [canUpdateSquad, canDeleteSquad, squad.isArchived]);
 
-  const { heads, subHeads, members, initials, statusClass, statusBadgeClass, statusLabel } = useMemo(() => {
-    const heads = squad.squadMembers?.filter(m => m.memberType === 'HEAD') || [];
-    const subHeads = squad.squadMembers?.filter(m => m.memberType === 'SUB_HEAD') || [];
-    const members = squad.squadMembers?.filter(m => m.memberType === 'MEMBER') || [];
+  const computed = useMemo(() => {
+    const all = squad.squadMembers || [];
+    const heads = all.filter(m => m.memberType === 'HEAD');
+    const subHeads = all.filter(m => m.memberType === 'SUB_HEAD');
+    const members = all.filter(m => m.memberType === 'MEMBER');
+    const total = heads.length + subHeads.length + members.length;
+
     const initials = squad.squadName
       .split(/\s+/)
       .filter(Boolean)
@@ -101,6 +108,7 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
       .slice(0, 2)
       .join('')
       .toUpperCase();
+
     const statusClass = squad.isArchived
       ? 'is-archived'
       : squad.squadStatus
@@ -112,102 +120,183 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
         ? 'squad-status--active'
         : 'squad-status--inactive';
     const statusLabel = squad.isArchived ? 'Archived' : squad.squadStatus ? 'Active' : 'Inactive';
-    return { heads, subHeads, members, initials, statusClass, statusBadgeClass, statusLabel };
+
+    // Ordered: heads → sub-heads → members
+    const ordered = [...heads, ...subHeads, ...members];
+
+    return {
+      heads,
+      subHeads,
+      members,
+      total,
+      initials,
+      statusClass,
+      statusBadgeClass,
+      statusLabel,
+      ordered,
+    };
   }, [squad]);
 
-  const renderAvatarGroup = (
-    group: typeof heads,
-    bg: string,
-    maxCount = 3,
-  ) => {
-    if (group.length === 0) {
-      return <span className="squad-card-v2__avatars-empty">— Unassigned</span>;
-    }
-    return (
-      <Avatar.Group max={{ count: maxCount }} size={26} className="squad-card-v2__avatars">
-        {group.map(m => (
-          <Tooltip key={m.id} title={m.member.name}>
-            <Avatar style={{ background: bg }}>
-              {m.member.name.substring(0, 2).toUpperCase()}
-            </Avatar>
-          </Tooltip>
-        ))}
-      </Avatar.Group>
-    );
-  };
+  const {
+    heads,
+    subHeads,
+    members,
+    total,
+    initials,
+    statusClass,
+    statusBadgeClass,
+    statusLabel,
+    ordered,
+  } = computed;
+
+  const headsPct = total > 0 ? (heads.length / total) * 100 : 0;
+  const subHeadsPct = total > 0 ? (subHeads.length / total) * 100 : 0;
+  const membersPct = total > 0 ? (members.length / total) * 100 : 0;
 
   return (
-    <div className={`squad-card-v2 ${statusClass}`}>
-      <div className="squad-card-v2__accent" />
-      <div className="squad-card-v2__body">
-        <div className="squad-card-v2__header">
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
-            <div className="squad-card-v2__avatar">{initials || <TeamOutlined />}</div>
-            <div className="squad-card-v2__title-block">
-              <div className="squad-card-v2__title" title={squad.squadName}>
-                {squad.squadName}
-              </div>
-              <div className="squad-card-v2__code">{squad.squadCode}</div>
+    <div className={`sq-card ${statusClass}`}>
+      <div className="sq-card__accent" />
+
+      {/* Header */}
+      <div className="sq-card__header">
+        <div className="sq-card__avatar">{initials || <TeamOutlined />}</div>
+
+        <div className="sq-card__title-block">
+          <div className="sq-card__title-row">
+            <div className="sq-card__title" title={squad.squadName}>
+              {squad.squadName}
             </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            <span className={`squad-card-v2__status ${statusBadgeClass}`}>
+            <span className={`sq-card__status ${statusBadgeClass}`}>
               <span className="squad-status-dot" />
               {statusLabel}
             </span>
-            {menuItems.length > 0 && (
-              <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight" disabled={busy}>
-                <Button
-                  type="text"
-                  icon={<MoreOutlined />}
-                  className="squad-card-v2__menu-btn"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </Dropdown>
-            )}
+          </div>
+          <div className="sq-card__meta">
+            <span className="sq-card__code">{squad.squadCode}</span>
+            <span className="sq-card__meta-dot">•</span>
+            <span className="sq-card__meta-text">
+              <TeamOutlined style={{ fontSize: 11 }} />
+              {total} {total === 1 ? 'member' : 'members'}
+            </span>
           </div>
         </div>
 
-        <div>
-          <div className="squad-card-v2__role-row">
-            <div className="squad-card-v2__role-label">
-              <span className="squad-card-v2__role-dot is-head" />
-              Heads
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span className="squad-card-v2__role-count">{heads.length}</span>
-              {renderAvatarGroup(heads, HEAD_AVATAR_BG)}
-            </div>
-          </div>
-          <div className="squad-card-v2__role-row">
-            <div className="squad-card-v2__role-label">
-              <span className="squad-card-v2__role-dot is-subhead" />
-              Sub-Heads
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span className="squad-card-v2__role-count">{subHeads.length}</span>
-              {renderAvatarGroup(subHeads, SUBHEAD_AVATAR_BG)}
-            </div>
-          </div>
-          <div className="squad-card-v2__role-row">
-            <div className="squad-card-v2__role-label">
-              <span className="squad-card-v2__role-dot is-member" />
-              Members
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span className="squad-card-v2__role-count">{members.length}</span>
-              {renderAvatarGroup(members, MEMBER_AVATAR_BG, 5)}
-            </div>
-          </div>
+        {menuItems.length > 0 && (
+          <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight" disabled={busy}>
+            <Button
+              type="text"
+              icon={<MoreOutlined />}
+              className="sq-card__menu-btn"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </Dropdown>
+        )}
+      </div>
+
+      {/* Composition bar */}
+      <div className="sq-card__compbar">
+        <div className="sq-card__compbar-track">
+          {total === 0 ? (
+            <span className="sq-card__compbar-empty" />
+          ) : (
+            <>
+              {heads.length > 0 && (
+                <Tooltip title={`${heads.length} Head${heads.length === 1 ? '' : 's'}`}>
+                  <span
+                    className="sq-card__compbar-seg is-head"
+                    style={{ width: `${headsPct}%` }}
+                  />
+                </Tooltip>
+              )}
+              {subHeads.length > 0 && (
+                <Tooltip title={`${subHeads.length} Sub-Head${subHeads.length === 1 ? '' : 's'}`}>
+                  <span
+                    className="sq-card__compbar-seg is-subhead"
+                    style={{ width: `${subHeadsPct}%` }}
+                  />
+                </Tooltip>
+              )}
+              {members.length > 0 && (
+                <Tooltip title={`${members.length} Member${members.length === 1 ? '' : 's'}`}>
+                  <span
+                    className="sq-card__compbar-seg is-member"
+                    style={{ width: `${membersPct}%` }}
+                  />
+                </Tooltip>
+              )}
+            </>
+          )}
+        </div>
+        <div className="sq-card__compbar-legend">
+          <span className="sq-card__compbar-stat">
+            <CrownOutlined className="is-head-color" />
+            <strong>{heads.length}</strong>
+            <em>Heads</em>
+          </span>
+          <span className="sq-card__compbar-stat">
+            <StarOutlined className="is-subhead-color" />
+            <strong>{subHeads.length}</strong>
+            <em>Sub-Heads</em>
+          </span>
+          <span className="sq-card__compbar-stat">
+            <TeamOutlined className="is-member-color" />
+            <strong>{members.length}</strong>
+            <em>Members</em>
+          </span>
         </div>
       </div>
 
-      <div className="squad-card-v2__footer">
-        <Button icon={<EyeOutlined />} onClick={() => onOpen(squad)}>
+      {/* Unified avatar stack */}
+      <div className="sq-card__avatars-row">
+        {ordered.length === 0 ? (
+          <div className="sq-card__avatars-empty">
+            <InboxOutlined />
+            <span>No members assigned yet</span>
+          </div>
+        ) : (
+          <>
+            <Avatar.Group max={{ count: 6 }} size={28} className="sq-card__avatars">
+              {ordered.map(m => (
+                <Tooltip
+                  key={m.id}
+                  title={
+                    <span>
+                      {m.member.name}
+                      <span style={{ opacity: 0.7, marginLeft: 6, fontSize: 11 }}>
+                        {m.memberType === 'HEAD'
+                          ? '· Head'
+                          : m.memberType === 'SUB_HEAD'
+                            ? '· Sub-Head'
+                            : '· Member'}
+                      </span>
+                    </span>
+                  }
+                >
+                  <Avatar style={{ background: ROLE_BG[m.memberType], fontSize: 11, fontWeight: 600 }}>
+                    {m.member.name.substring(0, 2).toUpperCase()}
+                  </Avatar>
+                </Tooltip>
+              ))}
+            </Avatar.Group>
+            {ordered.length > 6 && (
+              <span className="sq-card__avatars-more">+{ordered.length - 6} more</span>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="sq-card__footer">
+        <Button icon={<EyeOutlined />} onClick={() => onOpen(squad)} className="sq-card__btn-ghost">
           View
         </Button>
         {canUpdateSquad && (
-          <Button type="primary" icon={<SettingOutlined />} onClick={() => onManage(squad)}>
+          <Button
+            type="primary"
+            icon={<SettingOutlined />}
+            onClick={() => onManage(squad)}
+            className="sq-card__btn-primary"
+          >
             Manage
           </Button>
         )}

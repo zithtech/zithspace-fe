@@ -186,7 +186,7 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
                         if (key === 'changes') return null;
                         if (key === 'status' && action === 'Ticket Created') return null;
                         return (
-                            <div key={idx} style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                            <div key={idx} style={{ fontSize: 12, color: 'var(--text-secondary)', wordBreak: 'break-word' }}>
                                 <span style={{ textTransform: 'capitalize' }}>{key}</span>:{' '}
                                 <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{String(value)}</span>
                             </div>
@@ -291,12 +291,12 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
                 }
                 .activity-timeline-v2__rail {
                     position: relative;
-                    padding-left: 28px;
+                    padding-left: 44px;
                 }
                 .activity-timeline-v2__rail::before {
                     content: '';
                     position: absolute;
-                    left: 13px;
+                    left: 17px;
                     top: 4px;
                     bottom: 4px;
                     width: 2px;
@@ -310,7 +310,7 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
                 .activity-event:last-child { margin-bottom: 0; }
                 .activity-event__dot {
                     position: absolute;
-                    left: -22px;
+                    left: -40px;
                     top: 8px;
                     width: 28px;
                     height: 28px;

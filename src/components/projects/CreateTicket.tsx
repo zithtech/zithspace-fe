@@ -52,6 +52,7 @@ import {
 } from "@/services/settingsService";
 import TiptapEditor from "@/components/common/TiptapEditor";
 import { useCreateTicket } from "@/hooks/useTickets";
+import { usePermission } from "@/hooks/usePermission";
 import { useUserProjects, useMembers, useTicketConfig } from "@/hooks/useGlobalData";
 import { PRIORITY_OPTIONS, TYPE_OPTIONS, getPriorityColor } from "@/utils/ticketUtils";
 
@@ -80,6 +81,7 @@ interface TicketFormData {
 
 export default function CreateTicket() {
   const [form] = Form.useForm();
+  const { canReadTicketPlan } = usePermission();
   const [api, contextHolder] = notification.useNotification({
     placement: 'top',
   });
@@ -191,7 +193,7 @@ export default function CreateTicket() {
         // Load parent tickets and release plans for selected project
         const [parentTicketsData, releasePlansData] = await Promise.all([
           TicketService.getParentTickets(selectedProject),
-          TicketService.getReleasePlansByProject(selectedProject)
+          canReadTicketPlan ? TicketService.getReleasePlansByProject(selectedProject) : Promise.resolve([])
         ]);
 
         setParentTickets(parentTicketsData || []);
@@ -663,7 +665,7 @@ export default function CreateTicket() {
                                 {member.label.charAt(0)}
                               </Avatar>
                               <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.4 }}>
-                                <Text strong style={{ fontSize: 13, color: "#262626", display: "block" }}>{member.label}</Text>
+                                <Text strong style={{ fontSize: 13, color: "inherit", display: "block" }}>{member.label}</Text>
                                 <Text type="secondary" style={{ fontSize: 11, display: "block" }}>
                                   {typeof member.position === 'object' ? (member.position as any)?.title : member.position}
                                 </Text>
@@ -698,7 +700,7 @@ export default function CreateTicket() {
                                 {member.label.charAt(0)}
                               </Avatar>
                               <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.4 }}>
-                                <Text strong style={{ fontSize: 13, color: "#262626", display: "block" }}>{member.label}</Text>
+                                <Text strong style={{ fontSize: 13, color: "inherit", display: "block" }}>{member.label}</Text>
                                 <Text type="secondary" style={{ fontSize: 11, display: "block" }}>
                                   {typeof member.position === 'object' ? (member.position as any)?.title : member.position}
                                 </Text>
@@ -742,23 +744,25 @@ export default function CreateTicket() {
                   </Col>
                 </Row>
 
-                <Form.Item name="releasePlan" label={<Text strong>Associated Plan</Text>}>
-                  <Select
-                    placeholder="Link to a release plan (Optional)"
-                    allowClear
-                    size="large"
-                    style={{ borderRadius: 8 }}
-                    loading={dataLoading}
-                    disabled={!selectedProject}
-                    suffixIcon={<ThunderboltOutlined />}
-                  >
-                    {releasePlans.map((plan) => (
-                      <Option key={plan.value} value={plan.value}>
-                        {plan.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
+                {canReadTicketPlan && (
+                  <Form.Item name="releasePlan" label={<Text strong>Associated Plan</Text>}>
+                    <Select
+                      placeholder="Link to a release plan (Optional)"
+                      allowClear
+                      size="large"
+                      style={{ borderRadius: 8 }}
+                      loading={dataLoading}
+                      disabled={!selectedProject}
+                      suffixIcon={<ThunderboltOutlined />}
+                    >
+                      {releasePlans.map((plan) => (
+                        <Option key={plan.value} value={plan.value}>
+                          {plan.label}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                )}
               </Card>
 
             </Space>
@@ -769,81 +773,83 @@ export default function CreateTicket() {
         <Col xs={24} lg={7} style={{ height: "100%", overflowY: "auto", paddingBottom: 60, scrollbarWidth: "none" }}>
           <Space direction="vertical" size={24} style={{ width: "100%" }}>
             {/* Current Sprint Card */}
-            <Card
-              title={
-                <Space>
-                  <ThunderboltOutlined style={{ color: "#1677ff" }} />
-                  <Text strong>Active Sprint</Text>
-                </Space>
-              }
-              styles={{ 
-                header: { borderBottom: "1px solid var(--border-color)", padding: "0 20px" },
-                body: { padding: 20 }
-              }}
-              style={{ borderRadius: 12, border: "1px solid var(--border-color)", background: "var(--bg-pure-white)" }}
-            >
-              {!selectedProject ? (
-                <div style={{ textAlign: "center", padding: "12px 0" }}>
-                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text type="secondary" style={{ fontSize: 12 }}>Select a project to view sprint details</Text>} />
-                </div>
-              ) : releasePlans.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "12px 0" }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>No release plans found for this project</Text>
-                </div>
-              ) : (
-                (() => {
-                  const activeSprint = releasePlans.find(p => p.status?.toUpperCase() === "ACTIVE") || releasePlans[0];
-                  return (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                      <div style={{ 
-                        padding: "12px", 
-                        background: "var(--bg-pure-white)", 
-                        borderRadius: 8, 
-                        border: "1px solid var(--border-color)" 
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div>
-                            <Text type="secondary" style={{ fontSize: 11, textTransform: "uppercase" }}>Current Sprint</Text>
-                            <Title level={4} style={{ margin: "4px 0", color: "#262626", fontWeight: 700, fontSize: 16 }}>
-                              {activeSprint.label}
-                            </Title>
+            {canReadTicketPlan && (
+              <Card
+                title={
+                  <Space>
+                    <ThunderboltOutlined style={{ color: "#1677ff" }} />
+                    <Text strong>Active Sprint</Text>
+                  </Space>
+                }
+                styles={{ 
+                  header: { borderBottom: "1px solid var(--border-color)", padding: "0 20px" },
+                  body: { padding: 20 }
+                }}
+                style={{ borderRadius: 12, border: "1px solid var(--border-color)", background: "var(--bg-pure-white)" }}
+              >
+                {!selectedProject ? (
+                  <div style={{ textAlign: "center", padding: "12px 0" }}>
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text type="secondary" style={{ fontSize: 12 }}>Select a project to view sprint details</Text>} />
+                  </div>
+                ) : releasePlans.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "12px 0" }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>No release plans found for this project</Text>
+                  </div>
+                ) : (
+                  (() => {
+                    const activeSprint = releasePlans.find(p => p.status?.toUpperCase() === "ACTIVE") || releasePlans[0];
+                    return (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                        <div style={{ 
+                          padding: "12px", 
+                          background: "var(--bg-pure-white)", 
+                          borderRadius: 8, 
+                          border: "1px solid var(--border-color)" 
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div>
+                              <Text type="secondary" style={{ fontSize: 11, textTransform: "uppercase" }}>Current Sprint</Text>
+                              <Title level={4} style={{ margin: "4px 0", color: "#262626", fontWeight: 700, fontSize: 16 }}>
+                                {activeSprint.label}
+                              </Title>
+                            </div>
+                            <Tag color={activeSprint.status?.toUpperCase() === "ACTIVE" ? "processing" : "warning"} style={{ borderRadius: 4, margin: 0 }}>
+                              {activeSprint.status?.toUpperCase() || "PLANNED"}
+                            </Tag>
                           </div>
-                          <Tag color={activeSprint.status?.toUpperCase() === "ACTIVE" ? "processing" : "warning"} style={{ borderRadius: 4, margin: 0 }}>
-                            {activeSprint.status?.toUpperCase() || "PLANNED"}
-                          </Tag>
                         </div>
-                      </div>
-                      
-                      <Row gutter={0} style={{ border: "1px solid var(--border-color)", borderRadius: 8, overflow: "hidden" }}>
-                        <Col span={12} style={{ padding: "8px 12px", borderRight: "1px solid var(--border-color)", background: "var(--bg-pure-white)" }}>
-                          <Text type="secondary" style={{ fontSize: 10, display: "block", textTransform: "uppercase", letterSpacing: "0.02em" }}>Start Date</Text>
-                          <Text strong style={{ fontSize: 12 }}>{activeSprint.startDate ? dayjs(activeSprint.startDate).format("MMM DD, YYYY") : "Pending"}</Text>
-                        </Col>
-                        <Col span={12} style={{ padding: "8px 12px", background: "var(--bg-pure-white)" }}>
-                          <Text type="secondary" style={{ fontSize: 10, display: "block", textTransform: "uppercase", letterSpacing: "0.02em" }}>Deadline</Text>
-                          <Text strong style={{ fontSize: 12 }}>{activeSprint.releaseDate ? dayjs(activeSprint.releaseDate).format("MMM DD, YYYY") : "No Date"}</Text>
-                        </Col>
-                      </Row>
+                        
+                        <Row gutter={0} style={{ border: "1px solid var(--border-color)", borderRadius: 8, overflow: "hidden" }}>
+                          <Col span={12} style={{ padding: "8px 12px", borderRight: "1px solid var(--border-color)", background: "var(--bg-pure-white)" }}>
+                            <Text type="secondary" style={{ fontSize: 10, display: "block", textTransform: "uppercase", letterSpacing: "0.02em" }}>Start Date</Text>
+                            <Text strong style={{ fontSize: 12 }}>{activeSprint.startDate ? dayjs(activeSprint.startDate).format("MMM DD, YYYY") : "Pending"}</Text>
+                          </Col>
+                          <Col span={12} style={{ padding: "8px 12px", background: "var(--bg-pure-white)" }}>
+                            <Text type="secondary" style={{ fontSize: 10, display: "block", textTransform: "uppercase", letterSpacing: "0.02em" }}>Deadline</Text>
+                            <Text strong style={{ fontSize: 12 }}>{activeSprint.releaseDate ? dayjs(activeSprint.releaseDate).format("MMM DD, YYYY") : "No Date"}</Text>
+                          </Col>
+                        </Row>
 
-                      <Divider style={{ margin: "8px 0" }} />
-                      
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Text type="secondary" style={{ fontSize: 12 }}>Sprint Tickets</Text>
-                        <Badge count={activeSprint.totalTickets || 0} style={{ backgroundColor: "#1677ff" }} />
+                        <Divider style={{ margin: "8px 0" }} />
+                        
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <Text type="secondary" style={{ fontSize: 12 }}>Sprint Tickets</Text>
+                          <Badge count={activeSprint.totalTickets || 0} style={{ backgroundColor: "#1677ff" }} />
+                        </div>
+                        
+                        {activeSprint.totalTickets !== undefined && activeSprint.totalTickets > 0 && (
+                          <Progress 
+                            percent={Math.round(((activeSprint.completedTickets || 0) / activeSprint.totalTickets) * 100)} 
+                            size="small" 
+                            status={activeSprint.status?.toUpperCase() === "ACTIVE" ? "active" : "normal"}
+                          />
+                        )}
                       </div>
-                      
-                      {activeSprint.totalTickets !== undefined && activeSprint.totalTickets > 0 && (
-                        <Progress 
-                          percent={Math.round(((activeSprint.completedTickets || 0) / activeSprint.totalTickets) * 100)} 
-                          size="small" 
-                          status={activeSprint.status?.toUpperCase() === "ACTIVE" ? "active" : "normal"}
-                        />
-                      )}
-                    </div>
-                  );
-                })()
-              )}
-            </Card>
+                    );
+                  })()
+                )}
+              </Card>
+            )}
 
             {/* Writing Best Practices */}
             <Card

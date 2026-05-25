@@ -464,6 +464,302 @@ export default function ViewInvoicePage() {
             TOTAL_COL={TOTAL_COL}
             formatCurrency={formatCurrency}
           />
+
+          {/* Amount in Words */}
+          <div
+            style={{
+              marginTop: 12,
+              padding: "10px 14px",
+              backgroundColor: "var(--invoice-section-bg)",
+              borderRadius: 6,
+              border: "1px solid var(--invoice-section-border)",
+              fontSize: 13,
+              color: "var(--text-primary)"
+            }}
+          >
+            <Text strong>Amount in Words:</Text> <Text>{totalInWords}</Text>
+          </div>
+
+
+
+          {/* Payment / Bank Details + signature */}
+          {settings?.payment && (
+            <div
+              style={{
+                marginTop: 16,
+                paddingTop: 8,
+                borderTop: "1px solid #f0f0f0",
+                display: "grid",
+                gridTemplateColumns: settings.general?.signature ? "2fr 1fr" : "1fr",
+                gap: 24,
+                fontSize: 12,
+                alignItems: "flex-start",
+              }}
+            >
+              {/* Bank Details */}
+              <div style={{ flex: settings.general?.signature ? 2 : 1 }}>
+                <Card
+                  size="small"
+                  style={{
+                    backgroundColor: "var(--invoice-section-bg)",
+                    border: "1px solid var(--invoice-section-border)",
+                    borderRadius: 6,
+                  }}
+                  bodyStyle={{ padding: "12px" }}
+                >
+                  <Title level={5} style={{ marginBottom: 12, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>
+                    Bank Details
+                  </Title>
+
+                  <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+                    {/* Bank Info - label and value on same line */}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ marginBottom: 6, display: "flex" }}>
+                        <Text type="secondary" style={{ width: 120, fontSize: "12px" }}>Bank Name:</Text>
+                        <Text style={{ fontSize: "12px" }}>{settings.payment.bankName}</Text>
+                      </div>
+
+                      <div style={{ marginBottom: 6, display: "flex" }}>
+                        <Text type="secondary" style={{ width: 120, fontSize: "12px" }}>Account Number:</Text>
+                        <Text style={{ fontSize: "12px" }}>{settings.payment.accountNumber}</Text>
+                      </div>
+
+                      <div style={{ marginBottom: 6, display: "flex" }}>
+                        <Text type="secondary" style={{ width: 120, fontSize: "12px" }}>IFSC Code:</Text>
+                        <Text style={{ fontSize: "12px" }}>{settings.payment.ifscCode}</Text>
+                      </div>
+
+                      <div style={{ display: "flex" }}>
+                        <Text type="secondary" style={{ width: 120, fontSize: "12px" }}>Branch:</Text>
+                        <Text style={{ fontSize: "12px" }}>{settings.payment.branchName}</Text>
+                      </div>
+                    </div>
+
+                    {/* QR Code */}
+                    {settings.payment.qrCode && (
+                      <div style={{ textAlign: "center", minWidth: 120 }}>
+                        <img
+                          src={settings.payment.qrCode}
+                          alt="Payment QR Code"
+                          style={{
+                            width: 90,
+                            height: 90,
+                            objectFit: "contain",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: 6,
+                            background: "#fff",
+                            padding: 6,
+                          }}
+                        />
+                        <Text
+                          type="secondary"
+                          style={{
+                            display: "block",
+                            fontSize: 10,
+                            marginTop: 4,
+                          }}
+                        >
+                          Scan to Pay
+                        </Text>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+
+              {/* Signature */}
+              {settings.general?.signature && (
+                <div style={{ textAlign: "center", flex: 1 }}>
+                  <Title level={5} style={{ marginBottom: 8, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>
+                    Authorized Signature
+                  </Title>
+
+                  <div
+                    style={{
+                      backgroundColor: "var(--invoice-section-bg)",
+                      padding: 12,
+                      borderRadius: 6,
+                      display: "inline-block",
+                      border: "1px solid var(--invoice-section-border)",
+                    }}
+                  >
+                    <img
+                      src={settings.general.signature}
+                      alt="Authorized Signature"
+                      style={{
+                        width: 100,
+                        height: 80,
+                        objectFit: "contain",
+                        border: "1px solid #e5e7eb",
+                        background: "#fff",
+                        padding: 8,
+                        borderRadius: 6,
+                      }}
+                    />
+                    <Text
+                      type="secondary"
+                      style={{
+                        display: "block",
+                        fontSize: 10,
+                        marginTop: 4,
+                      }}
+                    >
+                      Digitally signed
+                    </Text>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Notes & Terms - After Bank Details */}
+          {(invoice.notes || invoice.terms) && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #f0f0f0", display: "flex", gap: 16, alignItems: "flex-start" }}>
+              {invoice.notes && (
+                <div style={{ flex: 1 }}>
+                  <Card
+                    size="small"
+                    style={{
+                      backgroundColor: "var(--invoice-section-bg)",
+                      border: "1px solid var(--invoice-section-border)",
+                      borderRadius: 6,
+                      minHeight: 120,
+                    }}
+                    bodyStyle={{ padding: "12px" }}
+                  >
+                    <Title level={5} style={{ marginBottom: 8, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>
+                      Notes
+                    </Title>
+                    <div style={{ fontSize: "12px", color: "var(--text-primary)" }}>
+                      <Text>{invoice.notes}</Text>
+                    </div>
+                  </Card>
+                </div>
+              )}
+              {invoice.terms && (
+                <div style={{ flex: 1 }}>
+                  <Card
+                    size="small"
+                    style={{
+                      backgroundColor: "var(--invoice-section-bg)",
+                      border: "1px solid var(--invoice-section-border)",
+                      borderRadius: 6,
+                      minHeight: 120,
+                    }}
+                    bodyStyle={{ padding: "12px" }}
+                  >
+                    <Title level={5} style={{ marginBottom: 8, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>
+                      Terms & Conditions
+                    </Title>
+                    <div style={{ fontSize: "12px", color: "var(--text-primary)" }}>
+                      <Text>{invoice.terms}</Text>
+                    </div>
+                  </Card>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Invoice Footer */}
+          <div
+            style={{
+              marginTop: "auto",
+              paddingTop: 12,
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 4,
+                marginTop: "20px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 13,
+                  color: "var(--text-secondary)",
+                }}
+              >
+                Crafted with ease using
+              </span>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                {settings?.general?.companyLogo && (
+                  <img
+                    src={settings.general.companyLogo}
+                    alt="Company Logo"
+                    style={{
+                      width: 40,
+                      height: 30,
+                      objectFit: "contain",
+                      marginRight: 2,
+                    }}
+                  />
+                )}
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    lineHeight: 1.05,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#1a73e8",
+                    }}
+                  >
+                    Zukvo
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    Invoice
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: 2,
+                fontSize: 12,
+                color: "var(--text-secondary)",
+              }}
+            >
+              Visit{" "}
+              <a
+                href={`https://${(
+                  settings?.general?.companyName || "zithtech"
+                ).toLowerCase()}.com/invoice`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: "#1a73e8",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                }}
+              >
+                zukvo.com/invoice
+              </a>{" "}
+              to create truly professional invoices
+            </div>
+          </div>
         </div>
       </div>
     </div>

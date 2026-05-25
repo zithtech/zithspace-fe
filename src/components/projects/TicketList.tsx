@@ -167,7 +167,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     canDeleteTicket, 
     canAssignTicket,
     canManageTickets,
-    canCreateTicketPlan 
+    canCreateTicketPlan,
+    canReadTicketPlan,
+    canUpdateTicketPlan
   } = usePermission();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -441,7 +443,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     queryKey: ['activeSprint', projectId],
     queryFn: () => ReleasePlanService.getActiveReleasePlans(projectId),
     staleTime: 60 * 1000,
-    enabled: !!projectId,
+    enabled: !!projectId && canReadTicketPlan,
   });
   const activeSprint = activeSprints && activeSprints.length > 0 ? activeSprints[0] : null;
 
@@ -734,6 +736,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     field: "status" | "assignee" | "title" | "priority" | "type" | "storyPoint",
     value: string | number | null
   ) => {
+    if (field === "assignee" && !canAssignTicket) {
+      message.error("Access Denied: You do not have permission to assign tickets.");
+      return;
+    }
     // Prepare update data
     const updateData: any = {};
     // Prepare optimistic cache data (optional override)
@@ -771,7 +777,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           // Note: The optimistic update hook will handle rolling back the data in the cache
         },
         onSuccess: () => {
-          message.success(`${field} updated`);
+          const formattedField = field.charAt(0).toUpperCase() + field.slice(1);
+          message.success(`${formattedField} updated`);
         }
       }
     );
@@ -905,7 +912,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       title: "ID",
       dataIndex: "ticketNumber",
       key: "ticketNumber",
-      width: 100,
+      width: 180,
       render: (text: string, record: Ticket) => (
         <span
           onClick={() => handleViewTicket(record)}
@@ -919,7 +926,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             padding: '2px 6px',
             background: 'var(--bg-blue-50)',
             borderRadius: '4px',
-            border: '1px solid var(--border-blue-200)'
+            border: '1px solid var(--border-blue-200)',
+            whiteSpace: 'nowrap'
           }}
           className="hover:opacity-80 transition-opacity"
         >
@@ -1116,9 +1124,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           <Space
             style={{ cursor: canUpdateTicket ? "pointer" : "default", transition: 'all 0.2s' }}
             className={canUpdateTicket ? "hover:translate-x-1" : ""}
-            onClick={() =>
-              canUpdateTicket && setEditingField({ ticketId: record.id, field: "assignee" })
-            }
+            onClick={() => {
+              if (canUpdateTicket) {
+                if (!canAssignTicket) {
+                  message.error("Access Denied: You do not have permission to assign tickets.");
+                  return;
+                }
+                setEditingField({ ticketId: record.id, field: "assignee" });
+              }
+            }}
           >
             <Avatar
               size="small"
@@ -1374,6 +1388,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       title: "Actions",
       key: "actions",
       width: 180,
+      fixed: "right",
       render: (_: any, record: Ticket) => {
         const handleShare = () => {
           const url = `${window.location.origin}/public/tickets/${record.id}`;
@@ -1484,9 +1499,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       <style dangerouslySetInnerHTML={{
         __html: `
         .project-switch-trigger:hover {
-          background-color: var(--bg-slate-50);
+          background: var(--bg-slate-50);
+          color: var(--premium-blue);
         }
-        .tickets-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 5px 12px !important; }
+        
+        /* Remove default shadow from fixed columns (e.g. Actions) */
+        .ant-table-cell-fix-left-first::after, .ant-table-cell-fix-left-last::after,
+        .ant-table-cell-fix-right-first::after, .ant-table-cell-fix-right-last::after {
+          box-shadow: none !important;
+        }.tickets-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 5px 12px !important; }
         .tickets-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 9px 16px !important; }
         .tickets-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 14px 20px !important; }
         .tickets-table-settings-popover .ant-popover-inner { padding: 14px !important; border-radius: 12px !important; }
@@ -1642,6 +1663,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               classNames={{ root: 'tickets-table-settings-popover' }}
               content={
                 <div style={{ width: 240 }}>
+                  {/*
                   <div
                     style={{
                       display: 'flex',
@@ -1668,6 +1690,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       { label: 'Roomy', value: 'spacious' },
                     ]}
                   />
+                  */}
                   <div
                     style={{
                       display: 'flex',
@@ -2049,7 +2072,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   }}>
                     <Space size={[12, 8]} wrap>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)' }} />
-                      <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)' }}>
+                      <Text 
+                        style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)', maxWidth: 350 }}
+                        ellipsis={{ tooltip: true }}
+                      >
                         {activeSprint?.version || 'Active Sprint'}
                       </Text>
                       <Space size={6}>
@@ -2227,7 +2253,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       >
                         Go To Backlog
                       </Button>
-                      {canManageTickets && (
+                      {canUpdateTicketPlan && (
                         <Button
                           type="primary"
                           size="middle"
@@ -2240,16 +2266,16 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                         </Button>
                       )}
                       {activeSprint?.id && (
-                        <Button
-                          type="default"
-                          size="middle"
-                          icon={<LineChartOutlined style={{ color: '#6366f1' }} />}
-                          onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
-                          className="saas-button-item"
-                          style={{ height: 32, fontWeight: 600 }}
-                        >
-                          View Report
-                        </Button>
+                        <Tooltip title="View Report">
+                          <Button
+                            type="default"
+                            size="middle"
+                            icon={<LineChartOutlined style={{ color: '#6366f1' }} />}
+                            onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
+                            className="saas-button-item"
+                            style={{ height: 32, width: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          />
+                        </Tooltip>
                       )}
                     </Space>
                   </div>
@@ -2376,15 +2402,17 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       allowClear
                     />
                     <Divider type="vertical" style={{ height: 20, margin: 0 }} />
-                    <Button
-                      type="default"
-                      icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
-                      onClick={() => document.getElementById('active-section')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="saas-button-item"
-                      style={{ height: 32, fontWeight: 600 }}
-                    >
-                      Go To Sprint
-                    </Button>
+                    {activeSprint && (
+                      <Button
+                        type="default"
+                        icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
+                        onClick={() => document.getElementById('active-section')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="saas-button-item"
+                        style={{ height: 32, fontWeight: 600 }}
+                      >
+                        Go To Sprint
+                      </Button>
+                    )}
                     {canCreateTicketPlan && (
                       <Button
                         type="default"
@@ -2402,7 +2430,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 </div>
               }
             >
-              <div className="tickets-table-shell" data-density={tableDensity}>
+              <div className="tickets-table-shell" data-density="comfortable">
                 <Table
                   rowSelection={backlogRowSelection}
                   columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}

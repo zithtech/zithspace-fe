@@ -17,6 +17,7 @@ import {
 } from '@ant-design/icons';
 import { TimeTrackingService } from '@/services/timeTracking.service';
 import TicketService from '@/services/ticketService';
+import { ProjectService } from '@/services/projectService';
 import { useMembers } from '@/hooks/useGlobalData';
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
 import { useQuery } from '@tanstack/react-query';
@@ -63,18 +64,16 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
 
   const allUserTickets = useMemo(() => userTicketsResponse?.data || [], [userTicketsResponse]);
 
+  const { data: userProjectsResponse, isLoading: loadingProjects } = useQuery({
+    queryKey: ['user-projects-manage', selectedUserId],
+    queryFn: () => ProjectService.getProjects({ userId: selectedUserId, limit: 1000 }),
+    enabled: !!selectedUserId
+  });
+
   const availableProjects = useMemo(() => {
-    const projectMap = new Map();
-    allUserTickets.forEach((ticket: any) => {
-      const project = ticket.project;
-      if (typeof project === 'object' && project.id) {
-        projectMap.set(project.id, { value: project.id, label: project.name });
-      } else if (typeof project === 'string') {
-        projectMap.set(project, { value: project, label: `Project ${project}` });
-      }
-    });
-    return Array.from(projectMap.values());
-  }, [allUserTickets]);
+    const projects = userProjectsResponse?.data || [];
+    return projects.map((p: any) => ({ value: p.id, label: p.name }));
+  }, [userProjectsResponse]);
 
   const filteredTickets = useMemo(() => {
     if (selectedProjectIds.length === 0) return allUserTickets;

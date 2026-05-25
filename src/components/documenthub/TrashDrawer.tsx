@@ -23,6 +23,7 @@ import {
     FolderOutlined,
     SearchOutlined,
     CloseOutlined,
+    DeleteOutlined,
 } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import DocumentHubService, { DocumentHub } from "@/services/documentHub";
@@ -127,6 +128,66 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
         });
     };
 
+    const handleDeleteHub = async (id: string, name: string) => {
+        modal.confirm({
+            title: "Permanently delete document hub?",
+            content: `"${name}" will be permanently deleted. This action cannot be undone.`,
+            okText: "Delete",
+            okType: "danger",
+            cancelText: "Cancel",
+            onOk: async () => {
+                try {
+                    await DocumentHubService.deleteDocumentHub(id, true);
+                    messageApi.success("Document hub permanently deleted");
+                    refetch();
+                } catch (error) {
+                    console.error(error);
+                    messageApi.error("Failed to delete document hub");
+                }
+            },
+        });
+    };
+
+    const handleDeleteDocument = async (id: string, title: string) => {
+        modal.confirm({
+            title: "Permanently delete document?",
+            content: `"${title}" will be permanently deleted. This action cannot be undone.`,
+            okText: "Delete",
+            okType: "danger",
+            cancelText: "Cancel",
+            onOk: async () => {
+                try {
+                    await DocumentHubService.deleteDocument(id, true);
+                    messageApi.success("Document permanently deleted");
+                    refetch();
+                } catch (error) {
+                    console.error(error);
+                    messageApi.error("Failed to delete document");
+                }
+            },
+        });
+    };
+
+    const handleDeleteFolder = async (id: string, title: string) => {
+        modal.confirm({
+            title: "Permanently delete folder?",
+            content: `"${title}" will be permanently deleted. This action cannot be undone.`,
+            okText: "Delete",
+            okType: "danger",
+            cancelText: "Cancel",
+            onOk: async () => {
+                try {
+                    await DocumentHubService.deleteTreeNode(id, true);
+                    messageApi.success("Folder permanently deleted");
+                    refetch();
+                } catch (error) {
+                    console.error(error);
+                    messageApi.error("Failed to delete folder");
+                }
+            },
+        });
+    };
+
     const handleRestoreFolder = (item: any) => {
         setSelectedFolder(item);
         setIsRestoreModalOpen(true);
@@ -218,6 +279,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
         deletedByAvatar?: string;
         deletedAt?: string;
         onRestore: () => void;
+        onDelete: () => void;
     }> = ({
         type,
         title,
@@ -226,6 +288,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
         deletedByAvatar,
         deletedAt,
         onRestore,
+        onDelete,
     }) => {
         const tab: TabKey = type === "hub" ? "hubs" : type === "folder" ? "folders" : "documents";
         const accent = tabAccent[tab];
@@ -322,7 +385,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                 {/* Action row */}
                 {canUpdateDocument && (
                     <div
-                        className="flex items-center justify-end mt-3 pt-3"
+                        className="flex items-center justify-end gap-2 mt-3 pt-3"
                         style={{ borderTop: "1px solid var(--border-slate-200)" }}
                     >
                         <Button
@@ -342,6 +405,21 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                             }}
                         >
                             Restore
+                        </Button>
+                        <Button
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            onClick={onDelete}
+                            danger
+                            style={{
+                                borderRadius: 8,
+                                height: 30,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                paddingInline: 12,
+                            }}
+                        >
+                            Delete
                         </Button>
                     </div>
                 )}
@@ -528,6 +606,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                                         onRestore={() =>
                                             handleRestoreHub(item.id, item.name)
                                         }
+                                        onDelete={() => handleDeleteHub(item.id, item.name)}
                                     />
                                 );
                             }
@@ -542,6 +621,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                                         deletedByAvatar={item.deletedBy?.avatarUrl}
                                         deletedAt={item.deletedAt}
                                         onRestore={() => handleRestoreFolder(item)}
+                                        onDelete={() => handleDeleteFolder(item.id, item.title)}
                                     />
                                 );
                             }
@@ -557,6 +637,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                                     onRestore={() =>
                                         handleRestoreDocument(item.id, item.title)
                                     }
+                                    onDelete={() => handleDeleteDocument(item.id, item.title)}
                                 />
                             );
                         })}

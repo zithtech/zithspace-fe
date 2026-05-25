@@ -18,6 +18,7 @@ import dayjs from "dayjs";
 import Link from "next/link";
 import { calculateNetDuration } from "@/utils/timeTrackingUtils";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
+import { usePermission } from "@/hooks/usePermission";
 
 const { Title, Text } = Typography;
 
@@ -230,6 +231,7 @@ interface TeamTimeTrackerProps {
 
 export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) => {
   const { open: openTicketDrawer } = useTicketDrawer();
+  const { canManageTimeTrackingTime } = usePermission();
   const [entries, setEntries] = useState<TimeTrackingEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
@@ -638,7 +640,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
         key: "action",
         width: 80,
         align: "center" as const,
-        render: (_: any, record: any) => (
+        render: (_: any, record: any) => canManageTimeTrackingTime ? (
           <Button
             type="text"
             icon={<EditOutlined style={{ color: '#1890ff' }} />}
@@ -647,7 +649,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
               setIsEditModalOpen(true);
             }}
           />
-        )
+        ) : null
       }
     ];
 
@@ -759,15 +761,17 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
                         <Tag color={session.isLive ? 'processing' : session.endAction === 'PAUSED' ? 'warning' : session.entryStatus === 'MANUAL_UPDATED' ? 'purple' : 'default'} style={{ borderRadius: 4, fontSize: 9 }}>
                           {session.isLive ? 'LIVE' : session.endAction === 'PAUSED' ? 'PAUSED' : session.entryStatus === 'MANUAL_UPDATED' ? 'MANUAL' : 'STOPPED'}
                         </Tag>
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<EditOutlined style={{ color: '#94a3b8', fontSize: 12 }} />}
-                          onClick={() => {
-                            setEditingEntry(session);
-                            setIsEditModalOpen(true);
-                          }}
-                        />
+                        {canManageTimeTrackingTime && (
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<EditOutlined style={{ color: '#94a3b8', fontSize: 12 }} />}
+                            onClick={() => {
+                              setEditingEntry(session);
+                              setIsEditModalOpen(true);
+                            }}
+                          />
+                        )}
                       </Space>
                     </div>
                   </Col>

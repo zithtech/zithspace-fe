@@ -221,10 +221,10 @@ export default function InvoiceInvoicesPage() {
 
   // Route guard
   useEffect(() => {
-    if (!authLoading && !canReadInvoice) {
+    if (!authLoading && !canReadInvoice && !canReadInvoiceHistory) {
       router.push('/dashboard');
     }
-  }, [authLoading, canReadInvoice, router]);
+  }, [authLoading, canReadInvoice, canReadInvoiceHistory, router]);
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);
@@ -1165,7 +1165,7 @@ export default function InvoiceInvoicesPage() {
 
 
   if (authLoading) return <MainLayout><div style={{ padding: 100, textAlign: 'center' }}><Spin tip="Loading"><div style={{ padding: 20 }} /></Spin></div></MainLayout>;
-  if (!canReadInvoice) return null;
+  if (!canReadInvoice && !canReadInvoiceHistory) return null;
 
   return (
     <MainLayout>

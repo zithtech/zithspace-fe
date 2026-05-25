@@ -149,7 +149,8 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
   const [searchValue, setSearchValue] = React.useState("");
   const [isEditing, setIsEditing] = React.useState(false);
   const { open: openTicketDrawer } = useTicketDrawer();
-  const isOwner = user?.id === record.createdById;
+  const { canUpdateDocument } = usePermission();
+  const isOwner = user?.id === record.createdById && canUpdateDocument;
 
   const { data: rowTickets = [], isLoading: rowTicketsLoading } =
     useUserTicketsByProjects(record.projectId);
@@ -308,7 +309,8 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
 
 const InlineProjectSelector = ({ record, projects, projectsLoading, updateHub, user }: any) => {
   const [isEditing, setIsEditing] = React.useState(false);
-  const isOwner = user?.id === record.createdById;
+  const { canUpdateDocument } = usePermission();
+  const isOwner = user?.id === record.createdById && canUpdateDocument;
 
   const getOptions = () => {
     return (projects || []).map((p: any) => ({
@@ -576,6 +578,7 @@ const HubCard: React.FC<{
   onDelete: (e: React.MouseEvent, id: string, name: string) => void;
   variant?: 'rail' | 'grid';
 }> = ({ hub, starred, onOpen, onToggleStar, onShare, onDelete, variant = 'rail' }) => {
+  const { canDeleteDocument } = usePermission();
   const accent = HUB_ACCENTS[0];
   const docCount = hub.treeNodes?.filter((n) => n.type === 'file').length || 0;
   const isRail = variant === 'rail';
@@ -712,16 +715,18 @@ const HubCard: React.FC<{
                 <ShareAltOutlined style={{ fontSize: 11 }} />
               </button>
             </Tooltip>
-            <Tooltip title="Move to trash">
-              <button
-                type="button"
-                onClick={(e) => onDelete(e, hub.id, hub.name)}
-                className="dh-card-action-btn dh-card-action-danger"
-                aria-label="Delete"
-              >
-                <DeleteOutlined style={{ fontSize: 11 }} />
-              </button>
-            </Tooltip>
+            {canDeleteDocument && (
+              <Tooltip title="Move to trash">
+                <button
+                  type="button"
+                  onClick={(e) => onDelete(e, hub.id, hub.name)}
+                  className="dh-card-action-btn dh-card-action-danger"
+                  aria-label="Delete"
+                >
+                  <DeleteOutlined style={{ fontSize: 11 }} />
+                </button>
+              </Tooltip>
+            )}
           </div>
         </div>
       </div>
@@ -732,7 +737,12 @@ const HubCard: React.FC<{
 const DocumentHubPage = () => {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
-  const { canReadDocument } = usePermission();
+  const {
+    canCreateDocument,
+    canReadDocument,
+    canUpdateDocument,
+    canDeleteDocument,
+  } = usePermission();
   // Ant breakpoints — used to scale card counts, button labels, and a few
   // layout decisions for narrower viewports.
   const screens = Grid.useBreakpoint();
@@ -1367,7 +1377,7 @@ const DocumentHubPage = () => {
                       <span className="dh-new-badge" aria-label="New">NEW</span>
                     </Tooltip>
                   )}
-                  {isOwner && (
+                  {isOwner && canUpdateDocument && (
                     <Tooltip title="Rename">
                       <button
                         type="button"
@@ -1542,16 +1552,18 @@ const DocumentHubPage = () => {
               <ShareAltOutlined style={{ fontSize: 13 }} />
             </button>
           </Tooltip>
-          <Tooltip title="Move to trash">
-            <button
-              type="button"
-              onClick={(e) => handleDeleteHub(e, record.id, record.name)}
-              className="dh-row-action-btn dh-row-action-danger"
-              aria-label="Delete"
-            >
-              <DeleteOutlined style={{ fontSize: 13 }} />
-            </button>
-          </Tooltip>
+          {canDeleteDocument && (
+            <Tooltip title="Move to trash">
+              <button
+                type="button"
+                onClick={(e) => handleDeleteHub(e, record.id, record.name)}
+                className="dh-row-action-btn dh-row-action-danger"
+                aria-label="Delete"
+              >
+                <DeleteOutlined style={{ fontSize: 13 }} />
+              </button>
+            </Tooltip>
+          )}
         </div>
       ),
     },
@@ -1629,33 +1641,35 @@ const DocumentHubPage = () => {
               Reset filters
             </Button>
           ) : (
-            <>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setModalVisible(true)}
-                style={{
-                  height: 40, borderRadius: 10, paddingInline: 18, fontWeight: 600,
-                  background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                  border: 'none',
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
-                }}
-              >
-                Create your first hub
-              </Button>
-              <Button
-                onClick={() => setAiModalVisible(true)}
-                icon={<span style={{ fontSize: 13 }}>✨</span>}
-                style={{
-                  height: 40, borderRadius: 10, paddingInline: 14, fontWeight: 600,
-                  background: 'var(--bg-pure-white)',
-                  border: '1px solid var(--border-slate-200)',
-                  color: 'var(--text-slate-700)',
-                }}
-              >
-                Generate with Zai
-              </Button>
-            </>
+            canCreateDocument && (
+              <>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setModalVisible(true)}
+                  style={{
+                    height: 40, borderRadius: 10, paddingInline: 18, fontWeight: 600,
+                    background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+                  }}
+                >
+                  Create your first hub
+                </Button>
+                <Button
+                  onClick={() => setAiModalVisible(true)}
+                  icon={<span style={{ fontSize: 13 }}>✨</span>}
+                  style={{
+                    height: 40, borderRadius: 10, paddingInline: 14, fontWeight: 600,
+                    background: 'var(--bg-pure-white)',
+                    border: '1px solid var(--border-slate-200)',
+                    color: 'var(--text-slate-700)',
+                  }}
+                >
+                  Generate with Zai
+                </Button>
+              </>
+            )
           )}
         </div>
       </div>
@@ -2141,109 +2155,113 @@ const DocumentHubPage = () => {
                 />
               </Tooltip>
             </Popover>
-            <Tooltip title={isMobile ? 'Trash' : ''}>
-              <Button
-                icon={<RestOutlined />}
-                onClick={() => setTrashVisible(true)}
-                className="trash-action-btn"
-                aria-label="Trash"
-                style={{
-                  height: 38,
-                  ...(isMobile ? { width: 38, padding: 0 } : {}),
-                  borderRadius: 10,
-                  fontWeight: 500,
-                  background: 'var(--bg-slate-50)',
-                  border: '1px solid var(--border-slate-200)',
-                  color: 'var(--text-slate-700)',
-                }}
-              >
-                {!isMobile && 'Trash'}
-              </Button>
-            </Tooltip>
-            <Dropdown
-              trigger={['hover', 'click']}
-              placement="bottomRight"
-              overlayClassName="create-document-menu"
-              menu={{
-                items: [
-                  {
-                    key: 'manual',
-                    label: (
-                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 290 }}>
-                        <div
-                          className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white"
-                          style={{
-                            background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                            boxShadow: '0 2px 6px rgba(59, 130, 246, 0.25)',
-                          }}
-                        >
-                          <FileTextOutlined style={{ fontSize: 15 }} />
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[13px] font-semibold leading-tight" style={{ color: 'var(--text-slate-900)' }}>
-                            Manual creation
-                          </span>
-                          <span className="text-[11.5px] leading-snug mt-0.5" style={{ color: 'var(--text-slate-400)' }}>
-                            Start from a blank document hub
-                          </span>
-                        </div>
-                      </div>
-                    ),
-                    onClick: () => setModalVisible(true),
-                  },
-                  {
-                    key: 'zai',
-                    label: (
-                      <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 290 }}>
-                        <div
-                          className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white relative"
-                          style={{
-                            background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
-                            boxShadow: '0 2px 6px rgba(139, 92, 246, 0.3)',
-                          }}
-                        >
-                          <span style={{ fontSize: 15, lineHeight: 1 }}>✨</span>
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <div className="flex items-center gap-1.5">
+            {canDeleteDocument && (
+              <Tooltip title={isMobile ? 'Trash' : ''}>
+                <Button
+                  icon={<RestOutlined />}
+                  onClick={() => setTrashVisible(true)}
+                  className="trash-action-btn"
+                  aria-label="Trash"
+                  style={{
+                    height: 38,
+                    ...(isMobile ? { width: 38, padding: 0 } : {}),
+                    borderRadius: 10,
+                    fontWeight: 500,
+                    background: 'var(--bg-slate-50)',
+                    border: '1px solid var(--border-slate-200)',
+                    color: 'var(--text-slate-700)',
+                  }}
+                >
+                  {!isMobile && 'Trash'}
+                </Button>
+              </Tooltip>
+            )}
+            {canCreateDocument && (
+              <Dropdown
+                trigger={['hover', 'click']}
+                placement="bottomRight"
+                overlayClassName="create-document-menu"
+                menu={{
+                  items: [
+                    {
+                      key: 'manual',
+                      label: (
+                        <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 290 }}>
+                          <div
+                            className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white"
+                            style={{
+                              background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                              boxShadow: '0 2px 6px rgba(59, 130, 246, 0.25)',
+                            }}
+                          >
+                            <FileTextOutlined style={{ fontSize: 15 }} />
+                          </div>
+                          <div className="flex flex-col min-w-0">
                             <span className="text-[13px] font-semibold leading-tight" style={{ color: 'var(--text-slate-900)' }}>
-                              Create with Zai
+                              Manual creation
                             </span>
-                            <span
-                              className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-[1px] rounded"
-                              style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)', color: '#fff' }}
-                            >
-                              AI
+                            <span className="text-[11.5px] leading-snug mt-0.5" style={{ color: 'var(--text-slate-400)' }}>
+                              Start from a blank document hub
                             </span>
                           </div>
-                          <span className="text-[11.5px] leading-snug mt-0.5" style={{ color: 'var(--text-slate-400)' }}>
-                            Generate a hub from a prompt
-                          </span>
                         </div>
-                      </div>
-                    ),
-                    onClick: () => setAiModalVisible(true),
-                  },
-                ] as MenuProps['items'],
-              }}
-            >
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                className="create-document-btn"
-                style={{
-                  height: 38,
-                  borderRadius: 10,
-                  fontWeight: 600,
-                  paddingInline: isMobile ? 12 : 16,
-                  background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                  border: 'none',
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+                      ),
+                      onClick: () => setModalVisible(true),
+                    },
+                    {
+                      key: 'zai',
+                      label: (
+                        <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 290 }}>
+                          <div
+                            className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white relative"
+                            style={{
+                              background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
+                              boxShadow: '0 2px 6px rgba(139, 92, 246, 0.3)',
+                            }}
+                          >
+                            <span style={{ fontSize: 15, lineHeight: 1 }}>✨</span>
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[13px] font-semibold leading-tight" style={{ color: 'var(--text-slate-900)' }}>
+                                Create with Zai
+                              </span>
+                              <span
+                                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-[1px] rounded"
+                                style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)', color: '#fff' }}
+                              >
+                                AI
+                              </span>
+                            </div>
+                            <span className="text-[11.5px] leading-snug mt-0.5" style={{ color: 'var(--text-slate-400)' }}>
+                              Generate a hub from a prompt
+                            </span>
+                          </div>
+                        </div>
+                      ),
+                      onClick: () => setAiModalVisible(true),
+                    },
+                  ] as MenuProps['items'],
                 }}
               >
-                {isMobile ? 'Create' : 'Create Document'}
-              </Button>
-            </Dropdown>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  className="create-document-btn"
+                  style={{
+                    height: 38,
+                    borderRadius: 10,
+                    fontWeight: 600,
+                    paddingInline: isMobile ? 12 : 16,
+                    background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+                  }}
+                >
+                  {isMobile ? 'Create' : 'Create Document'}
+                </Button>
+              </Dropdown>
+            )}
           </div>
         </div>
 
@@ -2361,8 +2379,8 @@ const DocumentHubPage = () => {
                 options={projects.map((p: any) => ({
                   label: (
                     <div className="flex flex-col py-1">
-                      <span className="font-semibold text-slate-700" style={{ fontSize: 11, lineHeight: '1.2' }}>{p.label}</span>
-                      {p.code && <span className="text-slate-400" style={{ fontSize: 9, lineHeight: '1.2' }}>{p.code}</span>}
+                      <span className="font-semibold" style={{ fontSize: 11, lineHeight: '1.2', color: 'var(--text-slate-900)' }}>{p.label}</span>
+                      {p.code && <span style={{ fontSize: 9, lineHeight: '1.2', color: 'var(--text-slate-500)' }}>{p.code}</span>}
                     </div>
                   ),
                   value: p.value
@@ -2391,8 +2409,8 @@ const DocumentHubPage = () => {
                     return filterTickets.map((t: any) => ({
                       label: (
                         <div className="flex flex-col py-1">
-                          <span className="font-semibold text-slate-700" style={{ fontSize: 11, lineHeight: '1.2' }}>{t.ticketNumber}</span>
-                          <span className="text-slate-400 truncate" style={{ fontSize: 9, lineHeight: '1.2', maxWidth: 180 }}>{t.title}</span>
+                          <span className="font-semibold" style={{ fontSize: 11, lineHeight: '1.2', color: 'var(--text-slate-900)' }}>{t.ticketNumber}</span>
+                          <span className="truncate" style={{ fontSize: 9, lineHeight: '1.2', maxWidth: 180, color: 'var(--text-slate-500)' }}>{t.title}</span>
                         </div>
                       ),
                       value: t.id
@@ -2406,8 +2424,8 @@ const DocumentHubPage = () => {
                   return uniqueTickets.map((t: any) => ({
                     label: (
                       <div className="flex flex-col py-1">
-                        <span className="font-semibold text-slate-700" style={{ fontSize: 11, lineHeight: '1.2' }}>{t.ticketNumber}</span>
-                        <span className="text-slate-400 truncate" style={{ fontSize: 9, lineHeight: '1.2', maxWidth: 180 }}>{t.title}</span>
+                        <span className="font-semibold" style={{ fontSize: 11, lineHeight: '1.2', color: 'var(--text-slate-900)' }}>{t.ticketNumber}</span>
+                        <span className="truncate" style={{ fontSize: 9, lineHeight: '1.2', maxWidth: 180, color: 'var(--text-slate-500)' }}>{t.title}</span>
                       </div>
                     ),
                     value: t.id
@@ -2724,7 +2742,7 @@ const DocumentHubPage = () => {
               <ProjectOutlined style={{ color: 'var(--text-blue-700)', fontSize: 12, marginTop: 3 }} />
               <span className="text-[11.5px] leading-snug" style={{ color: 'var(--text-slate-600)' }}>
                 Linking a project or ticket attaches this hub's docs to that work item, so
-                they show up alongside it everywhere else in ZithSpace.
+                they show up alongside it everywhere else in Zukvo.
               </span>
             </div>
           </Form>
@@ -2825,38 +2843,42 @@ const DocumentHubPage = () => {
           )}
         </div>
         <div className="flex items-center gap-1">
-          <Tooltip title="Make public">
-            <Button
-              size="small"
-              icon={<GlobalOutlined />}
-              onClick={() => bulkSetVisibility('public')}
-              loading={bulkBusy}
-              className="dh-bulk-btn"
-            >
-              Public
-            </Button>
-          </Tooltip>
-          <Tooltip title="Make private">
-            <Button
-              size="small"
-              icon={<LockOutlined />}
-              onClick={() => bulkSetVisibility('private')}
-              loading={bulkBusy}
-              className="dh-bulk-btn"
-            >
-              Private
-            </Button>
-          </Tooltip>
-          <Tooltip title="Move to project">
-            <Button
-              size="small"
-              icon={<ProjectOutlined />}
-              onClick={() => setBulkProjectModalOpen(true)}
-              className="dh-bulk-btn"
-            >
-              Project
-            </Button>
-          </Tooltip>
+          {canUpdateDocument && (
+            <>
+              <Tooltip title="Make public">
+                <Button
+                  size="small"
+                  icon={<GlobalOutlined />}
+                  onClick={() => bulkSetVisibility('public')}
+                  loading={bulkBusy}
+                  className="dh-bulk-btn"
+                >
+                  Public
+                </Button>
+              </Tooltip>
+              <Tooltip title="Make private">
+                <Button
+                  size="small"
+                  icon={<LockOutlined />}
+                  onClick={() => bulkSetVisibility('private')}
+                  loading={bulkBusy}
+                  className="dh-bulk-btn"
+                >
+                  Private
+                </Button>
+              </Tooltip>
+              <Tooltip title="Move to project">
+                <Button
+                  size="small"
+                  icon={<ProjectOutlined />}
+                  onClick={() => setBulkProjectModalOpen(true)}
+                  className="dh-bulk-btn"
+                >
+                  Project
+                </Button>
+              </Tooltip>
+            </>
+          )}
           <Tooltip title="Add to starred">
             <Button
               size="small"
@@ -2879,19 +2901,23 @@ const DocumentHubPage = () => {
               Unstar
             </Button>
           </Tooltip>
-          <div className="dh-bulk-divider" aria-hidden />
-          <Tooltip title="Move to trash">
-            <Button
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={bulkDelete}
-              loading={bulkBusy}
-              className="dh-bulk-btn dh-bulk-btn-danger"
-            >
-              Delete
-            </Button>
-          </Tooltip>
+          {canDeleteDocument && (
+            <>
+              <div className="dh-bulk-divider" aria-hidden />
+              <Tooltip title="Move to trash">
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={bulkDelete}
+                  loading={bulkBusy}
+                  className="dh-bulk-btn dh-bulk-btn-danger"
+                >
+                  Delete
+                </Button>
+              </Tooltip>
+            </>
+          )}
           <div className="dh-bulk-divider" aria-hidden />
           <Tooltip title="Clear selection (Esc)">
             <button

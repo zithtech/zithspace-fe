@@ -215,6 +215,7 @@ export default function InvoiceproCustomerPage() {
             gstin: client.gstVatTaxId || client.vatNumber || null,
             pan: client.pan || null,
             isActive: client.isActive,
+            clientId: client.id,
           };
 
           await createCustomer.mutateAsync(customerData);

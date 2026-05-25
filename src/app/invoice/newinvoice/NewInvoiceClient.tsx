@@ -32,7 +32,7 @@ import {
   EyeOutlined,
   EyeInvisibleOutlined,
 } from "@ant-design/icons";
-import { RefreshCw, FileText, ChevronRight, ChevronLeft, User, Receipt, Building2, UserSquare2, ScrollText, Calculator, StickyNote } from "lucide-react";
+import { RefreshCw, FileText, ChevronRight, ChevronLeft, User, Receipt, Building2, UserSquare2, ScrollText, Calculator, StickyNote, Briefcase } from "lucide-react";
 import { currencyOptions } from "@/utils/currencyOptions";
 import {
   useInvoices,
@@ -54,6 +54,7 @@ dayjs.extend(isSameOrBefore);
 
 import CustomerModal from "@/components/customer/CustomerModal";
 import { CustomersService, Customer, UpdateCustomerData } from "@/services/customersService";
+import { ProjectService } from "@/services/projectService";
 import { useCustomers, useUpdateCustomer } from "@/hooks/use-customers";
 import { message as antdMessage } from "antd";
 import { InvoiceType } from "@/services/invoiceService";
@@ -286,6 +287,7 @@ export default function InvoiceNewinvoicePage() {
         lineItems: mappedItems,
         columnOrder: invoiceDetail.metadata?.columnOrder || null,
         columnLabels: invoiceDetail.metadata?.columnLabels || null,
+        projectId: invoiceDetail.projectId || null,
       };
 
       console.log('HYDRATING FORM WITH VALUES:', fv.invoiceNumber);
@@ -569,6 +571,7 @@ export default function InvoiceNewinvoicePage() {
       terms: values.terms || "",
       status: finalStatus,
       customerId: values.customer_id,
+      projectId: values.projectId || null,
       taxInclusive: Boolean(values.tax_inclusive),
       templateId: values.templateId || form.getFieldValue('templateId'),
       customerSnapshot: finalSnapshot,
@@ -641,6 +644,59 @@ export default function InvoiceNewinvoicePage() {
   const selectedCustomerId = Form.useWatch("customer_id", form);
   const selectedCustomer =
     customerSnapshot || customers.find((c) => c.id === selectedCustomerId);
+
+  const [customerProjects, setCustomerProjects] = useState<Array<{ value: string; label: string; code: string }>>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [prevCustomerId, setPrevCustomerId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (selectedCustomerId) {
+      setLoadingProjects(true);
+      ProjectService.getProjectsForSelect(selectedCustomerId)
+        .then((projects) => {
+          setCustomerProjects(projects);
+          
+          const isCustomerChanged = prevCustomerId !== undefined && prevCustomerId !== selectedCustomerId;
+          
+          if (projects.length === 1) {
+            const singleProj = projects[0];
+            
+            // Auto-select project at invoice level if not set or if customer changed
+            if (!form.getFieldValue("projectId") || isCustomerChanged) {
+              form.setFieldValue("projectId", singleProj.value);
+            }
+            
+            // Also update all existing line items to use this project
+            const items = form.getFieldValue("lineItems") || [];
+            const updatedItems = items.map((item: any) => {
+              if (isCustomerChanged || !item.projectId || !item.projectId.value) {
+                return {
+                  ...item,
+                  projectId: { value: singleProj.value, label: singleProj.label }
+                };
+              }
+              return item;
+            });
+            form.setFieldValue("lineItems", updatedItems);
+          } else if (isCustomerChanged) {
+            form.setFieldValue("projectId", undefined);
+          }
+          
+          setPrevCustomerId(selectedCustomerId);
+        })
+        .catch((error) => {
+          console.error("Failed to load customer projects:", error);
+          setCustomerProjects([]);
+        })
+        .finally(() => {
+          setLoadingProjects(false);
+        });
+    } else {
+      setCustomerProjects([]);
+      form.setFieldValue("projectId", undefined);
+      setPrevCustomerId(undefined);
+    }
+  }, [selectedCustomerId, form, prevCustomerId]);
 
   const calculateLineTotal = (item: any) => {
     if (!item) return 0;
@@ -1082,6 +1138,7 @@ export default function InvoiceNewinvoicePage() {
                         </Select>
                       </Form.Item>
                     )}
+
                     {selectedCustomer && (
                       <Tooltip title={canUpdateInvoiceCustomer ? "Click to edit customer details" : "Customer details"}>
                         <div
@@ -1090,7 +1147,7 @@ export default function InvoiceNewinvoicePage() {
                               setEditingCustomer(selectedCustomer);
                             }
                           }}
-                          className={`${canUpdateInvoiceCustomer ? "cursor-pointer" : "cursor-default"} group flex items-start gap-3 pt-1`}
+                          className={`${canUpdateInvoiceCustomer ? "cursor-pointer" : "cursor-default"} group flex items-start gap-3 pt-2`}
                         >
                           <div
                             className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
@@ -1136,6 +1193,58 @@ export default function InvoiceNewinvoicePage() {
                         </div>
                       </Tooltip>
                     )}
+
+                    {/* Project dropdown */}
+                    <div className="mt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span
+                          className="inline-flex items-center justify-center w-6 h-6 rounded-md"
+                          style={{
+                            background: "rgba(99, 102, 241, 0.1)",
+                            color: "#4f46e5",
+                            border: "1px solid rgba(99, 102, 241, 0.25)",
+                          }}
+                        >
+                          <Briefcase size={12} strokeWidth={2.25} />
+                        </span>
+                        <div
+                          className="text-[11px] font-semibold uppercase tracking-[0.1em]"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          Project
+                        </div>
+                      </div>
+                      <Form.Item
+                        name="projectId"
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Select
+                          placeholder={
+                            !selectedCustomerId
+                              ? "Select customer first"
+                              : loadingProjects
+                              ? "Loading projects..."
+                              : "Select project (optional)"
+                          }
+                          loading={loadingProjects}
+                          disabled={!selectedCustomerId}
+                          allowClear
+                          showSearch
+                          className="w-full custom-select-premium"
+                          filterOption={(input, option) =>
+                            String(option?.children ?? "")
+                              .toLowerCase()
+                              .includes(input.toLowerCase())
+                          }
+                        >
+                          {customerProjects.map((p) => (
+                            <Select.Option key={p.value} value={p.value}>
+                              {p.label} {p.code ? `(${p.code})` : ""}
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </div>
                   </div>
 
                   {/* divider */}
@@ -1358,6 +1467,7 @@ export default function InvoiceNewinvoicePage() {
                       loadingTemplates={loadingTemplates}
                       activeColumns={activeColumns}
                       setActiveColumns={setActiveColumns}
+                      customerProjects={customerProjects}
                     />
                   ) : (
                     <div className="flex justify-center p-12">

@@ -185,10 +185,13 @@ export class ProjectService {
   /**
    * Get projects for dropdown/select options
    */
-  static async getProjectsForSelect(): Promise<
+  static async getProjectsForSelect(
+    customerId?: string,
+  ): Promise<
     Array<{ value: string; label: string; code: string }>
   > {
     try {
+      const config = customerId ? { params: { customerId } } : undefined;
       return await api.get<
         Array<{
           value: string;
@@ -196,7 +199,7 @@ export class ProjectService {
           code: string;
           description: string;
         }>
-      >("/api/projects/select");
+      >("/api/projects/select", config);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);

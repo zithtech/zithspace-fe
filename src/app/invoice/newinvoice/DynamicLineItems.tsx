@@ -79,6 +79,7 @@ export interface DynamicLineItemsProps {
   loadingTemplates?: boolean;
   activeColumns: Column[];
   setActiveColumns: React.Dispatch<React.SetStateAction<Column[]>>;
+  customerProjects?: Array<{ value: string; label: string; code: string }>;
 }
 
 const FIELD_TYPE_OPTIONS: { value: string; label: string; description: string; icon: string }[] = [
@@ -697,7 +698,8 @@ export default function DynamicLineItems({
   templates = [],
   loadingTemplates = false,
   activeColumns,
-  setActiveColumns
+  setActiveColumns,
+  customerProjects = []
 }: DynamicLineItemsProps) {
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
@@ -705,6 +707,9 @@ export default function DynamicLineItems({
   const [hasHydrated, setHasHydrated] = useState(false);
   const [prevAppliedTemplateId, setPrevAppliedTemplateId] = useState<string | null>(null);
   const [projects, setProjects] = useState<any[]>([]);
+
+  const parentProjectId = Form.useWatch("projectId", form);
+  const projectsToUse = customerProjects && customerProjects.length > 0 ? customerProjects : projects;
 
   // Fetch projects on mount
   useEffect(() => {
@@ -949,10 +954,19 @@ export default function DynamicLineItems({
     activeColumns.forEach(col => {
       if (!col.isSystem) initialExtraFields[col.key] = "";
     });
+
+    let initialProjectId = undefined;
+    if (parentProjectId) {
+      const matched = projectsToUse.find((p: any) => p.value === parentProjectId);
+      if (matched) {
+        initialProjectId = { value: matched.value, label: matched.label };
+      }
+    }
+
     add({ 
       itemName: "", 
       description: "", 
-      projectId: undefined,
+      projectId: initialProjectId,
       quantity: 1, 
       rate: 0, 
       taxRate: 0,
@@ -1165,7 +1179,7 @@ export default function DynamicLineItems({
                             isSelected={selectedRowKeys.includes(key as any)}
                             onSelect={onSelectRow}
                             activeColumns={activeColumns}
-                            projects={projects}
+                            projects={projectsToUse}
                           />
                         );
                       })}

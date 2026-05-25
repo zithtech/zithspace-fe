@@ -56,6 +56,7 @@ import {
   GitPullRequest,
   CheckSquare,
   Server,
+  Receipt,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useTenant } from "@/context/TenantContext";
@@ -68,6 +69,7 @@ import ContactsTab from "./Tabs/ContactsTab";
 import AllocationsTab from "./Tabs/AllocationsTab";
 import DocumentsTab from "./Tabs/DocumentsTab";
 import ProjectsTab from "./Tabs/ProjectsTab";
+import InvoicesTab from "./Tabs/InvoicesTab";
 import PortalAccessTab from "./Tabs/PortalAccessTab";
 import MeetingsTab from "./Tabs/MeetingsTab";
 import ChangeRequestsTab from "./Tabs/ChangeRequestsTab";
@@ -1145,6 +1147,20 @@ export default function ClientV2DetailsPage() {
                   children: (
                     <div className="cd-tab-pane">
                       <ProjectsTab clientId={params.id as string} onRefresh={fetchClientDetails} />
+                    </div>
+                  ),
+                },
+                {
+                  key: "invoices",
+                  label: (
+                    <span className="cd-tab-label">
+                      <Receipt size={15} />
+                      <span>Invoices</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <InvoicesTab clientId={params.id as string} onRefresh={fetchClientDetails} />
                     </div>
                   ),
                 },

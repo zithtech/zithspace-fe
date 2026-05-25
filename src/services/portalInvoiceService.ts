@@ -29,6 +29,7 @@ export interface PortalInvoiceListItem {
   cancelledAt: string | null;
   description: string | null;
   customerName: string | null;
+  clientStatus?: string;
 }
 
 export interface PortalInvoiceListMeta {
@@ -140,9 +141,9 @@ export const portalInvoiceService = {
   },
 
   uploadPaymentProof(
-    id: string,
+    invoiceId: string,
     payload: {
-      file: string;
+      file: string; // base64
       fileName: string;
       amount?: number;
       paymentDate?: string;
@@ -151,8 +152,15 @@ export const portalInvoiceService = {
     },
   ) {
     return portalApi.post(
-      `/api/client-portal/invoices/${id}/payment-proofs`,
+      `/api/client-portal/invoices/${invoiceId}/payment-proofs`,
       payload,
     );
   },
+
+  updateClientStatus(invoiceId: string, clientStatus: string) {
+    return portalApi.post(
+      `/api/client-portal/invoices/${invoiceId}/client-status`,
+      { clientStatus }
+    );
+  }
 };

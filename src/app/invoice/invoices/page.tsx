@@ -27,6 +27,7 @@ import {
   message,
   Menu,
   Progress,
+  Timeline,
 } from "antd";
 import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
@@ -55,7 +56,8 @@ import {
   CreditCard,
   Loader2,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  Paperclip
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -259,6 +261,11 @@ export default function InvoiceInvoicesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<any>(null);
+
+  // For payment proof drawer
+  const [proofDrawerVisible, setProofDrawerVisible] = useState(false);
+  const [selectedProofInvoice, setSelectedProofInvoice] = useState<any>(null);
+  const [viewedProofFile, setViewedProofFile] = useState<string | null>(null);
 
 
 
@@ -653,13 +660,13 @@ export default function InvoiceInvoicesPage() {
         downloadInvoice(record.id);
       },
     },
-    canSendInvoiceMail && {
+    canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
       key: "send_quick",
       icon: <Mail size={16} />,
       label: "Quick Send Email",
       onClick: () => handleQuickSend(record),
     },
-    canSendInvoiceMail && {
+    canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
       key: "compose_email",
       icon: <Edit2 size={16} />,
       label: "Compose & Send",
@@ -890,14 +897,32 @@ export default function InvoiceInvoicesPage() {
       ),
     },
     {
+      title: "CLIENT STATUS",
+      dataIndex: "clientStatus",
+      width: 140,
+      render: (status: string) => {
+        if (!status || status === "UNPAID") {
+          return <Tag color="error" style={{ margin: 0, fontWeight: 600, border: "none" }}>UNPAID</Tag>;
+        }
+        if (status === "PARTIALLY_PAID") {
+          return <Tag color="warning" style={{ margin: 0, fontWeight: 600, border: "none" }}>PARTIALLY PAID</Tag>;
+        }
+        if (status === "PAID") {
+          return <Tag color="success" style={{ margin: 0, fontWeight: 600, border: "none" }}>PAID</Tag>;
+        }
+        return <span style={{ color: "var(--text-slate-400)" }}>{status}</span>;
+      },
+    },
+    {
       title: "STATUS",
       dataIndex: "status",
       width: 150,
       render: (status: string, record: any) => {
         const frontendStatus = fromBackendStatus(status);
+        const hasUnverifiedProofs = record.paymentProofs && record.paymentProofs.length > 0 && frontendStatus !== 'PAID';
         return (
           <div
-            className={canUpdateInvoiceStatus ? "cursor-pointer" : ""}
+            className={canUpdateInvoiceStatus ? "cursor-pointer flex items-center gap-2" : "flex items-center gap-2"}
             onClick={(e) => {
               if (canUpdateInvoiceStatus) {
                 e.stopPropagation();
@@ -934,6 +959,22 @@ export default function InvoiceInvoicesPage() {
                 }
               />
             </Tooltip>
+            {hasUnverifiedProofs && (
+              <Tooltip title="View Payment Proofs">
+                <div 
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: "50%", background: "var(--accent-color-light, #e0e7ff)", color: "var(--accent-color, #4338ca)", cursor: "pointer" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setSelectedProofInvoice(record);
+                    setViewedProofFile(record.paymentProofs?.[0]?.file || null);
+                    setProofDrawerVisible(true);
+                  }}
+                >
+                  <Paperclip size={14} />
+                </div>
+              </Tooltip>
+            )}
           </div>
         );
       },
@@ -1884,10 +1925,11 @@ export default function InvoiceInvoicesPage() {
               <div className="flex justify-center">
                 <Tag
                   color={getStatusColor(fromBackendStatus(statusChangeInvoice?.status))}
-                  icon={getStatusIcon(fromBackendStatus(statusChangeInvoice?.status))}
-                  className="px-3 py-1 rounded-full border-none font-bold text-[10px] m-0 shadow-sm flex items-center gap-1.5 whitespace-nowrap"
+                  className="px-3 py-1.5 rounded-full border-none font-bold text-[11px] m-0 shadow-sm"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
-                  {fromBackendStatus(statusChangeInvoice?.status)}
+                  {getStatusIcon(fromBackendStatus(statusChangeInvoice?.status))}
+                  <span>{fromBackendStatus(statusChangeInvoice?.status)}</span>
                 </Tag>
               </div>
             </div>
@@ -1902,10 +1944,11 @@ export default function InvoiceInvoicesPage() {
                 {selectedNewStatus ? (
                   <Tag
                     color={getStatusColor(selectedNewStatus)}
-                    icon={getStatusIcon(selectedNewStatus)}
-                    className="px-3 py-1 rounded-full border-none font-bold text-[10px] m-0 shadow-sm animate-pulse flex items-center gap-1.5 whitespace-nowrap"
+                    className="px-3 py-1.5 rounded-full border-none font-bold text-[11px] m-0 shadow-sm animate-pulse"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   >
-                    {selectedNewStatus}
+                    {getStatusIcon(selectedNewStatus)}
+                    <span>{selectedNewStatus}</span>
                   </Tag>
                 ) : (
                   <div className="h-6 w-20 rounded-full mx-auto animate-pulse" style={{ backgroundColor: 'var(--border-color)' }}></div>
@@ -2456,7 +2499,112 @@ export default function InvoiceInvoicesPage() {
         </div>
       </Drawer>
 
-
+      <Drawer
+        title={<div className="flex items-center gap-2"><Paperclip size={18} /> Payment Proofs</div>}
+        placement="right"
+        width={900}
+        onClose={() => {
+          setProofDrawerVisible(false);
+          setSelectedProofInvoice(null);
+          setViewedProofFile(null);
+        }}
+        open={proofDrawerVisible}
+        bodyStyle={{ padding: 0 }}
+      >
+        <div className="flex h-full w-full">
+          {/* Left panel: Timeline */}
+          <div className="w-[350px] flex-shrink-0 p-6 overflow-y-auto border-r" style={{ borderColor: "var(--border-color)" }}>
+            {selectedProofInvoice?.paymentProofs?.length > 0 ? (
+              <div className="pt-2">
+                <Timeline
+                  items={selectedProofInvoice.paymentProofs.map((proof: any) => ({
+                    dot: <CheckCircle size={18} className="text-green-500" style={{ background: "var(--customers-page-bg)", borderRadius: "50%" }} />,
+                    children: (
+                      <div 
+                        className={`ml-2 mb-6 p-4 rounded-xl border transition-all cursor-pointer ${viewedProofFile === proof.file ? 'border-indigo-500 shadow-md ring-1 ring-indigo-500' : 'shadow-sm hover:shadow-md'}`} 
+                        style={{ background: "var(--bg-secondary)", borderColor: viewedProofFile === proof.file ? "var(--accent-color, #6366f1)" : "var(--border-color)" }}
+                        onClick={() => setViewedProofFile(proof.file)}
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <div className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-secondary)" }}>
+                              {proof.paymentDate ? dayjs(proof.paymentDate).format('MMM DD, YYYY') : "Date Not Specified"}
+                            </div>
+                            <Text strong className="text-xl" style={{ color: "var(--text-primary)" }}>
+                              ${Number(proof.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </Text>
+                          </div>
+                          <Tag color="success" className="m-0 px-2 py-0.5 border-0 font-medium">Uploaded</Tag>
+                        </div>
+                        
+                        {(proof.reference || proof.note) && (
+                          <div className="flex flex-col gap-2 mt-4 pt-3 border-t" style={{ borderColor: "var(--border-color)" }}>
+                            {proof.reference && (
+                              <div className="flex flex-col">
+                                <Text type="secondary" className="text-[11px] uppercase tracking-wider font-semibold">Reference</Text> 
+                                <Text className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{proof.reference}</Text>
+                              </div>
+                            )}
+                            {proof.note && (
+                              <div className="flex flex-col mt-1">
+                                <Text type="secondary" className="text-[11px] uppercase tracking-wider font-semibold">Note</Text> 
+                                <Text className="text-sm leading-snug" style={{ color: "var(--text-primary)" }}>{proof.note}</Text>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        <div className="mt-4 flex items-center gap-1.5 text-sm font-medium" style={{ color: "var(--accent-color, #4f46e5)" }}>
+                          <Eye size={16} /> View Document
+                        </div>
+                      </div>
+                    ),
+                  }))}
+                />
+              </div>
+            ) : (
+              <div className="text-center py-8" style={{ color: "var(--text-secondary)" }}>No payment proofs found.</div>
+            )}
+          </div>
+          
+          {/* Right panel: Document Viewer */}
+          <div className="flex-1 flex flex-col p-6 h-full overflow-hidden" style={{ background: "var(--customers-page-bg)" }}>
+            <div className="flex-1 rounded-xl border overflow-hidden shadow-sm flex items-center justify-center relative" style={{ background: "var(--bg-secondary)", borderColor: "var(--border-color)" }}>
+              {viewedProofFile ? (
+                <>
+                  <div className="absolute top-4 right-4 z-10 flex gap-2">
+                    <Button 
+                      icon={<FileText size={16} />}
+                      onClick={() => window.open(viewedProofFile, "_blank")}
+                      className="shadow-sm"
+                    >
+                      Open in Tab
+                    </Button>
+                  </div>
+                  {viewedProofFile.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) ? (
+                    <img 
+                      src={viewedProofFile} 
+                      alt="Payment Proof" 
+                      className="max-w-full max-h-full object-contain p-4" 
+                    />
+                  ) : (
+                    <iframe
+                      src={viewedProofFile}
+                      className="w-full h-full border-none"
+                      title="Payment Proof Viewer"
+                    />
+                  )}
+                </>
+              ) : (
+                <div className="text-center flex flex-col items-center gap-3" style={{ color: "var(--text-secondary)" }}>
+                  <FileText size={48} className="opacity-20" />
+                  <p>Select a payment proof from the timeline to view</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </Drawer>
 
     </MainLayout>
   );

@@ -40,6 +40,17 @@ export interface InvoiceItem {
   projectId?: string;
 }
 
+export interface InvoicePaymentProof {
+  id: string;
+  file: string;
+  fileName: string;
+  amount?: number;
+  paymentDate?: string;
+  reference?: string;
+  note?: string;
+  createdAt?: string;
+}
+
 export interface Invoice {
   id: string;
   tenantId: string;
@@ -80,6 +91,8 @@ export interface Invoice {
 
   lineItems: InvoiceItem[];
   metadata?: any;
+  projectId?: string | null;
+  paymentProofs?: InvoicePaymentProof[];
 
   createdAt: string;
   updatedAt: string;
@@ -119,6 +132,7 @@ export interface CreateInvoiceData {
   settingsProfileId?: string;
   templateId?: string;
   metadata?: any;
+  projectId?: string | null;
 }
 
 export interface UpdateInvoiceData extends Partial<CreateInvoiceData> {

@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Input, Empty, Spin, Pagination, DatePicker, Drawer, notification } from "antd";
-import PortalInvoiceDetailPage from "./[id]/page";
+import { PortalInvoiceDetailContent as PortalInvoiceDetailPage } from "./_InvoiceDetail";
 import {
   Receipt,
   Search,

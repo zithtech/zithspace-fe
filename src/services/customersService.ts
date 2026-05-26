@@ -16,6 +16,7 @@ export interface Customer {
   gstin?: string | null;
   pan?: string | null;
   isActive: boolean;
+  clientId?: string | null;
 
   tenantId: string;
   createdBy: string;
@@ -38,6 +39,7 @@ export interface CreateCustomerData {
   gstin?: string | null;
   pan?: string | null;
   isActive?: boolean;
+  clientId?: string | null;
 }
 
 export interface UpdateCustomerData {
@@ -53,6 +55,7 @@ export interface UpdateCustomerData {
   gstin?: string | null;
   pan?: string | null;
   isActive?: boolean;
+  clientId?: string | null;
 }
 
 export interface CustomersFilters {

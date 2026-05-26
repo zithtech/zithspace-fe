@@ -4,9 +4,10 @@
 
 "use client";
 
+import { InvoiceDocument } from "@/components/invoice/InvoiceDocument";
 import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, Button, Typography, Table, Divider, Space, Tag, Spin } from "antd";
+import { Card, Button, Typography, Table, Divider, Space, Tag, Spin, Alert } from "antd";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import dayjs from "dayjs";
@@ -428,313 +429,40 @@ export default function ViewInvoicePage() {
         }}
       >
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-        <Card
-          id="invoice"
-          style={{
-            backgroundColor: "var(--invoice-paper-bg)",
-            border: `1px solid var(--invoice-paper-border)`,
-            borderRadius: 8,
-            boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.06)",
-            width: "85%",
-            margin: "0 auto",
-            color: "var(--text-primary)"
-          }}
-        >
-          {/* Header with Invoice Title and Logo */}
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            {/* Left side - Invoice Title and Details */}
-            <div>
-              <div style={{ marginBottom: 12 }}>
-                <Title level={1} style={{ margin: 0, color: settings?.general?.primaryColor || "#1890ff", lineHeight: 1.2, fontSize: "32px" }}>
-                  INVOICE
-                </Title>
-              </div>
-
-              {/* Invoice Number and Dates - All together */}
-              <div>
-                <div style={{ display: "flex", marginBottom: 2, lineHeight: 1.5 }}>
-                  <Text strong style={{ width: 90, fontSize: "13px" }}>Invoice No:</Text>
-                  <Text style={{ fontSize: "13px" }}>#{invoice.invoiceNumber || "---"}</Text>
-                </div>
-                <div style={{ display: "flex", marginBottom: 2, lineHeight: 1.5 }}>
-                  <Text strong style={{ width: 90, fontSize: "13px" }}>Invoice Date:</Text>
-                  <Text style={{ fontSize: "13px" }}>
-                    {invoice.invoiceDate ? dayjs(invoice.invoiceDate).format(settings?.general?.dateFormat || 'MMM DD, YYYY') : "---"}
-                  </Text>
-                </div>
-                <div style={{ display: "flex", marginBottom: 2, lineHeight: 1.5 }}>
-                  <Text strong style={{ width: 90, fontSize: "13px" }}>Due Date:</Text>
-                  <Text style={{ fontSize: "13px" }}>
-                    {invoice.dueDate ? dayjs(invoice.dueDate).format(settings?.general?.dateFormat || 'MMM DD, YYYY') : "---"}
-                  </Text>
-                </div>
-              </div>
-            </div>
-
-            {/* Right side - Logo with company name underneath */}
-            {settings?.general?.companyLogo && (
-              <div style={{ textAlign: "right" }}>
-                <img
-                  src={settings.general.companyLogo}
-                  alt="Logo"
-                  style={{ height: 80, width: "auto", objectFit: "contain", marginBottom: 4 }}
-                />
-                {settings?.general?.companyName && (
-                  <div style={{ fontSize: "14px", fontWeight: "bold", color: settings?.general?.primaryColor || "#1890ff", textAlign: "center" }}>
-                    {settings.general.companyName}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Billed By and Billed To - Equal Height Cards without internal labels */}
-          <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
-            {/* Billed By (Company Info) */}
-            <div style={{ flex: 1, display: "flex" }}>
-              <Card
-                size="small"
-                style={{
-                  width: "100%",
-                  backgroundColor: "var(--invoice-section-bg)",
-                  border: "1px solid var(--invoice-section-border)",
-                  borderRadius: 8
-                }}
-                bodyStyle={{ padding: "12px" }}
-              >
-                <Title level={5} style={{ marginBottom: 8, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>BILLED BY</Title>
-                <div>
-                  <div style={{ fontWeight: "bold", fontSize: "14px", marginBottom: 4 }}>
-                    {settings?.general?.companyName || "Your Company"}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "var(--text-primary)", marginBottom: 4, lineHeight: 1.5 }}>
-                    {settings?.general?.address ? [
-                      settings.general.address.plot_no,
-                      settings.general.address.floor_no,
-                      settings.general.address.building_name,
-                      settings.general.address.street,
-                      settings.general.address.area,
-                      settings.general.address.city,
-                      settings.general.address.pincode,
-                      settings.general.address.country,
-                    ].filter(Boolean).join(", ") : "---"}
-                  </div>
-
-                  {/* Tax related fields with labels */}
-                  {settings?.general?.taxId && (
-                    <div style={{ marginTop: 6, fontSize: "11px", color: "var(--text-secondary)" }}>
-                      <Text type="secondary" style={{ fontSize: "11px" }}>Tax ID: </Text>
-                      <Text style={{ fontSize: "11px" }}>{settings.general.taxId}</Text>
-                    </div>
-                  )}
-                  {settings?.general?.gstin && (
-                    <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
-                      <Text type="secondary" style={{ fontSize: "11px" }}>GSTIN: </Text>
-                      <Text style={{ fontSize: "11px" }}>{settings.general.gstin}</Text>
-                    </div>
-                  )}
-                  {settings?.general?.pan && (
-                    <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
-                      <Text type="secondary" style={{ fontSize: "11px" }}>PAN: </Text>
-                      <Text style={{ fontSize: "11px" }}>{settings.general.pan}</Text>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            </div>
-
-            {/* Billed To (Customer Info) */}
-            <div style={{ flex: 1, display: "flex" }}>
-              <Card
-                size="small"
-                style={{
-                  width: "100%",
-                  backgroundColor: "var(--invoice-section-bg)",
-                  border: "1px solid var(--invoice-section-border)",
-                  borderRadius: 8
-                }}
-                bodyStyle={{ padding: "12px" }}
-              >
-                <Title level={5} style={{ marginBottom: 8, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>BILLED TO</Title>
-                <div>
-                  <div style={{ fontWeight: "bold", fontSize: "14px", marginBottom: 4 }}>
-                    {customer?.companyName || "Customer Name"}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "var(--text-primary)", marginBottom: 4, lineHeight: 1.5 }}>
-                    {[
-                      customer?.address,
-                      customer?.city,
-                      customer?.country
-                    ].filter(Boolean).join(", ") || "---"}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "var(--text-primary)", marginBottom: 4 }}>
-                    {customer?.email || ""}
-                  </div>
-
-                  {/* Tax related fields with labels */}
-                  {customer?.gstin && (
-                    <div style={{ marginTop: 6, fontSize: "11px", color: "var(--text-secondary)" }}>
-                      <Text type="secondary" style={{ fontSize: "11px" }}>GSTIN: </Text>
-                      <Text style={{ fontSize: "11px" }}>{customer.gstin}</Text>
-                    </div>
-                  )}
-                  {customer?.pan && (
-                    <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
-                      <Text type="secondary" style={{ fontSize: "11px" }}>PAN: </Text>
-                      <Text style={{ fontSize: "11px" }}>{customer.pan}</Text>
-                    </div>
-                  )}
-                  {customer?.taxId && !customer?.gstin && (
-                    <div style={{ marginTop: 6, fontSize: "11px", color: "var(--text-secondary)" }}>
-                      <Text type="secondary" style={{ fontSize: "11px" }}>Tax ID: </Text>
-                      <Text style={{ fontSize: "11px" }}>{customer.taxId}</Text>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            </div>
-          </div>
-
-          {/* Items Table */}
-          <Table
-            dataSource={tableData}
+        {invoice.paymentProofs && invoice.paymentProofs.length > 0 && invoice.status !== 'PAID' && (
+          <Alert
+            message="Unverified Payment Proofs"
+            description="The client has uploaded one or more payment proofs for this invoice."
+            type="warning"
+            showIcon
+            action={
+              <Space>
+                <Button size="small" type="primary" onClick={() => window.open(invoice.paymentProofs![0].file, "_blank")}>
+                  View Proof
+                </Button>
+              </Space>
+            }
+            style={{ marginBottom: 24, borderRadius: 8, border: "1px solid #ffe58f" }}
+          />
+        )}
+        <InvoiceDocument
+            invoice={invoice}
+            settings={settings}
+            customer={customer}
+            tableData={tableData}
             columns={columns}
-            pagination={false}
-            rowKey="_key"
-            bordered
-            size="small"
-            summary={() => (
-              <>
-                {/* SUBTOTAL */}
-                <Table.Summary.Row>
-                  {columns.map((_, idx) => {
-                    if (idx === ITEM_COL) {
-                      return (
-                        <Table.Summary.Cell key={idx} index={idx} align="right">
-                          <Text>Subtotal</Text>
-                        </Table.Summary.Cell>
-                      );
-                    }
-                    if (idx === TOTAL_COL) {
-                      return (
-                        <Table.Summary.Cell key={idx} index={idx} align="right">
-                          <Text>{formatCurrency(subtotal, currencySymbol)}</Text>
-                        </Table.Summary.Cell>
-                      );
-                    }
-                    return <Table.Summary.Cell key={idx} index={idx} />;
-                  })}
-                </Table.Summary.Row>
-
-                {/* CGST & SGST Split */}
-                {hasTax && taxTotal > 0 && (
-                  <>
-                    <Table.Summary.Row>
-                      {columns.map((_, idx) => {
-                        const effectivePct = subtotal > 0 ? ((taxTotal / 2) / subtotal) * 100 : 0;
-                        const rateLabel = ` (${effectivePct.toFixed(2)}%)`;
-
-                        if (idx === ITEM_COL) {
-                          return (
-                            <Table.Summary.Cell key={idx} index={idx} align="right">
-                              <Text>CGST{rateLabel}</Text>
-                            </Table.Summary.Cell>
-                          );
-                        }
-                        if (idx === TOTAL_COL) {
-                          return (
-                            <Table.Summary.Cell key={idx} index={idx} align="right">
-                              <Text>{formatCurrency(taxTotal / 2, currencySymbol)}</Text>
-                            </Table.Summary.Cell>
-                          );
-                        }
-                        return <Table.Summary.Cell key={idx} index={idx} />;
-                      })}
-                    </Table.Summary.Row>
-                    <Table.Summary.Row>
-                      {columns.map((_, idx) => {
-                        const effectivePct = subtotal > 0 ? ((taxTotal / 2) / subtotal) * 100 : 0;
-                        const rateLabel = ` (${effectivePct.toFixed(2)}%)`;
-
-                        if (idx === ITEM_COL) {
-                          return (
-                            <Table.Summary.Cell key={idx} index={idx} align="right">
-                              <Text>SGST{rateLabel}</Text>
-                            </Table.Summary.Cell>
-                          );
-                        }
-                        if (idx === TOTAL_COL) {
-                          return (
-                            <Table.Summary.Cell key={idx} index={idx} align="right">
-                              <Text>{formatCurrency(taxTotal / 2, currencySymbol)}</Text>
-                            </Table.Summary.Cell>
-                          );
-                        }
-                        return <Table.Summary.Cell key={idx} index={idx} />;
-                      })}
-                    </Table.Summary.Row>
-                  </>
-                )}
-
-                {/* DISCOUNT */}
-                {discount > 0 && (
-                  <Table.Summary.Row>
-                    {columns.map((_, idx) => {
-                      if (idx === ITEM_COL) {
-                        return (
-                          <Table.Summary.Cell key={idx} index={idx} align="right">
-                            <Text>Discount</Text>
-                          </Table.Summary.Cell>
-                        );
-                      }
-                      if (idx === TOTAL_COL) {
-                        return (
-                          <Table.Summary.Cell key={idx} index={idx} align="right">
-                            <Text>-{formatCurrency(discount, currencySymbol)}</Text>
-                          </Table.Summary.Cell>
-                        );
-                      }
-                      return <Table.Summary.Cell key={idx} index={idx} />;
-                    })}
-                  </Table.Summary.Row>
-                )}
-
-                {/* GRAND TOTAL */}
-                <Table.Summary.Row
-                  style={{
-                    backgroundColor: "var(--invoice-total-row-bg)",
-                    borderTop: `2px solid var(--invoice-total-row-border)`,
-                  }}
-                >
-                  {columns.map((_, idx) => {
-                    if (idx === ITEM_COL) {
-                      return (
-                        <Table.Summary.Cell key={idx} index={idx} align="right">
-                          <Text strong>Total</Text>
-                        </Table.Summary.Cell>
-                      );
-                    }
-                    if (idx === QTY_COL) {
-                      return (
-                        <Table.Summary.Cell key={idx} index={idx} align="center">
-                          <Text strong>{totalQty}</Text>
-                        </Table.Summary.Cell>
-                      );
-                    }
-                    if (idx === TOTAL_COL) {
-                      return (
-                        <Table.Summary.Cell key={idx} index={idx} align="right">
-                          <Text strong style={{ fontSize: 16, color: settings?.general?.primaryColor || "#1890ff" }}>
-                            {formatCurrency(grandTotal, currencySymbol)}
-                          </Text>
-                        </Table.Summary.Cell>
-                      );
-                    }
-                    return <Table.Summary.Cell key={idx} index={idx} />;
-                  })}
-                </Table.Summary.Row>
-              </>
-            )}
+            subtotal={subtotal}
+            taxTotal={taxTotal}
+            discount={discount}
+            grandTotal={grandTotal}
+            totalQty={totalQty}
+            currencySymbol={currencySymbol}
+            totalInWords={totalInWords}
+            hasTax={hasTax}
+            ITEM_COL={ITEM_COL}
+            QTY_COL={QTY_COL}
+            TOTAL_COL={TOTAL_COL}
+            formatCurrency={formatCurrency}
           />
 
           {/* Amount in Words */}
@@ -1032,7 +760,6 @@ export default function ViewInvoicePage() {
               to create truly professional invoices
             </div>
           </div>
-        </Card>
         </div>
       </div>
     </div>

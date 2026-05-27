@@ -79,6 +79,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                 loading={loading}
                 defaultOpen
                 showSearch
+                allowClear
                 filterOption={(input, option) => {
                     // Filter by the searchLabel (plain text)
                     const searchLabel = option?.searchLabel || '';

@@ -98,8 +98,8 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
         type: values.type,
         storyPoint: values.storyPoint,
         estimateHours: values.estimateHours,
-        assignee: values.assignee,
-        reportTo: values.reportTo,
+        assignee: values.assignee || null,
+        reportTo: values.reportTo || null,
         status: values.status,
         startDate: values.startDate ? values.startDate.toISOString() : null,
         endDate: values.endDate ? values.endDate.toISOString() : null,
@@ -108,6 +108,9 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
 
       // Remove undefined/null/empty values
       Object.keys(updateData).forEach(key => {
+        if (key === 'assignee' || key === 'reportTo') {
+          return;
+        }
         if (updateData[key as keyof typeof updateData] === undefined ||
             updateData[key as keyof typeof updateData] === null ||
             updateData[key as keyof typeof updateData] === '') {

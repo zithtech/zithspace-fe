@@ -1484,11 +1484,6 @@ function DashboardContent() {
                   "Recent Activities",
                   "#F59E0B",
                 )}
-                extra={
-                  <Button type="link" size="small" style={{ fontSize: 11 }}>
-                    View All
-                  </Button>
-                }
               >
                 {renderActivities()}
               </Card>

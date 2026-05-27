@@ -747,9 +747,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
     if (field === "status") updateData.status = value;
     else if (field === "assignee") {
-      updateData.assignee = value;
+      updateData.assignee = (value === undefined || value === "") ? null : value;
       // Find full member object for seamless optimistic update
-      const member = members.find(m => m.value === value);
+      const member = value ? members.find(m => m.value === value) : null;
       if (member) {
         optimisticData = {
           assignee: {
@@ -757,6 +757,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             name: member.label,
             email: "" // Email might not be in the lightweight members list, empty string satisfies type
           }
+        };
+      } else {
+        optimisticData = {
+          assignee: null
         };
       }
     }
@@ -1095,7 +1099,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         if (isEditing) {
           return (
             <Select
-              value={assigneeId}
+              value={assigneeId || undefined}
               style={{ width: "100%" }}
               onChange={(value) =>
                 handleUpdateTicket(record.id, "assignee", value)
@@ -1104,6 +1108,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               autoFocus
               loading={isUpdating}
               showSearch
+              allowClear
               placeholder="Select assignee"
               filterOption={(input, option) => {
                 const member = members.find((m) => m.value === option?.value);

@@ -1203,18 +1203,18 @@ export default function InvoiceInvoicesPage() {
                 Invoices
               </span>
               <span
-                className="h-4 w-px"
+                className="h-4 w-px hidden sm:inline"
                 style={{ background: "var(--border-color)" }}
               />
               <span
-                className="text-[12px]"
+                className="text-[12px] hidden sm:inline truncate"
                 style={{ color: "var(--text-secondary)" }}
               >
                 Manage, track payments, and monitor invoice statuses
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Input
                 placeholder="Search invoices..."
                 allowClear
@@ -1226,8 +1226,8 @@ export default function InvoiceInvoicesPage() {
                 }
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
+                className="w-[130px] sm:w-[180px] md:w-[280px]"
                 style={{
-                  width: 280,
                   height: 36,
                   borderRadius: 8,
                   background: "var(--bg-secondary)",
@@ -1243,7 +1243,7 @@ export default function InvoiceInvoicesPage() {
                     fontWeight: 600,
                   }}
                 >
-                  Filter
+                  <span className="hidden sm:inline">Filter</span>
                 </Button>
               </Popover>
               {canCreateInvoice && (
@@ -1258,7 +1258,8 @@ export default function InvoiceInvoicesPage() {
                     background: "#2563eb",
                   }}
                 >
-                  New invoice
+                  <span className="hidden sm:inline">New invoice</span>
+                  <span className="inline sm:hidden">New</span>
                 </Button>
               )}
             </div>

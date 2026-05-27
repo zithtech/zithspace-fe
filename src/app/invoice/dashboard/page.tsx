@@ -80,12 +80,12 @@ export default function DashboardPage() {
   const calendarMap: Record<string, { created: number; received: number }> = {};
   invoices.forEach((inv) => {
     if (inv.invoiceDate) {
-      const createdKey = new Date(inv.invoiceDate).toISOString().split("T")[0];
+      const createdKey = dayjs(inv.invoiceDate).format("YYYY-MM-DD");
       if (!calendarMap[createdKey]) calendarMap[createdKey] = { created: 0, received: 0 };
       calendarMap[createdKey].created += 1;
     }
     if (inv.paidAmount > 0 && inv.invoiceDate) {
-      const paidKey = new Date(inv.invoiceDate).toISOString().split("T")[0];
+      const paidKey = dayjs(inv.invoiceDate).format("YYYY-MM-DD");
       if (!calendarMap[paidKey]) calendarMap[paidKey] = { created: 0, received: 0 };
       calendarMap[paidKey].received += 1;
     }
@@ -600,11 +600,11 @@ export default function DashboardPage() {
                 Dashboard
               </span>
               <span
-                className="h-4 w-px"
+                className="h-4 w-px hidden sm:inline"
                 style={{ background: "var(--border-color)" }}
               />
               <span
-                className="text-[12px]"
+                className="text-[12px] hidden sm:inline truncate"
                 style={{ color: "var(--text-secondary)" }}
               >
                 Overview of your invoicing and revenue performance

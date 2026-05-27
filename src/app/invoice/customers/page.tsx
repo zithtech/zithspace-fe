@@ -552,18 +552,18 @@ export default function InvoiceproCustomerPage() {
                 Customers
               </span>
               <span
-                className="h-4 w-px"
+                className="h-4 w-px hidden sm:inline"
                 style={{ background: "var(--border-color)" }}
               />
               <span
-                className="text-[12px]"
+                className="text-[12px] hidden sm:inline truncate"
                 style={{ color: "var(--text-secondary)" }}
               >
                 Manage customer details, contacts, and profiles
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {canCreateInvoiceCustomer && (
                 <>
                   <Button
@@ -575,7 +575,8 @@ export default function InvoiceproCustomerPage() {
                       fontWeight: 600,
                     }}
                   >
-                    Import from Client
+                    <span className="hidden sm:inline">Import from Client</span>
+                    <span className="inline sm:hidden">Import</span>
                   </Button>
                   <Button
                     type="primary"
@@ -592,7 +593,8 @@ export default function InvoiceproCustomerPage() {
                       background: "#2563eb",
                     }}
                   >
-                    Add customer
+                    <span className="hidden sm:inline">Add customer</span>
+                    <span className="inline sm:hidden">Add</span>
                   </Button>
                 </>
               )}
@@ -680,8 +682,8 @@ export default function InvoiceproCustomerPage() {
                   allowClear
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  className="w-[130px] sm:w-[180px] md:w-[280px]"
                   style={{
-                    width: 280,
                     borderRadius: 8,
                     height: 36,
                     background: "var(--bg-secondary)",

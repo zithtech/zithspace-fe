@@ -37,6 +37,7 @@ export interface CreateMemberData {
   workDays?: number[]; // Added optional field
   assignedShiftId?: string | null; // ADDED: Missing shift assignment field
   isActive?: boolean; // ADDED: Missing isActive field
+  sendEmailTo?: string; // ADDED: Target email for welcome notification ('work' | 'personal')
 }
 
 export interface UpdateMemberData {

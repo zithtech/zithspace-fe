@@ -149,6 +149,72 @@ const DayPills = ({
   );
 };
 
+const EmailSelector = ({ value, onChange, workEmail, personalEmail }: any) => {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 4 }}>
+      <div
+        onClick={() => onChange?.("work")}
+        style={{
+          padding: "16px",
+          border: value === "work" ? "2px solid #8b5cf6" : "1px solid var(--border-slate-100)",
+          borderRadius: 12,
+          background: value === "work" ? "rgba(139,92,246,0.03)" : "var(--bg-pure-white)",
+          cursor: "pointer",
+          transition: "all 0.2s ease",
+          boxShadow: value === "work" ? "0 4px 12px rgba(139,92,246,0.1)" : "none",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <MailOutlined style={{ color: value === "work" ? "#8b5cf6" : "var(--text-slate-400)" }} />
+            <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text-slate-900)" }}>Work Mail</span>
+          </div>
+          <span style={{
+            width: 16,
+            height: 16,
+            borderRadius: "50%",
+            border: value === "work" ? "5px solid #8b5cf6" : "1px solid var(--border-slate-300)",
+            display: "inline-block"
+          }} />
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-slate-500)", marginTop: 6, wordBreak: "break-all" }}>
+          {workEmail || "jane@company.com"}
+        </div>
+      </div>
+
+      <div
+        onClick={() => onChange?.("personal")}
+        style={{
+          padding: "16px",
+          border: value === "personal" ? "2px solid #8b5cf6" : "1px solid var(--border-slate-100)",
+          borderRadius: 12,
+          background: value === "personal" ? "rgba(139,92,246,0.03)" : "var(--bg-pure-white)",
+          cursor: "pointer",
+          transition: "all 0.2s ease",
+          boxShadow: value === "personal" ? "0 4px 12px rgba(139,92,246,0.1)" : "none",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <MailOutlined style={{ color: value === "personal" ? "#8b5cf6" : "var(--text-slate-400)" }} />
+            <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text-slate-900)" }}>Personal Mail</span>
+          </div>
+          <span style={{
+            width: 16,
+            height: 16,
+            borderRadius: "50%",
+            border: value === "personal" ? "5px solid #8b5cf6" : "1px solid var(--border-slate-300)",
+            display: "inline-block"
+          }} />
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-slate-500)", marginTop: 6, wordBreak: "break-all" }}>
+          {personalEmail || "jane@personal.com"}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface MemberDrawerContentProps {
   mode: "add" | "edit";
   selectedMember: Member | null;
@@ -178,6 +244,8 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
 }) => {
   const watchedRole =
     Form.useWatch("role", form) || selectedMember?.role || "user";
+  const workEmail = Form.useWatch("workEmail", form);
+  const personalEmail = Form.useWatch("personalEmail", form);
 
   const ROLE_OPTIONS = [
     {
@@ -448,32 +516,40 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           </Form.Item>
 
           {mode === "add" && (
-            <div
-              style={{
-                marginTop: 16,
-                padding: "12px 14px",
-                background: "var(--bg-slate-50)",
-                border: "1px solid var(--border-slate-100)",
-                borderRadius: 10,
-                display: "flex",
-                gap: 10,
-                alignItems: "flex-start",
-              }}
-            >
-              <InfoCircleOutlined
-                style={{ color: "var(--text-slate-400)", marginTop: 2, fontSize: 13 }}
-              />
+            <>
+              <div style={{ height: 16 }} />
+              <SectionLabel>Send Welcome Mail To</SectionLabel>
+              <Form.Item name="sendEmailTo" initialValue="work" style={{ marginBottom: 16 }}>
+                <EmailSelector workEmail={workEmail} personalEmail={personalEmail} />
+              </Form.Item>
+
               <div
                 style={{
-                  fontSize: 12,
-                  color: "var(--text-slate-600)",
-                  lineHeight: 1.55,
+                  marginTop: 16,
+                  padding: "12px 14px",
+                  background: "var(--bg-slate-50)",
+                  border: "1px solid var(--border-slate-100)",
+                  borderRadius: 10,
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "flex-start",
                 }}
               >
-                A temporary password will be generated. The member will be
-                prompted to set a new password on first login.
+                <InfoCircleOutlined
+                  style={{ color: "var(--text-slate-400)", marginTop: 2, fontSize: 13 }}
+                />
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--text-slate-600)",
+                    lineHeight: 1.55,
+                  }}
+                >
+                  A temporary password will be generated. The member will be
+                  prompted to set a new password on first login.
+                </div>
               </div>
-            </div>
+            </>
           )}
         </Form>
       </div>
@@ -774,6 +850,7 @@ export default function MembersPage() {
           workDays: values.workDays || [1, 2, 3, 4, 5],
           assignedShiftId: values.assignedShift || null,
           isActive: true,
+          sendEmailTo: values.sendEmailTo || "work",
         };
         await MembersService.createMember(createPayload);
         setSuccess("Member created successfully");
@@ -820,6 +897,9 @@ export default function MembersPage() {
   const showAddModal = () => {
     setModalType("add");
     form.resetFields();
+    form.setFieldsValue({
+      sendEmailTo: "work",
+    });
     setSelectedMember(null);
     setIsModalVisible(true);
   };

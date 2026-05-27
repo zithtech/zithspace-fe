@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Spin, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload, Popover, Tooltip, Tag } from "antd";
+import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Spin, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload, Popover, Tooltip, Tag, App } from "antd";
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { apiClient } from "@/lib/axios";
@@ -173,6 +173,7 @@ const FILTERS: { label: string; value: any; icon?: any }[] = [
 ];
 
 export default function MailPage() {
+  const { message } = App.useApp();
   const { 
     canCreateMail, 
     canUpdateMail, 
@@ -531,6 +532,9 @@ export default function MailPage() {
   return (
     <MainLayout>
       <style>{`
+        .ant-message, .ant-message-wrapper {
+          z-index: 100000 !important;
+        }
         .mail-shell {
           height: calc(100vh - 64px);
           display: flex;
@@ -1783,20 +1787,15 @@ export default function MailPage() {
                                     <Eye size={12} />
                                   </button>
                                 </Tooltip>
-                                <a
-                                  href={`/api/mail/attachments/download?url=${encodeURIComponent(
-                                    att.downloadUrl
-                                  )}&filename=${encodeURIComponent(att.fileName)}`}
-                                  download={att.fileName}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  <Tooltip title="Download">
-                                    <button className="mail-icon-btn" style={{ width: 24, height: 24 }}>
-                                      <Download size={12} />
-                                    </button>
-                                  </Tooltip>
-                                </a>
+                                <Tooltip title="Download">
+                                  <button
+                                    className="mail-icon-btn"
+                                    style={{ width: 24, height: 24 }}
+                                    onClick={() => downloadAttachment(att)}
+                                  >
+                                    <Download size={12} />
+                                  </button>
+                                </Tooltip>
                               </div>
                             ))}
                           </div>
@@ -1861,23 +1860,26 @@ export default function MailPage() {
                           if (!lastMsg) return;
 
                           setIsSendingReply(true);
-                          const result = await sendMessage({
-                            to: [lastMsg.fromEmail],
-                            subject: lastMsg.subject.startsWith("Re:")
-                              ? lastMsg.subject
-                              : `Re: ${lastMsg.subject}`,
-                            body: quickReply,
-                            threadId: selectedThreadId || undefined,
-                          });
+                          try {
+                            const result = await sendMessage({
+                              to: [lastMsg.fromEmail],
+                              subject: lastMsg.subject.startsWith("Re:")
+                                ? lastMsg.subject
+                                : `Re: ${lastMsg.subject}`,
+                              body: quickReply,
+                              threadId: selectedThreadId || undefined,
+                            });
 
-                          if (result) {
                             message.success("Reply sent");
                             setQuickReply("");
+                            setDrawerVisible(false);
                             if (selectedThreadId) await syncMail();
-                          } else {
-                            message.error("Failed to send reply");
+                          } catch (err: any) {
+                            console.error("Failed to send reply:", err);
+                            message.error(err.message || "Failed to send reply");
+                          } finally {
+                            setIsSendingReply(false);
                           }
-                          setIsSendingReply(false);
                         }}
                       >
                         Send Reply
@@ -1978,15 +1980,14 @@ export default function MailPage() {
               scheduledAt: values.scheduledAt?.toISOString() || null,
             };
 
-            let result;
-            if (currentDraftId) {
-              await saveDraft({ ...mailData, id: currentDraftId });
-              result = await sendDraft(currentDraftId);
-            } else {
-              result = await sendMessage(mailData);
-            }
+            try {
+              if (currentDraftId) {
+                await saveDraft({ ...mailData, id: currentDraftId });
+                await sendDraft(currentDraftId);
+              } else {
+                await sendMessage(mailData);
+              }
 
-            if (result) {
               message.success(
                 mailData.scheduledAt ? "Email scheduled successfully" : "Email sent successfully"
               );
@@ -1994,8 +1995,9 @@ export default function MailPage() {
               setCurrentDraftId(null);
               setSelectedThreadId(null);
               form.resetFields();
-            } else {
-              message.error("Failed to process email");
+            } catch (err: any) {
+              console.error("Failed to process email:", err);
+              message.error(err.message || "Failed to process email");
             }
           }}
           initialValues={{ to: [], cc: [], bcc: [], subject: "", body: "" }}

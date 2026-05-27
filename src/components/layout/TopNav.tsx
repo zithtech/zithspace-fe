@@ -293,12 +293,12 @@ export default function TopNav({
       label: "Profile",
       onClick: () => router.push("/profile"),
     },
-    {
-      key: "settings",
-      icon: <Settings size={16} strokeWidth={1.75} />,
-      label: "Settings",
-      onClick: () => router.push("/settings"),
-    },
+    // {
+    //   key: "settings",
+    //   icon: <Settings size={16} strokeWidth={1.75} />,
+    //   label: "Settings",
+    //   onClick: () => router.push("/settings"),
+    // },
     // On mobile, show module selector in user dropdown
     ...(isMobile ? [
       { type: "divider" as const },

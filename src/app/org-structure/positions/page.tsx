@@ -83,6 +83,25 @@ export default function PositionsPage() {
     }
   }, [authLoading, canReadOrgPosition, router]);
 
+  const validPositions = useMemo(() => Array.isArray(positions) ? positions : [], [positions]);
+
+  const filteredData = useMemo(() => {
+    return validPositions.filter((item) => {
+      const q = searchText.toLowerCase();
+      const matchesSearch =
+        !searchText.trim() ||
+        item.title?.toLowerCase()?.includes(q) ||
+        item.code?.toLowerCase()?.includes(q);
+      const matchesStatus =
+        !statusFilter || (statusFilter === "active" ? item.isActive : !item.isActive);
+      const matchesGrade = !gradeFilter || item.gradeId === gradeFilter;
+      const matchesDepartment = !departmentFilter || item.departmentId === departmentFilter;
+      const matchesSubDepartment =
+        !subDepartmentFilter || item.subDepartmentId === subDepartmentFilter;
+      return matchesSearch && matchesStatus && matchesGrade && matchesDepartment && matchesSubDepartment;
+    });
+  }, [validPositions, searchText, statusFilter, gradeFilter, departmentFilter, subDepartmentFilter]);
+
   if (authLoading) {
     return (
       <ProtectedRoute>
@@ -97,7 +116,6 @@ export default function PositionsPage() {
 
   if (!canReadOrgPosition) return null;
 
-  const validPositions = Array.isArray(positions) ? positions : [];
   const totalPositions = validPositions.length;
   const activePositions = validPositions.filter((p) => p.isActive).length;
   const inactivePositions = totalPositions - activePositions;
@@ -157,23 +175,6 @@ export default function PositionsPage() {
       setSubmitting(false);
     }
   };
-
-  const filteredData = useMemo(() => {
-    return validPositions.filter((item) => {
-      const q = searchText.toLowerCase();
-      const matchesSearch =
-        !searchText.trim() ||
-        item.title?.toLowerCase()?.includes(q) ||
-        item.code?.toLowerCase()?.includes(q);
-      const matchesStatus =
-        !statusFilter || (statusFilter === "active" ? item.isActive : !item.isActive);
-      const matchesGrade = !gradeFilter || item.gradeId === gradeFilter;
-      const matchesDepartment = !departmentFilter || item.departmentId === departmentFilter;
-      const matchesSubDepartment =
-        !subDepartmentFilter || item.subDepartmentId === subDepartmentFilter;
-      return matchesSearch && matchesStatus && matchesGrade && matchesDepartment && matchesSubDepartment;
-    });
-  }, [validPositions, searchText, statusFilter, gradeFilter, departmentFilter, subDepartmentFilter]);
 
   const columns = [
     {

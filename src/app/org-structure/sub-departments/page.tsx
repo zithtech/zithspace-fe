@@ -13,6 +13,7 @@ import {
   Tooltip,
   Switch,
   Drawer,
+  Popconfirm,
 } from "antd";
 import {
   GitBranch,
@@ -26,6 +27,7 @@ import {
   Tag as TagIcon,
   Settings,
   Building2,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -60,7 +62,24 @@ export default function SubDepartmentsPage() {
     fetchSubDepartments,
     createSubDepartment,
     updateSubDepartment,
+    deleteSubDepartment,
   } = useSubDepartments();
+
+  const filteredData = useMemo(() => {
+    return subDepartments.filter((item) => {
+      const q = searchText.toLowerCase();
+      const matchesSearch =
+        !searchText.trim() ||
+        item.code.toLowerCase().includes(q) ||
+        item.name.toLowerCase().includes(q) ||
+        (item.description || "").toLowerCase().includes(q);
+      const matchesStatus =
+        !statusFilter || (statusFilter === "active" ? item.isActive : !item.isActive);
+      const matchesDepartment =
+        !departmentFilter || item.parentDepartmentId === departmentFilter;
+      return matchesSearch && matchesStatus && matchesDepartment;
+    });
+  }, [subDepartments, searchText, statusFilter, departmentFilter]);
 
   useEffect(() => {
     if (!authLoading && !canReadOrg) {
@@ -105,6 +124,19 @@ export default function SubDepartmentsPage() {
     setIsDrawerOpen(true);
   };
 
+  const handleDelete = async (id: string) => {
+    const success = await deleteSubDepartment(id);
+    if (success) {
+      api.success({
+        message: "Sub-Department Removed",
+        description: "The sub-department has been successfully deleted.",
+        placement: "topRight",
+        duration: 2,
+      });
+      fetchSubDepartments();
+    }
+  };
+
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
@@ -128,22 +160,6 @@ export default function SubDepartmentsPage() {
       setSubmitting(false);
     }
   };
-
-  const filteredData = useMemo(() => {
-    return subDepartments.filter((item) => {
-      const q = searchText.toLowerCase();
-      const matchesSearch =
-        !searchText.trim() ||
-        item.code.toLowerCase().includes(q) ||
-        item.name.toLowerCase().includes(q) ||
-        (item.description || "").toLowerCase().includes(q);
-      const matchesStatus =
-        !statusFilter || (statusFilter === "active" ? item.isActive : !item.isActive);
-      const matchesDepartment =
-        !departmentFilter || item.parentDepartmentId === departmentFilter;
-      return matchesSearch && matchesStatus && matchesDepartment;
-    });
-  }, [subDepartments, searchText, statusFilter, departmentFilter]);
 
   const columns = [
     {
@@ -191,15 +207,30 @@ export default function SubDepartmentsPage() {
       title: "",
       key: "actions",
       align: "right" as const,
-      width: 80,
-      render: (_: any, record: any) =>
-        canManageOrg && (
-          <div className="orgx-row-actions">
-            <Tooltip title="Edit Sub-Department">
-              <Button type="text" size="small" icon={<Edit size={15} />} onClick={() => handleEdit(record)} />
-            </Tooltip>
-          </div>
-        ),
+      width: 100,
+      render: (_: any, record: any) => (
+        <div className="orgx-row-actions">
+          {canManageOrg && (
+            <>
+              <Tooltip title="Edit Sub-Department">
+                <Button type="text" size="small" icon={<Edit size={15} />} onClick={() => handleEdit(record)} />
+              </Tooltip>
+              <Popconfirm
+                title="Remove sub-department?"
+                description="This will permanently delete this sub-department."
+                onConfirm={() => handleDelete(record.id)}
+                okText="Delete"
+                cancelText="Cancel"
+                okButtonProps={{ danger: true }}
+              >
+                <Tooltip title="Delete">
+                  <Button type="text" size="small" danger icon={<Trash2 size={15} />} />
+                </Tooltip>
+              </Popconfirm>
+            </>
+          )}
+        </div>
+      ),
     },
   ];
 

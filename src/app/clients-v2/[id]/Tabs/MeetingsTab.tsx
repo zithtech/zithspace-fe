@@ -2121,7 +2121,7 @@ function AttachmentsEditor({
           />
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginTop: 2 }}>
             <Button size="small" onClick={() => { setAdding(null); setLinkUrl(""); setLinkLabel(""); }}>Cancel</Button>
-            <Button size="small" type="primary" onClick={addLink} disabled={!linkUrl.trim()} icon={<Plus size={12} />}>Add link</Button>
+            <Button size="small" type="primary" onClick={addLink} disabled={!linkUrl.trim()} icon={<Plus size={12} />}>Save the link</Button>
           </div>
         </div>
       )}

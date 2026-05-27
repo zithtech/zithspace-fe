@@ -776,14 +776,16 @@ export default function InvoiceNewinvoicePage() {
                 style={{ color: "var(--text-secondary)" }}
               >
                 <span
-                  className="cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                  className="cursor-pointer hover:text-[var(--text-primary)] transition-colors hidden md:inline"
                   onClick={() => router.push("/invoice/invoices")}
                 >
                   Invoices
                 </span>
-                <ChevronRight size={12} />
+                <span className="hidden md:inline">
+                  <ChevronRight size={12} />
+                </span>
                 <span
-                  className="font-semibold"
+                  className="font-semibold truncate max-w-[100px] sm:max-w-none"
                   style={{ color: "var(--text-primary)" }}
                 >
                   {editInvoiceId ? "Edit invoice" : "New invoice"}
@@ -801,7 +803,7 @@ export default function InvoiceNewinvoicePage() {
                   </span>
                 )}
                 <span
-                  className="ml-2 inline-flex items-center px-2 py-[3px] rounded-md text-[10px] font-semibold uppercase tracking-[0.08em]"
+                  className="ml-2 inline-flex items-center px-2 py-[3px] rounded-md text-[10px] font-semibold uppercase tracking-[0.08em] hidden sm:inline-flex"
                   style={{
                     background: "var(--bg-slate-50)",
                     color: "var(--text-secondary)",
@@ -817,9 +819,9 @@ export default function InvoiceNewinvoicePage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <div
-                className="template-pill flex items-center pl-2.5 pr-2 h-9 rounded-lg mr-1 transition-colors cursor-pointer"
+                className="template-pill hidden lg:flex items-center pl-2.5 pr-2 h-9 rounded-lg mr-1 transition-colors cursor-pointer"
                 style={{
                   background: "var(--bg-slate-50)",
                   border: "1px solid var(--border-color)",
@@ -874,7 +876,7 @@ export default function InvoiceNewinvoicePage() {
                 )}
               </div>
               <div
-                className="h-6 w-px"
+                className="h-6 w-px hidden lg:block"
                 style={{ background: "var(--border-color)" }}
               />
               <Button
@@ -882,7 +884,7 @@ export default function InvoiceNewinvoicePage() {
                 onClick={() => setIsPreviewVisible(true)}
                 style={{ borderRadius: 8, height: 36 }}
               >
-                Preview
+                <span className="hidden md:inline">Preview</span>
               </Button>
               <Button
                 loading={actionLoading === "DRAFT"}
@@ -894,7 +896,8 @@ export default function InvoiceNewinvoicePage() {
                 }}
                 style={{ borderRadius: 8, height: 36 }}
               >
-                Save draft
+                <span className="hidden sm:inline">Save draft</span>
+                <span className="inline sm:hidden">Draft</span>
               </Button>
               <Button
                 type="primary"
@@ -912,7 +915,8 @@ export default function InvoiceNewinvoicePage() {
                   background: "#2563eb",
                 }}
               >
-                Submit for approval
+                <span className="hidden sm:inline">Submit for approval</span>
+                <span className="inline sm:hidden">Submit</span>
               </Button>
               <Button
                 type="text"
@@ -925,6 +929,7 @@ export default function InvoiceNewinvoicePage() {
                   height: 36,
                   color: "var(--text-secondary)",
                 }}
+                className="hidden md:inline-flex"
               >
                 Cancel
               </Button>

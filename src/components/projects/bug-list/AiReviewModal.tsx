@@ -120,14 +120,24 @@ export default function AiReviewModal({ open, onClose, bugs }: Props) {
     }
     try {
       const created = await convert.mutateAsync(
-        groups.map((g) => ({
-          title: g.title,
-          description: g.description,
-          acceptanceCriteria: g.acceptanceCriteria || undefined,
-          bugIds: g.bugIds,
-          projectId: g.projectId,
-          assigneeId: g.assigneeId,
-        })),
+        groups.map((g) => {
+          const groupBugs = g.bugIds
+            .map((id) => bugsById.get(id))
+            .filter((b): b is BugListItem => !!b);
+          const allAttachments = groupBugs.flatMap((b) => b.attachments || []);
+          const allExternalLinks = groupBugs.flatMap((b) => b.externalLinks || []);
+
+          return {
+            title: g.title,
+            description: g.description,
+            acceptanceCriteria: g.acceptanceCriteria || undefined,
+            bugIds: g.bugIds,
+            projectId: g.projectId,
+            assigneeId: g.assigneeId,
+            attachments: allAttachments,
+            externalLinks: allExternalLinks,
+          };
+        }),
       );
       setCreatedTickets(created);
       setStep("done");

@@ -507,8 +507,9 @@ export default function SquadManagement() {
           description="Configure and manage project teams, leadership roles, and member allocations."
           style={{
             borderBottom: '1px solid var(--border-slate-200)',
-            padding: '8.5px 32px',
-            marginBottom: 20
+            padding: '9.5px 32px',
+            marginBottom: 20,
+            boxShadow: 'none'
           }}
           extra={
             canCreateSquad && (

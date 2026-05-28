@@ -592,6 +592,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     icon: I(UsersRound),
     pathPrefixes: [
       "/profile",
+      "/new-profile",
       "/attendance",
       "/leaves",
       "/leaves-dashboard",

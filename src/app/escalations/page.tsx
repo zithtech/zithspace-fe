@@ -600,7 +600,7 @@ export default function EscalationListPage() {
           description="Monitor and resolve manual escalations related to deployment quality and team regressions."
           style={{
             borderBottom: '1px solid var(--border-slate-200)',
-            padding: '8.5px 32px',
+            padding: '9.5px 32px',
             marginBottom: 20,
           }}
           extra={

@@ -180,6 +180,7 @@ function SubmitDailyUpdateContent() {
       form.setFieldsValue({
         mood: data.mood,
         generalNotes: data.generalNotes,
+        updateType: data.updateType,
       });
     } catch (error) {
       api.error({
@@ -299,6 +300,7 @@ function SubmitDailyUpdateContent() {
         form.setFieldsValue({
           mood: result.data.mood,
           generalNotes: result.data.generalNotes,
+          updateType: result.data.updateType,
         });
       }
     } catch (error) {
@@ -635,10 +637,9 @@ function SubmitDailyUpdateContent() {
 
       const values = form.getFieldsValue();
 
-      // 🔒 LOCK updateType based on time
       const now = new Date();
       const hour = now.getHours();
-      const finalUpdateType = hour < 14 ? "BOD" : "EOD";
+      const finalUpdateType = values.updateType || (hour < 14 ? "BOD" : "EOD");
 
       const submissionDate = alreadySubmitted && existingUpdate
         ? (existingUpdate.date || existingUpdate.working_date || existingUpdate.missed_updateAt || dayjs())

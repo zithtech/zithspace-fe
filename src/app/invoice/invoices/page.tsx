@@ -1576,7 +1576,7 @@ export default function InvoiceInvoicesPage() {
             <Text strong>Are you sure you want to move {selectedInvoices.length} selected invoice(s) to trash?</Text>
           </div>
 
-          <div className="mb-4 max-h-60 overflow-y-auto border rounded p-2">
+          <div className="mb-4 max-h-60 overflow-y-auto rounded p-2" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
             <ul className="list-disc pl-4">
               {selectedInvoices.slice(0, 10).map((inv, index) => (
                 <li key={inv.id} className="text-sm mb-1">
@@ -1588,7 +1588,7 @@ export default function InvoiceInvoicesPage() {
                 </li>
               ))}
               {selectedInvoices.length > 10 && (
-                <li className="text-sm text-gray-500">
+                <li className="text-sm" style={{ color: "var(--text-secondary)" }}>
                   ...and {selectedInvoices.length - 10} more
                 </li>
               )}
@@ -1685,7 +1685,7 @@ export default function InvoiceInvoicesPage() {
               <AlertCircle size={20} className="text-yellow-500 mr-2" />
               <Text strong>Are you sure you want to move this invoice to trash?</Text>
             </div>
-            <div className="mb-4 p-3 bg-gray-50 rounded">
+            <div className="mb-4 p-3 rounded" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Text type="secondary" className="block text-sm">Invoice Number</Text>

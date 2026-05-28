@@ -116,7 +116,8 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
 
   const handleSave = (val: any) => {
     if (editingField) {
-      onUpdate(ticket.id, { [editingField]: val });
+      const finalVal = (val === undefined || val === null) ? null : val;
+      onUpdate(ticket.id, { [editingField]: finalVal });
     }
     cleanup();
   };
@@ -338,6 +339,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
             size="small"
             style={{ width: 160 }}
             placeholder="Assign"
+            allowClear
             filterOption={(input, option) =>
               (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
             }

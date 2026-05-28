@@ -14,6 +14,7 @@ import {
   Spin,
   Tooltip,
   Drawer,
+  Popconfirm,
 } from "antd";
 import {
   Briefcase,
@@ -26,6 +27,7 @@ import {
   X,
   Tag as TagIcon,
   Settings,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEmploymentTypes } from "@/hooks/useEmploymentTypes";
@@ -44,6 +46,7 @@ export default function EmploymentTypesPage() {
     canReadOrgEmploymentType,
     canCreateOrgEmploymentType,
     canUpdateOrgEmploymentType,
+    canDeleteOrgEmploymentType,
   } = usePermission();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -58,6 +61,7 @@ export default function EmploymentTypesPage() {
     loading,
     createEmploymentType,
     updateEmploymentType,
+    deleteEmploymentType,
   } = useEmploymentTypes();
 
   useEffect(() => {
@@ -86,6 +90,18 @@ export default function EmploymentTypesPage() {
     setEditingKey(record.id);
     form.setFieldsValue({ ...record, typeName: record.name });
     setIsDrawerOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    const success = await deleteEmploymentType(id);
+    if (success) {
+      api.success({
+        message: "Employment Type Removed",
+        description: "The employment type has been successfully deleted.",
+        placement: "topRight",
+        duration: 2,
+      });
+    }
   };
 
   const handleSave = async () => {
@@ -183,15 +199,30 @@ export default function EmploymentTypesPage() {
       title: "",
       key: "actions",
       align: "right" as const,
-      width: 80,
-      render: (_: any, record: EmploymentType) =>
-        canUpdateOrgEmploymentType && (
-          <div className="orgx-row-actions">
+      width: 100,
+      render: (_: any, record: EmploymentType) => (
+        <div className="orgx-row-actions">
+          {canUpdateOrgEmploymentType && (
             <Tooltip title="Edit Type">
               <Button type="text" size="small" icon={<Edit size={15} />} onClick={() => handleEdit(record)} />
             </Tooltip>
-          </div>
-        ),
+          )}
+          {canDeleteOrgEmploymentType && (
+            <Popconfirm
+              title="Remove employment type?"
+              description="This will permanently delete this employment type."
+              onConfirm={() => handleDelete(record.id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="Delete">
+                <Button type="text" size="small" danger icon={<Trash2 size={15} />} />
+              </Tooltip>
+            </Popconfirm>
+          )}
+        </div>
+      ),
     },
   ];
 

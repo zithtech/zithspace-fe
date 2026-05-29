@@ -819,6 +819,14 @@ export default function ClientsV2ListPage() {
             icon={<Building2 size={20} color="#8b5cf6" />}
             title="Client Management"
             description="Monitor, manage, and configure all client entity profiles."
+            style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 100,
+              boxShadow: "none",
+              borderBottom: "1px solid var(--border-slate-200)",
+              padding: "9.5px 32px",
+            }}
             extra={
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <Input

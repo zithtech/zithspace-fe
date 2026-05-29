@@ -216,7 +216,10 @@ export default function UpdateDetailsDrawer({
                   {update.updateType || "EOD"} Update
                 </div>
                 <Text style={{ fontSize: 12, color: "var(--text-slate-400)", fontWeight: 500 }}>
-                  Submitted · {dayjs(update.createdAt).format("MMM DD, h:mm A")}
+                  {update.updatedAt && dayjs(update.updatedAt).diff(dayjs(update.createdAt), 'second') > 60 
+                    ? `Submitted · ${dayjs(update.updatedAt).format("MMM DD, h:mm A")}`
+                    : `Submitted · ${dayjs(update.createdAt).format("MMM DD, h:mm A")}`
+                  }
                 </Text>
               </div>
               <button

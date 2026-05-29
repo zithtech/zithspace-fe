@@ -18,6 +18,7 @@ import {
   Tooltip,
   Row,
   Col,
+  message,
 } from "antd";
 import {
   Upload as UploadIcon,
@@ -85,6 +86,7 @@ export default function DocumentsTab({
   const [fileList, setFileList] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewingDocument, setViewingDocument] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -389,15 +391,13 @@ export default function DocumentsTab({
               style={{ color: "var(--text-slate-500)" }}
             />
           </Tooltip>
-          <Tooltip title="Download / Open">
-            <Button
-              type="text"
-              className="premium-action-btn"
-              icon={<Download size={16} />}
-              onClick={() => window.open(record.fileUrl, "_blank", "noopener,noreferrer")}
-              style={{ color: "var(--text-slate-500)" }}
-            />
-          </Tooltip>
+          <Button
+            type="text"
+            className="premium-action-btn"
+            icon={<Download size={16} />}
+            onClick={() => handleDownload(record)}
+            style={{ color: "var(--text-slate-500)" }}
+          />
 
           {canUpdateClient && (
             <Tooltip title="Edit details">
@@ -520,8 +520,37 @@ export default function DocumentsTab({
     }
   };
 
-  const handleDownload = (record: any) => {
-    if (record?.fileUrl) {
+  const handleDownload = async (record: any) => {
+    if (!record) return;
+
+    const external = isExternalDoc(record);
+    if (external) {
+      window.open(record.fileUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    const loadingKey = "downloading-doc";
+    try {
+      messageApi.loading({ content: "Downloading file...", key: loadingKey, duration: 0 });
+
+      const response = await apiClient.get(
+        `/api/clients-v2/${clientId}/documents/${record.id}/download`,
+        { responseType: "blob" }
+      );
+
+      const blob = new Blob([response.data], { type: response.headers["content-type"] });
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.setAttribute("download", record.fileName || "document");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+
+      messageApi.success({ content: "Downloaded successfully", key: loadingKey });
+    } catch (err) {
+      messageApi.error({ content: "Failed to download", key: loadingKey });
       window.open(record.fileUrl, "_blank", "noopener,noreferrer");
     }
   };
@@ -595,6 +624,7 @@ export default function DocumentsTab({
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
+      {messageContextHolder}
       <div className="documents-header-wrap" style={{ margin: "0 -32px" }}>
         <TimeTrackingHeader
           icon={<FolderArchive size={20} color="#f59e0b" />}

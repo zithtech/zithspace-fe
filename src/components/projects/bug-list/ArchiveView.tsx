@@ -479,7 +479,10 @@ function ArchivedBugCard({ bug, isSelected, onSelect, onView, onRestore, onDelet
   const restoreTooltip = isNestedInFolder ? "First restore folder" : isNestedInSheet ? "First restore sheet" : "";
 
   return (
-    <div className={`arc-card ${isSelected ? "arc-card-bulk-selected" : ""}`} onClick={onView}>
+    <div 
+      className={`arc-card ${isSelected ? "arc-card-bulk-selected" : ""}`}
+      style={{ cursor: "default" }}
+    >
       <div className="arc-card-toprow">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input

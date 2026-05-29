@@ -274,7 +274,15 @@ function BugRow({
   const ticketLinked = !!bug.ticketId;
 
   return (
-    <tr className="hb-tr" onClick={onEdit}>
+    <tr 
+      className="hb-tr" 
+      onClick={() => {
+        if (!isTrashView && !isArchiveView) {
+          onEdit();
+        }
+      }}
+      style={{ cursor: (isTrashView || isArchiveView) ? 'default' : 'pointer' }}
+    >
       <td className="hb-td-check" onClick={(e) => e.stopPropagation()}>
         <Tooltip
           title={ticketLinked ? "Already linked to a ticket" : ""}

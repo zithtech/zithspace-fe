@@ -272,6 +272,25 @@ export default function BugListPage() {
   const showWorkspaceStats = scope !== "archived" && scope !== "trash" && (folders?.length || 0) > 0;
   const isViewingBugs = selectedSheetId || (scope !== "archived" && scope !== "trash") || (subScope === "bugs");
 
+  const isSelectedFolderArchived = useMemo(() => {
+    return !!selectedFolderId && !!archivedFolders?.some(f => f.id === selectedFolderId);
+  }, [selectedFolderId, archivedFolders]);
+
+  const isSelectedSheetArchived = useMemo(() => {
+    return !!selectedSheetId && !!archivedSheets?.some(s => s.id === selectedSheetId);
+  }, [selectedSheetId, archivedSheets]);
+
+  const isSelectedFolderTrashed = useMemo(() => {
+    return !!selectedFolderId && !!trashedFolders?.some(f => f.id === selectedFolderId);
+  }, [selectedFolderId, trashedFolders]);
+
+  const isSelectedSheetTrashed = useMemo(() => {
+    return !!selectedSheetId && !!trashedSheets?.some(s => s.id === selectedSheetId);
+  }, [selectedSheetId, trashedSheets]);
+
+  const isNestedInFolder = scope === "archived" ? isSelectedFolderArchived : scope === "trash" ? isSelectedFolderTrashed : false;
+  const isNestedInSheet = scope === "archived" ? isSelectedSheetArchived : scope === "trash" ? isSelectedSheetTrashed : false;
+
   const queryFilters = useMemo(
     () => ({
       folderId: selectedFolderId || undefined,
@@ -1126,7 +1145,7 @@ export default function BugListPage() {
               selectedSheetId={selectedSheetId}
               selectedFolderId={selectedFolderId}
               onSelectFolder={setSelectedFolderId}
-              activeTab={subScope === "folders" || subScope === "sheets" ? subScope : "folders"}
+              activeTab={subScope as any}
               onTabChange={(v) => setSubScope(v as any)}
               onSelectSheet={setSelectedSheetId}
               onSelectBug={(bug) => {
@@ -1238,8 +1257,8 @@ export default function BugListPage() {
                 onBugStatusUpdate={handleBugStatusUpdate}
                 isTrashView={scope === "trash"}
                 isArchiveView={scope === "archived"}
-                isNestedInSheet={!!selectedSheetId}
-                isNestedInFolder={!!selectedFolderId}
+                isNestedInSheet={isNestedInSheet}
+                isNestedInFolder={isNestedInFolder}
               />
               {bugsResponse?.pagination && total > 0 && (
                 <div className="hb-pagination">

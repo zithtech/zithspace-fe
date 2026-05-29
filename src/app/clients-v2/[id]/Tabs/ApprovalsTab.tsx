@@ -848,6 +848,7 @@ function CreateApprovalModal({
             >
               <DatePicker
                 showTime
+                needConfirm={false}
                 style={{ width: "100%" }}
                 format="YYYY-MM-DD HH:mm"
               />
@@ -859,6 +860,7 @@ function CreateApprovalModal({
             >
               <DatePicker
                 showTime
+                needConfirm={false}
                 style={{ width: "100%" }}
                 format="YYYY-MM-DD HH:mm"
               />

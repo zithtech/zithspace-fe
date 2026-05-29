@@ -138,11 +138,9 @@ export default function AttachmentList({
   const handleDownload = (e: React.MouseEvent, fileUrl: string, fileName: string) => {
     e.stopPropagation();
     e.preventDefault();
-    onOpen?.();
+    const proxyUrl = `/api/download?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
     const link = document.createElement("a");
-    link.href = fileUrl;
-    link.download = fileName;
-    link.target = "_blank";
+    link.href = proxyUrl;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -331,7 +329,7 @@ export default function AttachmentList({
               />
             ) : viewingAttachment.fileType.toLowerCase().includes('pdf') ? (
               <iframe 
-                src={viewingAttachment.fileUrl} 
+                src={`/api/download?url=${encodeURIComponent(viewingAttachment.fileUrl)}&name=${encodeURIComponent(viewingAttachment.fileName)}&inline=true`} 
                 width="100%" 
                 height="100%" 
                 style={{ border: 'none' }}

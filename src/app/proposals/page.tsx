@@ -175,6 +175,7 @@ export default function ProposalsListPage() {
   }, [tablePrefsLoaded, tableDensity, hiddenCols]);
 
   const [messageApi, messageHolder] = message.useMessage();
+  const [modal, modalContextHolder] = Modal.useModal();
 
   // ─── Route Guard ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -198,7 +199,7 @@ export default function ProposalsListPage() {
     } catch (err: any) {
       console.error('Fetch error:', err);
       if (err.status !== 401) {
-        message.error('Failed to load proposals');
+        messageApi.error('Failed to load proposals');
       }
     } finally {
       setLoading(false);
@@ -212,11 +213,11 @@ export default function ProposalsListPage() {
   const handleDelete = async (id: string) => {
     try {
       await ProposalService.deleteProposal(id);
-      message.success('Proposal deleted');
+      messageApi.success('Proposal deleted');
       fetchProposals();
     } catch (err) {
       console.error('Delete error:', err);
-      message.error('Failed to delete proposal');
+      messageApi.error('Failed to delete proposal');
     }
   };
 
@@ -573,7 +574,7 @@ export default function ProposalsListPage() {
               else if (key === 'pdf') handleExport(record.id, 'pdf');
               else if (key === 'word') handleExport(record.id, 'word');
               else if (key === 'delete') {
-                Modal.confirm({
+                modal.confirm({
                   title: 'Delete Proposal',
                   content: 'Are you sure you want to delete this proposal? This action cannot be undone.',
                   okText: 'Delete',
@@ -597,6 +598,7 @@ export default function ProposalsListPage() {
     <ProtectedRoute>
       <MainLayout>
       {messageHolder}
+      {modalContextHolder}
 
       <div className="prop-page">
         {/* Page header - STICKY */}

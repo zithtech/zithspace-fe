@@ -13,6 +13,7 @@ import {
   notification,
   Tooltip,
   Tag,
+  Popconfirm,
 } from "antd";
 import {
   Plus,
@@ -29,10 +30,13 @@ import {
   AlertTriangle,
   Receipt,
   Layers,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import dayjs from "dayjs";
 import { crService, CrListItem, CrDetail, CrStatus } from "@/services/crService";
 import { useTheme } from "@/context/ThemeContext";
+import { usePermission } from "@/hooks/usePermission";
 import {
   PremiumModal,
   ModalSection,
@@ -159,12 +163,17 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
   const tones = useMemo(() => toneMap(c), [c]);
+  const { canUpdateClient, canDeleteClient } = usePermission();
 
   const [items, setItems] = useState<CrListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [notify, contextHolder] = notification.useNotification();
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingCr, setEditingCr] = useState<CrDetail | null>(null);
+  const [fetchingDetail, setFetchingDetail] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -179,6 +188,31 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
       setLoading(false);
     }
   };
+
+  const handleEditClick = async (id: string) => {
+    setEditingId(id);
+    setFetchingDetail(true);
+    try {
+      const detail = await crService.detail(id);
+      setEditingCr(detail);
+    } catch (err: any) {
+      notify.error({ message: "Failed to load details", description: err?.message });
+      setEditingId(null);
+    } finally {
+      setFetchingDetail(false);
+    }
+  };
+
+  const handleDeleteRow = async (id: string) => {
+    try {
+      await crService.delete(id);
+      notify.success({ message: "Change request deleted" });
+      load();
+    } catch (err: any) {
+      notify.error({ message: "Delete failed", description: err?.message });
+    }
+  };
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -291,6 +325,8 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
               c={c}
               tones={tones}
               onOpen={() => setOpenId(cr.id)}
+              onEdit={() => handleEditClick(cr.id)}
+              onDelete={() => handleDeleteRow(cr.id)}
             />
           ))}
         </div>
@@ -317,6 +353,24 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
         onClose={() => setOpenId(null)}
         onMutated={load}
       />
+      {editingCr && (
+        <EditCrModal
+          open={!!editingId}
+          onClose={() => {
+            setEditingId(null);
+            setEditingCr(null);
+          }}
+          onUpdated={() => {
+            setEditingId(null);
+            setEditingCr(null);
+            load();
+          }}
+          cr={editingCr}
+          projects={projects}
+          c={c}
+          notify={notify}
+        />
+      )}
 
       {/* Premium adaptive header styling */}
       <style dangerouslySetInnerHTML={{
@@ -388,13 +442,18 @@ function CrRow({
   c,
   tones,
   onOpen,
+  onEdit,
+  onDelete,
 }: {
   cr: CrListItem;
   c: ReturnType<typeof palette>;
   tones: ReturnType<typeof toneMap>;
   onOpen: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   const [hover, setHover] = useState(false);
+  const { canUpdateClient, canDeleteClient } = usePermission();
   const st = STATUS_META[cr.status] || STATUS_META.submitted;
   const pri = PRIORITY_META[cr.priority] || PRIORITY_META.medium;
   const StIcon = st.icon;
@@ -412,7 +471,7 @@ function CrRow({
       onMouseLeave={() => setHover(false)}
       style={{
         display: "grid",
-        gridTemplateColumns: "44px minmax(0, 1.6fr) 130px 100px 130px 30px",
+        gridTemplateColumns: "44px minmax(0, 1.6fr) 130px 100px 130px 90px",
         gap: 14,
         padding: "14px 18px",
         background: hover ? c.surfaceMuted : c.surfaceElevated,
@@ -574,7 +633,57 @@ function CrRow({
       >
         {estimateText}
       </div>
-      <ChevronRight size={16} color={c.textFaint} />
+      <div
+        style={{
+          display: "flex",
+          gap: 6,
+          alignItems: "center",
+          justifyContent: "flex-end",
+        }}
+      >
+        {canUpdateClient && hover && (
+          <Tooltip title="Edit details">
+            <Button
+              type="text"
+              size="small"
+              icon={<Pencil size={14} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              style={{ color: c.textMuted, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+            />
+          </Tooltip>
+        )}
+        {canDeleteClient && hover && (
+          <Popconfirm
+            title="Delete Change Request"
+            description="Permanently delete this change request?"
+            onConfirm={(e) => {
+              e?.stopPropagation();
+              onDelete();
+            }}
+            okText="Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+            onPopupClick={(e) => e.stopPropagation()}
+          >
+            <Tooltip title="Delete CR">
+              <Button
+                type="text"
+                danger
+                size="small"
+                icon={<Trash2 size={14} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+              />
+            </Tooltip>
+          </Popconfirm>
+        )}
+        <ChevronRight size={16} color={c.textFaint} />
+      </div>
     </button>
   );
 }
@@ -878,6 +987,281 @@ function L({
   );
 }
 
+function EditCrModal({
+  open,
+  onClose,
+  onUpdated,
+  cr,
+  projects,
+  c,
+  notify,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onUpdated: () => void;
+  cr: CrDetail;
+  projects: { id: string; name: string; code?: string | null }[];
+  c: ReturnType<typeof palette>;
+  notify: any;
+}) {
+  const [form] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open && cr) {
+      form.setFieldsValue({
+        subject: cr.subject,
+        description: cr.description,
+        priority: cr.priority,
+        projectId: cr.projectId || undefined,
+        status: cr.status,
+        impactAnalysis: cr.impactAnalysis || undefined,
+        estimatedHoursMin: cr.estimatedHoursMin != null ? Number(cr.estimatedHoursMin) : undefined,
+        estimatedHoursMax: cr.estimatedHoursMax != null ? Number(cr.estimatedHoursMax) : undefined,
+        estimatedCost: cr.estimatedCost != null ? Number(cr.estimatedCost) : undefined,
+        estimatedCurrency: cr.estimatedCurrency || undefined,
+        targetDeliveryDate: cr.targetDeliveryDate ? dayjs(cr.targetDeliveryDate) : undefined,
+      });
+    } else {
+      form.resetFields();
+    }
+  }, [open, cr, form]);
+
+  const submit = async (values: any) => {
+    setSubmitting(true);
+    try {
+      await crService.update(cr.id, {
+        subject: values.subject.trim(),
+        description: values.description.trim(),
+        priority: values.priority,
+        projectId: values.projectId || null,
+        status: values.status,
+        impactAnalysis: values.impactAnalysis || null,
+        estimatedHoursMin: values.estimatedHoursMin ?? null,
+        estimatedHoursMax: values.estimatedHoursMax ?? null,
+        estimatedCost: values.estimatedCost ?? null,
+        estimatedCurrency: values.estimatedCurrency || null,
+        targetDeliveryDate: values.targetDeliveryDate
+          ? dayjs(values.targetDeliveryDate).format("YYYY-MM-DD")
+          : null,
+      });
+      notify.success({ message: "Change request updated" });
+      onUpdated();
+    } catch (err: any) {
+      notify.error({
+        message: "Could not update CR",
+        description: err?.message,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <PremiumModal
+      open={open}
+      onClose={onClose}
+      width={720}
+      c={c}
+      ribbonColor={c.purpleText}
+      iconTile={{ bg: c.purpleBg, border: c.purpleBorder, text: c.purpleText }}
+      icon={<GitPullRequest size={20} />}
+      title="Edit change request"
+      subtitle="Modify the details, priority, project scope or estimations."
+      footer={
+        <ModalFooterActions c={c} kbdHint="⌘ ↵ to update">
+          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={submitting}
+            onClick={() => form.submit()}
+            icon={<Pencil size={14} />}
+          >
+            Update change request
+          </Button>
+        </ModalFooterActions>
+      }
+    >
+      <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
+        <ModalSection
+          c={c}
+          title="The ask"
+          description="What the client wants changed, in their words plus your context."
+          icon={<GitPullRequest size={11} />}
+          plain
+        >
+          <Form.Item
+            name="subject"
+            label={<L c={c}>Subject</L>}
+            rules={[{ required: true, message: "Subject is required" }]}
+            style={{ marginBottom: 12 }}
+          >
+            <Input
+              prefix={<Layers size={13} color={c.textFaint} />}
+              placeholder="Short description of the change"
+              maxLength={200}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label={<L c={c}>Full description</L>}
+            rules={[{ required: true, message: "Description is required" }]}
+            style={{ marginBottom: 12 }}
+          >
+            <Input.TextArea
+              rows={4}
+              placeholder="What did the client request? What context matters?"
+            />
+          </Form.Item>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1.2fr",
+              gap: 10,
+            }}
+          >
+            <Form.Item
+              name="priority"
+              label={<L c={c}>Priority</L>}
+              style={{ marginBottom: 0 }}
+            >
+              <Select
+                options={[
+                  { value: "low", label: "Low" },
+                  { value: "medium", label: "Medium" },
+                  { value: "high", label: "High" },
+                  { value: "critical", label: "Critical" },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item
+              name="projectId"
+              label={<L c={c} hint="optional">Project</L>}
+              style={{ marginBottom: 0 }}
+            >
+              <Select
+                allowClear
+                placeholder="—"
+                options={projects.map((p) => ({
+                  value: p.id,
+                  label: p.code ? `${p.name} · ${p.code}` : p.name,
+                }))}
+              />
+            </Form.Item>
+            <Form.Item
+              name="status"
+              label={<L c={c}>Status</L>}
+              style={{ marginBottom: 0 }}
+            >
+              <Select
+                options={[
+                  { value: "under_review", label: "Under review" },
+                  { value: "submitted", label: "Submitted" },
+                  { value: "estimated", label: "Estimated" },
+                  { value: "draft", label: "Draft — hidden from client" },
+                  { value: "approved", label: "Approved" },
+                  { value: "rejected", label: "Rejected" },
+                  { value: "scheduled", label: "Scheduled" },
+                  { value: "in_progress", label: "In progress" },
+                  { value: "delivered", label: "Delivered" },
+                  { value: "closed", label: "Closed" },
+                  { value: "cancelled", label: "Cancelled" },
+                ]}
+              />
+            </Form.Item>
+          </div>
+        </ModalSection>
+
+        <ModalSection
+          c={c}
+          title="Estimate"
+          description="Assess impact and provide time + cost estimates."
+          icon={<DollarSign size={11} />}
+        >
+          <Form.Item
+            name="impactAnalysis"
+            label={<L c={c}>Impact analysis</L>}
+            style={{ marginBottom: 12 }}
+          >
+            <Input.TextArea
+              rows={2}
+              placeholder="What's affected? Dependencies? Risks?"
+            />
+          </Form.Item>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1.2fr 0.8fr 1fr",
+              gap: 10,
+            }}
+          >
+            <Form.Item
+              name="estimatedHoursMin"
+              label={<L c={c}>Hours min</L>}
+              style={{ marginBottom: 0 }}
+            >
+              <InputNumber
+                style={{ width: "100%" }}
+                min={0}
+                step={0.5}
+                placeholder="8"
+              />
+            </Form.Item>
+            <Form.Item
+              name="estimatedHoursMax"
+              label={<L c={c}>Hours max</L>}
+              style={{ marginBottom: 0 }}
+            >
+              <InputNumber
+                style={{ width: "100%" }}
+                min={0}
+                step={0.5}
+                placeholder="16"
+              />
+            </Form.Item>
+            <Form.Item
+              name="estimatedCost"
+              label={<L c={c}>Cost</L>}
+              style={{ marginBottom: 0 }}
+            >
+              <InputNumber
+                style={{ width: "100%" }}
+                min={0}
+                step={100}
+                placeholder="2500"
+              />
+            </Form.Item>
+            <Form.Item
+              name="estimatedCurrency"
+              label={<L c={c}>Currency</L>}
+              style={{ marginBottom: 0 }}
+            >
+              <Select
+                allowClear
+                placeholder="USD"
+                options={["USD", "INR", "EUR", "GBP", "AED"].map((cur) => ({
+                  value: cur,
+                  label: cur,
+                }))}
+              />
+            </Form.Item>
+            <Form.Item
+              name="targetDeliveryDate"
+              label={<L c={c}>Target delivery</L>}
+              style={{ marginBottom: 0 }}
+            >
+              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
+            </Form.Item>
+          </div>
+        </ModalSection>
+      </Form>
+    </PremiumModal>
+  );
+}
+
 /* ====================================================================== */
 /*  Detail drawer — staff view, with estimate editor + status controls     */
 /* ====================================================================== */
@@ -1050,6 +1434,7 @@ function CrDetailBody({
   setReplyBody: (s: string) => void;
   onReply: () => void;
 }) {
+  const { canUpdateClient, canDeleteClient } = usePermission();
   const st = STATUS_META[cr.status] || STATUS_META.submitted;
   const pri = PRIORITY_META[cr.priority] || PRIORITY_META.medium;
   const StIcon = st.icon;

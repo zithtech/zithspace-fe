@@ -148,4 +148,25 @@ export const crService = {
       { body },
     );
   },
+  update(
+    id: string,
+    payload: {
+      subject: string;
+      description: string;
+      priority?: CrPriority;
+      projectId?: string | null;
+      status?: CrStatus;
+      impactAnalysis?: string | null;
+      estimatedHoursMin?: number | null;
+      estimatedHoursMax?: number | null;
+      estimatedCost?: number | null;
+      estimatedCurrency?: string | null;
+      targetDeliveryDate?: string | null;
+    },
+  ) {
+    return api.put<void>(`/api/change-requests/${id}`, payload);
+  },
+  delete(id: string) {
+    return api.delete<void>(`/api/change-requests/${id}`);
+  },
 };

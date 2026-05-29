@@ -334,7 +334,7 @@ export const usePermanentDeleteBug = () => {
   return useMutation({
     mutationFn: (id: string) => BugListService.permanentDeleteBug(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: bugKeys.bugLists() });
+      qc.invalidateQueries({ queryKey: bugKeys.all });
       message.success("Bug permanently deleted");
     },
     onError: (err: Error) => message.error(err.message),
@@ -346,7 +346,7 @@ export const useRestoreBug = () => {
   return useMutation({
     mutationFn: (id: string) => BugListService.restoreBug(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: bugKeys.bugLists() });
+      qc.invalidateQueries({ queryKey: bugKeys.all });
       message.success("Bug restored");
     },
     onError: (err: Error) => message.error(err.message),
@@ -447,7 +447,7 @@ export const useBulkConvertBugsToTickets = () => {
     mutationFn: (groups: BulkConvertGroup[]) =>
       BugListService.bulkConvertToTickets(groups),
     onSuccess: (created) => {
-      qc.invalidateQueries({ queryKey: bugKeys.bugLists() });
+      qc.invalidateQueries({ queryKey: bugKeys.all });
       qc.invalidateQueries({ queryKey: ["tickets"] });
       message.success(`${created.length} ticket(s) created`);
     },
@@ -461,7 +461,7 @@ export const useVerifyBug = () => {
   return useMutation({
     mutationFn: (bugId: string) => BugListService.verify(bugId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: bugKeys.bugLists() });
+      qc.invalidateQueries({ queryKey: bugKeys.all });
       message.success("Bug verified");
     },
     onError: (err: Error) => message.error(err.message),
@@ -473,7 +473,7 @@ export const useReopenBug = () => {
   return useMutation({
     mutationFn: (bugId: string) => BugListService.reopen(bugId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: bugKeys.bugLists() });
+      qc.invalidateQueries({ queryKey: bugKeys.all });
       message.success("Bug reopened");
     },
     onError: (err: Error) => message.error(err.message),

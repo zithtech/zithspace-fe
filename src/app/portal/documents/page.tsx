@@ -49,6 +49,7 @@ import {
   DocumentSource,
 } from "@/services/portalDocumentService";
 import { usePortalSocket } from "@/providers/PortalSocketProvider";
+import { portalClient } from "@/lib/portalAxios";
 
 /* ─────────────────────────────────────────────────────────
  * Design tokens — premium dense
@@ -197,14 +198,35 @@ export default function PortalDocumentsPage() {
   ) => {
     portalDocumentService.track(doc.id, mode);
     if (mode === "download") {
-      const a = document.createElement("a");
-      a.href = doc.fileUrl;
-      a.download = doc.fileName || "document";
-      a.target = "_blank";
-      a.rel = "noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const external = isExternalLink(doc.fileUrl);
+      if (external) {
+        window.open(doc.fileUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      try {
+        message.loading({ content: "Downloading file...", key: "portal-doc-download", duration: 0 });
+
+        const response = await portalClient.get(
+          `/api/client-portal/documents/${doc.id}/download`,
+          { responseType: "blob" }
+        );
+
+        const blob = new Blob([response.data], { type: response.headers["content-type"] });
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.setAttribute("download", doc.fileName || "document");
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(blobUrl);
+
+        message.success({ content: "Downloaded successfully", key: "portal-doc-download" });
+      } catch (err) {
+        message.error({ content: "Failed to download", key: "portal-doc-download" });
+        window.open(doc.fileUrl, "_blank", "noopener,noreferrer");
+      }
     } else {
       window.open(doc.fileUrl, "_blank", "noopener,noreferrer");
     }

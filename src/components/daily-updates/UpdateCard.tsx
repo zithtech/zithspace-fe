@@ -281,10 +281,12 @@ export default function UpdateCard({
               </Space>
 
               <Space direction="vertical" size={2} align="end">
-                <Text style={{ fontSize: 10, color: "var(--text-slate-400)", display: "block" }}>SUBMITTED ON</Text>
+                <Text style={{ fontSize: 10, color: "var(--text-slate-400)", display: "block" }}>
+                  SUBMITTED ON
+                </Text>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <Text style={{ fontSize: 11, color: "var(--text-slate-700)", fontWeight: 600 }}>
-                    {dayjs(update.createdAt).format("MMM D, h:mm A")}
+                    {dayjs((update.updatedAt && dayjs(update.updatedAt).diff(dayjs(update.createdAt), 'second') > 60) ? update.updatedAt : update.createdAt).format("MMM D, h:mm A")}
                   </Text>
                 </div>
               </Space>

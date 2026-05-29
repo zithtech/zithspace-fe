@@ -40,6 +40,8 @@ import {
   Search,
   LayoutList,
   LayoutGrid,
+  Eye,
+  Download,
 } from "lucide-react";
 import dayjs from "dayjs";
 import {
@@ -2252,6 +2254,53 @@ function RepeaterSection<T>({
   );
 }
 
+function AttachmentViewerCard({ a, c, onView, onDownload }: any) {
+  const [hover, setHover] = useState(false);
+  const isFile = a.kind === "file";
+  const name = isFile ? a.fileName : (a.linkLabel || a.linkUrl);
+
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        position: 'relative',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '5px 11px',
+        background: c.surfaceMuted,
+        border: `1px solid ${c.border}`,
+        borderRadius: 8,
+        color: c.accentText,
+        fontSize: 12.5,
+        fontWeight: 500,
+        maxWidth: 280,
+        height: 32,
+        overflow: 'hidden',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: hover ? 0 : 1, transition: 'opacity 0.2s', width: '100%' }}>
+        {isFile ? <FileText size={12} /> : <Link2 size={12} />}
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {name}
+        </span>
+      </div>
+
+      {hover && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)' }}>
+          <div role="button" onClick={(e) => { e.stopPropagation(); onView(); }} style={{ width: 24, height: 24, border: '1px solid rgba(255,255,255,0.4)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+            <Eye size={13} />
+          </div>
+          <div role="button" onClick={(e) => { e.stopPropagation(); onDownload(); }} style={{ width: 24, height: 24, border: '1px solid rgba(255,255,255,0.4)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+            <Download size={13} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* --------------------------------------------------------------- */
 
 function MomDetailDrawer({
@@ -2270,6 +2319,22 @@ function MomDetailDrawer({
   const [mom, setMom] = useState<MomDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [convertingId, setConvertingId] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<any>(null);
+
+  const getDocPreview = (url: string | null) => {
+    if (!url) return null;
+    let m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
+    if (m) return { kind: "iframe", src: `https://drive.google.com/file/d/${m[1]}/preview` };
+    m = url.match(/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([^/?#]+)/);
+    if (m) return { kind: "iframe", src: `https://docs.google.com/${m[1]}/d/${m[2]}/preview` };
+    m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?#]+)/);
+    if (m) return { kind: "iframe", src: `https://www.youtube.com/embed/${m[1]}` };
+    if (/\.(png|jpe?g|gif|webp|svg|bmp)(\?|$|#)/i.test(url)) return { kind: "image", src: url };
+    if (/\.(docx?|xlsx?|pptx?)(\?|$|#)/i.test(url)) {
+      return { kind: "iframe", src: `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true` };
+    }
+    return { kind: "iframe", src: url };
+  };
 
   const load = async () => {
     if (!id) return;
@@ -2340,6 +2405,7 @@ function MomDetailDrawer({
   };
 
   return (
+    <>
     <Drawer
       open={!!id}
       onClose={onClose}
@@ -2626,45 +2692,25 @@ function MomDetailDrawer({
                   }}
                 >
                   {mom.attachments.map((a) => (
-                    <a
+                    <AttachmentViewerCard
                       key={a.id}
-                      href={a.kind === "file" ? a.fileUrl || "#" : a.linkUrl || "#"}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "5px 11px",
-                        background: c.surfaceMuted,
-                        border: `1px solid ${c.border}`,
-                        borderRadius: 8,
-                        color: c.accentText,
-                        textDecoration: "none",
-                        fontSize: 12.5,
-                        fontWeight: 500,
-                        maxWidth: 280,
+                      a={a}
+                      c={c}
+                      onView={() => setPreviewDoc(a)}
+                      onDownload={async () => {
+                        const url = a.kind === "file" ? a.fileUrl : a.linkUrl;
+                        const filename = a.kind === "file" ? (a.fileName || "download") : "link";
+                        if (!url) return;
+                        // Use the local proxy route to force a direct download without CORS or new tab issues
+                        const proxyUrl = `/api/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename)}`;
+                        const link = document.createElement("a");
+                        link.href = proxyUrl;
+                        link.download = filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
                       }}
-                      title={a.kind === "file" ? a.fileName ?? "" : a.linkUrl ?? ""}
-                    >
-                      {a.kind === "file" ? (
-                        <FileText size={12} />
-                      ) : (
-                        <Link2 size={12} />
-                      )}
-                      <span
-                        style={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {a.kind === "file"
-                          ? a.fileName
-                          : a.linkLabel || a.linkUrl}
-                      </span>
-                      <ExternalLink size={10} />
-                    </a>
+                    />
                   ))}
                 </div>
               </Section>
@@ -2809,6 +2855,40 @@ function MomDetailDrawer({
         </>
       )}
     </Drawer>
+
+    <Drawer
+      placement="left"
+      width={720}
+      open={!!previewDoc}
+      onClose={() => setPreviewDoc(null)}
+      title={previewDoc?.kind === "file" ? previewDoc?.fileName : (previewDoc?.linkLabel || previewDoc?.linkUrl)}
+      styles={{ body: { padding: 0 } }}
+      closeIcon={<X size={16} />}
+    >
+      {previewDoc && (
+        (() => {
+          const url = previewDoc.kind === "file" ? previewDoc.fileUrl : previewDoc.linkUrl;
+          const info = getDocPreview(url);
+          if (!info) return <div style={{ padding: 24, textAlign: 'center' }}>No preview available.</div>;
+          
+          if (info.kind === "image") {
+            return (
+              <div style={{ padding: 24, textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={info.src} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="Preview" />
+              </div>
+            );
+          }
+          return (
+            <iframe
+              src={info.src}
+              style={{ width: "100%", height: "100%", border: "none" }}
+              title="Preview"
+            />
+          );
+        })()
+      )}
+    </Drawer>
+    </>
   );
 }
 

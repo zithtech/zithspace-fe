@@ -42,6 +42,8 @@ import {
   LayoutGrid,
   Eye,
   Download,
+  Image as ImageIcon,
+  FileType2,
 } from "lucide-react";
 import dayjs from "dayjs";
 import {
@@ -2257,7 +2259,28 @@ function RepeaterSection<T>({
 function AttachmentViewerCard({ a, c, onView, onDownload }: any) {
   const [hover, setHover] = useState(false);
   const isFile = a.kind === "file";
-  const name = isFile ? a.fileName : (a.linkLabel || a.linkUrl);
+  const isImage = !!a.mimeType?.startsWith("image/");
+  const isPdf = a.mimeType === "application/pdf";
+  const Icon = !isFile
+    ? Link2
+    : isImage
+      ? ImageIcon
+      : isPdf
+        ? FileType2
+        : FileText;
+
+  const name = isFile ? a.fileName || "File" : a.linkLabel || a.linkUrl || "Link";
+  const sub = isFile
+    ? a.mimeType || "file"
+    : a.linkUrl
+      ? (() => {
+          try {
+            return new URL(a.linkUrl).hostname.replace(/^www\./, "");
+          } catch {
+            return "";
+          }
+        })()
+      : "";
 
   return (
     <div
@@ -2265,36 +2288,78 @@ function AttachmentViewerCard({ a, c, onView, onDownload }: any) {
       onMouseLeave={() => setHover(false)}
       style={{
         position: 'relative',
-        display: 'inline-flex',
+        display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '5px 11px',
-        background: c.surfaceMuted,
-        border: `1px solid ${c.border}`,
-        borderRadius: 8,
-        color: c.accentText,
-        fontSize: 12.5,
-        fontWeight: 500,
-        maxWidth: 280,
-        height: 32,
+        gap: 10,
+        padding: '8px 12px',
+        background: hover ? c.surfaceElevated : c.surfaceMuted,
+        border: `1px solid ${hover ? c.borderStrong : c.border}`,
+        borderRadius: 10,
+        textAlign: 'left',
+        cursor: 'pointer',
+        width: '100%',
+        transition: 'background 120ms ease, border-color 120ms ease',
+        textDecoration: 'none',
+        color: 'inherit',
+        boxSizing: 'border-box',
         overflow: 'hidden',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: hover ? 0 : 1, transition: 'opacity 0.2s', width: '100%' }}>
-        {isFile ? <FileText size={12} /> : <Link2 size={12} />}
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {name}
-        </span>
+      <div
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 7,
+          background: isFile ? c.accentBg : c.purpleBg,
+          border: `1px solid ${isFile ? c.accentBorder : c.purpleBorder}`,
+          color: isFile ? c.accentText : c.purpleText,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={13} />
       </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div
+          style={{
+            fontSize: 12.5,
+            fontWeight: 600,
+            color: c.text,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {name}
+        </div>
+        <div
+          style={{
+            marginTop: 1,
+            fontSize: 10.5,
+            color: c.textSubtle,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontWeight: 500,
+          }}
+        >
+          {sub}
+        </div>
+      </div>
+      <ExternalLink size={12} color={c.textFaint} />
 
       {hover && (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)' }}>
-          <div role="button" onClick={(e) => { e.stopPropagation(); onView(); }} style={{ width: 24, height: 24, border: '1px solid rgba(255,255,255,0.4)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(2px)' }}>
+          <div role="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onView(); }} style={{ width: 28, height: 28, border: `1px solid ${c.borderStrong}`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.text, cursor: 'pointer', background: c.surfaceElevated, transition: 'background 0.2s', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }} onMouseEnter={(e) => (e.currentTarget.style.background = c.surfaceMuted)} onMouseLeave={(e) => (e.currentTarget.style.background = c.surfaceElevated)}>
             <Eye size={13} />
           </div>
-          <div role="button" onClick={(e) => { e.stopPropagation(); onDownload(); }} style={{ width: 24, height: 24, border: '1px solid rgba(255,255,255,0.4)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-            <Download size={13} />
-          </div>
+          {onDownload && (
+            <div role="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDownload(); }} style={{ width: 28, height: 28, border: `1px solid ${c.borderStrong}`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.text, cursor: 'pointer', background: c.surfaceElevated, transition: 'background 0.2s', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }} onMouseEnter={(e) => (e.currentTarget.style.background = c.surfaceMuted)} onMouseLeave={(e) => (e.currentTarget.style.background = c.surfaceElevated)}>
+              <Download size={13} />
+            </div>
+          )}
         </div>
       )}
     </div>

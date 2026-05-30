@@ -86,7 +86,7 @@ class DocumentHubService {
     } catch (error: any) {
       console.error("Error creating document hub:", error);
       const errorMessage =
-        error.response?.data?.error || "Failed to create document hub";
+        error.message || error.response?.data?.error || "Failed to create document hub";
       throw new Error(errorMessage);
     }
   }
@@ -114,7 +114,7 @@ class DocumentHubService {
     } catch (error: any) {
       console.error("Error generating AI document draft:", error);
       const errorMessage =
-        error.response?.data?.error || "Failed to generate document draft";
+        error.message || error.response?.data?.error || "Failed to generate document draft";
       throw new Error(errorMessage);
     }
   }
@@ -141,7 +141,7 @@ class DocumentHubService {
     } catch (error: any) {
       console.error("Error rewriting AI selection:", error);
       const errorMessage =
-        error.response?.data?.error || "Failed to rewrite selection";
+        error.message || error.response?.data?.error || "Failed to rewrite selection";
       throw new Error(errorMessage);
     }
   }
@@ -203,7 +203,7 @@ class DocumentHubService {
     } catch (error: any) {
       console.error("Error fetching document hub:", error);
       const errorMessage =
-        error.response?.data?.error || "Failed to fetch document hub";
+        error.message || error.response?.data?.error || "Failed to fetch document hub";
       throw new Error(errorMessage);
     }
   }
@@ -218,7 +218,7 @@ class DocumentHubService {
     } catch (error: any) {
       console.error("Error updating document hub:", error);
       const errorMessage =
-        error.response?.data?.error || "Failed to update document hub";
+        error.message || error.response?.data?.error || "Failed to update document hub";
       throw new Error(errorMessage);
     }
   }
@@ -323,7 +323,7 @@ class DocumentHubService {
     } catch (error: any) {
       console.error("Error deleting tree node:", error);
       const errorMessage =
-        error.response?.data?.error || "Failed to delete tree node";
+        error.message || error.response?.data?.error || "Failed to delete tree node";
       throw new Error(errorMessage);
     }
   }
@@ -373,7 +373,7 @@ class DocumentHubService {
       await apiClient.post(`/api/documenthub/node/${id}/restore`, data);
     } catch (error: any) {
       console.error("Error restoring tree node:", error);
-      const errorMessage = error.response?.data?.error || "Failed to restore folder/section";
+      const errorMessage = error.message || error.response?.data?.error || "Failed to restore folder/section";
       throw new Error(errorMessage);
     }
   }

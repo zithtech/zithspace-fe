@@ -10,6 +10,7 @@ import {
     RiseOutlined,
 } from '@ant-design/icons';
 import { DocumentHub } from '@/services/documentHub';
+import { useTheme } from '@/context/ThemeContext';
 
 interface DocumentHubDashboardProps {
     documentHubs: DocumentHub[];
@@ -25,6 +26,8 @@ const WeekRing: React.FC<{
     color: string;
     trend: number[];
 }> = ({ title, weekCount, total, color, trend }) => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const size = 44;
     const stroke = 4;
     const r = (size - stroke) / 2;
@@ -52,7 +55,11 @@ const WeekRing: React.FC<{
             <div className="flex items-center justify-between gap-3 mb-2">
                 <span
                     className="font-semibold uppercase"
-                    style={{ fontSize: 9.5, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.62)' }}
+                    style={{
+                        fontSize: 9.5,
+                        letterSpacing: '0.08em',
+                        color: isDark ? 'rgba(255,255,255,0.62)' : 'var(--text-slate-400, #94a3b8)',
+                    }}
                 >
                     {title}
                 </span>
@@ -73,7 +80,7 @@ const WeekRing: React.FC<{
                                 style={{
                                     width: '100%',
                                     height: h,
-                                    background: v === 0 ? 'rgba(255,255,255,0.10)' : color,
+                                    background: v === 0 ? (isDark ? 'rgba(255,255,255,0.10)' : 'rgba(15, 23, 42, 0.08)') : color,
                                     opacity: v === 0 ? 1 : isPeak ? 1 : 0.55,
                                     borderRadius: 2,
                                 }}
@@ -89,7 +96,7 @@ const WeekRing: React.FC<{
                         className="flex-1 text-center font-semibold"
                         style={{
                             fontSize: 9,
-                            color: i === peakIdx ? color : 'rgba(255,255,255,0.45)',
+                            color: i === peakIdx ? color : (isDark ? 'rgba(255,255,255,0.45)' : 'var(--text-slate-400, #94a3b8)'),
                         }}
                     >
                         {d}
@@ -98,7 +105,10 @@ const WeekRing: React.FC<{
             </div>
             <div
                 className="mt-2 text-center font-medium"
-                style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.78)' }}
+                style={{
+                    fontSize: 10.5,
+                    color: isDark ? 'rgba(255,255,255,0.78)' : 'var(--text-slate-600, #475569)',
+                }}
             >
                 {weekCount === 0 ? (
                     summary
@@ -112,10 +122,13 @@ const WeekRing: React.FC<{
             </div>
             <div
                 className="flex items-center justify-between mt-2 pt-2"
-                style={{ borderTop: '1px solid rgba(255,255,255,0.10)', fontSize: 10.5 }}
+                style={{
+                    borderTop: isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid var(--border-slate-200, #e2e8f0)',
+                    fontSize: 10.5,
+                }}
             >
-                <span style={{ color: 'rgba(255,255,255,0.62)' }}>Total</span>
-                <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.92)' }}>
+                <span style={{ color: isDark ? 'rgba(255,255,255,0.62)' : 'var(--text-slate-500, #64748b)' }}>Total</span>
+                <span className="font-semibold" style={{ color: isDark ? 'rgba(255,255,255,0.92)' : 'var(--text-slate-800, #1e293b)' }}>
                     {total.toLocaleString()}
                     {total > 0 && (
                         <span style={{ color, marginLeft: 6 }}>
@@ -133,11 +146,13 @@ const WeekRing: React.FC<{
             placement="bottom"
             mouseEnterDelay={0.15}
             overlayInnerStyle={{
-                background: 'rgba(15, 23, 42, 0.96)',
+                background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
                 backdropFilter: 'blur(8px)',
                 borderRadius: 10,
                 padding: '10px 12px',
-                boxShadow: '0 10px 32px rgba(15,23,42,0.28), 0 0 0 1px rgba(255,255,255,0.06)',
+                boxShadow: isDark
+                    ? '0 10px 32px rgba(15,23,42,0.28), 0 0 0 1px rgba(255,255,255,0.06)'
+                    : '0 10px 32px rgba(15,23,42,0.12), 0 0 0 1px rgba(15,23,42,0.08)',
             }}
         >
             <div className="relative cursor-default" style={{ width: size, height: size }}>

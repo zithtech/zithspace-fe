@@ -22,6 +22,18 @@ function LoginInner() {
     }
   }, [loading, user, router, redirect]);
 
+  // Prefill identifier (username/email) and password if passed in the URL parameters
+  useEffect(() => {
+    const identifierParam = params.get("username") || params.get("email") || params.get("identifier");
+    const passwordParam = params.get("password");
+    if (identifierParam || passwordParam) {
+      form.setFieldsValue({
+        identifier: identifierParam || "",
+        password: passwordParam || "",
+      });
+    }
+  }, [params, form]);
+
   const onSubmit = async (values: { identifier: string; password: string }) => {
     setSubmitting(true);
     setError("");

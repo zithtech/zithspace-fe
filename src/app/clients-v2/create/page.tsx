@@ -286,6 +286,20 @@ function CreateClientV2Content() {
   const filledFields = sectionStats.reduce((sum, s) => sum + s.filled, 0);
   const overallProgress = Math.round((filledFields / totalFields) * 100);
 
+  const getGstLabel = () => {
+    const normCountry = allValues?.country ? String(allValues.country).trim().toLowerCase() : "";
+    if (normCountry === "india" || normCountry === "in") return "GSTIN";
+    if (normCountry === "us" || normCountry === "usa" || normCountry === "united states" || normCountry === "united states of america") return "Tax ID (EIN/SSN)";
+    return "GST / VAT / Tax ID";
+  };
+
+  const getPanLabel = () => {
+    const normCountry = allValues?.country ? String(allValues.country).trim().toLowerCase() : "";
+    if (normCountry === "india" || normCountry === "in") return "PAN";
+    if (normCountry === "us" || normCountry === "usa" || normCountry === "united states" || normCountry === "united states of america") return "Tax ID / EIN";
+    return "PAN / Tax ID";
+  };
+
   /* ---------------------- Render ---------------------- */
   return (
     <MainLayout>
@@ -482,6 +496,28 @@ function CreateClientV2Content() {
                   <Form.Item
                     name="yearOfIncorporation"
                     label={<FieldLabel icon={Calendar} text="Year of Incorporation" />}
+                    rules={[
+                      {
+                        validator(_, value) {
+                          if (value === undefined || value === null || value === "") {
+                            return Promise.resolve();
+                          }
+                          const valStr = String(value).trim();
+                          if (valStr === "") return Promise.resolve();
+
+                          if (!/^\d{4}$/.test(valStr)) {
+                            return Promise.reject(new Error("Year must be a valid 4-digit number."));
+                          }
+
+                          const yearNum = Number(valStr);
+                          const currentYear = new Date().getFullYear();
+                          if (yearNum < 1800 || yearNum > currentYear) {
+                            return Promise.reject(new Error(`Year must be between 1800 and ${currentYear}.`));
+                          }
+                          return Promise.resolve();
+                        }
+                      }
+                    ]}
                   >
                     <Input placeholder="YYYY" type="number" size="large" />
                   </Form.Item>
@@ -528,7 +564,50 @@ function CreateClientV2Content() {
                 <div className="cc-grid">
                   <Form.Item
                     name="gstVatTaxId"
-                    label={<FieldLabel icon={Hash} text="GST / VAT / Tax ID" />}
+                    label={<FieldLabel icon={Hash} text={getGstLabel()} />}
+                    dependencies={["country"]}
+                    rules={[
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (!value || value.trim() === "") {
+                            return Promise.resolve();
+                          }
+                          const country = getFieldValue("country");
+                          const val = value.trim();
+                          const normCountry = country ? country.trim().toLowerCase() : "";
+                          const isIndia = normCountry === "india" || normCountry === "in";
+                          const isUS = normCountry === "us" || normCountry === "usa" || normCountry === "united states" || normCountry === "united states of america";
+
+                          const indiaRegex = /^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[1-9A-Za-z]{1}[Zz][0-9A-Za-z]{1}$/;
+                          const usEinRegex = /^\d{2}-\d{7}$/;
+                          const usSsnRegex = /^\d{3}-\d{2}-\d{4}$/;
+                          const usPlainRegex = /^\d{9}$/;
+
+                          if (isIndia) {
+                            if (!indiaRegex.test(val)) {
+                              return Promise.reject(
+                                new Error("Invalid Indian GSTIN format (e.g. 22AAAAA0000A1Z1).")
+                              );
+                            }
+                          } else if (isUS) {
+                            if (!usEinRegex.test(val) && !usSsnRegex.test(val) && !usPlainRegex.test(val)) {
+                              return Promise.reject(
+                                new Error("Invalid US Tax ID format. Use EIN (XX-XXXXXXX) or SSN (XXX-XX-XXXX).")
+                              );
+                            }
+                          } else {
+                            const matchesIndia = indiaRegex.test(val);
+                            const matchesUS = usEinRegex.test(val) || usSsnRegex.test(val) || usPlainRegex.test(val);
+                            if (!matchesIndia && !matchesUS) {
+                              return Promise.reject(
+                                new Error("Must match Indian GSTIN or US Tax ID format.")
+                              );
+                            }
+                          }
+                          return Promise.resolve();
+                        },
+                      }),
+                    ]}
                   >
                     <Input placeholder="Tax identification number" size="large" />
                   </Form.Item>
@@ -538,7 +617,53 @@ function CreateClientV2Content() {
                   >
                     <Input placeholder="Company registration no." size="large" />
                   </Form.Item>
-                  <Form.Item name="pan" label={<FieldLabel text="PAN (India)" />}>
+                  <Form.Item
+                    name="pan"
+                    label={<FieldLabel text={getPanLabel()} />}
+                    dependencies={["country"]}
+                    rules={[
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (!value || value.trim() === "") {
+                            return Promise.resolve();
+                          }
+                          const country = getFieldValue("country");
+                          const val = value.trim();
+                          const normCountry = country ? country.trim().toLowerCase() : "";
+                          const isIndia = normCountry === "india" || normCountry === "in";
+                          const isUS = normCountry === "us" || normCountry === "usa" || normCountry === "united states" || normCountry === "united states of america";
+
+                          const indiaPanRegex = /^[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}$/;
+                          const usEinRegex = /^\d{2}-\d{7}$/;
+                          const usSsnRegex = /^\d{3}-\d{2}-\d{4}$/;
+                          const usPlainRegex = /^\d{9}$/;
+
+                          if (isIndia) {
+                            if (!indiaPanRegex.test(val)) {
+                              return Promise.reject(
+                                new Error("Invalid Indian PAN format (e.g. ABCDE1234F).")
+                              );
+                            }
+                          } else if (isUS) {
+                            if (!usEinRegex.test(val) && !usSsnRegex.test(val) && !usPlainRegex.test(val)) {
+                              return Promise.reject(
+                                new Error("Invalid US Tax ID format. Use EIN (XX-XXXXXXX) or SSN (XXX-XX-XXXX).")
+                              );
+                            }
+                          } else {
+                            const matchesIndia = indiaPanRegex.test(val);
+                            const matchesUS = usEinRegex.test(val) || usSsnRegex.test(val) || usPlainRegex.test(val);
+                            if (!matchesIndia && !matchesUS) {
+                              return Promise.reject(
+                                new Error("Must match Indian PAN or US Tax ID format.")
+                              );
+                            }
+                          }
+                          return Promise.resolve();
+                        },
+                      }),
+                    ]}
+                  >
                     <Input placeholder="ABCDE1234F" size="large" />
                   </Form.Item>
                   <Form.Item

@@ -23,6 +23,7 @@ import {
   Avatar,
   Badge,
   Skeleton,
+  Segmented,
 } from "antd";
 import {
   PlusOutlined,
@@ -246,6 +247,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
     Form.useWatch("role", form) || selectedMember?.role || "user";
   const workEmail = Form.useWatch("workEmail", form);
   const personalEmail = Form.useWatch("personalEmail", form);
+  const positionType = Form.useWatch("positionType", form) || "grade";
 
   const ROLE_OPTIONS = [
     {
@@ -444,6 +446,21 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             </Select>
           </Form.Item>
 
+          <Form.Item
+            name="positionType"
+            label="Position Specification"
+            initialValue="grade"
+            style={{ marginBottom: 16 }}
+          >
+            <Segmented
+              options={[
+                { label: "Grade-based Position", value: "grade" },
+                { label: "Custom Title", value: "custom" },
+              ]}
+              block
+            />
+          </Form.Item>
+
           <div
             style={{
               display: "grid",
@@ -451,24 +468,34 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               gap: 14,
             }}
           >
-            <Form.Item
-              name="position"
-              label="Position"
-              rules={[{ required: true, message: "Please select position" }]}
-            >
-              <Select
-                placeholder="Select position"
-                loading={positionsLoading}
-                showSearch
-                optionFilterProp="children"
+            {positionType === "grade" ? (
+              <Form.Item
+                name="position"
+                label="Position"
+                rules={[{ required: true, message: "Please select position" }]}
               >
-                {positions.map((position) => (
-                  <Option key={position.id} value={position.id}>
-                    {position.title}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
+                <Select
+                  placeholder="Select position"
+                  loading={positionsLoading}
+                  showSearch
+                  optionFilterProp="children"
+                >
+                  {positions.map((position) => (
+                    <Option key={position.id} value={position.id}>
+                      {position.title}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            ) : (
+              <Form.Item
+                name="positionTitle"
+                label="Position Title"
+                rules={[{ required: true, message: "Please enter position title" }]}
+              >
+                <Input placeholder="e.g. Senior Software Architect" />
+              </Form.Item>
+            )}
 
             <Form.Item name="reportsTo" label="Reports to">
               <Select
@@ -822,6 +849,8 @@ export default function MembersPage() {
       setFormLoading(true);
       setError("");
 
+      const isCustom = values.positionType === "custom";
+
       if (modalType === "edit" && selectedMember) {
         const updatePayload: UpdateMemberData = {
           name: values.name,
@@ -829,7 +858,8 @@ export default function MembersPage() {
           personalEmail: values.personalEmail,
           workEmail: values.workEmail,
           role: values.role,
-          positionId: values.position,
+          positionId: isCustom ? undefined : values.position,
+          positionTitle: isCustom ? values.positionTitle : undefined,
           reportsToId: values.reportsTo || null,
           isActive: values.isActive !== undefined ? values.isActive : true,
           workDays: values.workDays || [1, 2, 3, 4, 5],
@@ -844,7 +874,8 @@ export default function MembersPage() {
           personalEmail: values.personalEmail,
           workEmail: values.workEmail,
           role: values.role,
-          positionId: values.position,
+          positionId: isCustom ? undefined : values.position,
+          positionTitle: isCustom ? values.positionTitle : undefined,
           password: "temp123",
           reportsToId: values.reportsTo || null,
           workDays: values.workDays || [1, 2, 3, 4, 5],
@@ -899,6 +930,7 @@ export default function MembersPage() {
     form.resetFields();
     form.setFieldsValue({
       sendEmailTo: "work",
+      positionType: "grade",
     });
     setSelectedMember(null);
     setIsModalVisible(true);
@@ -913,7 +945,9 @@ export default function MembersPage() {
       personalEmail: member?.personalEmail,
       workEmail: member?.workEmail,
       role: member?.role,
+      positionType: "grade",
       position: member?.position?.id,
+      positionTitle: member?.position?.title || "",
       reportsTo:
         typeof member.reportsTo === "object"
           ? member?.reportsTo?.id

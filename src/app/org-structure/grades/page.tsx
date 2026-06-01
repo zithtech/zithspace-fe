@@ -152,7 +152,7 @@ export default function GradesPage() {
         name: formValues.name,
         code: formValues.code,
         codes: formValues.codes,
-        levelOrder: formValues.levelOrder,
+        levelOrder: formValues.levelOrder ?? (editingKey ? (dataSource.find((g) => g.key === editingKey)?.levelOrder ?? 999) : (dataSource.length + 1)),
         description: formValues.description,
         isActive: !!formValues.status,
       };
@@ -206,6 +206,7 @@ export default function GradesPage() {
         </div>
       ),
     },
+    /*
     {
       title: "Hierarchy Level",
       dataIndex: "levelOrder",
@@ -219,6 +220,7 @@ export default function GradesPage() {
         </span>
       ),
     },
+    */
     {
       title: "Description",
       dataIndex: "description",
@@ -338,6 +340,7 @@ export default function GradesPage() {
                 subtle="Retired or paused"
                 loading={loading && totalGrades === 0}
               />
+              {/*
               <OrgStatCard
                 label="Top Tier"
                 value={`L${maxLevel}`}
@@ -346,6 +349,7 @@ export default function GradesPage() {
                 subtle="Highest level reached"
                 loading={loading && totalGrades === 0}
               />
+              */}
             </div>
 
             {/* Panel */}
@@ -467,6 +471,7 @@ export default function GradesPage() {
                   </Row>
                 </div>
 
+                {/*
                 <div className="orgx-section">
                   <div className="orgx-section__title">
                     <Hash size={11} /> Hierarchy
@@ -480,6 +485,7 @@ export default function GradesPage() {
                     <InputNumber min={1} placeholder="1" />
                   </Form.Item>
                 </div>
+                */}
 
                 <div className="orgx-section">
                   <div className="orgx-section__title">

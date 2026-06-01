@@ -102,6 +102,9 @@ export default function AttachmentPreviewDrawer({
     ? `${attachment.mimeType || "file"} · ${fmtBytes(attachment.fileSizeBytes)}`
     : attachment.linkUrl || "";
   const url = isFile ? attachment.fileUrl : attachment.linkUrl;
+  const iframeSrc = (isFile && isPdf(attachment.mimeType) && url)
+    ? `/api/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(attachment.fileName || '')}&inline=true`
+    : url || "";
 
   const HeaderIcon = isFile
     ? isImage(attachment.mimeType)
@@ -310,7 +313,7 @@ export default function AttachmentPreviewDrawer({
               </div>
             )}
             <iframe
-              src={url}
+              src={iframeSrc}
               onLoad={() => setIframeLoading(false)}
               style={{
                 width: "100%",

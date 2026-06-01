@@ -17,14 +17,18 @@ import {
     Trash,
     ArrowLeft,
     BookOpen,
-    Circle
+    Circle,
+    Info,
+    User,
+    Ticket,
+    CalendarDays
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import DocumentEditor, { ViewMode } from '@/components/common/DocumentEditor'
 import MainLayout from '@/components/layout/MainLayout'
 import { useDocumentHub, globalDataKeys } from '@/hooks/useGlobalData'
 import { DocumentTreeNode } from '@/services/documentHub'
-import { Modal, Form, Input, Dropdown, MenuProps, Button, message, Segmented, Drawer, Tooltip } from 'antd'
+import { Modal, Form, Input, Dropdown, MenuProps, Button, message, Segmented, Drawer, Tooltip, Popover } from 'antd'
 import { documentHubService as DocumentHubService } from '@/services/documentHub'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCreateBlockNote } from "@blocknote/react";
@@ -1731,6 +1735,73 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             />
                                         </Tooltip>
                                     )}
+                                    <Popover
+                                        placement="bottom"
+                                        content={
+                                            <div className="flex flex-col min-w-[240px] p-1">
+                                                <div className="pb-3 mb-3 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border-slate-100)' }}>
+                                                    <Info className="w-4 h-4" style={{ color: 'var(--drawer-icon-text-blue)' }} />
+                                                    <span className="font-semibold text-[13px]" style={{ color: 'var(--text-slate-900)' }}>Hub Details</span>
+                                                </div>
+                                                <div className="flex flex-col gap-3.5">
+                                                    {documentHub?.createdBy?.name && (
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="mt-0.5 p-1.5 rounded-md" style={{ backgroundColor: 'var(--drawer-icon-bg-blue)', color: 'var(--drawer-icon-text-blue)' }}>
+                                                                <User className="w-3.5 h-3.5" />
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: 'var(--text-slate-500)' }}>Created By</span>
+                                                                <span className="text-[13px] font-medium mt-0.5" style={{ color: 'var(--text-slate-900)' }}>{documentHub.createdBy.name}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {documentHub?.ticket && (
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="mt-0.5 p-1.5 rounded-md" style={{ backgroundColor: 'var(--drawer-icon-bg-indigo)', color: 'var(--drawer-icon-text-indigo)' }}>
+                                                                <Ticket className="w-3.5 h-3.5" />
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: 'var(--text-slate-500)' }}>Ticket</span>
+                                                                <span className="text-[13px] font-medium mt-0.5" style={{ color: 'var(--text-slate-900)' }}>{documentHub.ticket.ticketNumber}</span>
+                                                                <span className="text-[12px] leading-snug mt-0.5" style={{ color: 'var(--text-slate-600)' }}>{documentHub.ticket.title}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {documentHub?.project && (
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="mt-0.5 p-1.5 rounded-md" style={{ backgroundColor: 'var(--drawer-icon-bg-emerald)', color: 'var(--drawer-icon-text-emerald)' }}>
+                                                                <Folder className="w-3.5 h-3.5" />
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: 'var(--text-slate-500)' }}>Project</span>
+                                                                <span className="text-[13px] font-medium mt-0.5" style={{ color: 'var(--text-slate-900)' }}>{documentHub.project.name}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {documentHub?.createdAt && (
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="mt-0.5 p-1.5 rounded-md" style={{ backgroundColor: 'var(--bg-slate-50)', color: 'var(--text-slate-500)' }}>
+                                                                <CalendarDays className="w-3.5 h-3.5" />
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: 'var(--text-slate-500)' }}>Date Created</span>
+                                                                <span className="text-[13px] font-medium mt-0.5" style={{ color: 'var(--text-slate-900)' }}>
+                                                                    {new Date(documentHub.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        }
+                                        trigger="hover"
+                                    >
+                                        <Button
+                                            type="text"
+                                            icon={<Info className="w-4 h-4" />}
+                                            style={{ color: 'var(--text-slate-600)' }}
+                                        />
+                                    </Popover>
                                     {canDeleteDocument && (
                                         <Tooltip title={`Delete ${selectedNode?.type || 'item'}`}>
                                             <Button

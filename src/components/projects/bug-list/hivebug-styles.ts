@@ -75,13 +75,47 @@ export const hivebugStyles = `
 .hb-light .hb-row.active { color: #111827; }
 .hb-light .hb-brand-icon { color: #ffffff; }
 .hb-light .hb-btn-primary {
-  background: #111827;
+  background: var(--hb-accent);
   color: #ffffff;
-  border-color: #111827;
+  border-color: var(--hb-accent);
 }
 .hb-light .hb-btn-primary:hover {
-  background: #1f2937;
-  border-color: #1f2937;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.hb-fsm-dark {
+  --hb-accent: #5b9bff;
+  --hb-accent-rgb: 91, 155, 255;
+}
+.hb-fsm-light {
+  --hb-accent: #2563eb;
+  --hb-accent-rgb: 37, 99, 235;
+}
+.hb-btm-dark {
+  --hb-accent: #5b9bff;
+  --hb-accent-rgb: 91, 155, 255;
+}
+.hb-btm-light {
+  --hb-accent: #2563eb;
+  --hb-accent-rgb: 37, 99, 235;
+}
+
+/* Modal and Drawer primary button overrides for light theme */
+.hb-cbd-light .hb-cbd-primary,
+.hb-fsm-light .hb-fsm-primary,
+.hb-aimodal-light .hb-aim-primary,
+.hb-btm-light .hb-btm-primary {
+  background: var(--hb-accent) !important;
+  color: #ffffff !important;
+  border-color: var(--hb-accent) !important;
+}
+.hb-cbd-light .hb-cbd-primary:hover,
+.hb-fsm-light .hb-fsm-primary:hover:not(:disabled),
+.hb-aimodal-light .hb-aim-primary:hover,
+.hb-btm-light .hb-btm-primary:hover:not(:disabled) {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
 }
 
 /* ============ Sidebar ============ */
@@ -1605,6 +1639,8 @@ export const hivebugStyles = `
   --hb-text: #e6e8ee;
   --hb-text-soft: #aab1bd;
   --hb-text-muted: #6f7684;
+  --hb-accent: #5b9bff;
+  --hb-accent-rgb: 91, 155, 255;
   --hb-success: #3fbf8f;
   --hb-warning: #f59f3b;
   --hb-danger: #ff5a4e;
@@ -1620,6 +1656,8 @@ export const hivebugStyles = `
   --hb-text: #111827;
   --hb-text-soft: #4b5563;
   --hb-text-muted: #9ca3af;
+  --hb-accent: #2563eb;
+  --hb-accent-rgb: 37, 99, 235;
   --hb-success: #16a34a;
   --hb-warning: #d97706;
   --hb-danger: #dc2626;
@@ -2102,6 +2140,8 @@ export const hivebugStyles = `
   --hb-text: #e6e8ee;
   --hb-text-soft: #aab1bd;
   --hb-text-muted: #6f7684;
+  --hb-accent: #5b9bff;
+  --hb-accent-rgb: 91, 155, 255;
   --hb-success: #3fbf8f;
   --hb-warning: #f59f3b;
   --hb-danger: #ff5a4e;
@@ -2120,6 +2160,8 @@ export const hivebugStyles = `
   --hb-text: #111827;
   --hb-text-soft: #4b5563;
   --hb-text-muted: #9ca3af;
+  --hb-accent: #2563eb;
+  --hb-accent-rgb: 37, 99, 235;
   --hb-success: #16a34a;
   --hb-warning: #d97706;
   --hb-danger: #dc2626;

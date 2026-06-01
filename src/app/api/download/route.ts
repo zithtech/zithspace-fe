@@ -16,8 +16,20 @@ export async function GET(request: Request) {
     }
 
     const headers = new Headers(res.headers);
-    // Force the browser to download the file by setting Content-Disposition
-    headers.set('Content-Disposition', `attachment; filename="${fileName}"`);
+    const inline = searchParams.get('inline') === 'true';
+
+    if (inline) {
+      headers.set('Content-Disposition', 'inline');
+      const contentType = headers.get('Content-Type') || '';
+      if (contentType.includes('octet-stream') || !contentType) {
+        if (fileUrl.toLowerCase().endsWith('.pdf') || fileName.toLowerCase().endsWith('.pdf')) {
+          headers.set('Content-Type', 'application/pdf');
+        }
+      }
+    } else {
+      // Force the browser to download the file by setting Content-Disposition
+      headers.set('Content-Disposition', `attachment; filename="${fileName}"`);
+    }
     
     return new NextResponse(res.body, {
       status: 200,

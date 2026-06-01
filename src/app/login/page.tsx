@@ -47,6 +47,18 @@ function LoginFormWithParams() {
     }
   }, [user, router, redirectUrl]);
 
+  // Prefill email and password if passed in the URL parameters
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    const passwordParam = searchParams.get('password');
+    if (emailParam || passwordParam) {
+      form.setFieldsValue({
+        email: emailParam || '',
+        password: passwordParam || '',
+      });
+    }
+  }, [searchParams, form]);
+
   const handleSubmit = async (values: LoginFormData) => {
     try {
       setLoading(true);

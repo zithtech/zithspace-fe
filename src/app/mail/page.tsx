@@ -430,29 +430,42 @@ export default function MailPage() {
   };
 
   const previewAttachment = async (att: any) => {
+    const fileName = att.fileName || "";
+    const ext = fileName.split(".").pop()?.toLowerCase() || "";
+
     const isPdf =
       att.mimeType === "application/pdf" ||
       att.contentType === "application/pdf" ||
-      att.fileName?.toLowerCase().endsWith(".pdf");
+      ext === "pdf";
+
+    const isImage =
+      att.mimeType?.startsWith("image/") ||
+      att.contentType?.startsWith("image/") ||
+      ["png", "jpg", "jpeg", "gif", "webp"].includes(ext);
 
     try {
       // Use backend proxy with authenticated apiClient to fetch blob
       const proxyUrl = `/api/mail/attachments/download?url=${encodeURIComponent(att.downloadUrl)}&filename=${encodeURIComponent(att.fileName)}&mode=inline&attachmentId=${encodeURIComponent(att.id)}`;
       const response = await apiClient.get(proxyUrl, { responseType: 'blob' });
 
-      const blob = new Blob([response.data], {
-        type: isPdf
-          ? "application/pdf"
-          : att.mimeType || att.contentType || "application/octet-stream",
-      });
+      // Determine Content Type from response headers or fall back to mimeType or inference
+      const responseType = response.headers?.['content-type'] || response.headers?.['Content-Type'];
+      let resolvedType = responseType || att.mimeType || att.contentType || "application/octet-stream";
+
+      if (resolvedType === "application/octet-stream" || !resolvedType) {
+        if (isPdf) resolvedType = "application/pdf";
+        else if (isImage) {
+          resolvedType = `image/${ext === "jpg" ? "jpeg" : ext}`;
+        }
+      }
+
+      const blob = new Blob([response.data], { type: resolvedType });
       const blobUrl = URL.createObjectURL(blob);
 
       setInlinePreview({
         url: blobUrl,
         name: att.fileName,
-        type: isPdf
-          ? "application/pdf"
-          : att.mimeType || att.contentType || "",
+        type: resolvedType,
       });
     } catch (error) {
       console.error("Failed to preview attachment:", error);
@@ -992,6 +1005,8 @@ export default function MailPage() {
           border: 1px solid ${PALETTE.slate200};
           border-radius: 8px;
           width: 280px;
+          max-width: 100%;
+          box-sizing: border-box;
           transition: border-color 0.15s;
         }
         .attach-card:hover {
@@ -1454,15 +1469,24 @@ export default function MailPage() {
         open={drawerVisible}
         title={
           inlinePreview ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", overflow: "hidden" }}>
               <button
                 className="mail-icon-btn"
-                style={{ width: 32, height: 32 }}
+                style={{ width: 32, height: 32, flexShrink: 0 }}
                 onClick={() => setInlinePreview(null)}
               >
                 <ArrowLeft size={14} />
               </button>
-              <span style={{ fontSize: 14, fontWeight: 600, color: PALETTE.slate900 }}>
+              <span style={{ 
+                fontSize: 14, 
+                fontWeight: 600, 
+                color: PALETTE.slate900,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                flex: 1,
+                minWidth: 0
+              }}>
                 {inlinePreview.name}
               </span>
             </div>
@@ -1781,7 +1805,7 @@ export default function MailPage() {
                                 <Tooltip title="Preview">
                                   <button
                                     className="mail-icon-btn"
-                                    style={{ width: 24, height: 24 }}
+                                    style={{ width: 24, height: 24, flexShrink: 0 }}
                                     onClick={() => previewAttachment(att)}
                                   >
                                     <Eye size={12} />
@@ -1790,7 +1814,7 @@ export default function MailPage() {
                                 <Tooltip title="Download">
                                   <button
                                     className="mail-icon-btn"
-                                    style={{ width: 24, height: 24 }}
+                                    style={{ width: 24, height: 24, flexShrink: 0 }}
                                     onClick={() => downloadAttachment(att)}
                                   >
                                     <Download size={12} />
@@ -2247,6 +2271,24 @@ export default function MailPage() {
                     reader.readAsDataURL(file);
                   } catch (err) {
                     onError(err);
+                  }
+                }}
+                onPreview={async (file) => {
+                  let src = file.url;
+                  if (!src && file.response && file.response.data && file.response.data.url) {
+                    src = file.response.data.url;
+                  }
+                  if (!src && file.originFileObj) {
+                    src = URL.createObjectURL(file.originFileObj);
+                  }
+                  if (src) {
+                    const isPdf = file.name?.toLowerCase().endsWith(".pdf");
+                    const isImage = /\.(png|jpe?g|gif|webp)$/i.test(file.name || "");
+                    setInlinePreview({
+                      url: src,
+                      name: file.name || "Attachment",
+                      type: isPdf ? "application/pdf" : (isImage ? "image/png" : "application/octet-stream"),
+                    });
                   }
                 }}
                 multiple

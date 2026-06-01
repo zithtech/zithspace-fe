@@ -2483,6 +2483,13 @@ export default function LeadsPage() {
               <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }]}>
                 <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 8 }} />
               </Form.Item>
+              <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>}>
+                <TextArea
+                  rows={4}
+                  placeholder="Enter the full job description or client request..."
+                  style={{ borderRadius: 8 }}
+                />
+              </Form.Item>
               <Form.Item
                 name="ai_summary"
                 label={

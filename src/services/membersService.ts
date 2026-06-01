@@ -29,7 +29,8 @@ export interface CreateMemberData {
   workEmail: string;
   personalEmail: string;
   role: string; // Changed from enum to flexible string
-  positionId: string; // Changed to ID
+  positionId?: string; // Optional if positionTitle is used
+  positionTitle?: string; // Custom position title
   phone: string;
   password: string;
   reportsToId?: string | null; // Changed from reportsTo to reportsToId
@@ -46,6 +47,7 @@ export interface UpdateMemberData {
   personalEmail: string;
   role: string; // Changed from enum to flexible string
   positionId?: string; // Changed to ID
+  positionTitle?: string; // Custom position title
   phone: string;
   reportsToId?: string | null; // Changed from reportsTo to reportsToId
   isActive: boolean;

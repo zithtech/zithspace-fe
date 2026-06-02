@@ -48,6 +48,7 @@ import {
 } from "@/types/dailyUpdate";
 import dayjs, { Dayjs } from "dayjs";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -76,6 +77,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function SubmitDailyUpdatePage() {
+  useActivitySource({ section: "WORK", module: "DailyUpdates", page: "DailyUpdatesSubmit" });
   const { user, isLoading: authLoading } = useAuth();
   const { canCreateDailyUpdate } = usePermission();
   const router = useRouter();

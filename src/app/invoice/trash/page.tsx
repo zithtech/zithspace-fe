@@ -50,6 +50,7 @@ import {
   invoiceKeys,
 } from "@/hooks/useInvoices";
 import { useQueryClient } from "@tanstack/react-query";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -112,6 +113,9 @@ export default function InvoiceTrashPage() {
       router.push("/invoice/invoices");
     }
   }, [authLoading, canReadInvoiceTrash, router]);
+
+  // Register UX context for activity logging
+  useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceTrashView" });
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);

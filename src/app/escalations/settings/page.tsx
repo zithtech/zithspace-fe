@@ -51,6 +51,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import { EscalationSettingsService } from '@/services/escalationSettings';
 import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
+import { useActivitySource } from '@/hooks/useActivitySource';
 
 const { Text } = Typography;
 
@@ -523,6 +524,7 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
 /* -------------------------------------------------------------------------- */
 
 export default function EscalationSettingsPage() {
+  useActivitySource({ section: "WORK", module: "Escalations", page: "EscalationSettings" });
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const { canManageEscalations } = usePermission();

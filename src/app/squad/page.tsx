@@ -41,6 +41,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { usePermission } from '@/hooks/usePermission';
+import { useActivitySource } from '@/hooks/useActivitySource';
 
 const { Text } = Typography;
 
@@ -132,6 +133,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
 /* -------------------------------------------------------------------------- */
 
 export default function SquadManagement() {
+  useActivitySource({ section: "WORK", module: "Squad", page: "SquadView" });
   const { user, isLoading: authLoading } = useAuth();
   const { canReadSquad, canCreateSquad, canUpdateSquad } = usePermission();
   const [loading, setLoading] = useState(false);

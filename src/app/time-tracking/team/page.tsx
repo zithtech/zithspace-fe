@@ -14,8 +14,10 @@ import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { Result } from "antd";
 import { useRouter } from "next/navigation";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 export default function TeamTimePage() {
+  useActivitySource({ section: "WORK", module: "TimeTracking", page: "TimeTrackingTeam" });
   const { setPopoverOpen } = useTimeTrackerStore();
   const [isManageModalOpen, setIsManageModalOpen] = React.useState(false);
   const [refreshKey, setRefreshKey] = React.useState(0);

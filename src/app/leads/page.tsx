@@ -114,6 +114,7 @@ import {
 import { useRouter } from "next/navigation";
 import { MailService } from "@/services/mailService";
 import { api, apiClient } from "@/lib/axios";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
   const { name, ...restField } = field;
@@ -308,6 +309,7 @@ const DEFAULT_HIDDEN_COLS: Record<string, boolean> = {
 };
 
 export default function LeadsPage() {
+  useActivitySource({ section: "WORK", module: "Leads", page: "LeadsList" });
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const { 

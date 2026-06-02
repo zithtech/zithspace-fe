@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   Select,
   DatePicker,
@@ -13,6 +13,7 @@ import {
   Tooltip,
   Skeleton,
   Pagination,
+  Popover,
 } from "antd";
 import {
   History,
@@ -20,6 +21,8 @@ import {
   Search,
   X as XIcon,
   ChevronRight,
+  ChevronDown,
+  Check,
   Compass,
   Boxes,
   FileText,
@@ -206,11 +209,164 @@ function OptionRow({
   );
 }
 
-const DROPDOWN_PROPS = {
-  popupMatchSelectWidth: false,
-  dropdownStyle: { minWidth: 280 },
-  popupClassName: "ax-dropdown",
-} as const;
+interface DropdownOption {
+  value: string;
+  label: string;
+  description?: string;
+  badge?: string | React.ReactNode;
+}
+
+interface CustomFilterDropdownProps {
+  label: string;
+  value?: string;
+  placeholder: string;
+  options: DropdownOption[];
+  onSelect: (value?: string) => void;
+  searchPlaceholder?: string;
+  footerText?: string;
+  footerSummary?: string;
+  loading?: boolean;
+}
+
+function CustomFilterDropdown({
+  label,
+  value,
+  placeholder,
+  options,
+  onSelect,
+  searchPlaceholder,
+  footerText,
+  footerSummary,
+  loading,
+}: CustomFilterDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 80);
+    } else {
+      setSearchText("");
+    }
+  }, [open]);
+
+  const filteredOptions = useMemo(() => {
+    if (!searchText.trim()) return options;
+    const q = searchText.toLowerCase();
+    return options.filter(
+      (o) =>
+        o.label.toLowerCase().includes(q) ||
+        o.description?.toLowerCase().includes(q)
+    );
+  }, [options, searchText]);
+
+  const displayValue = useMemo(() => {
+    if (!value) return placeholder;
+    const opt = options.find((o) => o.value === value);
+    return opt ? opt.label : value;
+  }, [value, options, placeholder]);
+
+  const dropdownContent = (
+    <div className="cf-overlay" onClick={(e) => e.stopPropagation()}>
+      <div className="cf-search-box">
+        <Search size={14} className="cf-search-icon" />
+        <input
+          ref={inputRef}
+          className="cf-search-input"
+          type="text"
+          placeholder={searchPlaceholder || "Search..."}
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+      </div>
+      <div className="cf-options-list">
+        {loading ? (
+          <div className="cf-no-options">Loading options...</div>
+        ) : filteredOptions.length === 0 ? (
+          <div className="cf-no-options">No items found</div>
+        ) : (
+          filteredOptions.map((opt) => {
+            const isSelected = value === opt.value;
+            return (
+              <div
+                key={opt.value}
+                className={`cf-option ${isSelected ? "cf-option-selected" : ""}`}
+                onClick={() => {
+                  if (isSelected) {
+                    onSelect(undefined); // Deselect
+                  } else {
+                    onSelect(opt.value);
+                  }
+                  setOpen(false);
+                }}
+              >
+                <div className="cf-option-avatar">
+                  {opt.badge || optInitials(opt.label)}
+                </div>
+                <div className="cf-option-content">
+                  <span className="cf-option-name">{opt.label}</span>
+                  {opt.description && (
+                    <span className="cf-option-desc">{opt.description}</span>
+                  )}
+                </div>
+                {isSelected && (
+                  <Check className="cf-option-check" size={14} strokeWidth={2.5} />
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+      <div className="cf-footer">
+        <span className="cf-footer-count">
+          {filteredOptions.length} {footerSummary || "items"}
+        </span>
+        {footerText && <span className="cf-footer-tip">{footerText}</span>}
+      </div>
+    </div>
+  );
+
+  return (
+    <Popover
+      content={dropdownContent}
+      trigger="click"
+      open={open}
+      onOpenChange={setOpen}
+      placement="bottomLeft"
+      overlayClassName="cf-overlay-popover"
+      destroyTooltipOnHide
+    >
+      <div
+        className={`cf-trigger ${value ? "cf-trigger-active" : ""} ${
+          open ? "cf-trigger-open" : ""
+        }`}
+      >
+        <div className="cf-trigger-content">
+          <span className="cf-trigger-label">{label}</span>
+          <div className="cf-trigger-value-row">
+            <span className="cf-trigger-value">{displayValue}</span>
+          </div>
+        </div>
+        {value ? (
+          <XIcon
+            className="cf-trigger-clear-btn"
+            size={14}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(undefined);
+            }}
+          />
+        ) : (
+          <ChevronDown
+            className={`cf-trigger-chevron ${open ? "cf-trigger-chevron-open" : ""}`}
+            size={14}
+          />
+        )}
+      </div>
+    </Popover>
+  );
+}
 
 export default function ActivityPage() {
   const { canReadActivityLogAll } = usePermission();
@@ -219,6 +375,7 @@ export default function ActivityPage() {
   const [filters, setFilters] = useState<FilterState>({});
   const [pageNum, setPageNum] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [dateOpen, setDateOpen] = useState(false);
 
   // Reset to page 1 whenever filters change
   const filterKey = JSON.stringify(filters);
@@ -242,8 +399,8 @@ export default function ActivityPage() {
       entityType: filters.entityType,
       actorId: filters.actorId,
       search: filters.search,
-      from: filters.range?.[0]?.toISOString(),
-      to: filters.range?.[1]?.toISOString(),
+      from: filters.range?.[0]?.startOf("day")?.toISOString(),
+      to: filters.range?.[1]?.endOf("day")?.toISOString(),
     }),
     [filters]
   );
@@ -440,190 +597,157 @@ export default function ActivityPage() {
           </div>
 
           <div className="ax-filter-grid">
-            <FilterPill icon={<Compass size={13} strokeWidth={1.75} />} active={!!filters.section}>
-              <Select
-                placeholder="Section"
-                value={filters.section}
-                onChange={(section) => setFilters({ section, module: undefined, page: undefined })}
-                allowClear
-                size="small"
-                variant="borderless"
-                {...DROPDOWN_PROPS}
-                options={filterOpts?.sections.map((s) => ({ value: s, label: s })) ?? []}
-                optionRender={(opt) => (
-                  <OptionRow
-                    initials={optInitials(String(opt.value))}
-                    label={String(opt.value)}
-                    code="Section"
-                    sub="Top navbar section"
-                    selected={filters.section === opt.value}
-                  />
-                )}
-              />
-            </FilterPill>
-            <FilterPill icon={<Boxes size={13} strokeWidth={1.75} />} active={!!filters.module}>
-              <Select
-                placeholder="Module"
-                value={filters.module}
-                onChange={(m) => setFilters((p) => ({ ...p, module: m, page: undefined }))}
-                allowClear
-                size="small"
-                variant="borderless"
-                {...DROPDOWN_PROPS}
-                options={
-                  Array.from(new Set(modulesForSection ?? [])).map((m) => ({
+            <CustomFilterDropdown
+              label="Section"
+              value={filters.section}
+              placeholder="All Sections"
+              options={filterOpts?.sections.map((s) => ({
+                value: s,
+                label: s,
+                description: "Top navbar section",
+              })) ?? []}
+              onSelect={(section) => setFilters({ section, module: undefined, page: undefined })}
+              searchPlaceholder="Search sections..."
+              footerText="Switch section to view its modules"
+              footerSummary="sections"
+            />
+
+            <CustomFilterDropdown
+              label="Module"
+              value={filters.module}
+              placeholder="All Modules"
+              options={
+                Array.from(new Set(modulesForSection ?? [])).map((m) => {
+                  const section = sectionOf.get(m);
+                  return {
                     value: m,
                     label: m,
-                  })) ?? []
-                }
-                optionRender={(opt) => {
-                  const section = sectionOf.get(String(opt.value));
-                  return (
-                    <OptionRow
-                      initials={optInitials(String(opt.value))}
-                      label={String(opt.value)}
-                      code={section}
-                      sub={section ? `Module in ${section}` : "Module"}
-                      selected={filters.module === opt.value}
-                    />
-                  );
-                }}
-              />
-            </FilterPill>
-            <FilterPill icon={<FileText size={13} strokeWidth={1.75} />} active={!!filters.page}>
-              <Select
-                placeholder="Page"
-                value={filters.page}
-                onChange={(page) => setFilters((p) => ({ ...p, page }))}
-                allowClear
-                size="small"
-                variant="borderless"
-                {...DROPDOWN_PROPS}
-                options={
-                  Array.from(new Set(pagesForModule ?? [])).map((p) => ({
+                    description: section ? `Module in ${section}` : "Module",
+                  };
+                }) ?? []
+              }
+              onSelect={(m) => setFilters((p) => ({ ...p, module: m, page: undefined }))}
+              searchPlaceholder="Search modules..."
+              footerText="Switch module to view its pages"
+              footerSummary="modules"
+            />
+
+            <CustomFilterDropdown
+              label="Page"
+              value={filters.page}
+              placeholder="All Pages"
+              options={
+                Array.from(new Set(pagesForModule ?? [])).map((p) => {
+                  const mod = moduleOf.get(p);
+                  return {
                     value: p,
                     label: p,
-                  })) ?? []
-                }
-                optionRender={(opt) => {
-                  const mod = moduleOf.get(String(opt.value));
-                  return (
-                    <OptionRow
-                      initials={optInitials(String(opt.value))}
-                      label={String(opt.value)}
-                      code={mod}
-                      sub={mod ? `Page in ${mod}` : "Page"}
-                      selected={filters.page === opt.value}
-                    />
-                  );
-                }}
-              />
-            </FilterPill>
-            <FilterPill icon={<Zap size={13} strokeWidth={1.75} />} active={!!filters.action}>
-              <Select
-                placeholder="Action"
-                value={filters.action}
-                onChange={(action) => setFilters((p) => ({ ...p, action }))}
-                allowClear
-                size="small"
-                variant="borderless"
-                {...DROPDOWN_PROPS}
-                options={filterOpts?.actions.map((a) => ({ value: a, label: a })) ?? []}
-                optionRender={(opt) => {
-                  const raw = String(opt.value);
-                  return (
-                    <OptionRow
-                      initials={optInitials(raw)}
-                      label={humanize(raw)}
-                      code={raw.startsWith("bulk_") ? "bulk" : undefined}
-                      sub={raw}
-                      selected={filters.action === opt.value}
-                    />
-                  );
-                }}
-              />
-            </FilterPill>
-            <FilterPill icon={<TagIcon size={13} strokeWidth={1.75} />} active={!!filters.entityType}>
-              <Select
-                placeholder="Entity"
-                value={filters.entityType}
-                onChange={(entityType) => setFilters((p) => ({ ...p, entityType }))}
-                allowClear
-                size="small"
-                variant="borderless"
-                {...DROPDOWN_PROPS}
-                options={filterOpts?.entityTypes.map((e) => ({ value: e, label: e })) ?? []}
-                optionRender={(opt) => {
-                  const raw = String(opt.value);
-                  return (
-                    <OptionRow
-                      initials={optInitials(raw)}
-                      label={humanize(raw)}
-                      sub={raw}
-                      selected={filters.entityType === opt.value}
-                    />
-                  );
-                }}
-              />
-            </FilterPill>
-            <FilterPill
-              icon={<UserIcon size={13} strokeWidth={1.75} />}
-              active={!!filters.actorId}
-              style={{ minWidth: 200 }}
-            >
-              <Select
-                placeholder="Member"
-                value={filters.actorId}
-                onChange={(actorId) => setFilters((p) => ({ ...p, actorId }))}
-                allowClear
-                showSearch
-                size="small"
-                variant="borderless"
-                {...DROPDOWN_PROPS}
-                loading={membersLoading}
-                style={{ width: "100%" }}
-                optionFilterProp="label"
-                filterOption={(input, option) => {
-                  if (!input) return true;
-                  const q = input.toLowerCase();
-                  const m = members.find((u) => u.value === option?.value);
-                  if (!m) return false;
-                  return (
-                    m.label.toLowerCase().includes(q) ||
-                    m.email.toLowerCase().includes(q)
-                  );
-                }}
-                options={members.map((u) => ({ value: u.value, label: u.label }))}
-                optionRender={(opt) => {
-                  const m = members.find((u) => u.value === opt.value);
-                  if (!m) return String(opt.label);
-                  return (
-                    <OptionRow
-                      initials={initials(m.label, m.email)}
-                      label={m.label}
-                      code={m.position || m.role}
-                      sub={m.email}
-                      selected={filters.actorId === opt.value}
-                    />
-                  );
-                }}
-              />
-            </FilterPill>
-            <FilterPill
-              icon={<CalendarIcon size={13} strokeWidth={1.75} />}
-              active={!!filters.range}
-              style={{ minWidth: 240 }}
-            >
+                    description: mod ? `Page in ${mod}` : "Page",
+                  };
+                }) ?? []
+              }
+              onSelect={(page) => setFilters((p) => ({ ...p, page }))}
+              searchPlaceholder="Search pages..."
+              footerText="Filter activity log by page"
+              footerSummary="pages"
+            />
+
+            <CustomFilterDropdown
+              label="Action"
+              value={filters.action}
+              placeholder="All Actions"
+              options={
+                filterOpts?.actions.map((a) => ({
+                  value: a,
+                  label: humanize(a),
+                  description: `Action type: ${a}`,
+                })) ?? []
+              }
+              onSelect={(action) => setFilters((p) => ({ ...p, action }))}
+              searchPlaceholder="Search actions..."
+              footerText="Filter by database action type"
+              footerSummary="actions"
+            />
+
+            <CustomFilterDropdown
+              label="Entity"
+              value={filters.entityType}
+              placeholder="All Entities"
+              options={
+                filterOpts?.entityTypes.map((e) => ({
+                  value: e,
+                  label: humanize(e),
+                  description: `Database entity: ${e}`,
+                })) ?? []
+              }
+              onSelect={(entityType) => setFilters((p) => ({ ...p, entityType }))}
+              searchPlaceholder="Search entities..."
+              footerText="Filter by database model type"
+              footerSummary="entities"
+            />
+
+            <CustomFilterDropdown
+              label="Member"
+              value={filters.actorId}
+              placeholder="All Members"
+              options={
+                members.map((u) => ({
+                  value: u.value,
+                  label: u.label,
+                  description: u.email,
+                  badge: initials(u.label, u.email),
+                })) ?? []
+              }
+              onSelect={(actorId) => setFilters((p) => ({ ...p, actorId }))}
+              searchPlaceholder="Search team members..."
+              footerText="Filter logs by member activity"
+              footerSummary="members"
+              loading={membersLoading}
+            />
+
+            <div style={{ position: "relative" }}>
+              <div
+                className={`cf-trigger ${filters.range ? "cf-trigger-active" : ""}`}
+                onClick={() => setDateOpen(true)}
+                style={{ minWidth: 160 }}
+              >
+                <div className="cf-trigger-content">
+                  <span className="cf-trigger-label">Date Range</span>
+                  <span className="cf-trigger-value">
+                    {filters.range
+                      ? `${filters.range[0].format("MMM D")} – ${filters.range[1].format("MMM D")}`
+                      : "All Time"}
+                  </span>
+                </div>
+                {filters.range ? (
+                  <XIcon
+                    className="cf-trigger-clear-btn"
+                    size={14}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFilters((p) => ({ ...p, range: null }));
+                    }}
+                  />
+                ) : (
+                  <ChevronDown className="cf-trigger-chevron" size={14} />
+                )}
+              </div>
               <RangePicker
-                size="small"
-                variant="borderless"
+                open={dateOpen}
+                onOpenChange={setDateOpen}
                 value={filters.range ?? undefined}
                 onChange={(range) => setFilters((p) => ({ ...p, range: range as any }))}
-                style={{ width: "100%" }}
-                placeholder={["From", "To"]}
-                suffixIcon={null}
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  opacity: 0,
+                  pointerEvents: "none",
+                }}
               />
-            </FilterPill>
+            </div>
 
             {activeFilters.length > 0 && (
               <button className="ax-clear-btn" onClick={clearAll}>
@@ -805,8 +929,16 @@ function ActivityRow({ row, isLast }: { row: TransactionRow; isLast: boolean }) 
 function ActivityStyles() {
   return (
     <style>{`
+      .saas-header-container {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 1000 !important;
+        margin: 0 -8px 14px -8px !important;
+        padding: 8.5px 32px !important;
+      }
+
       .ax-shell {
-        padding: 0 20px 32px;
+        padding: 0 24px 32px;
       }
 
       /* ─── Filter rail ────────────────────────── */
@@ -1429,6 +1561,320 @@ function ActivityStyles() {
       }
       [data-theme='dark'] .ax-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
         background: rgba(255, 255, 255, 0.04);
+      }
+
+      /* ─── Custom Filter Dropdowns ──────────────── */
+      .cf-trigger {
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--bg-pure-white, #ffffff);
+        border: 1px solid var(--border-color, #e2e8f0);
+        border-radius: 8px;
+        padding: 5px 12px;
+        height: 42px;
+        min-width: 150px;
+        cursor: pointer;
+        transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+        user-select: none;
+      }
+      .cf-trigger:hover {
+        border-color: var(--text-slate-400, #cbd5e1);
+        background: var(--bg-slate-50, #f8fafc);
+      }
+      .cf-trigger-active {
+        border-color: #7c3aed;
+        background: #faf9ff;
+      }
+      .cf-trigger-open {
+        border-color: #7c3aed;
+        box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.12);
+      }
+      .cf-trigger-content {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        line-height: 1.2;
+        gap: 1px;
+        flex: 1;
+        min-width: 0;
+      }
+      .cf-trigger-label {
+        font-size: 8.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-slate-400, #94a3b8);
+      }
+      .cf-trigger-value-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+        min-width: 0;
+      }
+      .cf-trigger-value {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-slate-800, #1e293b);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .cf-trigger-active .cf-trigger-value {
+        color: var(--text-slate-900, #0f172a);
+      }
+      .cf-trigger-chevron {
+        color: var(--text-slate-400, #94a3b8);
+        transition: transform 0.2s ease, color 0.2s ease;
+        margin-left: 6px;
+        flex-shrink: 0;
+      }
+      .cf-trigger-chevron-open {
+        transform: rotate(180deg);
+        color: #7c3aed;
+      }
+      .cf-trigger-clear-btn {
+        color: var(--text-slate-400, #94a3b8);
+        transition: color 0.15s ease;
+        margin-left: 6px;
+        flex-shrink: 0;
+      }
+      .cf-trigger-clear-btn:hover {
+        color: #b91c1c;
+      }
+
+      /* Dark mode triggers */
+      [data-theme='dark'] .cf-trigger {
+        background: rgba(255, 255, 255, 0.02);
+        border-color: var(--border-slate-800, #1f2937);
+      }
+      [data-theme='dark'] .cf-trigger:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: var(--border-slate-700, #374151);
+      }
+      [data-theme='dark'] .cf-trigger-active {
+        background: rgba(124, 58, 237, 0.06);
+        border-color: rgba(167, 139, 250, 0.3);
+      }
+      [data-theme='dark'] .cf-trigger-open {
+        border-color: rgba(167, 139, 250, 0.45);
+        box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+      }
+      [data-theme='dark'] .cf-trigger-value {
+        color: #e2e8f0;
+      }
+      [data-theme='dark'] .cf-trigger-active .cf-trigger-value {
+        color: #f8fafc;
+      }
+
+      /* Dropdown Overlay / Content Card */
+      .cf-overlay-popover.ant-popover {
+        padding-top: 4px;
+      }
+      .cf-overlay-popover .ant-popover-content {
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        border: 1px solid var(--border-color, #e2e8f0);
+        overflow: hidden;
+      }
+      .cf-overlay-popover .ant-popover-inner {
+        padding: 0 !important;
+        background: var(--bg-pure-white, #ffffff) !important;
+        border-radius: 12px;
+      }
+      [data-theme='dark'] .cf-overlay-popover .ant-popover-content {
+        border-color: #27273a;
+      }
+      [data-theme='dark'] .cf-overlay-popover .ant-popover-inner {
+        background: #181824 !important;
+      }
+
+      .cf-overlay {
+        display: flex;
+        flex-direction: column;
+        width: 290px;
+        max-height: 380px;
+      }
+      
+      /* Search Box */
+      .cf-search-box {
+        display: flex;
+        align-items: center;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--border-color, #f0f0f0);
+        gap: 8px;
+      }
+      [data-theme='dark'] .cf-search-box {
+        border-bottom-color: #27273a;
+      }
+      .cf-search-icon {
+        color: var(--text-slate-400, #94a3b8);
+        flex-shrink: 0;
+      }
+      .cf-search-input {
+        flex: 1;
+        background: var(--bg-slate-50, #f8fafc);
+        border: 1px solid var(--border-color, #e2e8f0);
+        border-radius: 6px;
+        padding: 5px 8px;
+        font-size: 12px;
+        color: var(--text-slate-800, #1e293b);
+        outline: none;
+        transition: border-color 0.15s ease, background 0.15s ease;
+      }
+      .cf-search-input:focus {
+        border-color: #7c3aed;
+        background: var(--bg-pure-white, #ffffff);
+      }
+      [data-theme='dark'] .cf-search-input {
+        background: #1f2937;
+        border-color: #27273a;
+        color: #e2e8f0;
+      }
+      [data-theme='dark'] .cf-search-input:focus {
+        border-color: #a78bfa;
+        background: #181824;
+      }
+
+      /* Options List */
+      .cf-options-list {
+        flex: 1;
+        overflow-y: auto;
+        max-height: 240px;
+        padding: 4px;
+      }
+      .cf-no-options {
+        padding: 24px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--text-slate-400, #94a3b8);
+      }
+      
+      /* Option Row */
+      .cf-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
+        user-select: none;
+      }
+      .cf-option:hover {
+        background: var(--bg-slate-50, #f8fafc);
+      }
+      .cf-option-selected {
+        background: #faf9ff;
+      }
+      [data-theme='dark'] .cf-option:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      [data-theme='dark'] .cf-option-selected {
+        background: rgba(124, 58, 237, 0.12);
+      }
+
+      /* Option Avatar/Badge */
+      .cf-option-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        background: var(--bg-slate-100, #f1f5f9);
+        color: var(--text-slate-600, #475569);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        flex-shrink: 0;
+        border: 1px solid var(--border-color, #e2e8f0);
+      }
+      .cf-option-selected .cf-option-avatar {
+        background: #ede9fe;
+        color: #7c3aed;
+        border-color: #ddd6fe;
+      }
+      [data-theme='dark'] .cf-option-avatar {
+        background: #2e354f;
+        border-color: #27273a;
+        color: #94a3b8;
+      }
+      [data-theme='dark'] .cf-option-selected .cf-option-avatar {
+        background: rgba(124, 58, 237, 0.2);
+        color: #c4b5fd;
+        border-color: rgba(167, 139, 250, 0.3);
+      }
+
+      .cf-option-content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        line-height: 1.35;
+      }
+      .cf-option-name {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-slate-800, #1e293b);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .cf-option-selected .cf-option-name {
+        color: var(--text-slate-900, #0f172a);
+      }
+      [data-theme='dark'] .cf-option-name {
+        color: #cbd5e1;
+      }
+      [data-theme='dark'] .cf-option-selected .cf-option-name {
+        color: #f8fafc;
+      }
+
+      .cf-option-desc {
+        font-size: 10.5px;
+        color: var(--text-slate-400, #94a3b8);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .cf-option-selected .cf-option-desc {
+        color: #7c3aed;
+      }
+      [data-theme='dark'] .cf-option-selected .cf-option-desc {
+        color: #a78bfa;
+      }
+
+      .cf-option-check {
+        color: #7c3aed;
+        flex-shrink: 0;
+        margin-left: auto;
+      }
+      [data-theme='dark'] .cf-option-check {
+        color: #a78bfa;
+      }
+
+      /* Footer */
+      .cf-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        border-top: 1px solid var(--border-color, #f0f0f0);
+        background: var(--bg-slate-50, #f8fafc);
+        font-size: 10.5px;
+        color: var(--text-slate-400, #94a3b8);
+      }
+      [data-theme='dark'] .cf-footer {
+        border-top-color: #27273a;
+        background: rgba(0, 0, 0, 0.15);
+      }
+      .cf-footer-count {
+        font-weight: 600;
+      }
+      .cf-footer-tip {
+        font-style: italic;
       }
     `}</style>
   );

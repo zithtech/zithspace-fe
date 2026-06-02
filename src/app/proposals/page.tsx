@@ -52,6 +52,7 @@ import { LeadMailDrawer } from '@/components/leads/LeadMailDrawer';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import dayjs from 'dayjs';
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title, Text } = Typography;
 
@@ -112,6 +113,7 @@ const DEFAULT_HIDDEN_COLS: Record<string, boolean> = {
 };
 
 export default function ProposalsListPage() {
+  useActivitySource({ section: "WORK", module: "Proposals", page: "ProposalList" });
   const { user, isLoading } = useAuth();
   const { canReadProposal, canCreateProposal, canUpdateProposal, canDeleteProposal } = usePermission();
   const router = useRouter();

@@ -88,10 +88,65 @@ function formatValue(v: unknown): string {
   if (typeof v === "number") return String(v);
   if (Array.isArray(v)) {
     if (v.length === 0) return "—";
+    if (v.every(x => x && typeof x === "object" && ("projectId" in x || "projectName" in x))) {
+      return v.map(x => {
+        const pId = (x as any).projectId;
+        const formattedId = pId && UUID_RE.test(String(pId)) ? String(pId).slice(0, 8) + "…" : String(pId || "");
+        const name = (x as any).projectName || formattedId || "Project";
+        const hrs = (x as any).hoursWorked !== undefined ? ` (${(x as any).hoursWorked}h)` : "";
+        const tasks = Array.isArray((x as any).tasks)
+          ? ` [${(x as any).tasks.map((t: any) => {
+              const desc = t.ticketNumber ? `${t.ticketNumber}: ${t.ticketTitle || ""}` : t.description || "Task";
+              const statusStr = t.status ? ` (${t.status})` : "";
+              return `${desc}${statusStr}`;
+            }).join("; ")}]`
+          : "";
+        const blockers = (x as any).blockers ? ` (Blockers: ${(x as any).blockers})` : "";
+        const notes = (x as any).notes ? ` (Notes: ${(x as any).notes})` : "";
+        return `${name}${hrs}${tasks}${blockers}${notes}`;
+      }).join(", ");
+    }
+    if (v.every(x => x && typeof x === "object" && ("ticketId" in x || "ticketNumber" in x || "description" in x))) {
+      return v.map(x => {
+        const desc = (x as any).ticketNumber ? `${(x as any).ticketNumber}: ${(x as any).ticketTitle || ""}` : (x as any).description || "Task";
+        const statusStr = (x as any).status ? ` [${(x as any).status}]` : "";
+        return `${desc}${statusStr}`;
+      }).join(", ");
+    }
     if (v.length <= 3) return v.map(formatValue).join(", ");
     return `${v.length} items`;
   }
-  if (typeof v === "object") return "(object)";
+  if (typeof v === "object") {
+    const x = v as any;
+    if ("projectId" in x || "projectName" in x) {
+      const pId = x.projectId;
+      const formattedId = pId && UUID_RE.test(String(pId)) ? String(pId).slice(0, 8) + "…" : String(pId || "");
+      const name = x.projectName || formattedId || "Project";
+      const hrs = x.hoursWorked !== undefined ? ` (${x.hoursWorked}h)` : "";
+      const tasks = Array.isArray(x.tasks)
+        ? ` [${x.tasks.map((t: any) => {
+            const desc = t.ticketNumber ? `${t.ticketNumber}: ${t.ticketTitle || ""}` : t.description || "Task";
+            const statusStr = t.status ? ` (${t.status})` : "";
+            return `${desc}${statusStr}`;
+          }).join("; ")}]`
+        : "";
+      const blockers = x.blockers ? ` (Blockers: ${x.blockers})` : "";
+      const notes = x.notes ? ` (Notes: ${x.notes})` : "";
+      return `${name}${hrs}${tasks}${blockers}${notes}`;
+    }
+    if ("ticketId" in x || "ticketNumber" in x || "description" in x) {
+      const desc = x.ticketNumber ? `${x.ticketNumber}: ${x.ticketTitle || ""}` : x.description || "Task";
+      const statusStr = x.status ? ` [${x.status}]` : "";
+      return `${desc}${statusStr}`;
+    }
+    try {
+      const s = JSON.stringify(v);
+      if (s.length > MAX_LEN) return s.slice(0, MAX_LEN) + "…";
+      return s;
+    } catch {
+      return "(object)";
+    }
+  }
   const s = String(v);
   if (UUID_RE.test(s)) return s.slice(0, 8) + "…";
   if (ISO_DATE_RE.test(s)) return dayjs(s).format("MMM D, YYYY");

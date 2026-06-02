@@ -81,6 +81,7 @@ import type {
   PaymentMethod
 } from "@/services/invoiceService";
 import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -225,6 +226,9 @@ export default function InvoiceInvoicesPage() {
       router.push('/dashboard');
     }
   }, [authLoading, canReadInvoice, canReadInvoiceHistory, router]);
+
+  // Register UX context for activity logging
+  useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceList" });
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);

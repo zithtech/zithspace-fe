@@ -55,6 +55,7 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { usePermission } from '@/hooks/usePermission';
 import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
+import { useActivitySource } from '@/hooks/useActivitySource';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -106,6 +107,9 @@ export default function AccountsPage() {
     canDeleteAccount,
     canReadUser
   } = usePermission();
+
+  // Register UX context for activity logging
+  useActivitySource({ section: "FINANCE", module: "Accounts", page: "AccountsDashboard" });
 
   const hasShownError = React.useRef(false);
 

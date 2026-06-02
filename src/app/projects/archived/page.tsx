@@ -152,6 +152,7 @@ export default function ArchivedTicketsPage() {
 
     try {
       await moveToTrash(selectedRowKeys as string[]);
+      message.success('Tickets moved to trash successfully');
       setSelectedRowKeys([]);
       refetch();
     } catch (error: any) {
@@ -168,6 +169,7 @@ export default function ArchivedTicketsPage() {
 
     try {
       await bulkRestore(targetIds);
+      message.success('Tickets restored successfully');
       setSelectedRowKeys([]);
       refetch();
     } catch (error: any) {
@@ -294,7 +296,7 @@ export default function ArchivedTicketsPage() {
                 try {
                   await moveToTrash([record.id]);
                   refetch();
-                } catch {}
+                } catch { }
               }}
               okText="Delete"
               cancelText="Cancel"

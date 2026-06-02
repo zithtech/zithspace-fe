@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, Select, Tooltip, message, ConfigProvider, theme as antdTheme } from "antd";
+import { Modal, Select, Tooltip, App, ConfigProvider, theme as antdTheme } from "antd";
 import {
   Sparkles,
   Wand2,
@@ -50,6 +50,8 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
   const { data: projects } = useUserProjects();
   const { users: members } = useMembersSelect();
 
+  const { message } = App.useApp();
+
   const [mode, setMode] = useState<Mode>(null);
   const [pool, setPool] = useState<BugListItem[]>([]);
   const [staged, setStaged] = useState<Set<string>>(new Set());
@@ -78,13 +80,13 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
     setCollapsed(new Set());
     setTitle("");
     setProjectId(prefilledProjectId);
-    
+
     // Pre-fill assignee if all bugs have the same assignee
     const bugsWithAssignee = bugs.filter(bug => bug.assigneeId);
-    const allSameAssignee = bugsWithAssignee.length > 0 && 
+    const allSameAssignee = bugsWithAssignee.length > 0 &&
       bugsWithAssignee.every(bug => bug.assigneeId === bugsWithAssignee[0].assigneeId);
     setAssigneeId(allSameAssignee ? (bugsWithAssignee[0].assigneeId || undefined) : undefined);
-    
+
     setCreatedCount(0);
   }, [open, prefilledProjectId]); // Remove 'bugs' to prevent mode reset during ticket creation
 
@@ -174,7 +176,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
       // Collect all attachments and links from staged bugs
       const allAttachments = stagedBugs.flatMap((b) => b.attachments || []);
       const allExternalLinks = stagedBugs.flatMap((b) => b.externalLinks || []);
-      
+
       await convert.mutateAsync([
         {
           title: title.trim(),
@@ -252,51 +254,51 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
         }}
       >
         <div className="hb-btm">
-        {mode === null && (
-          <ModePicker
-            count={pool.length}
-            createdCount={createdCount}
-            onClose={onClose}
-            onManual={() => setMode("manual")}
-            onAi={onPickAi}
-          />
-        )}
+          {mode === null && (
+            <ModePicker
+              count={pool.length}
+              createdCount={createdCount}
+              onClose={onClose}
+              onManual={() => setMode("manual")}
+              onAi={onPickAi}
+            />
+          )}
 
-        {mode === "manual" && (
-          <ManualWorkspace
-            allDone={allDone}
-            createdCount={createdCount}
-            initialCount={bugs.length}
-            remaining={remaining}
-            stagedCount={staged.size}
-            search={search}
-            onSearch={setSearch}
-            groupBy={groupBy}
-            onGroupBy={setGroupBy}
-            buckets={buckets}
-            collapsed={collapsed}
-            onToggleCollapse={toggleCollapse}
-            staged={staged}
-            onToggleBug={toggleBug}
-            onStageAll={stageAll}
-            stagedBugs={stagedBugs}
-            onUnstage={unstage}
-            title={title}
-            onTitle={setTitle}
-            projectId={projectId}
-            onProjectId={setProjectId}
-            assigneeId={assigneeId}
-            onAssigneeId={setAssigneeId}
-            projects={projects || []}
-            members={members}
-            converting={convert.isPending}
-            onCreateSingle={handleCreateSingle}
-            onCreateSplit={handleCreateSplit}
-            onClose={onClose}
-            theme={theme}
-          />
-        )}
-      </div>
+          {mode === "manual" && (
+            <ManualWorkspace
+              allDone={allDone}
+              createdCount={createdCount}
+              initialCount={bugs.length}
+              remaining={remaining}
+              stagedCount={staged.size}
+              search={search}
+              onSearch={setSearch}
+              groupBy={groupBy}
+              onGroupBy={setGroupBy}
+              buckets={buckets}
+              collapsed={collapsed}
+              onToggleCollapse={toggleCollapse}
+              staged={staged}
+              onToggleBug={toggleBug}
+              onStageAll={stageAll}
+              stagedBugs={stagedBugs}
+              onUnstage={unstage}
+              title={title}
+              onTitle={setTitle}
+              projectId={projectId}
+              onProjectId={setProjectId}
+              assigneeId={assigneeId}
+              onAssigneeId={setAssigneeId}
+              projects={projects || []}
+              members={members}
+              converting={convert.isPending}
+              onCreateSingle={handleCreateSingle}
+              onCreateSplit={handleCreateSplit}
+              onClose={onClose}
+              theme={theme}
+            />
+          )}
+        </div>
       </ConfigProvider>
     </Modal>
   );

@@ -7,7 +7,7 @@ import {
   Table,
   Space,
   Input,
-  App,
+  message,
   Dropdown,
   Tooltip,
   Popconfirm,
@@ -58,10 +58,10 @@ const { Title, Text } = Typography;
 type StatusKey = 'all' | 'draft' | 'sent' | 'accepted' | 'declined';
 
 const STATUS_META: Record<Exclude<StatusKey, 'all'>, { label: string; color: string; bg: string; ring: string; icon: React.ReactNode }> = {
-  draft: { label: 'Draft', color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)', icon: <ClockCircleOutlined /> },
-  sent: { label: 'Sent', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', ring: 'rgba(59,130,246,0.25)', icon: <SendOutlined /> },
-  accepted: { label: 'Accepted', color: '#10b981', bg: 'rgba(16,185,129,0.10)', ring: 'rgba(16,185,129,0.25)', icon: <CheckCircleOutlined /> },
-  declined: { label: 'Declined', color: '#ef4444', bg: 'rgba(239,68,68,0.10)', ring: 'rgba(239,68,68,0.25)', icon: <CloseCircleOutlined /> },
+  draft:    { label: 'Draft',    color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)', icon: <ClockCircleOutlined /> },
+  sent:     { label: 'Sent',     color: '#3b82f6', bg: 'rgba(59,130,246,0.10)',  ring: 'rgba(59,130,246,0.25)',  icon: <SendOutlined /> },
+  accepted: { label: 'Accepted', color: '#10b981', bg: 'rgba(16,185,129,0.10)',  ring: 'rgba(16,185,129,0.25)',  icon: <CheckCircleOutlined /> },
+  declined: { label: 'Declined', color: '#ef4444', bg: 'rgba(239,68,68,0.10)',   ring: 'rgba(239,68,68,0.25)',   icon: <CloseCircleOutlined /> },
 };
 
 // Compact 7-day bar sparkline for the stats strip.
@@ -174,7 +174,7 @@ export default function ProposalsListPage() {
     };
   }, [tablePrefsLoaded, tableDensity, hiddenCols]);
 
-  const { message: messageApi } = App.useApp();
+  const [messageApi, messageHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
 
   // ─── Route Guard ────────────────────────────────────────────────────────────
@@ -184,7 +184,7 @@ export default function ProposalsListPage() {
     }
   }, [user, isLoading, canReadProposal, router]);
 
-  const fetchProposals = async (showToast = false) => {
+  const fetchProposals = async () => {
     try {
       setLoading(true);
       const data = await ProposalService.getProposals();
@@ -195,9 +195,6 @@ export default function ProposalsListPage() {
         setProposals(data.data);
       } else {
         setProposals([]);
-      }
-      if (showToast) {
-        messageApi.success('Proposals list refreshed');
       }
     } catch (err: any) {
       console.error('Fetch error:', err);
@@ -424,7 +421,7 @@ export default function ProposalsListPage() {
         const blocks = typeof record.blocks_data === 'string' ? JSON.parse(record.blocks_data) : record.blocks_data || [];
         const coverData = blocks.find((b: any) => b.type === 'cover')?.data;
         if (coverData?.title) displayTitle = coverData.title;
-      } catch (e) { }
+      } catch (e) {}
     }
     return displayTitle || 'Untitled Proposal';
   };
@@ -565,12 +562,10 @@ export default function ProposalsListPage() {
             items: [
               { key: 'view', label: 'View', icon: <EyeOutlined /> },
               { key: 'edit', label: 'Edit', icon: <EditOutlined />, disabled: !canUpdateProposal },
-              {
-                key: 'download', label: 'Download', icon: <DownloadOutlined />, children: [
-                  { key: 'pdf', label: 'PDF Document', icon: <FilePdfOutlined style={{ color: '#ef4444' }} /> },
-                  { key: 'word', label: 'Word Document', icon: <FileWordOutlined style={{ color: '#2563eb' }} /> },
-                ]
-              },
+              { key: 'download', label: 'Download', icon: <DownloadOutlined />, children: [
+                { key: 'pdf', label: 'PDF Document', icon: <FilePdfOutlined style={{ color: '#ef4444' }} /> },
+                { key: 'word', label: 'Word Document', icon: <FileWordOutlined style={{ color: '#2563eb' }} /> },
+              ]},
               { type: 'divider' },
               { key: 'delete', label: 'Delete', icon: <DeleteOutlined />, danger: true, disabled: !canDeleteProposal },
             ],
@@ -603,303 +598,278 @@ export default function ProposalsListPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        {modalContextHolder}
+      {messageHolder}
+      {modalContextHolder}
 
-        <div className="prop-page">
-          {/* Page header - STICKY */}
-          <div className="prop-sticky">
-            <div className="prop-header">
-              <div className="prop-header__left">
-                <div className="prop-header__icon">
-                  <SnippetsOutlined />
-                </div>
-                <div className="prop-header__text">
-                  <Title level={4} className="prop-header__title">Proposals</Title>
-                  <span className="prop-header__divider" aria-hidden="true" />
-                  <Text className="prop-header__sub">Manage and track your winning business proposals</Text>
-                </div>
+      <div className="prop-page">
+        {/* Page header - STICKY */}
+        <div className="prop-sticky">
+          <div className="prop-header">
+            <div className="prop-header__left">
+              <div className="prop-header__icon">
+                <SnippetsOutlined />
               </div>
-              <div className="prop-header__right">
-                <Button
-                  type="default"
-                  className="prop-cta-secondary"
-                  icon={<ReloadOutlined />}
-                  onClick={() => fetchProposals(true)}
-                  loading={loading}
-                >
-                  Refresh
-                </Button>
-                {canCreateProposal && (
-                  <Button
-                    type="primary"
-                    className="prop-cta-primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => router.push('/proposals/builder')}
-                  >
-                    New Proposal
-                  </Button>
-                )}
+              <div className="prop-header__text">
+                <Title level={4} className="prop-header__title">Proposals</Title>
+                <span className="prop-header__divider" aria-hidden="true" />
+                <Text className="prop-header__sub">Manage and track your winning business proposals</Text>
               </div>
             </div>
-          </div>
-
-          {/* Stats strip — doc-hub style */}
-          <div className="prop-stats-strip" style={{ marginTop: 24 }}>
-            {statCells.map((s, i) => (
-              <div
-                key={s.key}
-                className={`prop-stat-cell ${i < statCells.length - 1 ? 'prop-stat-cell--divider' : ''}`}
-              >
-                <div
-                  className="prop-stat-cell__icon"
-                  style={{ background: s.tint, color: s.color }}
-                >
-                  {s.icon}
-                </div>
-                <div className="prop-stat-cell__body">
-                  <span className="prop-stat-cell__label">{s.title}</span>
-                  <div className="prop-stat-cell__value-row">
-                    <span className="prop-stat-cell__value">
-                      {s.value}
-                      {s.suffix && <span className="prop-stat-cell__suffix">{s.suffix}</span>}
-                    </span>
-                    {s.delta && (
-                      <Tooltip title="New this week">
-                        <span
-                          className="prop-stat-cell__delta"
-                          style={{ background: s.tint, color: s.color }}
-                        >
-                          <RiseOutlined style={{ fontSize: 8 }} />
-                          {s.delta}
-                        </span>
-                      </Tooltip>
-                    )}
-                  </div>
-                </div>
-                <div className="prop-stat-cell__spark">
-                  <Sparkline values={s.trend} color={s.color} />
-                  <span className="prop-stat-cell__spark-label">7d</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Filter bar — dedicated layout for search + filters */}
-          <div className="prop-filterbar">
-            <div className="prop-filterbar__group prop-filterbar__group--search">
-              <Input
-                placeholder="Search proposals, clients, creators…"
-                prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                className="prop-search"
-                allowClear
-              />
-            </div>
-
-            <span className="prop-filterbar__sep" />
-
-            <div className="prop-filterbar__group">
-              <FilterOutlined className="prop-filterbar__group-icon" />
-              <Select
-                className="prop-filter-select"
-                placeholder={<span><TeamOutlined style={{ marginRight: 6, opacity: 0.6 }} />Client</span>}
-                value={clientFilter}
-                onChange={(v) => setClientFilter(v ?? null)}
-                options={clientOptions}
-                showSearch
-                allowClear
-                optionFilterProp="label"
-                popupMatchSelectWidth={260}
-                disabled={clientOptions.length === 0}
-              />
-              <Select
-                className="prop-filter-select"
-                placeholder={<span><UserOutlined style={{ marginRight: 6, opacity: 0.6 }} />Created by</span>}
-                value={creatorFilter}
-                onChange={(v) => setCreatorFilter(v ?? null)}
-                options={creatorOptions}
-                showSearch
-                allowClear
-                optionFilterProp="label"
-                popupMatchSelectWidth={260}
-                disabled={creatorOptions.length === 0}
-                optionRender={(option) => {
-                  const meta = creatorOptions.find((c) => c.value === option.value);
-                  return (
-                    <div className="prop-filter-select__option">
-                      {meta?.avatarUrl ? (
-                        <img className="prop-filter-select__avatar" src={meta.avatarUrl} alt={meta.label} />
-                      ) : (
-                        <span className="prop-filter-select__avatar prop-filter-select__avatar--initials">
-                          {initialsOf(meta?.label || '')}
-                        </span>
-                      )}
-                      <span>{meta?.label}</span>
-                    </div>
-                  );
-                }}
-              />
-              <Select
-                className="prop-filter-select"
-                value={statusFilter}
-                onChange={(v) => setStatusFilter(v as StatusKey)}
-                options={statusOptions.map((s) => ({
-                  value: s.value,
-                  label: s.color ? (
-                    <span className="prop-filter-select__option">
-                      <span className="prop-filter-select__dot" style={{ background: s.color }} />
-                      {s.label}
-                    </span>
-                  ) : (
-                    s.label
-                  ),
-                }))}
-                showSearch
-                optionFilterProp="value"
-                popupMatchSelectWidth={200}
-              />
-            </div>
-
-            {hasActiveFilters && (
-              <>
-                <span className="prop-filterbar__sep" />
-                <button type="button" className="prop-filterbar__clear" onClick={clearFilters}>
-                  <CloseCircleOutlined />
-                  Clear filters
-                </button>
-              </>
-            )}
-
-            <span className="prop-filterbar__spacer" />
-            <span className="prop-filterbar__sep prop-filterbar__sep--right" />
-
-            <Text className="prop-count">
-              <strong>{filteredProposals.length}</strong> {filteredProposals.length === 1 ? 'result' : 'results'}
-              {hasActiveFilters && (
-                <span className="prop-count__suffix"> · filtered from {proposals.length}</span>
-              )}
-            </Text>
-            <Segmented
-              className="prop-view-seg"
-              value={view}
-              onChange={(v) => setView(v as 'list' | 'grid')}
-              options={[
-                { value: 'list', icon: <UnorderedListOutlined /> },
-                { value: 'grid', icon: <AppstoreOutlined /> },
-              ]}
-            />
-
-            <Popover
-              trigger={["click"]}
-              placement="bottomRight"
-              classNames={{ root: "prop-table-settings-popover" }}
-              content={
-                <div style={{ width: 240 }}>
-                  <div className="prop-popover-section-label">
-                    <Settings size={11} />
-                    <span>Density</span>
-                  </div>
-                  <Segmented
-                    block
-                    value={tableDensity}
-                    onChange={(v) => setTableDensity(v as PropDensity)}
-                    options={[
-                      { label: "Compact", value: "compact" },
-                      { label: "Cozy", value: "comfortable" },
-                      { label: "Roomy", value: "spacious" },
-                    ]}
-                  />
-                  <div className="prop-popover-section-label" style={{ marginTop: 14 }}>
-                    <Layers size={11} />
-                    <span>Columns</span>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    {TOGGLEABLE_COLUMNS.map((c) => (
-                      <label key={c.key} className="prop-col-toggle-row">
-                        <span>{c.label}</span>
-                        <Switch
-                          size="small"
-                          checked={!hiddenCols[c.key]}
-                          onChange={(checked) =>
-                            setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
-                          }
-                        />
-                      </label>
-                    ))}
-                  </div>
-                  <div className="prop-popover-footer">
-                    <button
-                      type="button"
-                      className="prop-popover-reset"
-                      onClick={() => {
-                        setHiddenCols(DEFAULT_HIDDEN_COLS);
-                        setTableDensity("comfortable");
-                      }}
-                    >
-                      Reset
-                    </button>
-                    <span className="prop-popover-saved">Auto-saved</span>
-                  </div>
-                </div>
-              }
-            >
-              <Tooltip title="Table settings">
-                <Button
-                  icon={<SettingOutlined />}
-                  className="prop-filterbar__btn"
-                  style={{ marginLeft: 8 }}
-                />
-              </Tooltip>
-            </Popover>
-          </div>
-
-          {/* Table + Grid */}
-          <div className="prop-card" data-density={tableDensity}>
-
-            {view === 'list' ? (
-              <Table
-                columns={columns}
-                dataSource={filteredProposals}
+            <div className="prop-header__right">
+              <Button
+                type="default"
+                className="prop-cta-secondary"
+                icon={<ReloadOutlined />}
+                onClick={fetchProposals}
                 loading={loading}
-                rowKey="id"
-                size="middle"
-                scroll={{ x: 'max-content' }}
-                pagination={{
-                  pageSize: 10,
-                  style: { padding: '14px 24px', margin: 0 },
-                  showSizeChanger: false,
-                }}
-                rowClassName={() => 'prop-row'}
-                locale={{
-                  emptyText: (
-                    <div className="prop-empty">
-                      <div className="prop-empty__orb">
-                        <Sparkles size={28} />
-                      </div>
-                      <div className="prop-empty__title">No proposals yet</div>
-                      <div className="prop-empty__sub">Start by creating your first premium proposal.</div>
-                      {canCreateProposal && (
-                        <Button
-                          type="primary"
-                          icon={<PlusOutlined />}
-                          className="prop-cta-primary"
-                          onClick={() => router.push('/proposals/builder')}
-                          style={{ marginTop: 14 }}
-                        >
-                          New Proposal
-                        </Button>
-                      )}
-                    </div>
-                  ),
-                }}
+              >
+                Refresh
+              </Button>
+              {canCreateProposal && (
+              <Button
+                type="primary"
+                className="prop-cta-primary"
+                icon={<PlusOutlined />}
+                onClick={() => router.push('/proposals/builder')}
+              >
+                New Proposal
+              </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Stats strip — doc-hub style */}
+        <div className="prop-stats-strip" style={{ marginTop: 24 }}>
+          {statCells.map((s, i) => (
+            <div
+              key={s.key}
+              className={`prop-stat-cell ${i < statCells.length - 1 ? 'prop-stat-cell--divider' : ''}`}
+            >
+              <div
+                className="prop-stat-cell__icon"
+                style={{ background: s.tint, color: s.color }}
+              >
+                {s.icon}
+              </div>
+              <div className="prop-stat-cell__body">
+                <span className="prop-stat-cell__label">{s.title}</span>
+                <div className="prop-stat-cell__value-row">
+                  <span className="prop-stat-cell__value">
+                    {s.value}
+                    {s.suffix && <span className="prop-stat-cell__suffix">{s.suffix}</span>}
+                  </span>
+                  {s.delta && (
+                    <Tooltip title="New this week">
+                      <span
+                        className="prop-stat-cell__delta"
+                        style={{ background: s.tint, color: s.color }}
+                      >
+                        <RiseOutlined style={{ fontSize: 8 }} />
+                        {s.delta}
+                      </span>
+                    </Tooltip>
+                  )}
+                </div>
+              </div>
+              <div className="prop-stat-cell__spark">
+                <Sparkline values={s.trend} color={s.color} />
+                <span className="prop-stat-cell__spark-label">7d</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Filter bar — dedicated layout for search + filters */}
+        <div className="prop-filterbar">
+          <div className="prop-filterbar__group prop-filterbar__group--search">
+            <Input
+              placeholder="Search proposals, clients, creators…"
+              prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="prop-search"
+              allowClear
+            />
+          </div>
+
+          <span className="prop-filterbar__sep" />
+
+          <div className="prop-filterbar__group">
+            <FilterOutlined className="prop-filterbar__group-icon" />
+            <Select
+              className="prop-filter-select"
+              placeholder={<span><TeamOutlined style={{ marginRight: 6, opacity: 0.6 }} />Client</span>}
+              value={clientFilter}
+              onChange={(v) => setClientFilter(v ?? null)}
+              options={clientOptions}
+              showSearch
+              allowClear
+              optionFilterProp="label"
+              popupMatchSelectWidth={260}
+              disabled={clientOptions.length === 0}
+            />
+            <Select
+              className="prop-filter-select"
+              placeholder={<span><UserOutlined style={{ marginRight: 6, opacity: 0.6 }} />Created by</span>}
+              value={creatorFilter}
+              onChange={(v) => setCreatorFilter(v ?? null)}
+              options={creatorOptions}
+              showSearch
+              allowClear
+              optionFilterProp="label"
+              popupMatchSelectWidth={260}
+              disabled={creatorOptions.length === 0}
+              optionRender={(option) => {
+                const meta = creatorOptions.find((c) => c.value === option.value);
+                return (
+                  <div className="prop-filter-select__option">
+                    {meta?.avatarUrl ? (
+                      <img className="prop-filter-select__avatar" src={meta.avatarUrl} alt={meta.label} />
+                    ) : (
+                      <span className="prop-filter-select__avatar prop-filter-select__avatar--initials">
+                        {initialsOf(meta?.label || '')}
+                      </span>
+                    )}
+                    <span>{meta?.label}</span>
+                  </div>
+                );
+              }}
+            />
+            <Select
+              className="prop-filter-select"
+              value={statusFilter}
+              onChange={(v) => setStatusFilter(v as StatusKey)}
+              options={statusOptions.map((s) => ({
+                value: s.value,
+                label: s.color ? (
+                  <span className="prop-filter-select__option">
+                    <span className="prop-filter-select__dot" style={{ background: s.color }} />
+                    {s.label}
+                  </span>
+                ) : (
+                  s.label
+                ),
+              }))}
+              showSearch
+              optionFilterProp="value"
+              popupMatchSelectWidth={200}
+            />
+          </div>
+
+          {hasActiveFilters && (
+            <>
+              <span className="prop-filterbar__sep" />
+              <button type="button" className="prop-filterbar__clear" onClick={clearFilters}>
+                <CloseCircleOutlined />
+                Clear filters
+              </button>
+            </>
+          )}
+
+          <span className="prop-filterbar__spacer" />
+          <span className="prop-filterbar__sep prop-filterbar__sep--right" />
+
+          <Text className="prop-count">
+            <strong>{filteredProposals.length}</strong> {filteredProposals.length === 1 ? 'result' : 'results'}
+            {hasActiveFilters && (
+              <span className="prop-count__suffix"> · filtered from {proposals.length}</span>
+            )}
+          </Text>
+          <Segmented
+            className="prop-view-seg"
+            value={view}
+            onChange={(v) => setView(v as 'list' | 'grid')}
+            options={[
+              { value: 'list', icon: <UnorderedListOutlined /> },
+              { value: 'grid', icon: <AppstoreOutlined /> },
+            ]}
+          />
+
+          <Popover
+            trigger={["click"]}
+            placement="bottomRight"
+            classNames={{ root: "prop-table-settings-popover" }}
+            content={
+              <div style={{ width: 240 }}>
+                <div className="prop-popover-section-label">
+                  <Settings size={11} />
+                  <span>Density</span>
+                </div>
+                <Segmented
+                  block
+                  value={tableDensity}
+                  onChange={(v) => setTableDensity(v as PropDensity)}
+                  options={[
+                    { label: "Compact", value: "compact" },
+                    { label: "Cozy", value: "comfortable" },
+                    { label: "Roomy", value: "spacious" },
+                  ]}
+                />
+                <div className="prop-popover-section-label" style={{ marginTop: 14 }}>
+                  <Layers size={11} />
+                  <span>Columns</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {TOGGLEABLE_COLUMNS.map((c) => (
+                    <label key={c.key} className="prop-col-toggle-row">
+                      <span>{c.label}</span>
+                      <Switch
+                        size="small"
+                        checked={!hiddenCols[c.key]}
+                        onChange={(checked) =>
+                          setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+                <div className="prop-popover-footer">
+                  <button
+                    type="button"
+                    className="prop-popover-reset"
+                    onClick={() => {
+                      setHiddenCols(DEFAULT_HIDDEN_COLS);
+                      setTableDensity("comfortable");
+                    }}
+                  >
+                    Reset
+                  </button>
+                  <span className="prop-popover-saved">Auto-saved</span>
+                </div>
+              </div>
+            }
+          >
+            <Tooltip title="Table settings">
+              <Button
+                icon={<SettingOutlined />}
+                className="prop-filterbar__btn"
+                style={{ marginLeft: 8 }}
               />
-            ) : (
-              <div className="prop-grid">
-                {loading ? (
-                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading…</div>
-                ) : filteredProposals.length === 0 ? (
-                  <div className="prop-empty" style={{ gridColumn: '1 / -1' }}>
+            </Tooltip>
+          </Popover>
+        </div>
+
+        {/* Table + Grid */}
+        <div className="prop-card" data-density={tableDensity}>
+
+          {view === 'list' ? (
+            <Table
+              columns={columns}
+              dataSource={filteredProposals}
+              loading={loading}
+              rowKey="id"
+              size="middle"
+              scroll={{ x: 'max-content' }}
+              pagination={{
+                pageSize: 10,
+                style: { padding: '14px 24px', margin: 0 },
+                showSizeChanger: false,
+              }}
+              rowClassName={() => 'prop-row'}
+              locale={{
+                emptyText: (
+                  <div className="prop-empty">
                     <div className="prop-empty__orb">
                       <Sparkles size={28} />
                     </div>
@@ -917,107 +887,133 @@ export default function ProposalsListPage() {
                       </Button>
                     )}
                   </div>
-                ) : (
-                  filteredProposals.map((p) => (
-                    <div
-                      key={p.id}
-                      className="prop-grid-card"
-                      onClick={() => router.push(`/proposals/${p.id}`)}
+                ),
+              }}
+            />
+          ) : (
+            <div className="prop-grid">
+              {loading ? (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading…</div>
+              ) : filteredProposals.length === 0 ? (
+                <div className="prop-empty" style={{ gridColumn: '1 / -1' }}>
+                  <div className="prop-empty__orb">
+                    <Sparkles size={28} />
+                  </div>
+                  <div className="prop-empty__title">No proposals yet</div>
+                  <div className="prop-empty__sub">Start by creating your first premium proposal.</div>
+                  {canCreateProposal && (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      className="prop-cta-primary"
+                      onClick={() => router.push('/proposals/builder')}
+                      style={{ marginTop: 14 }}
                     >
-                      <div className="prop-grid-card__head">
-                        <div className="prop-grid-card__icon">
-                          <SnippetsOutlined />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {getStatusTag(p.status)}
-                          <Dropdown
-                            menu={{
-                              items: [
-                                { key: 'view', label: 'View', icon: <EyeOutlined /> },
-                                { key: 'edit', label: 'Edit', icon: <EditOutlined />, disabled: !canUpdateProposal },
-                                { key: 'download', label: 'Download', icon: <DownloadOutlined />, children: [
-                                  { key: 'pdf', label: 'PDF Document', icon: <FilePdfOutlined style={{ color: '#ef4444' }} /> },
-                                  { key: 'word', label: 'Word Document', icon: <FileWordOutlined style={{ color: '#2563eb' }} /> },
-                                ]},
-                                { type: 'divider' },
-                                { key: 'delete', label: 'Delete', icon: <DeleteOutlined />, danger: true, disabled: !canDeleteProposal },
-                              ],
-                              onClick: ({ key, domEvent }) => {
-                                domEvent.stopPropagation();
-                                if (key === 'view') router.push(`/proposals/${p.id}`);
-                                else if (key === 'edit') router.push(`/proposals/builder?id=${p.id}`);
-                                else if (key === 'pdf') handleExport(p.id, 'pdf');
-                                else if (key === 'word') handleExport(p.id, 'word');
-                                else if (key === 'delete') {
-                                  modal.confirm({
-                                    title: 'Delete Proposal',
-                                    content: 'Are you sure you want to delete this proposal? This action cannot be undone.',
-                                    okText: 'Delete',
-                                    okType: 'danger',
-                                    cancelText: 'Cancel',
-                                    onOk: () => handleDelete(p.id),
-                                  });
-                                }
-                              },
-                            }}
-                            trigger={['click']}
-                            placement="bottomRight"
-                          >
-                            <Button 
-                              type="text" 
-                              className="prop-icon-btn" 
-                              icon={<EllipsisOutlined />} 
-                              onClick={(e) => e.stopPropagation()} 
-                            />
-                          </Dropdown>
-                        </div>
+                      New Proposal
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                filteredProposals.map((p) => (
+                  <div
+                    key={p.id}
+                    className="prop-grid-card"
+                    onClick={() => router.push(`/proposals/${p.id}`)}
+                  >
+                    <div className="prop-grid-card__head">
+                      <div className="prop-grid-card__icon">
+                        <SnippetsOutlined />
                       </div>
-                      <div className="prop-grid-card__title">{resolveTitle(p)}</div>
-                      <div className="prop-grid-card__client">
-                        <div className="prop-client__avatar prop-client__avatar--sm">
-                          {(p.client_name || '—')
-                            .split(' ')
-                            .map((s: string) => s[0])
-                            .slice(0, 2)
-                            .join('')
-                            .toUpperCase()}
-                        </div>
-                        <Text className="prop-client__name">{p.client_name || '—'}</Text>
-                      </div>
-                      <div className="prop-grid-card__foot">
-                        <ClockCircleOutlined style={{ marginRight: 6, opacity: 0.6 }} />
-                        {dayjs(p.updated_at).format('MMM D · h:mm A')}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {getStatusTag(p.status)}
+                        <Dropdown
+                          menu={{
+                            items: [
+                              { key: 'view', label: 'View', icon: <EyeOutlined /> },
+                              { key: 'edit', label: 'Edit', icon: <EditOutlined />, disabled: !canUpdateProposal },
+                              { key: 'download', label: 'Download', icon: <DownloadOutlined />, children: [
+                                { key: 'pdf', label: 'PDF Document', icon: <FilePdfOutlined style={{ color: '#ef4444' }} /> },
+                                { key: 'word', label: 'Word Document', icon: <FileWordOutlined style={{ color: '#2563eb' }} /> },
+                              ]},
+                              { type: 'divider' },
+                              { key: 'delete', label: 'Delete', icon: <DeleteOutlined />, danger: true, disabled: !canDeleteProposal },
+                            ],
+                            onClick: ({ key, domEvent }) => {
+                              domEvent.stopPropagation();
+                              if (key === 'view') router.push(`/proposals/${p.id}`);
+                              else if (key === 'edit') router.push(`/proposals/builder?id=${p.id}`);
+                              else if (key === 'pdf') handleExport(p.id, 'pdf');
+                              else if (key === 'word') handleExport(p.id, 'word');
+                              else if (key === 'delete') {
+                                modal.confirm({
+                                  title: 'Delete Proposal',
+                                  content: 'Are you sure you want to delete this proposal? This action cannot be undone.',
+                                  okText: 'Delete',
+                                  okType: 'danger',
+                                  cancelText: 'Cancel',
+                                  onOk: () => handleDelete(p.id),
+                                });
+                              }
+                            },
+                          }}
+                          trigger={['click']}
+                          placement="bottomRight"
+                        >
+                          <Button 
+                            type="text" 
+                            className="prop-icon-btn" 
+                            icon={<EllipsisOutlined />} 
+                            onClick={(e) => e.stopPropagation()} 
+                          />
+                        </Dropdown>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          <LeadMailDrawer
-            visible={isMailDrawerVisible}
-            onClose={() => {
-              setIsMailDrawerVisible(false);
-              setSelectedProposalForMail(null);
-            }}
-            lead={selectedProposalForMail ? {
-              id: selectedProposalForMail.lead_id || selectedProposalForMail.id,
-              title: selectedProposalForMail.title,
-              client_name: selectedProposalForMail.client_name,
-              client_mail: selectedProposalForMail.client_mail || "",
-              proposal_id: selectedProposalForMail.id,
-              last_mail_at: selectedProposalForMail.last_mail_at,
-              is_mail_sent: selectedProposalForMail.is_mail_sent
-            } as any : null}
-            fromEmail={invoiceMailSettings?.email}
-            onSuccess={() => {
-              setIsMailDrawerVisible(false);
-              setSelectedProposalForMail(null);
-              fetchProposals();
-            }}
-          />
+                    <div className="prop-grid-card__title">{resolveTitle(p)}</div>
+                    <div className="prop-grid-card__client">
+                      <div className="prop-client__avatar prop-client__avatar--sm">
+                        {(p.client_name || '—')
+                          .split(' ')
+                          .map((s: string) => s[0])
+                          .slice(0, 2)
+                          .join('')
+                          .toUpperCase()}
+                      </div>
+                      <Text className="prop-client__name">{p.client_name || '—'}</Text>
+                    </div>
+                    <div className="prop-grid-card__foot">
+                      <ClockCircleOutlined style={{ marginRight: 6, opacity: 0.6 }} />
+                      {dayjs(p.updated_at).format('MMM D · h:mm A')}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
+
+        <LeadMailDrawer
+          visible={isMailDrawerVisible}
+          onClose={() => {
+            setIsMailDrawerVisible(false);
+            setSelectedProposalForMail(null);
+          }}
+          lead={selectedProposalForMail ? {
+            id: selectedProposalForMail.lead_id || selectedProposalForMail.id,
+            title: selectedProposalForMail.title,
+            client_name: selectedProposalForMail.client_name,
+            client_mail: selectedProposalForMail.client_mail || "",
+            proposal_id: selectedProposalForMail.id,
+            last_mail_at: selectedProposalForMail.last_mail_at,
+            is_mail_sent: selectedProposalForMail.is_mail_sent
+          } as any : null}
+          fromEmail={invoiceMailSettings?.email}
+          onSuccess={() => {
+            setIsMailDrawerVisible(false);
+            setSelectedProposalForMail(null);
+            fetchProposals();
+          }}
+        />
+      </div>
       </MainLayout>
     </ProtectedRoute>
   );

@@ -295,8 +295,12 @@ export default function ArchivedTicketsPage() {
               onConfirm={async () => {
                 try {
                   await moveToTrash([record.id]);
+                  message.success('Ticket moved to trash successfully');
                   refetch();
-                } catch { }
+                } catch (error) {
+                  console.error('Error deleting ticket:', error);
+                  message.error('Failed to delete ticket');
+                }
               }}
               okText="Delete"
               cancelText="Cancel"

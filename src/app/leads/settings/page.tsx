@@ -37,7 +37,7 @@ import {
     Row,
     Col,
     Select,
-    notification,
+    App,
     Popconfirm,
     Switch,
     ColorPicker,
@@ -86,7 +86,7 @@ export default function LeadSettingsPage() {
     const [form] = Form.useForm();
     const [activeTab, setActiveTab] = useState<"1" | "2">("1");
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [api, contextHolder] = notification.useNotification();
+    const { message } = App.useApp();
     const [searchText, setSearchText] = useState("");
 
     const {
@@ -154,9 +154,9 @@ export default function LeadSettingsPage() {
         }
         try {
             await Promise.all(newData.map((item, i) => updateStatus(item.id, { order: i })));
-            api.success({ message: "Order Updated", placement: "topRight" });
+            message.success("Order Updated");
         } catch (error) {
-            api.error({ message: "Failed to update order", placement: "topRight" });
+            message.error("Failed to update order");
         }
     };
 
@@ -177,18 +177,18 @@ export default function LeadSettingsPage() {
                 }
             }
             await updateStatus(id, { [backendField]: value });
-            api.success({ message: "Status Updated", placement: "topRight" });
+            message.success("Status Updated");
         } catch (error) {
-            api.error({ message: "Failed to update status", placement: "topRight" });
+            message.error("Failed to update status");
         }
     };
 
     const handleToggleActionProperty = async (id: string, value: boolean) => {
         try {
             await updateAction(id, { is_active: value });
-            api.success({ message: "Action Updated", placement: "topRight" });
+            message.success("Action Updated");
         } catch (error) {
-            api.error({ message: "Failed to update action", placement: "topRight" });
+            message.error("Failed to update action");
         }
     };
 
@@ -244,18 +244,14 @@ export default function LeadSettingsPage() {
                 if (editingId) await updateAction(editingId, payload);
                 else await createAction(payload);
             }
-            api.success({
-                message: "Success",
-                description: `${activeTab === "1" ? "Status" : "Action"} ${editingId ? "updated" : "created"} successfully`,
-                placement: "topRight",
-            });
+            message.success(`${activeTab === "1" ? "Status" : "Action"} ${editingId ? "updated" : "created"} successfully`);
             setIsDrawerOpen(false);
             setEditingId(null);
             form.resetFields();
         } catch (error: any) {
             console.error("Validation or API Failed:", error);
             const errorMessage = error.response?.data?.error || error.message || "An unexpected error occurred";
-            api.error({ message: "Error", description: errorMessage, placement: "topRight" });
+            message.error(errorMessage);
         }
     };
 
@@ -447,7 +443,14 @@ export default function LeadSettingsPage() {
                         <Popconfirm
                             title="Delete this status?"
                             description="Leads using this status may need reassignment."
-                            onConfirm={() => deleteStatus(record.id)}
+                            onConfirm={async () => {
+                                try {
+                                    await deleteStatus(record.id);
+                                    message.success("Status deleted successfully");
+                                } catch (error) {
+                                    message.error("Failed to delete status");
+                                }
+                            }}
                             okText="Delete"
                             cancelText="Cancel"
                             okButtonProps={{ danger: true }}
@@ -531,7 +534,14 @@ export default function LeadSettingsPage() {
                     {canDeleteLeadSetting && (
                         <Popconfirm
                             title="Remove this action?"
-                            onConfirm={() => deleteAction(record.id)}
+                            onConfirm={async () => {
+                                try {
+                                    await deleteAction(record.id);
+                                    message.success("Action removed successfully");
+                                } catch (error) {
+                                    message.error("Failed to remove action");
+                                }
+                            }}
                             okText="Remove"
                             cancelText="Cancel"
                             okButtonProps={{ danger: true }}
@@ -578,7 +588,6 @@ export default function LeadSettingsPage() {
         <ProtectedRoute>
             <MainLayout>
                 <div className="lset-canvas">
-                    {contextHolder}
 
                     {/* HERO HEADER */}
                     <div className="lset-hero">

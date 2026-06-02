@@ -7,7 +7,7 @@ import {
   Table,
   Space,
   Input,
-  message,
+  App,
   Dropdown,
   Tooltip,
   Popconfirm,
@@ -174,7 +174,7 @@ export default function ProposalsListPage() {
     };
   }, [tablePrefsLoaded, tableDensity, hiddenCols]);
 
-  const [messageApi, messageHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
 
   // ─── Route Guard ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -183,7 +183,7 @@ export default function ProposalsListPage() {
     }
   }, [user, isLoading, canReadProposal, router]);
 
-  const fetchProposals = async () => {
+  const fetchProposals = async (showToast = false) => {
     try {
       setLoading(true);
       const data = await ProposalService.getProposals();
@@ -195,10 +195,13 @@ export default function ProposalsListPage() {
       } else {
         setProposals([]);
       }
+      if (showToast) {
+        messageApi.success('Proposals list refreshed');
+      }
     } catch (err: any) {
       console.error('Fetch error:', err);
       if (err.status !== 401) {
-        message.error('Failed to load proposals');
+        messageApi.error('Failed to load proposals');
       }
     } finally {
       setLoading(false);
@@ -212,11 +215,11 @@ export default function ProposalsListPage() {
   const handleDelete = async (id: string) => {
     try {
       await ProposalService.deleteProposal(id);
-      message.success('Proposal deleted');
+      messageApi.success('Proposal deleted');
       fetchProposals();
     } catch (err) {
       console.error('Delete error:', err);
-      message.error('Failed to delete proposal');
+      messageApi.error('Failed to delete proposal');
     }
   };
 
@@ -596,7 +599,6 @@ export default function ProposalsListPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-      {messageHolder}
 
       <div className="prop-page">
         {/* Page header - STICKY */}
@@ -617,7 +619,7 @@ export default function ProposalsListPage() {
                 type="default"
                 className="prop-cta-secondary"
                 icon={<ReloadOutlined />}
-                onClick={fetchProposals}
+                onClick={() => fetchProposals(true)}
                 loading={loading}
               >
                 Refresh

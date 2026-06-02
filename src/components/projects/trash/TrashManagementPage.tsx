@@ -17,6 +17,7 @@ import {
   Progress,
   Badge,
   Skeleton,
+  DatePicker,
 } from "antd";
 import {
   DeleteOutlined,
@@ -32,6 +33,9 @@ import {
   InboxOutlined,
   ThunderboltFilled,
   CloseOutlined,
+  CalendarOutlined,
+  TagOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import {
   useTrashTickets,
@@ -43,8 +47,8 @@ import {
   trashKeys,
 } from "@/hooks/useTrash";
 import { usePermission } from "@/hooks/usePermission";
+import { useUserProjects, useTicketConfig, useMembers } from "@/hooks/useGlobalData";
 import { useActivitySource } from "@/hooks/useActivitySource";
-import { useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 
@@ -77,8 +81,17 @@ export default function TrashManagementPage() {
   const [limit] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState<string | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [deletedByFilter, setDeletedByFilter] = useState<string | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const { data: ticketConfig } = useTicketConfig();
+  const statusesList = ticketConfig?.statuses || [];
+
+  const { data: membersData } = useMembers();
+  const membersList = membersData || [];
 
   const {
     data: trashData,
@@ -89,6 +102,10 @@ export default function TrashManagementPage() {
     limit,
     projectId: projectFilter,
     search: searchQuery,
+    status: statusFilter,
+    deletedBy: deletedByFilter,
+    startDate: dateRange?.[0] ? dateRange[0].startOf("day").toISOString() : undefined,
+    endDate: dateRange?.[1] ? dateRange[1].endOf("day").toISOString() : undefined,
   });
 
   const { data: userProjectsData } = useUserProjects();
@@ -180,7 +197,6 @@ export default function TrashManagementPage() {
         const isUrgent = daysRemaining <= 2;
         return (
           <div className="tr-ticket-cell">
-            <span className={`tr-row-rail ${isUrgent ? "urgent" : ""}`} />
             <div className="tr-ticket-meta">
               <span className="tr-ticket-id">{record.ticketNumber}</span>
               <Text className="tr-ticket-title">{record.title}</Text>
@@ -324,13 +340,17 @@ export default function TrashManagementPage() {
     },
   ];
 
-  const isFiltered = !!(projectFilter || searchQuery);
+  const isFiltered = !!(projectFilter || searchQuery || statusFilter || deletedByFilter || dateRange);
   const hasItems = (trashData?.pagination.total || 0) > 0;
 
   return (
     <div className="tr-page">
       {/* Hero Header */}
-      <div className="tr-hero">
+      <div className="tr-hero" style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+      }}>
         <div className="tr-hero-glow" />
         <div className="tr-hero-inner">
           <div className="tr-hero-left">
@@ -462,7 +482,13 @@ export default function TrashManagementPage() {
               <span>Filters</span>
               {isFiltered && (
                 <Badge
-                  count={(projectFilter ? 1 : 0) + (searchQuery ? 1 : 0)}
+                  count={
+                    (projectFilter ? 1 : 0) +
+                    (searchQuery ? 1 : 0) +
+                    (statusFilter ? 1 : 0) +
+                    (deletedByFilter ? 1 : 0) +
+                    (dateRange ? 1 : 0)
+                  }
                   color="#3b82f6"
                   size="small"
                 />
@@ -491,6 +517,63 @@ export default function TrashManagementPage() {
               </Select>
             </div>
 
+            {/* Status Filter */}
+            <div className={`tr-filter-field ${statusFilter ? "active" : ""}`}>
+              <TagOutlined className="tr-filter-icon" />
+              <Select
+                placeholder="All statuses"
+                variant="borderless"
+                className="tr-filter-select"
+                allowClear
+                value={statusFilter}
+                onChange={setStatusFilter}
+                popupMatchSelectWidth={160}
+                style={{ width: 110 }}
+              >
+                {statusesList.map((statusItem: any) => (
+                  <Option key={statusItem.value} value={statusItem.value}>
+                    {statusItem.label}
+                  </Option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Deleted By Filter */}
+            <div className={`tr-filter-field ${deletedByFilter ? "active" : ""}`}>
+              <UserOutlined className="tr-filter-icon" />
+              <Select
+                placeholder="Deleted by"
+                variant="borderless"
+                className="tr-filter-select"
+                allowClear
+                value={deletedByFilter}
+                onChange={setDeletedByFilter}
+                popupMatchSelectWidth={200}
+                style={{ width: 110 }}
+                showSearch
+                optionFilterProp="label"
+              >
+                {membersList.map((member: any) => (
+                  <Option key={member.value} value={member.value} label={member.label}>
+                    {member.label}
+                  </Option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Date Range Filter */}
+            <div className={`tr-filter-field ${dateRange ? "active" : ""}`} style={{ paddingRight: 4 }}>
+              <CalendarOutlined className="tr-filter-icon" />
+              <DatePicker.RangePicker
+                placeholder={["From", "To"]}
+                variant="borderless"
+                value={dateRange}
+                onChange={setDateRange}
+                style={{ fontSize: 12, padding: 0 }}
+                className="tr-filter-datepicker"
+              />
+            </div>
+
             <div className={`tr-filter-field tr-filter-search ${searchQuery ? "active" : ""}`}>
               <SearchOutlined className="tr-filter-icon" />
               <Input
@@ -511,6 +594,9 @@ export default function TrashManagementPage() {
                 onClick={() => {
                   setSearchQuery("");
                   setProjectFilter(undefined);
+                  setStatusFilter(undefined);
+                  setDeletedByFilter(undefined);
+                  setDateRange(null);
                   refetch();
                 }}
               >
@@ -618,6 +704,9 @@ export default function TrashManagementPage() {
                       onClick={() => {
                         setSearchQuery("");
                         setProjectFilter(undefined);
+                        setStatusFilter(undefined);
+                        setDeletedByFilter(undefined);
+                        setDateRange(null);
                       }}
                       className="tr-empty-action"
                     >
@@ -999,7 +1088,7 @@ export default function TrashManagementPage() {
           color: #3b82f6;
         }
         .tr-filter-search {
-          width: 280px;
+          width: 200px;
         }
 
         @media (max-width: 800px) {
@@ -1032,7 +1121,7 @@ export default function TrashManagementPage() {
           box-shadow: none !important;
         }
         .tr-filter-select {
-          width: 180px;
+          width: 120px;
         }
         .tr-filter-select .ant-select-selector {
           background: transparent !important;
@@ -1084,6 +1173,10 @@ export default function TrashManagementPage() {
           font-size: 12px !important;
           color: var(--text-slate-500) !important;
           font-weight: 500;
+        }
+        .tr-result-count {
+          flex-shrink: 0;
+          white-space: nowrap;
         }
         .tr-result-count-text strong {
           color: var(--text-slate-900);
@@ -1233,20 +1326,7 @@ export default function TrashManagementPage() {
           position: relative;
           display: flex;
           flex-direction: column;
-          padding-left: 12px;
-        }
-        .tr-row-rail {
-          position: absolute;
-          left: 0;
-          top: -14px;
-          bottom: -14px;
-          width: 3px;
-          background: transparent;
-          border-radius: 0 2px 2px 0;
-        }
-        .tr-row-rail.urgent {
-          background: linear-gradient(180deg, #ef4444, #f87171);
-          box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+          padding-left: 0;
         }
         .tr-ticket-meta {
           display: flex;
@@ -1509,6 +1589,21 @@ export default function TrashManagementPage() {
         }
         [data-theme='dark'] .tr-table .ant-pagination {
           border-top-color: #1f2937;
+        }
+
+        .tr-filter-datepicker {
+          width: 170px;
+        }
+        .tr-filter-datepicker .ant-picker-input > input {
+          font-size: 12px !important;
+          font-weight: 500 !important;
+          color: var(--text-slate-900) !important;
+        }
+        [data-theme='dark'] .tr-filter-datepicker .ant-picker-input > input {
+          color: #f3f4f6 !important;
+        }
+        .tr-filter-datepicker .ant-picker-active-bar {
+          display: none !important;
         }
 
         /* ── Responsive ──────────────────────────────────────────── */

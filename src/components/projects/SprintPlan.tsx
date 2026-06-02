@@ -113,6 +113,34 @@ export default function SprintPlanComponent() {
   const [, setSearchLoading] = useState(false);
   const [searchTimer, setSearchTimer] = useState<NodeJS.Timeout | null>(null);
 
+  const ticketOptions = useMemo(() => {
+    const optionsMap = new Map<string, { label: string; value: string; item: any }>();
+    
+    // Add available tickets
+    availableTickets.forEach(t => {
+      optionsMap.set(t.id, {
+        label: `${t.ticketNumber} - ${t.title}`,
+        value: t.id,
+        item: t
+      });
+    });
+
+    // Add editing plan tickets to ensure their labels render correctly even if not in availableTickets
+    if (editingPlan?.tickets) {
+      editingPlan.tickets.forEach(t => {
+        if (!optionsMap.has(t.id)) {
+          optionsMap.set(t.id, {
+            label: `${t.ticketNumber} - ${t.title}`,
+            value: t.id,
+            item: t
+          });
+        }
+      });
+    }
+
+    return Array.from(optionsMap.values());
+  }, [availableTickets, editingPlan]);
+
   // Drawer state for ticket details
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [drawerSprintPlan, setDrawerSprintPlan] = useState<ReleasePlan | null>(null);
@@ -1244,14 +1272,11 @@ export default function SprintPlanComponent() {
                     size="middle"
                     placeholder="ID or Title search..."
                     style={{ width: '100%' }}
+                    optionLabelProp="label"
                     onSearch={handleTicketSearch}
                     filterOption={false}
                     notFoundContent={ticketLoading ? <Spin size="small" /> : null}
-                    options={availableTickets.map(t => ({
-                      label: t.ticketNumber,
-                      value: t.id,
-                      item: t
-                    }))}
+                    options={ticketOptions}
                     dropdownStyle={{ borderRadius: 0 }}
                     optionRender={(option) => {
                       const t = option.data.item;

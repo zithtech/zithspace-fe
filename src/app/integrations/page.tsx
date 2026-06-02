@@ -245,7 +245,7 @@ export default function IntegrationPage() {
                 const anyProviderConnected = Object.values(statuses).some(s => s?.connected);
 
                 return (
-                  <Col xs={24} sm={12} md={8} lg={6} key={provider.key}>
+                  <Col xs={24} sm={24} md={12} lg={8} key={provider.key}>
                     <Card
                       hoverable
                       style={{
@@ -283,7 +283,7 @@ export default function IntegrationPage() {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px 8px', marginTop: 'auto' }}>
                         {isConnected ? (
                           <Dropdown
                             menu={{ items: mockConnectedUsers }}

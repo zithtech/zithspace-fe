@@ -882,8 +882,11 @@ export default function RolesPage() {
       <div className="rp-shell">
         <TimeTrackingHeader
           style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
             borderBottom: '1px solid var(--border-slate-200)',
-            padding: '8.5px 32px',
+            padding: '9.5px 32px',
             marginBottom: 20,
           }}
           icon={<SafetyOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}

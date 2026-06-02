@@ -15,6 +15,7 @@ import {
   Card,
   Skeleton,
   Segmented,
+  Popconfirm,
 } from 'antd';
 import {
   TeamOutlined,
@@ -31,6 +32,7 @@ import {
   RocketOutlined,
   ReloadOutlined,
   CloseOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import { Squad, SquadService } from '@/services/squadService';
 import SquadCard from '@/components/squad/SquadCard';
@@ -135,7 +137,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
 export default function SquadManagement() {
   useActivitySource({ section: "WORK", module: "Squad", page: "SquadView" });
   const { user, isLoading: authLoading } = useAuth();
-  const { canReadSquad, canCreateSquad, canUpdateSquad } = usePermission();
+  const { canReadSquad, canCreateSquad, canUpdateSquad, canDeleteSquad } = usePermission();
   const [loading, setLoading] = useState(false);
   const [squads, setSquads] = useState<Squad[]>([]);
   const [filteredSquads, setFilteredSquads] = useState<Squad[]>([]);
@@ -318,6 +320,17 @@ export default function SquadManagement() {
     setViewDrawerVisible(true);
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      await SquadService.deleteSquad(id);
+      message.success('Squad deleted successfully');
+      fetchSquads();
+    } catch (error) {
+      console.error(error);
+      message.error('Failed to delete squad');
+    }
+  };
+
   const columns = [
     {
       title: 'Squad',
@@ -452,7 +465,7 @@ export default function SquadManagement() {
     {
       title: '',
       key: 'actions',
-      width: 100,
+      width: 120,
       align: 'right' as const,
       render: (record: Squad) => (
         <div className="sq-list-actions">
@@ -462,6 +475,20 @@ export default function SquadManagement() {
           {canUpdateSquad && (
             <Tooltip title="Manage squad">
               <Button size="small" type="text" icon={<EditOutlined />} onClick={() => handleManage(record)} />
+            </Tooltip>
+          )}
+          {canDeleteSquad && (
+            <Tooltip title="Delete squad">
+              <Popconfirm
+                title="Delete Squad"
+                description="Are you sure you want to delete this squad? This action cannot be undone."
+                onConfirm={() => handleDelete(record.id)}
+                okText="Yes, Delete"
+                cancelText="No"
+                okButtonProps={{ danger: true }}
+              >
+                <Button size="small" type="text" danger icon={<DeleteOutlined />} />
+              </Popconfirm>
             </Tooltip>
           )}
         </div>

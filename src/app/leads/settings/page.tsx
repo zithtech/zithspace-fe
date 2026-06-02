@@ -621,6 +621,7 @@ export default function LeadSettingsPage() {
                     </div>
 
                     {/* STATS */}
+                    <div style={{ padding: '20px 32px 0' }}>
                     <Row gutter={[16, 16]} className="lset-stats">
                         <Col xs={24} sm={12} md={6}>
                             <StatTile
@@ -755,6 +756,7 @@ export default function LeadSettingsPage() {
                                 ),
                             }}
                         />
+                    </div>
                     </div>
                 </div>
 
@@ -995,7 +997,7 @@ export default function LeadSettingsPage() {
                     __html: `
                     .lset-canvas {
                         margin: 0 -24px;
-                        padding: 16px 32px 60px;
+                        padding: 0 0 60px;
                         min-height: calc(100vh - 64px);
                         background: var(--bg-pure-white);
                         font-family: 'Inter', -apple-system, sans-serif;
@@ -1003,12 +1005,13 @@ export default function LeadSettingsPage() {
 
                     /* HERO */
                     .lset-hero {
-                        position: relative;
+                        position: sticky;
+                        top: 0;
+                        z-index: 100;
                         background: var(--bg-pure-white);
-                        border: 1px solid var(--border-slate-100);
-                        border-radius: 18px;
-                        padding: 18px 22px;
-                        margin-bottom: 18px;
+                        border-bottom: 1px solid var(--border-slate-200);
+                        padding: 9.5px 32px;
+                        margin-bottom: 0;
                         overflow: hidden;
                     }
                     .lset-hero-bg {
@@ -1422,7 +1425,7 @@ export default function LeadSettingsPage() {
 
                     /* DARK */
                     [data-theme='dark'] .lset-canvas { background: #0d1117 !important; }
-                    [data-theme='dark'] .lset-hero { background: #161b22 !important; border-color: #30363d !important; }
+                    [data-theme='dark'] .lset-hero { background: #161b22 !important; border-bottom-color: #30363d !important; }
                     [data-theme='dark'] .lset-hero-title { color: #f0f6fc !important; }
                     [data-theme='dark'] .lset-hero-divider { background: #30363d !important; }
                     [data-theme='dark'] .lset-hero-sub { color: #8b949e !important; }

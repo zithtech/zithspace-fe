@@ -647,6 +647,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                           placeholder="Search by name or email"
                           showSearch
                           optionFilterProp="label"
+                          optionLabelProp="label"
                           size="large"
                         >
                           {members.map(m => (
@@ -754,6 +755,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                   placeholder="Search and assign heads…"
                   showSearch
                   optionFilterProp="label"
+                  optionLabelProp="label"
                   size="large"
                   maxTagCount="responsive"
                 >
@@ -816,6 +818,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                   placeholder="Search and assign sub-heads…"
                   showSearch
                   optionFilterProp="label"
+                  optionLabelProp="label"
                   size="large"
                   maxTagCount="responsive"
                 >
@@ -878,6 +881,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                   placeholder="Search and add members…"
                   showSearch
                   optionFilterProp="label"
+                  optionLabelProp="label"
                   size="large"
                   maxTagCount="responsive"
                 >

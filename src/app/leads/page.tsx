@@ -1508,6 +1508,14 @@ export default function LeadsPage() {
             icon={<Layers size={20} color="#6366f1" />}
             title="Leads Management"
             description="Track, manage and convert your potential business opportunities."
+            style={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
+              borderBottom: '1px solid var(--border-slate-200)',
+              padding: '9.5px 32px',
+              marginBottom: 0,
+            }}
             extra={
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <Input
@@ -2830,7 +2838,7 @@ export default function LeadsPage() {
             .lm-body {
               position: relative;
               z-index: 1;
-              padding: 8px 32px 40px 32px;
+              padding: 20px 32px 40px 32px;
             }
 
             /* ---------- Header buttons / search ---------- */

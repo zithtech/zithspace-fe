@@ -5996,18 +5996,19 @@ select:-webkit-autofill:focus {
 .scd-field-card__header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
 .scd-field-card__icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 15px;
+  flex-shrink: 0;
 }
 
 .scd-field-card__icon.is-head {
@@ -6061,6 +6062,8 @@ select:-webkit-autofill:focus {
   background: var(--bg-slate-50);
   border: 1px solid var(--border-slate-200);
   color: var(--text-slate-600);
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .scd-field-card__count.is-filled.is-head {
@@ -6087,7 +6090,8 @@ select:-webkit-autofill:focus {
   align-items: center;
   gap: 8px;
   margin-top: 10px;
-  padding: 8px 10px;
+  padding: 7px 12px;
+  min-height: 42px;
   background: var(--bg-slate-50);
   border: 1px dashed var(--border-slate-200);
   border-radius: 10px;
@@ -6101,6 +6105,7 @@ select:-webkit-autofill:focus {
   letter-spacing: 0.06em;
   color: var(--text-slate-400);
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .scd-selected-row .ant-avatar {

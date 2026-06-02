@@ -47,6 +47,7 @@ const statusConfig: Record<WorkStatus, { label: string; color: string; bg: strin
   in_testing:           { label: "Testing",     color: "#9a3412", bg: "#fff7ed", border: "#fed7aa", dot: "#f97316" },
   pushed_to_staging:    { label: "Staging",     color: "#155e75", bg: "#ecfeff", border: "#a5f3fc", dot: "#06b6d4" },
   pushed_to_production: { label: "Production",  color: "#6b21a8", bg: "#faf5ff", border: "#e9d5ff", dot: "#a855f7" },
+  completed:            { label: "Completed",   color: "#166534", bg: "#f0fdf4", border: "#bbf7d0", dot: "#22c55e" },
 };
 
 export default function UpdateDetailsDrawer({

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
+import { useActivitySource } from '@/hooks/useActivitySource';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import TicketService from '@/services/ticketService';
@@ -143,6 +144,9 @@ export default function ArchivedTicketsPage() {
 
   const { mutateAsync: moveToTrash, isPending: isDeleting } = useMoveToTrash();
   const { mutateAsync: bulkRestore, isPending: isRestoring } = useBulkUnarchiveTickets();
+
+  // Tell the BE that any mutations from this page belong to the Archived module.
+  useActivitySource({ section: "WORK", module: "Archived", page: "ArchivedView" });
 
   const handleDelete = async () => {
     if (selectedRowKeys.length === 0) {

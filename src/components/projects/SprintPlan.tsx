@@ -65,6 +65,7 @@ import { useSocket } from "@/providers/SocketProvider";
 import { usePermission } from "@/hooks/usePermission";
 import { useTheme } from "@/context/ThemeContext";
 import { TicketDetailDrawer } from "@/components/projects/drawer/TicketDetailDrawer";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -84,12 +85,14 @@ export default function SprintPlanComponent() {
   });
   const { message } = App.useApp();
   const { socket, connected } = useSocket();
-  const { 
-    canCreateTicketPlan, 
-    canUpdateTicketPlan, 
-    canDeleteTicketPlan, 
-    canReadTicketPlan 
+  const {
+    canCreateTicketPlan,
+    canUpdateTicketPlan,
+    canDeleteTicketPlan,
+    canReadTicketPlan,
+    canReadActivityLog
   } = usePermission();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // State management
   const [sprintPlans, setSprintPlans] = useState<ReleasePlan[]>([]);
@@ -1308,6 +1311,17 @@ export default function SprintPlanComponent() {
           }}
           extra={
             <Space size={8}>
+              {canReadActivityLog && drawerSprintPlan && (
+                <Tooltip title="Activity history">
+                  <Button
+                    icon={<HistoryOutlined />}
+                    onClick={() => setHistoryOpen(true)}
+                    style={{ borderRadius: 8, fontWeight: 600, height: 36 }}
+                  >
+                    History
+                  </Button>
+                </Tooltip>
+              )}
               {drawerSprintPlan?.status === 'planning' && (
                 <Popconfirm title="Activate this sprint?" onConfirm={() => { handleStartSprint(drawerSprintPlan); setDrawerVisible(false); }}>
                   <Button icon={<PlayCircleOutlined />} style={{ borderRadius: 8, fontWeight: 600, height: 36 }}>
@@ -1841,6 +1855,16 @@ export default function SprintPlanComponent() {
             );
           })()}
         </Drawer>
+
+        {drawerSprintPlan && (
+          <TransactionHistoryDrawer
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            entityType="release_plan"
+            entityId={drawerSprintPlan.id}
+            subtitle={drawerSprintPlan.name}
+          />
+        )}
 
         {/* Completion Modal */}
         <SprintCompletionModal

@@ -426,6 +426,10 @@ export const usePermission = () => {
     canReadTimeTrackingTeam: hasPermission(Permissions.TIME_TRACKING_TEAM_READ),
     canManageTimeTrackingTime: hasPermission(Permissions.TIME_TRACKING_MANAGE_TIME),
 
+    // ─── Activity Log (transaction history) ─────────────────────────
+    canReadActivityLog:    hasPermission(Permissions.ACTIVITY_LOG_READ),
+    canReadActivityLogAll: hasPermission(Permissions.ACTIVITY_LOG_READ_ALL),
+
     // ─── Raw helpers ─────────────────────────────────────────────────
     /** Check a single permission string */
     can:    hasPermission,

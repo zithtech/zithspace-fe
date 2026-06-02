@@ -25,9 +25,12 @@ import {
   Download,
   Edit2,
   Check,
+  History,
 } from "lucide-react";
 import { useMembersSelect } from "@/hooks/useMembersSelect";
 import { useTheme } from "@/context/ThemeContext";
+import { usePermission } from "@/hooks/usePermission";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import BugListService, {
   BugAttachment,
   BugExternalLink,
@@ -75,6 +78,8 @@ export default function CreateBugDrawer({
 }: Props) {
   const { theme } = useTheme();
   const { users: members } = useMembersSelect();
+  const { canReadActivityLog } = usePermission();
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [notificationApi, notificationContextHolder] = notification.useNotification();
   const [messageApi, messageContextHolder] = message.useMessage();
 
@@ -400,14 +405,38 @@ export default function CreateBugDrawer({
                   Describe what's broken — refinement happens later via AI.
                 </div>
               </div>
-              <button
-                className="hb-cbd-iconbtn"
-                onClick={onClose}
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {editingBug && canReadActivityLog && (
+                  <Tooltip title="View activity history">
+                    <button
+                      className="hb-cbd-iconbtn"
+                      onClick={() => setHistoryOpen(true)}
+                      aria-label="History"
+                      type="button"
+                    >
+                      <History size={16} />
+                    </button>
+                  </Tooltip>
+                )}
+                <button
+                  className="hb-cbd-iconbtn"
+                  onClick={onClose}
+                  aria-label="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
+
+            {editingBug && (
+              <TransactionHistoryDrawer
+                open={historyOpen}
+                onClose={() => setHistoryOpen(false)}
+                entityType="bug"
+                entityId={editingBug.id}
+                subtitle={`${editingBug.bugNumber || "Bug"}${editingBug.title ? ` — ${editingBug.title}` : ""}`}
+              />
+            )}
 
             {/* Body */}
             <div className="hb-cbd-body">

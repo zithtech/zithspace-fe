@@ -396,6 +396,10 @@ export const Permissions = {
   TIME_TRACKING_DELETE: 'time_tracking.delete',
   TIME_TRACKING_TEAM_READ: 'time_tracking.team.read',
   TIME_TRACKING_MANAGE_TIME: 'time_tracking.manage_time',
+
+  // Activity log (transaction history)
+  ACTIVITY_LOG_READ:     'activity_log.read',
+  ACTIVITY_LOG_READ_ALL: 'activity_log.read_all',
 } as const;
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions];

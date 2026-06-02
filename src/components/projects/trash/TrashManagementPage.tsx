@@ -43,6 +43,7 @@ import {
   trashKeys,
 } from "@/hooks/useTrash";
 import { usePermission } from "@/hooks/usePermission";
+import { useActivitySource } from "@/hooks/useActivitySource";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -71,6 +72,7 @@ const calculatePurgeProgress = (deletedAt: string) => {
 export default function TrashManagementPage() {
   const queryClient = useQueryClient();
   const { canRestoreTicketTrash, canDeleteTicketTrash } = usePermission();
+  useActivitySource({ section: "WORK", module: "Trash", page: "TrashView" });
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");

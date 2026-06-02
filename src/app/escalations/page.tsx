@@ -599,6 +599,9 @@ export default function EscalationListPage() {
           title="Quality & Performance Escalations"
           description="Monitor and resolve manual escalations related to deployment quality and team regressions."
           style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
             borderBottom: '1px solid var(--border-slate-200)',
             padding: '9.5px 32px',
             marginBottom: 20,

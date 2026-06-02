@@ -73,6 +73,7 @@ const STATUS_OPTIONS = [
   { label: "🧪 In Testing", value: "in_testing" },
   { label: "🚀 Pushed to Staging", value: "pushed_to_staging" },
   { label: "🎉 Pushed to Production", value: "pushed_to_production" },
+  { label: "✅ Completed", value: "completed" },
 ];
 
 export default function SubmitDailyUpdatePage() {

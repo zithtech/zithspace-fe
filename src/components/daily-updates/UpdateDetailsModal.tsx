@@ -54,6 +54,7 @@ export default function UpdateDetailsModal({ update, open, onClose }: UpdateDeta
       in_testing: { label: 'In Testing', color: 'warning', icon: '🧪' },
       pushed_to_staging: { label: 'Pushed to Staging', color: 'cyan', icon: '🚀' },
       pushed_to_production: { label: 'Pushed to Production', color: 'purple', icon: '🎉' },
+      completed: { label: 'Completed', color: 'success', icon: '✅' },
     };
     return configs[status] || configs.pending;
   };

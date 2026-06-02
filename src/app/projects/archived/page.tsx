@@ -353,7 +353,11 @@ export default function ArchivedTicketsPage() {
     <MainLayout>
       <div className="ar-page">
         {/* Hero */}
-        <div className="ar-hero">
+        <div className="ar-hero" style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+        }}>
           <div className="ar-hero-glow" />
           <div className="ar-hero-inner">
             <div className="ar-hero-left">

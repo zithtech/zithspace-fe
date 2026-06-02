@@ -443,12 +443,12 @@ export default function ProposalsListPage() {
       dataIndex: 'title',
       key: 'title',
       render: (_: string, record: any) => (
-        <Space size="middle" className="prop-cell-title">
+        <Space size="middle" className="prop-cell-title" style={{ whiteSpace: 'nowrap' }}>
           <div className="prop-cell-title__icon">
             <SnippetsOutlined />
           </div>
           <div>
-            <Text strong className="prop-cell-title__name">{resolveTitle(record)}</Text>
+            <Text strong className="prop-cell-title__name" style={{ whiteSpace: 'nowrap' }}>{resolveTitle(record)}</Text>
           </div>
         </Space>
       ),
@@ -458,9 +458,9 @@ export default function ProposalsListPage() {
       dataIndex: 'client_name',
       key: 'client_name',
       render: (text: string) => (
-        <div className="prop-client">
+        <div className="prop-client" style={{ whiteSpace: 'nowrap' }}>
           <div className="prop-client__avatar">{initialsOf(text)}</div>
-          <Text className="prop-client__name">{text || '—'}</Text>
+          <Text className="prop-client__name" style={{ whiteSpace: 'nowrap' }}>{text || '—'}</Text>
         </div>
       ),
     },
@@ -477,10 +477,10 @@ export default function ProposalsListPage() {
       render: (_: any, record: any) => {
         const creator = record.createdBy;
         if (!creator || !creator.name) {
-          return <Text className="prop-creator__missing">—</Text>;
+          return <Text className="prop-creator__missing" style={{ whiteSpace: 'nowrap' }}>—</Text>;
         }
         return (
-          <div className="prop-creator">
+          <div className="prop-creator" style={{ whiteSpace: 'nowrap' }}>
             {creator.avatarUrl ? (
               <img className="prop-creator__avatar" src={creator.avatarUrl} alt={creator.name} />
             ) : (
@@ -488,7 +488,7 @@ export default function ProposalsListPage() {
                 {initialsOf(creator.name)}
               </div>
             )}
-            <Text className="prop-creator__name">{creator.name}</Text>
+            <Text className="prop-creator__name" style={{ whiteSpace: 'nowrap' }}>{creator.name}</Text>
           </div>
         );
       },
@@ -498,7 +498,7 @@ export default function ProposalsListPage() {
       dataIndex: 'created_at',
       key: 'created_at',
       render: (date: string) => (
-        <Text className="prop-time">
+        <Text className="prop-time" style={{ whiteSpace: 'nowrap' }}>
           <ClockCircleOutlined style={{ marginRight: 6, opacity: 0.6 }} />
           {dayjs(date).format('MMM D, YYYY')}
         </Text>
@@ -509,7 +509,7 @@ export default function ProposalsListPage() {
       dataIndex: 'updated_at',
       key: 'updated_at',
       render: (date: string) => (
-        <Text className="prop-time">
+        <Text className="prop-time" style={{ whiteSpace: 'nowrap' }}>
           <ClockCircleOutlined style={{ marginRight: 6, opacity: 0.6 }} />
           {dayjs(date).format('MMM D · h:mm A')}
         </Text>
@@ -558,6 +558,7 @@ export default function ProposalsListPage() {
       key: 'actions',
       align: 'right' as const,
       width: 80,
+      fixed: 'right' as const,
       render: (_: any, record: any) => (
         <Dropdown
           menu={{
@@ -863,6 +864,7 @@ export default function ProposalsListPage() {
                 loading={loading}
                 rowKey="id"
                 size="middle"
+                scroll={{ x: 'max-content' }}
                 pagination={{
                   pageSize: 10,
                   style: { padding: '14px 24px', margin: 0 },
@@ -926,7 +928,49 @@ export default function ProposalsListPage() {
                         <div className="prop-grid-card__icon">
                           <SnippetsOutlined />
                         </div>
-                        {getStatusTag(p.status)}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {getStatusTag(p.status)}
+                          <Dropdown
+                            menu={{
+                              items: [
+                                { key: 'view', label: 'View', icon: <EyeOutlined /> },
+                                { key: 'edit', label: 'Edit', icon: <EditOutlined />, disabled: !canUpdateProposal },
+                                { key: 'download', label: 'Download', icon: <DownloadOutlined />, children: [
+                                  { key: 'pdf', label: 'PDF Document', icon: <FilePdfOutlined style={{ color: '#ef4444' }} /> },
+                                  { key: 'word', label: 'Word Document', icon: <FileWordOutlined style={{ color: '#2563eb' }} /> },
+                                ]},
+                                { type: 'divider' },
+                                { key: 'delete', label: 'Delete', icon: <DeleteOutlined />, danger: true, disabled: !canDeleteProposal },
+                              ],
+                              onClick: ({ key, domEvent }) => {
+                                domEvent.stopPropagation();
+                                if (key === 'view') router.push(`/proposals/${p.id}`);
+                                else if (key === 'edit') router.push(`/proposals/builder?id=${p.id}`);
+                                else if (key === 'pdf') handleExport(p.id, 'pdf');
+                                else if (key === 'word') handleExport(p.id, 'word');
+                                else if (key === 'delete') {
+                                  modal.confirm({
+                                    title: 'Delete Proposal',
+                                    content: 'Are you sure you want to delete this proposal? This action cannot be undone.',
+                                    okText: 'Delete',
+                                    okType: 'danger',
+                                    cancelText: 'Cancel',
+                                    onOk: () => handleDelete(p.id),
+                                  });
+                                }
+                              },
+                            }}
+                            trigger={['click']}
+                            placement="bottomRight"
+                          >
+                            <Button 
+                              type="text" 
+                              className="prop-icon-btn" 
+                              icon={<EllipsisOutlined />} 
+                              onClick={(e) => e.stopPropagation()} 
+                            />
+                          </Dropdown>
+                        </div>
                       </div>
                       <div className="prop-grid-card__title">{resolveTitle(p)}</div>
                       <div className="prop-grid-card__client">

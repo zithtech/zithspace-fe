@@ -12,7 +12,7 @@ import {
   Switch,
   Segmented,
   Popconfirm,
-  notification,
+  message,
   Card,
   Space,
   Row,
@@ -57,7 +57,8 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<any>(null);
   const [editForm] = Form.useForm();
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedProject, setSelectedProject] = useState("all");
@@ -83,22 +84,14 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         values,
       );
       if (data) {
-        notify.success({
-          message: "Contact Added",
-          description: "New contact has been created successfully.",
-          placement: "top",
-        });
+        messageApi.success("Contact added successfully");
         setIsModalOpen(false);
         form.resetFields();
         onRefresh();
       }
     } catch (err) {
       console.error(err);
-      notify.error({
-        message: "Error",
-        description: "Failed to add contact.",
-        placement: "top",
-      });
+      messageApi.error("Failed to add contact");
     } finally {
       setLoading(false);
     }
@@ -125,11 +118,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         values,
       );
       if (data) {
-        notify.success({
-          message: "Contact Updated",
-          description: "Contact details have been updated successfully.",
-          placement: "top",
-        });
+        messageApi.success("Contact updated successfully");
         setIsEditModalOpen(false);
         editForm.resetFields();
         setEditingContact(null);
@@ -137,11 +126,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       }
     } catch (err) {
       console.error(err);
-      notify.error({
-        message: "Update Failed",
-        description: "Failed to update contact details.",
-        placement: "top",
-      });
+      messageApi.error("Failed to update contact details");
     } finally {
       setLoading(false);
     }
@@ -154,20 +139,12 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         status: newStatus,
       });
       if (data) {
-        notify.success({
-          message: "Status Updated",
-          description: `Contact is now ${newStatus}.`,
-          placement: "top",
-        });
+        messageApi.success(`Contact is now ${newStatus}`);
         onRefresh();
       }
     } catch (err) {
       console.error(err);
-      notify.error({
-        message: "Status Update Failed",
-        description: "Failed to change contact status.",
-        placement: "top",
-      });
+      messageApi.error("Failed to change contact status");
     }
   };
 

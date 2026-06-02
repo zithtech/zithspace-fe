@@ -468,6 +468,20 @@ export default function ClientV2DetailsPage() {
     }
   };
 
+  const getGstLabel = () => {
+    const normCountry = client?.country ? String(client.country).trim().toLowerCase() : "";
+    if (normCountry === "india" || normCountry === "in") return "GSTIN";
+    if (normCountry === "us" || normCountry === "usa" || normCountry === "united states" || normCountry === "united states of america") return "Tax ID (EIN/SSN)";
+    return "GST / VAT / Tax ID";
+  };
+
+  const getPanLabel = () => {
+    const normCountry = client?.country ? String(client.country).trim().toLowerCase() : "";
+    if (normCountry === "india" || normCountry === "in") return "PAN";
+    if (normCountry === "us" || normCountry === "usa" || normCountry === "united states" || normCountry === "united states of america") return "Tax ID / EIN";
+    return "PAN / Tax ID";
+  };
+
   useEffect(() => {
     fetchClientDetails();
   }, [tenantId, params.id]);
@@ -475,6 +489,121 @@ export default function ClientV2DetailsPage() {
   const handleUpdateField = async (field: string, value: any) => {
     try {
       if (client[field] === value) return;
+
+      // Validate GST/Tax ID, PAN, and Year of Incorporation if they or country are updated
+      if (field === "gstVatTaxId" || field === "pan" || field === "yearOfIncorporation" || field === "country") {
+        const gstVatTaxId = field === "gstVatTaxId" ? value : client.gstVatTaxId;
+        const pan = field === "pan" ? value : client.pan;
+        const yearOfIncorporation = field === "yearOfIncorporation" ? value : client.yearOfIncorporation;
+        const country = field === "country" ? value : client.country;
+
+        // 1. GST Validation
+        if (gstVatTaxId && gstVatTaxId.trim() !== "") {
+          const val = gstVatTaxId.trim();
+          const normCountry = country ? country.trim().toLowerCase() : "";
+          const isIndia = normCountry === "india" || normCountry === "in";
+          const isUS = normCountry === "us" || normCountry === "usa" || normCountry === "united states" || normCountry === "united states of america";
+
+          const indiaRegex = /^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[1-9A-Za-z]{1}[Zz][0-9A-Za-z]{1}$/;
+          const usEinRegex = /^\d{2}-\d{7}$/;
+          const usSsnRegex = /^\d{3}-\d{2}-\d{4}$/;
+          const usPlainRegex = /^\d{9}$/;
+
+          let validationError: string | null = null;
+          if (isIndia) {
+            if (!indiaRegex.test(val)) {
+              validationError = "Invalid Indian GSTIN format (e.g. 22AAAAA0000A1Z1).";
+            }
+          } else if (isUS) {
+            if (!usEinRegex.test(val) && !usSsnRegex.test(val) && !usPlainRegex.test(val)) {
+              validationError = "Invalid US Tax ID format. Use EIN (XX-XXXXXXX) or SSN (XXX-XX-XXXX).";
+            }
+          } else {
+            const matchesIndia = indiaRegex.test(val);
+            const matchesUS = usEinRegex.test(val) || usSsnRegex.test(val) || usPlainRegex.test(val);
+            if (!matchesIndia && !matchesUS) {
+              validationError = "Must match Indian GSTIN or US Tax ID format.";
+            }
+          }
+
+          if (validationError) {
+            notify.error({
+              message: "Validation Error",
+              description: validationError,
+              placement: "top",
+            });
+            setActiveField(null);
+            return;
+          }
+        }
+
+        // 2. PAN Validation
+        if (pan && pan.trim() !== "") {
+          const val = pan.trim();
+          const normCountry = country ? country.trim().toLowerCase() : "";
+          const isIndia = normCountry === "india" || normCountry === "in";
+          const isUS = normCountry === "us" || normCountry === "usa" || normCountry === "united states" || normCountry === "united states of america";
+
+          const indiaPanRegex = /^[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}$/;
+          const usEinRegex = /^\d{2}-\d{7}$/;
+          const usSsnRegex = /^\d{3}-\d{2}-\d{4}$/;
+          const usPlainRegex = /^\d{9}$/;
+
+          let validationError: string | null = null;
+          if (isIndia) {
+            if (!indiaPanRegex.test(val)) {
+              validationError = "Invalid Indian PAN format (e.g. ABCDE1234F).";
+            }
+          } else if (isUS) {
+            if (!usEinRegex.test(val) && !usSsnRegex.test(val) && !usPlainRegex.test(val)) {
+              validationError = "Invalid US Tax ID format for PAN. Use EIN (XX-XXXXXXX) or SSN (XXX-XX-XXXX).";
+            }
+          } else {
+            const matchesIndia = indiaPanRegex.test(val);
+            const matchesUS = usEinRegex.test(val) || usSsnRegex.test(val) || usPlainRegex.test(val);
+            if (!matchesIndia && !matchesUS) {
+              validationError = "Must match Indian PAN or US Tax ID format.";
+            }
+          }
+
+          if (validationError) {
+            notify.error({
+              message: "Validation Error",
+              description: validationError,
+              placement: "top",
+            });
+            setActiveField(null);
+            return;
+          }
+        }
+
+        // 3. Year of Incorporation Validation
+        if (yearOfIncorporation !== undefined && yearOfIncorporation !== null && String(yearOfIncorporation).trim() !== "") {
+          const valStr = String(yearOfIncorporation).trim();
+          if (!/^\d{4}$/.test(valStr)) {
+            notify.error({
+              message: "Validation Error",
+              description: "Year must be a valid 4-digit number.",
+              placement: "top",
+            });
+            setActiveField(null);
+            return;
+          }
+
+          const yearNum = Number(valStr);
+          const currentYear = new Date().getFullYear();
+          if (yearNum < 1800 || yearNum > currentYear) {
+            notify.error({
+              message: "Validation Error",
+              description: `Year must be between 1800 and ${currentYear}.`,
+              placement: "top",
+            });
+            setActiveField(null);
+            return;
+          }
+        }
+      }
+
       const payload = { [field]: value };
       const updatedClient = await api.put(`/api/clients-v2/${client.id}`, payload);
       if (updatedClient) {
@@ -485,11 +614,12 @@ export default function ClientV2DetailsPage() {
           placement: "top",
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      const serverError = err.response?.data?.error || err.response?.data?.message || "Failed to update the field.";
       notify.error({
         message: "Update failed",
-        description: "Failed to update the field.",
+        description: serverError,
         placement: "top",
       });
       fetchClientDetails();
@@ -955,7 +1085,7 @@ export default function ClientV2DetailsPage() {
                           onToggleEdit={canUpdateClient ? (v) => handleEditModeChange("finance", v) : undefined}
                         >
                           <div className="cd-grid">
-                            <Field label="GST / VAT / Tax ID" icon={FileText}>
+                            <Field label={getGstLabel()} icon={FileText}>
                               <EditableText
                                 value={client.gstVatTaxId}
                                 field="gstVatTaxId"
@@ -966,7 +1096,7 @@ export default function ClientV2DetailsPage() {
                                 isEditMode={editModes.finance}
                               />
                             </Field>
-                            <Field label="PAN (Tax) ID" icon={FileText}>
+                            <Field label={getPanLabel()} icon={FileText}>
                               <EditableText
                                 value={client.pan}
                                 field="pan"

@@ -15,7 +15,7 @@ import {
   Modal,
   Drawer,
   Form,
-  Alert,
+  App,
   Dropdown,
   Row,
   Col,
@@ -23,6 +23,7 @@ import {
   Avatar,
   Badge,
   Skeleton,
+  Segmented,
 } from "antd";
 import {
   PlusOutlined,
@@ -246,6 +247,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
     Form.useWatch("role", form) || selectedMember?.role || "user";
   const workEmail = Form.useWatch("workEmail", form);
   const personalEmail = Form.useWatch("personalEmail", form);
+  const positionType = Form.useWatch("positionType", form) || "grade";
 
   const ROLE_OPTIONS = [
     {
@@ -444,6 +446,21 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             </Select>
           </Form.Item>
 
+          <Form.Item
+            name="positionType"
+            label="Position Specification"
+            initialValue="grade"
+            style={{ marginBottom: 16 }}
+          >
+            <Segmented
+              options={[
+                { label: "Grade-based Position", value: "grade" },
+                { label: "Custom Title", value: "custom" },
+              ]}
+              block
+            />
+          </Form.Item>
+
           <div
             style={{
               display: "grid",
@@ -451,24 +468,34 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               gap: 14,
             }}
           >
-            <Form.Item
-              name="position"
-              label="Position"
-              rules={[{ required: true, message: "Please select position" }]}
-            >
-              <Select
-                placeholder="Select position"
-                loading={positionsLoading}
-                showSearch
-                optionFilterProp="children"
+            {positionType === "grade" ? (
+              <Form.Item
+                name="position"
+                label="Position"
+                rules={[{ required: true, message: "Please select position" }]}
               >
-                {positions.map((position) => (
-                  <Option key={position.id} value={position.id}>
-                    {position.title}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
+                <Select
+                  placeholder="Select position"
+                  loading={positionsLoading}
+                  showSearch
+                  optionFilterProp="children"
+                >
+                  {positions.map((position) => (
+                    <Option key={position.id} value={position.id}>
+                      {position.title}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            ) : (
+              <Form.Item
+                name="positionTitle"
+                label="Position Title"
+                rules={[{ required: true, message: "Please enter position title" }]}
+              >
+                <Input placeholder="e.g. Senior Software Architect" />
+              </Form.Item>
+            )}
 
             <Form.Item name="reportsTo" label="Reports to">
               <Select
@@ -692,8 +719,7 @@ export default function MembersPage() {
 
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const { message: messageApi } = App.useApp();
 
   const [pagination, setPagination] = useState({
     current: 1,
@@ -748,9 +774,9 @@ export default function MembersPage() {
     } catch (error) {
       console.error("Failed to fetch members:", error);
       if (error instanceof ApiError) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError("Failed to fetch members");
+        messageApi.error("Failed to fetch members");
       }
     } finally {
       setLoading(false);
@@ -820,7 +846,8 @@ export default function MembersPage() {
   const handleSubmit = async (values: any) => {
     try {
       setFormLoading(true);
-      setError("");
+
+      const isCustom = values.positionType === "custom";
 
       if (modalType === "edit" && selectedMember) {
         const updatePayload: UpdateMemberData = {
@@ -829,14 +856,15 @@ export default function MembersPage() {
           personalEmail: values.personalEmail,
           workEmail: values.workEmail,
           role: values.role,
-          positionId: values.position,
+          positionId: isCustom ? undefined : values.position,
+          positionTitle: isCustom ? values.positionTitle : undefined,
           reportsToId: values.reportsTo || null,
           isActive: values.isActive !== undefined ? values.isActive : true,
           workDays: values.workDays || [1, 2, 3, 4, 5],
           assignedShiftId: values.assignedShift || null,
         };
         await MembersService.updateMember(selectedMember.id, updatePayload);
-        setSuccess("Member updated successfully");
+        messageApi.success("Member updated successfully");
       } else {
         const createPayload: CreateMemberData = {
           name: values.name,
@@ -844,7 +872,8 @@ export default function MembersPage() {
           personalEmail: values.personalEmail,
           workEmail: values.workEmail,
           role: values.role,
-          positionId: values.position,
+          positionId: isCustom ? undefined : values.position,
+          positionTitle: isCustom ? values.positionTitle : undefined,
           password: "temp123",
           reportsToId: values.reportsTo || null,
           workDays: values.workDays || [1, 2, 3, 4, 5],
@@ -853,7 +882,7 @@ export default function MembersPage() {
           sendEmailTo: values.sendEmailTo || "work",
         };
         await MembersService.createMember(createPayload);
-        setSuccess("Member created successfully");
+        messageApi.success("Member created successfully");
       }
 
       setIsModalVisible(false);
@@ -863,9 +892,9 @@ export default function MembersPage() {
     } catch (error: any) {
       console.error("Failed to submit member form:", error);
       if (error instanceof ApiError) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError("Operation failed");
+        messageApi.error("Operation failed");
       }
     } finally {
       setFormLoading(false);
@@ -878,16 +907,16 @@ export default function MembersPage() {
     try {
       setFormLoading(true);
       await MembersService.deleteMember(selectedMember.id);
-      setSuccess("Member deleted successfully");
+      messageApi.success("Member deleted successfully");
       setIsModalVisible(false);
       setSelectedMember(null);
       fetchMembers();
     } catch (error: any) {
       console.error("Failed to delete member:", error);
       if (error instanceof ApiError) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError("Delete failed");
+        messageApi.error("Delete failed");
       }
     } finally {
       setFormLoading(false);
@@ -899,6 +928,7 @@ export default function MembersPage() {
     form.resetFields();
     form.setFieldsValue({
       sendEmailTo: "work",
+      positionType: "grade",
     });
     setSelectedMember(null);
     setIsModalVisible(true);
@@ -913,7 +943,9 @@ export default function MembersPage() {
       personalEmail: member?.personalEmail,
       workEmail: member?.workEmail,
       role: member?.role,
+      positionType: "grade",
       position: member?.position?.id,
+      positionTitle: member?.position?.title || "",
       reportsTo:
         typeof member.reportsTo === "object"
           ? member?.reportsTo?.id
@@ -1173,15 +1205,7 @@ export default function MembersPage() {
     },
   ];
 
-  useEffect(() => {
-    if (success || error) {
-      const timer = setTimeout(() => {
-        setSuccess("");
-        setError("");
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [success, error]);
+
 
   if (isLoading) {
     return <LoadingSpinner message="Loading members..." />;
@@ -1373,26 +1397,7 @@ export default function MembersPage() {
           </div>
 
           {/* Alerts */}
-          {error && (
-            <Alert
-              message={error}
-              type="error"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
-              onClose={() => setError("")}
-            />
-          )}
-          {success && (
-            <Alert
-              message={success}
-              type="success"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
-              onClose={() => setSuccess("")}
-            />
-          )}
+
 
           {/* Filters + Table */}
           <Card

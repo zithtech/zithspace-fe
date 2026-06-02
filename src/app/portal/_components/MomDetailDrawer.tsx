@@ -28,6 +28,8 @@ import {
   Hash,
   User,
   CalendarRange,
+  Eye,
+  Download,
 } from "lucide-react";
 import AttachmentPreviewDrawer, {
   PreviewAttachment,
@@ -1380,6 +1382,18 @@ const AttachmentsSection: React.FC<{
                   linkLabel: a.linkLabel,
                 })
               }
+              onDownload={() => {
+                const u = resolveAttachmentUrl(a);
+                const filename = a.kind === "file" ? (a.fileName || "download") : (a.linkLabel || "link");
+                if (!u) return;
+                const proxyUrl = `/api/download?url=${encodeURIComponent(u)}&name=${encodeURIComponent(filename)}`;
+                const link = document.createElement("a");
+                link.href = proxyUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
             />
           );
         })}
@@ -1395,7 +1409,8 @@ const AttachmentRow: React.FC<{
   attachment: PortalMomAttachment;
   externalHref: string | null;
   onOpen: () => void;
-}> = ({ attachment, externalHref, onOpen }) => {
+  onDownload?: () => void;
+}> = ({ attachment, externalHref, onOpen, onDownload }) => {
   const [hover, setHover] = useState(false);
   const isFile = attachment.kind === "file";
   const isImage = !!attachment.mimeType?.startsWith("image/");
@@ -1424,6 +1439,7 @@ const AttachmentRow: React.FC<{
       : "";
 
   const rowStyle: React.CSSProperties = {
+    position: "relative",
     display: "flex",
     alignItems: "center",
     gap: 10,
@@ -1431,13 +1447,14 @@ const AttachmentRow: React.FC<{
     background: hover ? "#fafbfc" : T.cardBg,
     border: `1px solid ${hover ? T.borderHover : T.border}`,
     borderRadius: 10,
-    textAlign: "left",
+    textAlign: "left" as const,
     cursor: "pointer",
     width: "100%",
     transition: "background 120ms ease, border-color 120ms ease",
     textDecoration: "none",
     color: "inherit",
-    boxSizing: "border-box",
+    boxSizing: "border-box" as const,
+    overflow: "hidden" as const,
   };
 
   const inner = (
@@ -1486,34 +1503,36 @@ const AttachmentRow: React.FC<{
         </div>
       </div>
       <ExternalLink size={12} color={T.textFaint} />
+      {hover && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(2px)' }}>
+          <div role="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpen(); }} style={{ width: 28, height: 28, border: `1px solid ${T.borderHover}`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.text, cursor: 'pointer', background: T.cardBg, transition: 'background 0.2s', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }} onMouseEnter={(e) => (e.currentTarget.style.background = '#fafbfc')} onMouseLeave={(e) => (e.currentTarget.style.background = T.cardBg)}>
+            <Eye size={13} />
+          </div>
+          {onDownload && (
+            <div role="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDownload(); }} style={{ width: 28, height: 28, border: `1px solid ${T.borderHover}`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.text, cursor: 'pointer', background: T.cardBg, transition: 'background 0.2s', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }} onMouseEnter={(e) => (e.currentTarget.style.background = '#fafbfc')} onMouseLeave={(e) => (e.currentTarget.style.background = T.cardBg)}>
+              <Download size={13} />
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 
-  if (externalHref) {
-    return (
-      <a
-        href={externalHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        style={rowStyle}
-      >
-        {inner}
-      </a>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      onClick={onOpen}
+    <div
+      onClick={(e) => {
+        if (externalHref) {
+          window.open(externalHref, "_blank", "noopener,noreferrer");
+        } else {
+          onOpen();
+        }
+      }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={rowStyle}
     >
       {inner}
-    </button>
+    </div>
   );
 };
 

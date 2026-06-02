@@ -721,6 +721,34 @@ export default function LeadProfilePage() {
                   </div>
                 </section>
 
+                {/* ------- Intelligence summary ------- */}
+                {lead.ai_summary && (
+                  <section className="lv-section" style={{
+                    background: "linear-gradient(135deg, rgba(99, 102, 241, 0.02) 0%, rgba(139, 92, 246, 0.02) 100%)",
+                    border: "1px solid rgba(99, 102, 241, 0.1)"
+                  }}>
+                    <header className="lv-section-head">
+                      <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#8b5cf6" }}>
+                        <Sparkles size={14} />
+                      </div>
+                      <h3 className="lv-section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        Intelligence Summary
+                        <span style={{
+                          padding: "1px 6px", borderRadius: 999, background: "rgba(99, 102, 241, 0.1)",
+                          color: "#6366f1", fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
+                          textTransform: "uppercase", border: "1px solid rgba(99, 102, 241, 0.15)",
+                          marginLeft: 4
+                        }}>AI Distilled</span>
+                      </h3>
+                    </header>
+                    <div className="lv-section-body">
+                      <div className="lv-prose" style={{ color: "var(--text-slate-800)" }}>
+                        {lead.ai_summary}
+                      </div>
+                    </div>
+                  </section>
+                )}
+
                 {/* ------- Skills + Timeline row (60 / 40) ------- */}
                 <div className="lv-row-60-40">
                   <section className="lv-section">

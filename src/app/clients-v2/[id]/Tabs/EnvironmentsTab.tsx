@@ -9,7 +9,7 @@ import {
   Input,
   Select,
   DatePicker,
-  notification,
+  message,
   Popconfirm,
   Empty,
   Tooltip,
@@ -196,14 +196,14 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const load = async () => {
     setLoading(true);
     try {
       setItems(await environmentsService.listForClient(clientId));
     } catch (err: any) {
-      notify.error({ message: "Failed to load environments", description: err?.message });
+      messageApi.error(`Failed to load environments: ${err?.message || ""}`);
     } finally {
       setLoading(false);
     }
@@ -293,7 +293,7 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
         clientId={clientId}
         projects={projects}
         c={c}
-        notify={notify}
+        messageApi={messageApi}
       />
 
       <EnvDetailDrawer
@@ -301,7 +301,7 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
         c={c}
         tones={tones}
         projects={projects}
-        notify={notify}
+        messageApi={messageApi}
         onClose={() => setOpenId(null)}
         onMutated={load}
       />
@@ -744,7 +744,7 @@ function CreateEnvModal({
   clientId,
   projects,
   c,
-  notify,
+  messageApi,
 }: {
   open: boolean;
   onClose: () => void;
@@ -752,7 +752,7 @@ function CreateEnvModal({
   clientId: string;
   projects: { id: string; name: string; code?: string | null }[];
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -788,13 +788,10 @@ function CreateEnvModal({
         notes: values.notes || undefined,
       };
       await environmentsService.create(clientId, payload);
-      notify.success({ message: "Environment added" });
+      messageApi.success("Environment added");
       onCreated();
     } catch (err: any) {
-      notify.error({
-        message: "Could not create environment",
-        description: err?.message,
-      });
+      messageApi.error(`Could not create environment: ${err?.message || ""}`);
     } finally {
       setSubmitting(false);
     }
@@ -1020,7 +1017,7 @@ function EnvDetailDrawer({
   c,
   tones,
   projects,
-  notify,
+  messageApi,
   onClose,
   onMutated,
 }: {
@@ -1028,7 +1025,7 @@ function EnvDetailDrawer({
   c: ReturnType<typeof palette>;
   tones: ReturnType<typeof tonesOf>;
   projects: { id: string; name: string; code?: string | null }[];
-  notify: any;
+  messageApi: any;
   onClose: () => void;
   onMutated: () => void;
 }) {
@@ -1058,7 +1055,7 @@ function EnvDetailDrawer({
         projectId: d.projectId,
       });
     } catch (err: any) {
-      notify.error({ message: "Failed to load", description: err?.message });
+      messageApi.error(`Failed to load: ${err?.message || ""}`);
     } finally {
       setLoading(false);
     }
@@ -1091,12 +1088,12 @@ function EnvDetailDrawer({
         visibility: v.visibility,
         projectId: v.projectId || undefined,
       });
-      notify.success({ message: "Saved" });
+      messageApi.success("Saved");
       setEditing(false);
       load();
       onMutated();
     } catch (err: any) {
-      notify.error({ message: "Save failed", description: err?.message });
+      messageApi.error(`Save failed: ${err?.message || ""}`);
     }
   };
 
@@ -1104,21 +1101,21 @@ function EnvDetailDrawer({
     if (!data) return;
     try {
       await environmentsService.remove(data.id);
-      notify.success({ message: "Environment deleted" });
+      messageApi.success("Environment deleted");
       onClose();
       onMutated();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message || ""}`);
     }
   };
 
   const removeDeploy = async (deploymentId: string) => {
     try {
       await environmentsService.removeDeployment(deploymentId);
-      notify.success({ message: "Deployment removed" });
+      messageApi.success("Deployment removed");
       load();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message || ""}`);
     }
   };
 
@@ -1191,7 +1188,7 @@ function EnvDetailDrawer({
             }}
             envId={data.id}
             c={c}
-            notify={notify}
+            messageApi={messageApi}
           />
         </>
       )}
@@ -1875,14 +1872,14 @@ function LogDeploymentModal({
   onLogged,
   envId,
   c,
-  notify,
+  messageApi,
 }: {
   open: boolean;
   onClose: () => void;
   onLogged: () => void;
   envId: string;
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -1898,7 +1895,7 @@ function LogDeploymentModal({
 
   const submit = async (v: any) => {
     if (!v.version?.trim()) {
-      notify.error({ message: "Version is required" });
+      messageApi.error("Version is required");
       return;
     }
     setSubmitting(true);
@@ -1913,13 +1910,10 @@ function LogDeploymentModal({
         deployedBy: v.deployedBy || undefined,
         changelogExcerpt: v.changelogExcerpt || undefined,
       });
-      notify.success({ message: "Deployment logged" });
+      messageApi.success("Deployment logged");
       onLogged();
     } catch (err: any) {
-      notify.error({
-        message: "Could not log deployment",
-        description: err?.message,
-      });
+      messageApi.error(`Could not log deployment: ${err?.message || ""}`);
     } finally {
       setSubmitting(false);
     }

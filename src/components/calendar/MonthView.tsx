@@ -10,6 +10,7 @@ interface MonthViewProps {
     events: CalendarEvent[];
     onTimeSlotClick?: (date: Dayjs) => void;
     onEventClick: (event: CalendarEvent, occurrenceDate?: Dayjs) => void;
+    onMoreClick?: (date: Dayjs) => void;
 }
 
 const PALETTE_KEYS = [1, 2, 3, 4, 5, 6] as const;
@@ -20,7 +21,7 @@ const colorIndex = (e: CalendarEvent) => {
     return PALETTE_KEYS[hash % PALETTE_KEYS.length];
 };
 
-export default function MonthView({ currentDate, events, onTimeSlotClick, onEventClick }: MonthViewProps) {
+export default function MonthView({ currentDate, events, onTimeSlotClick, onEventClick, onMoreClick }: MonthViewProps) {
     const startOfMonth = currentDate.startOf('month');
     const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
@@ -62,7 +63,7 @@ export default function MonthView({ currentDate, events, onTimeSlotClick, onEven
             <div
                 style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(7, 1fr)',
+                    gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
                     background: 'var(--cal-surface-2)',
                     borderBottom: '1px solid var(--cal-border)',
                 }}
@@ -89,13 +90,13 @@ export default function MonthView({ currentDate, events, onTimeSlotClick, onEven
             </div>
 
             {/* Grid */}
-            <div style={{ display: 'grid', gridTemplateRows: 'repeat(6, 1fr)', flex: 1 }}>
+            <div style={{ display: 'grid', gridTemplateRows: 'repeat(6, 1fr)', flex: 1, overflowY: 'auto', minHeight: 0 }}>
                 {rows.map((row, rowIndex) => (
                     <div
                         key={rowIndex}
                         style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(7, 1fr)',
+                            gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
                             borderBottom: rowIndex < 5 ? '1px solid var(--cal-border-soft)' : 'none',
                             minHeight: 110,
                         }}
@@ -105,7 +106,7 @@ export default function MonthView({ currentDate, events, onTimeSlotClick, onEven
                             const isToday = date.isSame(dayjs(), 'day');
                             const isWeekend = date.day() === 0 || date.day() === 6;
                             const dayEvents = getEventsForDay(date);
-                            const visible = dayEvents.slice(0, 3);
+                            const visible = dayEvents.length > 3 ? dayEvents.slice(0, 2) : dayEvents.slice(0, 3);
                             const overflow = dayEvents.length - visible.length;
 
                             const cellBg = isCurrentMonth
@@ -127,12 +128,17 @@ export default function MonthView({ currentDate, events, onTimeSlotClick, onEven
                                         gap: 4,
                                         position: 'relative',
                                         transition: 'background 0.15s ease',
+                                        overflow: 'hidden',
                                     }}
                                     onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--cal-surface-hover)')}
                                     onMouseLeave={(e) => (e.currentTarget.style.background = cellBg)}
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
                                         <div
+                                            onClick={(ev) => {
+                                                ev.stopPropagation();
+                                                onMoreClick?.(date);
+                                            }}
                                             style={{
                                                 minWidth: 24,
                                                 height: 24,
@@ -148,13 +154,14 @@ export default function MonthView({ currentDate, events, onTimeSlotClick, onEven
                                                 fontSize: 12,
                                                 fontWeight: isToday ? 700 : 600,
                                                 boxShadow: isToday ? '0 2px 6px -1px rgba(79, 70, 229, 0.5)' : 'none',
+                                                cursor: 'pointer',
                                             }}
                                         >
                                             {date.date()}
                                         </div>
-                                        </div>
+                                    </div>
 
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, position: 'relative', zIndex: 2 }}>
                                         {visible.map((e, idx) => {
                                             const start = dayjs(e.startTime);
                                             const occurrenceDate = date
@@ -225,12 +232,19 @@ export default function MonthView({ currentDate, events, onTimeSlotClick, onEven
                                         })}
                                         {overflow > 0 && (
                                             <div
+                                                onClick={(ev) => {
+                                                    ev.stopPropagation();
+                                                    onMoreClick?.(date);
+                                                }}
                                                 style={{
                                                     fontSize: 11,
-                                                    color: 'var(--cal-text-muted)',
-                                                    fontWeight: 600,
+                                                    color: 'var(--cal-brand)',
+                                                    fontWeight: 700,
                                                     padding: '2px 7px',
+                                                    cursor: 'pointer',
                                                 }}
+                                                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                                                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
                                             >
                                                 +{overflow} more
                                             </div>

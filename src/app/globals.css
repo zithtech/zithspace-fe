@@ -3832,7 +3832,7 @@ select:-webkit-autofill:focus {
 
 .sq-primary-btn.ant-btn:hover {
   background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 10px 18px -6px rgba(37, 99, 235, 0.55) !important;
+  box-shadow: none !important;
 }
 
 .sq-primary-btn--lg.ant-btn {
@@ -4428,12 +4428,12 @@ select:-webkit-autofill:focus {
 .sq-card__btn-primary.ant-btn {
   background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
   border: none !important;
-  box-shadow: 0 4px 10px -4px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: none !important;
 }
 
 .sq-card__btn-primary.ant-btn:hover {
   background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 8px 14px -4px rgba(37, 99, 235, 0.55) !important;
+  box-shadow: none !important;
 }
 
 /* ============================================================
@@ -4604,6 +4604,7 @@ select:-webkit-autofill:focus {
 .sq-list-actions .ant-btn:hover {
   background: rgba(59, 130, 246, 0.08) !important;
   color: var(--premium-blue) !important;
+  box-shadow: none !important;
 }
 
 /* Table polish — rows */
@@ -16453,7 +16454,7 @@ select:-webkit-autofill:focus {
 
 .qe-primary-btn.ant-btn:hover {
   background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 10px 18px -6px rgba(37, 99, 235, 0.55) !important;
+  box-shadow: none !important;
 }
 
 /* ---------- Stat grid ---------- */
@@ -17508,7 +17509,7 @@ select:-webkit-autofill:focus {
 
 .es-primary-btn.ant-btn:hover {
   background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  box-shadow: 0 10px 18px -6px rgba(37, 99, 235, 0.55) !important;
+  box-shadow: none !important;
 }
 
 /* ---------- Stat grid ---------- */

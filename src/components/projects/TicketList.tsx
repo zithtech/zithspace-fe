@@ -747,9 +747,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
     if (field === "status") updateData.status = value;
     else if (field === "assignee") {
-      updateData.assignee = value;
+      updateData.assignee = (value === undefined || value === "") ? null : value;
       // Find full member object for seamless optimistic update
-      const member = members.find(m => m.value === value);
+      const member = value ? members.find(m => m.value === value) : null;
       if (member) {
         optimisticData = {
           assignee: {
@@ -757,6 +757,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             name: member.label,
             email: "" // Email might not be in the lightweight members list, empty string satisfies type
           }
+        };
+      } else {
+        optimisticData = {
+          assignee: null
         };
       }
     }
@@ -1031,49 +1035,6 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       },
     },
     {
-      title: "Priority",
-      dataIndex: "priority",
-      key: "priority",
-      width: 100,
-      render: (priority: string, record: Ticket) => {
-        const isEditing =
-          editingField?.ticketId === record.id &&
-          editingField?.field === "priority";
-        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
-
-        if (isEditing) {
-          return (
-            <Select
-              value={priority}
-              style={{ width: "100%" }}
-              onChange={(value) =>
-                handleUpdateTicket(record.id, "priority", value)
-              }
-              onBlur={() => setEditingField(null)}
-              autoFocus
-              loading={isUpdating}
-              options={dbPriorityOptions.length > 0 ? dbPriorityOptions : [
-                { label: "High (P1)", value: "P1" },
-                { label: "Medium (P2)", value: "P2" },
-                { label: "Low (P3)", value: "P3" },
-              ]}
-            />
-          );
-        }
-
-        return (
-          <Tag
-            className={`saas-tag ${getPriorityColorClass(priority)}`}
-            style={{ cursor: canUpdateTicket ? 'pointer' : 'default', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-            onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "priority" })}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'currentColor' }} />
-            {priority}
-          </Tag>
-        );
-      },
-    },
-    {
       title: "Assignee",
       dataIndex: "assignee",
       key: "assignee",
@@ -1095,7 +1056,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         if (isEditing) {
           return (
             <Select
-              value={assigneeId}
+              value={assigneeId || undefined}
               style={{ width: "100%" }}
               onChange={(value) =>
                 handleUpdateTicket(record.id, "assignee", value)
@@ -1104,6 +1065,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               autoFocus
               loading={isUpdating}
               showSearch
+              allowClear
               placeholder="Select assignee"
               filterOption={(input, option) => {
                 const member = members.find((m) => m.value === option?.value);
@@ -1143,6 +1105,49 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             </Avatar>
             <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-700)' }}>{name}</Text>
           </Space>
+        );
+      },
+    },
+    {
+      title: "Priority",
+      dataIndex: "priority",
+      key: "priority",
+      width: 100,
+      render: (priority: string, record: Ticket) => {
+        const isEditing =
+          editingField?.ticketId === record.id &&
+          editingField?.field === "priority";
+        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+
+        if (isEditing) {
+          return (
+            <Select
+              value={priority}
+              style={{ width: "100%" }}
+              onChange={(value) =>
+                handleUpdateTicket(record.id, "priority", value)
+              }
+              onBlur={() => setEditingField(null)}
+              autoFocus
+              loading={isUpdating}
+              options={dbPriorityOptions.length > 0 ? dbPriorityOptions : [
+                { label: "High (P1)", value: "P1" },
+                { label: "Medium (P2)", value: "P2" },
+                { label: "Low (P3)", value: "P3" },
+              ]}
+            />
+          );
+        }
+
+        return (
+          <Tag
+            className={`saas-tag ${getPriorityColorClass(priority)}`}
+            style={{ cursor: canUpdateTicket ? 'pointer' : 'default', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "priority" })}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'currentColor' }} />
+            {priority}
+          </Tag>
         );
       },
     },

@@ -10,7 +10,7 @@ import {
   Select,
   DatePicker,
   InputNumber,
-  notification,
+  message,
   Tooltip,
   Popconfirm,
   Empty,
@@ -40,6 +40,10 @@ import {
   Search,
   LayoutList,
   LayoutGrid,
+  Eye,
+  Download,
+  Image as ImageIcon,
+  FileType2,
 } from "lucide-react";
 import dayjs from "dayjs";
 import {
@@ -189,7 +193,7 @@ export default function MeetingsTab({
   const [createOpen, setCreateOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   // Toolbar state
   const [searchTerm, setSearchTerm] = useState("");
@@ -203,10 +207,7 @@ export default function MeetingsTab({
       const data = await momService.listForClient(clientId);
       setItems(data || []);
     } catch (err: any) {
-      notify.error({
-        message: "Failed to load meetings",
-        description: err?.message,
-      });
+      messageApi.error(`Failed to load meetings: ${err?.message}`);
     } finally {
       setLoading(false);
     }
@@ -239,10 +240,10 @@ export default function MeetingsTab({
   const handleDeleteRow = async (id: string) => {
     try {
       await momService.remove(id);
-      notify.success({ message: "Meeting deleted", placement: "top" });
+      messageApi.success("Meeting deleted");
       load();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message}`);
     }
   };
 
@@ -822,13 +823,13 @@ export default function MeetingsTab({
         projects={projects}
         contacts={contacts}
         c={c}
-        notify={notify}
+        messageApi={messageApi}
       />
       {/* Detail drawer */}
       <MomDetailDrawer
         id={openId}
         c={c}
-        notify={notify}
+        messageApi={messageApi}
         onClose={() => setOpenId(null)}
         onMutated={load}
       />
@@ -1180,7 +1181,7 @@ function CreateMeetingModal({
   projects,
   contacts,
   c,
-  notify,
+  messageApi,
   editingId,
 }: {
   open: boolean;
@@ -1190,7 +1191,7 @@ function CreateMeetingModal({
   projects: { id: string; name: string; code?: string | null }[];
   contacts: ClientContactOption[];
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
   editingId?: string | null;
 }) {
   const isEdit = !!editingId;
@@ -1249,10 +1250,7 @@ function CreateMeetingModal({
           );
         })
         .catch((err: any) => {
-          notify.error({
-            message: "Could not load meeting",
-            description: err?.message,
-          });
+          messageApi.error(`Could not load meeting: ${err?.message}`);
           onClose();
         })
         .finally(() => setLoadingDetail(false));
@@ -1268,7 +1266,7 @@ function CreateMeetingModal({
 
   const submit = async (values: any) => {
     if (!values.title?.trim()) {
-      notify.error({ message: "Title is required" });
+      messageApi.error("Title is required");
       return;
     }
     setSubmitting(true);
@@ -1296,17 +1294,16 @@ function CreateMeetingModal({
       };
       if (isEdit && editingId) {
         await momService.update(editingId, payload);
-        notify.success({ message: "Meeting updated" });
+        messageApi.success("Meeting updated");
       } else {
         await momService.create(clientId, payload);
-        notify.success({ message: "Meeting logged" });
+        messageApi.success("Meeting logged");
       }
       onCreated();
     } catch (err: any) {
-      notify.error({
-        message: isEdit ? "Could not update meeting" : "Could not log meeting",
-        description: err?.message,
-      });
+      messageApi.error(
+        `${isEdit ? "Could not update meeting" : "Could not log meeting"}: ${err?.message}`
+      );
     } finally {
       setSubmitting(false);
     }
@@ -1609,7 +1606,7 @@ function CreateMeetingModal({
             c={c}
             value={attachments}
             onChange={setAttachments}
-            notify={notify}
+            messageApi={messageApi}
           />
         </ModalSection>
       </Form>
@@ -1872,12 +1869,12 @@ function AttachmentsEditor({
   c,
   value,
   onChange,
-  notify,
+  messageApi,
 }: {
   c: ReturnType<typeof palette>;
   value: MomAttachmentInput[];
   onChange: (next: MomAttachmentInput[]) => void;
-  notify: any;
+  messageApi: any;
 }) {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [adding, setAdding] = useState<null | "link">(null);
@@ -1888,7 +1885,7 @@ function AttachmentsEditor({
     if (!files) return;
     Array.from(files).forEach((f) => {
       if (f.size > 25 * 1024 * 1024) {
-        notify.error({ message: `${f.name} exceeds 25 MB` });
+        messageApi.error(`${f.name} exceeds 25 MB`);
         return;
       }
       const reader = new FileReader();
@@ -1923,26 +1920,18 @@ function AttachmentsEditor({
     try {
       const parsed = new URL(candidate);
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        notify.error({
-          message: "Only http(s) links are supported",
-        });
+        messageApi.error("Only http(s) links are supported");
         return;
       }
       // The URL constructor is too lenient — "https://Project Overview"
       // parses successfully because spaces are allowed in the path. Require
       // a hostname with a dot (real TLD) so labels can't masquerade as URLs.
       if (!parsed.hostname.includes(".")) {
-        notify.error({
-          message: "That doesn't look like a valid URL",
-          description: "URL must include a real domain (e.g. example.com)",
-        });
+        messageApi.error("That doesn't look like a valid URL: URL must include a real domain (e.g. example.com)");
         return;
       }
     } catch {
-      notify.error({
-        message: "That doesn't look like a valid URL",
-        description: cleaned,
-      });
+      messageApi.error(`That doesn't look like a valid URL: ${cleaned}`);
       return;
     }
 
@@ -2121,7 +2110,7 @@ function AttachmentsEditor({
           />
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginTop: 2 }}>
             <Button size="small" onClick={() => { setAdding(null); setLinkUrl(""); setLinkLabel(""); }}>Cancel</Button>
-            <Button size="small" type="primary" onClick={addLink} disabled={!linkUrl.trim()} icon={<Plus size={12} />}>Add link</Button>
+            <Button size="small" type="primary" onClick={addLink} disabled={!linkUrl.trim()} icon={<Plus size={12} />}>Save the link</Button>
           </div>
         </div>
       )}
@@ -2252,24 +2241,150 @@ function RepeaterSection<T>({
   );
 }
 
+function AttachmentViewerCard({ a, c, onView, onDownload }: any) {
+  const [hover, setHover] = useState(false);
+  const isFile = a.kind === "file";
+  const isImage = !!a.mimeType?.startsWith("image/");
+  const isPdf = a.mimeType === "application/pdf";
+  const Icon = !isFile
+    ? Link2
+    : isImage
+      ? ImageIcon
+      : isPdf
+        ? FileType2
+        : FileText;
+
+  const name = isFile ? a.fileName || "File" : a.linkLabel || a.linkUrl || "Link";
+  const sub = isFile
+    ? a.mimeType || "file"
+    : a.linkUrl
+      ? (() => {
+          try {
+            return new URL(a.linkUrl).hostname.replace(/^www\./, "");
+          } catch {
+            return "";
+          }
+        })()
+      : "";
+
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '8px 12px',
+        background: hover ? c.surfaceElevated : c.surfaceMuted,
+        border: `1px solid ${hover ? c.borderStrong : c.border}`,
+        borderRadius: 10,
+        textAlign: 'left',
+        cursor: 'pointer',
+        width: '100%',
+        transition: 'background 120ms ease, border-color 120ms ease',
+        textDecoration: 'none',
+        color: 'inherit',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 7,
+          background: isFile ? c.accentBg : c.purpleBg,
+          border: `1px solid ${isFile ? c.accentBorder : c.purpleBorder}`,
+          color: isFile ? c.accentText : c.purpleText,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={13} />
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div
+          style={{
+            fontSize: 12.5,
+            fontWeight: 600,
+            color: c.text,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {name}
+        </div>
+        <div
+          style={{
+            marginTop: 1,
+            fontSize: 10.5,
+            color: c.textSubtle,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontWeight: 500,
+          }}
+        >
+          {sub}
+        </div>
+      </div>
+      <ExternalLink size={12} color={c.textFaint} />
+
+      {hover && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(2px)' }}>
+          <div role="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onView(); }} style={{ width: 28, height: 28, border: `1px solid ${c.borderStrong}`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.text, cursor: 'pointer', background: c.surfaceElevated, transition: 'background 0.2s', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }} onMouseEnter={(e) => (e.currentTarget.style.background = c.surfaceMuted)} onMouseLeave={(e) => (e.currentTarget.style.background = c.surfaceElevated)}>
+            <Eye size={13} />
+          </div>
+          {onDownload && (
+            <div role="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDownload(); }} style={{ width: 28, height: 28, border: `1px solid ${c.borderStrong}`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.text, cursor: 'pointer', background: c.surfaceElevated, transition: 'background 0.2s', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }} onMouseEnter={(e) => (e.currentTarget.style.background = c.surfaceMuted)} onMouseLeave={(e) => (e.currentTarget.style.background = c.surfaceElevated)}>
+              <Download size={13} />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* --------------------------------------------------------------- */
 
 function MomDetailDrawer({
   id,
   c,
-  notify,
+  messageApi,
   onClose,
   onMutated,
 }: {
   id: string | null;
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
   onClose: () => void;
   onMutated: () => void;
 }) {
   const [mom, setMom] = useState<MomDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [convertingId, setConvertingId] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<any>(null);
+
+  const getDocPreview = (url: string | null) => {
+    if (!url) return null;
+    let m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
+    if (m) return { kind: "iframe", src: `https://drive.google.com/file/d/${m[1]}/preview` };
+    m = url.match(/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([^/?#]+)/);
+    if (m) return { kind: "iframe", src: `https://docs.google.com/${m[1]}/d/${m[2]}/preview` };
+    m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?#]+)/);
+    if (m) return { kind: "iframe", src: `https://www.youtube.com/embed/${m[1]}` };
+    if (/\.(png|jpe?g|gif|webp|svg|bmp)(\?|$|#)/i.test(url)) return { kind: "image", src: url };
+    if (/\.(docx?|xlsx?|pptx?)(\?|$|#)/i.test(url)) {
+      return { kind: "iframe", src: `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true` };
+    }
+    return { kind: "iframe", src: url };
+  };
 
   const load = async () => {
     if (!id) return;
@@ -2277,7 +2392,7 @@ function MomDetailDrawer({
     try {
       setMom(await momService.detail(id));
     } catch (err: any) {
-      notify.error({ message: "Failed to load", description: err?.message });
+      messageApi.error(`Failed to load: ${err?.message}`);
     } finally {
       setLoading(false);
     }
@@ -2296,10 +2411,7 @@ function MomDetailDrawer({
       await momService.updateActionItemStatus(itemId, status);
       load();
     } catch (err: any) {
-      notify.error({
-        message: "Update failed",
-        description: err?.message,
-      });
+      messageApi.error(`Update failed: ${err?.message}`);
     }
   };
 
@@ -2311,17 +2423,13 @@ function MomDetailDrawer({
         priority: "medium",
         category: "support",
       });
-      notify.success({
-        message: `Converted to ${r.ticketNumber}`,
-        description: "The action item is now a ticket visible in the client portal.",
-      });
+      messageApi.success(
+        `Converted to ${r.ticketNumber}: The action item is now a ticket visible in the client portal.`
+      );
       load();
       onMutated();
     } catch (err: any) {
-      notify.error({
-        message: "Conversion failed",
-        description: err?.message,
-      });
+      messageApi.error(`Conversion failed: ${err?.message}`);
     } finally {
       setConvertingId(null);
     }
@@ -2331,15 +2439,16 @@ function MomDetailDrawer({
     if (!mom) return;
     try {
       await momService.remove(mom.id);
-      notify.success({ message: "Meeting deleted" });
+      messageApi.success("Meeting deleted");
       onMutated();
       onClose();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message}`);
     }
   };
 
   return (
+    <>
     <Drawer
       open={!!id}
       onClose={onClose}
@@ -2626,45 +2735,25 @@ function MomDetailDrawer({
                   }}
                 >
                   {mom.attachments.map((a) => (
-                    <a
+                    <AttachmentViewerCard
                       key={a.id}
-                      href={a.kind === "file" ? a.fileUrl || "#" : a.linkUrl || "#"}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "5px 11px",
-                        background: c.surfaceMuted,
-                        border: `1px solid ${c.border}`,
-                        borderRadius: 8,
-                        color: c.accentText,
-                        textDecoration: "none",
-                        fontSize: 12.5,
-                        fontWeight: 500,
-                        maxWidth: 280,
+                      a={a}
+                      c={c}
+                      onView={() => setPreviewDoc(a)}
+                      onDownload={async () => {
+                        const url = a.kind === "file" ? a.fileUrl : a.linkUrl;
+                        const filename = a.kind === "file" ? (a.fileName || "download") : "link";
+                        if (!url) return;
+                        // Use the local proxy route to force a direct download without CORS or new tab issues
+                        const proxyUrl = `/api/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename)}`;
+                        const link = document.createElement("a");
+                        link.href = proxyUrl;
+                        link.download = filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
                       }}
-                      title={a.kind === "file" ? a.fileName ?? "" : a.linkUrl ?? ""}
-                    >
-                      {a.kind === "file" ? (
-                        <FileText size={12} />
-                      ) : (
-                        <Link2 size={12} />
-                      )}
-                      <span
-                        style={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {a.kind === "file"
-                          ? a.fileName
-                          : a.linkLabel || a.linkUrl}
-                      </span>
-                      <ExternalLink size={10} />
-                    </a>
+                    />
                   ))}
                 </div>
               </Section>
@@ -2809,6 +2898,40 @@ function MomDetailDrawer({
         </>
       )}
     </Drawer>
+
+    <Drawer
+      placement="left"
+      width={720}
+      open={!!previewDoc}
+      onClose={() => setPreviewDoc(null)}
+      title={previewDoc?.kind === "file" ? previewDoc?.fileName : (previewDoc?.linkLabel || previewDoc?.linkUrl)}
+      styles={{ body: { padding: 0 } }}
+      closeIcon={<X size={16} />}
+    >
+      {previewDoc && (
+        (() => {
+          const url = previewDoc.kind === "file" ? previewDoc.fileUrl : previewDoc.linkUrl;
+          const info = getDocPreview(url);
+          if (!info) return <div style={{ padding: 24, textAlign: 'center' }}>No preview available.</div>;
+          
+          if (info.kind === "image") {
+            return (
+              <div style={{ padding: 24, textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={info.src} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="Preview" />
+              </div>
+            );
+          }
+          return (
+            <iframe
+              src={info.src}
+              style={{ width: "100%", height: "100%", border: "none" }}
+              title="Preview"
+            />
+          );
+        })()
+      )}
+    </Drawer>
+    </>
   );
 }
 

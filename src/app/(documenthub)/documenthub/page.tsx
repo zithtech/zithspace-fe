@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
+import { useTheme } from "@/context/ThemeContext";
 import {
   useUserProjects,
   useUserTicketsByProjects,
@@ -149,6 +150,8 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
   const [searchValue, setSearchValue] = React.useState("");
   const [isEditing, setIsEditing] = React.useState(false);
   const { open: openTicketDrawer } = useTicketDrawer();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const { canUpdateDocument } = usePermission();
   const isOwner = user?.id === record.createdById && canUpdateDocument;
 
@@ -189,14 +192,22 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
         <div className="flex items-center justify-between gap-3 mb-2">
           <span
             className="inline-flex items-center gap-1 font-semibold uppercase"
-            style={{ fontSize: 9.5, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.62)' }}
+            style={{
+              fontSize: 9.5,
+              letterSpacing: '0.08em',
+              color: isDark ? 'rgba(255,255,255,0.62)' : 'var(--text-slate-400, #94a3b8)',
+            }}
           >
             <TagOutlined style={{ fontSize: 10 }} /> Ticket
           </span>
           {record.project?.name && (
             <span
               className="inline-flex items-center gap-1 font-bold px-1.5 py-[1px] rounded-full"
-              style={{ fontSize: 9.5, background: 'rgba(139,92,246,0.22)', color: '#C4B5FD' }}
+              style={{
+                fontSize: 9.5,
+                background: isDark ? 'rgba(139,92,246,0.22)' : 'rgba(139,92,246,0.10)',
+                color: isDark ? '#C4B5FD' : '#7C3AED',
+              }}
             >
               <ProjectOutlined style={{ fontSize: 8 }} />
               {record.project.name}
@@ -205,21 +216,30 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
         </div>
         <div
           className="font-bold tracking-tight mb-1"
-          style={{ fontSize: 14, color: '#7DD3FC', letterSpacing: '-0.01em' }}
+          style={{ fontSize: 14, color: isDark ? '#7DD3FC' : '#0284c7', letterSpacing: '-0.01em' }}
         >
           {record.ticket?.ticketNumber}
         </div>
         <div
           className="font-medium"
-          style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.88)', lineHeight: 1.45 }}
+          style={{
+            fontSize: 11.5,
+            color: isDark ? 'rgba(255,255,255,0.88)' : 'var(--text-slate-700, #334155)',
+            lineHeight: 1.45,
+          }}
         >
           {record.ticket?.title}
         </div>
         <div
           className="mt-2 pt-2 flex items-center justify-between"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.10)', fontSize: 10 }}
+          style={{
+            borderTop: isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid var(--border-slate-200, #e2e8f0)',
+            fontSize: 10,
+          }}
         >
-          <span style={{ color: 'rgba(255,255,255,0.55)' }}>Click number to open · title to change</span>
+          <span style={{ color: isDark ? 'rgba(255,255,255,0.55)' : 'var(--text-slate-400, #94a3b8)' }}>
+            Click number to open · title to change
+          </span>
         </div>
       </div>
     );
@@ -229,11 +249,13 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
         placement="topLeft"
         mouseEnterDelay={0.2}
         overlayInnerStyle={{
-          background: 'rgba(15, 23, 42, 0.96)',
+          background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
           backdropFilter: 'blur(8px)',
           borderRadius: 10,
           padding: '10px 12px',
-          boxShadow: '0 10px 32px rgba(15,23,42,0.28), 0 0 0 1px rgba(255,255,255,0.06)',
+          boxShadow: isDark
+            ? '0 10px 32px rgba(15,23,42,0.28), 0 0 0 1px rgba(255,255,255,0.06)'
+            : '0 10px 32px rgba(15,23,42,0.12), 0 0 0 1px rgba(15,23,42,0.08)',
         }}
       >
         <div
@@ -737,6 +759,8 @@ const HubCard: React.FC<{
 const DocumentHubPage = () => {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const {
     canCreateDocument,
     canReadDocument,
@@ -959,8 +983,9 @@ const DocumentHubPage = () => {
       setModalVisible(false);
       form.resetFields();
       router.push(`/documenthub/${data?.id}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create document hub", error);
+      messageApi.error(error?.message || "This hub name already exists.");
     } finally {
       setIsCreating(false);
     }
@@ -1457,7 +1482,19 @@ const DocumentHubPage = () => {
       key: 'createdAt',
       width: colWidths.createdAt,
       render: (date) => (
-        <Tooltip title={format(new Date(date), "EEEE, MMM d, yyyy h:mm a")}>
+        <Tooltip
+          title={format(new Date(date), "EEEE, MMM d, yyyy h:mm a")}
+          overlayInnerStyle={{
+            background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
+            color: isDark ? 'rgba(255,255,255,0.88)' : 'var(--text-slate-700, #334155)',
+            fontSize: '11.5px',
+            borderRadius: 8,
+            padding: '6px 10px',
+            boxShadow: isDark
+              ? '0 6px 20px rgba(15,23,42,0.22), 0 0 0 1px rgba(255,255,255,0.06)'
+              : '0 6px 20px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)',
+          }}
+        >
           <div className="flex flex-col">
             <span className="text-[12px] font-medium" style={{ color: 'var(--text-slate-700)' }}>
               {format(new Date(date), "MMM d, yyyy")}
@@ -1479,7 +1516,19 @@ const DocumentHubPage = () => {
       width: colWidths.updatedAt,
       defaultSortOrder: 'descend' as const,
       render: (date) => (
-        <Tooltip title={format(new Date(date), "EEEE, MMM d, yyyy h:mm a")}>
+        <Tooltip
+          title={format(new Date(date), "EEEE, MMM d, yyyy h:mm a")}
+          overlayInnerStyle={{
+            background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
+            color: isDark ? 'rgba(255,255,255,0.88)' : 'var(--text-slate-700, #334155)',
+            fontSize: '11.5px',
+            borderRadius: 8,
+            padding: '6px 10px',
+            boxShadow: isDark
+              ? '0 6px 20px rgba(15,23,42,0.22), 0 0 0 1px rgba(255,255,255,0.06)'
+              : '0 6px 20px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)',
+          }}
+        >
           <div className="flex flex-col">
             <span className="text-[12px] font-medium" style={{ color: 'var(--text-slate-700)' }}>
               {format(new Date(date), "MMM d, yyyy")}
@@ -1581,13 +1630,18 @@ const DocumentHubPage = () => {
       return { ...rest, onHeaderCell };
     });
 
-  const handleReload = () => {
+  const handleReload = async () => {
     setSearchText("");
     setFilterProjectId(undefined);
     setFilterTicketId(undefined);
     setSelectedUser(undefined);
     setDateRange(null);
-    refetch();
+    try {
+      await refetch();
+      messageApi.success("Hubs refreshed successfully");
+    } catch {
+      messageApi.error("Failed to refresh hubs");
+    }
   };
 
   const savedViews: { key: SavedView; label: string; icon: React.ReactNode; color: string }[] = [

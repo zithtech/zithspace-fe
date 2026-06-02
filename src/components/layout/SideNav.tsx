@@ -87,15 +87,20 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
 
     const menuItems = mapItemsToMenu(filteredItems);
 
-    // Find the key of the parent that contains the current path
-    const findParentKey = () => {
-        for (const item of filteredItems) {
+    // Find all parent keys of the current path
+    const findParentKeys = (items: any[], currentPath: string): string[] => {
+        for (const item of items) {
+            if (item.path && currentPath.startsWith(item.path)) {
+                return []; // Target found, no parent key at this level
+            }
             if (item.children) {
-                const found = item.children.find((child: any) => child.path === pathname);
-                if (found) return item.key;
+                const childKeys = findParentKeys(item.children, currentPath);
+                if (childKeys !== null) {
+                    return [item.key, ...childKeys];
+                }
             }
         }
-        return undefined;
+        return null as any;
     };
 
     // Handle open keys change (for submenu expansion)
@@ -103,37 +108,59 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
         setOpenKeys(keys);
     };
 
-    // Get selected key based on current pathname
     const getSelectedKey = () => {
-        // Find if current pathname matches any menu item
-        const findKey = (items: any[]): string | undefined => {
+        const findExactKey = (items: any[]): string | undefined => {
             for (const item of items) {
-                if (item.path === pathname) {
-                    return item.key;
-                }
+                if (item.path && pathname === item.path) return item.key;
                 if (item.children) {
-                    const childKey = findKey(item.children);
+                    const childKey = findExactKey(item.children);
                     if (childKey) return childKey;
                 }
             }
             return undefined;
         };
 
-        const selectedKey = findKey(filteredItems);
+        const findStartsWithKey = (items: any[]): string | undefined => {
+            let bestMatch: string | undefined;
+            let maxLen = 0;
+            const search = (nodes: any[]) => {
+                for (const item of nodes) {
+                    if (item.path && pathname.startsWith(item.path) && item.path.length > maxLen) {
+                        bestMatch = item.key;
+                        maxLen = item.path.length;
+                    }
+                    if (item.children) search(item.children);
+                }
+            };
+            search(items);
+            return bestMatch;
+        };
+
+        const selectedKey = findExactKey(filteredItems) || findStartsWithKey(filteredItems);
         return selectedKey ? [selectedKey] : [pathname];
     };
 
     // Update openKeys when pathname changes or collapsed state changes
     useEffect(() => {
         if (!collapsed) {
-            const parentKey = findParentKey();
-            if (parentKey) {
-                setOpenKeys([parentKey]);
+            const keys = findParentKeys(filteredItems, pathname);
+            if (keys && keys.length > 0) {
+                setOpenKeys((prev) => {
+                    const newKeys = [...prev];
+                    let changed = false;
+                    keys.forEach(k => {
+                        if (!newKeys.includes(k)) {
+                            newKeys.push(k);
+                            changed = true;
+                        }
+                    });
+                    return changed ? newKeys : prev;
+                });
             }
         } else {
             setOpenKeys([]); // Close all submenus when collapsed
         }
-    }, [pathname, collapsed]);
+    }, [pathname, collapsed, activeModule]);
 
     return (
         <Sider

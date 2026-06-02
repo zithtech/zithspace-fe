@@ -175,11 +175,16 @@ export default function UpdateTable({
       dataIndex: "submittedAt",
       key: "submittedAt",
       width: 140,
-      render: (time: string | Date) => (
-        <Text style={{ fontSize: 12, color: "var(--text-slate-600)" }}>
-          {dayjs(time).format("MMM D, h:mm A")}
-        </Text>
-      ),
+      render: (time: string | Date, record: TableDataType) => {
+        const isEdited = record.update.updatedAt && record.update.createdAt && dayjs(record.update.updatedAt).diff(dayjs(record.update.createdAt), 'second') > 60;
+        return (
+          <Space direction="vertical" size={0}>
+            <Text style={{ fontSize: 12, color: "var(--text-slate-600)" }}>
+              {dayjs(isEdited ? record.update.updatedAt : time).format("MMM D, h:mm A")}
+            </Text>
+          </Space>
+        );
+      },
     },
     {
       title: "",

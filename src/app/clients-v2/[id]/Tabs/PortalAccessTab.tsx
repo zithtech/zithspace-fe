@@ -8,7 +8,7 @@ import {
   Input,
   Select,
   Popconfirm,
-  notification,
+  message,
   Tooltip,
   Empty,
   Table,
@@ -138,7 +138,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
     tempPassword: string;
     emailSent: boolean;
   } | null>(null);
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const contactOptions = useMemo(() => {
     const taken = new Set(users.map((u) => u.contactId).filter(Boolean));
@@ -176,10 +176,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
       const data = await clientPortalService.listForClient(clientId);
       setUsers(data || []);
     } catch (err: any) {
-      notify.error({
-        message: "Failed to load portal users",
-        description: err?.message,
-      });
+      messageApi.error(`Failed to load portal users: ${err?.message}`);
     } finally {
       setLoading(false);
     }
@@ -230,10 +227,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
       setCredentialDialog(created);
       load();
     } catch (err: any) {
-      notify.error({
-        message: "Could not create portal user",
-        description: err?.message,
-      });
+      messageApi.error(`Could not create portal user: ${err?.message}`);
     } finally {
       setCreating(false);
     }
@@ -245,25 +239,15 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
         await clientPortalService.resetPassword(user.id);
       setResetDialog({ user, tempPassword: temporaryPassword, emailSent });
       if (emailSent) {
-        notify.success({
-          message: "Password reset",
-          description: `New temporary password emailed to ${user.email}.`,
-          placement: "top",
-        });
+        messageApi.success(`Password reset: New temporary password emailed to ${user.email}.`);
       } else {
-        notify.warning({
-          message: "Password reset (email not sent)",
-          description:
-            "Could not send the email. Copy and share the temporary password manually.",
-          placement: "top",
-        });
+        messageApi.warning(
+          "Password reset (email not sent): Could not send the email. Copy and share the temporary password manually."
+        );
       }
       load();
     } catch (err: any) {
-      notify.error({
-        message: "Password reset failed",
-        description: err?.message,
-      });
+      messageApi.error(`Password reset failed: ${err?.message}`);
     }
   };
 
@@ -271,36 +255,29 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
     const next = user.status === "active" ? "disabled" : "active";
     try {
       await clientPortalService.updateStatus(user.id, next);
-      notify.success({
-        message: next === "active" ? "Access enabled" : "Access disabled",
-        placement: "top",
-      });
+      messageApi.success(next === "active" ? "Access enabled" : "Access disabled");
       load();
     } catch (err: any) {
-      notify.error({ message: "Update failed", description: err?.message });
+      messageApi.error(`Update failed: ${err?.message}`);
     }
   };
 
   const handleDelete = async (user: ClientPortalUser) => {
     try {
       await clientPortalService.remove(user.id);
-      notify.success({ message: "Portal user removed", placement: "top" });
+      messageApi.success("Portal user removed");
       load();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message}`);
     }
   };
 
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      notify.success({
-        message: "Copied",
-        placement: "top",
-        duration: 1.5,
-      });
+      messageApi.success("Copied");
     } catch {
-      notify.error({ message: "Copy failed", placement: "top" });
+      messageApi.error("Copy failed");
     }
   };
 
@@ -497,7 +474,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
       </div>
 
       {/* ---------------- Billing customers (gates invoice visibility) ---------------- */}
-      {/* <BillingCustomersCard clientId={clientId} c={c} notify={notify} /> */}
+      {/* <BillingCustomersCard clientId={clientId} c={c} messageApi={messageApi} /> */}
 
       {/* ---------------- Stats strip ---------------- */}
       {users.length > 0 && (
@@ -1693,11 +1670,11 @@ function CredField({
 function BillingCustomersCard({
   clientId,
   c,
-  notify,
+  messageApi,
 }: {
   clientId: string;
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [linked, setLinked] = useState<LinkedCustomer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1713,10 +1690,7 @@ function BillingCustomersCard({
       const data = await clientPortalService.listLinkedCustomers(clientId);
       setLinked(data || []);
     } catch (err: any) {
-      notify.error({
-        message: "Failed to load linked customers",
-        description: err?.message,
-      });
+      messageApi.error(`Failed to load linked customers: ${err?.message}`);
     } finally {
       setLoading(false);
     }
@@ -1736,7 +1710,7 @@ function BillingCustomersCard({
       );
       setAvailable(data || []);
     } catch (err: any) {
-      notify.error({ message: "Search failed", description: err?.message });
+      messageApi.error(`Search failed: ${err?.message}`);
     } finally {
       setSearching(false);
     }
@@ -1753,11 +1727,11 @@ function BillingCustomersCard({
     setLinkingId(customerId);
     try {
       await clientPortalService.linkCustomer(clientId, customerId);
-      notify.success({ message: "Customer linked", placement: "top" });
+      messageApi.success("Customer linked");
       load();
       loadAvailable(search);
     } catch (err: any) {
-      notify.error({ message: "Link failed", description: err?.message });
+      messageApi.error(`Link failed: ${err?.message}`);
     } finally {
       setLinkingId(null);
     }
@@ -1766,10 +1740,10 @@ function BillingCustomersCard({
   const handleUnlink = async (customerId: string) => {
     try {
       await clientPortalService.unlinkCustomer(clientId, customerId);
-      notify.success({ message: "Customer unlinked", placement: "top" });
+      messageApi.success("Customer unlinked");
       load();
     } catch (err: any) {
-      notify.error({ message: "Unlink failed", description: err?.message });
+      messageApi.error(`Unlink failed: ${err?.message}`);
     }
   };
 

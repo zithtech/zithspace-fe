@@ -421,9 +421,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       return;
     }
     try {
+      const finalValue = (value === undefined || value === null) ? null : value;
       await updateTicketMutation.mutateAsync({
         id: currentTicketId,
-        data: { [field]: value }
+        data: { [field]: finalValue }
       });
       const formattedField = field.charAt(0).toUpperCase() + field.slice(1);
       message.success(`${formattedField} updated`);

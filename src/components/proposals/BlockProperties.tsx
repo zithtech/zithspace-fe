@@ -93,24 +93,59 @@ export const BlockProperties = () => {
             </div>
 
             <div className="pb-props__brand-row">
-              <Upload
-                maxCount={1}
-                showUploadList={false}
-                beforeUpload={(file) => {
-                  const reader = new FileReader();
-                  reader.onload = (e) => handleUpdateBranding({ logoUrl: e.target?.result as string });
-                  reader.readAsDataURL(file);
-                  return false;
-                }}
-              >
-                <div className="pb-props__logo">
-                  {coverBlock?.data?.logoUrl ? (
-                    <img src={coverBlock.data.logoUrl} alt="Logo" />
-                  ) : (
-                    <UploadOutlined />
-                  )}
-                </div>
-              </Upload>
+              <div style={{ position: 'relative' }}>
+                <Upload
+                  maxCount={1}
+                  showUploadList={false}
+                  beforeUpload={(file) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => handleUpdateBranding({ logoUrl: e.target?.result as string });
+                    reader.readAsDataURL(file);
+                    return false;
+                  }}
+                >
+                  <div className="pb-props__logo">
+                    {coverBlock?.data?.logoUrl ? (
+                      <img src={coverBlock.data.logoUrl} alt="Logo" />
+                    ) : (
+                      <UploadOutlined />
+                    )}
+                  </div>
+                </Upload>
+                {coverBlock?.data?.logoUrl && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUpdateBranding({ logoUrl: null });
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: -6,
+                      right: -6,
+                      width: 18,
+                      height: 18,
+                      borderRadius: '50%',
+                      background: '#ef4444',
+                      color: '#fff',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 'bold',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      padding: 0,
+                      lineHeight: 1,
+                      zIndex: 10,
+                    }}
+                    title="Remove Logo"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
               <div className="pb-props__brand-org">
                 <SectionLabel>Organization</SectionLabel>
                 <Input

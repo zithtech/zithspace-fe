@@ -14,11 +14,11 @@ import {
   Row,
   Col,
   Switch,
-  notification,
   Tooltip,
   Spin,
   Drawer,
   App,
+  Popconfirm,
 } from "antd";
 import {
   ShieldCheck,
@@ -31,6 +31,7 @@ import {
   Tag as TagIcon,
   Hash,
   Settings,
+  Trash2,
 } from "lucide-react";
 import { useGrades, GradeViewData } from "@/hooks/useGrades";
 import { useRouter } from "next/navigation";
@@ -44,7 +45,7 @@ const { Text } = Typography;
 export default function GradesPage() {
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
-  const { canReadOrgGrade, canCreateOrgGrade, canUpdateOrgGrade } = usePermission();
+  const { canReadOrgGrade, canCreateOrgGrade, canUpdateOrgGrade, canDeleteOrgGrade } = usePermission();
 
   useEffect(() => {
     if (!authLoading && !canReadOrgGrade) {
@@ -57,10 +58,9 @@ export default function GradesPage() {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
-  // const [api, contextHolder] = notification.useNotification();
   const { message } = App.useApp();
 
-  const { dataSource, loading, addGrade, updateGrade } = useGrades();
+  const { dataSource, loading, addGrade, updateGrade, deleteGrade } = useGrades();
 
   const totalGrades = dataSource.length;
   const activeGrades = dataSource.filter((g) => g.status === "Active").length;
@@ -114,6 +114,13 @@ export default function GradesPage() {
     setIsDrawerOpen(true);
   };
 
+  const handleDelete = async (id: string) => {
+    const success = await deleteGrade(id);
+    if (success) {
+      message.success("Grade removed successfully");
+    }
+  };
+
   const handleSave = async () => {
     try {
       const formValues = await form.validateFields();
@@ -140,7 +147,7 @@ export default function GradesPage() {
         name: formValues.name,
         code: formValues.code,
         codes: formValues.codes,
-        levelOrder: formValues.levelOrder,
+        levelOrder: formValues.levelOrder ?? (editingKey ? (dataSource.find((g) => g.key === editingKey)?.levelOrder ?? 999) : (dataSource.length + 1)),
         description: formValues.description,
         isActive: !!formValues.status,
       };
@@ -195,6 +202,7 @@ export default function GradesPage() {
         </div>
       ),
     },
+    /*
     {
       title: "Hierarchy Level",
       dataIndex: "levelOrder",
@@ -208,6 +216,7 @@ export default function GradesPage() {
         </span>
       ),
     },
+    */
     {
       title: "Description",
       dataIndex: "description",
@@ -235,15 +244,30 @@ export default function GradesPage() {
       title: "",
       key: "actions",
       align: "right" as const,
-      width: 80,
-      render: (_: any, record: GradeViewData) =>
-        canUpdateOrgGrade && (
-          <div className="orgx-row-actions">
+      width: 100,
+      render: (_: any, record: GradeViewData) => (
+        <div className="orgx-row-actions">
+          {canUpdateOrgGrade && (
             <Tooltip title="Edit Grade">
               <Button type="text" size="small" icon={<Edit size={15} />} onClick={() => handleEdit(record)} />
             </Tooltip>
-          </div>
-        ),
+          )}
+          {canDeleteOrgGrade && (
+            <Popconfirm
+              title="Remove grade?"
+              description="This will permanently delete this grade level."
+              onConfirm={() => handleDelete(record.key)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="Delete">
+                <Button type="text" size="small" danger icon={<Trash2 size={15} />} />
+              </Tooltip>
+            </Popconfirm>
+          )}
+        </div>
+      ),
     },
   ];
 
@@ -312,6 +336,7 @@ export default function GradesPage() {
                 subtle="Retired or paused"
                 loading={loading && totalGrades === 0}
               />
+              {/*
               <OrgStatCard
                 label="Top Tier"
                 value={`L${maxLevel}`}
@@ -320,6 +345,7 @@ export default function GradesPage() {
                 subtle="Highest level reached"
                 loading={loading && totalGrades === 0}
               />
+              */}
             </div>
 
             {/* Panel */}
@@ -441,6 +467,7 @@ export default function GradesPage() {
                   </Row>
                 </div>
 
+                {/*
                 <div className="orgx-section">
                   <div className="orgx-section__title">
                     <Hash size={11} /> Hierarchy
@@ -454,6 +481,7 @@ export default function GradesPage() {
                     <InputNumber min={1} placeholder="1" />
                   </Form.Item>
                 </div>
+                */}
 
                 <div className="orgx-section">
                   <div className="orgx-section__title">

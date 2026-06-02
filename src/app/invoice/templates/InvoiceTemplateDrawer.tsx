@@ -8,7 +8,7 @@ import {
   Switch,
   Popconfirm,
   Spin,
-  message,
+  App,
 } from 'antd';
 import {
   useCreateInvoiceTemplate,
@@ -60,7 +60,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
     visible && !!templateId
   );
 
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
 
   const createMutation = useCreateInvoiceTemplate();
   const updateMutation = useUpdateInvoiceTemplate();
@@ -203,7 +203,6 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
         </div>
       }
     >
-      {contextHolder}
       {/* HEADER */}
       <div
         className="sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"

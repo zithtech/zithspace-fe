@@ -905,38 +905,12 @@ function groupBugs(bugs: BugListItem[], key: GroupKey) {
 }
 
 function buildSingleBugDescription(b: BugListItem): string {
-  const lines: string[] = [];
-  if (b.description) lines.push(b.description);
-  if (b.attachments && b.attachments.length > 0) {
-    lines.push(
-      `_Attachments:_ ${b.attachments.map((a) => a.fileName).join(", ")}`,
-    );
-  }
-  if (b.externalLinks && b.externalLinks.length > 0) {
-    lines.push(
-      `_Links:_ ${b.externalLinks.map((l) => l.label || l.url).join(", ")}`,
-    );
-  }
-  return lines.join("\n\n");
+  return b.description || "";
 }
 
 function buildDescription(bugs: BugListItem[]): string {
   return bugs
-    .map((b) => {
-      const lines: string[] = [];
-      if (b.description) lines.push(b.description);
-      if (b.attachments && b.attachments.length > 0) {
-        lines.push(
-          `_Attachments:_ ${b.attachments.map((a) => a.fileName).join(", ")}`,
-        );
-      }
-      if (b.externalLinks && b.externalLinks.length > 0) {
-        lines.push(
-          `_Links:_ ${b.externalLinks.map((l) => l.label || l.url).join(", ")}`,
-        );
-      }
-      return lines.join("\n");
-    })
+    .map((b) => b.description || "")
     .filter((s) => s.trim().length > 0)
     .join("\n\n---\n\n");
 }

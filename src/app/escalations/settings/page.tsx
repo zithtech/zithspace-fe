@@ -927,7 +927,7 @@ export default function EscalationSettingsPage() {
           description="Manage the master data: categories, priorities, and lifecycle statuses."
           style={{
             borderBottom: '1px solid var(--border-slate-200)',
-            padding: '8.5px 32px',
+            padding: '9.5px 32px',
             marginBottom: 20,
           }}
           extra={

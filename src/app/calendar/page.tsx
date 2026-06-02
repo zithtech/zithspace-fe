@@ -309,6 +309,10 @@ function CalendarPageContent() {
                                             events={filteredEvents.filter(e => selectedCalendars.includes(e.calendar || 'Personal Calendar'))}
                                             onEventClick={handleEventClick}
                                             onTimeSlotClick={canCreateCalendar ? handleDayClick : undefined}
+                                            onMoreClick={(date) => {
+                                                setCurrentDate(date);
+                                                setView('day');
+                                            }}
                                         />
                                     )}
                                     {view === 'week' && (
@@ -351,10 +355,14 @@ function CalendarPageContent() {
 
             <EventFormDrawer
                 open={showFormDrawer}
-                onClose={() => setShowFormDrawer(false)}
+                onClose={() => {
+                    setShowFormDrawer(false);
+                    setSelectedEvent(null);
+                }}
                 onSave={handleSaveEvent}
                 onDelete={selectedEvent ? handleDeleteEvent : undefined}
-                 initialDate={initialDateForModal}
+                editEvent={selectedEvent}
+                initialDate={initialDateForModal}
                 loading={loading}
                 error={error}
                 canSave={selectedEvent ? canUpdateCalendar : canCreateCalendar}
@@ -364,8 +372,11 @@ function CalendarPageContent() {
             <EventDrawer
                 event={selectedEvent}
                 open={showDrawer}
-                onClose={() => setShowDrawer(false)}
-                 onEdit={handleEditFromDrawer}
+                onClose={() => {
+                    setShowDrawer(false);
+                    setSelectedEvent(null);
+                }}
+                onEdit={handleEditFromDrawer}
                 onDelete={handleDeleteFromDrawer}
                 loading={loading}
                 canEdit={canUpdateCalendar}

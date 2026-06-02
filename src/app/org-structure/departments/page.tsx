@@ -13,6 +13,7 @@ import {
   Tooltip,
   Switch,
   Drawer,
+  Popconfirm,
 } from "antd";
 import {
   Building2,
@@ -26,6 +27,7 @@ import {
   Tag as TagIcon,
   Settings,
   Users as UsersIcon,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -48,6 +50,7 @@ export default function DepartmentsPage() {
     canReadOrgDepartment,
     canCreateOrgDepartment,
     canUpdateOrgDepartment,
+    canDeleteOrgDepartment,
   } = usePermission();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -59,7 +62,7 @@ export default function DepartmentsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const { employmentTypes, loading: employmentTypesLoading } = useEmploymentTypes();
-  const { departments, loading, createDepartment, updateDepartment } = useDepartments();
+  const { departments, loading, createDepartment, updateDepartment, deleteDepartment } = useDepartments();
   const [members, setMembers] = useState<any[]>([]);
 
   useEffect(() => {
@@ -79,6 +82,21 @@ export default function DepartmentsPage() {
       router.push("/dashboard");
     }
   }, [authLoading, canReadOrgDepartment, router]);
+
+  const filteredData = useMemo(() => {
+    return departments.filter((item) => {
+      const q = searchText.toLowerCase();
+      const matchesSearch =
+        !searchText.trim() ||
+        item.code.toLowerCase().includes(q) ||
+        item.name.toLowerCase().includes(q) ||
+        (item.employmentType || "").toLowerCase().includes(q) ||
+        (item.description || "").toLowerCase().includes(q);
+      const matchesStatus =
+        !statusFilter || (statusFilter === "active" ? item.isActive : !item.isActive);
+      return matchesSearch && matchesStatus;
+    });
+  }, [departments, searchText, statusFilter]);
 
   if (authLoading) {
     return (
@@ -118,6 +136,18 @@ export default function DepartmentsPage() {
     setIsDrawerOpen(true);
   };
 
+  const handleDelete = async (id: string) => {
+    const success = await deleteDepartment(id);
+    if (success) {
+      api.success({
+        message: "Department Removed",
+        description: "The department has been successfully deleted.",
+        placement: "topRight",
+        duration: 2,
+      });
+    }
+  };
+
   const handleSave = async () => {
     try {
       const formValues = await form.validateFields();
@@ -148,21 +178,6 @@ export default function DepartmentsPage() {
       setSubmitting(false);
     }
   };
-
-  const filteredData = useMemo(() => {
-    return departments.filter((item) => {
-      const q = searchText.toLowerCase();
-      const matchesSearch =
-        !searchText.trim() ||
-        item.code.toLowerCase().includes(q) ||
-        item.name.toLowerCase().includes(q) ||
-        (item.employmentType || "").toLowerCase().includes(q) ||
-        (item.description || "").toLowerCase().includes(q);
-      const matchesStatus =
-        !statusFilter || (statusFilter === "active" ? item.isActive : !item.isActive);
-      return matchesSearch && matchesStatus;
-    });
-  }, [departments, searchText, statusFilter]);
 
   const columns = [
     {
@@ -220,15 +235,30 @@ export default function DepartmentsPage() {
       title: "",
       key: "actions",
       align: "right" as const,
-      width: 80,
-      render: (_: any, record: Department) =>
-        canUpdateOrgDepartment && (
-          <div className="orgx-row-actions">
+      width: 100,
+      render: (_: any, record: Department) => (
+        <div className="orgx-row-actions">
+          {canUpdateOrgDepartment && (
             <Tooltip title="Edit Department">
               <Button type="text" size="small" icon={<Edit size={15} />} onClick={() => handleEdit(record)} />
             </Tooltip>
-          </div>
-        ),
+          )}
+          {canDeleteOrgDepartment && (
+            <Popconfirm
+              title="Remove department?"
+              description="This will permanently delete this department."
+              onConfirm={() => handleDelete(record.id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="Delete">
+                <Button type="text" size="small" danger icon={<Trash2 size={15} />} />
+              </Tooltip>
+            </Popconfirm>
+          )}
+        </div>
+      ),
     },
   ];
 

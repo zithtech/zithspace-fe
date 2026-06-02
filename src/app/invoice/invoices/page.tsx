@@ -24,7 +24,7 @@ import {
   Popover,
   Drawer,
   Spin,
-  message,
+  App,
   Menu,
   Progress,
   Timeline,
@@ -158,7 +158,7 @@ const getStatusIcon = (status: InvoiceStatus) => {
 
 export default function InvoiceInvoicesPage() {
   const router = useRouter();
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
   const {
     canReadInvoice,
     canCreateInvoice,
@@ -337,7 +337,7 @@ export default function InvoiceInvoicesPage() {
       return;
     }
 
-    const hide = message.loading(`Sending invoice ${record.invoiceNumber}...`, 0);
+    const hide = messageApi.loading(`Sending invoice ${record.invoiceNumber}...`, 0);
 
     sendEmail({
       id: record.id,
@@ -1169,7 +1169,7 @@ export default function InvoiceInvoicesPage() {
 
   return (
     <MainLayout>
-      {contextHolder}
+
       <div style={{
         margin: "0 -24px",
         background: "var(--customers-page-bg)",
@@ -1203,18 +1203,18 @@ export default function InvoiceInvoicesPage() {
                 Invoices
               </span>
               <span
-                className="h-4 w-px"
+                className="h-4 w-px hidden sm:inline"
                 style={{ background: "var(--border-color)" }}
               />
               <span
-                className="text-[12px]"
+                className="text-[12px] hidden sm:inline truncate"
                 style={{ color: "var(--text-secondary)" }}
               >
                 Manage, track payments, and monitor invoice statuses
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Input
                 placeholder="Search invoices..."
                 allowClear
@@ -1226,8 +1226,8 @@ export default function InvoiceInvoicesPage() {
                 }
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
+                className="w-[130px] sm:w-[180px] md:w-[280px]"
                 style={{
-                  width: 280,
                   height: 36,
                   borderRadius: 8,
                   background: "var(--bg-secondary)",
@@ -1243,7 +1243,7 @@ export default function InvoiceInvoicesPage() {
                     fontWeight: 600,
                   }}
                 >
-                  Filter
+                  <span className="hidden sm:inline">Filter</span>
                 </Button>
               </Popover>
               {canCreateInvoice && (
@@ -1258,7 +1258,8 @@ export default function InvoiceInvoicesPage() {
                     background: "#2563eb",
                   }}
                 >
-                  New invoice
+                  <span className="hidden sm:inline">New invoice</span>
+                  <span className="inline sm:hidden">New</span>
                 </Button>
               )}
             </div>
@@ -1575,7 +1576,7 @@ export default function InvoiceInvoicesPage() {
             <Text strong>Are you sure you want to move {selectedInvoices.length} selected invoice(s) to trash?</Text>
           </div>
 
-          <div className="mb-4 max-h-60 overflow-y-auto border rounded p-2">
+          <div className="mb-4 max-h-60 overflow-y-auto rounded p-2" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
             <ul className="list-disc pl-4">
               {selectedInvoices.slice(0, 10).map((inv, index) => (
                 <li key={inv.id} className="text-sm mb-1">
@@ -1587,7 +1588,7 @@ export default function InvoiceInvoicesPage() {
                 </li>
               ))}
               {selectedInvoices.length > 10 && (
-                <li className="text-sm text-gray-500">
+                <li className="text-sm" style={{ color: "var(--text-secondary)" }}>
                   ...and {selectedInvoices.length - 10} more
                 </li>
               )}
@@ -1684,7 +1685,7 @@ export default function InvoiceInvoicesPage() {
               <AlertCircle size={20} className="text-yellow-500 mr-2" />
               <Text strong>Are you sure you want to move this invoice to trash?</Text>
             </div>
-            <div className="mb-4 p-3 bg-gray-50 rounded">
+            <div className="mb-4 p-3 rounded" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Text type="secondary" className="block text-sm">Invoice Number</Text>

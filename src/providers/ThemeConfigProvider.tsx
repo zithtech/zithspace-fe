@@ -88,6 +88,10 @@ const ThemeConfigProvider: React.FC<{ children: React.ReactNode }> = ({
             borderRadiusLG: 16,
             headerBg: theme === "dark" ? "#131B2D" : "#ffffff",
           },
+          Tooltip: {
+            colorBgSpotlight: theme === "dark" ? "rgba(15, 23, 42, 0.96)" : "#ffffff",
+            colorTextLightSolid: theme === "dark" ? "#F1F5F9" : "#1E293B",
+          },
         },
       }}
     >

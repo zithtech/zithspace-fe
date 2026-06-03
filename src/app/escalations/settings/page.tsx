@@ -11,7 +11,7 @@ import {
   Input,
   Row,
   Col,
-  notification,
+  App,
   Popconfirm,
   Tooltip,
   ColorPicker,
@@ -31,7 +31,6 @@ import {
   UpSquareOutlined,
   CheckSquareOutlined,
   CheckCircleFilled,
-  CloseCircleFilled,
   CloseOutlined,
   InfoCircleOutlined,
   TagsOutlined,
@@ -51,6 +50,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import { EscalationSettingsService } from '@/services/escalationSettings';
 import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
+import { useActivitySource } from '@/hooks/useActivitySource';
 
 const { Text } = Typography;
 
@@ -523,6 +523,7 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
 /* -------------------------------------------------------------------------- */
 
 export default function EscalationSettingsPage() {
+  useActivitySource({ section: "WORK", module: "Escalations", page: "EscalationSettings" });
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const { canManageEscalations } = usePermission();
@@ -538,22 +539,14 @@ export default function EscalationSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
 
-  const [notify, contextHolder] = notification.useNotification();
+  const { message } = App.useApp();
 
   const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
-    notify[type]({
-      message: <span className="premium-notif-title">{title}</span>,
-      description: <span className="premium-notif-desc">{description}</span>,
-      icon:
-        type === 'success' ? (
-          <CheckCircleFilled style={{ color: '#10B981' }} />
-        ) : (
-          <CloseCircleFilled style={{ color: '#EF4444' }} />
-        ),
-      className: 'premium-notification',
-      placement: 'topRight',
-      duration: 4,
-    });
+    if (type === 'success') {
+      message.success(`${title} - ${description}`);
+    } else {
+      message.error(`${title} - ${description}`);
+    }
   };
 
   /* ----------------------------- Fetchers ---------------------------------- */
@@ -929,7 +922,6 @@ export default function EscalationSettingsPage() {
 
   return (
     <MainLayout>
-      {contextHolder}
       <div className="es-shell">
         <TimeTrackingHeader
           icon={<SettingOutlined style={{ fontSize: 20, color: BLUE_PRIMARY }} />}

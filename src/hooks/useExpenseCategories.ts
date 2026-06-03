@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { message } from 'antd';
+import { App } from 'antd';
 import ExpenseCategoryService, { Category, CreateCategoryData, UpdateCategoryData } from '@/services/expenseCategoryService';
 
 // Get all categories
 export function useExpenseCategories() {
+  const { message } = App.useApp();
   const query = useQuery({
     queryKey: ['expense-categories'],
     queryFn: async () => {
@@ -34,6 +35,7 @@ export function useExpenseCategories() {
 // Create category
 export function useCreateExpenseCategory() {
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
   
   return useMutation({
     mutationFn: (data: CreateCategoryData) => ExpenseCategoryService.createCategory(data),
@@ -50,6 +52,7 @@ export function useCreateExpenseCategory() {
 // Update category
 export function useUpdateExpenseCategory() {
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
   
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateCategoryData }) => 
@@ -67,6 +70,7 @@ export function useUpdateExpenseCategory() {
 // Delete category
 export function useDeleteExpenseCategory() {
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
   
   return useMutation({
     mutationFn: (id: string) => ExpenseCategoryService.deleteCategory(id),

@@ -421,6 +421,7 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
               projectId: defaultProjectId,
               ticketId: defaultTicketId,
               visibility: 'public',
+              source: 'ai',
             })
           ).id;
 
@@ -472,6 +473,7 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
           documentHubId: targetHubId,
           type: "file",
           title: firstFileTitle,
+          source: "ai",
         });
         targetDocId = fileNode.documentId;
         targetNodeId = fileNode.id;
@@ -491,6 +493,7 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
             documentHubId: targetHubId,
             type: "file",
             title: firstFileTitle,
+            source: "ai",
           });
           targetDocId = fileNode.documentId;
           targetNodeId = fileNode.id;

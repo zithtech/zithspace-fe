@@ -7,9 +7,10 @@ import { useRouter } from "next/navigation";
 
 interface TicketDetailsHeaderProps {
   onBack?: () => void;
+  rightContent?: React.ReactNode;
 }
 
-export default function TicketDetailsHeader({ onBack }: TicketDetailsHeaderProps) {
+export default function TicketDetailsHeader({ onBack, rightContent }: TicketDetailsHeaderProps) {
   const router = useRouter();
 
   const handleBack = () => {
@@ -29,6 +30,7 @@ export default function TicketDetailsHeader({ onBack }: TicketDetailsHeaderProps
           </Button>
         </Space>
       </Col>
+      {rightContent && <Col>{rightContent}</Col>}
     </Row>
   );
 }

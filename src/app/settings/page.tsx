@@ -66,6 +66,7 @@ import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile, UploadProps } from 'antd';
 import dayjs from 'dayjs';
+import { useActivitySource } from '@/hooks/useActivitySource';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -81,6 +82,7 @@ interface ShiftFormData {
 }
 
 export default function SettingsPage() {
+  useActivitySource({ section: "ADMIN", module: "GeneralSettings", page: "GeneralSettingsView" });
   const { token } = theme.useToken();
   const { user, isLoading: authLoading, updateUser } = useAuth();
 

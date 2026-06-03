@@ -49,6 +49,7 @@ import {
   useUpdateCustomer,
   useDeleteCustomer,
 } from "@/hooks/use-customers";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title, Text } = Typography;
 
@@ -90,6 +91,9 @@ export default function InvoiceproCustomerPage() {
       router.push("/invoice/invoices");
     }
   }, [authLoading, canReadInvoiceCustomer, router]);
+
+  // Register UX context for activity logging
+  useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceCustomerList" });
 
   const counts = useMemo(() => {
     const all = customers.length;

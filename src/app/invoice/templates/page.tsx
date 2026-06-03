@@ -11,7 +11,7 @@ import {
   Dropdown,
   Modal,
   Table,
-  message,
+  App,
 } from "antd";
 import type { MenuProps } from "antd";
 import {
@@ -41,6 +41,7 @@ import InvoiceTemplateDrawer from "./InvoiceTemplateDrawer";
 import { InvoiceTemplate } from "@/services/invoiceTemplateService";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title, Text } = Typography;
 
@@ -54,7 +55,7 @@ export default function InvoiceTemplatePage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<InvoiceTemplate | null>(null);
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
   const router = useRouter();
   const {
     canReadInvoiceTemplate,
@@ -70,6 +71,9 @@ export default function InvoiceTemplatePage() {
       router.push("/invoice/invoices");
     }
   }, [authLoading, canReadInvoiceTemplate, router]);
+
+  // Register UX context for activity logging
+  useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceTemplateList" });
 
   const { data: templates, isLoading } = useInvoiceTemplates();
   const deleteMutation = useDeleteInvoiceTemplate();
@@ -336,7 +340,6 @@ export default function InvoiceTemplatePage() {
 
   return (
     <MainLayout>
-      {contextHolder}
       <div
         style={{
           margin: "0 -24px",

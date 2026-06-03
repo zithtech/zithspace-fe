@@ -15,8 +15,10 @@ import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { Result } from "antd";
 import { useRouter } from "next/navigation";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 export default function MyTimePage() {
+  useActivitySource({ section: "WORK", module: "TimeTracking", page: "TimeTrackingMy" });
   const { setPopoverOpen } = useTimeTrackerStore();
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [, setTotalSeconds] = useState(0);

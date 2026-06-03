@@ -34,12 +34,14 @@ import LeadService, { Lead } from "@/services/leadService";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useRouter } from "next/navigation";
+import { useActivitySource } from "@/hooks/useActivitySource";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 dayjs.extend(relativeTime);
 
 const { Text } = Typography;
 export default function LeadsTrashPage() {
+  useActivitySource({ section: "WORK", module: "Leads", page: "LeadsTrash" });
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const { message } = App.useApp();

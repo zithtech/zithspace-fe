@@ -7,7 +7,7 @@ import {
   Form,
   Input,
   Select,
-  notification,
+  message,
   Empty,
   Tooltip,
   Table,
@@ -176,7 +176,7 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "card">("list");
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const load = async () => {
     setLoading(true);
@@ -189,7 +189,7 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
       });
       setItems(data);
     } catch (err: any) {
-      notify.error({ message: "Failed to load tickets", description: err?.message });
+      messageApi.error(`Failed to load tickets: ${err?.message || ""}`);
     } finally {
       setLoading(false);
     }
@@ -587,7 +587,7 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
           load();
         }}
         c={c}
-        notify={notify}
+        messageApi={messageApi}
       />
 
       <TicketDetailDrawer
@@ -596,7 +596,7 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
         onChanged={load}
         c={c}
         tones={tones}
-        notify={notify}
+        messageApi={messageApi}
       />
 
       {/* Premium adaptive header styling */}
@@ -1182,7 +1182,7 @@ function CreateTicketModal({
   onClose,
   onCreated,
   c,
-  notify,
+  messageApi,
 }: {
   open: boolean;
   clientId: string;
@@ -1190,7 +1190,7 @@ function CreateTicketModal({
   onClose: () => void;
   onCreated: () => void;
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -1217,10 +1217,10 @@ function CreateTicketModal({
         priority: v.priority,
         projectId: v.projectId || undefined,
       });
-      notify.success({ message: "Ticket created" });
+      messageApi.success("Ticket created");
       onCreated();
     } catch (err: any) {
-      notify.error({ message: "Create failed", description: err?.message });
+      messageApi.error(`Create failed: ${err?.message || ""}`);
     } finally {
       setSubmitting(false);
     }
@@ -1364,14 +1364,14 @@ function TicketDetailDrawer({
   onChanged,
   c,
   tones,
-  notify,
+  messageApi,
 }: {
   ticketId: string | null;
   onClose: () => void;
   onChanged: () => void;
   c: ReturnType<typeof palette>;
   tones: ReturnType<typeof tonesOf>;
-  notify: any;
+  messageApi: any;
 }) {
   const open = !!ticketId;
   const [detail, setDetail] = useState<StaffPortalTicketDetail | null>(null);
@@ -1395,10 +1395,7 @@ function TicketDetailDrawer({
       })
       .catch((err: any) => {
         if (!cancelled) {
-          notify.error({
-            message: "Failed to load ticket",
-            description: err?.message,
-          });
+          messageApi.error(`Failed to load ticket: ${err?.message || ""}`);
         }
       })
       .finally(() => {
@@ -1407,7 +1404,7 @@ function TicketDetailDrawer({
     return () => {
       cancelled = true;
     };
-  }, [ticketId, notify]);
+  }, [ticketId, messageApi]);
 
   const refresh = async () => {
     if (!ticketId) return;
@@ -1428,7 +1425,7 @@ function TicketDetailDrawer({
       await refresh();
       onChanged();
     } catch (err: any) {
-      notify.error({ message: "Send failed", description: err?.message });
+      messageApi.error(`Send failed: ${err?.message || ""}`);
     } finally {
       setSending(false);
     }
@@ -1442,7 +1439,7 @@ function TicketDetailDrawer({
       await refresh();
       onChanged();
     } catch (err: any) {
-      notify.error({ message: "Status change failed", description: err?.message });
+      messageApi.error(`Status change failed: ${err?.message || ""}`);
     } finally {
       setSavingStatus(false);
     }

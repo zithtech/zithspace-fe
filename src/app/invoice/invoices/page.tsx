@@ -24,7 +24,7 @@ import {
   Popover,
   Drawer,
   Spin,
-  message,
+  App,
   Menu,
   Progress,
   Timeline,
@@ -81,6 +81,7 @@ import type {
   PaymentMethod
 } from "@/services/invoiceService";
 import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -158,7 +159,7 @@ const getStatusIcon = (status: InvoiceStatus) => {
 
 export default function InvoiceInvoicesPage() {
   const router = useRouter();
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
   const {
     canReadInvoice,
     canCreateInvoice,
@@ -225,6 +226,9 @@ export default function InvoiceInvoicesPage() {
       router.push('/dashboard');
     }
   }, [authLoading, canReadInvoice, canReadInvoiceHistory, router]);
+
+  // Register UX context for activity logging
+  useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceList" });
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);
@@ -337,7 +341,7 @@ export default function InvoiceInvoicesPage() {
       return;
     }
 
-    const hide = message.loading(`Sending invoice ${record.invoiceNumber}...`, 0);
+    const hide = messageApi.loading(`Sending invoice ${record.invoiceNumber}...`, 0);
 
     sendEmail({
       id: record.id,
@@ -1169,7 +1173,7 @@ export default function InvoiceInvoicesPage() {
 
   return (
     <MainLayout>
-      {contextHolder}
+
       <div style={{
         margin: "0 -24px",
         background: "var(--customers-page-bg)",

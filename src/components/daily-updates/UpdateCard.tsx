@@ -10,10 +10,9 @@ import {
   Row,
   Col,
   Dropdown,
-  message,
   Modal,
-  notification,
   Badge,
+  App,
 } from "antd";
 import {
   MoreOutlined,
@@ -61,7 +60,7 @@ export default function UpdateCard({
   onOpen,
   onDelete,
 }: UpdateCardProps) {
-  const [api, contextHolder] = notification.useNotification();
+  const { message: messageApi } = App.useApp();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const router = useRouter();
@@ -80,10 +79,10 @@ export default function UpdateCard({
     try {
       setIsDeleting(true);
       await DailyUpdateService.deleteUpdate(update.id);
-      message.success("Daily update deleted successfully");
+      messageApi.success("Daily update deleted successfully");
       onDelete();
     } catch (err: any) {
-      message.error(err.message || "Failed to delete update");
+      messageApi.error(err.message || "Failed to delete update");
     } finally {
       setIsDeleting(false);
       setIsDeleteModalOpen(false);
@@ -93,7 +92,6 @@ export default function UpdateCard({
 
   return (
     <>
-      {contextHolder}
       <Badge.Ribbon
         text={update.updateType || "EOD"}
         color={update.updateType === "BOD" ? "#22c55e" : "#3b82f6"}

@@ -17,9 +17,9 @@ import {
   Col,
   Select,
   Skeleton,
-  notification,
   Popconfirm,
   Segmented,
+  App,
 } from 'antd';
 import {
   PlusOutlined,
@@ -54,6 +54,7 @@ import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeade
 import CreateEscalationDrawer from '@/components/escalations/CreateEscalationDrawer';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { useActivitySource } from '@/hooks/useActivitySource';
 
 dayjs.extend(relativeTime);
 
@@ -149,6 +150,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
 /* -------------------------------------------------------------------------- */
 
 export default function EscalationListPage() {
+  useActivitySource({ section: "WORK", module: "Escalations", page: "EscalationList" });
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation } = usePermission();
@@ -174,22 +176,14 @@ export default function EscalationListPage() {
   // Create drawer
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
 
-  const [notify, contextHolder] = notification.useNotification();
+  const { message } = App.useApp();
 
   const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
-    notify[type]({
-      message: <span className="premium-notif-title">{title}</span>,
-      description: <span className="premium-notif-desc">{description}</span>,
-      icon:
-        type === 'success' ? (
-          <CheckCircleFilled style={{ color: '#10B981' }} />
-        ) : (
-          <CloseCircleFilled style={{ color: '#EF4444' }} />
-        ),
-      className: 'premium-notification',
-      placement: 'topRight',
-      duration: 4,
-    });
+    if (type === 'success') {
+      message.success(`${title} - ${description}`);
+    } else {
+      message.error(`${title} - ${description}`);
+    }
   };
 
   const fetchEscalations = async () => {
@@ -592,7 +586,6 @@ export default function EscalationListPage() {
 
   return (
     <MainLayout>
-      {contextHolder}
       <div className="qe-shell">
         <TimeTrackingHeader
           icon={<AlertOutlined style={{ fontSize: 20, color: BLUE_PRIMARY }} />}

@@ -8,7 +8,7 @@ import {
   Input,
   Select,
   DatePicker,
-  notification,
+  message,
   Popconfirm,
   Tooltip,
 } from "antd";
@@ -92,14 +92,14 @@ export default function ReleasesTab({ clientId, projects = [] }: Props) {
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<ClientRelease | null>(null);
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const load = async () => {
     setLoading(true);
     try {
       setItems(await releaseService.list(clientId));
     } catch (err: any) {
-      notify.error({ message: "Failed to load releases", description: err?.message });
+      messageApi.error(`Failed to load releases: ${err?.message || ""}`);
     } finally {
       setLoading(false);
     }
@@ -112,10 +112,10 @@ export default function ReleasesTab({ clientId, projects = [] }: Props) {
   const remove = async (r: ClientRelease) => {
     try {
       await releaseService.remove(r.id);
-      notify.success({ message: "Release removed" });
+      messageApi.success("Release removed");
       load();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message || ""}`);
     }
   };
 
@@ -210,7 +210,7 @@ export default function ReleasesTab({ clientId, projects = [] }: Props) {
           load();
         }}
         c={c}
-        notify={notify}
+        messageApi={messageApi}
       />
 
       <style dangerouslySetInnerHTML={{
@@ -576,7 +576,7 @@ function ReleaseModal({
   onClose,
   onSaved,
   c,
-  notify,
+  messageApi,
 }: {
   open: boolean;
   editing: ClientRelease | null;
@@ -585,7 +585,7 @@ function ReleaseModal({
   onClose: () => void;
   onSaved: () => void;
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -628,10 +628,7 @@ function ReleaseModal({
         setMilestones(opts);
       })
       .catch((err: any) => {
-        notify.error({
-          message: "Failed to load milestones",
-          description: err?.message,
-        });
+        messageApi.error(`Failed to load milestones: ${err?.message || ""}`);
       })
       .finally(() => {
         if (!cancelled) setLoadingMilestones(false);
@@ -690,14 +687,14 @@ function ReleaseModal({
       };
       if (editing) {
         await releaseService.update(editing.id, payload);
-        notify.success({ message: "Release updated" });
+        messageApi.success("Release updated");
       } else {
         await releaseService.create(clientId, payload);
-        notify.success({ message: "Release created" });
+        messageApi.success("Release created");
       }
       onSaved();
     } catch (err: any) {
-      notify.error({ message: "Save failed", description: err?.message });
+      messageApi.error(`Save failed: ${err?.message || ""}`);
     } finally {
       setSubmitting(false);
     }

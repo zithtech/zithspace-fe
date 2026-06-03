@@ -6,7 +6,6 @@ import { TenantProvider } from "@/context/TenantContext";
 import QueryProvider from "@/providers/QueryProvider";
 import { SocketProvider } from '@/providers/SocketProvider';
 import './globals.css';
-import { App as AntdApp } from "antd";
 
 import { ThemeProvider } from "@/context/ThemeContext";
 import ThemeConfigProvider from "@/providers/ThemeConfigProvider";
@@ -21,27 +20,25 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <AntdApp>
-          <AntdRegistry>
-            <ThemeProvider>
-              <ThemeConfigProvider>
-                <App>
-                  <TenantProvider>
-                    <AuthProvider>
-                      <QueryProvider>
-                        <SocketProvider>
-                          <LayoutProvider>
-                            <TicketDrawerProvider>{children}</TicketDrawerProvider>
-                          </LayoutProvider>
-                        </SocketProvider>
-                      </QueryProvider>
-                    </AuthProvider>
-                  </TenantProvider>
-                </App>
-              </ThemeConfigProvider>
-            </ThemeProvider>
-          </AntdRegistry>
-        </AntdApp>
+        <AntdRegistry>
+          <ThemeProvider>
+            <ThemeConfigProvider>
+              <App>
+                <TenantProvider>
+                  <AuthProvider>
+                    <QueryProvider>
+                      <SocketProvider>
+                        <LayoutProvider>
+                          <TicketDrawerProvider>{children}</TicketDrawerProvider>
+                        </LayoutProvider>
+                      </SocketProvider>
+                    </QueryProvider>
+                  </AuthProvider>
+                </TenantProvider>
+              </App>
+            </ThemeConfigProvider>
+          </ThemeProvider>
+        </AntdRegistry>
       </body>
     </html>
   );

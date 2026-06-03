@@ -15,7 +15,7 @@ import {
   Modal,
   Drawer,
   Form,
-  Alert,
+  App,
   Dropdown,
   Row,
   Col,
@@ -721,8 +721,7 @@ export default function MembersPage() {
 
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const { message: messageApi } = App.useApp();
 
   const [pagination, setPagination] = useState({
     current: 1,
@@ -777,9 +776,9 @@ export default function MembersPage() {
     } catch (error) {
       console.error("Failed to fetch members:", error);
       if (error instanceof ApiError) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError("Failed to fetch members");
+        messageApi.error("Failed to fetch members");
       }
     } finally {
       setLoading(false);
@@ -849,7 +848,6 @@ export default function MembersPage() {
   const handleSubmit = async (values: any) => {
     try {
       setFormLoading(true);
-      setError("");
 
       const isCustom = values.positionType === "custom";
 
@@ -868,7 +866,7 @@ export default function MembersPage() {
           assignedShiftId: values.assignedShift || null,
         };
         await MembersService.updateMember(selectedMember.id, updatePayload);
-        setSuccess("Member updated successfully");
+        messageApi.success("Member updated successfully");
       } else {
         const createPayload: CreateMemberData = {
           name: values.name,
@@ -886,7 +884,7 @@ export default function MembersPage() {
           sendEmailTo: values.sendEmailTo || "work",
         };
         await MembersService.createMember(createPayload);
-        setSuccess("Member created successfully");
+        messageApi.success("Member created successfully");
       }
 
       setIsModalVisible(false);
@@ -896,9 +894,9 @@ export default function MembersPage() {
     } catch (error: any) {
       console.error("Failed to submit member form:", error);
       if (error instanceof ApiError) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError("Operation failed");
+        messageApi.error("Operation failed");
       }
     } finally {
       setFormLoading(false);
@@ -911,16 +909,16 @@ export default function MembersPage() {
     try {
       setFormLoading(true);
       await MembersService.deleteMember(selectedMember.id);
-      setSuccess("Member deleted successfully");
+      messageApi.success("Member deleted successfully");
       setIsModalVisible(false);
       setSelectedMember(null);
       fetchMembers();
     } catch (error: any) {
       console.error("Failed to delete member:", error);
       if (error instanceof ApiError) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError("Delete failed");
+        messageApi.error("Delete failed");
       }
     } finally {
       setFormLoading(false);
@@ -1209,15 +1207,7 @@ export default function MembersPage() {
     },
   ];
 
-  useEffect(() => {
-    if (success || error) {
-      const timer = setTimeout(() => {
-        setSuccess("");
-        setError("");
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [success, error]);
+
 
   if (isLoading) {
     return <LoadingSpinner message="Loading members..." />;
@@ -1409,26 +1399,7 @@ export default function MembersPage() {
           </div>
 
           {/* Alerts */}
-          {error && (
-            <Alert
-              message={error}
-              type="error"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
-              onClose={() => setError("")}
-            />
-          )}
-          {success && (
-            <Alert
-              message={success}
-              type="success"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
-              onClose={() => setSuccess("")}
-            />
-          )}
+
 
           {/* Filters + Table */}
           <Card

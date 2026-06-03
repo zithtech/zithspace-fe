@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Avatar, Drawer, Select, Tooltip, message, ConfigProvider, theme as antdTheme, notification } from "antd";
+import { Avatar, Drawer, Select, Tooltip, message, App, ConfigProvider, theme as antdTheme, notification } from "antd";
 import {
   X,
   UploadCloud,
@@ -81,8 +81,7 @@ export default function CreateBugDrawer({
   const { canReadActivityLog } = usePermission();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [notificationApi, notificationContextHolder] = notification.useNotification();
-  const [messageApi, messageContextHolder] = message.useMessage();
-
+  const { message } = App.useApp();
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -441,7 +440,7 @@ export default function CreateBugDrawer({
             {/* Body */}
             <div className="hb-cbd-body">
               {notificationContextHolder}
-              {messageContextHolder}
+              {/* {messageContextHolder} */}
               {/* Title */}
               <input
                 type="text"
@@ -701,7 +700,7 @@ export default function CreateBugDrawer({
                         onRemove={() => removeAttachment(idx)}
                         onPreview={() => setPreviewAttachment(a)}
                         onRename={(newName) => renameAttachment(idx, newName)}
-                        messageApi={messageApi}
+                        message={message}
                       />
                     ))}
                   </div>
@@ -950,13 +949,13 @@ function AttachmentTile({
   onRemove,
   onPreview,
   onRename,
-  messageApi,
+  message,
 }: {
   attachment: BugAttachment;
   onRemove: () => void;
   onPreview: () => void;
   onRename: (newName: string) => void;
-  messageApi: any;
+  message: any;
 }) {
   const [imageError, setImageError] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -970,7 +969,7 @@ function AttachmentTile({
     const trimmed = tempName.trim();
     if (trimmed && trimmed !== attachment.fileName) {
       onRename(trimmed);
-      messageApi.success("Attachment renamed");
+      message.success("Attachment renamed");
     } else {
       setTempName(attachment.fileName);
     }
@@ -1056,7 +1055,7 @@ function AttachmentTile({
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                messageApi.success("Download successfully");
+                message.success("Download successfully");
               } catch (err) {
                 // Fallback for CORS issues
                 const a = document.createElement("a");
@@ -1066,7 +1065,7 @@ function AttachmentTile({
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                messageApi.success("Download successfully");
+                message.success("Download successfully");
               }
             }}
             title="Download"

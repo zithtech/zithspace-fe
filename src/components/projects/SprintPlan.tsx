@@ -80,9 +80,9 @@ export default function SprintPlanComponent() {
   const { theme } = useTheme();
   const router = useRouter();
   const [form] = Form.useForm();
-  const [api, contextHolder] = notification.useNotification({
-    placement: 'top',
-  });
+  // const [api, contextHolder] = notification.useNotification({
+  //   placement: 'top',
+  // });
   const { message } = App.useApp();
   const { socket, connected } = useSocket();
   const {
@@ -192,7 +192,7 @@ export default function SprintPlanComponent() {
     try {
       setLoading(true);
       const activeFilters = filtersOverride || tableFilters;
-      
+
       // Fetch plans respecting search and project, but NOT status
       // This allows us to calculate accurate status counts in JS
       const data = await ReleasePlanService.getReleasePlans({
@@ -214,10 +214,11 @@ export default function SprintPlanComponent() {
       }
     } catch (error) {
       console.error("Failed to load sprint plans:", error);
-      api.error({
-        message: "Error",
-        description: "Failed to load sprint plans",
-      });
+      message.error("Error!, Failed to load sprint plans.");
+      // api.error({
+      //   message: "Error",
+      //   description: "Failed to load sprint plans",
+      // });
     } finally {
       setLoading(false);
     }
@@ -361,10 +362,11 @@ export default function SprintPlanComponent() {
       if (errorMessage.includes("already exists")) {
         message.error(errorMessage);
       } else {
-        api.error({
-          message: "Error",
-          description: errorMessage,
-        });
+        message.error(`Error!, ${errorMessage}`);
+        // api.error({
+        //   message: "Error",
+        //   description: errorMessage,
+        // });
       }
     } finally {
       setSaving(false);
@@ -412,11 +414,12 @@ export default function SprintPlanComponent() {
       message.success("Sprint started successfully");
       loadData();
     } catch (error: any) {
-      api.error({
-        message: "Error",
-        description: error.message || "Failed to start sprint",
-
-      });
+      const errorMessage = error?.message || "Failed to start sprint";
+      message.error(`Error!, ${errorMessage}`);
+      // api.error({
+      //   message: "Error",
+      //   description: errorMessage,
+      // });
     }
   };
 
@@ -766,7 +769,7 @@ export default function SprintPlanComponent() {
 
   return (
     <div style={{ background: "var(--bg-pure-white)", minHeight: "100vh" }}>
-      {contextHolder}
+      {/* {contextHolder} */}
 
       {/* Workstation Header */}
       <div className="saas-header-container" style={{
@@ -791,7 +794,7 @@ export default function SprintPlanComponent() {
               </div>
 
               <Divider type="vertical" className="sp-header-divider" />
-              
+
               <div className="sp-header-description-box">
                 <Text style={{ fontSize: 12, color: 'var(--text-slate-600)', fontWeight: 600 }}>
                   Engineered for continuous delivery and milestone tracking
@@ -807,10 +810,11 @@ export default function SprintPlanComponent() {
                   setIsRefreshing(true);
                   await loadData();
                   setIsRefreshing(false);
-                  api.success({
-                    message: "Success",
-                    description: "Sprint view refreshed",
-                  });
+                  message.success("Success, Sprint view refreshed");
+                  // api.success({
+                  //   message: "Success",
+                  //   description: "Sprint view refreshed",
+                  // });
                 }}
                 loading={loading && !isRefreshing}
                 className="saas-button-item"
@@ -1156,18 +1160,18 @@ export default function SprintPlanComponent() {
           }}
         >
           <Form form={form} layout="vertical" requiredMark={false}>
-            <ConfigProvider 
-              theme={{ 
+            <ConfigProvider
+              theme={{
                 algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
                 token: {
                   colorBgContainer: theme === 'dark' ? '#161B22' : '#ffffff',
                   colorText: theme === 'dark' ? '#F1F5F9' : '#1E293B',
                 },
-                components: { 
-                  Input: { borderRadius: 0 }, 
-                  Select: { borderRadius: 0 }, 
-                  DatePicker: { borderRadius: 0 } 
-                } 
+                components: {
+                  Input: { borderRadius: 0 },
+                  Select: { borderRadius: 0 },
+                  DatePicker: { borderRadius: 0 }
+                }
               }}
             >
               {/* Section: Basic Information */}

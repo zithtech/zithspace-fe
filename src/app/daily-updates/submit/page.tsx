@@ -12,7 +12,7 @@ import {
   Input,
   Space,
   Typography,
-  notification,
+  App,
   Tag,
   DatePicker,
   Radio,
@@ -124,7 +124,7 @@ export default function SubmitDailyUpdatePage() {
 function SubmitDailyUpdateContent() {
   const router = useRouter();
   const [form] = Form.useForm();
-  const [api, contextHolder] = notification.useNotification();
+  const { message: messageApi } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [checkingSubmission, setCheckingSubmission] = useState(true);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
@@ -186,10 +186,7 @@ function SubmitDailyUpdateContent() {
         updateType: data.updateType,
       });
     } catch (error) {
-      api.error({
-        message: "Error",
-        description: "Failed to load update for editing",
-      });
+      messageApi.error("Failed to load update for editing");
     } finally {
       // 🔥 THIS WAS MISSING
       setCheckingSubmission(false);
@@ -242,12 +239,7 @@ function SubmitDailyUpdateContent() {
       setProjects(projectsData);
     } catch (error) {
       console.error("Failed to fetch projects:", error);
-      api.error({
-        message: "Error",
-        description: "Failed to load projects",
-        placement: "bottomRight",
-        duration: 4,
-      });
+      messageApi.error("Failed to load projects");
     }
   };
 
@@ -262,12 +254,7 @@ function SubmitDailyUpdateContent() {
       }));
     } catch (error) {
       console.error("Failed to fetch tickets:", error);
-      api.error({
-        message: "Error",
-        description: "Failed to load tickets for this project",
-        placement: "bottomRight",
-        duration: 4,
-      });
+      messageApi.error("Failed to load tickets for this project");
     }
   };
 
@@ -337,12 +324,7 @@ function SubmitDailyUpdateContent() {
 
   const handleRemoveProject = (index: number) => {
     if (projectUpdates.length === 1) {
-      api.warning({
-        message: "Warning",
-        description: "At least one project update is required",
-        placement: "bottomRight",
-        duration: 3,
-      });
+      messageApi.warning("At least one project update is required");
       return;
     }
     const newUpdates = projectUpdates.filter((_, i) => i !== index);
@@ -406,12 +388,7 @@ function SubmitDailyUpdateContent() {
   const handleRemoveTask = (projectIndex: number, taskIndex: number) => {
     const newUpdates = [...projectUpdates];
     if (newUpdates[projectIndex].tasks.length === 1) {
-      api.warning({
-        message: "Warning",
-        description: "At least one task is required",
-        placement: "bottomRight",
-        duration: 3,
-      });
+      messageApi.warning("At least one task is required");
       return;
     }
     newUpdates[projectIndex].tasks.splice(taskIndex, 1);
@@ -525,42 +502,22 @@ function SubmitDailyUpdateContent() {
       const update = projectUpdates[i];
 
       if (isMissedUpdate && !missedDate) {
-        api.error({
-          message: "Validation Error",
-          description: "Please select a missed update date",
-          placement: "bottomRight",
-          duration: 4,
-        });
+        messageApi.error("Please select a missed update date");
         return false;
       }
 
       if (!update.projectId) {
-        api.error({
-          message: "Validation Error",
-          description: `Please select a project for update #${i + 1}`,
-          placement: "bottomRight",
-          duration: 4,
-        });
+        messageApi.error(`Please select a project for update #${i + 1}`);
         return false;
       }
 
       if (!update.startTime || !update.endTime) {
-        api.error({
-          message: "Validation Error",
-          description: `Please set start and end time for ${update.projectName}`,
-          placement: "bottomRight",
-          duration: 4,
-        });
+        messageApi.error(`Please set start and end time for ${update.projectName || `update #${i + 1}`}`);
         return false;
       }
 
       if (update.tasks.length === 0) {
-        api.error({
-          message: "Validation Error",
-          description: `Please add at least one task for ${update.projectName}`,
-          placement: "bottomRight",
-          duration: 4,
-        });
+        messageApi.error(`Please add at least one task for ${update.projectName || `update #${i + 1}`}`);
         return false;
       }
 
@@ -568,35 +525,17 @@ function SubmitDailyUpdateContent() {
         const task = update.tasks[j];
 
         if (task.type === "ticket" && !task.ticketId) {
-          api.error({
-            message: "Validation Error",
-            description: `Task #${j + 1} in ${update.projectName
-              }: Please select a ticket`,
-            placement: "bottomRight",
-            duration: 4,
-          });
+          messageApi.error(`Task #${j + 1} in ${update.projectName || `update #${i + 1}`}: Please select a ticket`);
           return false;
         }
 
         if (task.type === "manual" && !task.description?.trim()) {
-          api.error({
-            message: "Validation Error",
-            description: `Task #${j + 1} in ${update.projectName
-              }: Please provide a description`,
-            placement: "bottomRight",
-            duration: 4,
-          });
+          messageApi.error(`Task #${j + 1} in ${update.projectName || `update #${i + 1}`}: Please provide a description`);
           return false;
         }
 
         if (!task.status) {
-          api.error({
-            message: "Validation Error",
-            description: `Task #${j + 1} in ${update.projectName
-              }: Please select a status`,
-            placement: "bottomRight",
-            duration: 4,
-          });
+          messageApi.error(`Task #${j + 1} in ${update.projectName || `update #${i + 1}`}: Please select a status`);
           return false;
         }
       }
@@ -605,12 +544,7 @@ function SubmitDailyUpdateContent() {
     const projectIds = projectUpdates.map((update) => update.projectId);
     const uniqueProjectIds = new Set(projectIds);
     if (projectIds.length !== uniqueProjectIds.size) {
-      api.error({
-        message: "Validation Error",
-        description: "You cannot select the same project multiple times",
-        placement: "bottomRight",
-        duration: 4,
-      });
+      messageApi.error("You cannot select the same project multiple times");
       return false;
     }
 
@@ -618,20 +552,14 @@ function SubmitDailyUpdateContent() {
   };
   const handleSubmit = async () => {
     if (alreadySubmitted && !isEditAllowed) {
-      api.error({
-        message: "Edit Locked",
-        description: "You can only edit within 24 hours of submission",
-      });
+      messageApi.error("You can only edit within 24 hours of submission");
       return;
     }
 
     if (!validateForm()) return;
 
     if (isMissedUpdate && !missedDate) {
-      api.error({
-        message: "Validation Error",
-        description: "Please select a missed update date",
-      });
+      messageApi.error("Please select a missed update date");
       return;
     }
 
@@ -662,20 +590,10 @@ function SubmitDailyUpdateContent() {
 
       if (alreadySubmitted && existingUpdate) {
         await DailyUpdateService.updateUpdate(existingUpdate.id, data);
-        api.success({
-          message: "Success",
-          description: "Daily update updated successfully!",
-          placement: "bottomRight",
-          duration: 3,
-        });
+        messageApi.success("Daily update updated successfully!");
       } else {
         await DailyUpdateService.createUpdate(data);
-        api.success({
-          message: "Success",
-          description: "Daily update submitted successfully!",
-          placement: "bottomRight",
-          duration: 3,
-        });
+        messageApi.success("Daily update submitted successfully!");
       }
 
       setTimeout(() => {
@@ -690,12 +608,7 @@ function SubmitDailyUpdateContent() {
       else if (error?.response?.data?.message)
         errorMessage = error.response.data.message;
 
-      api.error({
-        message: "Error",
-        description: errorMessage,
-        placement: "bottomRight",
-        duration: 4,
-      });
+      messageApi.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -726,7 +639,6 @@ function SubmitDailyUpdateContent() {
         backgroundColor: "var(--bg-pure-white)"
       }}
     >
-      {contextHolder}
 
       <style dangerouslySetInnerHTML={{
         __html: `

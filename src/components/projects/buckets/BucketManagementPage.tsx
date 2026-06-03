@@ -17,7 +17,6 @@ import {
   Skeleton,
   Avatar,
   App,
-  message,
   theme as antdTheme,
   ConfigProvider,
 } from "antd";
@@ -78,7 +77,7 @@ const initialsOf = (name?: string) =>
 
 export default function BucketManagementPage() {
   const { theme } = useTheme();
-  const { message: messageApi } = App.useApp();
+  const { message } = App.useApp();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { canCreateTicketBucket, canUpdateTicketBucket, canDeleteTicketBucket } = usePermission();
@@ -305,13 +304,13 @@ export default function BucketManagementPage() {
                   {
                     onSuccess: (result) => {
                       if (result.movedCount > 0) {
-                        messageApi.success(`Ticket added to sprint successfully`);
+                        message.success(`Ticket added to sprint successfully`);
                       } else {
-                        messageApi.info("This hub has no tickets to move");
+                        message.info("This hub has no tickets to move");
                       }
                     },
                     onError: (err: any) => {
-                      messageApi.error(err.message || "Movement failed");
+                      message.error(err.message || "Movement failed");
                     }
                   }
                 )
@@ -330,13 +329,13 @@ export default function BucketManagementPage() {
                 moveBucketToBacklog.mutate(bucket.id, {
                   onSuccess: (result) => {
                     if (result.movedCount > 0) {
-                      messageApi.success(`Ticket removed from sprint successfully`);
+                      message.success(`Ticket removed from sprint successfully`);
                     } else {
-                      messageApi.info("This hub has no tickets to move");
+                      message.info("This hub has no tickets to move");
                     }
                   },
                   onError: (err: any) => {
-                    messageApi.error(err.message || "Movement failed");
+                    message.error(err.message || "Movement failed");
                   }
                 });
               }}
@@ -543,13 +542,13 @@ export default function BucketManagementPage() {
                 {
                   onSuccess: (result) => {
                     if (result.movedCount > 0) {
-                      messageApi.success(`Ticket added to sprint successfully`);
+                      message.success(`Ticket added to sprint successfully`);
                     } else {
-                      messageApi.info("This hub has no tickets to move");
+                      message.info("This hub has no tickets to move");
                     }
                   },
                   onError: (err: any) => {
-                    messageApi.error(err.message || "Movement failed");
+                    message.error(err.message || "Movement failed");
                   }
                 }
               )
@@ -633,7 +632,7 @@ export default function BucketManagementPage() {
                 setIsRefreshing(true);
                 await queryClient.invalidateQueries({ queryKey: bucketKeys.all });
                 setIsRefreshing(false);
-                messageApi.success("Buckets refreshed");
+                message.success("Buckets refreshed");
               }}
               loading={isLoading && !isRefreshing}
               className="bh-header-btn"
@@ -718,8 +717,8 @@ export default function BucketManagementPage() {
         </div>
 
         {/* ── Control bar ───────────────────────────────────────────── */}
-        <ConfigProvider 
-          theme={{ 
+        <ConfigProvider
+          theme={{
             algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
             token: {
               colorBgContainer: theme === 'dark' ? '#161B22' : '#ffffff',
@@ -727,111 +726,111 @@ export default function BucketManagementPage() {
             }
           }}
         >
-        <div className="bh-control-bar">
-          <div className="bh-control-bar-left">
-            <div className="bh-filter-select-wrap">
-              <ProjectOutlined style={{ fontSize: 12, color: "var(--text-slate-400)" }} />
-              <Select
-                placeholder="All Projects"
-                variant="borderless"
-                style={{ width: 170, fontSize: 12, fontWeight: 700 }}
-                allowClear
-                value={selectedProject}
-                onChange={setSelectedProject}
-                popupMatchSelectWidth={false}
-              >
-                {projects?.map((project: any) => (
-                  <Option key={project.value} value={project.value}>
-                    <Text style={{ fontSize: 11, fontWeight: 600 }}>{project.label}</Text>
-                  </Option>
-                ))}
-              </Select>
+          <div className="bh-control-bar">
+            <div className="bh-control-bar-left">
+              <div className="bh-filter-select-wrap">
+                <ProjectOutlined style={{ fontSize: 12, color: "var(--text-slate-400)" }} />
+                <Select
+                  placeholder="All Projects"
+                  variant="borderless"
+                  style={{ width: 170, fontSize: 12, fontWeight: 700 }}
+                  allowClear
+                  value={selectedProject}
+                  onChange={setSelectedProject}
+                  popupMatchSelectWidth={false}
+                >
+                  {projects?.map((project: any) => (
+                    <Option key={project.value} value={project.value}>
+                      <Text style={{ fontSize: 11, fontWeight: 600 }}>{project.label}</Text>
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="bh-segmented-wrap">
+                <FilterOutlined style={{ fontSize: 12, color: "var(--text-slate-400)" }} />
+                <Segmented
+                  size="small"
+                  value={typeFilter}
+                  onChange={(v) => setTypeFilter(v as any)}
+                  options={[
+                    { label: "All", value: "all" },
+                    {
+                      label: (
+                        <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                          <GlobalOutlined style={{ fontSize: 10 }} /> Public
+                        </span>
+                      ),
+                      value: "shared",
+                    },
+                    {
+                      label: (
+                        <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                          <LockOutlined style={{ fontSize: 10 }} /> Private
+                        </span>
+                      ),
+                      value: "private",
+                    },
+                  ]}
+                />
+              </div>
+
+              {(searchQuery || selectedProject || typeFilter !== "all") && (
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<ReloadOutlined style={{ fontSize: 11 }} />}
+                  onClick={resetFilters}
+                  className="bh-reset-btn"
+                >
+                  RESET
+                </Button>
+              )}
             </div>
 
-            <div className="bh-segmented-wrap">
-              <FilterOutlined style={{ fontSize: 12, color: "var(--text-slate-400)" }} />
+            <div className="bh-control-bar-right">
+              <div className={`bh-search-box ${searchQuery ? "active" : ""}`}>
+                <SearchOutlined
+                  style={{
+                    color: searchQuery ? "#8b5cf6" : "var(--text-slate-400)",
+                    fontSize: 13,
+                  }}
+                />
+                <Input
+                  placeholder="Search hub..."
+                  variant="borderless"
+                  style={{ fontSize: 12, fontWeight: 600, padding: 0, background: 'transparent' }}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  allowClear
+                />
+              </div>
+
               <Segmented
-                size="small"
-                value={typeFilter}
-                onChange={(v) => setTypeFilter(v as any)}
+                value={viewMode}
+                onChange={(v) => setViewMode(v as ViewMode)}
+                className="bh-view-toggle"
                 options={[
-                  { label: "All", value: "all" },
                   {
                     label: (
-                      <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                        <GlobalOutlined style={{ fontSize: 10 }} /> Public
-                      </span>
+                      <Tooltip title="Grid view">
+                        <AppstoreOutlined />
+                      </Tooltip>
                     ),
-                    value: "shared",
+                    value: "grid",
                   },
                   {
                     label: (
-                      <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                        <LockOutlined style={{ fontSize: 10 }} /> Private
-                      </span>
+                      <Tooltip title="Table view">
+                        <UnorderedListOutlined />
+                      </Tooltip>
                     ),
-                    value: "private",
+                    value: "table",
                   },
                 ]}
               />
             </div>
-
-            {(searchQuery || selectedProject || typeFilter !== "all") && (
-              <Button
-                size="small"
-                type="text"
-                icon={<ReloadOutlined style={{ fontSize: 11 }} />}
-                onClick={resetFilters}
-                className="bh-reset-btn"
-              >
-                RESET
-              </Button>
-            )}
           </div>
-
-          <div className="bh-control-bar-right">
-            <div className={`bh-search-box ${searchQuery ? "active" : ""}`}>
-              <SearchOutlined
-                style={{
-                  color: searchQuery ? "#8b5cf6" : "var(--text-slate-400)",
-                  fontSize: 13,
-                }}
-              />
-              <Input
-                placeholder="Search hub..."
-                variant="borderless"
-                style={{ fontSize: 12, fontWeight: 600, padding: 0, background: 'transparent' }}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                allowClear
-              />
-            </div>
-
-            <Segmented
-              value={viewMode}
-              onChange={(v) => setViewMode(v as ViewMode)}
-              className="bh-view-toggle"
-              options={[
-                {
-                  label: (
-                    <Tooltip title="Grid view">
-                      <AppstoreOutlined />
-                    </Tooltip>
-                  ),
-                  value: "grid",
-                },
-                {
-                  label: (
-                    <Tooltip title="Table view">
-                      <UnorderedListOutlined />
-                    </Tooltip>
-                  ),
-                  value: "table",
-                },
-              ]}
-            />
-          </div>
-        </div>
         </ConfigProvider>
         {/* ── Content ───────────────────────────────────────────────── */}
         {isLoading ? (

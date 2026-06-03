@@ -11,7 +11,7 @@ import {
   Dropdown,
   Modal,
   Table,
-  message,
+  App,
 } from "antd";
 import type { MenuProps } from "antd";
 import {
@@ -55,7 +55,7 @@ export default function InvoiceTemplatePage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<InvoiceTemplate | null>(null);
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
   const router = useRouter();
   const {
     canReadInvoiceTemplate,
@@ -340,7 +340,6 @@ export default function InvoiceTemplatePage() {
 
   return (
     <MainLayout>
-      {contextHolder}
       <div
         style={{
           margin: "0 -24px",

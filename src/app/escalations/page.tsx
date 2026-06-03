@@ -17,9 +17,9 @@ import {
   Col,
   Select,
   Skeleton,
-  notification,
   Popconfirm,
   Segmented,
+  App,
 } from 'antd';
 import {
   PlusOutlined,
@@ -176,22 +176,14 @@ export default function EscalationListPage() {
   // Create drawer
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
 
-  const [notify, contextHolder] = notification.useNotification();
+  const { message } = App.useApp();
 
   const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
-    notify[type]({
-      message: <span className="premium-notif-title">{title}</span>,
-      description: <span className="premium-notif-desc">{description}</span>,
-      icon:
-        type === 'success' ? (
-          <CheckCircleFilled style={{ color: '#10B981' }} />
-        ) : (
-          <CloseCircleFilled style={{ color: '#EF4444' }} />
-        ),
-      className: 'premium-notification',
-      placement: 'topRight',
-      duration: 4,
-    });
+    if (type === 'success') {
+      message.success(`${title} - ${description}`);
+    } else {
+      message.error(`${title} - ${description}`);
+    }
   };
 
   const fetchEscalations = async () => {
@@ -594,7 +586,6 @@ export default function EscalationListPage() {
 
   return (
     <MainLayout>
-      {contextHolder}
       <div className="qe-shell">
         <TimeTrackingHeader
           icon={<AlertOutlined style={{ fontSize: 20, color: BLUE_PRIMARY }} />}

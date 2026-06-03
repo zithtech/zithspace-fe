@@ -15,7 +15,7 @@ import {
   DatePicker,
   Empty,
   Spin,
-  notification,
+  App,
   Segmented,
   Tag,
 } from "antd";
@@ -106,7 +106,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
   const router = useRouter();
   const { canCreateDailyUpdate, canUpdateDailyUpdate, canDeleteDailyUpdate, canManageDailyUpdateTime } = usePermission();
 
-  const [api, contextHolder] = notification.useNotification();
+  const { message: messageApi } = App.useApp();
   const [loading, setLoading] = useState(true);
   const [updates, setUpdates] = useState<DailyStatusUpdate[]>([]);
   const [selectedUpdateType, setSelectedUpdateType] = useState<
@@ -116,7 +116,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
   // 🔹 Delete a daily update and remove it from the UI
   const handleDeleteUpdate = async (updateId: string) => {
     if (!canDeleteDailyUpdate) {
-      api.error({ message: "Forbidden", description: "You don't have permission to delete updates" });
+      messageApi.error("You don't have permission to delete updates");
       return;
     }
     try {
@@ -126,15 +126,9 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
       // Remove the card from the UI
       setUpdates((prev) => prev.filter((u) => u.id !== updateId));
 
-      api.success({
-        message: "Deleted",
-        description: "Daily update deleted successfully",
-      });
+      messageApi.success("Daily update deleted successfully");
     } catch (error: any) {
-      api.error({
-        message: "Error",
-        description: error.message || "Failed to delete update",
-      });
+      messageApi.error(error.message || "Failed to delete update");
     }
   };
 
@@ -201,12 +195,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
       }
     } catch (error) {
       console.error("Failed to fetch updates:", error);
-      api.error({
-        message: "Error",
-        description: "Failed to load daily updates",
-        placement: "bottomRight",
-        duration: 4,
-      });
+      messageApi.error("Failed to load daily updates");
     } finally {
       setLoading(false);
     }
@@ -261,7 +250,6 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         backgroundColor: "var(--bg-pure-white)"
       }}
     >
-      {contextHolder}
 
       <style dangerouslySetInnerHTML={{
         __html: `

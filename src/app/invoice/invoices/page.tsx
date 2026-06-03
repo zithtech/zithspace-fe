@@ -24,7 +24,7 @@ import {
   Popover,
   Drawer,
   Spin,
-  message,
+  App,
   Menu,
   Progress,
   Timeline,
@@ -159,7 +159,7 @@ const getStatusIcon = (status: InvoiceStatus) => {
 
 export default function InvoiceInvoicesPage() {
   const router = useRouter();
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
   const {
     canReadInvoice,
     canCreateInvoice,
@@ -341,7 +341,7 @@ export default function InvoiceInvoicesPage() {
       return;
     }
 
-    const hide = message.loading(`Sending invoice ${record.invoiceNumber}...`, 0);
+    const hide = messageApi.loading(`Sending invoice ${record.invoiceNumber}...`, 0);
 
     sendEmail({
       id: record.id,
@@ -1173,7 +1173,7 @@ export default function InvoiceInvoicesPage() {
 
   return (
     <MainLayout>
-      {contextHolder}
+
       <div style={{
         margin: "0 -24px",
         background: "var(--customers-page-bg)",

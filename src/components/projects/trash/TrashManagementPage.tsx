@@ -10,7 +10,8 @@ import {
   Tag,
   Tooltip,
   Popconfirm,
-  message,
+  // message,
+  App,
   Input,
   Select,
   Avatar,
@@ -87,6 +88,7 @@ export default function TrashManagementPage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const { message } = App.useApp();
   const { data: ticketConfig } = useTicketConfig();
   const statusesList = ticketConfig?.statuses || [];
 
@@ -135,6 +137,7 @@ export default function TrashManagementPage() {
   const handleRestore = async (ticketId: string) => {
     try {
       await restoreTicket.mutateAsync([ticketId]);
+      message.success("Ticket restored successfully");
       refetch();
     } catch (error) {
       console.error("Error restoring ticket:", error);
@@ -144,6 +147,7 @@ export default function TrashManagementPage() {
   const handlePermanentDelete = async (ticketId: string) => {
     try {
       await permanentlyDelete.mutateAsync([ticketId]);
+      message.success("Ticket deleted successfully");
       refetch();
     } catch (error) {
       console.error("Error permanently deleting ticket:", error);
@@ -157,6 +161,7 @@ export default function TrashManagementPage() {
     }
     try {
       await bulkRestore.mutateAsync(selectedRowKeys as string[]);
+      message.success("Tickets restored successfully");
       setSelectedRowKeys([]);
       refetch();
     } catch (error) {
@@ -171,6 +176,7 @@ export default function TrashManagementPage() {
     }
     try {
       await bulkDelete.mutateAsync(selectedRowKeys as string[]);
+      message.success("Tickets deleted successfully");
       setSelectedRowKeys([]);
       refetch();
     } catch (error) {
@@ -181,6 +187,7 @@ export default function TrashManagementPage() {
   const handleEmptyTrash = async () => {
     try {
       await emptyTrash.mutateAsync({ projectId: projectFilter, force: true });
+      message.success("Trash emptied successfully");
       setSelectedRowKeys([]);
       refetch();
     } catch (error) {

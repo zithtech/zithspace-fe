@@ -13,10 +13,10 @@ import { usePermission } from "@/hooks/usePermission";
 const { Text } = Typography;
 
 export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { selectedDate?: dayjs.Dayjs, refreshKey?: number, onTotalChange?: (total: number) => void }) {
-  const { notification } = App.useApp();
+  const { message } = App.useApp();
   const [entries, setEntries] = useState<TimeTrackingEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const { stopAllTimers, pauseAllTimers, resumeAllTimers, activeEntry, refreshTrigger } = useTimeTrackerStore();
+  const { stopAllTimers, pauseAllTimers, resumeAllTimers, pauseTimerById, resumeTimerById, activeEntry, refreshTrigger } = useTimeTrackerStore();
   const { open: openTicketDrawer } = useTicketDrawer();
   const { canCreateTimeTracking, canDeleteTimeTracking, canManageTimeTrackingTime } = usePermission();
 
@@ -31,7 +31,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       const data = await TimeTrackingService.getEntries(filters);
       setEntries(data || []);
     } catch (error: any) {
-      notification.error({ message: "Error fetching time entries", description: error.message });
+      message.error(error.message || "Error fetching time entries");
     } finally {
       setLoading(false);
     }
@@ -54,10 +54,10 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
   const handleDelete = async (id: string) => {
     try {
       await TimeTrackingService.deleteEntry(id);
-      notification.success({ message: "Entry deleted successfully" });
+      message.success("Entry deleted successfully");
       fetchEntries();
     } catch (error: any) {
-      notification.error({ message: "Error deleting entry", description: error.message });
+      message.error(error.message || "Error deleting entry");
     }
   };
 
@@ -65,10 +65,10 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
     e?.stopPropagation();
     try {
       await stopAllTimers();
-      notification.success({ message: "All timers stopped successfully" });
+      message.success("All timers stopped successfully");
       fetchEntries();
     } catch (error: any) {
-      notification.error({ message: "Error stopping timers", description: error.message });
+      message.error(error.message || "Error stopping timers");
     }
   };
 
@@ -76,10 +76,10 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
     e?.stopPropagation();
     try {
       await pauseAllTimers();
-      notification.success({ message: "All timers paused" });
+      message.success("All timers paused");
       fetchEntries();
     } catch (error: any) {
-      notification.error({ message: "Error pausing timers", description: error.message });
+      message.error(error.message || "Error pausing timers");
     }
   };
 
@@ -87,10 +87,32 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
     e?.stopPropagation();
     try {
       await resumeAllTimers();
-      notification.success({ message: "All timers resumed" });
+      message.success("All timers resumed");
       fetchEntries();
     } catch (error: any) {
-      notification.error({ message: "Error resuming timers", description: error.message });
+      message.error(error.message || "Error resuming timers");
+    }
+  };
+
+  const handlePause = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      await pauseTimerById(id);
+      message.success("Timer paused");
+      fetchEntries();
+    } catch (error: any) {
+      message.error(error.message || "Error pausing timer");
+    }
+  };
+
+  const handleResume = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      await resumeTimerById(id);
+      message.success("Timer resumed");
+      fetchEntries();
+    } catch (error: any) {
+      message.error(error.message || "Error resuming timer");
     }
   };
 
@@ -192,7 +214,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
               color="warning"
               icon={<PauseCircleOutlined />}
               style={{ cursor: canCreateTimeTracking ? "pointer" : "default" }}
-              onClick={(e) => canCreateTimeTracking ? handleResumeAll(e) : null}
+              onClick={(e) => canCreateTimeTracking ? handleResume(e, record.id) : null}
             >
               Paused ({formatDuration(val)})
             </Tag>
@@ -211,16 +233,16 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
             <Button
               type="text"
               icon={<PauseCircleOutlined />}
-              onClick={(e) => handlePauseAll(e)}
-              title="Pause All Timers"
+              onClick={(e) => handlePause(e, record.id)}
+              title="Pause Timer"
             />
           )}
           {canCreateTimeTracking && record.status === "PAUSED" && (
             <Button
               type="text"
               icon={<PlayCircleOutlined style={{ color: '#1677ff' }} />}
-              onClick={(e) => handleResumeAll(e)}
-              title="Resume All Timers"
+              onClick={(e) => handleResume(e, record.id)}
+              title="Resume Timer"
             />
           )}
           {canDeleteTimeTracking && (

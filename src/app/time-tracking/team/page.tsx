@@ -2,7 +2,7 @@
 
 import React from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button } from "antd";
+import { Button, Result, App } from "antd";
 import { TeamTimeTracker } from "@/components/time-tracking/TeamTimeTracker";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import { ManageTimeModal } from "@/components/time-tracking/ManageTimeModal";
@@ -12,12 +12,12 @@ import dayjs from "dayjs";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
-import { Result } from "antd";
 import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
 
 export default function TeamTimePage() {
   useActivitySource({ section: "WORK", module: "TimeTracking", page: "TimeTrackingTeam" });
+  const { message } = App.useApp();
   const { setPopoverOpen } = useTimeTrackerStore();
   const [isManageModalOpen, setIsManageModalOpen] = React.useState(false);
   const [refreshKey, setRefreshKey] = React.useState(0);
@@ -32,6 +32,7 @@ export default function TeamTimePage() {
 
   const handleSuccess = () => {
     setRefreshKey((prev) => prev + 1);
+    message.success("Time logged successfully");
   };
 
   if (isLoading) return null;

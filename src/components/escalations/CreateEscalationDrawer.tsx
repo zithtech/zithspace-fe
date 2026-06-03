@@ -13,7 +13,7 @@ import {
   Space,
   Typography,
   Skeleton,
-  notification,
+  App,
   Tooltip,
 } from 'antd';
 import {
@@ -31,7 +31,6 @@ import {
   CloudUploadOutlined,
   FileTextOutlined,
   CheckCircleFilled,
-  CloseCircleFilled,
   BulbOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
@@ -115,7 +114,7 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({ open, o
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [notify, contextHolder] = notification.useNotification();
+  const { message } = App.useApp();
 
   const [members, setMembers] = useState<Member[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -136,19 +135,11 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({ open, o
   const stepDetailsDone = !!watchedSubject && !!watchedPriority && !!watchedDescription;
 
   const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
-    notify[type]({
-      message: <span className="premium-notif-title">{title}</span>,
-      description: <span className="premium-notif-desc">{description}</span>,
-      icon:
-        type === 'success' ? (
-          <CheckCircleFilled style={{ color: '#10B981' }} />
-        ) : (
-          <CloseCircleFilled style={{ color: '#EF4444' }} />
-        ),
-      className: 'premium-notification',
-      placement: 'topRight',
-      duration: 4,
-    });
+    if (type === 'success') {
+      message.success(`${title} - ${description}`);
+    } else {
+      message.error(`${title} - ${description}`);
+    }
   };
 
   // Fetch reference data when drawer opens (cache across opens)
@@ -301,7 +292,6 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({ open, o
         </div>
       }
     >
-      {contextHolder}
 
       {/* Premium gradient hero header */}
       <div className="ced-hero">

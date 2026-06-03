@@ -25,6 +25,7 @@ import {
   Steps,
   Empty,
   Progress,
+  App,
 } from "antd";
 import type { NotificationArgsProps } from "antd";
 import {
@@ -82,9 +83,10 @@ interface TicketFormData {
 export default function CreateTicket() {
   const [form] = Form.useForm();
   const { canReadTicketPlan } = usePermission();
-  const [api, contextHolder] = notification.useNotification({
-    placement: 'top',
-  });
+  // const [api, contextHolder] = notification.useNotification({
+  //   placement: 'top',
+  // });
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [ticketId] = useState(`TKT-${Date.now().toString().slice(-6)}`);
 
@@ -101,11 +103,11 @@ export default function CreateTicket() {
     Array<{ value: string; label: string }>
   >([]);
   const [releasePlans, setReleasePlans] = useState<
-    Array<{ 
-      value: string; 
-      label: string; 
-      status?: string; 
-      startDate?: string; 
+    Array<{
+      value: string;
+      label: string;
+      status?: string;
+      startDate?: string;
       endDate?: string;
       releaseDate?: string;
       totalTickets?: number;
@@ -200,12 +202,13 @@ export default function CreateTicket() {
         setReleasePlans(releasePlansData || []);
       } catch (error) {
         console.error("Error loading project data:", error);
-        api.error({
-          message: "Error",
-          description: "Failed to load project-specific data.",
-          
-          duration: 4,
-        });
+        message.error(`Error!!! Failed to load project-specific data.`);
+        // api.error({
+        //   message: "Error",
+        //   description: "Failed to load project-specific data.",
+
+        //   duration: 4,
+        // });
         setProjectMembers([]);
       }
     };
@@ -230,7 +233,7 @@ export default function CreateTicket() {
         stack: values.stack,
         priority: values.priority,
         taskLevel: values.taskLevel,
-        type: values.type, 
+        type: values.type,
         storyPoint: values.storyPoint,
         estimateHours: values.estimateHours,
         reportTo: values.reportTo,
@@ -243,26 +246,29 @@ export default function CreateTicket() {
       // Create ticket using API via Mutation
       const createdTicket = await createTicketMutation.mutateAsync(ticketData);
 
-      api.success({
-        message: "Success",
-        description: `Ticket ${
-          createdTicket?.ticketNumber || ticketId
-        } created successfully!`,
-        
-        duration: 4,
-      });
+      message.success(`Success!!! Ticket ${createdTicket?.ticketNumber || ticketId} created successfully!`);
+      // api.success({
+      //   message: "Success",
+      //   description: `Ticket ${
+      //     createdTicket?.ticketNumber || ticketId
+      //   } created successfully!`,
+
+      //   duration: 4,
+      // });
 
       // Reset form and selected project
       form.resetFields();
       setSelectedProject("");
     } catch (error: any) {
       console.error("Error creating ticket:", error);
-      api.error({
-        message: "Error",
-        description: error?.message || "Failed to create ticket",
-        
-        duration: 4,
-      });
+      const errorMessage = error?.message || "Failed to create ticket";
+      message.error(`Error!!! : ${errorMessage}`);
+      // api.error({
+      //   message: "Error",
+      //   description: error?.message || "Failed to create ticket",
+
+      //   duration: 4,
+      // });
     } finally {
       setLoading(false);
     }
@@ -270,21 +276,22 @@ export default function CreateTicket() {
 
   const handleCancel = () => {
     form.resetFields();
-    api.info({
-      message: "Form cleared",
-      
-      duration: 2,
-    });
+    message.info(`Form cleared successfully!`);
+    // api.info({
+    //   message: "Form cleared",
+
+    //   duration: 2,
+    // });
   };
 
 
   return (
-    <div style={{ 
-      maxWidth: 1600, 
-      margin: "0 auto", 
+    <div style={{
+      maxWidth: 1600,
+      margin: "0 auto",
       height: "100%", // Fit parent (MainLayout Content)
-      display: "flex", 
-      flexDirection: "column", 
+      display: "flex",
+      flexDirection: "column",
       overflow: "hidden",
       padding: "16px 24px 0",
       background: "var(--bg-pure-white)"
@@ -307,11 +314,11 @@ export default function CreateTicket() {
         alignItems: "center",
       }}>
         <Space direction="vertical" size={0}>
-          <Breadcrumb 
+          <Breadcrumb
             items={[
               { title: <a href="/projects" style={{ color: "#8c8c8c" }}><ProjectOutlined /> Projects</a> },
               { title: <Text type="secondary">New Ticket</Text> }
-            ]} 
+            ]}
             style={{ marginBottom: 4, fontSize: 12 }}
           />
           <Space size={16}>
@@ -340,26 +347,26 @@ export default function CreateTicket() {
         </Space>
 
         <Space size={12}>
-          <Button 
-            icon={<ArrowLeftOutlined />} 
+          <Button
+            icon={<ArrowLeftOutlined />}
             onClick={() => window.history.back()}
-            style={{ 
-              borderRadius: 8, 
-              height: 40, 
+            style={{
+              borderRadius: 8,
+              height: 40,
               border: "1px solid #d9d9d9",
               fontWeight: 500
             }}
           >
             Back
           </Button>
-          <Button 
-            type="primary" 
-            icon={<CheckCircleOutlined />} 
+          <Button
+            type="primary"
+            icon={<CheckCircleOutlined />}
             onClick={() => form.submit()}
             loading={loading}
-            style={{ 
-              borderRadius: 8, 
-              height: 40, 
+            style={{
+              borderRadius: 8,
+              height: 40,
               fontWeight: 600,
               background: "linear-gradient(135deg, #1677ff 0%, #0958d9 100%)",
               border: "none",
@@ -386,14 +393,14 @@ export default function CreateTicket() {
             requiredMark="optional"
           >
             {/* Form Progress Steps - Sticky behavior - Outside Space to ensure stickiness */}
-            <div style={{ 
+            <div style={{
               position: "sticky",
-              top: 0, 
+              top: 0,
               zIndex: 900,
-              padding: "20px 24px", 
-              background: "var(--bg-pure-white)", 
+              padding: "20px 24px",
+              background: "var(--bg-pure-white)",
               backdropFilter: "blur(10px)",
-              borderRadius: 12, 
+              borderRadius: 12,
               border: "1px solid var(--border-color)",
               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
               marginBottom: 16 // Add margin manually since it's out of Space
@@ -428,7 +435,7 @@ export default function CreateTicket() {
                     <Text strong>Basic Information</Text>
                   </Space>
                 }
-                styles={{ 
+                styles={{
                   header: { borderBottom: "1px solid var(--border-color)", padding: "0 24px" },
                   body: { padding: 24 }
                 }}
@@ -534,7 +541,7 @@ export default function CreateTicket() {
                     <Text strong>Task Configuration</Text>
                   </Space>
                 }
-                styles={{ 
+                styles={{
                   header: { borderBottom: "1px solid var(--border-color)", padding: "0 24px" },
                   body: { padding: 24 }
                 }}
@@ -634,7 +641,7 @@ export default function CreateTicket() {
                     <Text strong>Responsibility & Timeline</Text>
                   </Space>
                 }
-                styles={{ 
+                styles={{
                   header: { borderBottom: "1px solid var(--border-color)", padding: "0 24px" },
                   body: { padding: 24 }
                 }}
@@ -781,7 +788,7 @@ export default function CreateTicket() {
                     <Text strong>Active Sprint</Text>
                   </Space>
                 }
-                styles={{ 
+                styles={{
                   header: { borderBottom: "1px solid var(--border-color)", padding: "0 20px" },
                   body: { padding: 20 }
                 }}
@@ -800,11 +807,11 @@ export default function CreateTicket() {
                     const activeSprint = releasePlans.find(p => p.status?.toUpperCase() === "ACTIVE") || releasePlans[0];
                     return (
                       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                        <div style={{ 
-                          padding: "12px", 
-                          background: "var(--bg-pure-white)", 
-                          borderRadius: 8, 
-                          border: "1px solid var(--border-color)" 
+                        <div style={{
+                          padding: "12px",
+                          background: "var(--bg-pure-white)",
+                          borderRadius: 8,
+                          border: "1px solid var(--border-color)"
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <div>
@@ -818,7 +825,7 @@ export default function CreateTicket() {
                             </Tag>
                           </div>
                         </div>
-                        
+
                         <Row gutter={0} style={{ border: "1px solid var(--border-color)", borderRadius: 8, overflow: "hidden" }}>
                           <Col span={12} style={{ padding: "8px 12px", borderRight: "1px solid var(--border-color)", background: "var(--bg-pure-white)" }}>
                             <Text type="secondary" style={{ fontSize: 10, display: "block", textTransform: "uppercase", letterSpacing: "0.02em" }}>Start Date</Text>
@@ -831,16 +838,16 @@ export default function CreateTicket() {
                         </Row>
 
                         <Divider style={{ margin: "8px 0" }} />
-                        
+
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <Text type="secondary" style={{ fontSize: 12 }}>Sprint Tickets</Text>
                           <Badge count={activeSprint.totalTickets || 0} style={{ backgroundColor: "#1677ff" }} />
                         </div>
-                        
+
                         {activeSprint.totalTickets !== undefined && activeSprint.totalTickets > 0 && (
-                          <Progress 
-                            percent={Math.round(((activeSprint.completedTickets || 0) / activeSprint.totalTickets) * 100)} 
-                            size="small" 
+                          <Progress
+                            percent={Math.round(((activeSprint.completedTickets || 0) / activeSprint.totalTickets) * 100)}
+                            size="small"
                             status={activeSprint.status?.toUpperCase() === "ACTIVE" ? "active" : "normal"}
                           />
                         )}
@@ -859,11 +866,11 @@ export default function CreateTicket() {
                   <Text strong>Ticket Best Practices</Text>
                 </Space>
               }
-              styles={{ 
+              styles={{
                 header: { borderBottom: "1px solid #f0f0f0", padding: "0 20px" },
                 body: { padding: "16px 20px" }
               }}
-               style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)" }}
+              style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)" }}
             >
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div>
@@ -889,11 +896,11 @@ export default function CreateTicket() {
                   <Text strong>Priority Framework</Text>
                 </Space>
               }
-              styles={{ 
+              styles={{
                 header: { borderBottom: "1px solid #f0f0f0", padding: "0 20px" },
                 body: { padding: "12px 20px" }
               }}
-               style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)" }}
+              style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)" }}
             >
               <List
                 size="small"
@@ -916,7 +923,7 @@ export default function CreateTicket() {
           </Space>
         </Col>
       </Row>
-      {contextHolder}
+      {/* {contextHolder} */}
     </div>
   );
 }

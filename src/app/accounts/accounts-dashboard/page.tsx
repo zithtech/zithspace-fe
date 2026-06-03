@@ -15,7 +15,6 @@ import {
   Tag,
   Modal,
   Form,
-  Alert,
   DatePicker,
   InputNumber,
   Row,
@@ -132,8 +131,6 @@ export default function AccountsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   // Summary data
   const [summary, setSummary] = useState<any>(null);
@@ -191,9 +188,9 @@ export default function AccountsPage() {
     } catch (error) {
       console.error('Fetch transactions error:', error);
       if (error instanceof Error) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError('Failed to fetch transactions');
+        messageApi.error('Failed to fetch transactions');
       }
     } finally {
       setLoading(false);
@@ -213,7 +210,7 @@ export default function AccountsPage() {
     } catch (error) {
       console.error('Fetch summary error:', error);
       if (error instanceof Error) {
-        setError(error.message);
+        messageApi.error(error.message);
       }
     } finally {
       setSummaryLoading(false);
@@ -229,7 +226,7 @@ export default function AccountsPage() {
     } catch (error) {
       console.error('Failed to fetch members:', error);
       if (error instanceof Error) {
-        setError(error.message);
+        messageApi.error(error.message);
       }
     }
   };
@@ -246,12 +243,11 @@ export default function AccountsPage() {
   const handleSubmit = async (values: TransactionFormData) => {
     try {
       setFormLoading(true);
-      setError('');
 
       // Ensure amount is a valid number
       const amount = Number(values.amount);
       if (isNaN(amount) || amount <= 0) {
-        setError('Amount must be a valid number greater than 0');
+        messageApi.error('Amount must be a valid number greater than 0');
         setFormLoading(false);
         return;
       }
@@ -268,7 +264,7 @@ export default function AccountsPage() {
         };
 
         await TransactionsService.updateTransaction(selectedTransaction.id, updatePayload);
-        setSuccess('Transaction updated successfully');
+        messageApi.success('Transaction updated successfully');
       } else {
         // For create mode, include member field
         const createPayload: CreateTransactionData = {
@@ -282,7 +278,7 @@ export default function AccountsPage() {
         };
 
         await TransactionsService.createTransaction(createPayload);
-        setSuccess('Transaction created successfully');
+        messageApi.success('Transaction created successfully');
       }
 
       setIsModalVisible(false);
@@ -293,9 +289,9 @@ export default function AccountsPage() {
     } catch (error) {
       console.error('Transaction operation error:', error);
       if (error instanceof Error) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError('Operation failed');
+        messageApi.error('Operation failed');
       }
     } finally {
       setFormLoading(false);
@@ -310,7 +306,7 @@ export default function AccountsPage() {
       setFormLoading(true);
 
       await TransactionsService.deleteTransaction(selectedTransaction.id);
-      setSuccess('Transaction deleted successfully');
+      messageApi.success('Transaction deleted successfully');
       setIsModalVisible(false);
       setSelectedTransaction(null);
       fetchTransactions();
@@ -318,9 +314,9 @@ export default function AccountsPage() {
     } catch (error) {
       console.error('Delete transaction error:', error);
       if (error instanceof Error) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError('Delete failed');
+        messageApi.error('Delete failed');
       }
     } finally {
       setFormLoading(false);
@@ -570,16 +566,7 @@ export default function AccountsPage() {
     },
   ];
 
-  // Clear messages
-  useEffect(() => {
-    if (success || error) {
-      const timer = setTimeout(() => {
-        setSuccess('');
-        setError('');
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [success, error]);
+
 
   return (
     <MainLayout>
@@ -628,28 +615,6 @@ export default function AccountsPage() {
         />
 
         <div style={{ padding: "0 32px 32px 32px" }}>
-
-          {/* Alerts */}
-          {error && (
-            <Alert
-              message={error}
-              type="error"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13 }}
-              onClose={() => setError('')}
-            />
-          )}
-          {success && (
-            <Alert
-              message={success}
-              type="success"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13 }}
-              onClose={() => setSuccess('')}
-            />
-          )}
 
           {/* Summary Cards */}
           <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>

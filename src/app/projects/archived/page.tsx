@@ -156,6 +156,7 @@ export default function ArchivedTicketsPage() {
 
     try {
       await moveToTrash(selectedRowKeys as string[]);
+      message.success('Tickets moved to trash successfully');
       setSelectedRowKeys([]);
       refetch();
     } catch (error: any) {
@@ -172,6 +173,7 @@ export default function ArchivedTicketsPage() {
 
     try {
       await bulkRestore(targetIds);
+      message.success('Tickets restored successfully');
       setSelectedRowKeys([]);
       refetch();
     } catch (error: any) {
@@ -297,8 +299,12 @@ export default function ArchivedTicketsPage() {
               onConfirm={async () => {
                 try {
                   await moveToTrash([record.id]);
+                  message.success('Ticket moved to trash successfully');
                   refetch();
-                } catch {}
+                } catch (error) {
+                  console.error('Error deleting ticket:', error);
+                  message.error('Failed to delete ticket');
+                }
               }}
               okText="Delete"
               cancelText="Cancel"

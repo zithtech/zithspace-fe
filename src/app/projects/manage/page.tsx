@@ -64,6 +64,7 @@ import { MembersService } from "@/services/membersService";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
+import { useActivitySource } from "@/hooks/useActivitySource";
 import MainLayout from "@/components/layout/MainLayout";
 import { useTheme } from "@/context/ThemeContext";
 import { ColumnsType } from "antd/es/table";
@@ -167,6 +168,7 @@ const ProjectsManageContent: React.FC = () => {
   const [form] = Form.useForm();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { canReadProject, canCreateProject, canUpdateProject, canDeleteProject } = usePermission();
+  useActivitySource({ section: "WORK", module: "Projects", page: "ProjectList" });
   const router = useRouter();
   const searchParams = useSearchParams();
 

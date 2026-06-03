@@ -41,6 +41,7 @@ import InvoiceTemplateDrawer from "./InvoiceTemplateDrawer";
 import { InvoiceTemplate } from "@/services/invoiceTemplateService";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title, Text } = Typography;
 
@@ -70,6 +71,9 @@ export default function InvoiceTemplatePage() {
       router.push("/invoice/invoices");
     }
   }, [authLoading, canReadInvoiceTemplate, router]);
+
+  // Register UX context for activity logging
+  useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceTemplateList" });
 
   const { data: templates, isLoading } = useInvoiceTemplates();
   const deleteMutation = useDeleteInvoiceTemplate();

@@ -22,8 +22,11 @@ import {
   EditOutlined
 } from "@ant-design/icons";
 import { Tag, Button, Space, Tooltip, Typography } from "antd";
+import { History } from "lucide-react";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
+import { usePermission } from "@/hooks/usePermission";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Text } = Typography;
 
@@ -38,6 +41,8 @@ const ProjectOverviewPage = () => {
   });
 
   const [drawerVisible, setDrawerVisible] = React.useState(false);
+  const [historyOpen, setHistoryOpen] = React.useState(false);
+  const { canReadActivityLog } = usePermission();
 
   if (isLoading) {
     return (
@@ -207,6 +212,17 @@ const ProjectOverviewPage = () => {
                     }} />
                   </div>
                 </div>
+                {canReadActivityLog && (
+                  <Tooltip title="Activity history">
+                    <Button
+                      icon={<History size={14} strokeWidth={1.75} />}
+                      onClick={() => setHistoryOpen(true)}
+                      style={{ borderRadius: 8, height: 38, fontWeight: 600 }}
+                    >
+                      History
+                    </Button>
+                  </Tooltip>
+                )}
                 <Button
                   type="primary"
                   icon={<EditOutlined />}
@@ -265,6 +281,14 @@ const ProjectOverviewPage = () => {
           onClose={() => setDrawerVisible(false)}
           projectId={projectId}
           onSuccess={() => refetch()}
+        />
+
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          entityType="project"
+          entityId={projectId}
+          subtitle={`${project.code ? `#${project.code} — ` : ""}${project.name}`}
         />
       </div>
     </MainLayout>

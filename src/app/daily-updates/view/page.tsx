@@ -52,12 +52,14 @@ import DailyUpdateService from "@/services/dailyUpdateService";
 import { ProjectService } from "@/services/projectService";
 import { DailyStatusUpdate } from "@/types/dailyUpdate";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title, Text } = Typography;
 
 type ViewMode = "card" | "list";
 
 export default function ViewDailyUpdatesPage() {
+  useActivitySource({ section: "WORK", module: "DailyUpdates", page: "DailyUpdatesView" });
   const { user, isLoading: authLoading } = useAuth();
   const { canReadDailyUpdate } = usePermission();
   const router = useRouter();

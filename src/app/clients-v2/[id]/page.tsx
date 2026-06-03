@@ -41,6 +41,7 @@ import {
   Landmark,
   Sparkles,
   Activity,
+  History,
   Copy,
   CheckCircle2,
   AlertCircle,
@@ -64,6 +65,8 @@ import { api } from "@/lib/axios";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { usePermission } from "@/hooks/usePermission";
+import { useActivitySource } from "@/hooks/useActivitySource";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 import ContactsTab from "./Tabs/ContactsTab";
 import AllocationsTab from "./Tabs/AllocationsTab";
@@ -423,10 +426,12 @@ const Field: React.FC<{ label: string; children: React.ReactNode; icon?: React.C
 /* -------------------------------------------------------------------------- */
 
 export default function ClientV2DetailsPage() {
+  useActivitySource({ section: "ADMIN", module: "ClientsV2", page: "ClientDetail" });
   const router = useRouter();
   const params = useParams();
   const { tenantId } = useTenant();
-  const { canUpdateClient } = usePermission();
+  const { canUpdateClient, canReadActivityLog } = usePermission();
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notify, contextHolder] = notification.useNotification();
@@ -741,6 +746,15 @@ export default function ClientV2DetailsPage() {
             </div>
 
             <div className="cd-cmdbar-actions">
+              {canReadActivityLog && (
+                <Button
+                  icon={<History size={15} />}
+                  className="cd-secondary-btn"
+                  onClick={() => setHistoryOpen(true)}
+                >
+                  History
+                </Button>
+              )}
               {canUpdateClient && (
                 <Button
                   icon={<Settings2 size={15} />}
@@ -3895,6 +3909,13 @@ export default function ClientV2DetailsPage() {
             [data-theme='dark'] .ptab-search.ant-input-affix-wrapper { background: var(--bg-secondary) !important; }
             [data-theme='dark'] .ptab-header-count { background: var(--bg-secondary); }
           `}</style>
+          <TransactionHistoryDrawer
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            entityType="client"
+            entityId={client.id}
+            subtitle={client.companyName}
+          />
         </div>
       </MainLayout>
     </ProtectedRoute>

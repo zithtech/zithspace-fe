@@ -38,10 +38,12 @@ import { useDepartments } from "@/hooks/useDepartments";
 import { useSubDepartments } from "@/hooks/useSubDepartments";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { OrgStatCard, OrgMiniBar } from "@/components/org-structure/OrgPageWidgets";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Text } = Typography;
 
 export default function SubDepartmentsPage() {
+  useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureSubDepartments" });
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
   const { canReadOrg, canManageOrg } = usePermission();

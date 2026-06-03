@@ -58,6 +58,7 @@ import {
   CloseOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import { useActivitySource } from "@/hooks/useActivitySource";
 import { RBACService, RBACRole, RBACPermission, RBACRoleDetail } from "@/services/rbacService";
 import { MembersService } from "@/services/membersService";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
@@ -437,6 +438,7 @@ const RoleFormContent: React.FC<RoleFormContentProps> = ({ form, mode, existingS
 /* -------------------------------------------------------------------------- */
 
 export default function RolesPage() {
+  useActivitySource({ section: "ADMIN", module: "RoleAndPermissions", page: "RoleList" });
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const { canReadRole, canCreateRole, canUpdateRole, canDeleteRole, canAssignRole } = usePermission();

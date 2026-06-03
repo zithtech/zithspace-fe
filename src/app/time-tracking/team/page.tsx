@@ -13,8 +13,10 @@ import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeade
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 export default function TeamTimePage() {
+  useActivitySource({ section: "WORK", module: "TimeTracking", page: "TimeTrackingTeam" });
   const { message } = App.useApp();
   const { setPopoverOpen } = useTimeTrackerStore();
   const [isManageModalOpen, setIsManageModalOpen] = React.useState(false);

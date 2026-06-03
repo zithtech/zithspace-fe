@@ -17,6 +17,7 @@ import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { useGrades } from "@/hooks/useGrades";
 import { usePositions } from "@/hooks/usePositions";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Text } = Typography;
 
@@ -107,6 +108,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
 /* -------------------------------------------------------------------------- */
 
 export default function OverviewPage() {
+  useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureOverview" });
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
   const { canReadOrgDashboard } = usePermission();

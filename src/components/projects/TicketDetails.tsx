@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card, Form, Alert, Row, Col, message, Space } from "antd";
+import { Card, Form, Alert, Row, Col, message, Space, Button } from "antd";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { useUserProjects, useMembers, useTicketConfig } from "@/hooks/useGlobalData";
 import {
   useTicketDetails,
@@ -35,7 +37,8 @@ import {
 export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   const [form] = Form.useForm();
   const [editing, setEditing] = useState(false);
-  const { canAssignTicket } = usePermission();
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const { canAssignTicket, canReadActivityLog } = usePermission();
 
   // React Query hooks for data fetching (parallel loading)
   const { data: ticket, isLoading: ticketLoading } = useTicketDetails(ticketId);
@@ -185,7 +188,26 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
 
   return (
     <div className="p-10">
-      <TicketDetailsHeader />
+      <TicketDetailsHeader
+        rightContent={
+          canReadActivityLog ? (
+            <Button
+              icon={<History size={14} strokeWidth={1.75} />}
+              onClick={() => setHistoryOpen(true)}
+            >
+              History
+            </Button>
+          ) : null
+        }
+      />
+
+      <TransactionHistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        entityType="ticket"
+        entityId={ticketId}
+        subtitle={ticket ? `${ticket.ticketNumber ?? ""}${ticket.title ? ` — ${ticket.title}` : ""}` : undefined}
+      />
 
       <Row gutter={24}>
         {/* Main Content */}

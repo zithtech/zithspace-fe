@@ -63,10 +63,12 @@ import { useLeadSettings } from "@/hooks/useLeadSettings";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Text, Title } = Typography;
 
 export default function LeadSettingsPage() {
+    useActivitySource({ section: "WORK", module: "Leads", page: "LeadSettings" });
     const { user, isLoading } = useAuth();
     const { 
         canManageLeads,

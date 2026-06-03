@@ -17085,6 +17085,12 @@ select:-webkit-autofill:focus {
   border-top: 1px solid var(--border-slate-100) !important;
 }
 
+.qe-table th,
+.qe-table td,
+.qe-table .ant-table-cell {
+  white-space: nowrap !important;
+}
+
 /* Dark theme */
 [data-theme='dark'] .qe-shell {
   background:
@@ -17371,7 +17377,56 @@ select:-webkit-autofill:focus {
   padding-bottom: 6px !important;
 }
 
+/* ── Kill ALL blue borders / glows inside the escalation drawer ─────────
+   Ant Design v5 injects focus/active styles via CSS-in-JS with high
+   specificity. We use every possible selector + !important to win.    */
+
+/* Override Ant Design v5 CSS token variables inside the drawer */
+.ced-drawer {
+  --ant-color-primary-border: #374151 !important;
+  --ant-color-primary-border-hover: #4b5563 !important;
+  --ant-line-width-focus: 0px !important;
+  --ant-control-outline: rgba(0,0,0,0) !important;
+  --ant-control-outline-width: 0px !important;
+  --ant-input-active-shadow: none !important;
+  --ant-select-active-border-color: #374151 !important;
+  --ant-select-hover-border-color: #4b5563 !important;
+}
+
+/* All input, textarea, select, picker — every focus/active/open state */
+.ced-drawer .ant-input,
+.ced-drawer .ant-input:hover,
+.ced-drawer .ant-input:focus,
+.ced-drawer .ant-input-focused,
+.ced-drawer .ant-input-status-error,
+.ced-drawer .ant-input-affix-wrapper,
+.ced-drawer .ant-input-affix-wrapper:hover,
+.ced-drawer .ant-input-affix-wrapper:focus,
+.ced-drawer .ant-input-affix-wrapper-focused,
+.ced-drawer .ant-select-selector,
+.ced-drawer .ant-select:hover .ant-select-selector,
+.ced-drawer .ant-select-focused .ant-select-selector,
+.ced-drawer .ant-select-open .ant-select-selector,
+.ced-drawer .ant-picker,
+.ced-drawer .ant-picker:hover,
+.ced-drawer .ant-picker-focused,
+.ced-drawer textarea,
+.ced-drawer textarea:focus,
+.ced-drawer textarea:hover {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Specifically kill the blue outline Ant Design adds via :focus-within */
+.ced-drawer .ant-select-focused:not(.ant-select-disabled) .ant-select-selector,
+.ced-drawer .ant-select-open:not(.ant-select-disabled) .ant-select-selector {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+
 /* ---------- Inputs / selects ---------- */
+
 .ced-input.ant-input,
 .ced-input.ant-input-affix-wrapper,
 .ced-textarea.ant-input {
@@ -17380,6 +17435,7 @@ select:-webkit-autofill:focus {
   background: var(--bg-slate-50) !important;
   transition: all 0.2s ease !important;
   font-size: 13.5px !important;
+  padding: 10px 16px !important;
 }
 
 .ced-input.ant-input,
@@ -17399,8 +17455,8 @@ select:-webkit-autofill:focus {
 .ced-textarea.ant-input:focus,
 .ced-textarea.ant-input-focused {
   background: var(--bg-pure-white) !important;
-  border-color: rgba(59, 130, 246, 0.45) !important;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.10) !important;
+  border-color: var(--border-slate-300) !important;
+  box-shadow: none !important;
 }
 
 .ced-select.ant-select .ant-select-selector {
@@ -17425,8 +17481,8 @@ select:-webkit-autofill:focus {
 
 .ced-select.ant-select-focused .ant-select-selector {
   background: var(--bg-pure-white) !important;
-  border-color: rgba(59, 130, 246, 0.45) !important;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.10) !important;
+  border-color: var(--border-slate-300) !important;
+  box-shadow: none !important;
 }
 
 .ced-select.ant-select .ant-select-selection-placeholder {
@@ -17434,7 +17490,20 @@ select:-webkit-autofill:focus {
   font-size: 13px;
 }
 
-.ced-select.ant-select .ant-select-selection-item {
+/* Single-select: no blue box, just plain styled text */
+.ced-select.ant-select-single .ant-select-selection-item {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  color: var(--text-slate-800) !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Multi-select: keep blue tag styling for tags */
+.ced-select.ant-select-multiple .ant-select-selection-item {
   background: rgba(59, 130, 246, 0.08) !important;
   border: 1px solid rgba(59, 130, 246, 0.20) !important;
   border-radius: 6px !important;

@@ -49,6 +49,7 @@ import {
 } from "@/hooks/useTrash";
 import { usePermission } from "@/hooks/usePermission";
 import { useUserProjects, useTicketConfig, useMembers } from "@/hooks/useGlobalData";
+import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -76,6 +77,7 @@ const calculatePurgeProgress = (deletedAt: string) => {
 
 export default function TrashManagementPage() {
   const queryClient = useQueryClient();
+  const { open: openTicketDrawer } = useTicketDrawer();
   const { canRestoreTicketTrash, canDeleteTicketTrash } = usePermission();
   useActivitySource({ section: "WORK", module: "Trash", page: "TrashView" });
   const [page, setPage] = useState(1);
@@ -678,6 +680,23 @@ export default function TrashManagementPage() {
         >
           <Table
             rowSelection={(isLoading || isRefreshing) ? undefined : { selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }}
+            onRow={(record) => ({
+              onClick: (e) => {
+                const target = e.target as HTMLElement;
+                if (
+                  target.closest(".ant-checkbox-wrapper") ||
+                  target.closest(".tr-action-cell") ||
+                  target.closest(".ant-popconfirm") ||
+                  target.closest("button")
+                ) {
+                  return;
+                }
+                if (record.id) {
+                  openTicketDrawer(record.id);
+                }
+              },
+              style: { cursor: "pointer" }
+            })}
             columns={columns.map(col => ({
               ...col,
               render: (text: any, record: any, index: number) => {
@@ -1353,6 +1372,13 @@ export default function TrashManagementPage() {
           border: 1px solid rgba(59, 130, 246, 0.15);
           width: fit-content;
           letter-spacing: -0.01em;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .tr-ticket-id:hover {
+          background: rgba(59, 130, 246, 0.12);
+          border-color: rgba(59, 130, 246, 0.3);
+          transform: translateY(-0.5px);
         }
         [data-theme='dark'] .tr-ticket-id {
           background: rgba(59, 130, 246, 0.12);

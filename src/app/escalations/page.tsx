@@ -176,6 +176,10 @@ export default function EscalationListPage() {
   // Create drawer
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
 
+  // Edit drawer
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+
   const { message } = App.useApp();
 
   const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
@@ -544,18 +548,18 @@ export default function EscalationListPage() {
     {
       title: 'Action',
       key: 'action',
+      fixed: 'right' as const,
+      width: 100,
       render: (_: any, record: any) => (
         <Space size={4} onClick={(e) => e.stopPropagation()}>
           {canUpdateEscalation && (
-            <Tooltip title="Edit / View Details">
+            <Tooltip title="Edit Escalation">
               <Button
                 type="text"
                 icon={<EditOutlined style={{ color: BLUE_PRIMARY }} />}
                 onClick={() => {
-                  setSelectedEscalation(record);
-                  setTempStatus(record.statusId || record.status);
-                  setIsEditing(true);
-                  setDrawerVisible(true);
+                  setEditingRecord(record);
+                  setEditDrawerOpen(true);
                 }}
               />
             </Tooltip>
@@ -600,16 +604,25 @@ export default function EscalationListPage() {
             marginBottom: 20,
           }}
           extra={
-            canCreateEscalation && (
+            <Space>
               <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setCreateDrawerOpen(true)}
-                className="qe-primary-btn"
+                icon={<DeleteOutlined />}
+                onClick={() => router.push('/escalations/trash')}
+                style={{ borderRadius: 8, height: 36 }}
               >
-                Raise Escalation
+                Trash
               </Button>
-            )
+              {canCreateEscalation && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setCreateDrawerOpen(true)}
+                  className="qe-primary-btn"
+                >
+                  Raise Escalation
+                </Button>
+              )}
+            </Space>
           }
         />
 
@@ -987,6 +1000,7 @@ export default function EscalationListPage() {
               rowKey="id"
               loading={loading}
               className="premium-table qe-table"
+              scroll={{ x: 'max-content' }}
               onRow={(record) => ({
                 onClick: () => {
                   setSelectedEscalation(record);
@@ -1327,6 +1341,16 @@ export default function EscalationListPage() {
           open={createDrawerOpen}
           onClose={() => setCreateDrawerOpen(false)}
           onSuccess={fetchEscalations}
+        />
+
+        <CreateEscalationDrawer
+          open={editDrawerOpen}
+          onClose={() => {
+            setEditDrawerOpen(false);
+            setEditingRecord(null);
+          }}
+          onSuccess={fetchEscalations}
+          editingId={editingRecord?.id}
         />
       </div>
     </MainLayout>

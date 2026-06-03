@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, Divider, Badge, Grid, Input, Tooltip, Empty, Modal, theme } from 'antd';
+import { App } from 'antd';
 import {
   Mail,
   MessageSquareText,
@@ -96,6 +97,7 @@ export default function TopNav({
   const { token } = theme.useToken();
   const { theme: appTheme } = useTheme();
   const isDark = appTheme === "dark";
+  const { modal } = App.useApp();
 
   const novuAppearance = {
     baseTheme: isDark ? { variables: {} } : undefined,
@@ -201,6 +203,7 @@ export default function TopNav({
   const [newShortcutName, setNewShortcutName] = useState('');
   const [newShortcutPath, setNewShortcutPath] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const deleteModalOpenRef = React.useRef(false);
 
   const handleSaveBookmark = () => {
     if (!newShortcutName.trim() || !newShortcutPath.trim()) return;
@@ -215,17 +218,22 @@ export default function TopNav({
 
   const handleDeleteBookmark = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    deleteModalOpenRef.current = true;
     setDeleteModalOpen(true);
-    Modal.confirm({
+    modal.confirm({
       title: 'Delete Bookmark',
       content: 'Are you sure you want to delete this bookmark?',
       onOk: () => {
         const updated = shortcuts.filter(s => s.id !== id);
         setShortcuts(updated);
         localStorage.setItem('nav_shortcuts', JSON.stringify(updated));
+        deleteModalOpenRef.current = false;
         setDeleteModalOpen(false);
       },
-      onCancel: () => setDeleteModalOpen(false),
+      onCancel: () => {
+        deleteModalOpenRef.current = false;
+        setDeleteModalOpen(false);
+      },
     });
   };
 
@@ -759,7 +767,7 @@ export default function TopNav({
                 <Dropdown
                   open={shortcutPopoverVisible && !isCustomBreakpoint}
                   onOpenChange={(visible) => {
-                    if (!visible && deleteModalOpen) return;
+                    if (!visible && deleteModalOpenRef.current) return;
                     setShortcutPopoverVisible(visible);
                     if (!visible) {
                       setIsAddMode(false);
@@ -848,7 +856,7 @@ export default function TopNav({
           <Modal
             open={shortcutPopoverVisible}
             onCancel={() => {
-              if (deleteModalOpen) return;
+              if (deleteModalOpenRef.current) return;
               setShortcutPopoverVisible(false);
               setIsAddMode(false);
             }}

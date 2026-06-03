@@ -9,7 +9,7 @@ export default async function SprintReportPage({ params }: SprintReportPageProps
   const { sprintId } = await params;
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <SprintReportView sprintId={sprintId} />
     </MainLayout>
   );

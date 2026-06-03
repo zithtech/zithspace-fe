@@ -601,7 +601,7 @@ const HubCard: React.FC<{
   variant?: 'rail' | 'grid';
 }> = ({ hub, starred, onOpen, onToggleStar, onShare, onDelete, variant = 'rail' }) => {
   const { canDeleteDocument } = usePermission();
-  const accent = HUB_ACCENTS[0];
+  const accent = { from: '#7E6CE8', to: '#443199', tint: 'rgba(68, 49, 153, 0.10)' };
   const docCount = hub.treeNodes?.filter((n) => n.type === 'file').length || 0;
   const isRail = variant === 'rail';
   const updatedRel = formatDistanceToNow(new Date(hub.updatedAt), { addSuffix: true });
@@ -627,14 +627,6 @@ const HubCard: React.FC<{
           background: `linear-gradient(135deg, ${accent.from} 0%, ${accent.to} 100%)`,
         }}
       >
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.18), transparent 60%)',
-          }}
-        />
         <div className="absolute top-2 right-2 flex items-center gap-1.5">
           <span
             className="inline-flex items-center gap-1 rounded-full font-semibold"

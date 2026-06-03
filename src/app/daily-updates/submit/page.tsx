@@ -48,6 +48,7 @@ import {
 } from "@/types/dailyUpdate";
 import dayjs, { Dayjs } from "dayjs";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { useTheme } from "@/context/ThemeContext";
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -120,6 +121,8 @@ export default function SubmitDailyUpdatePage() {
 }
 
 function SubmitDailyUpdateContent() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const router = useRouter();
   const [form] = Form.useForm();
   const { message: messageApi } = App.useApp();
@@ -890,15 +893,15 @@ function SubmitDailyUpdateContent() {
               <div className="dud-anim" style={{
                 marginBottom: 22,
                 padding: "12px 16px",
-                background: "#fffbeb",
-                border: "1px solid #fde68a",
+                background: isDark ? "rgba(251, 191, 36, 0.08)" : "#fffbeb",
+                border: isDark ? "1px solid rgba(251, 191, 36, 0.2)" : "1px solid #fde68a",
                 borderRadius: 12,
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
               }}>
-                <AlertTriangle size={16} color="#b45309" />
-                <Text style={{ fontSize: 12, color: "#92400e", fontWeight: 600 }}>
+                <AlertTriangle size={16} color={isDark ? "#fbbf24" : "#b45309"} />
+                <Text style={{ fontSize: 12, color: isDark ? "#fbbf24" : "#92400e", fontWeight: 600 }}>
                   Date for the missed update:
                 </Text>
                 <DatePicker

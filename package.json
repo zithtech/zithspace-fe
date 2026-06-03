@@ -61,6 +61,7 @@
     "dotenv": "^17.2.1",
     "file-saver": "^2.0.5",
     "html2pdf.js": "^0.13.0",
+    "jsqr": "^1.4.0",
     "jszip": "^3.10.1",
     "lexical": "^0.39.0",
     "lodash.throttle": "^4.1.1",

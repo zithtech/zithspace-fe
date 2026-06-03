@@ -1,6 +1,6 @@
 "use client";
 import { FC, useEffect } from "react";
-import { Form, Input, Upload, Button, Tooltip } from "antd";
+import { Form, Input, Upload, Button, Tooltip, message } from "antd";
 import {
   QrCode,
   UploadCloud,
@@ -9,6 +9,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Draft } from "@/types/invoice";
+import jsQR from "jsqr";
 
 interface BankPaymentSettingsProps {
   initialValues: Draft["payment"];
@@ -89,20 +90,140 @@ const BankPaymentSettings: FC<BankPaymentSettingsProps> = ({
   onSave,
 }) => {
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
 
   useEffect(() => {
     form.setFieldsValue(initialValues);
   }, [initialValues]);
 
-  const handleQRUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result as string;
-      form.setFieldValue("qrCode", base64);
-      const values = form.getFieldsValue();
-      onSave({ ...values, qrCode: base64 });
-    };
-    reader.readAsDataURL(file);
+  const validateAndDecodeQR = async (file: File): Promise<{ upiId?: string; error?: string }> => {
+    try {
+      // 1. File Type and Extension check
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      const allowedExtensions = ["png", "jpg", "jpeg"];
+      const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
+      
+      const isAllowedType = allowedTypes.includes(file.type);
+      const isAllowedExt = allowedExtensions.includes(fileExt || "");
+
+      if (!isAllowedType && !isAllowedExt) {
+        return { error: "Unsupported file type. Please upload a valid JPG, JPEG, or PNG image." };
+      }
+
+      // 2. File Size check (2MB)
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        return { error: "Image must be smaller than 2MB" };
+      }
+
+      // 3. Decode QR Code using ImageBitmap (or fallback)
+      let imageData: ImageData;
+      try {
+        if (typeof window !== "undefined" && typeof window.createImageBitmap === "function") {
+          const imgBitmap = await window.createImageBitmap(file);
+          const canvas = document.createElement("canvas");
+          canvas.width = imgBitmap.width;
+          canvas.height = imgBitmap.height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            return { error: "Could not initialize canvas context." };
+          }
+          ctx.drawImage(imgBitmap, 0, 0);
+          imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          imgBitmap.close();
+        } else {
+          throw new Error("createImageBitmap not supported");
+        }
+      } catch (bitmapError) {
+        console.warn("createImageBitmap failed or not supported, using FileReader fallback:", bitmapError);
+        
+        const base64 = await new Promise<string>((resolveImg, rejectImg) => {
+          const reader = new FileReader();
+          reader.onload = () => resolveImg(reader.result as string);
+          reader.onerror = () => rejectImg(new Error("FileReader failed"));
+          reader.readAsDataURL(file);
+        });
+
+        imageData = await new Promise<ImageData>((resolveImg, rejectImg) => {
+          const img = new window.Image();
+          img.onload = () => {
+            try {
+              const canvas = document.createElement("canvas");
+              const ctx = canvas.getContext("2d");
+              if (!ctx) return rejectImg(new Error("Could not get canvas context"));
+              canvas.width = img.width;
+              canvas.height = img.height;
+              ctx.drawImage(img, 0, 0);
+              resolveImg(ctx.getImageData(0, 0, canvas.width, canvas.height));
+            } catch (err) {
+              rejectImg(err);
+            }
+          };
+          img.onerror = () => rejectImg(new Error("Image failed to load"));
+          img.src = base64;
+        });
+      }
+
+      // 4. Decode QR
+      const decodeQR = typeof jsQR === "function" ? jsQR : (jsQR as any).default;
+      if (typeof decodeQR !== "function") {
+        console.error("jsQR is not loaded correctly on the client side.");
+        return { error: "Invalid QR Code image. Please upload a valid payment QR code." };
+      }
+
+      const code = decodeQR(imageData.data, imageData.width, imageData.height);
+      if (!code || !code.data) {
+        return { error: "Invalid QR Code image. Please upload a valid payment QR code." };
+      }
+
+      const payload = code.data.trim();
+
+      // Validation of payment QR: UPI or EMVCo (Bharat QR)
+      const isUpi = payload.startsWith("upi://pay?");
+      const isEmvCo = payload.startsWith("000201");
+
+      let isValidPayment = isUpi;
+      if (isEmvCo) {
+        const hasUpiNCPIRegistry = payload.includes("org.npci.upi") || payload.includes("org.npci.bharatqr");
+        if (hasUpiNCPIRegistry) {
+          isValidPayment = true;
+        }
+      }
+
+      if (!isValidPayment) {
+        return { error: "Invalid QR Code image. Please upload a valid payment QR code." };
+      }
+
+      return { upiId: payload };
+    } catch (err) {
+      console.error("validateAndDecodeQR failed:", err);
+      return { error: "Invalid QR Code image. Please upload a valid payment QR code." };
+    }
+  };
+
+  const handleQRUpload = async (file: File) => {
+    try {
+      const result = await validateAndDecodeQR(file);
+      if (result.error) {
+        messageApi.error(result.error);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        form.setFieldValue("qrCode", base64);
+        const values = form.getFieldsValue();
+        onSave({ ...values, qrCode: base64 });
+      };
+      reader.onerror = () => {
+        messageApi.error("Failed to read file.");
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      console.error("Error in handleQRUpload:", err);
+      messageApi.error("An unexpected error occurred during QR upload.");
+    }
   };
 
   const qrCode = Form.useWatch("qrCode", form);
@@ -122,6 +243,7 @@ const BankPaymentSettings: FC<BankPaymentSettingsProps> = ({
       requiredMark={false}
       className="grid grid-cols-1 lg:grid-cols-2 gap-5"
     >
+      {contextHolder}
       <Form.Item name="qrCode" hidden>
         <Input />
       </Form.Item>

@@ -259,7 +259,7 @@ export default function AccountsSettingsPage() {
         }}
       >
         <TimeTrackingHeader
-          style={{ padding: "9.5px 32px", marginBottom: 12 }}
+          style={{ padding: "9.5px 32px", marginBottom: 12, position: 'sticky', top: 0, zIndex: 100 }}
           icon={<FolderOpen size={20} color="#8b5cf6" />}
           title="Accounts Settings"
           description="Manage your expense categories and account settings."

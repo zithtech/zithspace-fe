@@ -267,8 +267,11 @@ export default function PositionsPage() {
             description="Define and manage organization roles, grade assignments, and designations."
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
-              padding: "8.5px 32px",
+              padding: "9.5px 32px",
               marginBottom: 20,
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
             }}
             extra={
               canCreateOrgPosition && (

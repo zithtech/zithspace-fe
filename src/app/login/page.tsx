@@ -18,7 +18,8 @@ import {
   LoginOutlined,
 } from '@ant-design/icons';
 import Image from 'next/image';
-import Logo from '@/assets/logo/CMPLOGO.jpeg';
+// import Logo from '@/assets/logo/CMPLOGO.jpeg';
+import Logo from '@/assets/logo/Zukvologo.png';
 
 
 const { Title, Text } = Typography;
@@ -237,7 +238,7 @@ export default function LoginPage() {
 
         <div style={{ textAlign: 'center', marginTop: 24 }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
-  © {new Date().getFullYear()} Zithtech. All rights reserved.
+  © {new Date().getFullYear()} Zukvo. All rights reserved.
 </Text>
 
         </div>

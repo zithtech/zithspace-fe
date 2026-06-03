@@ -51,6 +51,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { usePermission } from "@/hooks/usePermission";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title, Text } = Typography;
 
@@ -190,6 +191,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
 /* -------------------------------------------------------------------------- */
 
 export default function ClientsV2ListPage() {
+  useActivitySource({ section: "ADMIN", module: "ClientsV2", page: "ClientList" });
   const router = useRouter();
   const { tenantId } = useTenant();
   const { canCreateClient, canUpdateClient, canDeleteClient } = usePermission();

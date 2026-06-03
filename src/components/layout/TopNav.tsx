@@ -15,6 +15,7 @@ import {
   Plus,
   MoreHorizontal,
   Sparkles,
+  History,
   Bookmark,
   BookmarkCheck,
   // Module icons (top navbar)
@@ -92,7 +93,8 @@ export default function TopNav({
     canCreateBookmark,
     canDeleteBookmark,
     canReadTimeTracking,
-    canCreateTimeTracking
+    canCreateTimeTracking,
+    canReadActivityLogAll
   } = usePermission();
   const { token } = theme.useToken();
   const { theme: appTheme } = useTheme();
@@ -724,6 +726,27 @@ export default function TopNav({
                   className={`nav-action-btn${isRouteActive('/chat') ? ' nav-action-btn-active' : ''}`}
                   icon={<MessageSquareText size={18} strokeWidth={isRouteActive('/chat') ? 2 : 1.75} />}
                   onClick={() => router.push('/chat')}
+                />
+              </Tooltip>
+            )}
+            {canReadActivityLogAll && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Activity</span>
+                    <span className="navbar-tooltip-sub">Transaction history</span>
+                  </div>
+                }
+                placement="bottom"
+                overlayClassName="navbar-icon-tooltip"
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <Button
+                  type="text"
+                  className={`nav-action-btn${isRouteActive('/activity') ? ' nav-action-btn-active' : ''}`}
+                  icon={<History size={18} strokeWidth={isRouteActive('/activity') ? 2 : 1.75} />}
+                  onClick={() => router.push('/activity')}
                 />
               </Tooltip>
             )}

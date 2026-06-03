@@ -41,6 +41,7 @@ import {
   History,
 } from "lucide-react";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -59,6 +60,8 @@ const PRESET_COLORS = [
 ];
 
 export default function AccountsSettingsPage() {
+  useActivitySource({ section: "FINANCE", module: "Accounts", page: "AccountsSettings" });
+
   const { message: messageApi } = App.useApp();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ExpenseCategory | null>(null);

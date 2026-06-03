@@ -55,6 +55,7 @@ import { ApiError } from "@/lib/axios";
 import { RBACService, RBACRole } from "@/services/rbacService";
 import type { ColumnsType } from "antd/es/table";
 import { usePermission } from "@/hooks/usePermission";
+import { useActivitySource } from "@/hooks/useActivitySource";
 import { usePositions } from "@/hooks/usePositions";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
@@ -705,6 +706,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
 };
 
 export default function MembersPage() {
+  useActivitySource({ section: "ADMIN", module: "Members", page: "MemberList" });
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [form] = Form.useForm();

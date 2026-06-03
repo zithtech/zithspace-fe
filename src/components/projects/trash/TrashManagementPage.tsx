@@ -50,6 +50,7 @@ import {
 import { usePermission } from "@/hooks/usePermission";
 import { useUserProjects, useTicketConfig, useMembers } from "@/hooks/useGlobalData";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
+import { useActivitySource } from "@/hooks/useActivitySource";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 
@@ -78,6 +79,7 @@ export default function TrashManagementPage() {
   const queryClient = useQueryClient();
   const { open: openTicketDrawer } = useTicketDrawer();
   const { canRestoreTicketTrash, canDeleteTicketTrash } = usePermission();
+  useActivitySource({ section: "WORK", module: "Trash", page: "TrashView" });
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");

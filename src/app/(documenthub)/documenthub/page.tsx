@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
+import { useActivitySource } from "@/hooks/useActivitySource";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { useTheme } from "@/context/ThemeContext";
@@ -759,6 +760,7 @@ const DocumentHubPage = () => {
     canUpdateDocument,
     canDeleteDocument,
   } = usePermission();
+  useActivitySource({ section: "WORK", module: "DocumentHub", page: "DocumentHubList" });
   // Ant breakpoints — used to scale card counts, button labels, and a few
   // layout decisions for narrower viewports.
   const screens = Grid.useBreakpoint();

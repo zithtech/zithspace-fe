@@ -63,6 +63,7 @@ import {
   useCreateSettingsProfile,
   useUpdateSettingsProfile,
 } from "@/hooks/useInvoiceSettings";
+import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Title } = Typography;
 
@@ -114,6 +115,9 @@ export default function InvoiceSettingPage() {
       router.push("/invoice/invoices");
     }
   }, [authLoading, canReadInvoiceSetting, router]);
+
+  // Register UX context for activity logging
+  useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceSettingsView" });
 
   const [mode, setMode] = useState<"view" | "create">("view");
   const { data: savedSettingsData, isLoading, isError, error, refetch } =

@@ -54,6 +54,8 @@ export interface CreateDocumentHubData {
   projectId?: string;
   ticketId?: string;
   visibility?: string;
+  /** "ai" when generated through Zai, omitted/anything else for manual creation. */
+  source?: "ai" | "manual";
 }
 
 export interface UpdateDocumentHubData {
@@ -228,6 +230,8 @@ class DocumentHubService {
     parentId?: string | null;
     type: "file" | "folder" | "section";
     title: string;
+    /** "ai" when this file/folder was produced by a Zai flow. */
+    source?: "ai" | "manual";
   }): Promise<DocumentTreeNode> {
     try {
       const response = await apiClient.post("/api/documenthub/node", data);

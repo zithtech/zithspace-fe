@@ -28,11 +28,13 @@ import { EndToEndZaiModal } from '@/components/proposals/EndToEndZaiModal';
 import { FloatingAIToolbar } from '@/components/proposals/FloatingAIToolbar';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
+import { useActivitySource } from '@/hooks/useActivitySource';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
 
 function BuilderContent() {
+  useActivitySource({ section: "WORK", module: "Proposals", page: "ProposalBuilder" });
   const { theme } = useTheme();
   const searchParams = useSearchParams();
   const router = useRouter();

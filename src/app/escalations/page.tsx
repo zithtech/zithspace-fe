@@ -54,6 +54,7 @@ import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeade
 import CreateEscalationDrawer from '@/components/escalations/CreateEscalationDrawer';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { useActivitySource } from '@/hooks/useActivitySource';
 
 dayjs.extend(relativeTime);
 
@@ -149,6 +150,7 @@ const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
 /* -------------------------------------------------------------------------- */
 
 export default function EscalationListPage() {
+  useActivitySource({ section: "WORK", module: "Escalations", page: "EscalationList" });
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation } = usePermission();

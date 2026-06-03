@@ -39,6 +39,8 @@ import { useSubDepartments } from "@/hooks/useSubDepartments";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { OrgStatCard, OrgMiniBar } from "@/components/org-structure/OrgPageWidgets";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Text } = Typography;
 
@@ -46,7 +48,7 @@ export default function SubDepartmentsPage() {
   useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureSubDepartments" });
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
-  const { canReadOrg, canManageOrg } = usePermission();
+  const { canReadOrg, canManageOrg, canReadActivityLog } = usePermission();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -56,6 +58,7 @@ export default function SubDepartmentsPage() {
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
   const [submitting, setSubmitting] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const { departments, loading: departmentsLoading } = useDepartments();
   const {
@@ -167,7 +170,7 @@ export default function SubDepartmentsPage() {
     {
       title: "Sub-Department",
       key: "identity",
-      width: "32%",
+      width: 250,
       render: (_: any, record: any) => (
         <div className="orgx-row-name">
           <div className="orgx-row-name__avatar">{record.code?.substring(0, 2) || "SD"}</div>
@@ -182,6 +185,7 @@ export default function SubDepartmentsPage() {
       title: "Parent Department",
       dataIndex: "parentDepartmentId",
       key: "parentDepartmentId",
+      width: 200,
       render: (parentDepartmentId: string, record: any) => {
         const deptName =
           record.parentDepartment?.name ||
@@ -251,16 +255,28 @@ export default function SubDepartmentsPage() {
               marginBottom: 20,
             }}
             extra={
-              canManageOrg && (
-                <Button
-                  type="primary"
-                  icon={<Plus size={15} />}
-                  onClick={handleAdd}
-                  className="orgx-primary-btn"
-                >
-                  New Sub-Department
-                </Button>
-              )
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                {canReadActivityLog && (
+                  <Button
+                    icon={<History size={15} />}
+                    onClick={() => setHistoryOpen(true)}
+                    style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    History
+                  </Button>
+                )}
+                {canManageOrg && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={15} />}
+                    onClick={handleAdd}
+                    className="orgx-primary-btn"
+                    style={{ display: "flex", alignItems: "center" }}
+                  >
+                    New Sub-Department
+                  </Button>
+                )}
+              </div>
             }
           />
 
@@ -362,6 +378,7 @@ export default function SubDepartmentsPage() {
                 loading={subDepartmentsLoading}
                 size="middle"
                 pagination={{ pageSize: 12, position: ["bottomRight"] }}
+                scroll={{ x: "max-content" }}
               />
             </div>
           </div>
@@ -492,6 +509,11 @@ export default function SubDepartmentsPage() {
             </div>
           </Drawer>
         </div>
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          module="OrgStructure"
+        />
       </MainLayout>
     </ProtectedRoute>
   );

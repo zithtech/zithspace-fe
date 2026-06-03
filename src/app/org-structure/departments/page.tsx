@@ -41,6 +41,8 @@ import { Department } from "@/services/departmentService";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { OrgStatCard, OrgMiniBar } from "@/components/org-structure/OrgPageWidgets";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Text } = Typography;
 
@@ -53,6 +55,7 @@ export default function DepartmentsPage() {
     canCreateOrgDepartment,
     canUpdateOrgDepartment,
     canDeleteOrgDepartment,
+    canReadActivityLog
   } = usePermission();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -62,6 +65,7 @@ export default function DepartmentsPage() {
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
   const [submitting, setSubmitting] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const { employmentTypes, loading: employmentTypesLoading } = useEmploymentTypes();
   const { departments, loading, createDepartment, updateDepartment, deleteDepartment } = useDepartments();
@@ -185,7 +189,7 @@ export default function DepartmentsPage() {
     {
       title: "Department",
       key: "identity",
-      width: "32%",
+      width: 250,
       render: (_: any, record: Department) => (
         <div className="orgx-row-name">
           <div className="orgx-row-name__avatar">{record.code?.substring(0, 2) || "DP"}</div>
@@ -200,6 +204,7 @@ export default function DepartmentsPage() {
       title: "Employment Type",
       dataIndex: "employmentType",
       key: "employmentType",
+      width: 180,
       render: (type: string) => (
         <span className={`orgx-row-soft-tag${!type ? " is-muted" : ""}`}>{type || "Not assigned"}</span>
       ),
@@ -208,6 +213,7 @@ export default function DepartmentsPage() {
       title: "Department Head",
       dataIndex: "head",
       key: "head",
+      width: 220,
       render: (head: any) => (
         <div className="orgx-row-leader">
           {head?.name ? (
@@ -279,16 +285,28 @@ export default function DepartmentsPage() {
               marginBottom: 20,
             }}
             extra={
-              canCreateOrgDepartment && (
-                <Button
-                  type="primary"
-                  icon={<Plus size={15} />}
-                  onClick={handleAdd}
-                  className="orgx-primary-btn"
-                >
-                  New Department
-                </Button>
-              )
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                {canReadActivityLog && (
+                  <Button
+                    icon={<History size={15} />}
+                    onClick={() => setHistoryOpen(true)}
+                    style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    History
+                  </Button>
+                )}
+                {canCreateOrgDepartment && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={15} />}
+                    onClick={handleAdd}
+                    className="orgx-primary-btn"
+                    style={{ display: "flex", alignItems: "center" }}
+                  >
+                    New Department
+                  </Button>
+                )}
+              </div>
             }
           />
 
@@ -388,6 +406,7 @@ export default function DepartmentsPage() {
                 loading={loading}
                 size="middle"
                 pagination={{ pageSize: 12, position: ["bottomRight"] }}
+                scroll={{ x: "max-content" }}
               />
             </div>
           </div>
@@ -524,6 +543,11 @@ export default function DepartmentsPage() {
             </div>
           </Drawer>
         </div>
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          module="OrgStructure"
+        />
       </MainLayout>
     </ProtectedRoute>
   );

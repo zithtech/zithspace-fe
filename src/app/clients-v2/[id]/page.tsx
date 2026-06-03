@@ -59,7 +59,7 @@ import {
   Server,
   Receipt,
 } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useTenant } from "@/context/TenantContext";
 import { api } from "@/lib/axios";
 import MainLayout from "@/components/layout/MainLayout";
@@ -429,6 +429,7 @@ export default function ClientV2DetailsPage() {
   useActivitySource({ section: "ADMIN", module: "ClientsV2", page: "ClientDetail" });
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const { tenantId } = useTenant();
   const { canUpdateClient, canReadActivityLog } = usePermission();
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -438,6 +439,13 @@ export default function ClientV2DetailsPage() {
   const [activeField, setActiveField] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("1");
   const [copiedCode, setCopiedCode] = useState(false);
+
+  useEffect(() => {
+    const tab = searchParams?.get("tab");
+    if (tab === "projects") {
+      setActiveTab("4");
+    }
+  }, [searchParams]);
 
   const [editModes, setEditModes] = useState({
     basic: false,

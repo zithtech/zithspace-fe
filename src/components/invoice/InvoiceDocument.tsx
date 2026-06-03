@@ -588,7 +588,7 @@ export function InvoiceDocument({
                       color: "#1a73e8",
                     }}
                   >
-                    Zithspace
+                    Zukvo
                   </span>
                   <span
                     style={{
@@ -623,7 +623,7 @@ export function InvoiceDocument({
                   textDecoration: "none",
                 }}
               >
-                zithspace.com/invoice
+                zukvo.com/invoice
               </a>{" "}
               to create truly professional invoices
             </div>

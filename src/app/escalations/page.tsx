@@ -55,6 +55,8 @@ import CreateEscalationDrawer from '@/components/escalations/CreateEscalationDra
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useActivitySource } from '@/hooks/useActivitySource';
+import { History } from 'lucide-react';
+import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 
 dayjs.extend(relativeTime);
 
@@ -153,7 +155,8 @@ export default function EscalationListPage() {
   useActivitySource({ section: "WORK", module: "Escalations", page: "EscalationList" });
   const router = useRouter();
   const { user, isLoading } = useAuth();
-  const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation } = usePermission();
+  const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation, canReadActivityLog } = usePermission();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const [searchText, setSearchText] = useState('');
   const [activeTab, setActiveTab] = useState('1');
@@ -1020,6 +1023,18 @@ export default function EscalationListPage() {
           onClose={() => setDrawerVisible(false)}
           open={drawerVisible}
           width={600}
+          extra={
+            canReadActivityLog && selectedEscalation && (
+              <Button
+                icon={<History size={14} />}
+                onClick={() => setHistoryOpen(true)}
+                size="small"
+                style={{ borderRadius: 6 }}
+              >
+                History
+              </Button>
+            )
+          }
           styles={{
             header: { borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
             body: { padding: 0, background: 'var(--bg-pure-white)' },
@@ -1328,6 +1343,16 @@ export default function EscalationListPage() {
           onClose={() => setCreateDrawerOpen(false)}
           onSuccess={fetchEscalations}
         />
+
+        {selectedEscalation && (
+          <TransactionHistoryDrawer
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            entityType="escalation"
+            entityId={selectedEscalation.id}
+            subtitle={selectedEscalation.title || selectedEscalation.subject || `Escalation #${selectedEscalation.id.split('-')[0].toUpperCase()}`}
+          />
+        )}
       </div>
     </MainLayout>
   );

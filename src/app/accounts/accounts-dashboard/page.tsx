@@ -55,6 +55,8 @@ import dayjs from 'dayjs';
 import { usePermission } from '@/hooks/usePermission';
 import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 import { useActivitySource } from '@/hooks/useActivitySource';
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -104,8 +106,11 @@ export default function AccountsPage() {
     canCreateAccount,
     canUpdateAccount,
     canDeleteAccount,
-    canReadUser
+    canReadUser,
+    canReadActivityLog
   } = usePermission();
+
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Register UX context for activity logging
   useActivitySource({ section: "FINANCE", module: "Accounts", page: "AccountsDashboard" });
@@ -598,6 +603,19 @@ export default function AccountsPage() {
               >
                 Breakdown
               </Button>
+              {canReadActivityLog && (
+                <Button
+                  size="middle"
+                  icon={<History size={14} />}
+                  onClick={() => {
+                    setSelectedTransaction(null);
+                    setHistoryOpen(true);
+                  }}
+                  style={{ borderRadius: 8, height: 38, color: "var(--text-secondary)" }}
+                >
+                  History
+                </Button>
+              )}
               {canCreateAccount && (
                 <Button
                   type="primary"
@@ -881,6 +899,18 @@ export default function AccountsPage() {
               setSelectedTransaction(null);
             }}
             destroyOnClose
+            extra={
+              modalType === 'edit' && selectedTransaction && canReadActivityLog && (
+                <Button
+                  icon={<History size={14} />}
+                  onClick={() => setHistoryOpen(true)}
+                  size="small"
+                  style={{ borderRadius: 6 }}
+                >
+                  History
+                </Button>
+              )
+            }
             styles={{
               header: { borderBottom: '1px solid var(--accounts-card-border)', padding: '18px 22px', background: 'var(--accounts-card-bg)' },
               body: { padding: 0, background: 'var(--customers-page-bg)' },
@@ -1310,6 +1340,16 @@ export default function AccountsPage() {
               </div>
             )}
           </Drawer>
+
+          <TransactionHistoryDrawer
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            entityType={selectedTransaction ? "account_transaction" : undefined}
+            entityId={selectedTransaction?.id}
+            module={selectedTransaction ? undefined : "Accounts"}
+            title={selectedTransaction ? "Transaction history" : "Accounts history"}
+            subtitle={selectedTransaction ? selectedTransaction.description : "All financial account events"}
+          />
         </div>
       </div>
 

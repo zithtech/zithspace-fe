@@ -15507,6 +15507,82 @@ select:-webkit-autofill:focus {
 }
 [data-theme='dark'] .prop-grid-card__foot { border-top-color: #30363d; }
 
+/* --- Responsiveness for proposals list page ---------------------- */
+@media (max-width: 987px) {
+  .prop-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 12px 0 !important;
+  }
+  .prop-header__left {
+    width: 100% !important;
+  }
+  .prop-header__text {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+  }
+  .prop-header__divider {
+    display: none !important;
+  }
+  .prop-header__right {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+  }
+  
+  .prop-filterbar {
+    padding: 12px !important;
+    gap: 8px !important;
+  }
+  .prop-filterbar__group {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .prop-filterbar__group--search {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+  .prop-filter-select.ant-select {
+    flex: 1 1 calc(50% - 4px) !important;
+    min-width: 120px !important;
+    width: 100% !important;
+  }
+  .prop-filterbar__sep {
+    display: none !important;
+  }
+  .prop-filterbar__spacer {
+    display: none !important;
+  }
+  .prop-count {
+    margin-right: auto !important;
+  }
+  
+  /* Hide scrollbar on tables to keep it clean and match leads page */
+  .prop-card .ant-table-wrapper .ant-table-content::-webkit-scrollbar,
+  .prop-card .ant-table-wrapper .ant-table-body::-webkit-scrollbar {
+    display: none !important;
+  }
+  .prop-card .ant-table-wrapper .ant-table-content,
+  .prop-card .ant-table-wrapper .ant-table-body {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .prop-filter-select.ant-select {
+    flex: 1 1 100% !important;
+  }
+  .prop-filterbar__group-icon {
+    display: none !important;
+  }
+}
+
 /* =========================================================
    PROPOSAL DETAIL · FLAT PREMIUM POLISH
    No shadows, no backdrop blur, no radial washes.

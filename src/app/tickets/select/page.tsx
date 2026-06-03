@@ -252,7 +252,7 @@ function ProjectSelectContent() {
                 type="primary"
                 size="large"
                 icon={<PlusOutlined />}
-                onClick={() => router.push('/projects/create')}
+                onClick={() => router.push('/tickets/create')}
                 className="zs-cta-btn"
               >
                 New project
@@ -365,7 +365,7 @@ function ProjectSelectContent() {
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
-                  onClick={() => router.push('/projects/create')}
+                  onClick={() => router.push('/tickets/create')}
                   className="zs-empty-cta"
                 >
                   Create your first project

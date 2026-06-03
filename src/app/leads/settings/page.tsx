@@ -632,7 +632,7 @@ export default function LeadSettingsPage() {
                     </div>
 
                     {/* STATS */}
-                    <div style={{ padding: '20px 32px 0' }}>
+                    <div className="lset-body-container">
                     <Row gutter={[16, 16]} className="lset-stats">
                         <Col xs={24} sm={12} md={6}>
                             <StatTile
@@ -733,6 +733,7 @@ export default function LeadSettingsPage() {
                             dataSource={activeTab === "1" ? filteredStatuses : filteredActions}
                             pagination={false}
                             size="middle"
+                            scroll={{ x: "max-content" }}
                             className="lset-table"
                             rowClassName="lset-row"
                             locale={{
@@ -1013,6 +1014,9 @@ export default function LeadSettingsPage() {
                         background: var(--bg-pure-white);
                         font-family: 'Inter', -apple-system, sans-serif;
                     }
+                    .lset-body-container {
+                        padding: 20px 32px 0;
+                    }
 
                     /* HERO */
                     .lset-hero {
@@ -1142,6 +1146,16 @@ export default function LeadSettingsPage() {
                         border-radius: 18px;
                         overflow: hidden;
                         box-shadow: 0 1px 3px 0 rgba(15,23,42,0.02), 0 8px 24px -16px rgba(15,23,42,0.06);
+                    }
+                    /* Hide horizontal scrollbar but keep scroll functionality */
+                    .lset-table.ant-table-wrapper .ant-table-content::-webkit-scrollbar,
+                    .lset-table.ant-table-wrapper .ant-table-body::-webkit-scrollbar {
+                        display: none !important;
+                    }
+                    .lset-table.ant-table-wrapper .ant-table-content,
+                    .lset-table.ant-table-wrapper .ant-table-body {
+                        -ms-overflow-style: none !important;
+                        scrollbar-width: none !important;
                     }
                     .lset-table-head {
                         display: flex; align-items: center; justify-content: space-between;
@@ -1436,7 +1450,7 @@ export default function LeadSettingsPage() {
 
                     /* DARK */
                     [data-theme='dark'] .lset-canvas { background: #0d1117 !important; }
-                    [data-theme='dark'] .lset-hero { background: #161b22 !important; border-bottom-color: #30363d !important; }
+                    [data-theme='dark'] .lset-hero { background: var(--bg-pure-white) !important; border-bottom-color: var(--border-slate-200) !important; }
                     [data-theme='dark'] .lset-hero-title { color: #f0f6fc !important; }
                     [data-theme='dark'] .lset-hero-divider { background: #30363d !important; }
                     [data-theme='dark'] .lset-hero-sub { color: #8b949e !important; }
@@ -1506,6 +1520,69 @@ export default function LeadSettingsPage() {
                         -webkit-text-fill-color: #c9d1d9 !important;
                         -webkit-box-shadow: 0 0 0px 1000px #0d1117 inset !important;
                         transition: background-color 5000s ease-in-out 0s;
+                    }
+
+                    /* --- Responsiveness for Leads Settings Page --- */
+                    @media (max-width: 987px) {
+                        .lset-hero {
+                            padding: 12px 24px !important;
+                        }
+                        .lset-hero-row {
+                            flex-direction: column !important;
+                            align-items: flex-start !important;
+                            gap: 12px !important;
+                        }
+                        .lset-hero-left {
+                            width: 100% !important;
+                        }
+                        .lset-hero-title-row {
+                            flex-direction: column !important;
+                            align-items: flex-start !important;
+                            gap: 4px !important;
+                        }
+                        .lset-hero-divider {
+                            display: none !important;
+                        }
+                        .lset-hero-actions {
+                            width: 100% !important;
+                            justify-content: flex-start !important;
+                            gap: 8px !important;
+                        }
+                        .lset-search {
+                            flex: 1 !important;
+                            width: 100% !important;
+                        }
+                        .lset-cta-btn {
+                            flex-shrink: 0 !important;
+                        }
+                        .lset-body-container {
+                            padding: 16px 24px 0 !important;
+                        }
+                        .lset-table-head {
+                            flex-direction: column !important;
+                            align-items: flex-start !important;
+                            gap: 10px !important;
+                            padding: 14px 24px !important;
+                        }
+                    }
+
+                    @media (max-width: 560px) {
+                        .lset-hero-actions {
+                            flex-direction: column !important;
+                            align-items: stretch !important;
+                        }
+                        .lset-cta-btn {
+                            width: 100% !important;
+                            justify-content: center !important;
+                        }
+                        .lset-segments {
+                            flex-direction: column !important;
+                            align-items: stretch !important;
+                        }
+                        .lset-segment {
+                            width: 100% !important;
+                            justify-content: center !important;
+                        }
                     }
                     `,
                 }} />

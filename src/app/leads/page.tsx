@@ -1122,6 +1122,7 @@ export default function LeadsPage() {
       key: "table-actions",
       align: "right" as const,
       width: 80,
+      fixed: "right" as const,
       render: (_: unknown, record: Lead) => {
         const menuItems: MenuProps['items'] = [
           {
@@ -2025,6 +2026,7 @@ export default function LeadsPage() {
                 dataSource={filteredLeads}
                 rowKey="id"
                 size="middle"
+                scroll={{ x: "max-content" }}
                 rowSelection={{
                   selectedRowKeys,
                   onChange: (keys) => setSelectedRowKeys(keys),
@@ -3244,6 +3246,16 @@ export default function LeadsPage() {
               overflow: hidden;
               box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.06);
             }
+            /* Hide horizontal scrollbar but keep scroll functionality */
+            .lm-table.ant-table-wrapper .ant-table-content::-webkit-scrollbar,
+            .lm-table.ant-table-wrapper .ant-table-body::-webkit-scrollbar {
+              display: none !important;
+            }
+            .lm-table.ant-table-wrapper .ant-table-content,
+            .lm-table.ant-table-wrapper .ant-table-body {
+              -ms-overflow-style: none !important;
+              scrollbar-width: none !important;
+            }
             .lm-table.ant-table-wrapper .ant-table {
               background: transparent !important;
             }
@@ -3290,6 +3302,23 @@ export default function LeadsPage() {
             }
             .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td:nth-child(2)::before {
               opacity: 1;
+            }
+
+            /* Fixed column background overrides (Light Mode) */
+            .lm-table.ant-table-wrapper .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+              background: var(--bg-pure-white) !important;
+            }
+            .lm-table.ant-table-wrapper .lm-row:hover > td.ant-table-cell-fix-right {
+              background: var(--bg-slate-50) !important;
+            }
+            .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td.ant-table-cell-fix-right {
+              background: rgba(99, 102, 241, 0.06) !important;
+            }
+            .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected:hover > td.ant-table-cell-fix-right {
+              background: rgba(99, 102, 241, 0.1) !important;
+            }
+            .lm-table.ant-table-wrapper .ant-table-thead > tr > th.ant-table-cell-fix-right {
+              background: var(--bg-slate-50) !important;
             }
 
             /* Selection checkbox column */
@@ -3343,6 +3372,23 @@ export default function LeadsPage() {
             }
             [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td {
               background: rgba(99, 102, 241, 0.12) !important;
+            }
+
+            /* Fixed column background overrides (Dark Mode) */
+            [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+              background: var(--bg-secondary) !important;
+            }
+            [data-theme='dark'] .lm-table.ant-table-wrapper .lm-row:hover > td.ant-table-cell-fix-right {
+              background: var(--bg-primary) !important;
+            }
+            [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td.ant-table-cell-fix-right {
+              background: rgba(99, 102, 241, 0.12) !important;
+            }
+            [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected:hover > td.ant-table-cell-fix-right {
+              background: rgba(99, 102, 241, 0.18) !important;
+            }
+            [data-theme='dark'] .lm-table.ant-table-wrapper .ant-table-thead > tr > th.ant-table-cell-fix-right {
+              background: var(--bg-primary) !important;
             }
             [data-theme='dark'] .lm-table.ant-table-wrapper .ant-checkbox-wrapper .ant-checkbox-inner {
               background: var(--bg-primary) !important;

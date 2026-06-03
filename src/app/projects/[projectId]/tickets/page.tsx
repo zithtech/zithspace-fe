@@ -58,7 +58,7 @@ export default function ProjectTicketsPage({ params }: PageProps) {
             action={
               <Button
                 type="primary"
-                onClick={() => router.push('/projects/select?select=true')}
+                onClick={() => router.push('/tickets/select?select=true')}
               >
                 Back to Projects
               </Button>

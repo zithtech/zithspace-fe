@@ -179,11 +179,11 @@ export default function OverviewPage() {
     const q = treeSearch.trim().toLowerCase();
     const filteredPositions = q
       ? gradePositions.filter(
-          (p) =>
-            (p.title || '').toLowerCase().includes(q) ||
-            (p.departmentName || '').toLowerCase().includes(q) ||
-            (p.subDepartmentName || '').toLowerCase().includes(q),
-        )
+        (p) =>
+          (p.title || '').toLowerCase().includes(q) ||
+          (p.departmentName || '').toLowerCase().includes(q) ||
+          (p.subDepartmentName || '').toLowerCase().includes(q),
+      )
       : gradePositions;
 
     const deptMap = new Map<
@@ -345,14 +345,14 @@ export default function OverviewPage() {
 
   const filteredCount = treeData[0]?.children
     ? treeData[0].children.reduce((acc: number, dept: any) => {
-        const subPositions = dept.children
-          ? dept.children.reduce(
-              (s: number, c: any) => s + (c.isLeaf ? 1 : c.children?.length || 0),
-              0,
-            )
-          : 0;
-        return acc + subPositions;
-      }, 0)
+      const subPositions = dept.children
+        ? dept.children.reduce(
+          (s: number, c: any) => s + (c.isLeaf ? 1 : c.children?.length || 0),
+          0,
+        )
+        : 0;
+      return acc + subPositions;
+    }, 0)
     : 0;
 
   return (
@@ -365,8 +365,11 @@ export default function OverviewPage() {
             description="Visualize the organizational hierarchy, reporting lines, and grade distributions."
             style={{
               borderBottom: '1px solid var(--border-slate-200)',
-              padding: '8.5px 32px',
+              padding: '10.5px 32px',
               marginBottom: 20,
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
             }}
             extra={
               <Tag className="org-ov-header-chip">

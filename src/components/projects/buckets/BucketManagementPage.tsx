@@ -166,7 +166,7 @@ export default function BucketManagementPage() {
     }
   };
   const handleView = (bucketId: string) => {
-    router.push(`/projects/buckets/${bucketId}`);
+    router.push(`/tickets/buckets/${bucketId}`);
   };
   const handleModalClose = () => {
     setCreateModalOpen(false);

@@ -755,7 +755,7 @@ export default function TopNav({
                 mouseEnterDelay={0.1}
                 zIndex={1100}
               >
-                <div className={`nav-action-btn nav-action-btn-inbox novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
+                <div className={`nav-action-btn-inbox novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
                   <Inbox
                     applicationIdentifier="67g_5lVLFWvd"
                     subscriberId={user?.id}
@@ -1111,17 +1111,43 @@ export default function TopNav({
                 /* Novu inbox bell wrapped as nav-action-btn */
                 .nav-action-btn-inbox {
                     position: relative;
+                    width: 36px !important;
+                    height: 36px !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    border-radius: 10px !important;
                 }
                 .nav-action-btn-inbox .nv-button,
                 .nav-action-btn-inbox button {
                     background: transparent !important;
                     border: none !important;
+                    box-shadow: none !important;
+                    outline: none !important;
                     width: 36px !important;
                     height: 36px !important;
                     padding: 0 !important;
                     display: inline-flex !important;
                     align-items: center !important;
                     justify-content: center !important;
+                    border-radius: 10px !important;
+                    color: #475569;
+                    transition: background-color 0.2s ease, color 0.2s ease;
+                }
+                .nav-action-btn-inbox .nv-button:hover,
+                .nav-action-btn-inbox button:hover {
+                    background: rgba(22, 119, 255, 0.08) !important;
+                    color: #1677ff !important;
+                    box-shadow: none !important;
+                    outline: none !important;
+                }
+                .nav-action-btn-inbox .nv-button:focus,
+                .nav-action-btn-inbox button:focus,
+                .nav-action-btn-inbox .nv-button:focus-visible,
+                .nav-action-btn-inbox button:focus-visible {
+                    box-shadow: none !important;
+                    outline: none !important;
+                    border: none !important;
                 }
                 .nav-action-btn-inbox svg {
                     width: 18px !important;
@@ -1262,6 +1288,17 @@ export default function TopNav({
                 }
                 [data-theme='dark'] .nv-moreActionsDropdownItem:hover {
                     background: rgba(59, 130, 246, 0.12) !important;
+                }
+                [data-theme='dark'] .nav-action-btn-inbox .nv-button,
+                [data-theme='dark'] .nav-action-btn-inbox button {
+                    color: #94A3B8;
+                }
+                [data-theme='dark'] .nav-action-btn-inbox .nv-button:hover,
+                [data-theme='dark'] .nav-action-btn-inbox button:hover {
+                    background: rgba(59, 130, 246, 0.14) !important;
+                    color: #E2E8F0 !important;
+                    box-shadow: none !important;
+                    outline: none !important;
                 }
                 [data-theme='dark'] .nv-button:hover {
                     background: rgba(148, 163, 184, 0.08) !important;

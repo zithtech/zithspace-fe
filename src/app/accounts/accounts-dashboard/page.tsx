@@ -576,7 +576,7 @@ export default function AccountsPage() {
         minHeight: "calc(100vh - 64px)"
       }}>
         <TimeTrackingHeader
-          style={{ padding: '9.5px 32px', marginBottom: 12 }}
+          style={{ padding: '9.5px 32px', marginBottom: 12, position: 'sticky', top: 0, zIndex: 100 }}
           icon={<BankOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
           title="Accounts Management"
           description="Track company income, expenses, and transaction lifecycle."

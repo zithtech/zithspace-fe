@@ -280,7 +280,7 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
       open={open}
       onOpenChange={setOpen}
       placement="bottomRight"
-      overlayClassName="saas-popover saas-popover-premium"
+      classNames={{ root: "saas-popover saas-popover-premium" }}
       overlayInnerStyle={{ borderRadius: 16, padding: 10 }}
     >
       <Tooltip title="Move to sprint">

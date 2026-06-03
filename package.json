@@ -13,6 +13,7 @@
     "@ant-design/icons": "^5.5.1",
     "@ant-design/nextjs-registry": "^1.0.1",
     "@ant-design/plots": "^2.6.8",
+    "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "@aws-sdk/client-s3": "^3.937.0",
     "@blocknote/core": "^0.46.1",
     "@blocknote/mantine": "^0.46.1",

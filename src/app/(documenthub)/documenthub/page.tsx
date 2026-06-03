@@ -2229,7 +2229,7 @@ const DocumentHubPage = () => {
               <Dropdown
                 trigger={['hover', 'click']}
                 placement="bottomRight"
-                overlayClassName="create-document-menu"
+                classNames={{ root: "create-document-menu" }}
                 menu={{
                   items: [
                     {

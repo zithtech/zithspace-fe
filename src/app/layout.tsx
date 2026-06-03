@@ -1,3 +1,7 @@
+// Must be imported before any antd usage on React 19 — patches static methods
+// (Modal.confirm, message, notification) so they work with React 19's renderer.
+// https://u.ant.design/v5-for-19
+import "@ant-design/v5-patch-for-react-19";
 import type { Metadata } from "next";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { ConfigProvider,App } from "antd";

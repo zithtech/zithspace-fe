@@ -702,7 +702,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
       open={isPopoverOpen}
       onOpenChange={setPopoverOpen}
       placement="bottomRight"
-      overlayClassName="ttp-popover"
+      classNames={{ root: "ttp-popover" }}
       arrow={false}
     >
       <button type="button" className={triggerClass}>

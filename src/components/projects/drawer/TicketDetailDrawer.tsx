@@ -687,7 +687,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
             <Dropdown
               trigger={['hover', 'click']}
               placement="bottomRight"
-              overlayClassName="create-doc-from-ticket-menu"
+              classNames={{ root: "create-doc-from-ticket-menu" }}
               menu={{
                 items: [
                   {

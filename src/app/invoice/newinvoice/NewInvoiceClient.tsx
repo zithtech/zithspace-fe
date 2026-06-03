@@ -838,7 +838,7 @@ export default function InvoiceNewinvoicePage() {
                   <FileText size={12} strokeWidth={2.25} />
                 </div>
                 <span
-                  className="ml-2 mr-1 text-[10px] font-semibold uppercase tracking-[0.1em]"
+                  className="hidden sm:block ml-2 mr-1 text-[10px] font-semibold uppercase tracking-[0.1em]"
                   style={{ color: "var(--text-secondary)" }}
                 >
                   Template
@@ -849,7 +849,7 @@ export default function InvoiceNewinvoicePage() {
                     variant="borderless"
                     className="template-select-inline flex-1 sm:flex-initial"
                     popupMatchSelectWidth={220}
-                    style={{ width: 140 }}
+                    style={{ width: 110, minWidth: 80 }}
                     loading={loadingTemplates}
                     value={templateId || undefined}
                     onChange={(val) => {
@@ -974,7 +974,7 @@ export default function InvoiceNewinvoicePage() {
             <Input type="hidden" />
           </Form.Item>
 
-          <div className="px-8 pt-6 pb-12 lg:pt-0 lg:pb-0">
+          <div className="px-3 sm:px-8 pt-4 sm:pt-6 pb-8 sm:pb-12 lg:pt-0 lg:pb-0">
             <div className="mx-auto max-w-[1600px] grid grid-cols-12 gap-6">
               {/* LEFT — meta sidebar (open layout, not a card) */}
               <aside
@@ -1493,10 +1493,10 @@ export default function InvoiceNewinvoicePage() {
                   }}
                 >
                   <div
-                    className="px-6 py-3 flex items-center justify-between border-b"
+                    className="px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2 border-b"
                     style={{ borderColor: "var(--border-color)" }}
                   >
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2.5 flex-wrap">
                       <span
                         className="inline-flex items-center justify-center w-6 h-6 rounded-md"
                         style={{
@@ -1514,11 +1514,11 @@ export default function InvoiceNewinvoicePage() {
                         Summary
                       </span>
                       <span
-                        className="h-4 w-px"
+                        className="hidden sm:block h-4 w-px"
                         style={{ background: "var(--border-color)" }}
                       />
                       <span
-                        className="text-[11px] uppercase tracking-[0.08em]"
+                        className="hidden sm:inline text-[11px] uppercase tracking-[0.08em]"
                         style={{ color: "var(--text-secondary)" }}
                       >
                         Calculated from line items
@@ -1543,7 +1543,7 @@ export default function InvoiceNewinvoicePage() {
                       </div>
                     </Tooltip>
                   </div>
-                  <div className="px-6 py-5 grid grid-cols-12 gap-6">
+                  <div className="px-4 sm:px-6 py-5 grid grid-cols-12 gap-4 sm:gap-6">
                     <div className="col-span-12 sm:col-span-7 space-y-3">
                       <div className="flex items-center justify-between text-[13px]">
                         <span style={{ color: "var(--text-secondary)" }}>
@@ -1567,9 +1567,9 @@ export default function InvoiceNewinvoicePage() {
                           {totalTax.toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center justify-between gap-2">
                         <span
-                          className="text-[13px]"
+                          className="text-[13px] flex-shrink-0"
                           style={{ color: "var(--text-secondary)" }}
                         >
                           Discount
@@ -1578,7 +1578,7 @@ export default function InvoiceNewinvoicePage() {
                           <InputNumber
                             min={0}
                             prefix={currencySymbol}
-                            style={{ width: 160, borderRadius: 8 }}
+                            style={{ width: '100%', maxWidth: 160, borderRadius: 8 }}
                             controls={false}
                             onChange={(val) =>
                               setDiscountValue(Number(val) || 0)
@@ -1607,7 +1607,7 @@ export default function InvoiceNewinvoicePage() {
                       </div>
                     </div>
                     <div
-                      className="col-span-12 sm:col-span-5 relative rounded-xl p-5 flex flex-col justify-center overflow-hidden"
+                      className="col-span-12 sm:col-span-5 relative rounded-xl p-4 sm:p-5 flex flex-col justify-center overflow-hidden"
                       style={{
                         background:
                           "linear-gradient(135deg, var(--bg-blue-50) 0%, var(--bg-slate-50) 100%)",
@@ -1639,7 +1639,7 @@ export default function InvoiceNewinvoicePage() {
                         </span>
                       </div>
                       <div
-                        className="text-[32px] font-bold tabular-nums leading-none tracking-tight"
+                        className="text-[28px] sm:text-[32px] font-bold tabular-nums leading-none tracking-tight"
                         style={{ color: "var(--text-primary)" }}
                       >
                         {currencySymbol}
@@ -1688,7 +1688,7 @@ export default function InvoiceNewinvoicePage() {
                   }}
                 >
                   <div
-                    className="px-6 py-3 flex items-center gap-2.5 border-b"
+                    className="px-4 sm:px-6 py-3 flex flex-wrap items-center gap-2 sm:gap-2.5 border-b"
                     style={{ borderColor: "var(--border-color)" }}
                   >
                     <span
@@ -1708,17 +1708,17 @@ export default function InvoiceNewinvoicePage() {
                       Notes & terms
                     </span>
                     <span
-                      className="h-4 w-px"
+                      className="hidden sm:block h-4 w-px"
                       style={{ background: "var(--border-color)" }}
                     />
                     <span
-                      className="text-[11px] uppercase tracking-[0.08em]"
+                      className="hidden sm:inline text-[11px] uppercase tracking-[0.08em]"
                       style={{ color: "var(--text-secondary)" }}
                     >
                       Visible to your customer on the printed invoice
                     </span>
                   </div>
-                  <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="px-4 sm:px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <div>
                       <div
                         className="text-[11px] font-medium uppercase tracking-wider mb-2"

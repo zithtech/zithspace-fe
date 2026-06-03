@@ -244,8 +244,11 @@ export default function EmploymentTypesPage() {
             description="Define and manage workforce contract types and employment structures."
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
-              padding: "8.5px 32px",
+              padding: "9.5px 32px",
               marginBottom: 20,
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
             }}
             extra={
               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>

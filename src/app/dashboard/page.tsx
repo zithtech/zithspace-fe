@@ -2275,7 +2275,7 @@ function DashboardContent() {
                           style={{ ...cardBase, height: 340, overflow: "hidden" }}
                           styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
                           title={sectionTitle(<TrophyOutlined />, "My Tickets", "#7C3AED")}
-                          extra={<Button type="link" size="small" onClick={() => router.push("/projects/select")} style={{ fontSize: 11 }}>View all</Button>}
+                          extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11 }}>View all</Button>}
                         >
                           <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
                             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
@@ -2542,7 +2542,7 @@ function DashboardContent() {
                             <Button
                               type="link"
                               size="small"
-                              onClick={() => router.push("/projects/select")}
+                              onClick={() => router.push("/tickets/select")}
                               style={{ fontSize: 11, fontWeight: 600 }}
                             >
                               View all{" "}
@@ -2867,7 +2867,7 @@ function DashboardContent() {
                           title: "Create Ticket",
                           desc: "Log a new task or issue",
                           accent: "#7C3AED",
-                          onClick: () => router.push("/projects/create"),
+                          onClick: () => router.push("/tickets/create"),
                           shortcut: "T",
                         },
                         {
@@ -3424,7 +3424,7 @@ function DashboardContent() {
                           style={{ ...cardBase, height: 340, overflow: "hidden" }}
                           styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
                           title={sectionTitle(<TrophyOutlined />, "My Tickets", "#7C3AED")}
-                          extra={<Button type="link" size="small" onClick={() => router.push("/projects/select")} style={{ fontSize: 11 }}>View all</Button>}
+                          extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11 }}>View all</Button>}
                         >
                           <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
                             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
@@ -4167,7 +4167,7 @@ function DashboardContent() {
                             <Button
                               type="link"
                               size="small"
-                              onClick={() => router.push("/projects/select")}
+                              onClick={() => router.push("/tickets/select")}
                               style={{ fontSize: 11, fontWeight: 600 }}
                             >
                               View all <ArrowRightOutlined style={{ fontSize: 10 }} />

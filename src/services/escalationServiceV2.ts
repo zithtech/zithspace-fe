@@ -53,4 +53,47 @@ export class EscalationServiceV2 {
     static async deleteEscalation(id: string): Promise<any> {
         return await api.delete(`/api/escalations-v2/${id}`);
     }
+
+    /**
+     * Get all trashed escalations
+     */
+    static async getTrashEscalations(): Promise<any[]> {
+        const res: any = await api.get('/api/escalations-v2/trash');
+        return res || [];
+    }
+
+    /**
+     * Restore an escalation from trash
+     */
+    static async restoreEscalation(id: string): Promise<any> {
+        return await api.post(`/api/escalations-v2/${id}/restore`);
+    }
+
+    /**
+     * Permanently delete an escalation
+     */
+    static async permanentDeleteEscalation(id: string): Promise<any> {
+        return await api.delete(`/api/escalations-v2/${id}/permanent`);
+    }
+
+    /**
+     * Empty escalation trash
+     */
+    static async emptyTrash(): Promise<any> {
+        return await api.delete('/api/escalations-v2/trash/empty');
+    }
+
+    /**
+     * Bulk restore escalations
+     */
+    static async bulkRestore(ids: string[]): Promise<any> {
+        return await api.post('/api/escalations-v2/trash/bulk-restore', { ids });
+    }
+
+    /**
+     * Bulk permanently delete escalations
+     */
+    static async bulkPermanentDelete(ids: string[]): Promise<any> {
+        return await api.post('/api/escalations-v2/trash/bulk-permanent-delete', { ids });
+    }
 }

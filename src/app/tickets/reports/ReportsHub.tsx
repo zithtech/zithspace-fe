@@ -97,20 +97,24 @@ export default function ReportsHub() {
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-[#0B0F1A]">
-      <div className="mx-auto max-w-7xl px-6 pt-5 pb-12 space-y-6">
-        <HeaderBar
-          projects={projects}
-          projectId={projectId}
-          onProjectChange={setProjectId}
-          statusFilter={statusFilter}
-          onStatusChange={setStatusFilter}
-          projectsLoading={projectsLoading}
-          selectedProjectLabel={selectedProject?.label}
-          selectedProjectCode={selectedProject?.code}
-          sprints={sprints}
-          onPickSprint={(id) => router.push(`/tickets/reports/${id}`)}
-        />
+      <div className="sticky top-0 z-30 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/90 dark:bg-[#0B0F1A]/90 backdrop-blur-md w-full">
+        <div className="mx-auto max-w-7xl px-6 pt-5 pb-5">
+          <HeaderBar
+            projects={projects}
+            projectId={projectId}
+            onProjectChange={setProjectId}
+            statusFilter={statusFilter}
+            onStatusChange={setStatusFilter}
+            projectsLoading={projectsLoading}
+            selectedProjectLabel={selectedProject?.label}
+            selectedProjectCode={selectedProject?.code}
+            sprints={sprints}
+            onPickSprint={(id) => router.push(`/tickets/reports/${id}`)}
+          />
+        </div>
+      </div>
 
+      <div className="mx-auto max-w-7xl px-6 py-6 space-y-6">
         {error ? (
           <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 p-4">
             <div className="text-sm text-rose-700 dark:text-rose-300">{error}</div>
@@ -168,7 +172,7 @@ function HeaderBar({
   onPickSprint: (id: string) => void;
 }) {
   return (
-    <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
+    <div>
       <div className="text-[11px] uppercase tracking-[0.16em] font-semibold text-indigo-600 dark:text-indigo-400">
         Sprint Reports
       </div>

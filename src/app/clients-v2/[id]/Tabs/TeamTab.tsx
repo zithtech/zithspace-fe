@@ -7,7 +7,7 @@ import {
   Form,
   Input,
   Select,
-  notification,
+  message,
   Popconfirm,
   Switch,
   Tooltip,
@@ -145,14 +145,14 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<TeamMember | null>(null);
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const load = async () => {
     setLoading(true);
     try {
       setItems(await teamService.listForClient(clientId));
     } catch (err: any) {
-      notify.error({ message: "Failed to load team", description: err?.message });
+      messageApi.error(`Failed to load team: ${err?.message || ""}`);
     } finally {
       setLoading(false);
     }
@@ -167,7 +167,7 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
       await teamService.update(m.id, { isVisible: !m.isVisible });
       load();
     } catch (err: any) {
-      notify.error({ message: "Update failed", description: err?.message });
+      messageApi.error(`Update failed: ${err?.message || ""}`);
     }
   };
   const togglePrimary = async (m: TeamMember) => {
@@ -175,16 +175,16 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
       await teamService.update(m.id, { isPrimaryContact: !m.isPrimaryContact });
       load();
     } catch (err: any) {
-      notify.error({ message: "Update failed", description: err?.message });
+      messageApi.error(`Update failed: ${err?.message || ""}`);
     }
   };
   const remove = async (m: TeamMember) => {
     try {
       await teamService.remove(m.id);
-      notify.success({ message: "Team member removed" });
+      messageApi.success("Team member removed");
       load();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message || ""}`);
     }
   };
 
@@ -288,7 +288,7 @@ export default function TeamTab({ clientId, projects = [] }: Props) {
           load();
         }}
         c={c}
-        notify={notify}
+        messageApi={messageApi}
       />
 
       {/* Premium adaptive header styling */}
@@ -757,7 +757,7 @@ function TeamMemberModal({
   onClose,
   onSaved,
   c,
-  notify,
+  messageApi,
 }: {
   open: boolean;
   editing: TeamMember | null;
@@ -766,7 +766,7 @@ function TeamMemberModal({
   onClose: () => void;
   onSaved: () => void;
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -853,14 +853,14 @@ function TeamMemberModal({
       };
       if (editing) {
         await teamService.update(editing.id, payload);
-        notify.success({ message: "Saved" });
+        messageApi.success("Saved");
       } else {
         await teamService.create(clientId, payload);
-        notify.success({ message: "Team member added" });
+        messageApi.success("Team member added");
       }
       onSaved();
     } catch (err: any) {
-      notify.error({ message: "Save failed", description: err?.message });
+      messageApi.error(`Save failed: ${err?.message || ""}`);
     } finally {
       setSubmitting(false);
     }

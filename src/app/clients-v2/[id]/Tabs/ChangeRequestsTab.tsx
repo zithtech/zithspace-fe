@@ -10,7 +10,7 @@ import {
   Select,
   InputNumber,
   DatePicker,
-  notification,
+  message,
   Tooltip,
   Tag,
   Popconfirm,
@@ -169,21 +169,17 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [notify, contextHolder] = notification.useNotification();
-
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingCr, setEditingCr] = useState<CrDetail | null>(null);
   const [fetchingDetail, setFetchingDetail] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
 
   const load = async () => {
     setLoading(true);
     try {
       setItems(await crService.listForClient(clientId));
     } catch (err: any) {
-      notify.error({
-        message: "Failed to load change requests",
-        description: err?.message,
-      });
+      messageApi.error(`Failed to load change requests: ${err?.message}`);
     } finally {
       setLoading(false);
     }
@@ -196,7 +192,7 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
       const detail = await crService.detail(id);
       setEditingCr(detail);
     } catch (err: any) {
-      notify.error({ message: "Failed to load details", description: err?.message });
+      messageApi.error(`Failed to load details: ${err?.message}`);
       setEditingId(null);
     } finally {
       setFetchingDetail(false);
@@ -206,10 +202,10 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
   const handleDeleteRow = async (id: string) => {
     try {
       await crService.delete(id);
-      notify.success({ message: "Change request deleted" });
+      messageApi.success("Change request deleted");
       load();
     } catch (err: any) {
-      notify.error({ message: "Delete failed", description: err?.message });
+      messageApi.error(`Delete failed: ${err?.message}`);
     }
   };
 
@@ -343,13 +339,13 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
         clientId={clientId}
         projects={projects}
         c={c}
-        notify={notify}
+        messageApi={messageApi}
       />
       <CrDetailDrawer
         id={openId}
         c={c}
         tones={tones}
-        notify={notify}
+        messageApi={messageApi}
         onClose={() => setOpenId(null)}
         onMutated={load}
       />
@@ -368,7 +364,7 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
           cr={editingCr}
           projects={projects}
           c={c}
-          notify={notify}
+          messageApi={messageApi}
         />
       )}
 
@@ -697,7 +693,7 @@ function CreateCrModal({
   clientId,
   projects,
   c,
-  notify,
+  messageApi,
 }: {
   open: boolean;
   onClose: () => void;
@@ -705,7 +701,7 @@ function CreateCrModal({
   clientId: string;
   projects: { id: string; name: string; code?: string | null }[];
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -738,13 +734,10 @@ function CreateCrModal({
           ? dayjs(values.targetDeliveryDate).format("YYYY-MM-DD")
           : undefined,
       });
-      notify.success({ message: "Change request created" });
+      messageApi.success("Change request created");
       onCreated();
     } catch (err: any) {
-      notify.error({
-        message: "Could not create CR",
-        description: err?.message,
-      });
+      messageApi.error(`Could not create CR: ${err?.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -994,7 +987,7 @@ function EditCrModal({
   cr,
   projects,
   c,
-  notify,
+  messageApi,
 }: {
   open: boolean;
   onClose: () => void;
@@ -1002,7 +995,7 @@ function EditCrModal({
   cr: CrDetail;
   projects: { id: string; name: string; code?: string | null }[];
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -1045,13 +1038,10 @@ function EditCrModal({
           ? dayjs(values.targetDeliveryDate).format("YYYY-MM-DD")
           : null,
       });
-      notify.success({ message: "Change request updated" });
+      messageApi.success("Change request updated");
       onUpdated();
     } catch (err: any) {
-      notify.error({
-        message: "Could not update CR",
-        description: err?.message,
-      });
+      messageApi.error(`Could not update CR: ${err?.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -1270,14 +1260,14 @@ function CrDetailDrawer({
   id,
   c,
   tones,
-  notify,
+  messageApi,
   onClose,
   onMutated,
 }: {
   id: string | null;
   c: ReturnType<typeof palette>;
   tones: ReturnType<typeof toneMap>;
-  notify: any;
+  messageApi: any;
   onClose: () => void;
   onMutated: () => void;
 }) {
@@ -1309,7 +1299,7 @@ function CrDetailDrawer({
           : undefined,
       });
     } catch (err: any) {
-      notify.error({ message: "Failed to load", description: err?.message });
+      messageApi.error(`Failed to load: ${err?.message}`);
     } finally {
       setLoading(false);
     }
@@ -1335,16 +1325,11 @@ function CrDetailDrawer({
           : undefined,
         publish,
       });
-      notify.success({
-        message: publish ? "Estimate published" : "Estimate saved",
-      });
+      messageApi.success(publish ? "Estimate published" : "Estimate saved");
       load();
       onMutated();
     } catch (err: any) {
-      notify.error({
-        message: "Save failed",
-        description: err?.message,
-      });
+      messageApi.error(`Save failed: ${err?.message}`);
     }
   };
 
@@ -1355,7 +1340,7 @@ function CrDetailDrawer({
       load();
       onMutated();
     } catch (err: any) {
-      notify.error({ message: "Update failed", description: err?.message });
+      messageApi.error(`Update failed: ${err?.message}`);
     }
   };
 
@@ -1366,7 +1351,7 @@ function CrDetailDrawer({
       setReplyBody("");
       load();
     } catch (err: any) {
-      notify.error({ message: "Send failed", description: err?.message });
+      messageApi.error(`Send failed: ${err?.message}`);
     }
   };
 

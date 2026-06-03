@@ -1630,13 +1630,18 @@ const DocumentHubPage = () => {
       return { ...rest, onHeaderCell };
     });
 
-  const handleReload = () => {
+  const handleReload = async () => {
     setSearchText("");
     setFilterProjectId(undefined);
     setFilterTicketId(undefined);
     setSelectedUser(undefined);
     setDateRange(null);
-    refetch();
+    try {
+      await refetch();
+      messageApi.success("Hubs refreshed successfully");
+    } catch {
+      messageApi.error("Failed to refresh hubs");
+    }
   };
 
   const savedViews: { key: SavedView; label: string; icon: React.ReactNode; color: string }[] = [

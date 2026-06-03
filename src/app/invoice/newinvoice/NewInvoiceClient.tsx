@@ -56,7 +56,7 @@ import CustomerModal from "@/components/customer/CustomerModal";
 import { CustomersService, Customer, UpdateCustomerData } from "@/services/customersService";
 import { ProjectService } from "@/services/projectService";
 import { useCustomers, useUpdateCustomer } from "@/hooks/use-customers";
-import { message as antdMessage } from "antd";
+
 import { InvoiceType } from "@/services/invoiceService";
 import { useActiveSettingsProfiles } from "@/hooks/useInvoiceSettings";
 import { SettingsProfile } from "@/services/invoiceSettingsService";
@@ -98,7 +98,7 @@ export default function InvoiceNewinvoicePage() {
   const [form] = Form.useForm();
   const customerSnapshot = Form.useWatch("customer_snapshot", form);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const { message } = App.useApp();
+  const { message: messageApi } = App.useApp();
 
   const [isRecurring, setIsRecurring] = useState(false);
   const [pendingCustomer, setPendingCustomer] = useState<CustomerDraft | null>(null);
@@ -491,7 +491,7 @@ export default function InvoiceNewinvoicePage() {
       },
     });
 
-    antdMessage.success("Applied to invoice snapshot");
+    messageApi.success("Applied to invoice snapshot");
   };
 
   const applyToCustomerAndInvoice = async (draft: CustomerDraft) => {
@@ -528,9 +528,9 @@ export default function InvoiceNewinvoicePage() {
         },
       });
 
-      antdMessage.success("Customer record and invoice updated");
+      messageApi.success("Customer record and invoice updated");
     } catch {
-      antdMessage.error("Failed to update customer database");
+      messageApi.error("Failed to update customer database");
     }
   };
 
@@ -617,14 +617,14 @@ export default function InvoiceNewinvoicePage() {
           id: idToUpdate!,
           data: payload,
         });
-        antdMessage.success(
+        messageApi.success(
           submitStatus === "DRAFT"
             ? "Draft updated"
             : "Invoice submitted successfully"
         );
       } else {
         const created = await createInvoiceMutation.mutateAsync(payload);
-        antdMessage.success(
+        messageApi.success(
           submitStatus === "DRAFT"
             ? "Invoice saved as draft"
             : "Invoice submitted for approval"
@@ -637,7 +637,7 @@ export default function InvoiceNewinvoicePage() {
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || error.message || "Submission Failed";
       console.error("Submission Error:", error);
-      antdMessage.error(errorMsg);
+      messageApi.error(errorMsg);
     }
   };
 
@@ -734,7 +734,7 @@ export default function InvoiceNewinvoicePage() {
   const handleTaxInclusiveChange = (checked: boolean) => {
     setIsTaxInclusive(checked);
     form.setFieldValue('tax_inclusive', checked);
-    antdMessage.info(`Tax Inclusive mode: ${checked ? "ON" : "OFF"}`);
+    messageApi.info(`Tax Inclusive mode: ${checked ? "ON" : "OFF"}`);
   };
 
   // Toggle left panel
@@ -944,7 +944,7 @@ export default function InvoiceNewinvoicePage() {
           onFinishFailed={(errorInfo) => {
             setActionLoading(null);
             console.log("Failed:", errorInfo);
-            message.error("Please fill in all required fields");
+            messageApi.error("Please fill in all required fields");
           }}
           initialValues={{
             lineItems: [

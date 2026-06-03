@@ -16,7 +16,7 @@ import {
   Form,
   Input,
   Table,
-  message,
+  App,
   Spin,
   Drawer,
   Tooltip,
@@ -59,6 +59,7 @@ const PRESET_COLORS = [
 ];
 
 export default function AccountsSettingsPage() {
+  const { message: messageApi } = App.useApp();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ExpenseCategory | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -112,7 +113,7 @@ export default function AccountsSettingsPage() {
       setDrawerVisible(false);
       form.resetFields();
     } catch (error) {
-      message.error("Failed to save category");
+      messageApi.error("Failed to save category");
     }
   };
 

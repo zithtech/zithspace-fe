@@ -6,10 +6,10 @@ import {
   Popconfirm,
   Select,
   Tooltip,
-  message,
   DatePicker,
   Segmented,
   Dropdown,
+  App,
 } from "antd";
 
 const { RangePicker } = DatePicker;
@@ -119,6 +119,7 @@ const stringToHash = (str: string) => {
 };
 
 export default function BugListPage() {
+  const { message } = App.useApp();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("buglist_selected_project") || null;

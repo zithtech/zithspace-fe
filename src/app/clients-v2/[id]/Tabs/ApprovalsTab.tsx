@@ -9,7 +9,7 @@ import {
   Input,
   Select,
   DatePicker,
-  notification,
+  message,
   Popconfirm,
   Empty,
   Tooltip,
@@ -167,17 +167,14 @@ export default function ApprovalsTab({ clientId, projects = [] }: Props) {
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [notify, contextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const load = async () => {
     setLoading(true);
     try {
       setItems(await approvalsService.listForClient(clientId));
     } catch (err: any) {
-      notify.error({
-        message: "Failed to load approvals",
-        description: err?.message,
-      });
+      messageApi.error(`Failed to load approvals: ${err?.message || ""}`);
     } finally {
       setLoading(false);
     }
@@ -309,7 +306,7 @@ export default function ApprovalsTab({ clientId, projects = [] }: Props) {
         clientId={clientId}
         projects={projects}
         c={c}
-        notify={notify}
+        messageApi={messageApi}
       />
 
       <ApprovalDetailDrawer
@@ -317,7 +314,7 @@ export default function ApprovalsTab({ clientId, projects = [] }: Props) {
         c={c}
         tones={tones}
         clientId={clientId}
-        notify={notify}
+        messageApi={messageApi}
         onClose={() => setOpenId(null)}
         onMutated={load}
       />
@@ -558,7 +555,7 @@ function CreateApprovalModal({
   clientId,
   projects,
   c,
-  notify,
+  messageApi,
 }: {
   open: boolean;
   onClose: () => void;
@@ -566,7 +563,7 @@ function CreateApprovalModal({
   clientId: string;
   projects: { id: string; name: string; code?: string | null }[];
   c: ReturnType<typeof palette>;
-  notify: any;
+  messageApi: any;
 }) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -608,7 +605,7 @@ function CreateApprovalModal({
 
   const handleFile = (f: File) => {
     if (f.size > 10 * 1024 * 1024) {
-      notify.error({ message: `${f.name} exceeds 10 MB` });
+      messageApi.error(`${f.name} exceeds 10 MB`);
       return;
     }
     const reader = new FileReader();
@@ -622,7 +619,7 @@ function CreateApprovalModal({
 
   const submit = async (values: any) => {
     if (approverIds.length === 0) {
-      notify.error({ message: "Pick at least one approver" });
+      messageApi.error("Pick at least one approver");
       return;
     }
     setSubmitting(true);
@@ -651,13 +648,10 @@ function CreateApprovalModal({
         })),
       };
       await approvalsService.create(clientId, payload);
-      notify.success({ message: "Approval request sent" });
+      messageApi.success("Approval request sent");
       onCreated();
     } catch (err: any) {
-      notify.error({
-        message: "Could not create approval",
-        description: err?.message,
-      });
+      messageApi.error(`Could not create approval: ${err?.message || ""}`);
     } finally {
       setSubmitting(false);
     }
@@ -1032,7 +1026,7 @@ function ApprovalDetailDrawer({
   c,
   tones,
   clientId,
-  notify,
+  messageApi,
   onClose,
   onMutated,
 }: {
@@ -1040,7 +1034,7 @@ function ApprovalDetailDrawer({
   c: ReturnType<typeof palette>;
   tones: ReturnType<typeof tonesOf>;
   clientId: string;
-  notify: any;
+  messageApi: any;
   onClose: () => void;
   onMutated: () => void;
 }) {
@@ -1059,7 +1053,7 @@ function ApprovalDetailDrawer({
     try {
       setData(await approvalsService.detail(id));
     } catch (err: any) {
-      notify.error({ message: "Failed to load", description: err?.message });
+      messageApi.error(`Failed to load: ${err?.message || ""}`);
     } finally {
       setLoading(false);
     }
@@ -1098,10 +1092,7 @@ function ApprovalDetailDrawer({
       load();
       onMutated();
     } catch (err: any) {
-      notify.error({
-        message: "Could not add approver",
-        description: err?.message,
-      });
+      messageApi.error(`Could not add approver: ${err?.message || ""}`);
     }
   };
   const removeApprover = async (approverId: string) => {
@@ -1111,7 +1102,7 @@ function ApprovalDetailDrawer({
       load();
       onMutated();
     } catch (err: any) {
-      notify.error({ message: "Remove failed", description: err?.message });
+      messageApi.error(`Remove failed: ${err?.message || ""}`);
     }
   };
   const cancel = async () => {
@@ -1121,7 +1112,7 @@ function ApprovalDetailDrawer({
       load();
       onMutated();
     } catch (err: any) {
-      notify.error({ message: "Cancel failed", description: err?.message });
+      messageApi.error(`Cancel failed: ${err?.message || ""}`);
     }
   };
 

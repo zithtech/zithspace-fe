@@ -14,10 +14,10 @@ import {
   Row,
   Col,
   Switch,
-  notification,
   Tooltip,
   Spin,
   Drawer,
+  App,
   Popconfirm,
 } from "antd";
 import {
@@ -58,7 +58,7 @@ export default function GradesPage() {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
-  const [api, contextHolder] = notification.useNotification();
+  const { message } = App.useApp();
 
   const { dataSource, loading, addGrade, updateGrade, deleteGrade } = useGrades();
 
@@ -117,12 +117,7 @@ export default function GradesPage() {
   const handleDelete = async (id: string) => {
     const success = await deleteGrade(id);
     if (success) {
-      api.success({
-        message: "Grade Removed",
-        description: "The grade has been successfully deleted.",
-        placement: "topRight",
-        duration: 2,
-      });
+      message.success("Grade removed successfully");
     }
   };
 
@@ -165,12 +160,13 @@ export default function GradesPage() {
 
       if (success) {
         setIsDrawerOpen(false);
-        api.success({
-          message: editingKey ? "Grade Updated" : "Grade Added",
-          description: `Grade "${values.name}" successfully ${editingKey ? "updated" : "added"}.`,
-          placement: "topRight",
-          duration: 2,
-        });
+        // api.success({
+        //   message: editingKey ? "Grade Updated" : "Grade Added",
+        //   description: `Grade "${values.name}" successfully ${editingKey ? "updated" : "added"}.`,
+        //   placement: "topRight",
+        //   duration: 2,
+        // });
+        message.success(`Grade "${values.name}" successfully ${editingKey ? "updated" : "added"}.`)
       }
     } catch (error) {
       setSubmitting(false);
@@ -278,7 +274,7 @@ export default function GradesPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        {contextHolder}
+        {/* {contextHolder} */}
         <div className="orgx-shell">
           <TimeTrackingHeader
             icon={<ShieldCheck size={20} color="#3b82f6" />}

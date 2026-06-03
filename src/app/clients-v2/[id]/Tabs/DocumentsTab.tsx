@@ -13,7 +13,6 @@ import {
   Segmented,
   Space,
   Popconfirm,
-  notification,
   Card,
   Tooltip,
   Row,
@@ -85,8 +84,7 @@ export default function DocumentsTab({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [fileList, setFileList] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [notify, contextHolder] = notification.useNotification();
-  const [messageApi, messageContextHolder] = message.useMessage();
+  const [messageApi, contextHolder] = message.useMessage();
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewingDocument, setViewingDocument] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -168,9 +166,9 @@ export default function DocumentsTab({
   const copyDocLink = async (doc: any) => {
     try {
       await navigator.clipboard.writeText(doc?.fileUrl || "");
-      notify.success({ message: "Link copied", placement: "top" });
+      messageApi.success("Link copied");
     } catch {
-      notify.error({ message: "Couldn't copy link", placement: "top" });
+      messageApi.error("Couldn't copy link");
     }
   };
 
@@ -381,11 +379,7 @@ export default function DocumentsTab({
                   setViewingDocument(record);
                   setViewModalOpen(true);
                 } else {
-                  notify.info({
-                    message: "Preview Notification",
-                    description: "Live preview is not supported for this file type.",
-                    placement: "top",
-                  });
+                  messageApi.info("Preview Notification: Live preview is not supported for this file type.");
                 }
               }}
               style={{ color: "var(--text-slate-500)" }}
@@ -457,11 +451,7 @@ export default function DocumentsTab({
       if (docSource === "url") {
         const externalUrl = (values.externalUrl || "").trim();
         if (!externalUrl) {
-          notify.error({
-            message: "URL required",
-            description: "Paste a document URL or switch to file upload.",
-            placement: "top",
-          });
+          messageApi.error("URL required: Paste a document URL or switch to file upload.");
           return;
         }
         payload = {
@@ -472,11 +462,7 @@ export default function DocumentsTab({
         };
       } else {
         if (fileList.length === 0) {
-          notify.error({
-            message: "File required",
-            description: "Select a file or switch to URL mode.",
-            placement: "top",
-          });
+          messageApi.error("File required: Select a file or switch to URL mode.");
           return;
         }
         const fileObj = fileList[0].originFileObj as File;
@@ -493,14 +479,13 @@ export default function DocumentsTab({
       try {
         await api.post(`/api/clients-v2/${clientId}/documents`, payload);
 
-        notify.success({
-          message: "Document added",
-          description:
+        messageApi.success(
+          `Document added: ${
             docSource === "url"
               ? "External link has been saved successfully."
-              : "Document has been uploaded successfully.",
-          placement: "top",
-        });
+              : "Document has been uploaded successfully."
+          }`
+        );
         setUploading(false);
         setIsUploadModalVisible(false);
         form.resetFields();
@@ -508,11 +493,9 @@ export default function DocumentsTab({
         setDocSource("upload");
         onRefresh();
       } catch (err: any) {
-        notify.error({
-          message: "Save Failed",
-          description: err.response?.data?.error || "Failed to save document.",
-          placement: "top",
-        });
+        messageApi.error(
+          `Save Failed: ${err.response?.data?.error || "Failed to save document."}`
+        );
         setUploading(false);
       }
     } catch (err: any) {
@@ -580,21 +563,15 @@ export default function DocumentsTab({
             documentType: values.documentType?.trim(),
           },
         );
-        notify.success({
-          message: "Document updated",
-          description: "Changes saved successfully.",
-          placement: "top",
-        });
+        messageApi.success("Document updated: Changes saved successfully.");
         setEditModalOpen(false);
         setEditingDocument(null);
         editForm.resetFields();
         onRefresh();
       } catch (err: any) {
-        notify.error({
-          message: "Update failed",
-          description: err.response?.data?.error || "Could not update document.",
-          placement: "top",
-        });
+        messageApi.error(
+          `Update failed: ${err.response?.data?.error || "Could not update document."}`
+        );
       } finally {
         setSavingEdit(false);
       }
@@ -606,25 +583,16 @@ export default function DocumentsTab({
   const handleDelete = async (documentId: string) => {
     try {
       await api.delete(`/api/clients-v2/${clientId}/documents/${documentId}`);
-      notify.success({
-        message: "Deletion Complete",
-        description: "Document archive has been successfully removed.",
-        placement: "top",
-      });
+      messageApi.success("Deletion Complete: Document archive has been successfully removed.");
       onRefresh();
     } catch (error) {
-      notify.error({
-        message: "Error",
-        description: "Failed to purge document archive.",
-        placement: "top",
-      });
+      messageApi.error("Error: Failed to purge document archive.");
     }
   };
 
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
-      {messageContextHolder}
       <div className="documents-header-wrap" style={{ margin: "0 -32px" }}>
         <TimeTrackingHeader
           icon={<FolderArchive size={20} color="#f59e0b" />}

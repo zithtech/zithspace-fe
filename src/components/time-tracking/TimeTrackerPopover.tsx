@@ -266,7 +266,10 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
                 onClick={async () => {
                   try {
                     await pauseTimer();
-                  } catch (e) { }
+                    message.success("Timer paused");
+                  } catch (e: any) { 
+                    message.error(e.message || "Error pausing timer");
+                  }
                 }}
                 disabled={isLoading}
                 aria-label="Pause"
@@ -294,7 +297,10 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
                 onClick={async () => {
                   try {
                     await resumeTimer();
-                  } catch (e) { }
+                    message.success("Timer resumed");
+                  } catch (e: any) {
+                    message.error(e.message || "Error resuming timer");
+                  }
                 }}
                 disabled={isLoading}
                 aria-label="Resume"

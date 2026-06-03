@@ -13,7 +13,8 @@ import {
   Input,
   Select,
   Popconfirm,
-  message as antdMessage,
+  // message as message,
+  App,
   Avatar,
   Tooltip,
   Skeleton,
@@ -108,7 +109,8 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   const queryClient = useQueryClient();
   const { isLoading: authLoading } = useAuth();
   const { canReadProject } = usePermission();
-  const [messageApi, contextHolder] = antdMessage.useMessage();
+
+  const { message: messageApi } = App.useApp();
 
   const { bucketId } = use(params);
 
@@ -176,7 +178,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
 
   const handleMoveToSprint = async () => {
     if (!selectedSprint || selectedRowKeys.length === 0) {
-      antdMessage.warning('Please select tickets and a sprint');
+      messageApi.warning('Please select tickets and a sprint');
       return;
     }
     try {
@@ -190,12 +192,12 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
       );
       queryClient.invalidateQueries({ queryKey: bucketKeys.all });
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
-      antdMessage.success(`${selectedRowKeys.length} ticket(s) moved to sprint`);
+      messageApi.success(`${selectedRowKeys.length} ticket(s) moved to sprint`);
       setSelectedRowKeys([]);
       setSelectedSprint(null);
       refetchTickets();
     } catch (error: any) {
-      antdMessage.error(`Failed to move tickets: ${error.message || 'Unknown error'}`);
+      messageApi.error(`Failed to move tickets: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -207,8 +209,9 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
       setSelectedRowKeys([]);
       refetchTickets();
-    } catch {
-      // toast handled upstream
+      messageApi.success(`${selectedRowKeys.length} ticket(s) moved to trash`);
+    } catch (error: any) {
+      messageApi.error(`Failed to move tickets to trash: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -340,7 +343,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   return (
     <MainLayout>
       <div className="bd-page" style={{ ['--accent' as any]: accent }}>
-        {contextHolder}
+        {/* {contextHolder} */}
 
         {/* ─────────── Slim header ─────────── */}
         <div className="bd-header">

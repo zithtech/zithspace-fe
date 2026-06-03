@@ -16,7 +16,7 @@ import {
   Modal,
   Form,
   Input,
-  Alert,
+  App,
   Drawer,
   Checkbox,
   Divider,
@@ -444,8 +444,7 @@ export default function RolesPage() {
   const [roles, setRoles] = useState<RBACRole[]>([]);
   const [allPermissions, setAllPermissions] = useState<Record<string, RBACPermission[]>>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const { message: messageApi } = App.useApp();
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -481,16 +480,7 @@ export default function RolesPage() {
   const [accessTab, setAccessTab] = useState<string>('all');
   const [permSearch, setPermSearch] = useState<string>('');
 
-  // ── Auto-clear messages ────────────────────────────────────────────────────
-  useEffect(() => {
-    if (success || error) {
-      const t = setTimeout(() => {
-        setSuccess("");
-        setError("");
-      }, 4000);
-      return () => clearTimeout(t);
-    }
-  }, [success, error]);
+
 
   // Calculate role stats
   const roleStats = React.useMemo(() => {
@@ -544,7 +534,7 @@ export default function RolesPage() {
       const data = await RBACService.listRoles();
       setRoles(data);
     } catch {
-      setError("Failed to load roles");
+      messageApi.error("Failed to load roles");
     } finally {
       setLoading(false);
     }
@@ -601,7 +591,7 @@ export default function RolesPage() {
       setRoleMembers(fullRole.userRoles);
       setAllMembers(selectMembers.map((m) => ({ value: m.value, label: m.label })));
     } catch {
-      setError("Failed to load role members");
+      messageApi.error("Failed to load role members");
     } finally {
       setMembersDrawerLoading(false);
     }
@@ -612,14 +602,14 @@ export default function RolesPage() {
     try {
       setAssignLoading(true);
       await RBACService.assignRoleToUser(assigningMemberId, membersDrawerRole.id);
-      setSuccess(`Role assigned`);
+      messageApi.success("Role assigned");
       setAssigningMemberId(undefined);
       // Refresh member list
       const full = await RBACService.getRoleById(membersDrawerRole.id);
       setRoleMembers(full.userRoles);
       fetchRoles();
     } catch (err: any) {
-      setError(err?.message || "Failed to assign role");
+      messageApi.error(err?.message || "Failed to assign role");
     } finally {
       setAssignLoading(false);
     }
@@ -632,7 +622,7 @@ export default function RolesPage() {
       setRoleMembers((prev) => prev.filter((ur) => ur.user.id !== userId));
       fetchRoles();
     } catch (err: any) {
-      setError(err?.message || "Failed to remove member from role");
+      messageApi.error(err?.message || "Failed to remove member from role");
     }
   };
 
@@ -642,12 +632,12 @@ export default function RolesPage() {
     try {
       setCreateLoading(true);
       await RBACService.createRole(values);
-      setSuccess("Role created successfully");
+      messageApi.success("Role created successfully");
       setCreateModalOpen(false);
       createForm.resetFields();
       fetchRoles();
     } catch (err: any) {
-      setError(err?.message || "Failed to create role");
+      messageApi.error(err?.message || "Failed to create role");
     } finally {
       setCreateLoading(false);
     }
@@ -665,11 +655,11 @@ export default function RolesPage() {
     try {
       setEditLoading(true);
       await RBACService.updateRole(editingRole.id, values);
-      setSuccess("Role updated");
+      messageApi.success("Role updated");
       setEditModalOpen(false);
       fetchRoles();
     } catch (err: any) {
-      setError(err?.message || "Failed to update role");
+      messageApi.error(err?.message || "Failed to update role");
     } finally {
       setEditLoading(false);
     }
@@ -679,10 +669,10 @@ export default function RolesPage() {
   const handleDeleteRole = async (roleId: string) => {
     try {
       await RBACService.deleteRole(roleId);
-      setSuccess("Role deleted");
+      messageApi.success("Role deleted");
       fetchRoles();
     } catch (err: any) {
-      setError(err?.message || "Failed to delete role");
+      messageApi.error(err?.message || "Failed to delete role");
     }
   };
 
@@ -698,7 +688,7 @@ export default function RolesPage() {
       const full = await RBACService.getRoleById(role.id);
       setSelectedPermIds(full.rolePermissions.map((rp) => rp.permission.id));
     } catch {
-      setError("Failed to load role permissions");
+      messageApi.error("Failed to load role permissions");
     } finally {
       setDrawerLoadingPerms(false);
     }
@@ -709,11 +699,11 @@ export default function RolesPage() {
     try {
       setDrawerSaving(true);
       await RBACService.setRolePermissions(drawerRole.id, selectedPermIds);
-      setSuccess(`Permissions saved for "${drawerRole.name}"`);
+      messageApi.success(`Permissions saved for "${drawerRole.name}"`);
       setDrawerOpen(false);
       fetchRoles();
     } catch (err: any) {
-      setError(err?.message || "Failed to save permissions");
+      messageApi.error(err?.message || "Failed to save permissions");
     } finally {
       setDrawerSaving(false);
     }
@@ -1014,27 +1004,7 @@ export default function RolesPage() {
             />
           </div>
 
-          {/* Alerts */}
-          {error && (
-            <Alert
-              message={error}
-              type="error"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
-              onClose={() => setError("")}
-            />
-          )}
-          {success && (
-            <Alert
-              message={success}
-              type="success"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13, borderRadius: 10 }}
-              onClose={() => setSuccess("")}
-            />
-          )}
+
 
           {/* Roles panel */}
           <div className="rp-panel">

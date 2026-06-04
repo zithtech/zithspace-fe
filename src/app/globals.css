@@ -20719,12 +20719,34 @@ select:-webkit-autofill:focus {
 
 .rp-rm-input.ant-input,
 .rp-rm-input.ant-input-affix-wrapper,
-.rp-rm-textarea.ant-input {
+.rp-rm-textarea {
+  position: relative !important;
   border-radius: 10px !important;
   border: 1px solid var(--border-slate-200) !important;
   background: var(--bg-slate-50) !important;
   font-size: 13.5px !important;
   transition: all 0.2s ease !important;
+}
+
+.rp-rm-textarea textarea {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 10px 14px 30px 14px !important;
+  outline: none !important;
+  resize: none !important;
+}
+
+.rp-rm-textarea::after,
+.rp-rm-textarea .ant-input-data-count {
+  position: absolute !important;
+  bottom: 8px !important;
+  right: 12px !important;
+  font-size: 11px !important;
+  color: var(--text-slate-400) !important;
+  margin: 0 !important;
+  float: none !important;
+  pointer-events: none !important;
 }
 
 .rp-rm-input.ant-input,
@@ -20734,15 +20756,14 @@ select:-webkit-autofill:focus {
 
 .rp-rm-input.ant-input:hover,
 .rp-rm-input.ant-input-affix-wrapper:hover,
-.rp-rm-textarea.ant-input:hover {
+.rp-rm-textarea:hover {
   background: var(--bg-pure-white) !important;
 }
 
 .rp-rm-input.ant-input:focus,
 .rp-rm-input.ant-input-focused,
 .rp-rm-input.ant-input-affix-wrapper-focused,
-.rp-rm-textarea.ant-input:focus,
-.rp-rm-textarea.ant-input-focused {
+.rp-rm-textarea:focus-within {
   background: var(--bg-pure-white) !important;
   border-color: rgba(139, 92, 246, 0.45) !important;
   box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.10) !important;
@@ -20878,7 +20899,7 @@ select:-webkit-autofill:focus {
 
 [data-theme='dark'] .rp-rm-input.ant-input,
 [data-theme='dark'] .rp-rm-input.ant-input-affix-wrapper,
-[data-theme='dark'] .rp-rm-textarea.ant-input {
+[data-theme='dark'] .rp-rm-textarea {
   background: var(--bg-pure-white) !important;
   border-color: var(--border-slate-100) !important;
 }

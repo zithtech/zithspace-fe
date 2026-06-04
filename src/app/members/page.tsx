@@ -414,9 +414,32 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           <Form.Item
             name="phone"
             label="Phone number"
-            rules={[{ required: true, message: "Please enter phone number" }]}
+            rules={[
+              { required: true, message: "Please enter phone number" },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  const digits = value.replace(/\D/g, "");
+                  if (digits.length < 10) {
+                    return Promise.reject(new Error("Phone number must be 10 digit"));
+                  }
+                  if (digits.length > 10) {
+                    return Promise.reject(new Error("Phone number must be 10 digit"));
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
           >
-            <Input placeholder="+1 555 123 4567" />
+            <Input
+              placeholder="e.g. 9876543210"
+              maxLength={10}
+              onKeyPress={(e) => {
+                if (!/[0-9]/.test(e.key)) {
+                  e.preventDefault();
+                }
+              }}
+            />
           </Form.Item>
 
           <div style={{ height: 8 }} />

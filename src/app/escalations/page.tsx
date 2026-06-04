@@ -431,7 +431,7 @@ export default function EscalationListPage() {
       key: 'subject',
       render: (text: string, record: any) => (
         <Space direction="vertical" size={2}>
-          <Text strong style={{ fontSize: 14 }}>
+          <Text strong style={{ fontSize: 14, whiteSpace: 'nowrap' }}>
             {text || record.short_summary || 'No Subject'}
           </Text>
           {getCategoryTag(record.category || { name: record.category_name })}
@@ -442,6 +442,7 @@ export default function EscalationListPage() {
       title: 'Target Team Members',
       dataIndex: 'targetMembers',
       key: 'targetMembers',
+      width: 220,
       render: (members: any[], record: any) => {
         const list = members || record.targetMembers || [];
         if (list.length === 0)
@@ -479,6 +480,7 @@ export default function EscalationListPage() {
       title: 'Tickets',
       dataIndex: 'tickets',
       key: 'tickets',
+      width: 160,
       render: (tickets: any[]) => (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 150 }}>
           {tickets?.map((t, idx) => (
@@ -511,17 +513,20 @@ export default function EscalationListPage() {
       title: 'Priority',
       dataIndex: 'priority',
       key: 'priority',
+      width: 120,
       render: (priority: any, record: any) => getPriorityTag(priority || { name: record.priority_name }),
     },
     {
       title: 'Status',
       key: 'status',
+      width: 130,
       render: (_: any, record: any) => getStatusBadge(record),
     },
     {
       title: 'Raised By',
       dataIndex: 'createdBy',
       key: 'createdBy',
+      width: 160,
       render: (user: any) => (
         <Space>
           <Avatar size="small" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-slate-400)' }}>
@@ -537,6 +542,7 @@ export default function EscalationListPage() {
       title: 'Raised Date',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      width: 140,
       render: (date: string, record: any) => (
         <Tooltip title={dayjs(date || record.created_at).format('YYYY-MM-DD HH:mm:ss')}>
           <Text style={{ fontSize: 13, color: 'var(--text-slate-400)' }}>
@@ -549,7 +555,7 @@ export default function EscalationListPage() {
       title: 'Action',
       key: 'action',
       fixed: 'right' as const,
-      width: 100,
+      width: 120,
       render: (_: any, record: any) => (
         <Space size={4} onClick={(e) => e.stopPropagation()}>
           {canUpdateEscalation && (

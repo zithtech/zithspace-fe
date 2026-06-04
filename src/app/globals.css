@@ -23184,6 +23184,56 @@ select:-webkit-autofill:focus {
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.10) !important;
 }
 
+/* Custom overrides for textareas with showCount inside orgx-drawer */
+.orgx-drawer .ant-input-textarea,
+.orgx-drawer .ant-input-textarea-show-count {
+  position: relative !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--border-slate-200) !important;
+  background: var(--bg-slate-50) !important;
+  transition: all 0.2s ease !important;
+}
+
+.orgx-drawer .ant-input-textarea:hover,
+.orgx-drawer .ant-input-textarea-show-count:hover {
+  background: var(--bg-pure-white) !important;
+}
+
+.orgx-drawer .ant-input-textarea:focus-within,
+.orgx-drawer .ant-input-textarea-show-count:focus-within {
+  background: var(--bg-pure-white) !important;
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.10) !important;
+}
+
+.orgx-drawer .ant-input-textarea textarea,
+.orgx-drawer .ant-input-textarea-show-count textarea,
+.orgx-drawer .ant-input-textarea textarea:hover,
+.orgx-drawer .ant-input-textarea-show-count textarea:hover,
+.orgx-drawer .ant-input-textarea textarea:focus,
+.orgx-drawer .ant-input-textarea-show-count textarea:focus {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 10px 14px 30px 14px !important;
+  outline: none !important;
+  resize: none !important;
+}
+
+.orgx-drawer .ant-input-textarea::after,
+.orgx-drawer .ant-input-textarea-show-count::after,
+.orgx-drawer .ant-input-textarea .ant-input-data-count,
+.orgx-drawer .ant-input-textarea-show-count .ant-input-data-count {
+  position: absolute !important;
+  bottom: 8px !important;
+  right: 12px !important;
+  font-size: 11px !important;
+  color: var(--text-slate-400) !important;
+  margin: 0 !important;
+  float: none !important;
+  pointer-events: none !important;
+}
+
 .orgx-drawer .ant-select .ant-select-selector {
   border-radius: 10px !important;
   min-height: 42px !important;
@@ -23350,6 +23400,8 @@ select:-webkit-autofill:focus {
 }
 
 [data-theme='dark'] .orgx-drawer .ant-input,
+[data-theme='dark'] .orgx-drawer .ant-input-textarea,
+[data-theme='dark'] .orgx-drawer .ant-input-textarea-show-count,
 [data-theme='dark'] .orgx-drawer .ant-input-affix-wrapper,
 [data-theme='dark'] .orgx-drawer .ant-input-number,
 [data-theme='dark'] .orgx-drawer textarea.ant-input,

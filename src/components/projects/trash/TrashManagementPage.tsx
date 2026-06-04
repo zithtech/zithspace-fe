@@ -293,7 +293,7 @@ export default function TrashManagementPage() {
       },
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       width: 96,
       align: "right" as const,

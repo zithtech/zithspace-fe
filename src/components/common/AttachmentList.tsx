@@ -336,6 +336,24 @@ export default function AttachmentList({
                 title={viewingAttachment.fileName}
               />
             ) : (
+              viewingAttachment.fileType.toLowerCase().includes('word') || 
+              viewingAttachment.fileType.toLowerCase().includes('msword') || 
+              viewingAttachment.fileType.toLowerCase().includes('document') ||
+              viewingAttachment.fileType.toLowerCase().includes('excel') ||
+              viewingAttachment.fileType.toLowerCase().includes('spreadsheet') ||
+              viewingAttachment.fileType.toLowerCase().includes('sheet') ||
+              viewingAttachment.fileType.toLowerCase().includes('presentation') ||
+              viewingAttachment.fileType.toLowerCase().includes('powerpoint') ||
+              /\.(docx?|xlsx?|pptx?)$/i.test(viewingAttachment.fileName)
+            ) ? (
+              <iframe 
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(viewingAttachment.fileUrl)}&embedded=true`} 
+                width="100%" 
+                height="100%" 
+                style={{ border: 'none', background: '#fafafa' }}
+                title={viewingAttachment.fileName}
+              />
+            ) : (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'var(--bg-secondary)', borderRadius: 8 }}>
                 <FileOutlined style={{ fontSize: 64, color: 'var(--text-secondary)', marginBottom: 16 }} />
                 <Typography.Text type="secondary">Preview not available for this file type.</Typography.Text>

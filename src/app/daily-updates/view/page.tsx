@@ -40,7 +40,8 @@ import {
   Calendar as CalendarIcon,
   ChevronRight,
   Activity,
-  FileText
+  FileText,
+  History
 } from "lucide-react";
 import dayjs, { Dayjs } from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
@@ -53,6 +54,7 @@ import { ProjectService } from "@/services/projectService";
 import { DailyStatusUpdate } from "@/types/dailyUpdate";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Title, Text } = Typography;
 
@@ -104,7 +106,7 @@ export default function ViewDailyUpdatesPage() {
 
 function ViewDailyUpdatesContent({ user }: { user: any }) {
   const router = useRouter();
-  const { canCreateDailyUpdate, canUpdateDailyUpdate, canDeleteDailyUpdate, canManageDailyUpdateTime } = usePermission();
+  const { canCreateDailyUpdate, canUpdateDailyUpdate, canDeleteDailyUpdate, canManageDailyUpdateTime, canReadActivityLog } = usePermission();
 
   const { message: messageApi } = App.useApp();
   const [loading, setLoading] = useState(true);
@@ -152,6 +154,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
     useState<DailyStatusUpdate | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [manageTimeOpen, setManageTimeOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const canViewTeam = canManageDailyUpdateTime || user?.position === "Project Manager";
 
@@ -337,6 +340,15 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             >
               Refresh
             </Button>
+            {canReadActivityLog && (
+              <Button
+                icon={<History size={16} />}
+                onClick={() => setHistoryOpen(true)}
+                style={{ height: 38, borderRadius: 10, display: "flex", alignItems: "center", gap: 8 }}
+              >
+                History
+              </Button>
+            )}
             {canCreateDailyUpdate && (
               <Button
                 type="primary"
@@ -517,6 +529,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                 updates={updates}
                 loading={false}
                 onViewDetails={handleViewDetails}
+                onDeleteUpdate={handleDeleteUpdate}
               />
             </div>
           )}
@@ -535,6 +548,11 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         open={manageTimeOpen}
         onClose={() => setManageTimeOpen(false)}
         onSuccess={handleRefresh}
+      />
+      <TransactionHistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        module="DailyUpdates"
       />
     </div>
   );

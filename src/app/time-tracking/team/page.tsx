@@ -14,6 +14,8 @@ import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 export default function TeamTimePage() {
   useActivitySource({ section: "WORK", module: "TimeTracking", page: "TimeTrackingTeam" });
@@ -21,11 +23,13 @@ export default function TeamTimePage() {
   const { setPopoverOpen } = useTimeTrackerStore();
   const [isManageModalOpen, setIsManageModalOpen] = React.useState(false);
   const [refreshKey, setRefreshKey] = React.useState(0);
+  const [historyOpen, setHistoryOpen] = React.useState(false);
 
   const {
     canReadTimeTrackingTeam,
     canCreateTimeTracking,
-    canManageTimeTrackingTime
+    canManageTimeTrackingTime,
+    canReadActivityLog
   } = usePermission();
   const { isLoading } = useAuth();
   const router = useRouter();
@@ -93,6 +97,26 @@ export default function TeamTimePage() {
                   Manage Time
                 </Button>
               )}
+              {canReadActivityLog && (
+                <Button
+                  onClick={() => setHistoryOpen(true)}
+                  icon={<History size={15} />}
+                  style={{
+                    height: 38,
+                    borderRadius: 10,
+                    fontWeight: 500,
+                    padding: "0 18px",
+                    background: "var(--bg-pure-white)",
+                    border: "1px solid var(--border-slate-200)",
+                    color: "var(--text-secondary)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  History
+                </Button>
+              )}
               {canCreateTimeTracking && (
                 <Button
                   type="primary"
@@ -114,6 +138,11 @@ export default function TeamTimePage() {
             onClose={() => setIsManageModalOpen(false)}
             onSuccess={handleSuccess}
             selectedDate={dayjs()}
+          />
+          <TransactionHistoryDrawer
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            module="TimeTracking"
           />
         </div>
       </div>

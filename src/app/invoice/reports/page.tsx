@@ -130,7 +130,7 @@ export default function InvoiceproReportsPage() {
           minHeight: "calc(100vh - 64px)"
       }}>
         {/* ================= HEADER ================= */}
-        <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-8">
           <div style={{ flex: 1 }}>
             <Space size={14} align="center">
               <div style={{ background: "#f1f5f9", padding: 12, borderRadius: 14, color: "#334155", display: "flex" }}>
@@ -142,27 +142,32 @@ export default function InvoiceproReportsPage() {
               </div>
             </Space>
           </div>
-          <div style={{ display: "flex", gap: 12, alignItems: 'center' }}>
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full lg:w-auto">
             <RangePicker 
               size="large" 
               style={{ borderRadius: 12, height: 44 }} 
               defaultValue={[dayjs().subtract(1, 'month'), dayjs()]}
+              className="w-full sm:w-auto"
             />
-            <Button
-              size="large"
-              icon={<RefreshCw size={18} />}
-              onClick={() => setLoading(true)}
-              loading={loading}
-              style={{ borderRadius: 12, height: 44 }}
-            />
-            <Button
-              type="primary"
-              size="large"
-              icon={<Download size={18} />}
-              style={{ borderRadius: 12, height: 44, padding: "0 20px", fontWeight: 600, background: "#0f172a", border: "none" }}
-            >
-              Export data
-            </Button>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <Button
+                size="large"
+                icon={<RefreshCw size={18} />}
+                onClick={() => setLoading(true)}
+                loading={loading}
+                className="flex-1 sm:flex-initial flex items-center justify-center"
+                style={{ borderRadius: 12, height: 44 }}
+              />
+              <Button
+                type="primary"
+                size="large"
+                icon={<Download size={18} />}
+                className="flex-1 sm:flex-initial flex items-center justify-center text-white"
+                style={{ borderRadius: 12, height: 44, padding: "0 20px", fontWeight: 600, background: "#0f172a", border: "none" }}
+              >
+                Export data
+              </Button>
+            </div>
           </div>
         </div>
 

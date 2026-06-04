@@ -483,11 +483,11 @@ function BugRow({
                         { key: "reopen", label: "Reopen", disabled: !canUpdateBug },
                       ]
                     : []),
-                  {
+                  /* {
                     key: "ignore",
                     label: "Ignore",
                     disabled: bug.status === "ignored" || !canUpdateBug,
-                  },
+                  }, */
                   { key: "archive", label: "Archive", disabled: !canUpdateBug },
                   { type: "divider" as const },
                   { key: "delete", label: "Move to Trash", danger: true, disabled: !canDeleteBug },
@@ -496,7 +496,7 @@ function BugRow({
               if (key === "edit") onEdit();
               if (key === "verify") onVerify();
               if (key === "reopen") onReopen();
-              if (key === "ignore") onIgnore();
+              /* if (key === "ignore") onIgnore(); */
               if (key === "delete") onDelete();
               if (key === "restore") onRestore();
               if (key === "archive") onArchive();

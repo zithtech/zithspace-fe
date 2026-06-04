@@ -66,6 +66,7 @@ export default function ProjectTrashManagementPage() {
     {
       title: "Project",
       key: "project",
+      width: 250,
       render: (record: any) => (
         <div style={{ display: "flex", flexDirection: "column" }}>
           <Text strong style={{ fontSize: 14 }}>{record.name}</Text>
@@ -77,6 +78,7 @@ export default function ProjectTrashManagementPage() {
       title: "Project Manager",
       dataIndex: "projectManager",
       key: "manager",
+      width: 200,
       render: (manager: any) => (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Avatar src={manager?.avatarUrl} size="small">
@@ -90,6 +92,7 @@ export default function ProjectTrashManagementPage() {
       title: "Deleted At",
       dataIndex: "updatedAt",
       key: "deletedAt",
+      width: 180,
       render: (date: string) => (
         <Tooltip title={dayjs(date).format("YYYY-MM-DD HH:mm:ss")}>
           <Text style={{ fontSize: 13 }}>{dayjs(date).fromNow()}</Text>
@@ -99,12 +102,15 @@ export default function ProjectTrashManagementPage() {
     {
       title: "Status",
       key: "status",
+      width: 120,
       render: () => <Tag color="error">DELETED</Tag>,
     },
     {
       title: "Actions",
       key: "actions",
+      width: 150,
       align: "right" as const,
+      fixed: "right" as const,
       render: (record: any) => (
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <Tooltip title="Restore Project">
@@ -298,6 +304,7 @@ export default function ProjectTrashManagementPage() {
             loading={false}
             rowKey={(record: any) => record.id || Math.random()}
             pagination={{ pageSize: 10, size: "small" }}
+            scroll={{ x: "max-content" }}
             className="saas-table"
             locale={{
               emptyText: (

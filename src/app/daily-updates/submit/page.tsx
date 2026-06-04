@@ -677,7 +677,7 @@ function SubmitDailyUpdateContent() {
         }
         .mood-btn:hover { border-color: #cbd5e1 !important; }
         .mood-btn-active-happy    { background: #fef9c3 !important; border-color: #fde68a !important; color: #a16207 !important; }
-        .mood-btn-active-neutral  { background: var(--bg-slate-50) !important; border-color: var(--border-slate-200) !important; color: var(--text-slate-900) !important; }
+        .mood-btn-active-neutral  { background: #e0f2fe !important; border-color: #7dd3fc !important; color: #0369a1 !important; }
         .mood-btn-active-stressed { background: #ffedd5 !important; border-color: #fed7aa !important; color: #9a3412 !important; }
         .mood-btn-active-blocked  { background: #fee2e2 !important; border-color: #fca5a5 !important; color: #991b1b !important; }
 

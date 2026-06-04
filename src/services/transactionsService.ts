@@ -40,6 +40,8 @@ export interface TransactionFilters {
   member?: string;
   startDate?: string;
   endDate?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface TransactionSummary {

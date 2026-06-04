@@ -78,38 +78,38 @@ const RESOURCE_LABELS: Record<string, string> = {
   attendance: "Attendance",
   leave: "Leaves",
   shift: "Shifts",
-  invoice:      "Invoices",
-  account:      "Accounts & Finance",
-  client:       "Clients / CRM",
-  settings:     "General Settings",
-  role:         "Roles & RBAC",
-  report:       "Reports / Analytics",
+  invoice: "Invoices",
+  account: "Accounts & Finance",
+  client: "Clients / CRM",
+  settings: "General Settings",
+  role: "Roles & RBAC",
+  report: "Reports / Analytics",
   reimbursement: "Reimbursements",
-  payroll:      "Payroll / Payslips",
-  salary:       "Salary Structures",
-  document:     "Documents / Hub",
-  onboarding:   "Onboarding",
-  timesheet:    "Timesheet",
-  org:          "Org Structure",
+  payroll: "Payroll / Payslips",
+  salary: "Salary Structures",
+  document: "Documents / Hub",
+  onboarding: "Onboarding",
+  timesheet: "Timesheet",
+  org: "Org Structure",
   daily_update: "Daily Updates",
-  squad:        "Squad Management",
-  lead:         "Lead Management",
-  proposal:     "Proposals",
-  vendor:       "Vendors",
-  escalation:   "Escalations",
-  pipeline:     "Sales Pipeline",
-  exit:         "Employee Exit",
-  performance:  "Performance",
-  opening:      "Opening Management",
-  profile:      "User Profile",
-  mail:         "Mail Settings",
-  calendar:     "Calendar Settings",
-  chat:         "Internal Chat",
-  skills:       "Skills Portal",
+  squad: "Squad Management",
+  lead: "Lead Management",
+  proposal: "Proposals",
+  vendor: "Vendors",
+  escalation: "Escalations",
+  pipeline: "Sales Pipeline",
+  exit: "Employee Exit",
+  performance: "Performance",
+  opening: "Opening Management",
+  profile: "User Profile",
+  mail: "Mail Settings",
+  calendar: "Calendar Settings",
+  chat: "Internal Chat",
+  skills: "Skills Portal",
   notification: "Notifications",
-  bookmark:     "Bookmarks",
+  bookmark: "Bookmarks",
   time_tracking: "Time Tracking",
-  activity_log:  "Activity Log / Transaction History",
+  activity_log: "Activity Log / Transaction History",
 };
 
 /** Access Control drawer — premium SaaS tab groups */
@@ -408,6 +408,7 @@ const RoleFormContent: React.FC<RoleFormContentProps> = ({ form, mode, existingS
           className="rp-rm-textarea"
           maxLength={200}
           showCount
+          style={{ padding: '10px 14px' }}
         />
       </Form.Item>
 
@@ -549,7 +550,7 @@ export default function RolesPage() {
   const fetchPermissions = useCallback(async () => {
     try {
       const { grouped } = await RBACService.listPermissions();
-      
+
       // Merge 'bug' permissions into 'ticket'
       if (grouped.bug && grouped.ticket) {
         grouped.ticket = [...grouped.ticket, ...grouped.bug];
@@ -567,7 +568,7 @@ export default function RolesPage() {
         grouped.lead = grouped.proposal;
         delete grouped.proposal;
       }
-      
+
       setAllPermissions(grouped);
     } catch {
       /* non-critical */
@@ -809,7 +810,7 @@ export default function RolesPage() {
       ),
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       width: 140,
       align: "right" as const,
@@ -1010,7 +1011,7 @@ export default function RolesPage() {
                             Math.round(
                               (roleStats.assignedPerms /
                                 Math.max(roleStats.permissions * roleStats.total, 1)) *
-                                100,
+                              100,
                             ),
                           )}%`,
                           background: 'linear-gradient(90deg, #f59e0b, #fbbf24)',
@@ -1453,13 +1454,11 @@ export default function RolesPage() {
                             className="rp-acc-progress__fill"
                             style={{
                               width: `${(selectedInTabPerms / tabTotalPerms) * 100}%`,
-                              background: `linear-gradient(90deg, ${
-                                ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
+                              background: `linear-gradient(90deg, ${ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
                                 '#8b5cf6'
-                              }, ${
-                                ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
+                                }, ${ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
                                 '#8b5cf6'
-                              }aa)`,
+                                }aa)`,
                             }}
                           />
                         </div>
@@ -1531,9 +1530,8 @@ export default function RolesPage() {
                                 <div className="rp-acc-card__sub">{resource}</div>
                               </div>
                               <span
-                                className={`rp-acc-card__count${
-                                  allInGroup ? ' is-full' : someInGroup ? ' is-partial' : ''
-                                }`}
+                                className={`rp-acc-card__count${allInGroup ? ' is-full' : someInGroup ? ' is-partial' : ''
+                                  }`}
                               >
                                 {selectedCount} / {allPermsForRes.length}
                               </span>
@@ -1676,10 +1674,10 @@ export default function RolesPage() {
               const searchQ = memberSearch.trim().toLowerCase();
               const filteredMembers = searchQ
                 ? roleMembers.filter(
-                    (e) =>
-                      (e.user.name || '').toLowerCase().includes(searchQ) ||
-                      (e.user.workEmail || '').toLowerCase().includes(searchQ),
-                  )
+                  (e) =>
+                    (e.user.name || '').toLowerCase().includes(searchQ) ||
+                    (e.user.workEmail || '').toLowerCase().includes(searchQ),
+                )
                 : roleMembers;
 
               return (

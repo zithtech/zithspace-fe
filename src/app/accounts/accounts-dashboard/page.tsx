@@ -156,6 +156,8 @@ export default function AccountsPage() {
     dayjs().startOf('month'),
     dayjs().endOf('month'),
   ]);
+  const [sortBy, setSortBy] = useState<string | undefined>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | undefined>('desc');
 
   // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -182,6 +184,8 @@ export default function AccountsPage() {
         member: memberFilter || undefined,
         startDate: dateRange?.[0]?.toISOString(),
         endDate: dateRange?.[1]?.toISOString(),
+        sortBy: sortBy || undefined,
+        sortOrder: sortOrder || undefined,
       };
 
       const response = await TransactionsService.getTransactions(filters);
@@ -242,7 +246,7 @@ export default function AccountsPage() {
       fetchSummary();
       fetchMembers();
     }
-  }, [user, pagination.current, pagination.pageSize, searchTerm, typeFilter, categoryFilter, memberFilter, dateRange]);
+  }, [user, pagination.current, pagination.pageSize, searchTerm, typeFilter, categoryFilter, memberFilter, dateRange, sortBy, sortOrder]);
 
   // Handle form submission
   const handleSubmit = async (values: TransactionFormData) => {
@@ -398,6 +402,27 @@ export default function AccountsPage() {
     }
   };
 
+  // Handle pagination and sorting changes
+  const handleTableChange = (
+    newPagination: any,
+    filters: any,
+    sorter: any
+  ) => {
+    setPagination(prev => ({
+      ...prev,
+      current: newPagination.current || 1,
+      pageSize: newPagination.pageSize || 10,
+    }));
+
+    if (sorter && !Array.isArray(sorter) && sorter.field && sorter.order) {
+      setSortBy(sorter.field);
+      setSortOrder(sorter.order === 'ascend' ? 'asc' : 'desc');
+    } else {
+      setSortBy(undefined);
+      setSortOrder(undefined);
+    }
+  };
+
   // Table columns
   const columns: ColumnsType<Transaction> = [
     {
@@ -416,6 +441,7 @@ export default function AccountsPage() {
         </div>
       ),
       sorter: true,
+      sortOrder: sortBy === 'date' ? (sortOrder === 'asc' ? 'ascend' : 'descend') : undefined,
     },
     {
       title: 'Type',
@@ -431,6 +457,8 @@ export default function AccountsPage() {
           {type.toUpperCase()}
         </Tag>
       ),
+      sorter: true,
+      sortOrder: sortBy === 'type' ? (sortOrder === 'asc' ? 'ascend' : 'descend') : undefined,
     },
     {
       title: 'Amount',
@@ -452,9 +480,11 @@ export default function AccountsPage() {
         </Text>
       ),
       sorter: true,
+      sortOrder: sortBy === 'amount' ? (sortOrder === 'asc' ? 'ascend' : 'descend') : undefined,
     },
     {
       title: 'Member',
+      dataIndex: 'member',
       key: 'member',
       width: 240,
       render: (_, record: Transaction) => {
@@ -486,6 +516,8 @@ export default function AccountsPage() {
           <Text type="secondary">-</Text>
         );
       },
+      sorter: true,
+      sortOrder: sortBy === 'member' ? (sortOrder === 'asc' ? 'ascend' : 'descend') : undefined,
     },
     {
       title: 'Category',
@@ -500,6 +532,8 @@ export default function AccountsPage() {
           {category.replace('_', ' ').toUpperCase()}
         </Tag>
       ),
+      sorter: true,
+      sortOrder: sortBy === 'category' ? (sortOrder === 'asc' ? 'ascend' : 'descend') : undefined,
     },
     {
       title: 'Description',
@@ -534,6 +568,8 @@ export default function AccountsPage() {
           )}
         </div>
       ),
+      sorter: true,
+      sortOrder: sortBy === 'description' ? (sortOrder === 'asc' ? 'ascend' : 'descend') : undefined,
     },
     {
       title: 'Actions',
@@ -823,17 +859,11 @@ export default function AccountsPage() {
                     showQuickJumper: true,
                     showTotal: (total, range) =>
                       `${range[0]}-${range[1]} of ${total} transactions`,
-                    onChange: (page, pageSize) => {
-                      setPagination(prev => ({
-                        ...prev,
-                        current: page,
-                        pageSize: pageSize || 10,
-                      }));
-                    },
                     size: 'small',
                   }}
                   size="small"
                   scroll={{ x: 800 }}
+                  onChange={handleTableChange}
                 />
               </Card>
             </Col>
@@ -1111,6 +1141,7 @@ export default function AccountsPage() {
                       rows={4}
                       maxLength={500}
                       showCount
+                      style={{ padding: '10px 14px' }}
                     />
                   </Form.Item>
                 </div>
@@ -1478,7 +1509,7 @@ export default function AccountsPage() {
           display: flex;
           align-items: center;
           gap: 10px;
-          flex-wrap: nowrap;
+          flex-wrap: wrap;
           box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
         }
         .accounts-filter-bar__label {
@@ -1496,6 +1527,27 @@ export default function AccountsPage() {
           text-transform: uppercase;
           margin-right: 4px;
           flex-shrink: 0;
+        }
+
+        @media (max-width: 991px) {
+          .accounts-filter-bar {
+            gap: 12px;
+          }
+          .accounts-filter-bar > div:not(.accounts-filter-bar__label) {
+            flex: 1 1 calc(33.333% - 12px) !important;
+            min-width: 150px !important;
+            width: auto !important;
+          }
+        }
+        @media (max-width: 767px) {
+          .accounts-filter-bar > div:not(.accounts-filter-bar__label) {
+            flex: 1 1 calc(50% - 12px) !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .accounts-filter-bar > div:not(.accounts-filter-bar__label) {
+            flex: 1 1 100% !important;
+          }
         }
 
         /* ===== Table Card Header ===== */
@@ -2175,11 +2227,15 @@ export default function AccountsPage() {
           margin-bottom: 14px;
         }
         .accounts-tx-form .ant-input,
+        .accounts-tx-form .ant-input-textarea,
         .accounts-tx-form .ant-input-number,
         .accounts-tx-form .ant-picker,
         .accounts-tx-form .ant-select-selector {
           border-radius: 10px !important;
           transition: border-color .2s ease, box-shadow .2s ease;
+        }
+        .accounts-tx-form .ant-input-textarea {
+          position: relative !important;
         }
         .accounts-tx-form .ant-input-lg,
         .accounts-tx-form .ant-input-number-lg,
@@ -2188,6 +2244,7 @@ export default function AccountsPage() {
           border-radius: 10px !important;
         }
         .accounts-tx-form .ant-input:hover,
+        .accounts-tx-form .ant-input-textarea:hover,
         .accounts-tx-form .ant-input-number:hover,
         .accounts-tx-form .ant-picker:hover,
         .accounts-tx-form .ant-select:hover .ant-select-selector {
@@ -2195,11 +2252,33 @@ export default function AccountsPage() {
         }
         .accounts-tx-form .ant-input:focus,
         .accounts-tx-form .ant-input-focused,
+        .accounts-tx-form .ant-input-textarea:focus-within,
         .accounts-tx-form .ant-input-number-focused,
         .accounts-tx-form .ant-picker-focused,
         .accounts-tx-form .ant-select-focused .ant-select-selector {
           border-color: #6366f1 !important;
           box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important;
+        }
+        .accounts-tx-form .ant-input-textarea textarea,
+        .accounts-tx-form .ant-input-textarea textarea:hover,
+        .accounts-tx-form .ant-input-textarea textarea:focus {
+          border: none !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          outline: none !important;
+          padding: 10px 14px 30px 14px !important;
+          resize: none !important;
+        }
+        .accounts-tx-form .ant-input-textarea::after,
+        .accounts-tx-form .ant-input-textarea .ant-input-data-count {
+          position: absolute !important;
+          bottom: 8px !important;
+          right: 12px !important;
+          font-size: 11px !important;
+          color: var(--accounts-stat-sub) !important;
+          margin: 0 !important;
+          float: none !important;
+          pointer-events: none !important;
         }
         .accounts-tx-form .ant-input-number-input {
           font-variant-numeric: tabular-nums;

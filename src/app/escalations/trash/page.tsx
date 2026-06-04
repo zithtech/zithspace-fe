@@ -182,7 +182,7 @@ export default function EscalationTrashPage() {
       key: 'escalation',
       render: (record: any) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <Text strong style={{ fontSize: 14 }}>
+          <Text strong style={{ fontSize: 14, whiteSpace: 'nowrap' }}>
             {record.subject || record.short_summary || 'No Subject'}
           </Text>
           <Text type="secondary" style={{ fontSize: 12 }}>
@@ -195,9 +195,20 @@ export default function EscalationTrashPage() {
       title: 'Target Team Members',
       dataIndex: 'targetMembers',
       key: 'targetMembers',
+      width: 220,
       render: (members: any[], record: any) => {
         const list = members || record.targetMembers || [];
         if (list.length === 0) return <Text type="secondary">—</Text>;
+        if (list.length === 1) {
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Avatar size="small" style={{ backgroundColor: BLUE_PRIMARY }}>
+                {list[0].user?.name?.charAt(0) || 'U'}
+              </Avatar>
+              <Text style={{ fontSize: 13 }}>{list[0].user?.name || 'User'}</Text>
+            </div>
+          );
+        }
         return (
           <Avatar.Group max={{ count: 3 }} size="small">
             {list.map((m: any, idx: number) => (
@@ -213,6 +224,7 @@ export default function EscalationTrashPage() {
       title: 'Priority',
       dataIndex: 'priority',
       key: 'priority',
+      width: 120,
       render: (priority: any, record: any) => (
         <Tag color={record.priority_color || priority?.color || 'blue'} style={{ borderRadius: 4, fontWeight: 600 }}>
           {(record.priority_name || priority?.name || 'MEDIUM').toUpperCase()}
@@ -223,6 +235,7 @@ export default function EscalationTrashPage() {
       title: 'Raised By',
       dataIndex: 'createdBy',
       key: 'createdBy',
+      width: 160,
       render: (user: any) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Avatar size="small">{user?.name?.charAt(0) || 'S'}</Avatar>
@@ -232,12 +245,13 @@ export default function EscalationTrashPage() {
     },
     {
       title: 'Deleted At',
-      dataIndex: 'deletedAt',
+      dataIndex: 'deleted_at',
       key: 'deletedAt',
+      width: 150,
       render: (date: string) => (
         <Tooltip title={date ? dayjs(date).format('YYYY-MM-DD HH:mm:ss') : ''}>
           <Text style={{ fontSize: 13 }}>
-            {date ? dayjs(date).fromNow() : '—'}
+            {date ? dayjs(date).format('MMM D, YYYY') : '—'}
           </Text>
         </Tooltip>
       ),
@@ -245,12 +259,15 @@ export default function EscalationTrashPage() {
     {
       title: 'Status',
       key: 'status',
+      width: 120,
       render: () => <Tag color="error">DELETED</Tag>,
     },
     {
       title: 'Actions',
       key: 'actions',
       align: 'right' as const,
+      width: 120,
+      fixed: 'right' as const,
       render: (record: any) => (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           {canUpdateEscalation && (
@@ -450,6 +467,7 @@ export default function EscalationTrashPage() {
               rowKey={(record: any) => record.id || Math.random()}
               pagination={{ pageSize: 10, size: 'small' }}
               className="saas-table"
+              scroll={{ x: 'max-content' }}
               locale={{
                 emptyText: (
                   <Empty

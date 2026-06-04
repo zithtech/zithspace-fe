@@ -501,6 +501,7 @@ function CreateClientV2Content() {
                   <Form.Item
                     name="yearOfIncorporation"
                     label={<FieldLabel icon={Calendar} text="Year of Incorporation" />}
+                    getValueFromEvent={(e) => e.target.value.replace(/\D/g, "").slice(0, 4)}
                     rules={[
                       {
                         validator(_, value) {
@@ -524,7 +525,7 @@ function CreateClientV2Content() {
                       }
                     ]}
                   >
-                    <Input placeholder="YYYY" type="number" size="large" />
+                    <Input placeholder="YYYY" size="large" />
                   </Form.Item>
                   <Form.Item
                     name="country"
@@ -547,6 +548,12 @@ function CreateClientV2Content() {
                     name="website"
                     label={<FieldLabel icon={Globe2} text="Website" />}
                     className="cc-col-2"
+                    rules={[
+                      {
+                        pattern: /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}(\/[a-zA-Z0-9-._~:/?#[\]@!$&'()*+,;=]*)?$/,
+                        message: "Enter a valid website URL"
+                      }
+                    ]}
                   >
                     <Input placeholder="https://acme.com" size="large" />
                   </Form.Item>
@@ -674,6 +681,13 @@ function CreateClientV2Content() {
                   <Form.Item
                     name="dunsNumber"
                     label={<FieldLabel text="DUNS Number" hint="Dun & Bradstreet ID" />}
+                    getValueFromEvent={(e) => e.target.value.replace(/\D/g, "").slice(0, 9)}
+                    rules={[
+                      {
+                        pattern: /^\d{9}$/,
+                        message: "Enter a valid DUNS number"
+                      }
+                    ]}
                   >
                     <Input placeholder="123456789" size="large" />
                   </Form.Item>
@@ -694,7 +708,7 @@ function CreateClientV2Content() {
                     label={<FieldLabel icon={Wallet} text="Contract Value" />}
                   >
                     <InputNumber
-                      type="number"
+                      controls={false}
                       style={{ width: "100%" }}
                       size="large"
                       placeholder="0.00"
@@ -719,7 +733,7 @@ function CreateClientV2Content() {
                     label={<FieldLabel icon={CreditCard} text="Credit Limit" />}
                   >
                     <InputNumber
-                      type="number"
+                      controls={false}
                       style={{ width: "100%" }}
                       size="large"
                       placeholder="0.00"
@@ -837,12 +851,26 @@ function CreateClientV2Content() {
                   <Form.Item
                     name="bankAccountNumber"
                     label={<FieldLabel icon={Hash} text="Account Number" />}
+                    getValueFromEvent={(e) => e.target.value.replace(/\D/g, "").slice(0, 20)}
+                    rules={[
+                      {
+                        pattern: /^\d{6,20}$/,
+                        message: "Enter a valid account number (6 to 20 digits)"
+                      }
+                    ]}
                   >
-                    <Input type="number" placeholder="••••••••1234" size="large" />
+                    <Input placeholder="••••••••1234" size="large" />
                   </Form.Item>
                   <Form.Item
                     name="ifscSwift"
                     label={<FieldLabel text="IFSC / SWIFT Code" />}
+                    getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 11)}
+                    rules={[
+                      {
+                        pattern: /^([A-Z]{4}0[A-Z0-9]{6}|[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?)$/,
+                        message: "Enter a valid IFSC or SWIFT code"
+                      }
+                    ]}
                   >
                     <Input placeholder="HSBCUS33" size="large" />
                   </Form.Item>
@@ -908,6 +936,16 @@ function CreateClientV2Content() {
 
         {/* ============================ Styles ============================ */}
         <style jsx global>{`
+          /* Remove browser spinners from number inputs */
+          input::-webkit-outer-spin-button,
+          input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+          input[type=number] {
+            -moz-appearance: textfield;
+          }
+
           .cc-page {
             display: flex;
             flex-direction: column;

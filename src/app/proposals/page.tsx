@@ -553,7 +553,7 @@ export default function ProposalsListPage() {
       },
     },
     {
-      title: '',
+      title: 'ACTIONS',
       key: 'actions',
       align: 'right' as const,
       width: 80,

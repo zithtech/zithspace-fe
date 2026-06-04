@@ -529,6 +529,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                 updates={updates}
                 loading={false}
                 onViewDetails={handleViewDetails}
+                onDeleteUpdate={handleDeleteUpdate}
               />
             </div>
           )}

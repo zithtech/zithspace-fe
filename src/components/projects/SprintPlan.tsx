@@ -724,7 +724,7 @@ export default function SprintPlanComponent() {
     //   },
     // },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       align: "right" as const,
       width: 180,

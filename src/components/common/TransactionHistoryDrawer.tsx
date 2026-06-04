@@ -17,8 +17,10 @@ const { Text } = Typography;
 interface Props {
   open: boolean;
   onClose: () => void;
-  entityType: string;
-  entityId: string;
+  entityType?: string;
+  entityId?: string;
+  section?: string;
+  module?: string;
   /** Override title; defaults to "Activity history" */
   title?: string;
   /** Tag the entity label (e.g. "TKT-123 — login broken") shown under the title */
@@ -158,12 +160,16 @@ export default function TransactionHistoryDrawer({
   onClose,
   entityType,
   entityId,
+  section,
+  module,
   title = "Activity history",
   subtitle,
 }: Props) {
   const { rows, loading, loadingMore, hasMore, error, loadMore, refresh } = useTransactionHistory({
     entityType,
     entityId,
+    section,
+    module,
     enabled: open,
     limit: 20,
   });
@@ -174,7 +180,11 @@ export default function TransactionHistoryDrawer({
   useEffect(() => {
     if (!socket || !open) return;
     const handler = (row: any) => {
-      if (row?.entityType === entityType && row?.entityId === entityId) {
+      if (
+        (entityType && entityId && row?.entityType === entityType && row?.entityId === entityId) ||
+        (!entityId && module && row?.module === module) ||
+        (!entityId && !module && section && row?.section === section)
+      ) {
         refresh();
       }
     };
@@ -182,7 +192,7 @@ export default function TransactionHistoryDrawer({
     return () => {
       socket.off("transaction:created", handler);
     };
-  }, [socket, open, entityType, entityId, refresh]);
+  }, [socket, open, entityType, entityId, section, module, refresh]);
 
   return (
     <Drawer

@@ -37,6 +37,8 @@ import { usePermission } from "@/hooks/usePermission";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { OrgStatCard, OrgMiniBar } from "@/components/org-structure/OrgPageWidgets";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Text } = Typography;
 
@@ -49,6 +51,7 @@ export default function EmploymentTypesPage() {
     canCreateOrgEmploymentType,
     canUpdateOrgEmploymentType,
     canDeleteOrgEmploymentType,
+    canReadActivityLog
   } = usePermission();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -57,6 +60,7 @@ export default function EmploymentTypesPage() {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const [api, contextHolder] = notification.useNotification();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const {
     employmentTypes,
@@ -163,7 +167,7 @@ export default function EmploymentTypesPage() {
     {
       title: "Employment Type",
       key: "identity",
-      width: "32%",
+      width: 250,
       render: (_: any, record: EmploymentType) => (
         <div className="orgx-row-name">
           <div className="orgx-row-name__avatar">{record.code?.substring(0, 2) || "ET"}</div>
@@ -178,6 +182,7 @@ export default function EmploymentTypesPage() {
       title: "Description",
       dataIndex: "description",
       key: "description",
+      width: 300,
       ellipsis: { showTitle: false },
       render: (description: string) => (
         <Tooltip placement="topLeft" title={description}>
@@ -246,16 +251,28 @@ export default function EmploymentTypesPage() {
               zIndex: 100,
             }}
             extra={
-              canCreateOrgEmploymentType && (
-                <Button
-                  type="primary"
-                  icon={<Plus size={15} />}
-                  onClick={handleAdd}
-                  className="orgx-primary-btn"
-                >
-                  New Type
-                </Button>
-              )
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                {canReadActivityLog && (
+                  <Button
+                    icon={<History size={15} />}
+                    onClick={() => setHistoryOpen(true)}
+                    style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    History
+                  </Button>
+                )}
+                {canCreateOrgEmploymentType && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={15} />}
+                    onClick={handleAdd}
+                    className="orgx-primary-btn"
+                    style={{ display: "flex", alignItems: "center" }}
+                  >
+                    New Type
+                  </Button>
+                )}
+              </div>
             }
           />
 
@@ -349,6 +366,7 @@ export default function EmploymentTypesPage() {
                 loading={loading}
                 size="middle"
                 pagination={{ pageSize: 12, position: ["bottomRight"] }}
+                scroll={{ x: "max-content" }}
               />
             </div>
           </div>
@@ -458,6 +476,11 @@ export default function EmploymentTypesPage() {
             </div>
           </Drawer>
         </div>
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          module="OrgStructure"
+        />
       </MainLayout>
     </ProtectedRoute>
   );

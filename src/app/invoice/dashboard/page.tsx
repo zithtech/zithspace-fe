@@ -581,44 +581,47 @@ export default function DashboardPage() {
             borderColor: "var(--border-color)",
           }}
         >
-          <div className="px-8 h-14 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{
-                  background: "var(--bg-blue-50)",
-                  color: "var(--text-blue-700)",
-                  border: "1px solid var(--border-blue-200)",
-                }}
-              >
-                <LayoutDashboard size={14} strokeWidth={2.25} />
+          <div className="px-8 py-3 md:py-0 min-h-[56px] md:h-14 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: "var(--bg-blue-50)",
+                    color: "var(--text-blue-700)",
+                    border: "1px solid var(--border-blue-200)",
+                  }}
+                >
+                  <LayoutDashboard size={14} strokeWidth={2.25} />
+                </div>
+                <span
+                  className="text-[14px] font-semibold"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  Dashboard
+                </span>
               </div>
-              <span
-                className="text-[14px] font-semibold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                Dashboard
-              </span>
               <span
                 className="h-4 w-px hidden sm:inline"
                 style={{ background: "var(--border-color)" }}
               />
               <span
-                className="text-[12px] hidden sm:inline truncate"
+                className="text-[12px]"
                 style={{ color: "var(--text-secondary)" }}
               >
                 Overview of your invoicing and revenue performance
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full md:w-auto">
               {canReadInvoiceHistory && (
                 <Button
                   icon={<History size={14} />}
                   onClick={() => setHistoryDrawerVisible(true)}
+                  className="flex-1 md:flex-initial flex items-center justify-center"
                   style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
                 >
-                  Email history
+                  <span>Email history</span>
                 </Button>
               )}
               {canCreateInvoice && (
@@ -626,6 +629,7 @@ export default function DashboardPage() {
                   type="primary"
                   icon={<Plus size={14} />}
                   onClick={() => router.push("/invoice/newinvoice")}
+                  className="flex-1 md:flex-initial flex items-center justify-center"
                   style={{
                     borderRadius: 8,
                     height: 36,
@@ -633,7 +637,7 @@ export default function DashboardPage() {
                     background: "#2563eb",
                   }}
                 >
-                  New invoice
+                  <span>New invoice</span>
                 </Button>
               )}
             </div>

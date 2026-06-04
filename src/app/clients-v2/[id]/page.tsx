@@ -504,7 +504,16 @@ export default function ClientV2DetailsPage() {
       if (client[field] === value) return;
 
       // Validate GST/Tax ID, PAN, and Year of Incorporation if they or country are updated
-      if (field === "gstVatTaxId" || field === "pan" || field === "yearOfIncorporation" || field === "country") {
+      if (
+        field === "gstVatTaxId" ||
+        field === "pan" ||
+        field === "yearOfIncorporation" ||
+        field === "country" ||
+        field === "dunsNumber" ||
+        field === "ifscSwift" ||
+        field === "bankAccountNumber" ||
+        field === "website"
+      ) {
         const gstVatTaxId = field === "gstVatTaxId" ? value : client.gstVatTaxId;
         const pan = field === "pan" ? value : client.pan;
         const yearOfIncorporation = field === "yearOfIncorporation" ? value : client.yearOfIncorporation;
@@ -609,6 +618,65 @@ export default function ClientV2DetailsPage() {
             notify.error({
               message: "Validation Error",
               description: `Year must be between 1800 and ${currentYear}.`,
+              placement: "top",
+            });
+            setActiveField(null);
+            return;
+          }
+        }
+
+        // 4. DUNS Validation
+        if (field === "dunsNumber" && value && value.trim() !== "") {
+          const val = value.trim();
+          if (!/^\d{9}$/.test(val)) {
+            notify.error({
+              message: "Validation Error",
+              description: "Enter a valid DUNS number (must be exactly 9 digits).",
+              placement: "top",
+            });
+            setActiveField(null);
+            return;
+          }
+        }
+
+        // 5. IFSC / SWIFT Validation
+        if (field === "ifscSwift" && value && value.trim() !== "") {
+          const val = value.trim();
+          const ifscRegex = /^[A-Za-z]{4}0[A-Za-z0-9]{6}$/;
+          const swiftRegex = /^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/;
+          if (!ifscRegex.test(val) && !swiftRegex.test(val)) {
+            notify.error({
+              message: "Validation Error",
+              description: "Enter a valid IFSC or SWIFT code.",
+              placement: "top",
+            });
+            setActiveField(null);
+            return;
+          }
+        }
+
+        // 6. Account Number Validation
+        if (field === "bankAccountNumber" && value && value.trim() !== "") {
+          const val = value.trim();
+          if (!/^\d{6,20}$/.test(val)) {
+            notify.error({
+              message: "Validation Error",
+              description: "Enter a valid account number (6 to 20 digits).",
+              placement: "top",
+            });
+            setActiveField(null);
+            return;
+          }
+        }
+
+        // 7. Website Validation
+        if (field === "website" && value && value.trim() !== "") {
+          const val = value.trim();
+          const websiteRegex = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}(\/[a-zA-Z0-9-._~:/?#[\]@!$&'()*+,;=]*)?$/;
+          if (!websiteRegex.test(val)) {
+            notify.error({
+              message: "Validation Error",
+              description: "Enter a valid website URL.",
               placement: "top",
             });
             setActiveField(null);

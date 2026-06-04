@@ -1579,10 +1579,22 @@ const DocumentHubPage = () => {
     },
     {
       _key: 'actions',
-      title: '',
+      title: (
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            color: 'var(--text-slate-400)',
+          }}
+        >
+          Actions
+        </span>
+      ),
       key: 'actions',
       width: colWidths.actions,
-      // fixed: 'right',
+      fixed: 'right',
       render: (_text, record) => (
         <div className="dh-row-actions" onClick={(e) => e.stopPropagation()}>
           <Tooltip title="Share">
@@ -3574,12 +3586,12 @@ const DocumentHubPage = () => {
         .dh-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 9px 16px !important; }
         .dh-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 14px 20px !important; }
 
-        /* Hover-only row actions (#D) */
+        /* Pinned row actions — always visible in the fixed Actions column (#D) */
         .dh-row-actions {
           display: inline-flex;
           align-items: center;
           gap: 2px;
-          opacity: 0;
+          opacity: 1;
           transition: opacity 0.15s;
         }
         .premium-table .ant-table-row:hover .dh-row-actions,

@@ -587,7 +587,7 @@ export default function ClientsV2ListPage() {
       },
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       align: "right" as const,
       width: 150,

@@ -58,6 +58,8 @@ import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { usePositions } from "@/hooks/usePositions";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -250,6 +252,9 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
   const personalEmail = Form.useWatch("personalEmail", form);
   const positionType = Form.useWatch("positionType", form) || "grade";
 
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const { canReadActivityLog } = usePermission();
+
   const ROLE_OPTIONS = [
     {
       value: "user",
@@ -346,14 +351,26 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="mm-drawer-close"
-        >
-          <CloseOutlined />
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {mode === "edit" && selectedMember && canReadActivityLog && (
+            <Button
+              icon={<History size={14} />}
+              onClick={() => setHistoryOpen(true)}
+              size="small"
+              style={{ borderRadius: 6 }}
+            >
+              History
+            </Button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="mm-drawer-close"
+          >
+            <CloseOutlined />
+          </button>
+        </div>
       </div>
 
       {/* Scrollable form body */}
@@ -640,6 +657,16 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           {mode === "add" ? "Add Member" : "Save Changes"}
         </Button>
       </div>
+
+      {mode === "edit" && selectedMember && (
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          entityType="user"
+          entityId={selectedMember.id}
+          subtitle={selectedMember.name}
+        />
+      )}
     </div>
   );
 };

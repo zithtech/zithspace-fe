@@ -16,6 +16,8 @@ import {
 } from '@ant-design/icons';
 import { Squad, SquadMember } from '@/services/squadService';
 import { usePermission } from '@/hooks/usePermission';
+import { History } from 'lucide-react';
+import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 
 interface SquadViewDrawerProps {
   visible: boolean;
@@ -37,9 +39,10 @@ const ROLE_ORDER: Role[] = ['HEAD', 'SUB_HEAD', 'MEMBER'];
 
 const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squad, onManage }) => {
   const { message } = App.useApp();
-  const { canUpdateSquad } = usePermission();
+  const { canUpdateSquad, canReadActivityLog } = usePermission();
   const [filter, setFilter] = useState<FilterKey>('ALL');
   const [search, setSearch] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const grouped = useMemo(() => {
     const buckets: Record<Role, SquadMember[]> = { HEAD: [], SUB_HEAD: [], MEMBER: [] };
@@ -182,8 +185,21 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
   };
 
   return (
+    <>
     <Drawer
       className="squad-drawer"
+      extra={
+        canReadActivityLog && squad && (
+          <Button
+            icon={<History size={14} />}
+            onClick={() => setHistoryOpen(true)}
+            size="small"
+            style={{ borderRadius: 6 }}
+          >
+            History
+          </Button>
+        )
+      }
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div
@@ -364,6 +380,16 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
         rolesToRender.map(renderGroup)
       )}
     </Drawer>
+      {squad && (
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          entityType="squad"
+          entityId={squad.id}
+          subtitle={squad.squadName}
+        />
+      )}
+    </>
   );
 };
 

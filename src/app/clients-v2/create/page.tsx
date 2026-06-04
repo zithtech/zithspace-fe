@@ -473,9 +473,14 @@ function CreateClientV2Content() {
                     rules={[{ required: true, message: "Client type is required" }]}
                   >
                     <Select placeholder="Select type" size="large">
+                      <Option value="B2B">B2B</Option>
+                      <Option value="B2C">B2C</Option>
                       <Option value="Direct">Direct</Option>
+                      <Option value="Enterprise">Enterprise</Option>
+                      <Option value="Government">Government</Option>
                       <Option value="Partner">Partner</Option>
                       <Option value="Reseller">Reseller</Option>
+                      <Option value="SME">SME</Option>
                       <Option value="Vendor">Vendor</Option>
                     </Select>
                   </Form.Item>

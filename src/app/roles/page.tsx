@@ -62,6 +62,8 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { RBACService, RBACRole, RBACPermission, RBACRoleDetail } from "@/services/rbacService";
 import { MembersService } from "@/services/membersService";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { History } from 'lucide-react';
+import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -107,6 +109,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   notification: "Notifications",
   bookmark:     "Bookmarks",
   time_tracking: "Time Tracking",
+  activity_log:  "Activity Log / Transaction History",
 };
 
 /** Access Control drawer — premium SaaS tab groups */
@@ -165,7 +168,7 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'connect',
     label: 'Connect',
     icon: <ApiOutlined />,
-    resources: ['dashboard', 'integration', 'mail', 'calendar'],
+    resources: ['dashboard', 'integration', 'mail', 'calendar', 'activity_log'],
     accent: '#6366f1',
   },
   {
@@ -441,7 +444,8 @@ export default function RolesPage() {
   useActivitySource({ section: "ADMIN", module: "RoleAndPermissions", page: "RoleList" });
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const { canReadRole, canCreateRole, canUpdateRole, canDeleteRole, canAssignRole } = usePermission();
+  const { canReadRole, canCreateRole, canUpdateRole, canDeleteRole, canAssignRole, canReadActivityLog } = usePermission();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const [roles, setRoles] = useState<RBACRole[]>([]);
   const [allPermissions, setAllPermissions] = useState<Record<string, RBACPermission[]>>({});
@@ -883,16 +887,32 @@ export default function RolesPage() {
           title="Roles & Permissions"
           description="Manage and oversee system-wide access control and role assignments."
           extra={
-            canCreateRole ? (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setCreateModalOpen(true)}
-                className="rp-primary-btn"
-              >
-                Create Role
-              </Button>
-            ) : null
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {canReadActivityLog && (
+                <Button
+                  icon={<History size={14} />}
+                  onClick={() => setHistoryOpen(true)}
+                  style={{
+                    borderRadius: 10,
+                    height: 38,
+                    fontWeight: 600,
+                    color: "var(--text-secondary)"
+                  }}
+                >
+                  History
+                </Button>
+              )}
+              {canCreateRole ? (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setCreateModalOpen(true)}
+                  className="rp-primary-btn"
+                >
+                  Create Role
+                </Button>
+              ) : null}
+            </div>
           }
         />
 
@@ -1817,6 +1837,13 @@ export default function RolesPage() {
             })()
           )}
         </Drawer>
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          module="RoleAndPermissions"
+          title="Roles & Permissions History"
+          subtitle="All security policy and assignment changes"
+        />
       </div>
     </MainLayout>
   );

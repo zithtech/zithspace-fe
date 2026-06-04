@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
-import { Typography, Tag, Row, Col, Spin, Tree, Tooltip, Skeleton, Input } from "antd";
+import { Typography, Tag, Row, Col, Spin, Tree, Tooltip, Skeleton, Input, Space, Button } from "antd";
 import {
   Layout,
   Building2,
@@ -18,6 +18,8 @@ import { useGrades } from "@/hooks/useGrades";
 import { usePositions } from "@/hooks/usePositions";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Text } = Typography;
 
@@ -111,10 +113,11 @@ export default function OverviewPage() {
   useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureOverview" });
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
-  const { canReadOrgDashboard } = usePermission();
+  const { canReadOrgDashboard, canReadActivityLog } = usePermission();
   const [activeStep, setActiveStep] = useState<string | null>(null);
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [treeSearch, setTreeSearch] = useState<string>('');
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const { dataSource: grades, loading: gradesLoading } = useGrades();
   const { dataSource: positions, loading: positionsLoading } = usePositions();
@@ -372,10 +375,21 @@ export default function OverviewPage() {
               zIndex: 100,
             }}
             extra={
-              <Tag className="org-ov-header-chip">
-                <ShieldCheck size={12} />
-                {grades.length} GRADE LEVEL{grades.length === 1 ? '' : 'S'}
-              </Tag>
+              <Space size={12} align="center">
+                {canReadActivityLog && (
+                  <Button
+                    icon={<History size={15} />}
+                    onClick={() => setHistoryOpen(true)}
+                    style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)" }}
+                  >
+                    History
+                  </Button>
+                )}
+                <Tag className="org-ov-header-chip" style={{ margin: 0 }}>
+                  <ShieldCheck size={12} />
+                  {grades.length} GRADE LEVEL{grades.length === 1 ? '' : 'S'}
+                </Tag>
+              </Space>
             }
           />
 
@@ -603,6 +617,11 @@ export default function OverviewPage() {
             </Row>
           </div>
         </div>
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          module="OrgStructure"
+        />
       </MainLayout>
     </ProtectedRoute>
   );

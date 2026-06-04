@@ -760,9 +760,9 @@ export default function InvoiceNewinvoicePage() {
             borderColor: "var(--border-color)",
           }}
         >
-          <div className="px-4 sm:px-8 py-3 sm:py-3.5 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-               <button
+          <div className="px-8 py-3 lg:py-0 min-h-[56px] lg:h-14 flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
                 type="button"
                 onClick={() => router.push("/invoice/invoices")}
                 className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
@@ -772,27 +772,27 @@ export default function InvoiceNewinvoicePage() {
                 <ChevronLeft size={18} />
               </button>
               <div
-                className="flex items-center gap-1.5 sm:gap-2 text-[13px] flex-wrap"
+                className="flex flex-wrap items-center gap-2 text-[13px]"
                 style={{ color: "var(--text-secondary)" }}
               >
                 <span
-                  className="cursor-pointer hover:text-[var(--text-primary)] transition-colors hidden sm:inline"
+                  className="cursor-pointer hover:text-[var(--text-primary)] transition-colors"
                   onClick={() => router.push("/invoice/invoices")}
                 >
                   Invoices
                 </span>
-                <span className="hidden sm:inline">
+                <span>
                   <ChevronRight size={12} />
                 </span>
                 <span
-                  className="font-semibold truncate max-w-[120px] sm:max-w-none"
+                  className="font-semibold truncate max-w-[150px] sm:max-w-none"
                   style={{ color: "var(--text-primary)" }}
                 >
                   {editInvoiceId ? "Edit invoice" : "New invoice"}
                 </span>
                 {watchedInvoiceNumber && (
                   <span
-                    className="ml-1 inline-flex items-center px-2 py-[3px] rounded-md text-[12px] font-mono font-semibold tabular-nums"
+                    className="inline-flex items-center px-2 py-[3px] rounded-md text-[12px] font-mono font-semibold tabular-nums"
                     style={{
                       background: "var(--bg-blue-50)",
                       color: "var(--text-blue-700)",
@@ -803,7 +803,7 @@ export default function InvoiceNewinvoicePage() {
                   </span>
                 )}
                 <span
-                  className="ml-1 sm:ml-2 inline-flex items-center px-2 py-[3px] rounded-md text-[10px] font-semibold uppercase tracking-[0.08em]"
+                  className="inline-flex items-center px-2 py-[3px] rounded-md text-[10px] font-semibold uppercase tracking-[0.08em]"
                   style={{
                     background: "var(--bg-slate-50)",
                     color: "var(--text-secondary)",
@@ -819,9 +819,9 @@ export default function InvoiceNewinvoicePage() {
               </div>
             </div>
 
-            <div className="flex items-center flex-wrap gap-1.5 sm:gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full lg:w-auto">
               <div
-                className="template-pill flex items-center pl-2 sm:pl-2.5 pr-1.5 sm:pr-2 h-9 rounded-lg mr-0.5 sm:mr-1 transition-colors cursor-pointer"
+                className="template-pill flex items-center pl-2.5 pr-2 h-9 rounded-lg mr-1 transition-colors cursor-pointer w-full sm:w-auto"
                 style={{
                   background: "var(--bg-slate-50)",
                   border: "1px solid var(--border-color)",
@@ -847,7 +847,7 @@ export default function InvoiceNewinvoicePage() {
                   <Select
                     placeholder="None"
                     variant="borderless"
-                    className="template-select-inline"
+                    className="template-select-inline flex-1 sm:flex-initial"
                     popupMatchSelectWidth={220}
                     style={{ width: 110, minWidth: 80 }}
                     loading={loadingTemplates}
@@ -875,60 +875,67 @@ export default function InvoiceNewinvoicePage() {
                   </Select>
                 )}
               </div>
-              <Button
-                icon={<EyeOutlined />}
-                onClick={() => setIsPreviewVisible(true)}
-                style={{ borderRadius: 8, height: 36 }}
-              >
-                <span className="hidden sm:inline">Preview</span>
-              </Button>
-              <Button
-                loading={actionLoading === "DRAFT"}
-                onClick={() => {
-                  setSubmitStatus("DRAFT");
-                  setActionLoading("DRAFT");
-                  form.setFieldValue("status", "DRAFT");
-                  form.submit();
-                }}
-                style={{ borderRadius: 8, height: 36 }}
-              >
-                <span className="hidden sm:inline">Save draft</span>
-                <span className="sm:hidden">Draft</span>
-              </Button>
-              <Button
-                type="primary"
-                loading={actionLoading === "PENDING"}
-                onClick={() => {
-                  setSubmitStatus("PENDING");
-                  setActionLoading("PENDING");
-                  form.setFieldValue("status", "PENDING");
-                  form.submit();
-                }}
-                style={{
-                  borderRadius: 8,
-                  height: 36,
-                  fontWeight: 600,
-                  background: "#2563eb",
-                }}
-              >
-                <span className="hidden sm:inline">Submit for approval</span>
-                <span className="sm:hidden">Submit</span>
-              </Button>
-              <Button
-                type="text"
-                onClick={() => {
-                  form.resetFields();
-                  router.push("/invoice/invoices");
-                }}
-                style={{
-                  borderRadius: 8,
-                  height: 36,
-                  color: "var(--text-secondary)",
-                }}
-                className="inline-flex"
-              >
-                Cancel
-              </Button>
+              <div
+                className="h-6 w-px hidden lg:block"
+                style={{ background: "var(--border-color)" }}
+              />
+              <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+                <Button
+                  icon={<EyeOutlined />}
+                  onClick={() => setIsPreviewVisible(true)}
+                  className="flex-1 sm:flex-initial flex items-center justify-center"
+                  style={{ borderRadius: 8, height: 36 }}
+                >
+                  <span>Preview</span>
+                </Button>
+                <Button
+                  loading={actionLoading === "DRAFT"}
+                  onClick={() => {
+                    setSubmitStatus("DRAFT");
+                    setActionLoading("DRAFT");
+                    form.setFieldValue("status", "DRAFT");
+                    form.submit();
+                  }}
+                  className="flex-1 sm:flex-initial flex items-center justify-center"
+                  style={{ borderRadius: 8, height: 36 }}
+                >
+                  <span>Save draft</span>
+                </Button>
+                <Button
+                  type="primary"
+                  loading={actionLoading === "PENDING"}
+                  onClick={() => {
+                    setSubmitStatus("PENDING");
+                    setActionLoading("PENDING");
+                    form.setFieldValue("status", "PENDING");
+                    form.submit();
+                  }}
+                  className="flex-1 sm:flex-initial flex items-center justify-center"
+                  style={{
+                    borderRadius: 8,
+                    height: 36,
+                    fontWeight: 600,
+                    background: "#2563eb",
+                  }}
+                >
+                  <span>Submit for approval</span>
+                </Button>
+                <Button
+                  type="text"
+                  onClick={() => {
+                    form.resetFields();
+                    router.push("/invoice/invoices");
+                  }}
+                  className="hidden md:inline-flex"
+                  style={{
+                    borderRadius: 8,
+                    height: 36,
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           </div>
         </div>

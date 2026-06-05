@@ -95,9 +95,9 @@ export default function CreateTicket() {
   const { data: members = [], isLoading: membersLoading } = useMembers();
   const { data: ticketConfig, isLoading: configLoading } = useTicketConfig();
 
-  // Local state for project-specific data
-  const [projectMembers, setProjectMembers] = useState<
-    Array<{ value: string; label: string; position: string }>
+  // Local state for company members
+  const [companyMembers, setCompanyMembers] = useState<
+    Array<{ value: string; label: string; position: string; avatarUrl?: string | null }>
   >([]);
   const [parentTickets, setParentTickets] = useState<
     Array<{ value: string; label: string }>
@@ -164,13 +164,25 @@ export default function CreateTicket() {
     { user: "David Brown", action: "completed testing", time: "15 mins ago" },
   ];
 
+  // Load company members once when component mounts
+  useEffect(() => {
+    const loadCompanyMembers = async () => {
+      try {
+        const membersData = await MembersService.getMembersForSelect();
+        setCompanyMembers(membersData || []);
+      } catch (error) {
+        console.error("Error loading company members:", error);
+      }
+    };
+    loadCompanyMembers();
+  }, []);
+
   // Load project-dependent data when project changes
   useEffect(() => {
     const loadProjectData = async () => {
       if (!selectedProject) {
         setParentTickets([]);
         setReleasePlans([]);
-        setProjectMembers([]);
         // Clear assignee and reportTo when project is cleared
         form.setFieldsValue({
           assignee: undefined,
@@ -180,12 +192,6 @@ export default function CreateTicket() {
       }
 
       try {
-        // Load project members
-        const membersData = await ProjectService.getProjectMembers(
-          selectedProject
-        );
-        setProjectMembers(membersData || []);
-
         // Clear assignee and reportTo when project changes
         form.setFieldsValue({
           assignee: undefined,
@@ -203,13 +209,6 @@ export default function CreateTicket() {
       } catch (error) {
         console.error("Error loading project data:", error);
         message.error(`Error!!! Failed to load project-specific data.`);
-        // api.error({
-        //   message: "Error",
-        //   description: "Failed to load project-specific data.",
-
-        //   duration: 4,
-        // });
-        setProjectMembers([]);
       }
     };
 
@@ -665,10 +664,10 @@ export default function CreateTicket() {
                         optionFilterProp="label"
                         optionLabelProp="label" // Ensure only the 'label' prop of Option is shown in the field
                       >
-                        {projectMembers.map((member) => (
+                        {companyMembers.map((member) => (
                           <Option key={member.value} value={member.value} label={member.label}>
                             <Space align="center" size={12}>
-                              <Avatar size="small" style={{ backgroundColor: "#87d068", flexShrink: 0 }}>
+                              <Avatar size="small" src={member.avatarUrl || undefined} style={{ backgroundColor: "#87d068", flexShrink: 0 }}>
                                 {member.label.charAt(0)}
                               </Avatar>
                               <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.4 }}>
@@ -700,10 +699,10 @@ export default function CreateTicket() {
                         optionFilterProp="label"
                         optionLabelProp="label" // Ensure only the 'label' prop of Option is shown in the field
                       >
-                        {projectMembers.map((member) => (
+                        {companyMembers.map((member) => (
                           <Option key={member.value} value={member.value} label={member.label}>
                             <Space align="center" size={12}>
-                              <Avatar size="small" style={{ backgroundColor: "#1677ff", flexShrink: 0 }}>
+                              <Avatar size="small" src={member.avatarUrl || undefined} style={{ backgroundColor: "#1677ff", flexShrink: 0 }}>
                                 {member.label.charAt(0)}
                               </Avatar>
                               <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.4 }}>

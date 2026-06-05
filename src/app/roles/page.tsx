@@ -62,6 +62,8 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { RBACService, RBACRole, RBACPermission, RBACRoleDetail } from "@/services/rbacService";
 import { MembersService } from "@/services/membersService";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { History } from 'lucide-react';
+import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -76,37 +78,38 @@ const RESOURCE_LABELS: Record<string, string> = {
   attendance: "Attendance",
   leave: "Leaves",
   shift: "Shifts",
-  invoice:      "Invoices",
-  account:      "Accounts & Finance",
-  client:       "Clients / CRM",
-  settings:     "General Settings",
-  role:         "Roles & RBAC",
-  report:       "Reports / Analytics",
+  invoice: "Invoices",
+  account: "Accounts & Finance",
+  client: "Clients / CRM",
+  settings: "General Settings",
+  role: "Roles & RBAC",
+  report: "Reports / Analytics",
   reimbursement: "Reimbursements",
-  payroll:      "Payroll / Payslips",
-  salary:       "Salary Structures",
-  document:     "Documents / Hub",
-  onboarding:   "Onboarding",
-  timesheet:    "Timesheet",
-  org:          "Org Structure",
+  payroll: "Payroll / Payslips",
+  salary: "Salary Structures",
+  document: "Documents / Hub",
+  onboarding: "Onboarding",
+  timesheet: "Timesheet",
+  org: "Org Structure",
   daily_update: "Daily Updates",
-  squad:        "Squad Management",
-  lead:         "Lead Management",
-  proposal:     "Proposals",
-  vendor:       "Vendors",
-  escalation:   "Escalations",
-  pipeline:     "Sales Pipeline",
-  exit:         "Employee Exit",
-  performance:  "Performance",
-  opening:      "Opening Management",
-  profile:      "User Profile",
-  mail:         "Mail Settings",
-  calendar:     "Calendar Settings",
-  chat:         "Internal Chat",
-  skills:       "Skills Portal",
+  squad: "Squad Management",
+  lead: "Lead Management",
+  proposal: "Proposals",
+  vendor: "Vendors",
+  escalation: "Escalations",
+  pipeline: "Sales Pipeline",
+  exit: "Employee Exit",
+  performance: "Performance",
+  opening: "Opening Management",
+  profile: "User Profile",
+  mail: "Mail Settings",
+  calendar: "Calendar Settings",
+  chat: "Internal Chat",
+  skills: "Skills Portal",
   notification: "Notifications",
-  bookmark:     "Bookmarks",
+  bookmark: "Bookmarks",
   time_tracking: "Time Tracking",
+  activity_log: "Activity Log / Transaction History",
 };
 
 /** Access Control drawer — premium SaaS tab groups */
@@ -165,7 +168,7 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'connect',
     label: 'Connect',
     icon: <ApiOutlined />,
-    resources: ['dashboard', 'integration', 'mail', 'calendar'],
+    resources: ['dashboard', 'integration', 'mail', 'calendar', 'activity_log'],
     accent: '#6366f1',
   },
   {
@@ -405,6 +408,7 @@ const RoleFormContent: React.FC<RoleFormContentProps> = ({ form, mode, existingS
           className="rp-rm-textarea"
           maxLength={200}
           showCount
+          style={{ padding: '10px 14px' }}
         />
       </Form.Item>
 
@@ -441,7 +445,8 @@ export default function RolesPage() {
   useActivitySource({ section: "ADMIN", module: "RoleAndPermissions", page: "RoleList" });
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const { canReadRole, canCreateRole, canUpdateRole, canDeleteRole, canAssignRole } = usePermission();
+  const { canReadRole, canCreateRole, canUpdateRole, canDeleteRole, canAssignRole, canReadActivityLog } = usePermission();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const [roles, setRoles] = useState<RBACRole[]>([]);
   const [allPermissions, setAllPermissions] = useState<Record<string, RBACPermission[]>>({});
@@ -545,7 +550,7 @@ export default function RolesPage() {
   const fetchPermissions = useCallback(async () => {
     try {
       const { grouped } = await RBACService.listPermissions();
-      
+
       // Merge 'bug' permissions into 'ticket'
       if (grouped.bug && grouped.ticket) {
         grouped.ticket = [...grouped.ticket, ...grouped.bug];
@@ -563,7 +568,7 @@ export default function RolesPage() {
         grouped.lead = grouped.proposal;
         delete grouped.proposal;
       }
-      
+
       setAllPermissions(grouped);
     } catch {
       /* non-critical */
@@ -805,7 +810,7 @@ export default function RolesPage() {
       ),
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       width: 140,
       align: "right" as const,
@@ -883,16 +888,32 @@ export default function RolesPage() {
           title="Roles & Permissions"
           description="Manage and oversee system-wide access control and role assignments."
           extra={
-            canCreateRole ? (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setCreateModalOpen(true)}
-                className="rp-primary-btn"
-              >
-                Create Role
-              </Button>
-            ) : null
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {canReadActivityLog && (
+                <Button
+                  icon={<History size={14} />}
+                  onClick={() => setHistoryOpen(true)}
+                  style={{
+                    borderRadius: 10,
+                    height: 38,
+                    fontWeight: 600,
+                    color: "var(--text-secondary)"
+                  }}
+                >
+                  History
+                </Button>
+              )}
+              {canCreateRole ? (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setCreateModalOpen(true)}
+                  className="rp-primary-btn"
+                >
+                  Create Role
+                </Button>
+              ) : null}
+            </div>
           }
         />
 
@@ -990,7 +1011,7 @@ export default function RolesPage() {
                             Math.round(
                               (roleStats.assignedPerms /
                                 Math.max(roleStats.permissions * roleStats.total, 1)) *
-                                100,
+                              100,
                             ),
                           )}%`,
                           background: 'linear-gradient(90deg, #f59e0b, #fbbf24)',
@@ -1433,13 +1454,11 @@ export default function RolesPage() {
                             className="rp-acc-progress__fill"
                             style={{
                               width: `${(selectedInTabPerms / tabTotalPerms) * 100}%`,
-                              background: `linear-gradient(90deg, ${
-                                ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
+                              background: `linear-gradient(90deg, ${ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
                                 '#8b5cf6'
-                              }, ${
-                                ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
+                                }, ${ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
                                 '#8b5cf6'
-                              }aa)`,
+                                }aa)`,
                             }}
                           />
                         </div>
@@ -1511,9 +1530,8 @@ export default function RolesPage() {
                                 <div className="rp-acc-card__sub">{resource}</div>
                               </div>
                               <span
-                                className={`rp-acc-card__count${
-                                  allInGroup ? ' is-full' : someInGroup ? ' is-partial' : ''
-                                }`}
+                                className={`rp-acc-card__count${allInGroup ? ' is-full' : someInGroup ? ' is-partial' : ''
+                                  }`}
                               >
                                 {selectedCount} / {allPermsForRes.length}
                               </span>
@@ -1656,10 +1674,10 @@ export default function RolesPage() {
               const searchQ = memberSearch.trim().toLowerCase();
               const filteredMembers = searchQ
                 ? roleMembers.filter(
-                    (e) =>
-                      (e.user.name || '').toLowerCase().includes(searchQ) ||
-                      (e.user.workEmail || '').toLowerCase().includes(searchQ),
-                  )
+                  (e) =>
+                    (e.user.name || '').toLowerCase().includes(searchQ) ||
+                    (e.user.workEmail || '').toLowerCase().includes(searchQ),
+                )
                 : roleMembers;
 
               return (
@@ -1817,6 +1835,13 @@ export default function RolesPage() {
             })()
           )}
         </Drawer>
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          module="RoleAndPermissions"
+          title="Roles & Permissions History"
+          subtitle="All security policy and assignment changes"
+        />
       </div>
     </MainLayout>
   );

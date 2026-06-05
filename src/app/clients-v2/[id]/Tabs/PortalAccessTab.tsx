@@ -12,6 +12,7 @@ import {
   Tooltip,
   Empty,
   Table,
+  Dropdown,
 } from "antd";
 import {
   KeyRound,
@@ -40,6 +41,7 @@ import {
   Info,
   LayoutList,
   LayoutGrid,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   clientPortalService,
@@ -285,6 +287,8 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
     {
       title: "User",
       key: "user",
+      width: 200,
+      ellipsis: true,
       render: (record: ClientPortalUser) => {
         const initials = (record.displayName || record.username || "?")
           .split(" ")
@@ -294,7 +298,7 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
           .join("")
           .toUpperCase();
         return (
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
             <div
               style={{
                 width: 32,
@@ -313,7 +317,17 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
             >
               {initials}
             </div>
-            <span style={{ fontWeight: 600, color: c.text }}>
+            <span
+              style={{
+                fontWeight: 600,
+                color: c.text,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                minWidth: 0,
+              }}
+              title={record.displayName || record.username}
+            >
               {record.displayName || record.username}
             </span>
           </div>
@@ -324,20 +338,30 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
       title: "Username",
       dataIndex: "username",
       key: "username",
+      width: 160,
+      ellipsis: true,
       render: (text: string) => (
-        <span
-          style={{
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-            fontSize: 11.5,
-            padding: "2px 6px",
-            background: c.surfaceMuted,
-            border: `1px solid ${c.border}`,
-            borderRadius: 4,
-            color: c.textMuted,
-          }}
-        >
-          {text}
-        </span>
+        <Tooltip title={text}>
+          <span
+            style={{
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontSize: 11.5,
+              padding: "2px 6px",
+              background: c.surfaceMuted,
+              border: `1px solid ${c.border}`,
+              borderRadius: 4,
+              color: c.textMuted,
+              display: "inline-block",
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              verticalAlign: "middle",
+            }}
+          >
+            {text}
+          </span>
+        </Tooltip>
       ),
     },
     {
@@ -364,8 +388,9 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
     {
       title: "Status",
       key: "status",
+      width: 220,
       render: (record: ClientPortalUser) => (
-        <div style={{ display: "flex", gap: 6, flexDirection: "row", flexWrap: "nowrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 6, flexDirection: "row", flexWrap: "nowrap", alignItems: "center", overflow: "hidden" }}>
           {record.status === "active" ? (
             <StatusBadge variant="success" c={c} icon={ShieldCheck}>
               Active
@@ -403,40 +428,85 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
       key: "actions",
       align: "right" as const,
       fixed: "right" as const,
-      width: 280,
-      render: (record: ClientPortalUser) => (
-        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-          <Popconfirm
-            title="Reset password?"
-            description={`A new temporary password will be emailed to ${record.email} and all active sessions will be signed out.`}
-            okText="Reset & email"
-            okButtonProps={{ type: "primary" }}
-            onConfirm={() => handleReset(record)}
-          >
-            <Button size="small" icon={<RefreshCw size={12} />}>
-              Reset
-            </Button>
-          </Popconfirm>
-          <Tooltip
-            title={record.status === "active" ? "Disable access" : "Re-enable access"}
-          >
-            <Button size="small" icon={<Power size={12} />} onClick={() => handleToggleStatus(record)}>
-              {record.status === "active" ? "Disable" : "Enable"}
-            </Button>
-          </Tooltip>
-          <Popconfirm
-            title="Remove portal access?"
-            description="This permanently deletes the login. The client contact will not be removed."
-            okText="Remove"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => handleDelete(record)}
-          >
-            <Button size="small" danger icon={<Trash2 size={12} />}>
-              Remove
-            </Button>
-          </Popconfirm>
-        </div>
-      ),
+      width: 60,
+      /* ── Inline background so fixed-column never becomes transparent ──
+         Ant Design v5 applies row-hover background after CSS paint,
+         so CSS overrides alone don't work. onCell injects a bg directly
+         on the <td> which always wins.                                  */
+      onCell: () => ({
+        style: { background: c.surfaceElevated },
+      }),
+      onHeaderCell: () => ({
+        style: { background: c.surfaceMuted },
+      }),
+      render: (record: ClientPortalUser) => {
+        const menuItems = [
+          {
+            key: "reset",
+            label: "Reset Password",
+            icon: <RefreshCw size={13} />,
+          },
+          {
+            key: record.status === "active" ? "disable" : "enable",
+            label: record.status === "active" ? "Disable Access" : "Enable Access",
+            icon: <Power size={13} />,
+          },
+          { type: "divider" as const },
+          {
+            key: "remove",
+            label: "Remove Access",
+            icon: <Trash2 size={13} />,
+            danger: true,
+          },
+        ];
+
+        const handleMenuClick = ({ key }: { key: string }) => {
+          if (key === "reset") {
+            Modal.confirm({
+              title: "Reset password?",
+              content: `A new temporary password will be emailed to ${record.email} and all active sessions will be signed out.`,
+              okText: "Reset & email",
+              okButtonProps: { type: "primary" },
+              centered: true,
+              onOk: () => handleReset(record),
+            });
+          } else if (key === "disable" || key === "enable") {
+            handleToggleStatus(record);
+          } else if (key === "remove") {
+            Modal.confirm({
+              title: "Remove portal access?",
+              content: "This permanently deletes the login. The client contact will not be removed.",
+              okText: "Remove",
+              okButtonProps: { danger: true },
+              centered: true,
+              onOk: () => handleDelete(record),
+            });
+          }
+        };
+
+        return (
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Dropdown
+              menu={{ items: menuItems, onClick: handleMenuClick }}
+              trigger={["click"]}
+              placement="bottomRight"
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<MoreHorizontal size={16} />}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 6,
+                  color: c.textSubtle,
+                }}
+              />
+            </Dropdown>
+          </div>
+        );
+      },
     },
   ];
 
@@ -628,6 +698,20 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
           scroll={{ x: "max-content" }}
           className="premium-table"
           locale={{ emptyText: <div style={{ color: c.textSubtle }}>No portal users found</div> }}
+          onRow={() => ({
+            onMouseEnter: (e) => {
+              const tr = e.currentTarget as HTMLTableRowElement;
+              tr.querySelectorAll<HTMLTableCellElement>("td.ant-table-cell-fix-right").forEach((td) => {
+                td.style.setProperty("background", c.surfaceSubtle, "important");
+              });
+            },
+            onMouseLeave: (e) => {
+              const tr = e.currentTarget as HTMLTableRowElement;
+              tr.querySelectorAll<HTMLTableCellElement>("td.ant-table-cell-fix-right").forEach((td) => {
+                td.style.setProperty("background", c.surfaceElevated, "important");
+              });
+            },
+          })}
         />
       ) : (
         <div
@@ -786,6 +870,28 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
           background: transparent !important;
         }
 
+        /* ── Fixed-column scroll overlay fix ──────────────────────────────
+           Ant Design fixed columns use position:sticky. Without an explicit
+           background the cell is transparent and scrolled content "bleeds"
+           through it. We match the row background in every state so the
+           fixed columns cleanly mask whatever is behind them.           */
+        .premium-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+          background: #ffffff !important;
+        }
+        .premium-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right {
+          background: var(--bg-slate-50) !important;
+        }
+        /* Header fixed cells */
+        .premium-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
+          background: var(--bg-slate-50) !important;
+        }
+        /* Remove Ant's default right-shadow on fixed columns so it doesn't
+           create a visual seam on top of the badges */
+        .premium-table .ant-table-cell-fix-right-first::after,
+        .premium-table .ant-table-cell-fix-right-last::after {
+          box-shadow: inset -6px 0 8px -4px rgba(0,0,0,0.06) !important;
+        }
+
         [data-theme="dark"] .premium-table .ant-table {
           color: var(--text-slate-200) !important;
         }
@@ -799,6 +905,16 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
         }
         [data-theme="dark"] .premium-table .ant-table-tbody > tr:hover > td {
           background: var(--bg-slate-800) !important;
+        }
+        /* Dark mode fixed columns */
+        [data-theme="dark"] .premium-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+          background: var(--bg-secondary) !important;
+        }
+        [data-theme="dark"] .premium-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right {
+          background: var(--bg-slate-800) !important;
+        }
+        [data-theme="dark"] .premium-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
+          background: var(--bg-secondary) !important;
         }
       `}} />
     </div>

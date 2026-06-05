@@ -36,6 +36,9 @@ import { ProposalService } from "@/services/proposalService";
 import MainLayout from "@/components/layout/MainLayout";
 import dayjs from "dayjs";
 import TiptapViewer from '@/components/common/TiptapViewer';
+import { usePermission } from "@/hooks/usePermission";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Title, Text } = Typography;
 
@@ -53,6 +56,8 @@ export default function ProposalDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<string>('overview');
   const [docDrawerOpen, setDocDrawerOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const { canReadActivityLog } = usePermission();
 
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -720,6 +725,15 @@ export default function ProposalDetailPage() {
               >
                 <Button icon={<DownloadOutlined />} className="pd-btn">Export</Button>
               </Dropdown>
+              {canReadActivityLog && (
+                <Button
+                  icon={<History size={14} />}
+                  className="pd-btn"
+                  onClick={() => setHistoryOpen(true)}
+                >
+                  History
+                </Button>
+              )}
               <Button
                 icon={<EyeOutlined />}
                 className="pd-btn"
@@ -850,6 +864,15 @@ export default function ProposalDetailPage() {
           title="Proposal Preview"
         />
       </Drawer>
+      {proposal && (
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          entityType="proposal"
+          entityId={proposal.id}
+          subtitle={proposal.title}
+        />
+      )}
     </MainLayout>
   );
 }

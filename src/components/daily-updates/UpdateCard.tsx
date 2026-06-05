@@ -105,32 +105,37 @@ export default function UpdateCard({
             border: "1px solid var(--border-slate-200)",
             overflow: "hidden",
             background: "var(--bg-pure-white)",
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            height: 228,
+            display: "flex",
+            flexDirection: "column",
+            flexShrink: 0
           }}
-          bodyStyle={{ padding: 0 }}
+          bodyStyle={{ padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}
           className="premium-update-card"
         >
-          {/* Header Section */}
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border-slate-100)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <Space size={10}>
+          {/* Header Section — fixed height ~62px */}
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border-slate-100)", flexShrink: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Space size={8}>
                 <Avatar
-                  size={32}
+                  size={30}
                   src={update.user?.avatarUrl}
                   style={{
                     backgroundColor: update.updateType === "BOD" ? "var(--bg-holiday)" : "var(--bg-blue-50)",
                     color: update.updateType === "BOD" ? "var(--text-holiday)" : "var(--text-blue-700)",
-                    fontSize: 12,
-                    fontWeight: 700
+                    fontSize: 11,
+                    fontWeight: 700,
+                    flexShrink: 0
                   }}
                 >
                   {update.user?.name.charAt(0).toUpperCase()}
                 </Avatar>
-                <div>
-                  <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)", display: "block", lineHeight: 1.2 }}>
+                <div style={{ overflow: "hidden" }}>
+                  <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)", display: "block", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>
                     {update.user?.name}
                   </Text>
-                  <Text style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
+                  <Text style={{ fontSize: 11, color: "var(--text-slate-400)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block", maxWidth: 160 }}>
                     {update.user?.position?.title || "Team Member"}
                   </Text>
                 </div>
@@ -200,9 +205,9 @@ export default function UpdateCard({
             </div>
           </div>
 
-          <div style={{ padding: 16 }}>
-            {/* Quick Stats Row */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <div style={{ padding: "10px 14px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            {/* Quick Stats Row — fixed */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 8, flexShrink: 0 }}>
               <Tag style={{
                 margin: 0,
                 borderRadius: 6,
@@ -213,9 +218,10 @@ export default function UpdateCard({
                 fontWeight: 600,
                 display: "flex",
                 alignItems: "center",
-                gap: 4
+                gap: 4,
+                lineHeight: "22px"
               }}>
-                <Clock size={12} /> {formatHours(totalHours)}
+                <Clock size={11} /> {formatHours(totalHours)}
               </Tag>
               <Tag style={{
                 margin: 0,
@@ -227,67 +233,64 @@ export default function UpdateCard({
                 fontWeight: 600,
                 display: "flex",
                 alignItems: "center",
-                gap: 4
+                gap: 4,
+                lineHeight: "22px"
               }}>
-                <ProjectOutlined style={{ fontSize: 12 }} /> {projectUpdates.length} Projects
+                <ProjectOutlined style={{ fontSize: 11 }} /> {projectUpdates.length} Projects
               </Tag>
-
             </div>
 
-            {/* Work Content Snapshot */}
+            {/* Work Content Snapshot — strictly 60px, never grows */}
             <div style={{
               background: "var(--bg-secondary)",
-              borderRadius: 12,
-              padding: 10,
+              borderRadius: 10,
+              padding: "7px 10px",
               border: "1px solid var(--border-slate-100)",
-              marginBottom: 12
+              marginBottom: 8,
+              height: 60,
+              overflow: "hidden",
+              flexShrink: 0
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                <Activity size={12} color="var(--text-slate-400)" />
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
+                <Activity size={11} color="var(--text-slate-400)" />
                 <Text strong style={{ fontSize: 11, color: "var(--text-slate-600)" }}>Recent Tasks ({totalTasks})</Text>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {projectUpdates.slice(0, 2).map((p, idx) => (
-                  <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--border-color)" }} />
-                    <Text ellipsis style={{ fontSize: 11, color: "var(--text-slate-700)", flex: 1 }}>
+              <div style={{ overflow: "hidden" }}>
+                {projectUpdates.slice(0, 1).map((p, idx) => (
+                  <div key={idx} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--border-color)", flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, color: "var(--text-slate-700)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, display: "block" }}>
                       <span style={{ fontWeight: 600 }}>{p.projectName}:</span> {p.tasks?.[0]?.description || p.tasks?.[0]?.ticketNumber || "No tasks listed"}
-                    </Text>
+                    </span>
                   </div>
                 ))}
-                {projectUpdates.length > 2 && (
-                  <Text style={{ fontSize: 10, color: "#94a3b8", marginLeft: 10 }}>
-                    + {projectUpdates.length - 2} more projects
-                  </Text>
+                {projectUpdates.length > 1 && (
+                  <span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 9, display: "block" }}>
+                    + {projectUpdates.length - 1} more projects
+                  </span>
                 )}
               </div>
             </div>
 
-            {/* Footer Row */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-slate-100)", paddingTop: 12 }}>
-              <Space direction="vertical" size={2}>
-                {/* <Text style={{ fontSize: 10, color: "#94a3b8", display: "block" }}>DUE DATE</Text>
-                <Text style={{ fontSize: 11, color: "#475569", fontWeight: 600 }}>
-                  {dayjs(update.date).format("MMM D, YYYY")}
-                </Text> */}
-                <Text type="secondary" style={{ fontSize: 10, color: "#94a3b8", display: "block" }}>
+            {/* Footer Row — fixed */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-slate-100)", paddingTop: 8, flexShrink: 0 }}>
+              <div>
+                <Text style={{ fontSize: 10, color: "#94a3b8", display: "block" }}>
                   Due Date:{" "}
                   {update.is_missed && update.missed_updateAt
                     ? dayjs(update.missed_updateAt).format("DD MMM YYYY")
                     : dayjs(update.createdAt).format("DD MMM YYYY")}
                 </Text>
-              </Space>
+              </div>
 
-              <Space direction="vertical" size={2} align="end">
-                <Text style={{ fontSize: 10, color: "var(--text-slate-400)", display: "block" }}>
-                  SUBMITTED ON
+              <div style={{ textAlign: "right" }}>
+                <Text style={{ fontSize: 10, color: "var(--text-slate-400)", display: "block", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                  Submitted On
                 </Text>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <Text style={{ fontSize: 11, color: "var(--text-slate-700)", fontWeight: 600 }}>
-                    {dayjs((update.updatedAt && dayjs(update.updatedAt).diff(dayjs(update.createdAt), 'second') > 60) ? update.updatedAt : update.createdAt).format("MMM D, h:mm A")}
-                  </Text>
-                </div>
-              </Space>
+                <Text style={{ fontSize: 11, color: "var(--text-slate-700)", fontWeight: 700, display: "block" }}>
+                  {dayjs((update.updatedAt && dayjs(update.updatedAt).diff(dayjs(update.createdAt), 'second') > 60) ? update.updatedAt : update.createdAt).format("MMM D, h:mm A")}
+                </Text>
+              </div>
             </div>
           </div>
         </Card>

@@ -1064,7 +1064,7 @@ export default function BugListPage() {
                     <Sparkles size={13} />
                     Create ticket{selectedIds.size === 1 ? "" : "s"}
                   </button>
-                  <button
+                   {/* <button
                     className="hb-btn hb-btn-ghost"
                     onClick={() =>
                       bulkUpdateStatus.mutate({
@@ -1075,7 +1075,7 @@ export default function BugListPage() {
                   >
                     <Ban size={13} />
                     Ignore
-                  </button>
+                  </button> */}
                   <Popconfirm
                     title="Move selected bugs to trash?"
                     okText="Move to Trash"

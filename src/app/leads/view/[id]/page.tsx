@@ -70,6 +70,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import { apiClient } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 dayjs.extend(relativeTime);
 
 const { Title, Text, Paragraph } = Typography;
@@ -230,7 +231,8 @@ export default function LeadProfilePage() {
     }
   };
 
-  const { canReadLead, canManageLeads } = usePermission();
+  const { canReadLead, canManageLeads, canReadActivityLog } = usePermission();
+  const [transactionHistoryOpen, setTransactionHistoryOpen] = useState(false);
 
   // ─── Route Guard ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -510,6 +512,15 @@ export default function LeadProfilePage() {
               >
                 View Timeline
               </Button>
+              {canReadActivityLog && (
+                <Button
+                  icon={<History size={14} />}
+                  className="lv-secondary-btn"
+                  onClick={() => setTransactionHistoryOpen(true)}
+                >
+                  Transaction History
+                </Button>
+              )}
             </div>
           </div>
 
@@ -1377,6 +1388,16 @@ export default function LeadProfilePage() {
               </div>
             </div>
           </Modal>
+
+          {lead && (
+            <TransactionHistoryDrawer
+              open={transactionHistoryOpen}
+              onClose={() => setTransactionHistoryOpen(false)}
+              entityType="lead"
+              entityId={lead.id}
+              subtitle={lead.title || lead.client_name}
+            />
+          )}
 
           {leadViewStyles}
         </div>

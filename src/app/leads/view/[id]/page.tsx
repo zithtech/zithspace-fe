@@ -80,6 +80,9 @@ const PLATFORM_COLORS: Record<string, { bg: string; color: string; border: strin
   LinkedIn: { bg: "rgba(59, 130, 246, 0.08)", color: "#1d4ed8", border: "rgba(59, 130, 246, 0.22)" },
   Freelancer: { bg: "rgba(6, 182, 212, 0.08)", color: "#0e7490", border: "rgba(6, 182, 212, 0.22)" },
   Fiverr: { bg: "rgba(245, 158, 11, 0.08)", color: "#b45309", border: "rgba(245, 158, 11, 0.22)" },
+  Zukvo: { bg: "rgba(139, 92, 246, 0.08)", color: "#7c3aed", border: "rgba(139, 92, 246, 0.22)" },
+  Zithtech: { bg: "rgba(14, 165, 233, 0.08)", color: "#0369a1", border: "rgba(14, 165, 233, 0.22)" },
+  Website: { bg: "rgba(99, 102, 241, 0.08)", color: "#4f46e5", border: "rgba(99, 102, 241, 0.22)" },
 };
 
 const getPlatformChip = (platform?: string) =>
@@ -1416,6 +1419,7 @@ const leadViewStyles = (
         margin: 0 -24px;
         font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
       }
+
       .lv-empty-page {
         display: flex; align-items: center; justify-content: center;
         min-height: calc(100vh - 64px);

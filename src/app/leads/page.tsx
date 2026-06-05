@@ -17,6 +17,8 @@ import {
   Clock,
   Link as LinkIcon,
   Calendar,
+  Globe,
+  Linkedin,
   Layers,
   FileText,
   DollarSign,
@@ -54,7 +56,17 @@ import {
   UserPlus,
   FolderPlus,
   FileEdit,
-  Send
+  Send,
+  Handshake,
+  Trophy,
+  XCircle,
+  UserCheck,
+  Flag,
+  Compass,
+  Megaphone,
+  Rocket,
+  Award,
+  Star
 } from "lucide-react";
 import {
   Card,
@@ -277,6 +289,7 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
   );
 };
 import { LeadMailDrawer } from "@/components/leads/LeadMailDrawer";
+import { WebsiteLeadDrawer } from "@/components/leads/WebsiteLeadDrawer";
 
 const { TextArea } = Input;
 const { Text, Title } = Typography;
@@ -285,27 +298,202 @@ const { Text, Title } = Typography;
 type LmDensity = "compact" | "comfortable" | "spacious";
 const LM_TABLE_KEY = "leads_v1";
 const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
-  { key: "title",        label: "Lead Title" },
-  { key: "platform",     label: "Platform" },
-  { key: "status",       label: "Status" },
-  { key: "actions_item", label: "Workflow Action" },
-  { key: "budget",       label: "Budget" },
-  { key: "ai_score",     label: "AI Score" },
-  { key: "bidiq",        label: "BidIq" },
-  { key: "proposal",     label: "Proposal" },
-  { key: "mail",         label: "Mail" },
-  { key: "created_by",   label: "Created by" },
-  { key: "created_at",   label: "Created" },
-  { key: "table-actions", label: "Actions" },
+  { key: "title",          label: "Lead" },
+  { key: "status",         label: "Stage" },
+  { key: "platform",       label: "Source" },
+  { key: "budget",         label: "Value" },
+  { key: "bidiq",          label: "BidIq" },
+  { key: "proposal",       label: "Proposal" },
+  { key: "mail",           label: "Mail" },
+  { key: "company",        label: "Company" },
+  { key: "created_by",     label: "Owner" },
+  { key: "priority",       label: "Priority" },
+  { key: "last_activity",  label: "Last Activity" },
+  { key: "next_followup",  label: "Next Follow-Up" },
+  { key: "actions_item",   label: "Workflow Action" },
+  { key: "ai_score",       label: "AI Score" },
+  { key: "created_at",     label: "Created" },
+  { key: "table-actions",  label: "Actions" },
 ];
 
 const DEFAULT_HIDDEN_COLS: Record<string, boolean> = {
-  status: true,
   actions_item: true,
-  budget: true,
   ai_score: true,
-  created_by: true,
+  bidiq: true,
+  proposal: true,
+  mail: true,
   created_at: true,
+};
+
+// Brand glyphs (simple-icons paths, CC0). Use currentColor so the parent tints them.
+const UpworkGlyph = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M18.561 13.158c-1.102 0-2.135-.467-3.074-1.227l.228-1.076.008-.042c.207-1.143.849-3.06 2.839-3.06 1.492 0 2.703 1.212 2.703 2.703-.001 1.489-1.212 2.702-2.704 2.702zm0-8.139c-2.539 0-4.51 1.649-5.31 4.366-1.22-1.834-2.148-4.036-2.687-5.892H7.828v7.112c-.002 1.406-1.141 2.546-2.547 2.548-1.405-.002-2.543-1.143-2.545-2.548V3.492H0v7.112c0 2.914 2.37 5.303 5.281 5.303 2.913 0 5.283-2.389 5.283-5.303v-1.19c.529 1.107 1.182 2.229 1.974 3.221l-1.673 7.873h2.797l1.213-5.71c1.063.679 2.285 1.109 3.686 1.109 3 0 5.439-2.452 5.439-5.45 0-3-2.439-5.439-5.439-5.439z" />
+  </svg>
+);
+
+const FreelancerGlyph = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="m11.103 14.045 4.751-.866-3.04 2.696Zm2.707-4.545.65 1.802 2.745.305-2.746 2.066L20.13 9.55l1.327-3.176-2.927-.077ZM2.543 11.39l4.598 1.793-.41 1.553Zm15.214 6.853-3.353-1.474-2.057 2.318-1.43-1.474-7.165-1.318 9.06 6.722ZM0 .063l4.84 6.296 9.227 1.518L18.93.064l-3.483 3.04L11.103 0 7.06 3.04Z" />
+  </svg>
+);
+
+const FiverrGlyph = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M23.004 15.588a.995.995 0 1 0 0 1.99.995.995 0 0 0 0-1.99zm-6.465-6.46h-2.973v-.348c0-.85.589-1.337 1.621-1.337h1.071V5.114h-1.404c-2.451 0-3.916 1.348-3.916 3.621v.391h-2.682v-.348c0-.85.589-1.337 1.621-1.337h.428V5.114h-.762c-2.451 0-3.916 1.348-3.916 3.621v.391H4.553v2.331h1.074v6.535h2.973v-6.535h2.682v6.535h2.973v-6.535h2.973v4.176c0 1.561.999 2.359 2.987 2.359h1.391v-2.337h-.832c-.581 0-.762-.165-.762-.671v-2.992h1.594V9.128h-1.594z" />
+  </svg>
+);
+
+// Slim form for own-website inquiries (Zukvo, Zithtech). Skips gig-platform
+// fields (skills, budget, AI score) and leads with the company-side block.
+const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
+  const sectionCard: React.CSSProperties = {
+    marginBottom: 20,
+    padding: '20px',
+    borderRadius: '16px',
+    border: '1px solid var(--border-slate-100)',
+  };
+  const sectionHead: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 };
+  const stepBadge = (color: string, n: string): React.CSSProperties => ({
+    width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    background: `${color}14`, color, border: `1px solid ${color}33`,
+  });
+  const labelStyle = { fontSize: 12, color: '#64748b' } as const;
+
+  return (
+    <>
+      {/* 01 — Source */}
+      <div style={sectionCard}>
+        <div style={sectionHead}>
+          <span style={stepBadge('#6366f1', '01')}>01</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Globe size={15} color="#6366f1" />
+              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inquiry Source</span>
+            </div>
+            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Which website did this come from</Text>
+          </div>
+        </div>
+        <Form.Item name="websiteSource" label={<Text strong style={labelStyle}>Website</Text>} initialValue="zukvo">
+          <Select style={{ borderRadius: 8 }}>
+            <Select.Option value="zukvo">Zukvo</Select.Option>
+            <Select.Option value="zithtech">Zithtech</Select.Option>
+            <Select.Option value="other">Other</Select.Option>
+          </Select>
+        </Form.Item>
+      </div>
+
+      {/* 02 — Contact */}
+      <div style={sectionCard}>
+        <div style={sectionHead}>
+          <span style={stepBadge('#0ea5e9', '02')}>02</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <User size={15} color="#0ea5e9" />
+              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact</span>
+            </div>
+            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Who reached out — name, email, phone, location</Text>
+          </div>
+        </div>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="clientName" label={<Text strong style={labelStyle}>Full Name</Text>} rules={[{ required: true }]}>
+              <Input placeholder="e.g. Priya Shah" style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="clientMail" label={<Text strong style={labelStyle}>Email</Text>} rules={[{ required: true, type: 'email' }]}>
+              <Input placeholder="priya@acme.com" style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="clientPhone" label={<Text strong style={labelStyle}>Phone</Text>}>
+              <Input placeholder="+91 …" style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="clientLocation" label={<Text strong style={labelStyle}>Location</Text>}>
+              <Input placeholder="City, Country" style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+        </Row>
+      </div>
+
+      {/* 03 — Company */}
+      <div style={sectionCard}>
+        <div style={sectionHead}>
+          <span style={stepBadge('#f59e0b', '03')}>03</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Briefcase size={15} color="#f59e0b" />
+              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Company</span>
+            </div>
+            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Where they work and how big the team is</Text>
+          </div>
+        </div>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="company" label={<Text strong style={labelStyle}>Company Name</Text>}>
+              <Input placeholder="e.g. Acme Inc" style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="companyDomain" label={<Text strong style={labelStyle}>Domain</Text>}>
+              <Input placeholder="acme.com" style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Form.Item name="companySize" label={<Text strong style={labelStyle}>Team Size</Text>}>
+          <Select placeholder="Select range" style={{ borderRadius: 8 }} allowClear>
+            <Select.Option value="1-10">1 – 10</Select.Option>
+            <Select.Option value="11-50">11 – 50</Select.Option>
+            <Select.Option value="51-200">51 – 200</Select.Option>
+            <Select.Option value="201-500">201 – 500</Select.Option>
+            <Select.Option value="501-1000">501 – 1,000</Select.Option>
+            <Select.Option value="1000+">1,000+</Select.Option>
+          </Select>
+        </Form.Item>
+      </div>
+
+      {/* 04 — Inquiry */}
+      <div style={sectionCard}>
+        <div style={sectionHead}>
+          <span style={stepBadge('#10b981', '04')}>04</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Mail size={15} color="#10b981" />
+              <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inquiry</span>
+            </div>
+            <Text className="premium-text-sec" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>What they said and where it sits in your pipeline</Text>
+          </div>
+        </div>
+        <Form.Item name="title" label={<Text strong style={labelStyle}>Subject / Topic</Text>} rules={[{ required: true }]}>
+          <Input placeholder="e.g. Quote request — invoice module" style={{ borderRadius: 8 }} />
+        </Form.Item>
+        <Form.Item name="inquiryMessage" label={<Text strong style={labelStyle}>Message</Text>}>
+          <TextArea rows={4} placeholder="Their message verbatim — keep it untouched for context." style={{ borderRadius: 8 }} />
+        </Form.Item>
+        <Form.Item name="status" label={<Text strong style={labelStyle}>Stage</Text>}>
+          <Select placeholder="Select stage" style={{ borderRadius: 8 }}>
+            {configStatuses.map((s: any) => (
+              <Select.Option key={s.id} value={s.name}>
+                <Space>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
+                  {s.name}
+                </Space>
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+        <Form.Item name="platform" hidden initialValue="Website">
+          <Input />
+        </Form.Item>
+      </div>
+    </>
+  );
 };
 
 export default function LeadsPage() {
@@ -333,15 +521,20 @@ export default function LeadsPage() {
   const [filterCreatedBy, setFilterCreatedBy] = useState<string | null>(null);
   const [filterMailStatus, setFilterMailStatus] = useState<string | null>(null);
   const [activeSegment, setActiveSegment] = useState<"all" | "hot" | "week" | "won">("all");
+  const [sortKey, setSortKey] = useState<"newest" | "oldest" | "value_high" | "value_low" | "score" | "activity">("newest");
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [statusEditId, setStatusEditId] = useState<string | null>(null);
   const [actionEditId, setActionEditId] = useState<string | null>(null);
   const [bidiqPreviewLead, setBidiqPreviewLead] = useState<Lead | null>(null);
-  const [tableDensity, setTableDensity] = useState<LmDensity>("comfortable");
+  const [tableDensity, setTableDensity] = useState<LmDensity>("compact");
   const [hiddenCols, setHiddenCols] = useState<Record<string, boolean>>(DEFAULT_HIDDEN_COLS);
   const [isMailDrawerVisible, setIsMailDrawerVisible] = useState(false);
   const [selectedLeadForMail, setSelectedLeadForMail] = useState<Lead | null>(null);
   const [invoiceMailSettings, setInvoiceMailSettings] = useState<any>(null);
+
+  // Website-lead detail drawer (compact CRM-style)
+  const [websiteDrawerOpen, setWebsiteDrawerOpen] = useState(false);
+  const [websiteDrawerLead, setWebsiteDrawerLead] = useState<Lead | null>(null);
 
   // Timeline state
   const [timelineOpen, setTimelineOpen] = useState(false);
@@ -445,11 +638,16 @@ export default function LeadsPage() {
 
   // Use the custom hook for backend connectivity
   const { leads, loading: leadsLoading, error, fetchLeads, createLead, updateLead, deleteLead } = useLeads();
-  const { statuses: configStatuses, actions: configActions, fetchStatuses, fetchActions, loading: settingsLoading } = useLeadSettings();
+  const { statuses: configStatuses, actions: configActions, platforms: configPlatforms, fetchStatuses, fetchActions, fetchPlatforms, loading: settingsLoading } = useLeadSettings();
 
   const loading = leadsLoading || settingsLoading;
 
   const handleView = (record: Lead) => {
+    if (record.lead_source_kind === 'website') {
+      setWebsiteDrawerLead(record);
+      setWebsiteDrawerOpen(true);
+      return;
+    }
     router.push(`/leads/view/${record.id}`);
   };
 
@@ -458,7 +656,8 @@ export default function LeadsPage() {
     fetchLeads();
     fetchStatuses();
     fetchActions();
-  }, [fetchLeads, fetchStatuses, fetchActions]);
+    fetchPlatforms();
+  }, [fetchLeads, fetchStatuses, fetchActions, fetchPlatforms]);
 
   // Handle errors from the hook
   useEffect(() => {
@@ -548,11 +747,12 @@ export default function LeadsPage() {
     return dayjs(date).format("MMM D");
   };
 
-  // Resolve the creator name from any of the possible backend fields, falling
-  // back to the currently-signed-in user when no creator data exists yet.
+  // Resolve the creator name from whatever the backend returned. Do NOT fall
+  // back to the currently-signed-in user — that's misleading for leads we
+  // didn't create. Legacy rows with no creator on record return an empty string.
   const getLeadCreator = (lead: Lead): string => {
     const r = lead as any;
-    return r.created_by_name || r.created_by || r.creator_name || r.owner_name || user?.name || "";
+    return r.created_by_name || r.creator_name || r.owner_name || "";
   };
 
   const columns = [
@@ -564,21 +764,21 @@ export default function LeadsPage() {
         const avatar = getAvatarStyle(record.client_name || record.id);
         const scoreLevel = getAIScoreLevel(record.ai_score);
         return (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
             <div
               className="lead-avatar"
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: 12,
+                width: 30,
+                height: 30,
+                borderRadius: 9,
                 background: avatar.bg,
-                boxShadow: `0 0 0 4px ${avatar.ring}`,
+                boxShadow: `0 0 0 3px ${avatar.ring}`,
                 color: "#fff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontWeight: 800,
-                fontSize: 13,
+                fontSize: 11,
                 letterSpacing: "0.02em",
                 flexShrink: 0,
                 position: "relative",
@@ -588,10 +788,10 @@ export default function LeadsPage() {
               {scoreLevel?.label === "Hot" && (
                 <div style={{
                   position: "absolute",
-                  top: -4,
-                  right: -4,
-                  width: 16,
-                  height: 16,
+                  top: -3,
+                  right: -3,
+                  width: 13,
+                  height: 13,
                   borderRadius: "50%",
                   background: "#ef4444",
                   display: "flex",
@@ -600,7 +800,7 @@ export default function LeadsPage() {
                   border: "2px solid #fff",
                   color: "#fff"
                 }}>
-                  <Flame size={9} />
+                  <Flame size={7} />
                 </div>
               )}
             </div>
@@ -615,8 +815,9 @@ export default function LeadsPage() {
                       strong
                       style={{
                         color: "var(--text-slate-900)",
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: 700,
+                        lineHeight: 1.25,
                         cursor: isLong ? "help" : "default",
                       }}
                     >
@@ -653,7 +854,7 @@ export default function LeadsPage() {
                   </span>
                 )}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-slate-500)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-slate-500)", lineHeight: 1.2, marginTop: 1 }}>
                 <span style={{ fontWeight: 500 }}>{record.client_name}</span>
                 {record.posted_on && (
                   <>
@@ -668,23 +869,45 @@ export default function LeadsPage() {
       },
     },
     {
-      title: "Platform",
+      title: "Source",
       dataIndex: "platform",
       key: "platform",
-      width: 120,
-      render: (platform: string) => (
-        <Tag color={
-          platform === 'Upwork' ? 'green' :
-            platform === 'LinkedIn' ? 'blue' :
-              platform === 'Freelancer' ? 'cyan' :
-                platform === 'Fiverr' ? 'orange' : 'default'
-        } style={{ borderRadius: 6 }}>
-          {platform || 'Upwork'}
-        </Tag>
-      ),
+      width: 130,
+      render: (platform: string) => {
+        const p = platform || "Upwork";
+        const palette: Record<string, { bg: string; color: string; border: string; icon: React.ReactNode }> = {
+          Upwork:     { bg: "rgba(20,168,0,0.08)",  color: "#14a800", border: "rgba(20,168,0,0.25)",  icon: <UpworkGlyph size={11} /> },
+          LinkedIn:   { bg: "rgba(10,102,194,0.08)", color: "#0a66c2", border: "rgba(10,102,194,0.25)", icon: <Linkedin size={11} strokeWidth={2.4} /> },
+          Freelancer: { bg: "rgba(41,178,254,0.08)", color: "#0284c7", border: "rgba(41,178,254,0.25)", icon: <FreelancerGlyph size={11} /> },
+          Fiverr:     { bg: "rgba(29,191,115,0.08)", color: "#1dbf73", border: "rgba(29,191,115,0.25)", icon: <FiverrGlyph size={11} /> },
+          Zukvo:      { bg: "rgba(139,92,246,0.08)", color: "#8b5cf6", border: "rgba(139,92,246,0.25)", icon: <Sparkles size={11} strokeWidth={2.2} /> },
+          Zithtech:   { bg: "rgba(14,165,233,0.08)", color: "#0ea5e9", border: "rgba(14,165,233,0.25)", icon: <Layers size={11} strokeWidth={2.2} /> },
+          Website:    { bg: "rgba(99,102,241,0.08)", color: "#6366f1", border: "rgba(99,102,241,0.25)", icon: <Globe size={11} strokeWidth={2.2} /> },
+        };
+        const meta = palette[p] || { bg: "rgba(148,163,184,0.12)", color: "#475569", border: "rgba(148,163,184,0.3)", icon: <Briefcase size={11} strokeWidth={2.2} /> };
+        return (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "3px 9px",
+              borderRadius: 6,
+              fontSize: 11.5,
+              fontWeight: 600,
+              background: meta.bg,
+              color: meta.color,
+              border: `1px solid ${meta.border}`,
+            }}
+          >
+            {meta.icon}
+            {p}
+          </span>
+        );
+      },
     },
     {
-      title: "Status",
+      title: "Stage",
       dataIndex: "status",
       key: "status",
       width: 130,
@@ -883,9 +1106,9 @@ export default function LeadsPage() {
       },
     },
     {
-      title: "Budget",
+      title: "Value",
       key: "budget",
-      width: 130,
+      width: 110,
       render: (_: unknown, record: Lead) => {
         const value = record.budget || (record.hour_based_amount ? `${record.hour_based_amount}/hr` : null);
         if (!value) return <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>;
@@ -940,6 +1163,12 @@ export default function LeadsPage() {
       width: 120,
       align: "center" as const,
       render: (_: unknown, record: Lead) => {
+        // Website-sourced leads (Zukvo / Zithtech inquiries) don't go through
+        // the gig-platform proposal flow, so BidIQ doesn't apply.
+        if (record.lead_source_kind === "website") {
+          return <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>;
+        }
+
         const hasBidiq =
           (record.ai_score && record.ai_score > 0) ||
           !!record.skill_analysis ||
@@ -1062,16 +1291,28 @@ export default function LeadsPage() {
       },
     },
     {
-      title: "Created by",
+      title: "Company",
+      dataIndex: "client_name",
+      key: "company",
+      width: 180,
+      render: (clientName: string) => (
+        <Text style={{ color: "var(--text-slate-800)", fontSize: 12.5, fontWeight: 600 }} ellipsis>
+          {clientName || "—"}
+        </Text>
+      ),
+    },
+    {
+      title: "Owner",
       key: "created_by",
-      width: 170,
+      width: 160,
       render: (_: unknown, record: Lead) => {
         const r = record as any;
         const rawName: string | undefined =
-          r.created_by_name || r.created_by || r.creator_name || r.owner_name;
-        const name = rawName || user?.name || "—";
-        const isYou = !rawName && !!user?.name;
-        const initials = (name || "—")
+          r.created_by_name || r.creator_name || r.owner_name;
+        const name = rawName || "Unknown";
+        // "you" annotation only when the signed-in user truly created this row.
+        const isYou = !!user?.name && rawName === user.name;
+        const initials = name
           .split(/\s+/)
           .filter(Boolean)
           .slice(0, 2)
@@ -1096,6 +1337,69 @@ export default function LeadsPage() {
               )}
             </div>
           </div>
+        );
+      },
+    },
+    {
+      title: "Priority",
+      key: "priority",
+      width: 120,
+      render: (_: unknown, record: Lead) => {
+        const score = record.ai_score;
+        let label = "Low";
+        let color = "#94a3b8";
+        if (score == null) return <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>;
+        if (score >= 80) { label = "High"; color = "#ef4444"; }
+        else if (score >= 60) { label = "Medium"; color = "#f59e0b"; }
+        return (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: color, flexShrink: 0 }} />
+            {label}
+          </span>
+        );
+      },
+    },
+    {
+      title: "Last Activity",
+      key: "last_activity",
+      width: 120,
+      render: (_: unknown, record: Lead) => {
+        const ts = record.last_mail_at || record.updated_at || record.created_at;
+        if (!ts) return <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>;
+        return (
+          <Tooltip title={dayjs(ts).format("MMM D, YYYY · h:mm A")} placement="topLeft">
+            <span style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
+              {formatRelativeTime(ts)}
+            </span>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      title: "Next Follow-Up",
+      key: "next_followup",
+      width: 130,
+      render: (_: unknown, record: Lead) => {
+        const ts = record.timeline_end;
+        if (!ts) return <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>;
+        const d = dayjs(ts);
+        const now = dayjs();
+        const isPast = d.isBefore(now, "day");
+        const isToday = d.isSame(now, "day");
+        const isTomorrow = d.isSame(now.add(1, "day"), "day");
+        let display = d.format("MMM D");
+        if (isToday) display = "Today";
+        else if (isTomorrow) display = "Tomorrow";
+        return (
+          <Tooltip title={d.format("MMM D, YYYY")} placement="topLeft">
+            <span style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: isPast ? "#ef4444" : isToday ? "#f59e0b" : "var(--text-slate-700)",
+            }}>
+              {display}
+            </span>
+          </Tooltip>
         );
       },
     },
@@ -1214,8 +1518,8 @@ export default function LeadsPage() {
           typeof doc === 'string' ? { name: doc, url: doc } : doc
         )
         : record.documents,
-      platform: ['Upwork', 'LinkedIn', 'Freelancer', 'Fiverr'].includes(record.platform || '') ? record.platform : 'Other',
-      customPlatform: !['Upwork', 'LinkedIn', 'Freelancer', 'Fiverr'].includes(record.platform || '') ? record.platform : '',
+      platform: ['Upwork', 'LinkedIn', 'Freelancer', 'Fiverr', 'Website'].includes(record.platform || '') ? record.platform : 'Other',
+      customPlatform: !['Upwork', 'LinkedIn', 'Freelancer', 'Fiverr', 'Website'].includes(record.platform || '') ? record.platform : '',
       experienceLevel: record.experience_level,
       jobType: record.job_type,
       budget: record.budget,
@@ -1224,6 +1528,14 @@ export default function LeadsPage() {
       clientPaymentVerified: record.client_payment_verified,
       clientPhoneVerified: record.client_phone_verified,
       ai_summary: record.ai_summary,
+
+      // Lead source kind + shared company block
+      leadSourceKind: record.lead_source_kind || 'platform',
+      company: record.company,
+      companyDomain: record.company_domain,
+      companySize: record.company_size,
+      inquiryMessage: record.inquiry_message,
+      websiteSource: record.website_source,
     });
     setIsDrawerVisible(true);
   };
@@ -1266,6 +1578,13 @@ export default function LeadsPage() {
       }
       delete finalValues.customPlatform;
 
+      // Website leads: derive a recognizable source label from the picked site,
+      // so the table / sidebar Source column reflects Zukvo / Zithtech directly.
+      if (finalValues.leadSourceKind === 'website') {
+        const map: Record<string, string> = { zukvo: 'Zukvo', zithtech: 'Zithtech' };
+        finalValues.platform = map[finalValues.websiteSource] || 'Website';
+      }
+
       if (editingKey) {
         await updateLead(editingKey, finalValues);
         messageApi.success("Lead Updated");
@@ -1295,16 +1614,26 @@ export default function LeadsPage() {
     reader.readAsDataURL(file);
   };
 
+  const parseBudgetValue = (lead: Lead): number => {
+    const raw = lead.budget || lead.hourly_rate || "";
+    const num = parseFloat(String(raw).replace(/[^0-9.]/g, ""));
+    return Number.isFinite(num) ? num : 0;
+  };
+
   const filteredLeads = useMemo(() => {
     const weekAgo = dayjs().subtract(7, 'day');
-    return leads.filter(item => {
+    const filtered = leads.filter(item => {
       // Search matching
       const matchesSearch = !searchText ||
         item.title.toLowerCase().includes(searchText.toLowerCase()) ||
         item.client_name.toLowerCase().includes(searchText.toLowerCase());
 
-      // Status matching
-      const matchesStatus = !filterStatus || item.status === filterStatus;
+      // Status matching — "Converted Clients" also catches anything with a proposal,
+      // so the table reflects the same count shown in the sidebar.
+      const matchesStatus =
+        !filterStatus ||
+        item.status === filterStatus ||
+        (filterStatus === "Converted Clients" && !!item.proposal_id);
 
       // Action matching
       const matchesAction = !filterAction || item.actions_item === filterAction;
@@ -1346,7 +1675,33 @@ export default function LeadsPage() {
 
       return matchesSearch && matchesStatus && matchesAction && matchesPlatform && matchesDateRange && matchesCreatedBy && matchesSegment && matchesMailStatus;
     });
-  }, [leads, searchText, filterStatus, filterAction, filterPlatform, filterDateRange, filterCreatedBy, activeSegment, user, filterMailStatus]);
+
+    const sorted = [...filtered];
+    const tsOf = (l: Lead, field: "created_at" | "updated_at"): number =>
+      dayjs(l[field] || l.posted_on || 0).valueOf();
+    switch (sortKey) {
+      case "oldest":
+        sorted.sort((a, b) => tsOf(a, "created_at") - tsOf(b, "created_at"));
+        break;
+      case "value_high":
+        sorted.sort((a, b) => parseBudgetValue(b) - parseBudgetValue(a));
+        break;
+      case "value_low":
+        sorted.sort((a, b) => parseBudgetValue(a) - parseBudgetValue(b));
+        break;
+      case "score":
+        sorted.sort((a, b) => (b.ai_score || 0) - (a.ai_score || 0));
+        break;
+      case "activity":
+        sorted.sort((a, b) => tsOf(b, "updated_at") - tsOf(a, "updated_at"));
+        break;
+      case "newest":
+      default:
+        sorted.sort((a, b) => tsOf(b, "created_at") - tsOf(a, "created_at"));
+        break;
+    }
+    return sorted;
+  }, [leads, searchText, filterStatus, filterAction, filterPlatform, filterDateRange, filterCreatedBy, activeSegment, user, filterMailStatus, sortKey]);
 
   const creatorOptions = useMemo(() => {
     const set = new Set<string>();
@@ -1357,6 +1712,118 @@ export default function LeadsPage() {
     return Array.from(set).sort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leads, user]);
+
+  // Icon-key → render fn map. Mirrors the catalogue in /leads/settings so we
+  // can resolve whatever the admin saved on a platform's logo_url ("icon:upwork")
+  // or a status's icon column ("trophy").
+  const PLATFORM_ICON_RESOLVERS: Record<string, { brand: string; render: React.ReactNode }> = {
+    upwork:        { brand: "#14a800", render: <UpworkGlyph /> },
+    linkedin:      { brand: "#0a66c2", render: <Linkedin size={13} strokeWidth={2.4} /> },
+    freelancer:    { brand: "#29b2fe", render: <FreelancerGlyph /> },
+    fiverr:        { brand: "#1dbf73", render: <FiverrGlyph /> },
+    toptal:        { brand: "#204ecf", render: <span style={{ fontSize: 11, fontWeight: 900 }}>T</span> },
+    guru:          { brand: "#ff7a18", render: <span style={{ fontSize: 11, fontWeight: 900 }}>G</span> },
+    peopleperhour: { brand: "#ff7c00", render: <span style={{ fontSize: 11, fontWeight: 900 }}>P</span> },
+    hubstaff:      { brand: "#3aabea", render: <span style={{ fontSize: 11, fontWeight: 900 }}>H</span> },
+    indeed:        { brand: "#003a9b", render: <span style={{ fontSize: 11, fontWeight: 900 }}>I</span> },
+    globe:         { brand: "#6366f1", render: <Globe size={13} strokeWidth={2.2} /> },
+    sparkles:      { brand: "#8b5cf6", render: <Sparkles size={13} strokeWidth={2.2} /> },
+    briefcase:     { brand: "#475569", render: <Briefcase size={13} strokeWidth={2.2} /> },
+    star:          { brand: "#f59e0b", render: <Star size={13} strokeWidth={2.2} /> },
+    zap:           { brand: "#ec4899", render: <Zap size={13} strokeWidth={2.2} /> },
+  };
+
+  const STATUS_ICON_RESOLVERS: Record<string, React.ReactNode> = {
+    flag:           <Flag size={13} strokeWidth={2.2} />,
+    target:         <Target size={13} strokeWidth={2.2} />,
+    compass:        <Compass size={13} strokeWidth={2.2} />,
+    sparkles:       <Sparkles size={13} strokeWidth={2.2} />,
+    megaphone:      <Megaphone size={13} strokeWidth={2.2} />,
+    handshake:      <Handshake size={13} strokeWidth={2.2} />,
+    rocket:         <Rocket size={13} strokeWidth={2.2} />,
+    "shield-check": <ShieldCheck size={13} strokeWidth={2.2} />,
+    trophy:         <Trophy size={13} strokeWidth={2.2} />,
+    award:          <Award size={13} strokeWidth={2.2} />,
+  };
+
+  const resolvePlatformBadge = (plat: any): { color: string; icon: React.ReactNode } => {
+    const logoUrl: string | undefined = plat?.logo_url;
+    if (logoUrl && logoUrl.startsWith("icon:")) {
+      const key = logoUrl.slice(5);
+      const meta = PLATFORM_ICON_RESOLVERS[key];
+      if (meta) return { color: meta.brand, icon: meta.render };
+    }
+    if (logoUrl) {
+      return {
+        color: "#6366f1",
+        icon: <img src={logoUrl} alt="" style={{ width: 13, height: 13, objectFit: "contain" }} />,
+      };
+    }
+    return { color: "#6366f1", icon: <Briefcase size={13} strokeWidth={2.2} /> };
+  };
+
+  const sourceOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    leads.forEach(l => {
+      const p = (l.platform || "").trim();
+      if (!p) return;
+      counts.set(p, (counts.get(p) || 0) + 1);
+    });
+
+    // Only show platforms the admin has set as active. Unmatched leads bucket
+    // into "Others" so they're still navigable.
+    const activePlatforms = (configPlatforms || []).filter((p: any) => p.is_active);
+    const consumed = new Set<string>();
+    const rows = activePlatforms.map((plat: any) => {
+      const c = counts.get(plat.name) || 0;
+      consumed.add(plat.name);
+      const badge = resolvePlatformBadge(plat);
+      return { name: plat.name, count: c, color: badge.color, icon: badge.icon };
+    });
+    let other = 0;
+    counts.forEach((c, name) => { if (!consumed.has(name)) other += c; });
+    if (other > 0) {
+      rows.push({ name: "Others", count: other, color: "#94a3b8", icon: <Briefcase size={13} strokeWidth={2.2} /> });
+    }
+    return rows;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leads, configPlatforms]);
+
+  const pipelineOptions = useMemo(() => {
+    const byStatus = new Map<string, number>();
+    let convertedCount = 0;
+    leads.forEach(l => {
+      const s = (l.status || "").trim().toLowerCase();
+      if (s) byStatus.set(s, (byStatus.get(s) || 0) + 1);
+      if (l.proposal_id) convertedCount += 1;
+    });
+    const activeStatuses = (configStatuses || []).filter((s: any) => s.is_active);
+    return activeStatuses.map((stage: any) => {
+      const lowered = stage.name.toLowerCase();
+      let count = byStatus.get(lowered) || 0;
+      // Keep the historical Converted Clients behaviour: any lead with a
+      // proposal counts toward that stage even if its status text differs.
+      if (lowered === "converted clients") {
+        count = Math.max(count, convertedCount);
+      }
+      const icon =
+        STATUS_ICON_RESOLVERS[stage.icon || ""] ||
+        <Activity size={13} strokeWidth={2.2} />;
+      return {
+        id: stage.id || stage.name,
+        name: stage.name,
+        color: stage.color || "#6366f1",
+        icon,
+        count,
+      };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leads, configStatuses]);
+
+  const pipelineTotal = useMemo(
+    () => pipelineOptions.reduce((acc, o) => acc + o.count, 0),
+    [pipelineOptions]
+  );
 
   const segmentCounts = useMemo(() => {
     const weekAgo = dayjs().subtract(7, 'day');
@@ -1529,7 +1996,7 @@ export default function LeadsPage() {
                   value={searchText}
                   allowClear
                 />
-                
+
                 <Button
                   type="primary"
                   icon={<Plus size={16} />}
@@ -1537,7 +2004,7 @@ export default function LeadsPage() {
                   onClick={() => {
                     setEditingKey(null);
                     form.resetFields();
-                    form.setFieldsValue({ platform: 'Upwork', customPlatform: '' });
+                    form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
                     const defaultStatus = configStatuses.find(s => s.is_default);
                     if (defaultStatus) {
                       form.setFieldsValue({ status: defaultStatus.name });
@@ -1553,7 +2020,95 @@ export default function LeadsPage() {
 
           <div className="lm-ambient" />
 
-          <div className="lm-body">
+          <div className="lm-shell">
+            <aside className="lm-sidebar">
+              <button
+                type="button"
+                className={`lm-side-row lm-side-row--all${
+                  !filterPlatform && !filterStatus ? " is-active" : ""
+                }`}
+                onClick={() => {
+                  setFilterPlatform(null);
+                  setFilterStatus(null);
+                }}
+              >
+                <span className="lm-side-row-icon" aria-hidden>
+                  <Layers size={14} />
+                </span>
+                <span className="lm-side-row-label">All Leads</span>
+                <span className="lm-side-row-count">{leads.length}</span>
+              </button>
+
+              <div className="lm-side-section">
+                <div className="lm-side-heading">
+                  <span>Sources</span>
+                  <span className="lm-side-heading-count">{sourceOptions.length}</span>
+                </div>
+                {sourceOptions.map(opt => {
+                  const isActive = filterPlatform === opt.name;
+                  return (
+                    <button
+                      key={opt.name}
+                      type="button"
+                      className={`lm-side-row${isActive ? " is-active" : ""}`}
+                      onClick={() =>
+                        setFilterPlatform(prev => (prev === opt.name ? null : opt.name))
+                      }
+                    >
+                      <span
+                        className="lm-side-brand"
+                        style={{
+                          background: `${opt.color}15`,
+                          color: opt.color,
+                          boxShadow: `inset 0 0 0 1px ${opt.color}33`,
+                        }}
+                        aria-hidden
+                      >
+                        {opt.icon}
+                      </span>
+                      <span className="lm-side-row-label">{opt.name}</span>
+                      <span className="lm-side-row-count">{opt.count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="lm-side-section">
+                <div className="lm-side-heading">
+                  <span>Pipeline</span>
+                  <span className="lm-side-heading-count">{pipelineTotal}</span>
+                </div>
+                {pipelineOptions.map(opt => {
+                  const isActive = filterStatus === opt.name;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`lm-side-row${isActive ? " is-active" : ""}`}
+                      onClick={() =>
+                        setFilterStatus(prev => (prev === opt.name ? null : opt.name))
+                      }
+                    >
+                      <span
+                        className="lm-side-brand"
+                        style={{
+                          background: `${opt.color}15`,
+                          color: opt.color,
+                          boxShadow: `inset 0 0 0 1px ${opt.color}33`,
+                        }}
+                        aria-hidden
+                      >
+                        {opt.icon}
+                      </span>
+                      <span className="lm-side-row-label">{opt.name}</span>
+                      <span className="lm-side-row-count">{opt.count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
+
+          <div className="lm-main">
 
           {/* Saved-View Segments */}
           {/* <div className="lead-segments" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
@@ -1706,143 +2261,209 @@ export default function LeadsPage() {
 
           
 
-          {/* Filter bar — flat, compact, with inline Table Settings */}
-          <div className="lm-filter-bar">
-            <span className="lm-filter-bar-label">
-              <Filter size={13} />
-              Filters
+          {/* Compact toolbar — Sort + Filters + Export + Settings */}
+          <div className="lm-table-toolbar">
+            <span className="lm-toolbar-count">
+              <b>{filteredLeads.length}</b> of <b>{leads.length}</b> leads
             </span>
 
-            <Select
-              placeholder="Status"
-              className="lm-filter-select"
-              style={{ width: 140 }}
-              allowClear
-              value={filterStatus}
-              onChange={setFilterStatus}
-            >
-              {configStatuses.map(s => (
-                <Select.Option key={s.id} value={s.name}>
-                  <span
-                    className="lm-filter-status-chip"
-                    style={{
-                      backgroundColor: `${s.color}15`,
-                      color: s.color,
-                      border: `1px solid ${s.color}30`,
-                    }}
-                  >
-                    {s.name}
-                  </span>
-                </Select.Option>
-              ))}
-            </Select>
+            <span className="lm-toolbar-spacer" />
 
-            <Select
-              placeholder="Platform"
-              className="lm-filter-select"
-              style={{ width: 130 }}
-              allowClear
-              value={filterPlatform}
-              onChange={setFilterPlatform}
-            >
-              <Select.Option value="Upwork">Upwork</Select.Option>
-              <Select.Option value="LinkedIn">LinkedIn</Select.Option>
-              <Select.Option value="Freelancer">Freelancer</Select.Option>
-              <Select.Option value="Fiverr">Fiverr</Select.Option>
-            </Select>
-
-            <Select
-              placeholder="Workflow"
-              className="lm-filter-select"
-              style={{ width: 160 }}
-              allowClear
-              value={filterAction}
-              onChange={setFilterAction}
-            >
-              {configActions.map(a => (
-                <Select.Option key={a.id} value={a.name}>
-                  <Space size={6}>
-                    {renderActionIcon(a.icon)}
-                    {a.name}
-                  </Space>
-                </Select.Option>
-              ))}
-            </Select>
-
-            <Select
-              placeholder="Created by"
-              className="lm-filter-select"
-              style={{ width: 160 }}
-              allowClear
-              value={filterCreatedBy}
-              onChange={setFilterCreatedBy}
-              showSearch
-              filterOption={(input, option) =>
-                String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              {creatorOptions.map((name) => {
-                const palette = getAvatarStyle(name);
-                return (
-                  <Select.Option key={name} value={name}>
-                    <Space size={8}>
-                      <span
-                        className="lm-creator-avatar"
-                        style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
-                      >
-                        {getInitials(name)}
-                      </span>
-                      <span style={{ fontSize: 12.5 }}>{name}</span>
-                    </Space>
-                  </Select.Option>
-                );
-              })}
-            </Select>
-            
-            <Select
-              placeholder="Mail Status"
-              className="lm-filter-select"
-              style={{ width: 130 }}
-              allowClear
-              value={filterMailStatus}
-              onChange={setFilterMailStatus}
-            >
-              <Select.Option value="sent">
-                <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
-              </Select.Option>
-              <Select.Option value="not_sent">
-                <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
-              </Select.Option>
-            </Select>
-
-            <DatePicker.RangePicker
-              className="lm-filter-date"
-              style={{ width: 230 }}
-              value={filterDateRange}
-              onChange={(dates) => setFilterDateRange(dates as any)}
-            />
-
-            <Button
-              icon={<RefreshCw size={13} />}
-              className="lm-filter-clear-btn"
-              onClick={() => {
-                setFilterStatus(null);
-                setFilterAction(null);
-                setFilterPlatform(null);
-                setFilterDateRange(null);
-                setFilterCreatedBy(null);
-                setFilterMailStatus(null);
-                setSearchText("");
+            <Dropdown
+              trigger={["click"]}
+              placement="bottomRight"
+              menu={{
+                selectable: true,
+                selectedKeys: [sortKey],
+                onClick: ({ key }) => setSortKey(key as typeof sortKey),
+                items: [
+                  { key: "newest", label: "Newest first" },
+                  { key: "oldest", label: "Oldest first" },
+                  { type: "divider" as const },
+                  { key: "value_high", label: "Value: high → low" },
+                  { key: "value_low",  label: "Value: low → high" },
+                  { type: "divider" as const },
+                  { key: "score", label: "AI score: highest" },
+                  { key: "activity", label: "Recently active" },
+                ],
               }}
             >
-              Clear
+              <Button className="lm-filter-settings-btn lm-toolbar-filters-btn">
+                <TrendingDown size={13} />
+                Sort:{" "}
+                <span className="lm-toolbar-sort-current">
+                  {{
+                    newest: "Newest",
+                    oldest: "Oldest",
+                    value_high: "Value ↓",
+                    value_low: "Value ↑",
+                    score: "AI score",
+                    activity: "Active",
+                  }[sortKey]}
+                </span>
+              </Button>
+            </Dropdown>
+
+            <Popover
+              trigger={["click"]}
+              placement="bottomRight"
+              classNames={{ root: "lm-toolbar-popover" }}
+              content={
+                <div className="lm-filters-popover-body">
+                  <div className="lm-popover-section-label">
+                    <Filter size={11} />
+                    <span>Workflow</span>
+                  </div>
+                  <Select
+                    placeholder="Any workflow"
+                    className="lm-filter-select"
+                    style={{ width: "100%" }}
+                    allowClear
+                    value={filterAction}
+                    onChange={setFilterAction}
+                  >
+                    {configActions.map(a => (
+                      <Select.Option key={a.id} value={a.name}>
+                        <Space size={6}>
+                          {renderActionIcon(a.icon)}
+                          {a.name}
+                        </Space>
+                      </Select.Option>
+                    ))}
+                  </Select>
+
+                  <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                    <User size={11} />
+                    <span>Created by</span>
+                  </div>
+                  <Select
+                    placeholder="Anyone"
+                    className="lm-filter-select"
+                    style={{ width: "100%" }}
+                    allowClear
+                    value={filterCreatedBy}
+                    onChange={setFilterCreatedBy}
+                    showSearch
+                    filterOption={(input, option) =>
+                      String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
+                    }
+                  >
+                    {creatorOptions.map((name) => {
+                      const palette = getAvatarStyle(name);
+                      return (
+                        <Select.Option key={name} value={name}>
+                          <Space size={8}>
+                            <span
+                              className="lm-creator-avatar"
+                              style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
+                            >
+                              {getInitials(name)}
+                            </span>
+                            <span style={{ fontSize: 12.5 }}>{name}</span>
+                          </Space>
+                        </Select.Option>
+                      );
+                    })}
+                  </Select>
+
+                  <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                    <Mail size={11} />
+                    <span>Mail status</span>
+                  </div>
+                  <Select
+                    placeholder="Any"
+                    className="lm-filter-select"
+                    style={{ width: "100%" }}
+                    allowClear
+                    value={filterMailStatus}
+                    onChange={setFilterMailStatus}
+                  >
+                    <Select.Option value="sent">
+                      <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
+                    </Select.Option>
+                    <Select.Option value="not_sent">
+                      <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
+                    </Select.Option>
+                  </Select>
+
+                  <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                    <Clock size={11} />
+                    <span>Posted on</span>
+                  </div>
+                  <DatePicker.RangePicker
+                    className="lm-filter-date"
+                    style={{ width: "100%" }}
+                    value={filterDateRange}
+                    onChange={(dates) => setFilterDateRange(dates as any)}
+                  />
+
+                  <div className="lm-popover-footer">
+                    <button
+                      type="button"
+                      className="lm-popover-reset"
+                      onClick={() => {
+                        setFilterAction(null);
+                        setFilterDateRange(null);
+                        setFilterCreatedBy(null);
+                        setFilterMailStatus(null);
+                      }}
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              }
+            >
+              <Button
+                icon={<Filter size={13} />}
+                className="lm-filter-settings-btn lm-toolbar-filters-btn"
+              >
+                Filters
+                {(() => {
+                  const n =
+                    (filterAction ? 1 : 0) +
+                    (filterCreatedBy ? 1 : 0) +
+                    (filterMailStatus ? 1 : 0) +
+                    (filterDateRange ? 1 : 0);
+                  return n > 0 ? <span className="lm-toolbar-pill">{n}</span> : null;
+                })()}
+              </Button>
+            </Popover>
+
+            <Button
+              className="lm-filter-settings-btn lm-toolbar-filters-btn"
+              onClick={() => {
+                const headers = ["Lead", "Company", "Stage", "Source", "Value", "Owner", "Priority", "Last Activity", "Next Follow-Up", "Created"];
+                const rows = filteredLeads.map(l => {
+                  const score = l.ai_score;
+                  const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
+                  return [
+                    l.title || "",
+                    l.client_name || "",
+                    l.status || "",
+                    l.platform || "",
+                    l.budget || (l.hour_based_amount ? `${l.hour_based_amount}/hr` : ""),
+                    getLeadCreator(l) || "",
+                    priority,
+                    l.last_mail_at || l.updated_at || l.created_at || "",
+                    l.timeline_end || "",
+                    l.created_at || "",
+                  ];
+                });
+                const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+                const csv = [headers, ...rows].map(r => r.map(escape).join(",")).join("\n");
+                const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `leads-${dayjs().format("YYYY-MM-DD")}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              <Download size={13} />
+              Export
             </Button>
-
-            <span className="lm-filter-bar-spacer" />
-
-            <span className="lm-filter-bar-count">
-              <b>{filteredLeads.length}</b> of <b>{leads.length}</b>
-            </span>
 
             <Popover
               trigger={["click"]}
@@ -2077,7 +2698,7 @@ export default function LeadsPage() {
                           onClick={() => {
                             setEditingKey(null);
                             form.resetFields();
-                            form.setFieldsValue({ platform: 'Upwork', customPlatform: '' });
+                            form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
                             const defaultStatus = configStatuses.find(s => s.is_default);
                             if (defaultStatus) form.setFieldsValue({ status: defaultStatus.name });
                             setIsDrawerVisible(true);
@@ -2114,6 +2735,7 @@ export default function LeadsPage() {
                 }}
               />
             )}
+          </div>
           </div>
           </div>
         </div>
@@ -2384,6 +3006,48 @@ export default function LeadsPage() {
           }
         >
           <Form form={form} layout="vertical" onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form">
+            {/* Lead-kind picker — switches the form between online platforms and own-website inquiries */}
+            <Form.Item name="leadSourceKind" initialValue="platform" style={{ marginBottom: 18 }}>
+              <Segmented
+                block
+                size="large"
+                options={[
+                  {
+                    value: 'platform',
+                    label: (
+                      <div style={{ padding: '4px 0' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
+                          <Briefcase size={14} />
+                          Online Platform
+                        </div>
+                        <div style={{ fontSize: 10.5, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 2 }}>
+                          Upwork · LinkedIn · Freelancer · Fiverr
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    value: 'website',
+                    label: (
+                      <div style={{ padding: '4px 0' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
+                          <Globe size={14} />
+                          Website Inquiry
+                        </div>
+                        <div style={{ fontSize: 10.5, color: 'var(--text-slate-500)', fontWeight: 500, marginTop: 2 }}>
+                          Zukvo · Zithtech contact forms
+                        </div>
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+            </Form.Item>
+
+            {(Form.useWatch('leadSourceKind', form) || 'platform') === 'website' ? (
+              <WebsiteLeadFields configStatuses={configStatuses} />
+            ) : (
+              <>
             {/* Client Details Section */}
             <div className="premium-drawer-section lead-section-card" style={{
               marginBottom: 20,
@@ -2591,6 +3255,7 @@ export default function LeadsPage() {
                       <Select.Option value="LinkedIn">LinkedIn</Select.Option>
                       <Select.Option value="Freelancer">Freelancer</Select.Option>
                       <Select.Option value="Fiverr">Fiverr</Select.Option>
+                      <Select.Option value="Website">Website</Select.Option>
                       <Select.Option value="Other">Other</Select.Option>
                     </Select>
                   </Form.Item>
@@ -2687,6 +3352,8 @@ export default function LeadsPage() {
                 )}
               </Form.List>
             </div>
+              </>
+            )}
           </Form>
         </Drawer>
 
@@ -2699,6 +3366,16 @@ export default function LeadsPage() {
           lead={selectedLeadForMail}
           fromEmail={invoiceMailSettings?.email}
           onSuccess={fetchLeads}
+        />
+
+        <WebsiteLeadDrawer
+          open={websiteDrawerOpen}
+          onClose={() => {
+            setWebsiteDrawerOpen(false);
+            setWebsiteDrawerLead(null);
+          }}
+          lead={websiteDrawerLead}
+          configStatuses={configStatuses}
         />
 
         {/* ----------------------- Timeline Drawer ----------------------- */}
@@ -2820,7 +3497,7 @@ export default function LeadsPage() {
             /* ====================================================== */
             .lm-page {
               position: relative;
-              margin: 0 -24px;
+              margin: 0;
               background: var(--bg-primary);
               min-height: calc(100vh - 64px);
             }
@@ -2843,6 +3520,239 @@ export default function LeadsPage() {
               position: relative;
               z-index: 1;
               padding: 20px 32px 40px 32px;
+            }
+
+            /* ---------- Shell (sidebar + main) ---------- */
+            .lm-shell {
+              position: relative;
+              z-index: 1;
+              display: grid;
+              grid-template-columns: 240px minmax(0, 1fr);
+              gap: 0;
+              padding: 0;
+              align-items: stretch;
+              min-height: calc(100vh - 64px - 66px);
+            }
+            .lm-main {
+              min-width: 0;
+              padding: 18px 24px 40px 18px;
+            }
+            @media (max-width: 1100px) {
+              .lm-shell {
+                grid-template-columns: 216px minmax(0, 1fr);
+              }
+              .lm-main {
+                padding: 16px 16px 32px 14px;
+              }
+            }
+            @media (max-width: 820px) {
+              .lm-shell {
+                grid-template-columns: 1fr;
+              }
+              .lm-sidebar {
+                position: static;
+                height: auto;
+                max-height: none;
+                border-right: 0;
+                border-bottom: 1px solid var(--border-slate-100);
+              }
+              .lm-main {
+                padding: 16px;
+              }
+            }
+
+            .lm-sidebar {
+              position: sticky;
+              top: 65px;
+              align-self: start;
+              display: flex;
+              flex-direction: column;
+              gap: 3px;
+              padding: 8px 10px 16px 10px;
+              background: var(--bg-secondary);
+              border-right: 1px solid var(--border-slate-100);
+              border-top: 1px solid var(--border-slate-200);
+              height: calc(100vh - 64px - 65px);
+              overflow-y: auto;
+              margin-top: -1px;
+            }
+            .lm-sidebar::-webkit-scrollbar { width: 6px; }
+            .lm-sidebar::-webkit-scrollbar-thumb {
+              background: var(--border-slate-100);
+              border-radius: 999px;
+            }
+
+            .lm-side-section {
+              padding-top: 10px;
+              margin-top: 4px;
+              border-top: 1px solid var(--border-slate-100);
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+            }
+            .lm-side-heading {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 4px 12px 8px 12px;
+              font-size: 10.5px;
+              font-weight: 800;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: var(--text-slate-400);
+            }
+            .lm-side-heading-count {
+              font-size: 10.5px;
+              font-weight: 700;
+              color: var(--text-slate-400);
+              font-variant-numeric: tabular-nums;
+            }
+
+            .lm-side-row {
+              all: unset;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              width: 100%;
+              box-sizing: border-box;
+              padding: 7px 12px;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 13px;
+              font-weight: 600;
+              color: var(--text-slate-700);
+              transition: background-color .15s ease, color .15s ease;
+            }
+            .lm-side-row:hover {
+              background: var(--bg-slate-50);
+              color: var(--text-slate-900);
+            }
+            .lm-side-row.is-active {
+              background: rgba(99, 102, 241, 0.10);
+              color: #4f46e5;
+            }
+            .lm-side-row.is-active .lm-side-row-count {
+              color: #4f46e5;
+            }
+            .lm-side-row--all {
+              margin-bottom: 2px;
+            }
+            .lm-side-row-icon {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 22px;
+              height: 22px;
+              border-radius: 6px;
+              background: rgba(99, 102, 241, 0.10);
+              color: #6366f1;
+            }
+            .lm-side-row-dot {
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              margin-left: 7px;
+              margin-right: 0;
+              flex: 0 0 8px;
+            }
+            .lm-side-brand {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 22px;
+              height: 22px;
+              border-radius: 6px;
+              flex: 0 0 22px;
+              transition: transform .15s ease;
+            }
+            .lm-side-row:hover .lm-side-brand {
+              transform: scale(1.06);
+            }
+            .lm-side-row-label {
+              flex: 1 1 auto;
+              min-width: 0;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+            .lm-side-row-count {
+              font-size: 11.5px;
+              font-weight: 700;
+              color: var(--text-slate-400);
+              font-variant-numeric: tabular-nums;
+              padding-left: 6px;
+            }
+
+            /* ---------- Compact toolbar above the table ---------- */
+            .lm-table-toolbar {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              padding: 8px 12px;
+              margin-bottom: 14px;
+              background: var(--bg-pure-white);
+              border: 1px solid var(--border-slate-100);
+              border-radius: 10px;
+            }
+            .lm-toolbar-count {
+              font-size: 12.5px;
+              color: var(--text-slate-500);
+              font-weight: 500;
+            }
+            .lm-toolbar-count b {
+              color: var(--text-slate-900);
+              font-weight: 700;
+              font-variant-numeric: tabular-nums;
+            }
+            .lm-toolbar-spacer { flex: 1 1 auto; }
+            .lm-table-toolbar .lm-toolbar-filters-btn.ant-btn,
+            .lm-table-toolbar button.lm-toolbar-filters-btn.ant-btn {
+              width: auto !important;
+              min-width: 0 !important;
+              padding: 0 12px !important;
+              gap: 6px !important;
+              font-size: 12.5px !important;
+              font-weight: 600 !important;
+              color: var(--text-slate-700) !important;
+              white-space: nowrap !important;
+              flex-shrink: 0 !important;
+            }
+            .lm-toolbar-sort-current {
+              color: var(--text-slate-900);
+              font-weight: 700;
+            }
+            .lm-table-toolbar {
+              flex-wrap: wrap;
+            }
+            .lm-toolbar-pill {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              min-width: 18px;
+              height: 18px;
+              padding: 0 5px;
+              margin-left: 4px;
+              border-radius: 999px;
+              background: rgba(99, 102, 241, 0.14);
+              color: #4f46e5;
+              font-size: 10px;
+              font-weight: 800;
+              font-variant-numeric: tabular-nums;
+            }
+            .lm-filters-popover-body {
+              width: 260px;
+            }
+
+            /* Dark theme — small refinements (most colors handled by CSS vars) */
+            [data-theme='dark'] .lm-side-row:hover {
+              background: rgba(255, 255, 255, 0.04);
+            }
+            [data-theme='dark'] .lm-side-row.is-active {
+              background: rgba(99, 102, 241, 0.18);
+              color: #a5b4fc;
+            }
+            [data-theme='dark'] .lm-side-row.is-active .lm-side-row-count {
+              color: #a5b4fc;
             }
 
             /* ---------- Header buttons / search ---------- */
@@ -2901,8 +3811,8 @@ export default function LeadsPage() {
             .lm-stat-grid {
               display: grid;
               grid-template-columns: repeat(4, minmax(0, 1fr));
-              gap: 16px;
-              margin-bottom: 22px;
+              gap: 12px;
+              margin-bottom: 14px;
             }
             @media (max-width: 1100px) {
               .lm-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2914,17 +3824,12 @@ export default function LeadsPage() {
               position: relative;
               background: var(--bg-pure-white);
               border: 1px solid var(--border-slate-100);
-              border-radius: 14px;
-              padding: 14px 16px 14px;
+              border-radius: 10px;
+              padding: 10px 12px 10px;
               overflow: hidden;
-              transition: transform .25s cubic-bezier(.2,.8,.2,1),
-                          box-shadow .25s cubic-bezier(.2,.8,.2,1),
-                          border-color .25s ease;
-              box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+              transition: border-color .15s ease;
             }
             .lm-stat-card:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 18px 36px -22px rgba(15,23,42,0.22);
               border-color: var(--border-slate-200);
             }
             .lm-stat-card:hover .lm-stat-accent { opacity: 1; }
@@ -2939,22 +3844,24 @@ export default function LeadsPage() {
             .lm-stat-head {
               display: flex;
               align-items: center;
-              gap: 10px;
+              gap: 8px;
               min-width: 0;
             }
             .lm-stat-icon {
-              width: 32px; height: 32px;
-              border-radius: 9px;
+              width: 24px; height: 24px;
+              border-radius: 7px;
               display: flex; align-items: center; justify-content: center;
               flex-shrink: 0;
             }
+            .lm-stat-icon svg { width: 13px; height: 13px; }
             .lm-stat-label {
               flex: 1;
               min-width: 0;
-              font-size: 13px;
-              font-weight: 600;
-              color: var(--text-slate-700);
-              letter-spacing: -0.005em;
+              font-size: 11px;
+              font-weight: 700;
+              color: var(--text-slate-500);
+              letter-spacing: 0.04em;
+              text-transform: uppercase;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -2962,14 +3869,14 @@ export default function LeadsPage() {
             .lm-stat-value-wrap {
               display: flex;
               align-items: center;
-              gap: 8px;
+              gap: 6px;
               flex-shrink: 0;
             }
             .lm-stat-value {
-              font-size: 22px;
+              font-size: 18px;
               font-weight: 800;
               color: var(--text-slate-900);
-              letter-spacing: -0.025em;
+              letter-spacing: -0.02em;
               line-height: 1;
               font-variant-numeric: tabular-nums;
             }
@@ -2989,17 +3896,20 @@ export default function LeadsPage() {
             .lm-trend-value { letter-spacing: 0.01em; }
             .lm-stat-subtle {
               display: block;
-              font-size: 11.5px;
+              font-size: 10.5px;
               color: var(--text-slate-500);
-              margin-top: 8px;
-              padding-left: 42px;
+              margin-top: 4px;
+              padding-left: 32px;
               font-weight: 500;
-              line-height: 1.4;
+              line-height: 1.35;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
             .lm-stat-chart {
-              margin-top: 10px;
-              padding-top: 10px;
-              padding-left: 42px;
+              margin-top: 6px;
+              padding-top: 6px;
+              padding-left: 32px;
               border-top: 1px dashed var(--border-slate-100);
             }
 
@@ -3759,17 +4669,13 @@ export default function LeadsPage() {
 
             /* Density — vertical row padding inside the table card */
             .lm-table-card[data-density='compact'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
-              padding: 8px 14px !important;
+              padding: 6px 12px !important;
             }
             .lm-table-card[data-density='comfortable'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
-              padding: 14px 16px !important;
+              padding: 12px 14px !important;
             }
             .lm-table-card[data-density='spacious'] .lm-table.ant-table-wrapper .ant-table-tbody > tr > td {
-              padding: 20px 18px !important;
-            }
-            /* Avatar / row visual scales down a bit on compact */
-            .lm-table-card[data-density='compact'] .lead-avatar {
-              transform: scale(0.92);
+              padding: 18px 16px !important;
             }
 
             [data-theme='dark'] .lm-table-settings-btn.ant-btn {

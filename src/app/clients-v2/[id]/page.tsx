@@ -2619,6 +2619,13 @@ export default function ClientV2DetailsPage() {
             .pmodal-body .ant-form-item-label > label::before {
               color: #ef4444 !important;
             }
+            .pmodal-body .ant-form-item-explain,
+            .pmodal-body .ant-form-item-explain-error {
+              padding-top: 6px !important;
+              font-size: 12px !important;
+              position: relative !important;
+              clear: both !important;
+            }
             .pmodal-body .ant-input,
             .pmodal-body .ant-input-affix-wrapper,
             .pmodal-body .ant-select-selector,

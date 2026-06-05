@@ -23,6 +23,7 @@ import {
   FileText,
   DollarSign,
   User,
+  Users,
   PlusCircle,
   X,
   ExternalLink,
@@ -103,11 +104,13 @@ import {
   type MenuProps
 } from "antd";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { TablePreferenceService } from "@/services/tablePreferenceService";
 import dayjs from "dayjs";
 import { useLeads } from "@/hooks/useLeads";
 import { useLeadSettings } from "@/hooks/useLeadSettings";
 import { Lead } from "@/services/leadService";
+import { ProposalService } from "@/services/proposalService";
 import {
   ClockCircleOutlined,
   PhoneOutlined,
@@ -130,7 +133,7 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 
 const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
   const { name, ...restField } = field;
-  
+
   // Use useWatch to make the rows reactive to form changes
   const docType = Form.useWatch(['documents', name, 'type']) || 'link';
   const url = Form.useWatch(['documents', name, 'url']);
@@ -154,17 +157,17 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
 
         <Col span={21}>
           <Form.Item {...restField} name={[name, 'name']} rules={[{ required: true, message: 'Missing name' }]} style={{ marginBottom: 8 }}>
-            <Input 
-              placeholder="Document Title (e.g. Project Brief)" 
+            <Input
+              placeholder="Document Title (e.g. Project Brief)"
               className="premium-input"
             />
           </Form.Item>
 
           {docType === 'link' ? (
             <Form.Item {...restField} name={[name, 'url']} rules={[{ required: true, message: 'Missing URL' }]} style={{ marginBottom: 0 }}>
-              <Input 
+              <Input
                 prefix={<Link2 size={14} style={{ color: '#94a3b8' }} />}
-                placeholder="https://example.com/document" 
+                placeholder="https://example.com/document"
                 className="premium-input"
               />
             </Form.Item>
@@ -180,9 +183,9 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
                   </div>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                     <Tooltip title="View">
-                      <Button 
-                        size="small" 
-                        icon={<Eye size={14} />} 
+                      <Button
+                        size="small"
+                        icon={<Eye size={14} />}
                         onClick={async () => {
                           if (!url) return messageApi.warning('No file to view');
                           if (url.startsWith('data:')) {
@@ -219,7 +222,7 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
                         className="doc-action-btn"
                       />
                     </Tooltip>
-                    
+
                     <Upload
                       beforeUpload={(file) => {
                         const isLt10M = file.size / 1024 / 1024 < 10;
@@ -233,9 +236,9 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
                       showUploadList={false}
                     >
                       <Tooltip title="Change File">
-                        <Button 
-                          size="small" 
-                          icon={<RefreshCw size={14} />} 
+                        <Button
+                          size="small"
+                          icon={<RefreshCw size={14} />}
                           className="doc-action-btn"
                         />
                       </Tooltip>
@@ -272,13 +275,13 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
             </div>
           )}
         </Col>
-        
+
         <Col span={3} style={{ display: 'flex', justifyContent: 'center' }}>
           <Tooltip title="Remove Document">
-            <Button 
-              type="text" 
-              danger 
-              icon={<Trash2 size={18} />} 
+            <Button
+              type="text"
+              danger
+              icon={<Trash2 size={18} />}
               onClick={() => remove(name)}
               className="doc-remove-btn"
             />
@@ -298,22 +301,21 @@ const { Text, Title } = Typography;
 type LmDensity = "compact" | "comfortable" | "spacious";
 const LM_TABLE_KEY = "leads_v1";
 const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
-  { key: "title",          label: "Lead" },
-  { key: "status",         label: "Stage" },
-  { key: "platform",       label: "Source" },
-  { key: "budget",         label: "Value" },
-  { key: "bidiq",          label: "BidIq" },
-  { key: "proposal",       label: "Proposal" },
-  { key: "mail",           label: "Mail" },
-  { key: "company",        label: "Company" },
-  { key: "created_by",     label: "Owner" },
-  { key: "priority",       label: "Priority" },
-  { key: "last_activity",  label: "Last Activity" },
-  { key: "next_followup",  label: "Next Follow-Up" },
-  { key: "actions_item",   label: "Workflow Action" },
-  { key: "ai_score",       label: "AI Score" },
-  { key: "created_at",     label: "Created" },
-  { key: "table-actions",  label: "Actions" },
+  { key: "title", label: "Lead" },
+  { key: "status", label: "Stage" },
+  { key: "platform", label: "Source" },
+  { key: "budget", label: "Value" },
+  { key: "bidiq", label: "BidIq" },
+  { key: "proposal", label: "Proposal" },
+  { key: "mail", label: "Mail" },
+  { key: "company", label: "Company" },
+  { key: "created_by", label: "Owner" },
+  { key: "priority", label: "Priority" },
+  { key: "last_activity", label: "Last Activity" },
+  { key: "actions_item", label: "Workflow Action" },
+  { key: "ai_score", label: "AI Score" },
+  { key: "created_at", label: "Created" },
+  { key: "table-actions", label: "Actions" },
 ];
 
 const DEFAULT_HIDDEN_COLS: Record<string, boolean> = {
@@ -500,13 +502,13 @@ export default function LeadsPage() {
   useActivitySource({ section: "WORK", module: "Leads", page: "LeadsList" });
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const { 
-    canReadLead, 
-    canCreateLead, 
-    canUpdateLead, 
-    canDeleteLead, 
+  const {
+    canReadLead,
+    canCreateLead,
+    canUpdateLead,
+    canDeleteLead,
     canManageLeads,
-    canCreateProposal 
+    canCreateProposal
   } = usePermission();
 
   const [form] = Form.useForm();
@@ -576,7 +578,7 @@ export default function LeadsPage() {
         ]);
 
         if (cancelled) return;
-        
+
         if (saved?.density && ["compact", "comfortable", "spacious"].includes(saved.density)) {
           setTableDensity(saved.density);
         }
@@ -628,6 +630,109 @@ export default function LeadsPage() {
     setBidiqPreviewLead(null);
     router.push(`/leads/bidiq/${id}`);
   };
+
+  // Proposal flow state & handlers
+  const [proposalModalOpen, setProposalModalOpen] = useState(false);
+  const [proposalStep, setProposalStep] = useState<0 | 1>(0);
+  const [selectedOption, setSelectedOption] = useState<"client" | "custom" | null>(null);
+  const [customDates, setCustomDates] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+  const [customCost, setCustomCost] = useState<number | null>(null);
+  const [generatingProposal, setGeneratingProposal] = useState(false);
+  const [selectedProposalLead, setSelectedProposalLead] = useState<Lead | null>(null);
+
+  const openProposalFlow = (lead: Lead) => {
+    setSelectedProposalLead(lead);
+    setProposalStep(0);
+    setSelectedOption(null);
+    setCustomDates(null);
+    setCustomCost(null);
+    setProposalModalOpen(true);
+  };
+
+  const closeProposalFlow = () => {
+    if (generatingProposal) return;
+    setProposalModalOpen(false);
+    setTimeout(() => {
+      setProposalStep(0);
+      setSelectedOption(null);
+      setCustomDates(null);
+      setCustomCost(null);
+      setSelectedProposalLead(null);
+    }, 200);
+  };
+
+  const goToOptionStep = () => {
+    setSelectedOption("client");
+    setCustomDates(null);
+    setCustomCost(null);
+    setProposalStep(1);
+  };
+
+  const handleConfirmGenerate = async () => {
+    if (!selectedProposalLead || !selectedOption) return;
+    const lead = selectedProposalLead;
+    const id = lead.id;
+    let payload: { selection: "client" | "custom"; duration?: string; cost?: string | number; startDate?: string; endDate?: string };
+    
+    const clientBudgetNum = parseFloat(lead.budget?.replace(/[^0-9.]/g, "") || "0") || 50;
+
+    if (selectedOption === "client") {
+      payload = { selection: "client", duration: lead.duration, cost: lead.budget };
+    } else {
+      if (!customDates || customCost === null) return;
+      const [start, end] = customDates;
+      const days = end.diff(start, "day");
+      const weeks = Math.round(days / 7);
+      payload = {
+        selection: "custom",
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+        duration: weeks > 0 ? `${weeks} week${weeks > 1 ? "s" : ""}` : `${days} day${days > 1 ? "s" : ""}`,
+        cost: customCost,
+      };
+    }
+    try {
+      setGeneratingProposal(true);
+      const res = await ProposalService.generateContentOnly(id, payload);
+      if (res && res.blocks) {
+        sessionStorage.setItem("pending_proposal_data", JSON.stringify({ ...res, selection: payload }));
+        setProposalModalOpen(false);
+        router.push(`/proposals/builder`);
+      }
+    } catch (error) {
+      console.error("Proposal generation failed:", error);
+      messageApi.error("Proposal generation failed");
+    } finally {
+      setGeneratingProposal(false);
+    }
+  };
+
+  const clientBudgetNum = selectedProposalLead ? (parseFloat(selectedProposalLead.budget?.replace(/[^0-9.]/g, "") || "0") || 50) : 50;
+  
+  const suggestedBudgetVal = selectedProposalLead 
+    ? Math.round(clientBudgetNum * 0.9)
+    : 0;
+
+  const calculateLeadIntelligence = (lead: Lead) => {
+    let durationHours = 40;
+    if (lead.duration) {
+      const dur = lead.duration.toLowerCase();
+      if (dur.includes("month")) durationHours = (parseFloat(dur) || 1) * 160;
+      else if (dur.includes("week")) durationHours = (parseFloat(dur) || 1) * 40;
+    }
+    const budgetNum = lead.budget ? parseFloat(lead.budget.replace(/[^0-9.]/g, "")) : 0;
+    const budgetEffortFactor = budgetNum > 0 ? budgetNum / 55 : durationHours;
+    const skillsCount = (lead.skills || []).length;
+    const skillMultiplier = 1 + skillsCount * 0.12;
+    const combinedBase = durationHours * 0.6 + budgetEffortFactor * 0.4;
+    const hash = Array.from(lead.id as string).reduce((a, b) => a + b.charCodeAt(0), 0);
+    const variance = 0.9 + (hash % 20) / 100;
+    return Math.round(combinedBase * skillMultiplier * variance);
+  };
+
+  const baselineHours = selectedProposalLead ? calculateLeadIntelligence(selectedProposalLead) : 0;
+  const customDays = customDates ? customDates[1].diff(customDates[0], "day") : 0;
+  const customValid = !!customDates && customCost !== null && customCost > 0 && customDays > 0;
 
   // ─── Route Guard ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -876,13 +981,13 @@ export default function LeadsPage() {
       render: (platform: string) => {
         const p = platform || "Upwork";
         const palette: Record<string, { bg: string; color: string; border: string; icon: React.ReactNode }> = {
-          Upwork:     { bg: "rgba(20,168,0,0.08)",  color: "#14a800", border: "rgba(20,168,0,0.25)",  icon: <UpworkGlyph size={11} /> },
-          LinkedIn:   { bg: "rgba(10,102,194,0.08)", color: "#0a66c2", border: "rgba(10,102,194,0.25)", icon: <Linkedin size={11} strokeWidth={2.4} /> },
+          Upwork: { bg: "rgba(20,168,0,0.08)", color: "#14a800", border: "rgba(20,168,0,0.25)", icon: <UpworkGlyph size={11} /> },
+          LinkedIn: { bg: "rgba(10,102,194,0.08)", color: "#0a66c2", border: "rgba(10,102,194,0.25)", icon: <Linkedin size={11} strokeWidth={2.4} /> },
           Freelancer: { bg: "rgba(41,178,254,0.08)", color: "#0284c7", border: "rgba(41,178,254,0.25)", icon: <FreelancerGlyph size={11} /> },
-          Fiverr:     { bg: "rgba(29,191,115,0.08)", color: "#1dbf73", border: "rgba(29,191,115,0.25)", icon: <FiverrGlyph size={11} /> },
-          Zukvo:      { bg: "rgba(139,92,246,0.08)", color: "#8b5cf6", border: "rgba(139,92,246,0.25)", icon: <Sparkles size={11} strokeWidth={2.2} /> },
-          Zithtech:   { bg: "rgba(14,165,233,0.08)", color: "#0ea5e9", border: "rgba(14,165,233,0.25)", icon: <Layers size={11} strokeWidth={2.2} /> },
-          Website:    { bg: "rgba(99,102,241,0.08)", color: "#6366f1", border: "rgba(99,102,241,0.25)", icon: <Globe size={11} strokeWidth={2.2} /> },
+          Fiverr: { bg: "rgba(29,191,115,0.08)", color: "#1dbf73", border: "rgba(29,191,115,0.25)", icon: <FiverrGlyph size={11} /> },
+          Zukvo: { bg: "rgba(139,92,246,0.08)", color: "#8b5cf6", border: "rgba(139,92,246,0.25)", icon: <Sparkles size={11} strokeWidth={2.2} /> },
+          Zithtech: { bg: "rgba(14,165,233,0.08)", color: "#0ea5e9", border: "rgba(14,165,233,0.25)", icon: <Layers size={11} strokeWidth={2.2} /> },
+          Website: { bg: "rgba(99,102,241,0.08)", color: "#6366f1", border: "rgba(99,102,241,0.25)", icon: <Globe size={11} strokeWidth={2.2} /> },
         };
         const meta = palette[p] || { bg: "rgba(148,163,184,0.12)", color: "#475569", border: "rgba(148,163,184,0.3)", icon: <Briefcase size={11} strokeWidth={2.2} /> };
         return (
@@ -1232,7 +1337,7 @@ export default function LeadsPage() {
             <Button
               type="link"
               icon={<Sparkles size={16} />}
-              onClick={(e) => { e.stopPropagation(); openBidiqPreview(record); }}
+              onClick={(e) => { e.stopPropagation(); openProposalFlow(record); }}
               onMouseDown={(e) => e.stopPropagation()}
               style={{
                 display: "flex",
@@ -1262,8 +1367,8 @@ export default function LeadsPage() {
             <Button
               type="link"
               icon={isSent ? <CheckCircle size={16} /> : <Mail size={16} />}
-              onClick={(e) => { 
-                e.stopPropagation(); 
+              onClick={(e) => {
+                e.stopPropagation();
                 setSelectedLeadForMail(record);
                 setIsMailDrawerVisible(true);
               }}
@@ -1370,34 +1475,6 @@ export default function LeadsPage() {
           <Tooltip title={dayjs(ts).format("MMM D, YYYY · h:mm A")} placement="topLeft">
             <span style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 500 }}>
               {formatRelativeTime(ts)}
-            </span>
-          </Tooltip>
-        );
-      },
-    },
-    {
-      title: "Next Follow-Up",
-      key: "next_followup",
-      width: 130,
-      render: (_: unknown, record: Lead) => {
-        const ts = record.timeline_end;
-        if (!ts) return <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>;
-        const d = dayjs(ts);
-        const now = dayjs();
-        const isPast = d.isBefore(now, "day");
-        const isToday = d.isSame(now, "day");
-        const isTomorrow = d.isSame(now.add(1, "day"), "day");
-        let display = d.format("MMM D");
-        if (isToday) display = "Today";
-        else if (isTomorrow) display = "Tomorrow";
-        return (
-          <Tooltip title={d.format("MMM D, YYYY")} placement="topLeft">
-            <span style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: isPast ? "#ef4444" : isToday ? "#f59e0b" : "var(--text-slate-700)",
-            }}>
-              {display}
             </span>
           </Tooltip>
         );
@@ -1653,7 +1730,7 @@ export default function LeadsPage() {
       const matchesCreatedBy =
         !filterCreatedBy ||
         getLeadCreator(item) === filterCreatedBy;
-      
+
       // Mail status matching
       let matchesMailStatus = true;
       if (filterMailStatus === 'sent') {
@@ -1713,37 +1790,101 @@ export default function LeadsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leads, user]);
 
+  const stageDropdownOptions = useMemo(() => {
+    return (configStatuses || [])
+      .filter((s: any) => s.is_active)
+      .map((s: any) => {
+        const c = s.color || "#6366f1";
+        return {
+          value: s.name,
+          label: s.name,
+          badge: (
+            <span
+              style={{
+                display: "inline-block",
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: c,
+              }}
+            />
+          ),
+        };
+      });
+  }, [configStatuses]);
+
+  const actionDropdownOptions = useMemo(() => {
+    return (configActions || [])
+      .filter((a: any) => a.is_active)
+      .map((a: any) => {
+        return {
+          value: a.name,
+          label: a.name,
+          badge: renderActionIcon(a.icon),
+        };
+      });
+  }, [configActions]);
+
+  const creatorDropdownOptions = useMemo(() => {
+    return creatorOptions.map(name => {
+      const palette = getAvatarStyle(name);
+      return {
+        value: name,
+        label: name,
+        badge: (
+          <span
+            className="lm-creator-avatar"
+            style={{
+              background: palette.bg,
+              width: 20,
+              height: 20,
+              fontSize: 9,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              borderRadius: '50%',
+              fontWeight: 700
+            }}
+          >
+            {getInitials(name)}
+          </span>
+        )
+      };
+    });
+  }, [creatorOptions]);
+
   // Icon-key → render fn map. Mirrors the catalogue in /leads/settings so we
   // can resolve whatever the admin saved on a platform's logo_url ("icon:upwork")
   // or a status's icon column ("trophy").
   const PLATFORM_ICON_RESOLVERS: Record<string, { brand: string; render: React.ReactNode }> = {
-    upwork:        { brand: "#14a800", render: <UpworkGlyph /> },
-    linkedin:      { brand: "#0a66c2", render: <Linkedin size={13} strokeWidth={2.4} /> },
-    freelancer:    { brand: "#29b2fe", render: <FreelancerGlyph /> },
-    fiverr:        { brand: "#1dbf73", render: <FiverrGlyph /> },
-    toptal:        { brand: "#204ecf", render: <span style={{ fontSize: 11, fontWeight: 900 }}>T</span> },
-    guru:          { brand: "#ff7a18", render: <span style={{ fontSize: 11, fontWeight: 900 }}>G</span> },
+    upwork: { brand: "#14a800", render: <UpworkGlyph /> },
+    linkedin: { brand: "#0a66c2", render: <Linkedin size={13} strokeWidth={2.4} /> },
+    freelancer: { brand: "#29b2fe", render: <FreelancerGlyph /> },
+    fiverr: { brand: "#1dbf73", render: <FiverrGlyph /> },
+    toptal: { brand: "#204ecf", render: <span style={{ fontSize: 11, fontWeight: 900 }}>T</span> },
+    guru: { brand: "#ff7a18", render: <span style={{ fontSize: 11, fontWeight: 900 }}>G</span> },
     peopleperhour: { brand: "#ff7c00", render: <span style={{ fontSize: 11, fontWeight: 900 }}>P</span> },
-    hubstaff:      { brand: "#3aabea", render: <span style={{ fontSize: 11, fontWeight: 900 }}>H</span> },
-    indeed:        { brand: "#003a9b", render: <span style={{ fontSize: 11, fontWeight: 900 }}>I</span> },
-    globe:         { brand: "#6366f1", render: <Globe size={13} strokeWidth={2.2} /> },
-    sparkles:      { brand: "#8b5cf6", render: <Sparkles size={13} strokeWidth={2.2} /> },
-    briefcase:     { brand: "#475569", render: <Briefcase size={13} strokeWidth={2.2} /> },
-    star:          { brand: "#f59e0b", render: <Star size={13} strokeWidth={2.2} /> },
-    zap:           { brand: "#ec4899", render: <Zap size={13} strokeWidth={2.2} /> },
+    hubstaff: { brand: "#3aabea", render: <span style={{ fontSize: 11, fontWeight: 900 }}>H</span> },
+    indeed: { brand: "#003a9b", render: <span style={{ fontSize: 11, fontWeight: 900 }}>I</span> },
+    globe: { brand: "#6366f1", render: <Globe size={13} strokeWidth={2.2} /> },
+    sparkles: { brand: "#8b5cf6", render: <Sparkles size={13} strokeWidth={2.2} /> },
+    briefcase: { brand: "#475569", render: <Briefcase size={13} strokeWidth={2.2} /> },
+    star: { brand: "#f59e0b", render: <Star size={13} strokeWidth={2.2} /> },
+    zap: { brand: "#ec4899", render: <Zap size={13} strokeWidth={2.2} /> },
   };
 
   const STATUS_ICON_RESOLVERS: Record<string, React.ReactNode> = {
-    flag:           <Flag size={13} strokeWidth={2.2} />,
-    target:         <Target size={13} strokeWidth={2.2} />,
-    compass:        <Compass size={13} strokeWidth={2.2} />,
-    sparkles:       <Sparkles size={13} strokeWidth={2.2} />,
-    megaphone:      <Megaphone size={13} strokeWidth={2.2} />,
-    handshake:      <Handshake size={13} strokeWidth={2.2} />,
-    rocket:         <Rocket size={13} strokeWidth={2.2} />,
+    flag: <Flag size={13} strokeWidth={2.2} />,
+    target: <Target size={13} strokeWidth={2.2} />,
+    compass: <Compass size={13} strokeWidth={2.2} />,
+    sparkles: <Sparkles size={13} strokeWidth={2.2} />,
+    megaphone: <Megaphone size={13} strokeWidth={2.2} />,
+    handshake: <Handshake size={13} strokeWidth={2.2} />,
+    rocket: <Rocket size={13} strokeWidth={2.2} />,
     "shield-check": <ShieldCheck size={13} strokeWidth={2.2} />,
-    trophy:         <Trophy size={13} strokeWidth={2.2} />,
-    award:          <Award size={13} strokeWidth={2.2} />,
+    trophy: <Trophy size={13} strokeWidth={2.2} />,
+    award: <Award size={13} strokeWidth={2.2} />,
   };
 
   const resolvePlatformBadge = (plat: any): { color: string; icon: React.ReactNode } => {
@@ -1786,7 +1927,7 @@ export default function LeadsPage() {
       rows.push({ name: "Others", count: other, color: "#94a3b8", icon: <Briefcase size={13} strokeWidth={2.2} /> });
     }
     return rows;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leads, configPlatforms]);
 
   const pipelineOptions = useMemo(() => {
@@ -1817,7 +1958,7 @@ export default function LeadsPage() {
         count,
       };
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leads, configStatuses]);
 
   const pipelineTotal = useMemo(
@@ -2024,9 +2165,8 @@ export default function LeadsPage() {
             <aside className="lm-sidebar">
               <button
                 type="button"
-                className={`lm-side-row lm-side-row--all${
-                  !filterPlatform && !filterStatus ? " is-active" : ""
-                }`}
+                className={`lm-side-row lm-side-row--all${!filterPlatform && !filterStatus ? " is-active" : ""
+                  }`}
                 onClick={() => {
                   setFilterPlatform(null);
                   setFilterStatus(null);
@@ -2108,10 +2248,10 @@ export default function LeadsPage() {
               </div>
             </aside>
 
-          <div className="lm-main">
+            <div className="lm-main">
 
-          {/* Saved-View Segments */}
-          {/* <div className="lead-segments" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+              {/* Saved-View Segments */}
+              {/* <div className="lead-segments" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
             {([
               { key: "all", label: "All Leads", icon: <Layers size={13} />, count: segmentCounts.all },
               { key: "hot", label: "Hot", icon: <Flame size={13} />, count: segmentCounts.hot, accent: "#ef4444" },
@@ -2166,577 +2306,610 @@ export default function LeadsPage() {
             })}
           </div> */}
 
-          <div className="lm-stat-grid">
-            <StatCard
-              label="Total Leads"
-              value={leads.length}
-              icon={Layers}
-              accent="#6366f1"
-              subtle={leads.length > 0 ? `${leadsThisWeek} added in the last 7 days` : "No leads yet"}
-              loading={leads.length === 0 && loading}
-              chart={
-                leads.length > 0 ? (
-                  <MiniBar
-                    segments={[
-                      { value: hotLeadsCount, color: "#ef4444", label: `${hotLeadsCount} hot` },
-                      { value: Math.max(0, leads.length - hotLeadsCount), color: "#94a3b8", label: `${Math.max(0, leads.length - hotLeadsCount)} warm` },
-                    ]}
-                  />
-                ) : null
-              }
-            />
-            <StatCard
-              label="New Today"
-              value={leadsToday}
-              icon={Zap}
-              accent="#f59e0b"
-              subtle={leadsToday > 0 ? "Fresh activity in the last 24h" : "No new leads today"}
-              loading={leads.length === 0 && loading}
-              chart={
-                leadsThisWeek > 0 ? (
-                  <MiniBar
-                    segments={[
-                      { value: leadsToday, color: "#f59e0b", label: `${leadsToday} today` },
-                      { value: Math.max(0, leadsThisWeek - leadsToday), color: "#94a3b8", label: `${Math.max(0, leadsThisWeek - leadsToday)} earlier this week` },
-                    ]}
-                  />
-                ) : null
-              }
-            />
-            <StatCard
-              label="Hot Leads"
-              value={hotLeadsCount}
-              icon={Flame}
-              accent="#ef4444"
-              subtle={
-                leads.length > 0
-                  ? `${Math.round((hotLeadsCount / leads.length) * 100)}% of pipeline · ${totalClients} clients`
-                  : "AI score ≥ 80"
-              }
-              loading={leads.length === 0 && loading}
-              chart={
-                leads.length > 0 ? (
-                  <div className="lm-progress-row">
-                    <div className="lm-progress-track">
-                      <span
-                        className="lm-progress-fill"
-                        style={{
-                          width: `${Math.round((hotLeadsCount / leads.length) * 100)}%`,
-                          background: "linear-gradient(90deg, #ef4444, #f97316)",
-                        }}
+              <div className="lm-stat-grid">
+                <StatCard
+                  label="Total Leads"
+                  value={leads.length}
+                  icon={Layers}
+                  accent="#6366f1"
+                  subtle={leads.length > 0 ? `${leadsThisWeek} added in the last 7 days` : "No leads yet"}
+                  loading={leads.length === 0 && loading}
+                  chart={
+                    leads.length > 0 ? (
+                      <MiniBar
+                        segments={[
+                          { value: hotLeadsCount, color: "#ef4444", label: `${hotLeadsCount} hot` },
+                          { value: Math.max(0, leads.length - hotLeadsCount), color: "#94a3b8", label: `${Math.max(0, leads.length - hotLeadsCount)} warm` },
+                        ]}
                       />
-                    </div>
-                    <span className="lm-progress-label">
-                      {Math.round((hotLeadsCount / leads.length) * 100)}%
-                    </span>
-                  </div>
-                ) : null
-              }
-            />
-            <StatCard
-              label="Pipeline Rate"
-              value={`${pipelineRate}%`}
-              icon={Target}
-              accent="#10b981"
-              subtle={leads.length > 0 ? "Leads with proposals out" : "Send your first proposal"}
-              loading={leads.length === 0 && loading}
-              chart={
-                leads.length > 0 ? (
-                  <div className="lm-progress-row">
-                    <div className="lm-progress-track">
-                      <span
-                        className="lm-progress-fill"
-                        style={{
-                          width: `${pipelineRate}%`,
-                          background: "linear-gradient(90deg, #10b981, #34d399)",
-                        }}
-                      />
-                    </div>
-                    <span className="lm-progress-label">{pipelineRate}%</span>
-                  </div>
-                ) : null
-              }
-            />
-          </div>
-
-          
-
-          {/* Compact toolbar — Sort + Filters + Export + Settings */}
-          <div className="lm-table-toolbar">
-            <span className="lm-toolbar-count">
-              <b>{filteredLeads.length}</b> of <b>{leads.length}</b> leads
-            </span>
-
-            <span className="lm-toolbar-spacer" />
-
-            <Dropdown
-              trigger={["click"]}
-              placement="bottomRight"
-              menu={{
-                selectable: true,
-                selectedKeys: [sortKey],
-                onClick: ({ key }) => setSortKey(key as typeof sortKey),
-                items: [
-                  { key: "newest", label: "Newest first" },
-                  { key: "oldest", label: "Oldest first" },
-                  { type: "divider" as const },
-                  { key: "value_high", label: "Value: high → low" },
-                  { key: "value_low",  label: "Value: low → high" },
-                  { type: "divider" as const },
-                  { key: "score", label: "AI score: highest" },
-                  { key: "activity", label: "Recently active" },
-                ],
-              }}
-            >
-              <Button className="lm-filter-settings-btn lm-toolbar-filters-btn">
-                <TrendingDown size={13} />
-                Sort:{" "}
-                <span className="lm-toolbar-sort-current">
-                  {{
-                    newest: "Newest",
-                    oldest: "Oldest",
-                    value_high: "Value ↓",
-                    value_low: "Value ↑",
-                    score: "AI score",
-                    activity: "Active",
-                  }[sortKey]}
-                </span>
-              </Button>
-            </Dropdown>
-
-            <Popover
-              trigger={["click"]}
-              placement="bottomRight"
-              classNames={{ root: "lm-toolbar-popover" }}
-              content={
-                <div className="lm-filters-popover-body">
-                  <div className="lm-popover-section-label">
-                    <Filter size={11} />
-                    <span>Workflow</span>
-                  </div>
-                  <Select
-                    placeholder="Any workflow"
-                    className="lm-filter-select"
-                    style={{ width: "100%" }}
-                    allowClear
-                    value={filterAction}
-                    onChange={setFilterAction}
-                  >
-                    {configActions.map(a => (
-                      <Select.Option key={a.id} value={a.name}>
-                        <Space size={6}>
-                          {renderActionIcon(a.icon)}
-                          {a.name}
-                        </Space>
-                      </Select.Option>
-                    ))}
-                  </Select>
-
-                  <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                    <User size={11} />
-                    <span>Created by</span>
-                  </div>
-                  <Select
-                    placeholder="Anyone"
-                    className="lm-filter-select"
-                    style={{ width: "100%" }}
-                    allowClear
-                    value={filterCreatedBy}
-                    onChange={setFilterCreatedBy}
-                    showSearch
-                    filterOption={(input, option) =>
-                      String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
-                    }
-                  >
-                    {creatorOptions.map((name) => {
-                      const palette = getAvatarStyle(name);
-                      return (
-                        <Select.Option key={name} value={name}>
-                          <Space size={8}>
-                            <span
-                              className="lm-creator-avatar"
-                              style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
-                            >
-                              {getInitials(name)}
-                            </span>
-                            <span style={{ fontSize: 12.5 }}>{name}</span>
-                          </Space>
-                        </Select.Option>
-                      );
-                    })}
-                  </Select>
-
-                  <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                    <Mail size={11} />
-                    <span>Mail status</span>
-                  </div>
-                  <Select
-                    placeholder="Any"
-                    className="lm-filter-select"
-                    style={{ width: "100%" }}
-                    allowClear
-                    value={filterMailStatus}
-                    onChange={setFilterMailStatus}
-                  >
-                    <Select.Option value="sent">
-                      <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
-                    </Select.Option>
-                    <Select.Option value="not_sent">
-                      <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
-                    </Select.Option>
-                  </Select>
-
-                  <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                    <Clock size={11} />
-                    <span>Posted on</span>
-                  </div>
-                  <DatePicker.RangePicker
-                    className="lm-filter-date"
-                    style={{ width: "100%" }}
-                    value={filterDateRange}
-                    onChange={(dates) => setFilterDateRange(dates as any)}
-                  />
-
-                  <div className="lm-popover-footer">
-                    <button
-                      type="button"
-                      className="lm-popover-reset"
-                      onClick={() => {
-                        setFilterAction(null);
-                        setFilterDateRange(null);
-                        setFilterCreatedBy(null);
-                        setFilterMailStatus(null);
-                      }}
-                    >
-                      Reset
-                    </button>
-                  </div>
-                </div>
-              }
-            >
-              <Button
-                icon={<Filter size={13} />}
-                className="lm-filter-settings-btn lm-toolbar-filters-btn"
-              >
-                Filters
-                {(() => {
-                  const n =
-                    (filterAction ? 1 : 0) +
-                    (filterCreatedBy ? 1 : 0) +
-                    (filterMailStatus ? 1 : 0) +
-                    (filterDateRange ? 1 : 0);
-                  return n > 0 ? <span className="lm-toolbar-pill">{n}</span> : null;
-                })()}
-              </Button>
-            </Popover>
-
-            <Button
-              className="lm-filter-settings-btn lm-toolbar-filters-btn"
-              onClick={() => {
-                const headers = ["Lead", "Company", "Stage", "Source", "Value", "Owner", "Priority", "Last Activity", "Next Follow-Up", "Created"];
-                const rows = filteredLeads.map(l => {
-                  const score = l.ai_score;
-                  const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
-                  return [
-                    l.title || "",
-                    l.client_name || "",
-                    l.status || "",
-                    l.platform || "",
-                    l.budget || (l.hour_based_amount ? `${l.hour_based_amount}/hr` : ""),
-                    getLeadCreator(l) || "",
-                    priority,
-                    l.last_mail_at || l.updated_at || l.created_at || "",
-                    l.timeline_end || "",
-                    l.created_at || "",
-                  ];
-                });
-                const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
-                const csv = [headers, ...rows].map(r => r.map(escape).join(",")).join("\n");
-                const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `leads-${dayjs().format("YYYY-MM-DD")}.csv`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-            >
-              <Download size={13} />
-              Export
-            </Button>
-
-            <Popover
-              trigger={["click"]}
-              placement="bottomRight"
-              classNames={{ root: "lm-table-settings-popover" }}
-              content={
-                <div style={{ width: 240 }}>
-                  <div className="lm-popover-section-label">
-                    <Settings size={11} />
-                    <span>Density</span>
-                  </div>
-                  <Segmented
-                    block
-                    value={tableDensity}
-                    onChange={(v) => setTableDensity(v as LmDensity)}
-                    options={[
-                      { label: "Compact", value: "compact" },
-                      { label: "Cozy", value: "comfortable" },
-                      { label: "Roomy", value: "spacious" },
-                    ]}
-                  />
-                  <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                    <Layers size={11} />
-                    <span>Columns</span>
-                    <span style={{ marginLeft: 'auto', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
-                      {TOGGLEABLE_COLUMNS.length - TOGGLEABLE_COLUMNS.filter(c => hiddenCols[c.key]).length} of {TOGGLEABLE_COLUMNS.length}
-                    </span>
-                  </div>
-                  <div className="lm-col-toggle-list">
-                    {TOGGLEABLE_COLUMNS.map((c) => (
-                      <label key={c.key} className="lm-col-toggle-row">
-                        <span>{c.label}</span>
-                        <Switch
-                          size="small"
-                          checked={!hiddenCols[c.key]}
-                          onChange={(checked) =>
-                            setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
-                          }
-                        />
-                      </label>
-                    ))}
-                  </div>
-                  <div className="lm-popover-footer">
-                    <button
-                      type="button"
-                      className="lm-popover-reset"
-                      onClick={() => {
-                        setHiddenCols(DEFAULT_HIDDEN_COLS);
-                        setTableDensity("comfortable");
-                      }}
-                    >
-                      Reset to defaults
-                    </button>
-                    <span className="lm-popover-saved">Saved automatically</span>
-                  </div>
-                </div>
-              }
-            >
-              <Tooltip title="Table settings">
-                <Button
-                  icon={<Settings size={14} />}
-                  className="lm-filter-settings-btn"
-                  aria-label="Table settings"
+                    ) : null
+                  }
                 />
-              </Tooltip>
-            </Popover>
-          </div>
+                <StatCard
+                  label="New Today"
+                  value={leadsToday}
+                  icon={Zap}
+                  accent="#f59e0b"
+                  subtle={leadsToday > 0 ? "Fresh activity in the last 24h" : "No new leads today"}
+                  loading={leads.length === 0 && loading}
+                  chart={
+                    leadsThisWeek > 0 ? (
+                      <MiniBar
+                        segments={[
+                          { value: leadsToday, color: "#f59e0b", label: `${leadsToday} today` },
+                          { value: Math.max(0, leadsThisWeek - leadsToday), color: "#94a3b8", label: `${Math.max(0, leadsThisWeek - leadsToday)} earlier this week` },
+                        ]}
+                      />
+                    ) : null
+                  }
+                />
+                <StatCard
+                  label="Hot Leads"
+                  value={hotLeadsCount}
+                  icon={Flame}
+                  accent="#ef4444"
+                  subtle={
+                    leads.length > 0
+                      ? `${Math.round((hotLeadsCount / leads.length) * 100)}% of pipeline · ${totalClients} clients`
+                      : "AI score ≥ 80"
+                  }
+                  loading={leads.length === 0 && loading}
+                  chart={
+                    leads.length > 0 ? (
+                      <div className="lm-progress-row">
+                        <div className="lm-progress-track">
+                          <span
+                            className="lm-progress-fill"
+                            style={{
+                              width: `${Math.round((hotLeadsCount / leads.length) * 100)}%`,
+                              background: "linear-gradient(90deg, #ef4444, #f97316)",
+                            }}
+                          />
+                        </div>
+                        <span className="lm-progress-label">
+                          {Math.round((hotLeadsCount / leads.length) * 100)}%
+                        </span>
+                      </div>
+                    ) : null
+                  }
+                />
+                <StatCard
+                  label="Pipeline Rate"
+                  value={`${pipelineRate}%`}
+                  icon={Target}
+                  accent="#10b981"
+                  subtle={leads.length > 0 ? "Leads with proposals out" : "Send your first proposal"}
+                  loading={leads.length === 0 && loading}
+                  chart={
+                    leads.length > 0 ? (
+                      <div className="lm-progress-row">
+                        <div className="lm-progress-track">
+                          <span
+                            className="lm-progress-fill"
+                            style={{
+                              width: `${pipelineRate}%`,
+                              background: "linear-gradient(90deg, #10b981, #34d399)",
+                            }}
+                          />
+                        </div>
+                        <span className="lm-progress-label">{pipelineRate}%</span>
+                      </div>
+                    ) : null
+                  }
+                />
+              </div>
 
-          {/* Active filter chips */}
-          {activeFilterChips.length > 0 && (
-            <div className="lead-filter-chips" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, alignItems: "center" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                <ListFilter size={12} /> Active
-              </span>
-              {activeFilterChips.map(chip => (
-                <span
-                  key={chip.key}
-                  className="lead-filter-chip"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "4px 6px 4px 10px",
-                    borderRadius: 999,
-                    background: "rgba(99, 102, 241, 0.08)",
-                    color: "#4f46e5",
-                    border: "1px solid rgba(99, 102, 241, 0.18)",
-                    fontSize: 11,
-                    fontWeight: 700,
+
+
+              {/* Compact toolbar — Sort + Filters + Export + Settings */}
+              <div className="lm-table-toolbar">
+                <span className="lm-toolbar-count">
+                  <b>{filteredLeads.length}</b> of <b>{leads.length}</b> leads
+                </span>
+
+                <span className="lm-toolbar-spacer" />
+
+                <SearchableDropdown
+                  placeholder="Stage"
+                  options={stageDropdownOptions}
+                  value={filterStatus || undefined}
+                  onChange={(v) => {
+                    setFilterStatus(v || null);
+                    setFilterPlatform(null);
+                  }}
+                  style={{ height: 32, minWidth: 120, width: 120, borderRadius: 8 }}
+                  width={200}
+                />
+
+                <SearchableDropdown
+                  placeholder="Action"
+                  options={actionDropdownOptions}
+                  value={filterAction || undefined}
+                  onChange={(v) => setFilterAction(v || null)}
+                  style={{ height: 32, minWidth: 140, width: 140, borderRadius: 8 }}
+                  width={220}
+                />
+
+                <SearchableDropdown
+                  placeholder="Created by"
+                  options={creatorDropdownOptions}
+                  value={filterCreatedBy || undefined}
+                  onChange={(v) => setFilterCreatedBy(v || null)}
+                  style={{ height: 32, minWidth: 130, width: 130, borderRadius: 8 }}
+                  width={220}
+                />
+
+                <Dropdown
+                  trigger={["click"]}
+                  placement="bottomRight"
+                  menu={{
+                    selectable: true,
+                    selectedKeys: [sortKey],
+                    onClick: ({ key }) => setSortKey(key as typeof sortKey),
+                    items: [
+                      { key: "newest", label: "Newest first" },
+                      { key: "oldest", label: "Oldest first" },
+                      { type: "divider" as const },
+                      { key: "value_high", label: "Value: high → low" },
+                      { key: "value_low", label: "Value: low → high" },
+                      { type: "divider" as const },
+                      { key: "score", label: "AI score: highest" },
+                      { key: "activity", label: "Recently active" },
+                    ],
                   }}
                 >
-                  {chip.label}
-                  <button
-                    onClick={chip.onClear}
-                    aria-label={`Clear ${chip.key}`}
-                    style={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: "50%",
-                      background: "rgba(99, 102, 241, 0.15)",
-                      border: "none",
-                      color: "#4f46e5",
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: 0,
-                    }}
-                  >
-                    <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-                      <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
+                  <Button className="lm-filter-settings-btn lm-toolbar-filters-btn">
+                    <TrendingDown size={13} />
+                    Sort:{" "}
+                    <span className="lm-toolbar-sort-current">
+                      {{
+                        newest: "Newest",
+                        oldest: "Oldest",
+                        value_high: "Value ↓",
+                        value_low: "Value ↑",
+                        score: "AI score",
+                        activity: "Active",
+                      }[sortKey]}
+                    </span>
+                  </Button>
+                </Dropdown>
 
-          {selectedRowKeys.length > 0 && (
-            <div className="lm-bulk-bar">
-              <div className="lm-bulk-bar-left">
-                <span className="lm-bulk-count">
-                  <span className="lm-bulk-count-dot" />
-                  {selectedRowKeys.length} selected
-                </span>
-                <span className="lm-bulk-divider" />
-                <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
-                  Apply a bulk action or clear the selection.
-                </Text>
-              </div>
-              <div className="lm-bulk-bar-right">
-                <Button
-                  size="small"
-                  className="lm-bulk-btn"
-                  onClick={() => setSelectedRowKeys([])}
-                >
-                  Clear
-                </Button>
-                <Button
-                  size="small"
-                  danger
-                  icon={<Trash2 size={13} />}
-                  className="lm-bulk-btn lm-bulk-btn-danger"
-                  onClick={handleBulkDelete}
-                >
-                  Delete
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <div className="lm-table-card" data-density={tableDensity}>
-            {loading && leads.length === 0 ? (
-              <div className="leads-skeleton" style={{ padding: "8px 0" }}>
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "16px 20px",
-                      borderBottom: "1px solid var(--border-slate-100)",
-                    }}
-                  >
-                    <div className="sk-shimmer" style={{ width: 18, height: 18, borderRadius: 4 }} />
-                    <div className="sk-shimmer" style={{ width: 38, height: 38, borderRadius: 12 }} />
-                    <div style={{ flex: 1 }}>
-                      <div className="sk-shimmer" style={{ width: "55%", height: 12, borderRadius: 6, marginBottom: 8 }} />
-                      <div className="sk-shimmer" style={{ width: "35%", height: 10, borderRadius: 6 }} />
-                    </div>
-                    <div className="sk-shimmer" style={{ width: 80, height: 22, borderRadius: 999 }} />
-                    <div className="sk-shimmer" style={{ width: 90, height: 22, borderRadius: 999 }} />
-                    <div className="sk-shimmer" style={{ width: 60, height: 22, borderRadius: 999 }} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <Table
-                columns={columns.filter((c: any) => !hiddenCols[c.key as string])}
-                dataSource={filteredLeads}
-                rowKey="id"
-                size="middle"
-                scroll={{ x: "max-content" }}
-                rowSelection={{
-                  selectedRowKeys,
-                  onChange: (keys) => setSelectedRowKeys(keys),
-                  columnWidth: 48,
-                }}
-                pagination={{
-                  pageSize: 10,
-                  position: ["bottomRight"],
-                  showSizeChanger: false,
-                  className: "premium-pagination"
-                }}
-                className="lm-table premium-table"
-                rowClassName={() => "lm-row"}
-                onRow={(record) => ({
-                  onClick: () => handleView(record),
-                  style: { cursor: 'pointer' }
-                })}
-                locale={{
-                  emptyText: (
-                    <div style={{ padding: "60px 24px", textAlign: "center" }}>
-                      <div
-                        style={{
-                          width: 64,
-                          height: 64,
-                          margin: "0 auto 16px",
-                          borderRadius: 18,
-                          background: "linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#6366f1",
-                        }}
-                      >
-                        <Layers size={28} />
+                <Popover
+                  trigger={["click"]}
+                  placement="bottomRight"
+                  classNames={{ root: "lm-toolbar-popover" }}
+                  content={
+                    <div className="lm-filters-popover-body">
+                      <div className="lm-popover-section-label">
+                        <Filter size={11} />
+                        <span>Workflow</span>
                       </div>
-                      <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                        {leads.length === 0 ? "No leads yet" : "No matching leads"}
-                      </Title>
-                      <Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
-                        {leads.length === 0
-                          ? "Add your first opportunity to start tracking your pipeline."
-                          : "Try clearing filters or switching to a different view."}
-                      </Text>
-                      {leads.length === 0 ? (
-                        <Button
-                          type="primary"
-                          icon={<Plus size={14} />}
-                          onClick={() => {
-                            setEditingKey(null);
-                            form.resetFields();
-                            form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
-                            const defaultStatus = configStatuses.find(s => s.is_default);
-                            if (defaultStatus) form.setFieldsValue({ status: defaultStatus.name });
-                            setIsDrawerVisible(true);
-                          }}
-                          style={{
-                            borderRadius: 8,
-                            height: 36,
-                            fontWeight: 700,
-                            background: "#6366f1",
-                            border: "none",
-                            boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
-                          }}
-                        >
-                          Add First Lead
-                        </Button>
-                      ) : (
-                        <Button
-                          icon={<RefreshCw size={14} />}
+                      <Select
+                        placeholder="Any workflow"
+                        className="lm-filter-select"
+                        style={{ width: "100%" }}
+                        allowClear
+                        value={filterAction}
+                        onChange={setFilterAction}
+                      >
+                        {configActions.map(a => (
+                          <Select.Option key={a.id} value={a.name}>
+                            <Space size={6}>
+                              {renderActionIcon(a.icon)}
+                              {a.name}
+                            </Space>
+                          </Select.Option>
+                        ))}
+                      </Select>
+
+                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                        <User size={11} />
+                        <span>Created by</span>
+                      </div>
+                      <Select
+                        placeholder="Anyone"
+                        className="lm-filter-select"
+                        style={{ width: "100%" }}
+                        allowClear
+                        value={filterCreatedBy}
+                        onChange={setFilterCreatedBy}
+                        showSearch
+                        filterOption={(input, option) =>
+                          String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
+                        }
+                      >
+                        {creatorOptions.map((name) => {
+                          const palette = getAvatarStyle(name);
+                          return (
+                            <Select.Option key={name} value={name}>
+                              <Space size={8}>
+                                <span
+                                  className="lm-creator-avatar"
+                                  style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
+                                >
+                                  {getInitials(name)}
+                                </span>
+                                <span style={{ fontSize: 12.5 }}>{name}</span>
+                              </Space>
+                            </Select.Option>
+                          );
+                        })}
+                      </Select>
+
+                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                        <Mail size={11} />
+                        <span>Mail status</span>
+                      </div>
+                      <Select
+                        placeholder="Any"
+                        className="lm-filter-select"
+                        style={{ width: "100%" }}
+                        allowClear
+                        value={filterMailStatus}
+                        onChange={setFilterMailStatus}
+                      >
+                        <Select.Option value="sent">
+                          <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
+                        </Select.Option>
+                        <Select.Option value="not_sent">
+                          <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
+                        </Select.Option>
+                      </Select>
+
+                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                        <Clock size={11} />
+                        <span>Posted on</span>
+                      </div>
+                      <DatePicker.RangePicker
+                        className="lm-filter-date"
+                        style={{ width: "100%" }}
+                        value={filterDateRange}
+                        onChange={(dates) => setFilterDateRange(dates as any)}
+                      />
+
+                      <div className="lm-popover-footer">
+                        <button
+                          type="button"
+                          className="lm-popover-reset"
                           onClick={() => {
                             setFilterStatus(null);
-                            setFilterAction(null);
                             setFilterPlatform(null);
+                            setFilterAction(null);
                             setFilterDateRange(null);
-                            setSearchText("");
-                            setActiveSegment("all");
+                            setFilterCreatedBy(null);
+                            setFilterMailStatus(null);
                           }}
-                          style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
                         >
-                          Clear all filters
-                        </Button>
-                      )}
+                          Reset
+                        </button>
+                      </div>
                     </div>
-                  ),
-                }}
-              />
-            )}
-          </div>
-          </div>
+                  }
+                >
+                  <Button
+                    icon={<Filter size={13} />}
+                    className="lm-filter-settings-btn lm-toolbar-filters-btn"
+                  >
+                    Filters
+                    {(() => {
+                      const n =
+                        (filterAction ? 1 : 0) +
+                        (filterCreatedBy ? 1 : 0) +
+                        (filterMailStatus ? 1 : 0) +
+                        (filterDateRange ? 1 : 0);
+                      return n > 0 ? <span className="lm-toolbar-pill">{n}</span> : null;
+                    })()}
+                  </Button>
+                </Popover>
+
+                <Button
+                  className="lm-filter-settings-btn lm-toolbar-filters-btn"
+                  onClick={() => {
+                    const headers = ["Lead", "Company", "Stage", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
+                    const rows = filteredLeads.map(l => {
+                      const score = l.ai_score;
+                      const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
+                      return [
+                        l.title || "",
+                        l.client_name || "",
+                        l.status || "",
+                        l.platform || "",
+                        l.budget || (l.hour_based_amount ? `${l.hour_based_amount}/hr` : ""),
+                        getLeadCreator(l) || "",
+                        priority,
+                        l.last_mail_at || l.updated_at || l.created_at || "",
+                        l.created_at || "",
+                      ];
+                    });
+                    const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+                    const csv = [headers, ...rows].map(r => r.map(escape).join(",")).join("\n");
+                    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `leads-${dayjs().format("YYYY-MM-DD")}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  <Download size={13} />
+                  Export
+                </Button>
+
+                <Popover
+                  trigger={["click"]}
+                  placement="bottomRight"
+                  classNames={{ root: "lm-table-settings-popover" }}
+                  content={
+                    <div style={{ width: 240 }}>
+                      <div className="lm-popover-section-label">
+                        <Settings size={11} />
+                        <span>Density</span>
+                      </div>
+                      <Segmented
+                        block
+                        value={tableDensity}
+                        onChange={(v) => setTableDensity(v as LmDensity)}
+                        options={[
+                          { label: "Compact", value: "compact" },
+                          { label: "Cozy", value: "comfortable" },
+                          { label: "Roomy", value: "spacious" },
+                        ]}
+                      />
+                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                        <Layers size={11} />
+                        <span>Columns</span>
+                        <span style={{ marginLeft: 'auto', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                          {TOGGLEABLE_COLUMNS.length - TOGGLEABLE_COLUMNS.filter(c => hiddenCols[c.key]).length} of {TOGGLEABLE_COLUMNS.length}
+                        </span>
+                      </div>
+                      <div className="lm-col-toggle-list">
+                        {TOGGLEABLE_COLUMNS.map((c) => (
+                          <label key={c.key} className="lm-col-toggle-row">
+                            <span>{c.label}</span>
+                            <Switch
+                              size="small"
+                              checked={!hiddenCols[c.key]}
+                              onChange={(checked) =>
+                                setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
+                              }
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      <div className="lm-popover-footer">
+                        <button
+                          type="button"
+                          className="lm-popover-reset"
+                          onClick={() => {
+                            setHiddenCols(DEFAULT_HIDDEN_COLS);
+                            setTableDensity("comfortable");
+                          }}
+                        >
+                          Reset to defaults
+                        </button>
+                        <span className="lm-popover-saved">Saved automatically</span>
+                      </div>
+                    </div>
+                  }
+                >
+                  <Tooltip title="Table settings">
+                    <Button
+                      icon={<Settings size={14} />}
+                      className="lm-filter-settings-btn"
+                      aria-label="Table settings"
+                    />
+                  </Tooltip>
+                </Popover>
+              </div>
+
+              {/* Active filter chips */}
+              {activeFilterChips.length > 0 && (
+                <div className="lead-filter-chips" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, alignItems: "center" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    <ListFilter size={12} /> Active
+                  </span>
+                  {activeFilterChips.map(chip => (
+                    <span
+                      key={chip.key}
+                      className="lead-filter-chip"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "4px 6px 4px 10px",
+                        borderRadius: 999,
+                        background: "rgba(99, 102, 241, 0.08)",
+                        color: "#4f46e5",
+                        border: "1px solid rgba(99, 102, 241, 0.18)",
+                        fontSize: 11,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {chip.label}
+                      <button
+                        onClick={chip.onClear}
+                        aria-label={`Clear ${chip.key}`}
+                        style={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: "50%",
+                          background: "rgba(99, 102, 241, 0.15)",
+                          border: "none",
+                          color: "#4f46e5",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: 0,
+                        }}
+                      >
+                        <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                          <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {selectedRowKeys.length > 0 && (
+                <div className="lm-bulk-bar">
+                  <div className="lm-bulk-bar-left">
+                    <span className="lm-bulk-count">
+                      <span className="lm-bulk-count-dot" />
+                      {selectedRowKeys.length} selected
+                    </span>
+                    <span className="lm-bulk-divider" />
+                    <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
+                      Apply a bulk action or clear the selection.
+                    </Text>
+                  </div>
+                  <div className="lm-bulk-bar-right">
+                    <Button
+                      size="small"
+                      className="lm-bulk-btn"
+                      onClick={() => setSelectedRowKeys([])}
+                    >
+                      Clear
+                    </Button>
+                    <Button
+                      size="small"
+                      danger
+                      icon={<Trash2 size={13} />}
+                      className="lm-bulk-btn lm-bulk-btn-danger"
+                      onClick={handleBulkDelete}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="lm-table-card" data-density={tableDensity}>
+                {loading && leads.length === 0 ? (
+                  <div className="leads-skeleton" style={{ padding: "8px 0" }}>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "16px 20px",
+                          borderBottom: "1px solid var(--border-slate-100)",
+                        }}
+                      >
+                        <div className="sk-shimmer" style={{ width: 18, height: 18, borderRadius: 4 }} />
+                        <div className="sk-shimmer" style={{ width: 38, height: 38, borderRadius: 12 }} />
+                        <div style={{ flex: 1 }}>
+                          <div className="sk-shimmer" style={{ width: "55%", height: 12, borderRadius: 6, marginBottom: 8 }} />
+                          <div className="sk-shimmer" style={{ width: "35%", height: 10, borderRadius: 6 }} />
+                        </div>
+                        <div className="sk-shimmer" style={{ width: 80, height: 22, borderRadius: 999 }} />
+                        <div className="sk-shimmer" style={{ width: 90, height: 22, borderRadius: 999 }} />
+                        <div className="sk-shimmer" style={{ width: 60, height: 22, borderRadius: 999 }} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <Table
+                    columns={columns.filter((c: any) => !hiddenCols[c.key as string])}
+                    dataSource={filteredLeads}
+                    rowKey="id"
+                    size="middle"
+                    scroll={{ x: "max-content" }}
+                    rowSelection={{
+                      selectedRowKeys,
+                      onChange: (keys) => setSelectedRowKeys(keys),
+                      columnWidth: 48,
+                    }}
+                    pagination={{
+                      pageSize: 10,
+                      position: ["bottomRight"],
+                      showSizeChanger: false,
+                      className: "premium-pagination"
+                    }}
+                    className="lm-table premium-table"
+                    rowClassName={() => "lm-row"}
+                    onRow={(record) => ({
+                      onClick: () => handleView(record),
+                      style: { cursor: 'pointer' }
+                    })}
+                    locale={{
+                      emptyText: (
+                        <div style={{ padding: "60px 24px", textAlign: "center" }}>
+                          <div
+                            style={{
+                              width: 64,
+                              height: 64,
+                              margin: "0 auto 16px",
+                              borderRadius: 18,
+                              background: "linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#6366f1",
+                            }}
+                          >
+                            <Layers size={28} />
+                          </div>
+                          <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                            {leads.length === 0 ? "No leads yet" : "No matching leads"}
+                          </Title>
+                          <Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
+                            {leads.length === 0
+                              ? "Add your first opportunity to start tracking your pipeline."
+                              : "Try clearing filters or switching to a different view."}
+                          </Text>
+                          {leads.length === 0 ? (
+                            <Button
+                              type="primary"
+                              icon={<Plus size={14} />}
+                              onClick={() => {
+                                setEditingKey(null);
+                                form.resetFields();
+                                form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
+                                const defaultStatus = configStatuses.find(s => s.is_default);
+                                if (defaultStatus) form.setFieldsValue({ status: defaultStatus.name });
+                                setIsDrawerVisible(true);
+                              }}
+                              style={{
+                                borderRadius: 8,
+                                height: 36,
+                                fontWeight: 700,
+                                background: "#6366f1",
+                                border: "none",
+                                boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
+                              }}
+                            >
+                              Add First Lead
+                            </Button>
+                          ) : (
+                            <Button
+                              icon={<RefreshCw size={14} />}
+                              onClick={() => {
+                                setFilterStatus(null);
+                                setFilterAction(null);
+                                setFilterPlatform(null);
+                                setFilterDateRange(null);
+                                setFilterCreatedBy(null);
+                                setFilterMailStatus(null);
+                                setSearchText("");
+                                setActiveSegment("all");
+                              }}
+                              style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
+                            >
+                              Clear all filters
+                            </Button>
+                          )}
+                        </div>
+                      ),
+                    }}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2898,6 +3071,307 @@ export default function LeadsPage() {
           )}
         </Modal>
 
+        {/* ============== Proposal flow Modal (2 steps in one shell) ============== */}
+        <Modal
+          open={proposalModalOpen}
+          onCancel={closeProposalFlow}
+          footer={null}
+          width={680}
+          centered
+          closable={false}
+          className="biq-pinfo-modal"
+          maskClosable={!generatingProposal}
+        >
+          {selectedProposalLead && (
+            <div className="biq-pinfo-content">
+              {/* Header — stays identical across both steps */}
+              <div className="biq-pinfo-head">
+                <div className="biq-pinfo-icon">
+                  <Sparkles size={20} />
+                </div>
+                <div className="biq-pinfo-head-text">
+                  <div className="biq-pinfo-eyebrow">
+                    <Brain size={11} /> AI Proposal Builder
+                  </div>
+                  <h2 className="biq-pinfo-title">Generate proposal</h2>
+                  <p className="biq-pinfo-sub">
+                    Two quick steps — review what BidIq will produce, then choose how to anchor it.
+                  </p>
+                  <div className="biq-pinfo-steps">
+                    <span className={`biq-pinfo-step ${proposalStep === 0 ? "is-active" : "is-done"}`}>
+                      <span className="biq-pinfo-step-dot">1</span>
+                      <span>Review</span>
+                    </span>
+                    <span className="biq-pinfo-step-sep" />
+                    <span className={`biq-pinfo-step ${proposalStep === 1 ? "is-active" : ""}`}>
+                      <span className="biq-pinfo-step-dot">2</span>
+                      <span>Choose terms</span>
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="biq-pinfo-close"
+                  onClick={closeProposalFlow}
+                  aria-label="Close"
+                  disabled={generatingProposal}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              {/* Body — swaps based on step */}
+              {proposalStep === 0 ? (
+                <>
+                  {/* Lead snapshot */}
+                  <div className="biq-pinfo-snapshot">
+                    <div className="biq-pinfo-snapshot-head">
+                      <Layers size={11} /> Lead snapshot
+                    </div>
+                    <div className="biq-pinfo-snapshot-title" title={selectedProposalLead.title}>
+                      {selectedProposalLead.title}
+                    </div>
+                    <div className="biq-pinfo-snapshot-grid">
+                      <div className="biq-pinfo-snapshot-item">
+                        <span className="biq-pinfo-snapshot-label">
+                          <DollarSign size={10} /> Client budget
+                        </span>
+                        <span className="biq-pinfo-snapshot-value">
+                          {selectedProposalLead.budget ? `$${clientBudgetNum.toLocaleString()}` : "—"}
+                        </span>
+                      </div>
+                      <div className="biq-pinfo-snapshot-item">
+                        <span className="biq-pinfo-snapshot-label">
+                          <Clock size={10} /> Duration
+                        </span>
+                        <span className="biq-pinfo-snapshot-value">
+                          {selectedProposalLead.duration || "Flexible"}
+                        </span>
+                      </div>
+                      <div className="biq-pinfo-snapshot-item">
+                        <span className="biq-pinfo-snapshot-label">
+                          <Sparkles size={10} /> Suggested bid
+                        </span>
+                        <span className="biq-pinfo-snapshot-value">
+                          ${suggestedBudgetVal.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="biq-pinfo-snapshot-item">
+                        <span className="biq-pinfo-snapshot-label">
+                          <Layers size={10} /> Effort baseline
+                        </span>
+                        <span className="biq-pinfo-snapshot-value">{baselineHours} hrs</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* What the proposal will include */}
+                  <div className="biq-pinfo-caps">
+                    <div className="biq-pinfo-caps-head">What the proposal will include</div>
+                    <div className="biq-pinfo-caps-grid">
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#6366f1" }}>
+                        <div className="biq-pinfo-cap-icon">
+                          <Briefcase size={14} />
+                        </div>
+                        <div className="biq-pinfo-cap-body">
+                          <span className="biq-pinfo-cap-title">Scope &amp; deliverables</span>
+                          <span className="biq-pinfo-cap-text">
+                            Clear breakdown of what's being built, written in client-ready language.
+                          </span>
+                        </div>
+                      </div>
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#8b5cf6" }}>
+                        <div className="biq-pinfo-cap-icon">
+                          <Calendar size={14} />
+                        </div>
+                        <div className="biq-pinfo-cap-body">
+                          <span className="biq-pinfo-cap-title">Milestones &amp; timeline</span>
+                          <span className="biq-pinfo-cap-text">
+                            Phased plan with realistic dates derived from the effort baseline.
+                          </span>
+                        </div>
+                      </div>
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#10b981" }}>
+                        <div className="biq-pinfo-cap-icon">
+                          <DollarSign size={14} />
+                        </div>
+                        <div className="biq-pinfo-cap-body">
+                          <span className="biq-pinfo-cap-title">Pricing &amp; payment terms</span>
+                          <span className="biq-pinfo-cap-text">
+                            Quote with payment schedule, anchored to the chosen duration and cost.
+                          </span>
+                        </div>
+                      </div>
+                      <div className="biq-pinfo-cap" style={{ ["--cap-accent" as any]: "#f59e0b" }}>
+                        <div className="biq-pinfo-cap-icon">
+                          <FileText size={14} />
+                        </div>
+                        <div className="biq-pinfo-cap-body">
+                          <span className="biq-pinfo-cap-title">Personalized pitch</span>
+                          <span className="biq-pinfo-cap-text">
+                            Tailored intro that speaks to this client's signals and the job context.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Step 2 — Choose terms */}
+                  <div className="biq-pinfo-options">
+                    <div className="biq-pinfo-caps-head">Choose how to anchor the proposal</div>
+                    <div className="biq-opt-grid">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOption("client")}
+                        className={`biq-opt-card ${selectedOption === "client" ? "is-selected" : ""}`}
+                        disabled={generatingProposal}
+                      >
+                        <div className="biq-opt-card-head">
+                          <span className="biq-opt-tag biq-opt-tag-client">
+                            <Users size={10} /> Client&apos;s terms
+                          </span>
+                          {selectedOption === "client" && (
+                            <span className="biq-opt-check">
+                              <CheckCircle2 size={14} />
+                            </span>
+                          )}
+                        </div>
+                        <div className="biq-opt-name">As client posted</div>
+                        <div className="biq-opt-rows">
+                          <div className="biq-opt-row">
+                            <span className="biq-opt-row-l">
+                              <Clock size={11} /> Duration
+                            </span>
+                            <span className="biq-opt-row-v">{selectedProposalLead.duration || "Not specified"}</span>
+                          </div>
+                          <div className="biq-opt-row">
+                            <span className="biq-opt-row-l">
+                              <DollarSign size={11} /> Cost
+                            </span>
+                            <span className="biq-opt-row-v">
+                              {selectedProposalLead.budget ? `$${clientBudgetNum.toLocaleString()}` : "Not specified"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="biq-opt-foot">Match the client&apos;s expectations exactly.</div>
+                      </button>
+
+                      <div
+                        className={`biq-opt-card ${selectedOption === "custom" ? "is-selected" : ""}`}
+                        onClick={() => !generatingProposal && setSelectedOption("custom")}
+                      >
+                        <div className="biq-opt-card-head">
+                          <span className="biq-opt-tag biq-opt-tag-custom">
+                            <Sparkles size={10} /> Your plan
+                          </span>
+                          {selectedOption === "custom" && (
+                            <span className="biq-opt-check">
+                              <CheckCircle2 size={14} />
+                            </span>
+                          )}
+                        </div>
+                        <div className="biq-opt-name">Set your own terms</div>
+                        <div className="biq-opt-fields">
+                          <div className="biq-opt-field">
+                            <label>Project window</label>
+                            <DatePicker.RangePicker
+                              style={{ width: "100%", borderRadius: 8 }}
+                              value={customDates as any}
+                              onChange={(dates) => setCustomDates(dates as any)}
+                              disabled={generatingProposal}
+                              onClick={(e) => { e.stopPropagation(); setSelectedOption("custom"); }}
+                            />
+                            {customDays > 0 && (
+                              <div className="biq-opt-hint">
+                                ≈ {customDays} day{customDays !== 1 ? "s" : ""} ({Math.round(customDays / 7)}w)
+                              </div>
+                            )}
+                          </div>
+                          <div className="biq-opt-field">
+                            <label>Your cost (USD)</label>
+                            <InputNumber
+                              style={{ width: "100%", borderRadius: 8 }}
+                              min={0}
+                              value={customCost as any}
+                              onChange={(v) => setCustomCost(v as any)}
+                              placeholder="e.g. 4500"
+                              formatter={(value) => (value ? `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : "")}
+                              parser={(value) => Number((value || "").replace(/\$\s?|,/g, "")) as any}
+                              disabled={generatingProposal}
+                              onClick={(e) => { e.stopPropagation(); setSelectedOption("custom"); }}
+                            />
+                          </div>
+                        </div>
+                        <div className="biq-opt-foot">Override with your scope-driven plan.</div>
+                      </div>
+                    </div>
+
+                    {selectedOption && (
+                      <div className="biq-opt-note">
+                        <Info size={12} />
+                        <span>
+                          <b>Note:</b> The proposal will be created based on the {selectedOption === "client" ? "client's posted" : "values you've entered"} duration and cost. AI will use these as constraints when shaping scope, deliverables, and milestones.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Footer — swaps actions per step */}
+              <div className="biq-pinfo-footer">
+                <span className="biq-pinfo-footnote">
+                  <ShieldCheck size={12} />
+                  {proposalStep === 0
+                    ? "Editable end-to-end in the proposal builder."
+                    : "AI will use these as constraints for scope and milestones."}
+                </span>
+                <div className="biq-pinfo-footer-actions">
+                  {proposalStep === 0 ? (
+                    <>
+                      <Button onClick={closeProposalFlow} className="biq-secondary-btn">
+                        Cancel
+                      </Button>
+                      <Button
+                        type="primary"
+                        onClick={goToOptionStep}
+                        className="biq-primary-btn"
+                        icon={<Sparkles size={13} />}
+                      >
+                        Continue
+                        <ArrowUpRight size={13} />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => setProposalStep(0)}
+                        className="biq-secondary-btn"
+                        disabled={generatingProposal}
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        type="primary"
+                        loading={generatingProposal}
+                        disabled={!selectedOption || (selectedOption === "custom" && !customValid)}
+                        onClick={handleConfirmGenerate}
+                        className="biq-primary-btn"
+                        icon={!generatingProposal ? <Sparkles size={13} /> : undefined}
+                      >
+                        {generatingProposal ? "Generating proposal…" : "Create proposal"}
+                        {!generatingProposal && <ArrowUpRight size={13} />}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal>
+
         {/* Lead Form Drawer */}
         <Drawer
           title={
@@ -2978,29 +3452,29 @@ export default function LeadsPage() {
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <Button onClick={() => setIsDrawerVisible(false)} style={{ borderRadius: 10, height: 40, fontWeight: 600, padding: "0 18px" }} className="premium-btn-cancel">Cancel</Button>
-                  {((editingKey && canUpdateLead) || (!editingKey && canCreateLead)) && (
-                    <Button
-                      type="primary"
-                      loading={loading}
-                      onClick={() => form.submit()}
-                      className="lead-drawer-submit"
-                      style={{
-                        borderRadius: 10,
-                        height: 40,
-                        padding: "0 22px",
-                        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                        border: "none",
-                        fontWeight: 700,
-                        boxShadow: "0 6px 16px -4px rgba(99, 102, 241, 0.45)",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      {editingKey ? "Update Lead" : "Create Lead"}
-                      <ArrowUpRight size={15} />
-                    </Button>
-                  )}
+                {((editingKey && canUpdateLead) || (!editingKey && canCreateLead)) && (
+                  <Button
+                    type="primary"
+                    loading={loading}
+                    onClick={() => form.submit()}
+                    className="lead-drawer-submit"
+                    style={{
+                      borderRadius: 10,
+                      height: 40,
+                      padding: "0 22px",
+                      background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                      border: "none",
+                      fontWeight: 700,
+                      boxShadow: "0 6px 16px -4px rgba(99, 102, 241, 0.45)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    {editingKey ? "Update Lead" : "Create Lead"}
+                    <ArrowUpRight size={15} />
+                  </Button>
+                )}
               </div>
             </div>
           }
@@ -3048,310 +3522,310 @@ export default function LeadsPage() {
               <WebsiteLeadFields configStatuses={configStatuses} />
             ) : (
               <>
-            {/* Client Details Section */}
-            <div className="premium-drawer-section lead-section-card" style={{
-              marginBottom: 20,
-              padding: '20px',
-              borderRadius: '16px',
-              border: '1px solid var(--border-slate-100)'
-            }}>
-              <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                <span className="lead-section-step" style={{
-                  width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  background: "rgba(99, 102, 241, 0.08)", color: "#6366f1",
-                  border: "1px solid rgba(99, 102, 241, 0.18)",
-                }}>01</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <User size={15} color="#6366f1" />
-                    <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Client Information</span>
+                {/* Client Details Section */}
+                <div className="premium-drawer-section lead-section-card" style={{
+                  marginBottom: 20,
+                  padding: '20px',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-slate-100)'
+                }}>
+                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                    <span className="lead-section-step" style={{
+                      width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(99, 102, 241, 0.08)", color: "#6366f1",
+                      border: "1px solid rgba(99, 102, 241, 0.18)",
+                    }}>01</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <User size={15} color="#6366f1" />
+                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Client Information</span>
+                      </div>
+                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Who you're pitching — contact, location, and trust signals</Text>
+                    </div>
                   </div>
-                  <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Who you're pitching — contact, location, and trust signals</Text>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }]}>
+                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]}>
+                        <Input placeholder="john@example.com" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="clientPhone" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Number</Text>}>
+                        <Input placeholder="+1 234..." style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>}>
+                        <Input placeholder="City, Country" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>}>
+                        <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>}>
+                        <Input placeholder="e.g. $10k+" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="clientPaymentVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Payment Verified</Text>}>
+                        <Select className="lead-verified-select" style={{ borderRadius: 8 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
+                          <Select.Option value={true}>
+                            <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
+                          </Select.Option>
+                          <Select.Option value={false}>
+                            <Space size={6}><AlertCircle size={13} style={{ color: "#94a3b8" }} /> <span style={{ fontWeight: 600 }}>Not Verified</span></Space>
+                          </Select.Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="clientPhoneVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Verified</Text>}>
+                        <Select className="lead-verified-select" style={{ borderRadius: 8 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
+                          <Select.Option value={true}>
+                            <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
+                          </Select.Option>
+                          <Select.Option value={false}>
+                            <Space size={6}><AlertCircle size={13} style={{ color: "#94a3b8" }} /> <span style={{ fontWeight: 600 }}>Not Verified</span></Space>
+                          </Select.Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
                 </div>
-              </div>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }]}>
-                    <Input placeholder="e.g. John Doe" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]}>
-                    <Input placeholder="john@example.com" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="clientPhone" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Number</Text>}>
-                    <Input placeholder="+1 234..." style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>}>
-                    <Input placeholder="City, Country" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>}>
-                    <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>}>
-                    <Input placeholder="e.g. $10k+" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="clientPaymentVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Payment Verified</Text>}>
-                    <Select className="lead-verified-select" style={{ borderRadius: 8 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
-                      <Select.Option value={true}>
-                        <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
-                      </Select.Option>
-                      <Select.Option value={false}>
-                        <Space size={6}><AlertCircle size={13} style={{ color: "#94a3b8" }} /> <span style={{ fontWeight: 600 }}>Not Verified</span></Space>
-                      </Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="clientPhoneVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Verified</Text>}>
-                    <Select className="lead-verified-select" style={{ borderRadius: 8 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
-                      <Select.Option value={true}>
-                        <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
-                      </Select.Option>
-                      <Select.Option value={false}>
-                        <Space size={6}><AlertCircle size={13} style={{ color: "#94a3b8" }} /> <span style={{ fontWeight: 600 }}>Not Verified</span></Space>
-                      </Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
 
-            {/* Job Details Section */}
-            <div className="premium-drawer-section-alt lead-section-card" style={{
-              marginBottom: 20,
-              padding: '20px',
-              borderRadius: '16px',
-              border: '1px solid var(--border-slate-100)'
-            }}>
-              <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                <span className="lead-section-step" style={{
-                  width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  background: "rgba(245, 158, 11, 0.08)", color: "#f59e0b",
-                  border: "1px solid rgba(245, 158, 11, 0.2)",
-                }}>02</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Briefcase size={15} color="#f59e0b" />
-                    <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Job Specification</span>
+                {/* Job Details Section */}
+                <div className="premium-drawer-section-alt lead-section-card" style={{
+                  marginBottom: 20,
+                  padding: '20px',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-slate-100)'
+                }}>
+                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                    <span className="lead-section-step" style={{
+                      width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(245, 158, 11, 0.08)", color: "#f59e0b",
+                      border: "1px solid rgba(245, 158, 11, 0.2)",
+                    }}>02</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Briefcase size={15} color="#f59e0b" />
+                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Job Specification</span>
+                      </div>
+                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Scope, skills, and budget — what success looks like</Text>
+                    </div>
                   </div>
-                  <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Scope, skills, and budget — what success looks like</Text>
+                  <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }]}>
+                    <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 8 }} />
+                  </Form.Item>
+                  <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>}>
+                    <TextArea
+                      rows={4}
+                      placeholder="Enter the full job description or client request..."
+                      style={{ borderRadius: 8 }}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    name="ai_summary"
+                    label={
+                      <Space size={6}>
+                        <span className="lead-ai-chip" style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "2px 8px", borderRadius: 999,
+                          background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12))",
+                          color: "#6366f1", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em",
+                          textTransform: "uppercase", border: "1px solid rgba(99,102,241,0.25)",
+                        }}>
+                          <Sparkles size={10} /> AI
+                        </span>
+                        <Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Intelligence Summary</Text>
+                      </Space>
+                    }
+                  >
+                    <TextArea
+                      rows={4}
+                      placeholder="Paste the job description or key notes — AI will distill this into actionable insights..."
+                      className="lead-ai-textarea"
+                      style={{
+                        borderRadius: 12,
+                        background: "linear-gradient(135deg, rgba(99,102,241,0.03) 0%, rgba(139,92,246,0.03) 100%)",
+                        border: "1px solid rgba(99, 102, 241, 0.18)",
+                      }}
+                    />
+                  </Form.Item>
+                  <Row gutter={16}>
+                    <Col span={24}>
+                      <Form.Item name="skills" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Required Skills</Text>}>
+                        <Select mode="tags" style={{ width: '100%' }} placeholder="Add skills..." tokenSeparators={[',']} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={8}>
+                      <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>}>
+                        <Input placeholder="e.g. 3 Months" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>}>
+                        <InputNumber style={{ width: '100%', borderRadius: 8 }} min={0} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>}>
+                        <Input placeholder="e.g. 5000" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>}>
+                        <Input placeholder="Fixed/Hourly" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
                 </div>
-              </div>
-              <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }]}>
-                <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 8 }} />
-              </Form.Item>
-              <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>}>
-                <TextArea
-                  rows={4}
-                  placeholder="Enter the full job description or client request..."
-                  style={{ borderRadius: 8 }}
-                />
-              </Form.Item>
-              <Form.Item
-                name="ai_summary"
-                label={
-                  <Space size={6}>
-                    <span className="lead-ai-chip" style={{
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                      padding: "2px 8px", borderRadius: 999,
-                      background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12))",
-                      color: "#6366f1", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em",
-                      textTransform: "uppercase", border: "1px solid rgba(99,102,241,0.25)",
-                    }}>
-                      <Sparkles size={10} /> AI
-                    </span>
-                    <Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Intelligence Summary</Text>
-                  </Space>
-                }
-              >
-                <TextArea
-                  rows={4}
-                  placeholder="Paste the job description or key notes — AI will distill this into actionable insights..."
-                  className="lead-ai-textarea"
-                  style={{
-                    borderRadius: 12,
-                    background: "linear-gradient(135deg, rgba(99,102,241,0.03) 0%, rgba(139,92,246,0.03) 100%)",
-                    border: "1px solid rgba(99, 102, 241, 0.18)",
-                  }}
-                />
-              </Form.Item>
-              <Row gutter={16}>
-                <Col span={24}>
-                  <Form.Item name="skills" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Required Skills</Text>}>
-                    <Select mode="tags" style={{ width: '100%' }} placeholder="Add skills..." tokenSeparators={[',']} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>}>
-                    <Input placeholder="e.g. 3 Months" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={6}>
-                  <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>}>
-                    <InputNumber style={{ width: '100%', borderRadius: 8 }} min={0} />
-                  </Form.Item>
-                </Col>
-                <Col span={6}>
-                  <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>}>
-                    <Input placeholder="e.g. 5000" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={6}>
-                  <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>}>
-                    <Input placeholder="Fixed/Hourly" style={{ borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
 
-            {/* Timeline & Meta Section */}
-            <div className="premium-drawer-section lead-section-card" style={{
-              marginBottom: 20,
-              padding: '20px',
-              borderRadius: '16px',
-              border: '1px solid var(--border-slate-100)'
-            }}>
-              <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                <span className="lead-section-step" style={{
-                  width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  background: "rgba(16, 185, 129, 0.08)", color: "#10b981",
-                  border: "1px solid rgba(16, 185, 129, 0.2)",
-                }}>03</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <LinkIcon size={15} color="#10b981" />
-                    <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Platform & Status</span>
+                {/* Timeline & Meta Section */}
+                <div className="premium-drawer-section lead-section-card" style={{
+                  marginBottom: 20,
+                  padding: '20px',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-slate-100)'
+                }}>
+                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                    <span className="lead-section-step" style={{
+                      width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(16, 185, 129, 0.08)", color: "#10b981",
+                      border: "1px solid rgba(16, 185, 129, 0.2)",
+                    }}>03</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <LinkIcon size={15} color="#10b981" />
+                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Platform & Status</span>
+                      </div>
+                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Where this came from and where it sits in your pipeline</Text>
+                    </div>
                   </div>
-                  <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Where this came from and where it sits in your pipeline</Text>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="platform" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Platform</Text>} initialValue="Upwork">
+                        <Select placeholder="Select Platform" style={{ borderRadius: 8 }}>
+                          <Select.Option value="Upwork">Upwork</Select.Option>
+                          <Select.Option value="LinkedIn">LinkedIn</Select.Option>
+                          <Select.Option value="Freelancer">Freelancer</Select.Option>
+                          <Select.Option value="Fiverr">Fiverr</Select.Option>
+                          <Select.Option value="Website">Website</Select.Option>
+                          <Select.Option value="Other">Other</Select.Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="status" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Current Status</Text>}>
+                        <Select placeholder="Select Status" style={{ borderRadius: 8 }}>
+                          {configStatuses.map(s => (
+                            <Select.Option key={s.id} value={s.name}>
+                              <Space>
+                                <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
+                                {s.name}
+                              </Space>
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>}>
+                    <Input placeholder="https://..." style={{ borderRadius: 8 }} />
+                  </Form.Item>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="postedOn" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Posted On</Text>} initialValue={dayjs()}>
+                        <DatePicker style={{ width: '100%', borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="actions" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Next Action Items</Text>}>
+                        <Select placeholder="Select Action" allowClear style={{ borderRadius: 8 }}>
+                          {configActions.map(a => (
+                            <Select.Option key={a.id} value={a.name}>
+                              <Space>
+                                {renderActionIcon(a.icon)}
+                                <span style={{ color: a.color }}>{a.name}</span>
+                              </Space>
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
                 </div>
-              </div>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="platform" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Platform</Text>} initialValue="Upwork">
-                    <Select placeholder="Select Platform" style={{ borderRadius: 8 }}>
-                      <Select.Option value="Upwork">Upwork</Select.Option>
-                      <Select.Option value="LinkedIn">LinkedIn</Select.Option>
-                      <Select.Option value="Freelancer">Freelancer</Select.Option>
-                      <Select.Option value="Fiverr">Fiverr</Select.Option>
-                      <Select.Option value="Website">Website</Select.Option>
-                      <Select.Option value="Other">Other</Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="status" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Current Status</Text>}>
-                    <Select placeholder="Select Status" style={{ borderRadius: 8 }}>
-                      {configStatuses.map(s => (
-                        <Select.Option key={s.id} value={s.name}>
-                          <Space>
-                            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
-                            {s.name}
-                          </Space>
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>}>
-                <Input placeholder="https://..." style={{ borderRadius: 8 }} />
-              </Form.Item>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="postedOn" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Posted On</Text>} initialValue={dayjs()}>
-                    <DatePicker style={{ width: '100%', borderRadius: 8 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="actions" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Next Action Items</Text>}>
-                    <Select placeholder="Select Action" allowClear style={{ borderRadius: 8 }}>
-                      {configActions.map(a => (
-                        <Select.Option key={a.id} value={a.name}>
-                          <Space>
-                            {renderActionIcon(a.icon)}
-                            <span style={{ color: a.color }}>{a.name}</span>
-                          </Space>
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
 
-            {/* Documents Section */}
-            <div className="premium-drawer-section-alt lead-section-card" style={{
-              padding: '20px',
-              borderRadius: '16px',
-              border: '1px solid var(--border-slate-100)'
-            }}>
-              <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                <span className="lead-section-step" style={{
-                  width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  background: "rgba(236, 72, 153, 0.08)", color: "#ec4899",
-                  border: "1px solid rgba(236, 72, 153, 0.2)",
-                }}>04</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <FileText size={15} color="#ec4899" />
-                    <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Supporting Documents</span>
-                    <span style={{
-                      padding: "1px 7px", borderRadius: 999, background: "#f1f5f9",
-                      color: "#64748b", fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
-                      textTransform: "uppercase",
-                    }}>Optional</span>
+                {/* Documents Section */}
+                <div className="premium-drawer-section-alt lead-section-card" style={{
+                  padding: '20px',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-slate-100)'
+                }}>
+                  <div className="lead-section-head" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                    <span className="lead-section-step" style={{
+                      width: 30, height: 30, borderRadius: 9, fontWeight: 800, fontSize: 12,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(236, 72, 153, 0.08)", color: "#ec4899",
+                      border: "1px solid rgba(236, 72, 153, 0.2)",
+                    }}>04</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <FileText size={15} color="#ec4899" />
+                        <span className="premium-section-title" style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Supporting Documents</span>
+                        <span style={{
+                          padding: "1px 7px", borderRadius: 999, background: "#f1f5f9",
+                          color: "#64748b", fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
+                          textTransform: "uppercase",
+                        }}>Optional</span>
+                      </div>
+                      <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Briefs, mockups, or contract drafts shared by the client</Text>
+                    </div>
                   </div>
-                  <Text className="premium-text-sec" style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Briefs, mockups, or contract drafts shared by the client</Text>
+                  <Form.List name="documents">
+                    {(fields, { add, remove }) => (
+                      <>
+                        {fields.map((field) => (
+                          <DocumentRow
+                            key={field.key}
+                            field={field}
+                            remove={remove}
+                            handleFileUpload={handleFileUpload}
+                            messageApi={messageApi}
+                          />
+                        ))}
+                        <Button
+                          type="dashed"
+                          onClick={() => add({ type: 'file' })}
+                          block
+                          icon={<PlusCircle size={16} />}
+                          className="doc-add-btn"
+                        >
+                          Add Supporting Document
+                        </Button>
+                      </>
+                    )}
+                  </Form.List>
                 </div>
-              </div>
-              <Form.List name="documents">
-                {(fields, { add, remove }) => (
-                  <>
-                    {fields.map((field) => (
-                      <DocumentRow 
-                        key={field.key} 
-                        field={field} 
-                        remove={remove} 
-                        handleFileUpload={handleFileUpload}
-                        messageApi={messageApi}
-                      />
-                    ))}
-                    <Button 
-                      type="dashed" 
-                      onClick={() => add({ type: 'file' })} 
-                      block 
-                      icon={<PlusCircle size={16} />} 
-                      className="doc-add-btn"
-                    >
-                      Add Supporting Document
-                    </Button>
-                  </>
-                )}
-              </Form.List>
-            </div>
               </>
             )}
           </Form>
@@ -3433,13 +3907,13 @@ export default function LeadsPage() {
               mode="left"
               items={timelineData.map((item: any) => {
                 const actionMeta: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-                  CREATED_LEAD:    { label: 'Lead Created',      color: '#6366f1', icon: <Layers size={13} /> },
-                  UPDATED_LEAD:    { label: 'Lead Updated',      color: '#f59e0b', icon: <FileEdit size={13} /> },
-                  CREATED_BIDIQ:   { label: 'BidIQ Analyzed',   color: '#8b5cf6', icon: <Zap size={13} /> },
-                  CREATED_PROPOSAL:{ label: 'Proposal Created',  color: '#10b981', icon: <FileText size={13} /> },
-                  CLIENT_CREATED:  { label: 'Client Created',    color: '#3b82f6', icon: <UserPlus size={13} /> },
-                  PROJECT_CREATED: { label: 'Project Created',   color: '#06b6d4', icon: <FolderPlus size={13} /> },
-                  MAIL_SENT:       { label: 'Email Sent',        color: '#ec4899', icon: <Send size={13} /> },
+                  CREATED_LEAD: { label: 'Lead Created', color: '#6366f1', icon: <Layers size={13} /> },
+                  UPDATED_LEAD: { label: 'Lead Updated', color: '#f59e0b', icon: <FileEdit size={13} /> },
+                  CREATED_BIDIQ: { label: 'BidIQ Analyzed', color: '#8b5cf6', icon: <Zap size={13} /> },
+                  CREATED_PROPOSAL: { label: 'Proposal Created', color: '#10b981', icon: <FileText size={13} /> },
+                  CLIENT_CREATED: { label: 'Client Created', color: '#3b82f6', icon: <UserPlus size={13} /> },
+                  PROJECT_CREATED: { label: 'Project Created', color: '#06b6d4', icon: <FolderPlus size={13} /> },
+                  MAIL_SENT: { label: 'Email Sent', color: '#ec4899', icon: <Send size={13} /> },
                 };
                 const meta = actionMeta[item.action] || { label: item.action, color: '#94a3b8', icon: <Activity size={13} /> };
                 const user = item.performedByUser;
@@ -3497,7 +3971,7 @@ export default function LeadsPage() {
             /* ====================================================== */
             .lm-page {
               position: relative;
-              margin: 0;
+              margin: 0 -8px;
               background: var(--bg-primary);
               min-height: calc(100vh - 64px);
             }
@@ -3535,35 +4009,20 @@ export default function LeadsPage() {
             }
             .lm-main {
               min-width: 0;
-              padding: 18px 24px 40px 18px;
+              padding: 10px 10px 40px 10px;
             }
             @media (max-width: 1100px) {
               .lm-shell {
                 grid-template-columns: 216px minmax(0, 1fr);
               }
               .lm-main {
-                padding: 16px 16px 32px 14px;
-              }
-            }
-            @media (max-width: 820px) {
-              .lm-shell {
-                grid-template-columns: 1fr;
-              }
-              .lm-sidebar {
-                position: static;
-                height: auto;
-                max-height: none;
-                border-right: 0;
-                border-bottom: 1px solid var(--border-slate-100);
-              }
-              .lm-main {
-                padding: 16px;
+                padding: 10px 16px 32px 14px;
               }
             }
 
             .lm-sidebar {
               position: sticky;
-              top: 65px;
+              top: 56px;
               align-self: start;
               display: flex;
               flex-direction: column;
@@ -3571,15 +4030,14 @@ export default function LeadsPage() {
               padding: 8px 10px 16px 10px;
               background: var(--bg-secondary);
               border-right: 1px solid var(--border-slate-100);
-              border-top: 1px solid var(--border-slate-200);
-              height: calc(100vh - 64px - 65px);
+              height: calc(100vh - 64px - 56px);
               overflow-y: auto;
-              margin-top: -1px;
+              margin-top: 0;
+              -ms-overflow-style: none;
+              scrollbar-width: none;
             }
-            .lm-sidebar::-webkit-scrollbar { width: 6px; }
-            .lm-sidebar::-webkit-scrollbar-thumb {
-              background: var(--border-slate-100);
-              border-radius: 999px;
+            .lm-sidebar::-webkit-scrollbar {
+              display: none;
             }
 
             .lm-side-section {
@@ -5642,10 +6100,462 @@ export default function LeadsPage() {
               background: rgba(99, 102, 241, 0.1) !important;
               border-color: rgba(99, 102, 241, 0.3) !important;
             }
-            [data-theme='dark'] .premium-input {
+             [data-theme='dark'] .premium-input {
               background: #0d1117 !important;
               border-color: #30363d !important;
               color: #c9d1d9 !important;
+            }
+
+            @media (max-width: 820px) {
+              .lm-shell {
+                grid-template-columns: 1fr;
+              }
+              .lm-sidebar {
+                position: sticky;
+                top: 56px;
+                z-index: 90;
+                height: auto;
+                max-height: none;
+                border-right: 0;
+                border-bottom: 1px solid var(--border-slate-100);
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 12px 16px;
+                background: var(--bg-secondary);
+                overflow: hidden;
+                margin-top: 0;
+                width: 100%;
+                box-sizing: border-box;
+              }
+              .lm-side-section {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 8px;
+                padding-top: 0;
+                margin-top: 0;
+                border-top: none;
+                overflow-x: auto;
+                overflow-y: hidden;
+                white-space: nowrap;
+                width: 100%;
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+              }
+              .lm-side-section::-webkit-scrollbar {
+                display: none;
+              }
+              .lm-side-heading {
+                padding: 0 4px;
+                font-size: 10px;
+                color: var(--text-slate-400);
+                margin: 0;
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                white-space: nowrap;
+                flex-shrink: 0;
+              }
+              .lm-side-heading-count {
+                display: none;
+              }
+              .lm-side-row {
+                width: auto !important;
+                flex-shrink: 0;
+                margin: 0 !important;
+                height: 32px;
+                padding: 0 10px;
+              }
+              .lm-main {
+                padding: 10px 16px 16px 16px;
+              }
+            }
+
+            /* ===================== Pre-flight Proposal Info Modal ===================== */
+            .biq-pinfo-modal .ant-modal-content {
+              padding: 0 !important;
+              border-radius: 16px !important;
+              border: 1px solid var(--border-slate-100);
+              overflow: hidden;
+              background: var(--bg-pure-white);
+              box-shadow: none !important;
+            }
+            .biq-pinfo-modal .ant-modal-body { padding: 0 !important; }
+
+            .biq-pinfo-content { display: flex; flex-direction: column; }
+
+            .biq-pinfo-head {
+              display: flex; align-items: flex-start;
+              gap: 14px;
+              padding: 22px 24px 18px;
+              position: relative;
+              border-bottom: 1px solid var(--border-slate-100);
+            }
+            .biq-pinfo-icon {
+              width: 44px; height: 44px;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+              color: #fff;
+              display: flex; align-items: center; justify-content: center;
+              flex-shrink: 0;
+            }
+            .biq-pinfo-head-text { flex: 1; min-width: 0; padding-right: 40px; }
+            .biq-pinfo-eyebrow {
+              display: inline-flex; align-items: center; gap: 5px;
+              padding: 3px 8px;
+              border-radius: 999px;
+              background: rgba(99, 102, 241, 0.08);
+              color: #4f46e5;
+              font-size: 10px;
+              font-weight: 800;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              border: 1px solid rgba(99, 102, 241, 0.2);
+              margin-bottom: 8px;
+            }
+            .biq-pinfo-title {
+              margin: 0 0 4px;
+              font-size: 18px;
+              font-weight: 800;
+              color: var(--text-slate-900);
+              letter-spacing: -0.015em;
+            }
+            .biq-pinfo-sub {
+              margin: 0;
+              font-size: 12.5px;
+              color: var(--text-slate-500);
+              line-height: 1.5;
+            }
+            .biq-pinfo-close {
+              position: absolute;
+              top: 16px; right: 16px;
+              width: 30px; height: 30px;
+              border-radius: 8px;
+              border: 1px solid var(--border-slate-100);
+              background: var(--bg-pure-white);
+              color: var(--text-slate-500);
+              cursor: pointer;
+              display: flex; align-items: center; justify-content: center;
+              transition: color .15s ease, border-color .15s ease;
+            }
+            .biq-pinfo-close:hover {
+              color: var(--text-slate-900);
+              border-color: var(--border-slate-200);
+            }
+            .biq-pinfo-close:disabled {
+              opacity: 0.5;
+              cursor: not-allowed;
+            }
+
+            /* Step indicator */
+            .biq-pinfo-steps {
+              display: flex; align-items: center; gap: 8px;
+              margin-top: 10px;
+            }
+            .biq-pinfo-step {
+              display: inline-flex; align-items: center; gap: 6px;
+              font-size: 11px;
+              font-weight: 700;
+              color: var(--text-slate-400);
+              letter-spacing: 0.02em;
+              transition: color .15s ease;
+            }
+            .biq-pinfo-step-dot {
+              width: 18px; height: 18px;
+              border-radius: 999px;
+              background: var(--bg-slate-50);
+              border: 1px solid var(--border-slate-100);
+              color: var(--text-slate-500);
+              display: inline-flex; align-items: center; justify-content: center;
+              font-size: 10px;
+              font-weight: 800;
+              line-height: 1;
+            }
+            .biq-pinfo-step.is-active { color: var(--text-slate-900); }
+            .biq-pinfo-step.is-active .biq-pinfo-step-dot {
+              background: #4f46e5;
+              border-color: #4f46e5;
+              color: #fff;
+            }
+            .biq-pinfo-step.is-done { color: #047857; }
+            .biq-pinfo-step.is-done .biq-pinfo-step-dot {
+              background: rgba(16, 185, 129, 0.12);
+              border-color: rgba(16, 185, 129, 0.25);
+              color: #047857;
+            }
+            .biq-pinfo-step-sep {
+              width: 28px;
+              height: 1px;
+              background: var(--border-slate-100);
+            }
+
+            /* Options slot inside the shell */
+            .biq-pinfo-options {
+              padding: 18px 24px 0;
+            }
+            .biq-pinfo-options .biq-pinfo-caps-head {
+              margin-bottom: 12px;
+            }
+            .biq-pinfo-options .biq-opt-note {
+              margin-top: 12px;
+            }
+
+            .biq-pinfo-snapshot {
+              margin: 18px 24px 0;
+              padding: 14px 16px;
+              border: 1px solid var(--border-slate-100);
+              border-radius: 12px;
+              background: var(--bg-slate-50);
+            }
+            .biq-pinfo-snapshot-head {
+              display: inline-flex; align-items: center; gap: 5px;
+              font-size: 10px;
+              font-weight: 800;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: var(--text-slate-500);
+              margin-bottom: 8px;
+            }
+            .biq-pinfo-snapshot-title {
+              font-size: 14px;
+              font-weight: 700;
+              color: var(--text-slate-900);
+              letter-spacing: -0.005em;
+              margin-bottom: 12px;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              overflow: hidden;
+            }
+            .biq-pinfo-snapshot-grid {
+              display: grid;
+              grid-template-columns: repeat(4, minmax(0, 1fr));
+              gap: 10px 14px;
+            }
+            @media (max-width: 560px) {
+              .biq-pinfo-snapshot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            }
+            .biq-pinfo-snapshot-item {
+              display: flex; flex-direction: column; gap: 3px;
+              min-width: 0;
+            }
+            .biq-pinfo-snapshot-label {
+              display: inline-flex; align-items: center; gap: 4px;
+              font-size: 10px;
+              font-weight: 700;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              color: var(--text-slate-500);
+            }
+            .biq-pinfo-snapshot-value {
+              font-size: 13px;
+              font-weight: 700;
+              color: var(--text-slate-900);
+              letter-spacing: -0.005em;
+              font-variant-numeric: tabular-nums;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+
+            .biq-pinfo-caps { padding: 18px 24px 0; }
+            .biq-pinfo-caps-head {
+              font-size: 11px;
+              font-weight: 800;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: var(--text-slate-500);
+              margin-bottom: 12px;
+            }
+            .biq-pinfo-caps-grid {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 10px;
+            }
+            @media (max-width: 560px) {
+              .biq-pinfo-caps-grid { grid-template-columns: 1fr; }
+            }
+            .biq-pinfo-cap {
+              display: flex; align-items: flex-start; gap: 10px;
+              padding: 12px 14px;
+              border: 1px solid var(--border-slate-100);
+              border-radius: 11px;
+              background: var(--bg-pure-white);
+              transition: border-color .15s ease;
+            }
+            .biq-pinfo-cap:hover {
+              border-color: color-mix(in oklab, var(--cap-accent) 30%, var(--border-slate-100));
+            }
+            .biq-pinfo-cap-icon {
+              width: 28px; height: 28px;
+              border-radius: 8px;
+              background: color-mix(in oklab, var(--cap-accent) 12%, transparent);
+              color: var(--cap-accent);
+              display: flex; align-items: center; justify-content: center;
+              flex-shrink: 0;
+            }
+            .biq-pinfo-cap-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+            .biq-pinfo-cap-title {
+              font-size: 12.5px;
+              font-weight: 700;
+              color: var(--text-slate-900);
+              letter-spacing: -0.005em;
+            }
+            .biq-pinfo-cap-text {
+              font-size: 11.5px;
+              color: var(--text-slate-500);
+              line-height: 1.45;
+            }
+
+            .biq-pinfo-footer {
+              display: flex; align-items: center; justify-content: space-between;
+              gap: 10px;
+              padding: 18px 24px 22px;
+              margin-top: 18px;
+              border-top: 1px solid var(--border-slate-100);
+              flex-wrap: wrap;
+            }
+            .biq-pinfo-footnote {
+              display: inline-flex; align-items: center; gap: 6px;
+              font-size: 11.5px;
+              color: var(--text-slate-500);
+              font-weight: 500;
+            }
+            .biq-pinfo-footnote svg { color: #10b981; }
+            .biq-pinfo-footer-actions { display: flex; gap: 8px; }
+
+            .biq-opt-grid {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 12px;
+            }
+            @media (max-width: 640px) {
+              .biq-opt-grid { grid-template-columns: 1fr; }
+            }
+            .biq-opt-card {
+              position: relative;
+              background: var(--bg-pure-white);
+              border: 1px solid var(--border-slate-100);
+              border-radius: 12px;
+              padding: 14px;
+              text-align: left;
+              cursor: pointer;
+              transition: border-color .15s ease, background .15s ease;
+              font-family: inherit;
+              display: flex; flex-direction: column; gap: 10px;
+            }
+            .biq-opt-card:hover {
+              border-color: rgba(99, 102, 241, 0.35);
+            }
+            .biq-opt-card.is-selected {
+              border-color: #6366f1;
+              background: rgba(99, 102, 241, 0.04);
+            }
+            .biq-opt-card-head {
+              display: flex; align-items: center; justify-content: space-between;
+            }
+            .biq-opt-tag {
+              display: inline-flex; align-items: center; gap: 5px;
+              padding: 3px 9px;
+              border-radius: 999px;
+              font-size: 10px;
+              font-weight: 800;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              border: 1px solid;
+            }
+            .biq-opt-tag-client {
+              background: rgba(14, 165, 233, 0.08);
+              color: #0369a1;
+              border-color: rgba(14, 165, 233, 0.22);
+            }
+            .biq-opt-tag-custom {
+              background: rgba(139, 92, 246, 0.08);
+              color: #6d28d9;
+              border-color: rgba(139, 92, 246, 0.22);
+            }
+            .biq-opt-check { color: #4f46e5; }
+            .biq-opt-name {
+              font-size: 14px;
+              font-weight: 800;
+              color: var(--text-slate-900);
+              letter-spacing: -0.005em;
+            }
+            .biq-opt-rows {
+              display: flex; flex-direction: column; gap: 6px;
+              padding: 10px 12px;
+              background: var(--bg-slate-50);
+              border: 1px solid var(--border-slate-100);
+              border-radius: 10px;
+            }
+            .biq-opt-row {
+              display: flex; justify-content: space-between; align-items: center;
+              font-size: 12.5px;
+            }
+            .biq-opt-row-l {
+              display: inline-flex; align-items: center; gap: 4px;
+              color: var(--text-slate-500);
+              font-weight: 600;
+            }
+            .biq-opt-row-v {
+              color: var(--text-slate-900);
+              font-weight: 700;
+            }
+            .biq-opt-fields { display: flex; flex-direction: column; gap: 10px; }
+            .biq-opt-field { display: flex; flex-direction: column; gap: 5px; }
+            .biq-opt-field label {
+              font-size: 11px;
+              font-weight: 700;
+              color: var(--text-slate-500);
+              letter-spacing: 0.02em;
+            }
+            .biq-opt-hint {
+              font-size: 11px;
+              color: var(--text-slate-500);
+              margin-top: 2px;
+            }
+            .biq-opt-foot {
+              font-size: 11.5px;
+              color: var(--text-slate-500);
+            }
+            .biq-opt-note {
+              display: flex; align-items: flex-start; gap: 8px;
+              padding: 11px 13px;
+              margin-top: 14px;
+              background: rgba(99, 102, 241, 0.06);
+              border: 1px solid rgba(99, 102, 241, 0.2);
+              border-radius: 11px;
+              color: var(--text-slate-700);
+              font-size: 12px;
+              line-height: 1.5;
+            }
+            .biq-opt-note svg { color: #4f46e5; margin-top: 3px; flex-shrink: 0; }
+            .biq-opt-note b { color: var(--text-slate-900); font-weight: 700; }
+
+            .biq-modal-footer {
+              display: flex; justify-content: flex-end;
+              gap: 8px;
+              margin-top: 16px;
+              padding-top: 16px;
+              border-top: 1px solid var(--border-slate-100);
+            }
+
+            [data-theme='dark'] .biq-pinfo-modal .ant-modal-content,
+            [data-theme='dark'] .biq-opt-card,
+            [data-theme='dark'] .biq-pinfo-cap,
+            [data-theme='dark'] .biq-pinfo-close {
+              background: var(--bg-secondary) !important;
+              border-color: var(--border-slate-100) !important;
+            }
+            [data-theme='dark'] .biq-pinfo-snapshot {
+              background: var(--bg-primary);
+              border-color: var(--border-slate-100);
+            }
+            [data-theme='dark'] .biq-opt-rows {
+              background: var(--bg-primary);
+              border-color: var(--border-slate-100);
             }
           `}} />
       </MainLayout>

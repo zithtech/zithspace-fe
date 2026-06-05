@@ -123,22 +123,22 @@ const renderLetter = (letter: string) => (size: number) => (
 );
 const PLATFORM_ICONS: PlatformIconMeta[] = [
     // Online-platform brand icons
-    { key: "upwork",        label: "Upwork",         brand: "#14a800", kinds: ["online"], render: (s) => <UpworkGlyph size={s} /> },
-    { key: "linkedin",      label: "LinkedIn",       brand: "#0a66c2", kinds: ["online"], render: (s) => <Linkedin size={s} strokeWidth={2.4} /> },
-    { key: "freelancer",    label: "Freelancer",     brand: "#29b2fe", kinds: ["online"], render: (s) => <FreelancerGlyph size={s} /> },
-    { key: "fiverr",        label: "Fiverr",         brand: "#1dbf73", kinds: ["online"], render: (s) => <FiverrGlyph size={s} /> },
-    { key: "toptal",        label: "Toptal",         brand: "#204ecf", kinds: ["online"], render: renderLetter("T") },
-    { key: "guru",          label: "Guru",           brand: "#ff7a18", kinds: ["online"], render: renderLetter("G") },
-    { key: "peopleperhour", label: "PeoplePerHour",  brand: "#ff7c00", kinds: ["online"], render: renderLetter("P") },
-    { key: "hubstaff",      label: "Hubstaff",       brand: "#3aabea", kinds: ["online"], render: renderLetter("H") },
-    { key: "indeed",        label: "Indeed",         brand: "#003a9b", kinds: ["online"], render: renderLetter("I") },
+    { key: "upwork", label: "Upwork", brand: "#14a800", kinds: ["online"], render: (s) => <UpworkGlyph size={s} /> },
+    { key: "linkedin", label: "LinkedIn", brand: "#0a66c2", kinds: ["online"], render: (s) => <Linkedin size={s} strokeWidth={2.4} /> },
+    { key: "freelancer", label: "Freelancer", brand: "#29b2fe", kinds: ["online"], render: (s) => <FreelancerGlyph size={s} /> },
+    { key: "fiverr", label: "Fiverr", brand: "#1dbf73", kinds: ["online"], render: (s) => <FiverrGlyph size={s} /> },
+    { key: "toptal", label: "Toptal", brand: "#204ecf", kinds: ["online"], render: renderLetter("T") },
+    { key: "guru", label: "Guru", brand: "#ff7a18", kinds: ["online"], render: renderLetter("G") },
+    { key: "peopleperhour", label: "PeoplePerHour", brand: "#ff7c00", kinds: ["online"], render: renderLetter("P") },
+    { key: "hubstaff", label: "Hubstaff", brand: "#3aabea", kinds: ["online"], render: renderLetter("H") },
+    { key: "indeed", label: "Indeed", brand: "#003a9b", kinds: ["online"], render: renderLetter("I") },
 
     // Own-website generic icons (5 common picks for marketing sites / contact forms)
-    { key: "globe",         label: "Web presence",   brand: "#6366f1", kinds: ["website", "online"], render: (s) => <Globe size={s} strokeWidth={2.2} /> },
-    { key: "sparkles",      label: "Marketing site", brand: "#8b5cf6", kinds: ["website"],            render: (s) => <Sparkles size={s} strokeWidth={2.2} /> },
-    { key: "briefcase",     label: "Business site",  brand: "#475569", kinds: ["website", "online"], render: (s) => <Briefcase size={s} strokeWidth={2.2} /> },
-    { key: "star",          label: "Featured / SaaS", brand: "#f59e0b", kinds: ["website"],            render: (s) => <Star size={s} strokeWidth={2.2} /> },
-    { key: "zap",           label: "Launch / product", brand: "#ec4899", kinds: ["website"],          render: (s) => <Zap size={s} strokeWidth={2.2} /> },
+    { key: "globe", label: "Web presence", brand: "#6366f1", kinds: ["website", "online"], render: (s) => <Globe size={s} strokeWidth={2.2} /> },
+    { key: "sparkles", label: "Marketing site", brand: "#8b5cf6", kinds: ["website"], render: (s) => <Sparkles size={s} strokeWidth={2.2} /> },
+    { key: "briefcase", label: "Business site", brand: "#475569", kinds: ["website", "online"], render: (s) => <Briefcase size={s} strokeWidth={2.2} /> },
+    { key: "star", label: "Featured / SaaS", brand: "#f59e0b", kinds: ["website"], render: (s) => <Star size={s} strokeWidth={2.2} /> },
+    { key: "zap", label: "Launch / product", brand: "#ec4899", kinds: ["website"], render: (s) => <Zap size={s} strokeWidth={2.2} /> },
 ];
 const ICON_BY_KEY: Record<string, PlatformIconMeta> = PLATFORM_ICONS.reduce(
     (acc, i) => { acc[i.key] = i; return acc; }, {} as Record<string, PlatformIconMeta>,
@@ -160,12 +160,12 @@ const WORKFLOW_ACTION_PRESETS: ActionCategoryPreset[] = [
         category: "Communication",
         icon: "phone", color: "#3b82f6",
         types: [
-            { name: "Call Attended",  icon: "phone", color: "#10b981" },
-            { name: "Call Rejected",  icon: "close", color: "#ef4444" },
-            { name: "Call Missed",    icon: "close", color: "#f59e0b" },
+            { name: "Call Attended", icon: "phone", color: "#10b981" },
+            { name: "Call Rejected", icon: "close", color: "#ef4444" },
+            { name: "Call Missed", icon: "close", color: "#f59e0b" },
             { name: "Voicemail Left", icon: "phone", color: "#94a3b8" },
-            { name: "SMS Sent",       icon: "message", color: "#3b82f6" },
-            { name: "WhatsApp Sent",  icon: "message", color: "#25d366" },
+            { name: "SMS Sent", icon: "message", color: "#3b82f6" },
+            { name: "WhatsApp Sent", icon: "message", color: "#25d366" },
         ],
     },
     {
@@ -173,47 +173,47 @@ const WORKFLOW_ACTION_PRESETS: ActionCategoryPreset[] = [
         icon: "mail", color: "#8b5cf6",
         types: [
             { name: "Initial Outreach", icon: "send", color: "#3b82f6" },
-            { name: "Follow-up Sent",   icon: "send", color: "#8b5cf6" },
-            { name: "Reply Received",   icon: "mail", color: "#10b981" },
-            { name: "Email Opened",     icon: "mail", color: "#3b82f6" },
-            { name: "Email Bounced",    icon: "close", color: "#ef4444" },
-            { name: "Unsubscribed",     icon: "close", color: "#94a3b8" },
+            { name: "Follow-up Sent", icon: "send", color: "#8b5cf6" },
+            { name: "Reply Received", icon: "mail", color: "#10b981" },
+            { name: "Email Opened", icon: "mail", color: "#3b82f6" },
+            { name: "Email Bounced", icon: "close", color: "#ef4444" },
+            { name: "Unsubscribed", icon: "close", color: "#94a3b8" },
         ],
     },
     {
         category: "Meetings",
         icon: "calendar", color: "#10b981",
         types: [
-            { name: "Discovery Call Scheduled", icon: "phone",    color: "#3b82f6" },
-            { name: "Demo Scheduled",           icon: "calendar", color: "#8b5cf6" },
-            { name: "Demo Completed",           icon: "check",    color: "#10b981" },
-            { name: "No-show",                  icon: "close",    color: "#f59e0b" },
-            { name: "Rescheduled",              icon: "clock",    color: "#f59e0b" },
-            { name: "Internal Sync",            icon: "team",     color: "#06b6d4" },
+            { name: "Discovery Call Scheduled", icon: "phone", color: "#3b82f6" },
+            { name: "Demo Scheduled", icon: "calendar", color: "#8b5cf6" },
+            { name: "Demo Completed", icon: "check", color: "#10b981" },
+            { name: "No-show", icon: "close", color: "#f59e0b" },
+            { name: "Rescheduled", icon: "clock", color: "#f59e0b" },
+            { name: "Internal Sync", icon: "team", color: "#06b6d4" },
         ],
     },
     {
         category: "Documentation",
         icon: "file", color: "#f59e0b",
         types: [
-            { name: "Proposal Sent",          icon: "send", color: "#6366f1" },
-            { name: "Contract Sent",          icon: "file", color: "#f59e0b" },
-            { name: "NDA Signed",             icon: "check", color: "#10b981" },
-            { name: "Quote Generated",        icon: "file", color: "#06b6d4" },
-            { name: "Invoice Sent",           icon: "send", color: "#10b981" },
-            { name: "Onboarding Doc Shared",  icon: "link", color: "#3b82f6" },
+            { name: "Proposal Sent", icon: "send", color: "#6366f1" },
+            { name: "Contract Sent", icon: "file", color: "#f59e0b" },
+            { name: "NDA Signed", icon: "check", color: "#10b981" },
+            { name: "Quote Generated", icon: "file", color: "#06b6d4" },
+            { name: "Invoice Sent", icon: "send", color: "#10b981" },
+            { name: "Onboarding Doc Shared", icon: "link", color: "#3b82f6" },
         ],
     },
     {
         category: "Pipeline",
         icon: "send", color: "#ec4899",
         types: [
-            { name: "Stage Advanced", icon: "send",  color: "#10b981" },
-            { name: "Stage Reverted", icon: "link",  color: "#f59e0b" },
-            { name: "Marked as Won",  icon: "check", color: "#10b981" },
+            { name: "Stage Advanced", icon: "send", color: "#10b981" },
+            { name: "Stage Reverted", icon: "link", color: "#f59e0b" },
+            { name: "Marked as Won", icon: "check", color: "#10b981" },
             { name: "Marked as Lost", icon: "close", color: "#ef4444" },
-            { name: "Disqualified",   icon: "close", color: "#94a3b8" },
-            { name: "Reactivated",    icon: "check", color: "#3b82f6" },
+            { name: "Disqualified", icon: "close", color: "#94a3b8" },
+            { name: "Reactivated", icon: "check", color: "#3b82f6" },
         ],
     },
     {
@@ -221,20 +221,20 @@ const WORKFLOW_ACTION_PRESETS: ActionCategoryPreset[] = [
         icon: "user", color: "#06b6d4",
         types: [
             { name: "LinkedIn Profile Reviewed", icon: "user", color: "#0a66c2" },
-            { name: "Company Website Checked",   icon: "link", color: "#3b82f6" },
-            { name: "Competitor Analysis",       icon: "user", color: "#8b5cf6" },
-            { name: "Persona Mapped",            icon: "team", color: "#06b6d4" },
-            { name: "BANT Qualification",        icon: "check", color: "#10b981" },
+            { name: "Company Website Checked", icon: "link", color: "#3b82f6" },
+            { name: "Competitor Analysis", icon: "user", color: "#8b5cf6" },
+            { name: "Persona Mapped", icon: "team", color: "#06b6d4" },
+            { name: "BANT Qualification", icon: "check", color: "#10b981" },
         ],
     },
     {
         category: "Notes",
         icon: "message", color: "#64748b",
         types: [
-            { name: "Internal Note Added",       icon: "message", color: "#64748b" },
-            { name: "Decision Logged",           icon: "check",   color: "#10b981" },
-            { name: "Risk Flagged",              icon: "close",   color: "#ef4444" },
-            { name: "Follow-up Reminder Set",    icon: "clock",   color: "#f59e0b" },
+            { name: "Internal Note Added", icon: "message", color: "#64748b" },
+            { name: "Decision Logged", icon: "check", color: "#10b981" },
+            { name: "Risk Flagged", icon: "close", color: "#ef4444" },
+            { name: "Follow-up Reminder Set", icon: "clock", color: "#f59e0b" },
         ],
     },
 ];
@@ -247,16 +247,16 @@ interface StatusIconMeta {
     render: (size: number) => React.ReactNode;
 }
 const STATUS_ICON_OPTIONS: StatusIconMeta[] = [
-    { key: "flag",        label: "Milestone",   render: (s) => <Flag        size={s} strokeWidth={2.2} /> },
-    { key: "target",      label: "Qualified",   render: (s) => <Target      size={s} strokeWidth={2.2} /> },
-    { key: "compass",     label: "Discovery",   render: (s) => <Compass     size={s} strokeWidth={2.2} /> },
-    { key: "sparkles",    label: "Opportunity", render: (s) => <Sparkles    size={s} strokeWidth={2.2} /> },
-    { key: "megaphone",   label: "Outreach",    render: (s) => <Megaphone   size={s} strokeWidth={2.2} /> },
-    { key: "handshake",   label: "Negotiation", render: (s) => <Handshake   size={s} strokeWidth={2.2} /> },
-    { key: "rocket",      label: "Launch",      render: (s) => <Rocket      size={s} strokeWidth={2.2} /> },
-    { key: "shield-check",label: "Verified",    render: (s) => <ShieldCheck size={s} strokeWidth={2.2} /> },
-    { key: "trophy",      label: "Won",         render: (s) => <Trophy      size={s} strokeWidth={2.2} /> },
-    { key: "award",       label: "Converted",   render: (s) => <Award       size={s} strokeWidth={2.2} /> },
+    { key: "flag", label: "Milestone", render: (s) => <Flag size={s} strokeWidth={2.2} /> },
+    { key: "target", label: "Qualified", render: (s) => <Target size={s} strokeWidth={2.2} /> },
+    { key: "compass", label: "Discovery", render: (s) => <Compass size={s} strokeWidth={2.2} /> },
+    { key: "sparkles", label: "Opportunity", render: (s) => <Sparkles size={s} strokeWidth={2.2} /> },
+    { key: "megaphone", label: "Outreach", render: (s) => <Megaphone size={s} strokeWidth={2.2} /> },
+    { key: "handshake", label: "Negotiation", render: (s) => <Handshake size={s} strokeWidth={2.2} /> },
+    { key: "rocket", label: "Launch", render: (s) => <Rocket size={s} strokeWidth={2.2} /> },
+    { key: "shield-check", label: "Verified", render: (s) => <ShieldCheck size={s} strokeWidth={2.2} /> },
+    { key: "trophy", label: "Won", render: (s) => <Trophy size={s} strokeWidth={2.2} /> },
+    { key: "award", label: "Converted", render: (s) => <Award size={s} strokeWidth={2.2} /> },
 ];
 const STATUS_ICON_BY_KEY: Record<string, StatusIconMeta> = STATUS_ICON_OPTIONS.reduce(
     (acc, i) => { acc[i.key] = i; return acc; }, {} as Record<string, StatusIconMeta>,
@@ -279,28 +279,28 @@ interface PipelineStatusPreset {
 }
 const PIPELINE_STATUS_PRESETS: PipelineStatusPreset[] = [
     // Top of funnel
-    { name: "Lead Captured",       category: "prospecting", color: "#94a3b8", icon: "flag" },
-    { name: "Qualified",           category: "qualifying",  color: "#3b82f6", icon: "target" },
-    { name: "Disqualified",        category: "qualifying",  color: "#94a3b8", icon: "target" },
+    { name: "Lead Captured", category: "prospecting", color: "#94a3b8", icon: "flag" },
+    { name: "Qualified", category: "qualifying", color: "#3b82f6", icon: "target" },
+    { name: "Disqualified", category: "qualifying", color: "#94a3b8", icon: "target" },
     // Assignment / outreach
-    { name: "Assigned",            category: "assignment",  color: "#6366f1", icon: "flag" },
-    { name: "Contacted",           category: "outreach",    color: "#0ea5e9", icon: "megaphone" },
-    { name: "Follow Up",           category: "outreach",    color: "#ec4899", icon: "megaphone" },
+    { name: "Assigned", category: "assignment", color: "#6366f1", icon: "flag" },
+    { name: "Contacted", category: "outreach", color: "#0ea5e9", icon: "megaphone" },
+    { name: "Follow Up", category: "outreach", color: "#ec4899", icon: "megaphone" },
     // Meetings
-    { name: "Discovery Call",      category: "meetings",    color: "#06b6d4", icon: "compass" },
-    { name: "Demo Scheduled",      category: "meetings",    color: "#8b5cf6", icon: "compass" },
-    { name: "Demo Completed",      category: "meetings",    color: "#10b981", icon: "shield-check" },
+    { name: "Discovery Call", category: "meetings", color: "#06b6d4", icon: "compass" },
+    { name: "Demo Scheduled", category: "meetings", color: "#8b5cf6", icon: "compass" },
+    { name: "Demo Completed", category: "meetings", color: "#10b981", icon: "shield-check" },
     // Proposal / negotiation
-    { name: "Proposal Draft",      category: "proposal",    color: "#f59e0b", icon: "sparkles" },
-    { name: "Proposal Sent",       category: "proposal",    color: "#8b5cf6", icon: "rocket" },
-    { name: "Negotiation",         category: "negotiation", color: "#ec4899", icon: "handshake" },
+    { name: "Proposal Draft", category: "proposal", color: "#f59e0b", icon: "sparkles" },
+    { name: "Proposal Sent", category: "proposal", color: "#8b5cf6", icon: "rocket" },
+    { name: "Negotiation", category: "negotiation", color: "#ec4899", icon: "handshake" },
     // Holding states
-    { name: "On Hold",             category: "paused",      color: "#f59e0b", icon: "flag" },
-    { name: "Nurturing",           category: "paused",      color: "#94a3b8", icon: "sparkles" },
+    { name: "On Hold", category: "paused", color: "#f59e0b", icon: "flag" },
+    { name: "Nurturing", category: "paused", color: "#94a3b8", icon: "sparkles" },
     // Terminal
-    { name: "Won",                 category: "closed_won",  color: "#10b981", icon: "trophy", isFinal: true },
-    { name: "Lost",                category: "closed_lost", color: "#ef4444", icon: "flag",   isFinal: true },
-    { name: "Converted Clients",   category: "converted",   color: "#06b6d4", icon: "award",  isFinal: true },
+    { name: "Won", category: "closed_won", color: "#10b981", icon: "trophy", isFinal: true },
+    { name: "Lost", category: "closed_lost", color: "#ef4444", icon: "flag", isFinal: true },
+    { name: "Converted Clients", category: "converted", color: "#06b6d4", icon: "award", isFinal: true },
 ];
 const STATUS_BY_NAME: Record<string, PipelineStatusPreset> = PIPELINE_STATUS_PRESETS.reduce(
     (acc, p) => { acc[p.name.toLowerCase()] = p; return acc; },
@@ -411,7 +411,7 @@ const PlatformLogoPicker: React.FC<{
                 value={mode}
                 onChange={(v) => setMode(v as "icon" | "image")}
                 options={[
-                    { value: "icon",  label: <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5 }}><Sparkles size={11} /> Built-in icon</span> },
+                    { value: "icon", label: <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5 }}><Sparkles size={11} /> Built-in icon</span> },
                     { value: "image", label: <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5 }}><ImageIcon size={11} /> Custom image</span> },
                 ]}
                 className="lset-logo-mode"
@@ -470,7 +470,7 @@ const PlatformLogoPicker: React.FC<{
 export default function LeadSettingsPage() {
     useActivitySource({ section: "WORK", module: "Leads", page: "LeadSettings" });
     const { user, isLoading } = useAuth();
-    const { 
+    const {
         canManageLeads,
         canCreateLeadSetting,
         canUpdateLeadSetting,
@@ -582,15 +582,15 @@ export default function LeadSettingsPage() {
     // Curated list of known gig platforms. Picking one auto-fills name + URL
     // (and the immutable code). "Other" drops back to a free-text name input.
     const KNOWN_ONLINE_PLATFORMS: Array<{ name: string; url: string; brand: string; iconKey: string }> = [
-        { name: "Upwork",           url: "https://www.upwork.com",        brand: "#14a800", iconKey: "upwork" },
-        { name: "LinkedIn",         url: "https://www.linkedin.com",      brand: "#0a66c2", iconKey: "linkedin" },
-        { name: "Freelancer",       url: "https://www.freelancer.com",    brand: "#29b2fe", iconKey: "freelancer" },
-        { name: "Fiverr",           url: "https://www.fiverr.com",        brand: "#1dbf73", iconKey: "fiverr" },
-        { name: "Toptal",           url: "https://www.toptal.com",        brand: "#204ecf", iconKey: "toptal" },
-        { name: "Guru",             url: "https://www.guru.com",          brand: "#ff7a18", iconKey: "guru" },
-        { name: "PeoplePerHour",    url: "https://www.peopleperhour.com", brand: "#ff7c00", iconKey: "peopleperhour" },
-        { name: "Hubstaff Talent",  url: "https://talent.hubstaff.com",   brand: "#3aabea", iconKey: "hubstaff" },
-        { name: "Indeed",           url: "https://www.indeed.com",        brand: "#003a9b", iconKey: "indeed" },
+        { name: "Upwork", url: "https://www.upwork.com", brand: "#14a800", iconKey: "upwork" },
+        { name: "LinkedIn", url: "https://www.linkedin.com", brand: "#0a66c2", iconKey: "linkedin" },
+        { name: "Freelancer", url: "https://www.freelancer.com", brand: "#29b2fe", iconKey: "freelancer" },
+        { name: "Fiverr", url: "https://www.fiverr.com", brand: "#1dbf73", iconKey: "fiverr" },
+        { name: "Toptal", url: "https://www.toptal.com", brand: "#204ecf", iconKey: "toptal" },
+        { name: "Guru", url: "https://www.guru.com", brand: "#ff7a18", iconKey: "guru" },
+        { name: "PeoplePerHour", url: "https://www.peopleperhour.com", brand: "#ff7c00", iconKey: "peopleperhour" },
+        { name: "Hubstaff Talent", url: "https://talent.hubstaff.com", brand: "#3aabea", iconKey: "hubstaff" },
+        { name: "Indeed", url: "https://www.indeed.com", brand: "#003a9b", iconKey: "indeed" },
     ];
     const platformTypeWatch = Form.useWatch("platformType", form);
     const platformPickerWatch = Form.useWatch("platformPicker", form);
@@ -953,9 +953,9 @@ export default function LeadSettingsPage() {
     );
 
     const categoryMeta = [
-        { key: "1" as const, label: "Pipeline Statuses", icon: <Activity size={16} />,  accent: "#6366f1", description: "Stages your leads flow through — color, default and final markers." },
+        { key: "1" as const, label: "Pipeline Statuses", icon: <Activity size={16} />, accent: "#6366f1", description: "Stages your leads flow through — color, default and final markers." },
         { key: "2" as const, label: "Workflow Actions", icon: <Workflow size={16} />, accent: "#ec4899", description: "Operational triggers available across the lead workspace." },
-        { key: "3" as const, label: "Platforms",        icon: <Globe size={16} />,    accent: "#06b6d4", description: "Sources leads come from — online gig platforms and your own websites." },
+        { key: "3" as const, label: "Platforms", icon: <Globe size={16} />, accent: "#06b6d4", description: "Sources leads come from — online gig platforms and your own websites." },
     ];
 
     const currentCat = categoryMeta.find(c => c.key === activeTab) || categoryMeta[0];
@@ -1066,11 +1066,11 @@ export default function LeadSettingsPage() {
             width: 140,
             render: (isActive: boolean, record: any) => (
                 <div className="lset-visibility">
-                    <Switch 
-                        size="small" 
-                        checked={isActive} 
-                        onChange={(val) => handleToggleStatusProperty(record.id, "isActive", val)} 
-                        loading={loading} 
+                    <Switch
+                        size="small"
+                        checked={isActive}
+                        onChange={(val) => handleToggleStatusProperty(record.id, "isActive", val)}
+                        loading={loading}
                         disabled={!canUpdateLeadSetting}
                     />
                     <span className={`lset-vis-label ${isActive ? "is-on" : ""}`}>{isActive ? "Visible" : "Hidden"}</span>
@@ -1165,11 +1165,11 @@ export default function LeadSettingsPage() {
             width: 140,
             render: (isActive: boolean, record: any) => (
                 <div className="lset-visibility">
-                    <Switch 
-                        size="small" 
-                        checked={isActive} 
-                        onChange={(val) => handleToggleActionProperty(record.id, val)} 
-                        loading={loading} 
+                    <Switch
+                        size="small"
+                        checked={isActive}
+                        onChange={(val) => handleToggleActionProperty(record.id, val)}
+                        loading={loading}
                         disabled={!canUpdateLeadSetting}
                     />
                     <span className={`lset-vis-label ${isActive ? "is-on" : ""}`}>{isActive ? "Active" : "Disabled"}</span>
@@ -1387,214 +1387,214 @@ export default function LeadSettingsPage() {
                     />
 
                     <div className="lset-shell">
-                    {/* LEFT RAIL — category list */}
-                    <aside className="lset-rail">
-                        <div className="lset-rail-title">
-                            <Settings2 size={13} />
-                            <span>Workflow settings</span>
-                        </div>
-                        {categoryMeta.map(cat => {
-                            const isActive = activeTab === cat.key;
-                            const count = cat.key === "1" ? statuses.length : actions.length;
-                            return (
-                                <button
-                                    key={cat.key}
-                                    type="button"
-                                    className={`lset-rail-card${isActive ? " is-active" : ""}`}
-                                    style={isActive ? { borderColor: `${cat.accent}66`, background: `${cat.accent}12` } : {}}
-                                    onClick={() => {
-                                        setActiveTab(cat.key);
-                                        setFilterMode("all");
-                                    }}
-                                >
-                                    <span
-                                        className="lset-rail-icon"
-                                        style={{
-                                            background: isActive ? `${cat.accent}26` : "var(--bg-slate-50)",
-                                            color: isActive ? cat.accent : "var(--text-slate-500)",
+                        {/* LEFT RAIL — category list */}
+                        <aside className="lset-rail">
+                            <div className="lset-rail-title">
+                                <Settings2 size={13} />
+                                <span>Workflow settings</span>
+                            </div>
+                            {categoryMeta.map(cat => {
+                                const isActive = activeTab === cat.key;
+                                const count = cat.key === "1" ? statuses.length : actions.length;
+                                return (
+                                    <button
+                                        key={cat.key}
+                                        type="button"
+                                        className={`lset-rail-card${isActive ? " is-active" : ""}`}
+                                        style={isActive ? { borderColor: `${cat.accent}66`, background: `${cat.accent}12` } : {}}
+                                        onClick={() => {
+                                            setActiveTab(cat.key);
+                                            setFilterMode("all");
                                         }}
                                     >
-                                        {cat.icon}
-                                    </span>
-                                    <div className="lset-rail-text">
-                                        <div className="lset-rail-label">{cat.label}</div>
-                                        <div className="lset-rail-sub">{count} Definitions</div>
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </aside>
-
-                    {/* MAIN PANE */}
-                    <main className="lset-pane">
-                        {/* Hero */}
-                        <header
-                            className="lset-pane-hero"
-                            style={{
-                                background: `linear-gradient(135deg, ${currentCat.accent}14 0%, ${currentCat.accent}05 60%, transparent 100%)`,
-                                borderColor: `${currentCat.accent}33`,
-                            }}
-                        >
-                            <div className="lset-pane-hero-left">
-                                <div
-                                    className="lset-pane-hero-icon"
-                                    style={{
-                                        background: `linear-gradient(135deg, ${currentCat.accent} 0%, ${currentCat.accent}cc 100%)`,
-                                        boxShadow: `0 10px 24px ${currentCat.accent}40`,
-                                    }}
-                                >
-                                    {currentCat.icon}
-                                </div>
-                                <div className="lset-pane-hero-text">
-                                    <div className="lset-pane-eyebrow">
-                                        <span style={{ color: currentCat.accent }}>●</span>
-                                        CONFIGURATION · {activeTab === "1" ? "STATUS" : activeTab === "2" ? "ACTION" : "PLATFORM"}
-                                    </div>
-                                    <div className="lset-pane-title-row">
-                                        <h3 className="lset-pane-title">{currentCat.label}</h3>
-                                        <span className="lset-pane-desc">{currentCat.description}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="lset-pane-hero-right">
-                                <div className="lset-stat-chips">
-                                    <div className="lset-stat-chip">
-                                        <span className="lset-stat-chip-icon" style={{ background: `${currentCat.accent}1a`, color: currentCat.accent }}><BarChart3 size={11} /></span>
-                                        <span className="lset-stat-chip-value">{currentItems.length}</span>
-                                        <span className="lset-stat-chip-label">Total</span>
-                                    </div>
-                                    <div className="lset-stat-chip">
-                                        <span className="lset-stat-chip-icon" style={{ background: "rgba(16,185,129,0.14)", color: "#10b981" }}><CheckCircle2 size={11} /></span>
-                                        <span className="lset-stat-chip-value">{currentActive}</span>
-                                        <span className="lset-stat-chip-label">Active</span>
-                                    </div>
-                                    <div className="lset-stat-chip">
-                                        <span className="lset-stat-chip-icon" style={{ background: "rgba(148,163,184,0.18)", color: "#64748b" }}><Eye size={11} /></span>
-                                        <span className="lset-stat-chip-value">{currentHidden}</span>
-                                        <span className="lset-stat-chip-label">Hidden</span>
-                                    </div>
-                                    <div className="lset-stat-chip">
-                                        <span className="lset-stat-chip-icon" style={{ background: "rgba(168,85,247,0.14)", color: "#a855f7" }}><Star size={11} /></span>
-                                        <span className="lset-stat-chip-value">{currentThemed}</span>
-                                        <span className="lset-stat-chip-label">Themed</span>
-                                    </div>
-                                </div>
-                                <Button
-                                    type="primary"
-                                    icon={<Plus size={14} />}
-                                    onClick={showDrawer}
-                                    className="lset-cta-btn"
-                                    disabled={!canCreateLeadSetting}
-                                    style={{
-                                        background: `linear-gradient(135deg, ${currentCat.accent} 0%, ${currentCat.accent}d9 100%)`,
-                                        boxShadow: `0 6px 14px ${currentCat.accent}40`,
-                                        border: "none",
-                                    }}
-                                >
-                                    New Definition
-                                </Button>
-                            </div>
-                        </header>
-
-                        {/* Toolbar — search + filter chips */}
-                        <div className="lset-toolbar">
-                            <div className="lset-search-box">
-                                <Search size={13} className="lset-search-icon" />
-                                <input
-                                    className="lset-search-input"
-                                    placeholder={`Search ${currentCat.label.toLowerCase()} by label, key, or context…`}
-                                    value={searchText}
-                                    onChange={(e) => setSearchText(e.target.value)}
-                                />
-                                {searchText && (
-                                    <button type="button" className="lset-search-clear" onClick={() => setSearchText("")}>Clear</button>
-                                )}
-                            </div>
-                            <div className="lset-chips">
-                                <button
-                                    type="button"
-                                    className={`lset-chip${filterMode === "all" ? " is-active" : ""}`}
-                                    onClick={() => setFilterMode("all")}
-                                >
-                                    All
-                                    <span className="lset-chip-count">{currentItems.length}</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`lset-chip${filterMode === "active" ? " is-active" : ""}`}
-                                    onClick={() => setFilterMode("active")}
-                                >
-                                    <CheckCircle2 size={11} style={{ color: "#10b981" }} />
-                                    Active
-                                    <span className="lset-chip-count">{currentActive}</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`lset-chip${filterMode === "hidden" ? " is-active" : ""}`}
-                                    onClick={() => setFilterMode("hidden")}
-                                >
-                                    <Eye size={11} style={{ color: "#94a3b8" }} />
-                                    Hidden
-                                    <span className="lset-chip-count">{currentHidden}</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Table */}
-                        <div className="lset-table-wrap">
-                            <Table
-                                loading={loading}
-                                columns={(activeTab === "1" ? statusColumns : activeTab === "2" ? actionColumns : platformColumns) as any}
-                                dataSource={activeTab === "1" ? filteredStatuses : activeTab === "2" ? filteredActions : filteredPlatforms}
-                                pagination={false}
-                                size="small"
-                                scroll={{ x: "max-content" }}
-                                className="lset-table"
-                                rowClassName="lset-row"
-                                locale={{
-                                    emptyText: (
-                                        <div className="lset-empty">
-                                            <div className="lset-empty-icon">
-                                                <Inbox size={26} />
-                                            </div>
-                                            <div className="lset-empty-title">
-                                                {searchText || filterMode !== "all"
-                                                    ? "No matches"
-                                                    : activeTab === "1"
-                                                        ? "No statuses yet"
-                                                        : activeTab === "2"
-                                                            ? "No actions yet"
-                                                            : "No platforms yet"}
-                                            </div>
-                                            <div className="lset-empty-sub">
-                                                {searchText || filterMode !== "all"
-                                                    ? "Try a different keyword or clear the filter."
-                                                    : activeTab === "1"
-                                                        ? "Create your first pipeline stage to start organizing leads."
-                                                        : activeTab === "2"
-                                                            ? "Add your first workflow action to power lead operations."
-                                                            : "Register an online platform or your own website as a lead source."}
-                                            </div>
-                                            <Button
-                                                type="primary"
-                                                icon={<Plus size={13} />}
-                                                onClick={searchText || filterMode !== "all"
-                                                    ? () => { setSearchText(""); setFilterMode("all"); }
-                                                    : showDrawer}
-                                                className="lset-empty-cta"
-                                            >
-                                                {searchText || filterMode !== "all"
-                                                    ? "Clear filters"
-                                                    : `Add ${activeTab === "1" ? "Status" : activeTab === "2" ? "Action" : "Platform"}`}
-                                            </Button>
+                                        <span
+                                            className="lset-rail-icon"
+                                            style={{
+                                                background: isActive ? `${cat.accent}26` : "var(--bg-slate-50)",
+                                                color: isActive ? cat.accent : "var(--text-slate-500)",
+                                            }}
+                                        >
+                                            {cat.icon}
+                                        </span>
+                                        <div className="lset-rail-text">
+                                            <div className="lset-rail-label">{cat.label}</div>
+                                            <div className="lset-rail-sub">{count} Definitions</div>
                                         </div>
-                                    ),
+                                    </button>
+                                );
+                            })}
+                        </aside>
+
+                        {/* MAIN PANE */}
+                        <main className="lset-pane">
+                            {/* Hero */}
+                            <header
+                                className="lset-pane-hero"
+                                style={{
+                                    background: `linear-gradient(135deg, ${currentCat.accent}14 0%, ${currentCat.accent}05 60%, transparent 100%)`,
+                                    borderColor: `${currentCat.accent}33`,
                                 }}
-                            />
-                        </div>
-                    </main>
-                </div>
+                            >
+                                <div className="lset-pane-hero-left">
+                                    <div
+                                        className="lset-pane-hero-icon"
+                                        style={{
+                                            background: `linear-gradient(135deg, ${currentCat.accent} 0%, ${currentCat.accent}cc 100%)`,
+                                            boxShadow: `0 10px 24px ${currentCat.accent}40`,
+                                        }}
+                                    >
+                                        {currentCat.icon}
+                                    </div>
+                                    <div className="lset-pane-hero-text">
+                                        <div className="lset-pane-eyebrow">
+                                            <span style={{ color: currentCat.accent }}>●</span>
+                                            CONFIGURATION · {activeTab === "1" ? "STATUS" : activeTab === "2" ? "ACTION" : "PLATFORM"}
+                                        </div>
+                                        <div className="lset-pane-title-row">
+                                            <h3 className="lset-pane-title">{currentCat.label}</h3>
+                                            <span className="lset-pane-desc">{currentCat.description}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="lset-pane-hero-right">
+                                    <div className="lset-stat-chips">
+                                        <div className="lset-stat-chip">
+                                            <span className="lset-stat-chip-icon" style={{ background: `${currentCat.accent}1a`, color: currentCat.accent }}><BarChart3 size={11} /></span>
+                                            <span className="lset-stat-chip-value">{currentItems.length}</span>
+                                            <span className="lset-stat-chip-label">Total</span>
+                                        </div>
+                                        <div className="lset-stat-chip">
+                                            <span className="lset-stat-chip-icon" style={{ background: "rgba(16,185,129,0.14)", color: "#10b981" }}><CheckCircle2 size={11} /></span>
+                                            <span className="lset-stat-chip-value">{currentActive}</span>
+                                            <span className="lset-stat-chip-label">Active</span>
+                                        </div>
+                                        <div className="lset-stat-chip">
+                                            <span className="lset-stat-chip-icon" style={{ background: "rgba(148,163,184,0.18)", color: "#64748b" }}><Eye size={11} /></span>
+                                            <span className="lset-stat-chip-value">{currentHidden}</span>
+                                            <span className="lset-stat-chip-label">Hidden</span>
+                                        </div>
+                                        <div className="lset-stat-chip">
+                                            <span className="lset-stat-chip-icon" style={{ background: "rgba(168,85,247,0.14)", color: "#a855f7" }}><Star size={11} /></span>
+                                            <span className="lset-stat-chip-value">{currentThemed}</span>
+                                            <span className="lset-stat-chip-label">Themed</span>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="primary"
+                                        icon={<Plus size={14} />}
+                                        onClick={showDrawer}
+                                        className="lset-cta-btn"
+                                        disabled={!canCreateLeadSetting}
+                                        style={{
+                                            background: `linear-gradient(135deg, ${currentCat.accent} 0%, ${currentCat.accent}d9 100%)`,
+                                            boxShadow: `0 6px 14px ${currentCat.accent}40`,
+                                            border: "none",
+                                        }}
+                                    >
+                                        New Definition
+                                    </Button>
+                                </div>
+                            </header>
+
+                            {/* Toolbar — search + filter chips */}
+                            <div className="lset-toolbar">
+                                <div className="lset-search-box">
+                                    <Search size={13} className="lset-search-icon" />
+                                    <input
+                                        className="lset-search-input"
+                                        placeholder={`Search ${currentCat.label.toLowerCase()} by label, key, or context…`}
+                                        value={searchText}
+                                        onChange={(e) => setSearchText(e.target.value)}
+                                    />
+                                    {searchText && (
+                                        <button type="button" className="lset-search-clear" onClick={() => setSearchText("")}>Clear</button>
+                                    )}
+                                </div>
+                                <div className="lset-chips">
+                                    <button
+                                        type="button"
+                                        className={`lset-chip${filterMode === "all" ? " is-active" : ""}`}
+                                        onClick={() => setFilterMode("all")}
+                                    >
+                                        All
+                                        <span className="lset-chip-count">{currentItems.length}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`lset-chip${filterMode === "active" ? " is-active" : ""}`}
+                                        onClick={() => setFilterMode("active")}
+                                    >
+                                        <CheckCircle2 size={11} style={{ color: "#10b981" }} />
+                                        Active
+                                        <span className="lset-chip-count">{currentActive}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`lset-chip${filterMode === "hidden" ? " is-active" : ""}`}
+                                        onClick={() => setFilterMode("hidden")}
+                                    >
+                                        <Eye size={11} style={{ color: "#94a3b8" }} />
+                                        Hidden
+                                        <span className="lset-chip-count">{currentHidden}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Table */}
+                            <div className="lset-table-wrap">
+                                <Table
+                                    loading={loading}
+                                    columns={(activeTab === "1" ? statusColumns : activeTab === "2" ? actionColumns : platformColumns) as any}
+                                    dataSource={activeTab === "1" ? filteredStatuses : activeTab === "2" ? filteredActions : filteredPlatforms}
+                                    pagination={false}
+                                    size="small"
+                                    scroll={{ x: "max-content" }}
+                                    className="lset-table"
+                                    rowClassName="lset-row"
+                                    locale={{
+                                        emptyText: (
+                                            <div className="lset-empty">
+                                                <div className="lset-empty-icon">
+                                                    <Inbox size={26} />
+                                                </div>
+                                                <div className="lset-empty-title">
+                                                    {searchText || filterMode !== "all"
+                                                        ? "No matches"
+                                                        : activeTab === "1"
+                                                            ? "No statuses yet"
+                                                            : activeTab === "2"
+                                                                ? "No actions yet"
+                                                                : "No platforms yet"}
+                                                </div>
+                                                <div className="lset-empty-sub">
+                                                    {searchText || filterMode !== "all"
+                                                        ? "Try a different keyword or clear the filter."
+                                                        : activeTab === "1"
+                                                            ? "Create your first pipeline stage to start organizing leads."
+                                                            : activeTab === "2"
+                                                                ? "Add your first workflow action to power lead operations."
+                                                                : "Register an online platform or your own website as a lead source."}
+                                                </div>
+                                                <Button
+                                                    type="primary"
+                                                    icon={<Plus size={13} />}
+                                                    onClick={searchText || filterMode !== "all"
+                                                        ? () => { setSearchText(""); setFilterMode("all"); }
+                                                        : showDrawer}
+                                                    className="lset-empty-cta"
+                                                >
+                                                    {searchText || filterMode !== "all"
+                                                        ? "Clear filters"
+                                                        : `Add ${activeTab === "1" ? "Status" : activeTab === "2" ? "Action" : "Platform"}`}
+                                                </Button>
+                                            </div>
+                                        ),
+                                    }}
+                                />
+                            </div>
+                        </main>
+                    </div>
                 </div>
 
                 {/* DRAWER */}
@@ -1623,7 +1623,7 @@ export default function LeadSettingsPage() {
                             </div>
                         </div>
                     }
-                    width={520}
+                    width={570}
                     open={isDrawerOpen}
                     onClose={handleCancel}
                     className="lset-drawer"
@@ -2160,14 +2160,14 @@ export default function LeadSettingsPage() {
                     /*  New shell: left rail + main pane              */
                     /* ============================================== */
                     .lset-page {
-                        margin: 0;
+                        margin: 0 -8px;
                         background: var(--bg-primary);
                         min-height: calc(100vh - 64px);
                         font-family: 'Inter', -apple-system, sans-serif;
                     }
                     .lset-shell {
                         margin: 0;
-                        min-height: calc(100vh - 64px - 66px);
+                        min-height: calc(100vh - 64px - 56px);
                         background: var(--bg-primary);
                         display: grid;
                         grid-template-columns: 264px minmax(0, 1fr);
@@ -2182,9 +2182,9 @@ export default function LeadSettingsPage() {
 
                     .lset-rail {
                         position: sticky;
-                        top: 66px;
+                        top: 56px;
                         align-self: start;
-                        height: calc(100vh - 64px - 66px);
+                        height: calc(100vh - 64px - 56px);
                         background: var(--bg-secondary);
                         border-right: 1px solid var(--border-slate-100);
                         padding: 12px 12px 12px 14px;
@@ -2951,9 +2951,10 @@ export default function LeadSettingsPage() {
                     .lset-drawer-footer-hint svg { color: #10b981; }
                     .lset-btn-cancel {
                         border-radius: 10px !important;
-                        height: 38px !important;
-                        font-weight: 600 !important;
-                        padding: 0 18px !important;
+                        height: 31px !important;
+                        font-weight: 700 !important;
+                        font-size: 13px !important;
+                        padding: 0 14px !important;
                     }
 
                     /* SECTION CARDS IN DRAWER */

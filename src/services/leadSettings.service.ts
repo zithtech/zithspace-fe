@@ -10,6 +10,7 @@ export interface LeadStatus {
   is_final_stage: boolean;
   is_active: boolean;
   order: number;
+  icon?: string;
 }
 
 export interface LeadAction {
@@ -20,6 +21,20 @@ export interface LeadAction {
   color: string;
   is_active: boolean;
   createdAt: string;
+}
+
+export interface LeadPlatform {
+  id: string;
+  name: string;
+  code: string;             // auto-derived from name, immutable
+  type: 'online' | 'website';
+  url?: string;
+  logo_url?: string;
+  description?: string;
+  is_active: boolean;
+  order: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 const leadSettingsService = {
@@ -49,7 +64,22 @@ const leadSettingsService = {
   },
   deleteAction: async (id: string): Promise<void> => {
     await api.delete(`/api/lead-settings/actions/${id}`);
-  }
+  },
+
+  // Platforms — gig-platform sources (Upwork, LinkedIn, …) and own-website
+  // sources (Zukvo, Zithtech, …) used as the lead's "Source" identity.
+  getPlatforms: async (): Promise<LeadPlatform[]> => {
+    return await api.get('/api/lead-settings/platforms');
+  },
+  createPlatform: async (data: Partial<LeadPlatform>): Promise<LeadPlatform> => {
+    return await api.post('/api/lead-settings/platforms', data);
+  },
+  updatePlatform: async (id: string, data: Partial<LeadPlatform>): Promise<LeadPlatform> => {
+    return await api.put(`/api/lead-settings/platforms/${id}`, data);
+  },
+  deletePlatform: async (id: string): Promise<void> => {
+    await api.delete(`/api/lead-settings/platforms/${id}`);
+  },
 };
 
 export default leadSettingsService;

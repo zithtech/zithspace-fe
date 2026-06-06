@@ -67,6 +67,11 @@ import {
   SettingOutlined,
   ColumnHeightOutlined,
   LineChartOutlined,
+  LeftOutlined,
+  RightOutlined,
+  CalendarOutlined,
+  FlagOutlined,
+  PlayCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -186,8 +191,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     search: "",
   });
 
-  const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'board' | 'calendar'>('list');
   const [kanbanScope, setKanbanScope] = useState<'active' | 'backlog'>('active');
+  // Calendar view state
+  const [calendarMonth, setCalendarMonth] = useState(() => dayjs());
+  const [calLegendExpanded, setCalLegendExpanded] = useState(false);
+  const CAL_LEGEND_LIMIT = 8;
+  const SPRINT_PALETTE = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#14b8a6', '#a855f7'];
 
   // Table settings — density + column visibility, persisted per-user in DB
   // via user_table_preferences (raw psql, no Prisma).
@@ -508,6 +518,193 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     enabled: !!activeSprint // Only fetch if we have an active sprint
   });
   const overallSprintTickets = overallSprintData?.data || [];
+
+  // ── Calendar view data (only when viewMode === 'calendar') ──────
+  // Fetch ALL sprints for the project to get color/name mapping and date bounds
+  const { data: allProjectSprintsRaw, isLoading: allSprintsLoading } = useQuery({
+    queryKey: ['allProjectSprints', projectId],
+    queryFn: () => ReleasePlanService.getReleasePlans({ type: 'sprint_plan', projectId, limit: 100 }),
+    enabled: !!projectId && viewMode === 'calendar' && canReadTicketPlan,
+    staleTime: 60 * 1000,
+  });
+  const allProjectSprints = useMemo(() => allProjectSprintsRaw?.data || [], [allProjectSprintsRaw]);
+
+  // Fetch ALL tickets in any sprint for this project (no pagination)
+  const { data: calendarTicketsData, isLoading: calendarTicketsLoading } = useTickets(
+    { projectId, limit: 9999 },
+    { enabled: !!projectId && viewMode === 'calendar' }
+  );
+
+  // Helper: resolve a ticket's sprint ID across the field-name variants used by the backend
+  const getTicketSprintId = (t: Ticket): string | null => {
+    return (
+      (t as any).sprintPlanId ||
+      (t as any).releasePlanId ||
+      (t as any).metadata?.releasePlan ||
+      null
+    );
+  };
+
+  // Map sprint ID → { name, color, status, dates }
+  const sprintInfoMap = useMemo(() => {
+    const map = new Map<string, { name: string; color: string; status?: string; startDate?: string; endDate?: string }>();
+    allProjectSprints.forEach((s: any, i: number) => {
+      map.set(s.id, {
+        name: s.version || s.name || `Sprint ${i + 1}`,
+        color: SPRINT_PALETTE[i % SPRINT_PALETTE.length],
+        status: s.status,
+        startDate: s.startDate,
+        endDate: s.endDate,
+      });
+    });
+    return map;
+  }, [allProjectSprints]);
+
+  // Resolve calendar tickets: must have sprint id AND a date range (own or sprint's)
+  const calendarSprintTickets = useMemo(() => {
+    const all = calendarTicketsData?.data || [];
+    return all
+      .map((t: Ticket) => {
+        const sprintId = getTicketSprintId(t);
+        if (!sprintId) return null;
+        const sprintInfo = sprintInfoMap.get(sprintId);
+        const startDate = t.startDate || sprintInfo?.startDate;
+        const endDate = t.endDate || sprintInfo?.endDate;
+        if (!startDate || !endDate) return null;
+        return { ticket: t, sprintId, startDate, endDate, sprintInfo };
+      })
+      .filter(Boolean) as Array<{ ticket: Ticket; sprintId: string; startDate: string; endDate: string; sprintInfo?: { name: string; color: string; status?: string; startDate?: string; endDate?: string } }>;
+  }, [calendarTicketsData, sprintInfoMap]);
+
+  // Calendar navigation bounds — clamp to actual ticket date range
+  const calendarBounds = useMemo(() => {
+    const dates: dayjs.Dayjs[] = [];
+    calendarSprintTickets.forEach((r) => {
+      dates.push(dayjs(r.startDate));
+      dates.push(dayjs(r.endDate));
+    });
+    if (!dates.length) return null;
+    const earliest = dates.reduce((a, b) => (a.isBefore(b) ? a : b)).startOf('month');
+    const latest = dates.reduce((a, b) => (a.isAfter(b) ? a : b)).startOf('month');
+    return { earliest, latest };
+  }, [calendarSprintTickets]);
+
+  const canCalPrev = !calendarBounds || calendarMonth.isAfter(calendarBounds.earliest, 'month');
+  const canCalNext = !calendarBounds || calendarMonth.isBefore(calendarBounds.latest.add(3, 'month'), 'month');
+
+  // Snap calendarMonth into range when data loads
+  useEffect(() => {
+    if (!calendarBounds || viewMode !== 'calendar') return;
+    if (calendarMonth.isBefore(calendarBounds.earliest, 'month')) {
+      setCalendarMonth(calendarBounds.earliest);
+    } else if (calendarMonth.isAfter(calendarBounds.latest.add(3, 'month'), 'month')) {
+      setCalendarMonth(calendarBounds.latest);
+    }
+  }, [calendarBounds, viewMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Stats for header
+  const calendarMonthStats = useMemo(() => {
+    const monthStart = calendarMonth.startOf('month');
+    const monthEnd = calendarMonth.endOf('month');
+    const inMonth = calendarSprintTickets.filter((r) => {
+      const s = dayjs(r.startDate);
+      const e = dayjs(r.endDate);
+      return !(e.isBefore(monthStart) || s.isAfter(monthEnd));
+    });
+    const uniqueSprints = new Set<string>();
+    inMonth.forEach((r) => uniqueSprints.add(r.sprintId));
+    return { ticketCount: inMonth.length, sprintCount: uniqueSprints.size };
+  }, [calendarSprintTickets, calendarMonth]);
+
+  // Build week-grouped ribbons
+  const calendarData = useMemo(() => {
+    const startOfWeekMon = (d: dayjs.Dayjs) => {
+      const dow = d.day();
+      const offset = (dow + 6) % 7;
+      return d.subtract(offset, 'day').startOf('day');
+    };
+    const endOfWeekMon = (d: dayjs.Dayjs) => startOfWeekMon(d).add(6, 'day').endOf('day');
+
+    const calStart = startOfWeekMon(calendarMonth.startOf('month'));
+    const calEnd = endOfWeekMon(calendarMonth.endOf('month'));
+
+    const weeks: dayjs.Dayjs[][] = [];
+    let cursor = calStart;
+    while (cursor.isBefore(calEnd) || cursor.isSame(calEnd, 'day')) {
+      const days: dayjs.Dayjs[] = [];
+      for (let i = 0; i < 7; i++) {
+        days.push(cursor);
+        cursor = cursor.add(1, 'day');
+      }
+      weeks.push(days);
+      if (weeks.length > 8) break;
+    }
+
+    type Ribbon = {
+      ticket: Ticket;
+      startCol: number;
+      span: number;
+      continuesLeft: boolean;
+      continuesRight: boolean;
+      color: string;
+      sprintName?: string;
+      sprintId: string;
+      startDate: string;
+      endDate: string;
+      lane: number;
+    };
+
+    const weekRibbons: Ribbon[][] = weeks.map(week => {
+      const weekStart = week[0];
+      const weekEnd = week[6].endOf('day');
+
+      const overlapping = calendarSprintTickets
+        .filter((r) => {
+          const s = dayjs(r.startDate);
+          const e = dayjs(r.endDate);
+          return !(e.isBefore(weekStart) || s.isAfter(weekEnd));
+        })
+        .map((r): Ribbon => {
+          const s = dayjs(r.startDate);
+          const e = dayjs(r.endDate);
+          const clipStart = s.isBefore(weekStart) ? weekStart : s.startOf('day');
+          const clipEnd = e.isAfter(weekEnd) ? weekEnd : e.endOf('day');
+          const startCol = clipStart.diff(weekStart, 'day');
+          const span = Math.max(clipEnd.startOf('day').diff(clipStart.startOf('day'), 'day') + 1, 1);
+          return {
+            ticket: r.ticket,
+            startCol,
+            span,
+            continuesLeft: s.isBefore(weekStart),
+            continuesRight: e.isAfter(weekEnd),
+            color: r.sprintInfo?.color || '#94a3b8',
+            sprintName: r.sprintInfo?.name,
+            sprintId: r.sprintId,
+            startDate: r.startDate,
+            endDate: r.endDate,
+            lane: 0,
+          };
+        })
+        .sort((a: Ribbon, b: Ribbon) => a.startCol - b.startCol || b.span - a.span);
+
+      const lanes: number[] = [];
+      overlapping.forEach((r: Ribbon) => {
+        let li = lanes.findIndex(end => end <= r.startCol);
+        if (li === -1) {
+          li = lanes.length;
+          lanes.push(0);
+        }
+        lanes[li] = r.startCol + r.span;
+        r.lane = li;
+      });
+
+      return overlapping;
+    });
+
+    const maxLanesByWeek = weekRibbons.map(rs => rs.reduce((m, x) => Math.max(m, x.lane), -1) + 1);
+
+    return { weeks, weekRibbons, maxLanesByWeek };
+  }, [calendarSprintTickets, calendarMonth, sprintInfoMap]);
 
 
   // Sync all ticket IDs for navigation
@@ -1653,10 +1850,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
           <Segmented
             value={viewMode}
-            onChange={(v) => setViewMode(v as 'list' | 'board')}
+            onChange={(v) => setViewMode(v as 'list' | 'board' | 'calendar')}
             options={[
               { label: 'List', value: 'list', icon: <UnorderedListOutlined style={{ fontSize: 13 }} /> },
               { label: 'Board', value: 'board', icon: <AppstoreOutlined style={{ fontSize: 13 }} /> },
+              { label: 'Calendar', value: 'calendar', icon: <CalendarOutlined style={{ fontSize: 13 }} /> },
             ]}
             className="saas-segmented-premium"
           />
@@ -2057,8 +2255,232 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       />
 
       {/* Tickets View */}
-      {(isRefreshing || (viewMode === 'list' ? (activeSprintLoading || backlogLoading) : isKanbanLoading)) ? (
-        <TicketSkeleton viewMode={viewMode} />
+      {(isRefreshing || (viewMode === 'list' ? (activeSprintLoading || backlogLoading) : viewMode === 'calendar' ? (allSprintsLoading || calendarTicketsLoading) : isKanbanLoading)) ? (
+        <TicketSkeleton viewMode={viewMode === 'calendar' ? 'list' : viewMode} />
+      ) : viewMode === 'calendar' ? (
+        <div className="fadeIn tcal-card">
+          {/* Sticky header */}
+          <div className="tcal-header">
+            <div className="tcal-title-block">
+              <Text className="tcal-title">{calendarMonth.format('MMMM YYYY')}</Text>
+              <div className="tcal-stat-row">
+                <span className="tcal-stat">
+                  <span className="tcal-stat-num">{calendarMonthStats.sprintCount}</span>
+                  <span className="tcal-stat-label">Sprint{calendarMonthStats.sprintCount !== 1 ? 's' : ''}</span>
+                </span>
+                <span className="tcal-stat-sep" />
+                <span className="tcal-stat">
+                  <span className="tcal-stat-num">{calendarMonthStats.ticketCount}</span>
+                  <span className="tcal-stat-label">Ticket{calendarMonthStats.ticketCount !== 1 ? 's' : ''}</span>
+                </span>
+              </div>
+            </div>
+            <div className="tcal-nav">
+              <Tooltip title={canCalPrev ? 'Previous month' : `No tickets before ${calendarBounds?.earliest.format('MMM YYYY')}`}>
+                <Button
+                  size="small"
+                  icon={<LeftOutlined />}
+                  onClick={() => canCalPrev && setCalendarMonth(m => m.subtract(1, 'month'))}
+                  disabled={!canCalPrev}
+                  className="tcal-nav-btn"
+                />
+              </Tooltip>
+              <Button
+                size="small"
+                onClick={() => {
+                  const today = dayjs();
+                  if (!calendarBounds) { setCalendarMonth(today); return; }
+                  if (today.isBefore(calendarBounds.earliest, 'month')) setCalendarMonth(calendarBounds.earliest);
+                  else if (today.isAfter(calendarBounds.latest.add(3, 'month'), 'month')) setCalendarMonth(calendarBounds.latest);
+                  else setCalendarMonth(today);
+                }}
+                className="tcal-nav-btn tcal-nav-today"
+              >
+                Current Month
+              </Button>
+              <Tooltip title={canCalNext ? 'Next month' : 'No tickets further ahead'}>
+                <Button
+                  size="small"
+                  icon={<RightOutlined />}
+                  onClick={() => canCalNext && setCalendarMonth(m => m.add(1, 'month'))}
+                  disabled={!canCalNext}
+                  className="tcal-nav-btn"
+                />
+              </Tooltip>
+            </div>
+          </div>
+
+          {/* Body — week sections */}
+          <div className="tcal-body">
+            {calendarSprintTickets.length === 0 ? (
+              <div className="tcal-empty">
+                <CalendarOutlined style={{ fontSize: 28, color: 'var(--text-slate-400)' }} />
+                <div className="tcal-empty-title">No scheduled sprint tickets</div>
+                <div className="tcal-empty-sub">Tickets need a sprint and date range to appear on the calendar.</div>
+              </div>
+            ) : (
+              calendarData.weeks.map((week, wi) => {
+                const lanes = calendarData.maxLanesByWeek[wi];
+                const ribbonHeight = lanes > 0 ? lanes * 24 + 14 : 0;
+                const ribbons = calendarData.weekRibbons[wi];
+                const weekStart = week[0];
+                const weekEnd = week[6];
+                const dayOfYear = weekStart.diff(weekStart.startOf('year'), 'day');
+                const weekNum = Math.floor(dayOfYear / 7) + 1;
+                const containsToday = week.some(d => d.isSame(dayjs(), 'day'));
+                return (
+                  <section className={`tcal-week ${containsToday ? 'has-today' : ''}`} key={wi}>
+                    <header className="tcal-week-label">
+                      <div className="tcal-week-label-left">
+                        <span className="tcal-week-num">Week {weekNum}</span>
+                        <span className="tcal-week-range">{weekStart.format('MMM D')} – {weekEnd.format(weekStart.month() === weekEnd.month() ? 'D, YYYY' : 'MMM D, YYYY')}</span>
+                      </div>
+                      <span className="tcal-week-count">
+                        {ribbons.length === 0 ? 'No tickets' : `${ribbons.length} ticket${ribbons.length !== 1 ? 's' : ''}`}
+                      </span>
+                    </header>
+                    <div className="tcal-week-grid">
+                      <div className="tcal-week-days">
+                        {week.map((day, di) => {
+                          const isOutside = day.month() !== calendarMonth.month();
+                          const isToday = day.isSame(dayjs(), 'day');
+                          const isWeekend = day.day() === 0 || day.day() === 6;
+                          return (
+                            <div key={di} className={`tcal-day ${isOutside ? 'outside' : ''} ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}`}>
+                              <span className="tcal-day-wd">{day.format('ddd')}</span>
+                              <span className={`tcal-day-num ${isToday ? 'today' : ''}`}>{day.format('D')}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {ribbonHeight > 0 ? (
+                        <div className="tcal-week-ribbons" style={{ height: ribbonHeight }}>
+                          {ribbons.map(r => {
+                            const left = (r.startCol / 7) * 100;
+                            const width = (r.span / 7) * 100;
+                            const t = r.ticket;
+                            const statusCfg = (() => {
+                              const k = (t.status || '').toLowerCase();
+                              if (k === 'completed' || k === 'done') return { dot: '#10b981', label: 'Done' };
+                              if (k === 'in_progress' || k === 'active') return { dot: '#3b82f6', label: 'In Progress' };
+                              if (k === 'review') return { dot: '#8b5cf6', label: 'Review' };
+                              if (k === 'open' || k === 'todo' || k === 'pending') return { dot: '#f59e0b', label: 'To Do' };
+                              return { dot: '#94a3b8', label: t.status || '—' };
+                            })();
+                            const prio = (t.priority || '').toLowerCase();
+                            return (
+                              <Tooltip
+                                key={`${t.id}-${wi}`}
+                                overlayClassName="tcal-tooltip-wrap"
+                                mouseEnterDelay={0.15}
+                                placement="top"
+                                title={
+                                  <div className="tcal-tooltip">
+                                    <span className="tcal-tooltip-accent" style={{ background: r.color }} />
+                                    <div className="tcal-tooltip-head">
+                                      <div className="tcal-tooltip-title-block">
+                                        <div className="tcal-tooltip-num">{t.ticketNumber}</div>
+                                        <div className="tcal-tooltip-name">{t.title}</div>
+                                        {r.sprintName && (
+                                          <div className="tcal-tooltip-sprint">
+                                            <span className="tcal-tooltip-sprint-dot" style={{ background: r.color }} />
+                                            {r.sprintName}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="tcal-tooltip-badges">
+                                        <span className="tcal-tooltip-status" style={{ color: statusCfg.dot, background: `${statusCfg.dot}1f`, borderColor: `${statusCfg.dot}40` }}>
+                                          <span className="tcal-tooltip-status-dot" style={{ background: statusCfg.dot }} />
+                                          {statusCfg.label}
+                                        </span>
+                                        {t.priority && (
+                                          <span className={`tcal-tooltip-prio tcal-tooltip-prio-${prio}`}>
+                                            <FlagOutlined style={{ fontSize: 9 }} />
+                                            {t.priority}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="tcal-tooltip-divider" />
+                                    <div className="tcal-tooltip-meta">
+                                      <span className="tcal-tooltip-meta-item">
+                                        <CalendarOutlined style={{ fontSize: 9 }} />
+                                        <b>{dayjs(r.startDate).format('MMM D')}</b>
+                                        <span className="tcal-tooltip-arrow">→</span>
+                                        <b>{dayjs(r.endDate).format('MMM D, YYYY')}</b>
+                                      </span>
+                                      {t.assignee && (
+                                        <span className="tcal-tooltip-meta-item">
+                                          <UserOutlined style={{ fontSize: 9 }} />
+                                          {t.assignee.name}
+                                        </span>
+                                      )}
+                                      {typeof t.storyPoint === 'number' && (
+                                        <span className="tcal-tooltip-meta-item">
+                                          <ThunderboltOutlined style={{ fontSize: 9 }} />
+                                          {t.storyPoint} pt{t.storyPoint !== 1 ? 's' : ''}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="tcal-tooltip-footer">
+                                      Click to view ticket
+                                    </div>
+                                  </div>
+                                }
+                              >
+                                <button
+                                  className={`tcal-ribbon ${r.continuesLeft ? 'cont-left' : ''} ${r.continuesRight ? 'cont-right' : ''}`}
+                                  style={{
+                                    left: `calc(${left}% + 4px)`,
+                                    width: `calc(${width}% - 8px)`,
+                                    top: 6 + r.lane * 24,
+                                    background: `linear-gradient(135deg, ${r.color}1f, ${r.color}40)`,
+                                    borderColor: `${r.color}66`,
+                                    color: r.color,
+                                  }}
+                                  onClick={() => setSelectedTicketId(t.id)}
+                                >
+                                  <span className="tcal-ribbon-dot" style={{ background: statusCfg.dot }} />
+                                  <span className="tcal-ribbon-num">{t.ticketNumber}</span>
+                                  {r.span > 1 && (
+                                    <span className="tcal-ribbon-title">{t.title}</span>
+                                  )}
+                                </button>
+                              </Tooltip>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="tcal-week-empty">No tickets scheduled this week</div>
+                      )}
+                    </div>
+                  </section>
+                );
+              })
+            )}
+          </div>
+
+          {/* Sticky footer — sprint legend */}
+          {allProjectSprints.length > 0 && (
+            <div className="tcal-legend">
+              <span className="tcal-legend-label">Sprints</span>
+              {(calLegendExpanded ? allProjectSprints : allProjectSprints.slice(0, CAL_LEGEND_LIMIT)).map((s: any, i: number) => {
+                const c = SPRINT_PALETTE[i % SPRINT_PALETTE.length];
+                return (
+                  <span key={s.id} className="tcal-legend-chip" title={s.version || s.name}>
+                    <span className="tcal-legend-dot" style={{ background: c }} />
+                    {s.version || s.name}
+                  </span>
+                );
+              })}
+              {allProjectSprints.length > CAL_LEGEND_LIMIT && (
+                <button className="tcal-legend-toggle" onClick={() => setCalLegendExpanded(v => !v)}>
+                  {calLegendExpanded ? 'Show less' : `+${allProjectSprints.length - CAL_LEGEND_LIMIT} more`}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       ) : viewMode === 'list' ? (
         <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Active Sprint Section */}
@@ -2541,6 +2963,592 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         projectId={projectId}
         onTicketCreated={handleTicketCreated}
       />
+
+      <style jsx global>{`
+        /* ── Ticket Calendar view ────────────────────────────── */
+        .tcal-card {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 12px;
+          position: relative;
+        }
+        [data-theme='dark'] .tcal-card {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+        }
+        .tcal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 18px;
+          border-bottom: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          gap: 12px;
+          position: sticky;
+          top: 52px;
+          z-index: 5;
+          border-radius: 12px 12px 0 0;
+        }
+        [data-theme='dark'] .tcal-header {
+          background: #161b22 !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .tcal-title-block {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        .tcal-title {
+          font-size: 18px !important;
+          font-weight: 800 !important;
+          color: var(--text-slate-900) !important;
+          letter-spacing: -0.02em;
+          line-height: 1.1;
+        }
+        [data-theme='dark'] .tcal-title { color: #f1f5f9 !important; }
+        .tcal-stat-row {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 2px;
+        }
+        .tcal-stat {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 4px;
+        }
+        .tcal-stat-num {
+          font-size: 12.5px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.02em;
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tcal-stat-num { color: #f1f5f9 !important; }
+        .tcal-stat-label {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        [data-theme='dark'] .tcal-stat-label { color: #94a3b8 !important; }
+        .tcal-stat-sep {
+          width: 3px;
+          height: 3px;
+          border-radius: 50%;
+          background: var(--text-slate-300);
+        }
+        [data-theme='dark'] .tcal-stat-sep { background: #475569; }
+        .tcal-nav {
+          display: inline-flex;
+          gap: 4px;
+        }
+        .tcal-nav-btn {
+          border-radius: 8px !important;
+          height: 32px !important;
+          font-weight: 700 !important;
+        }
+        .tcal-nav-today {
+          padding: 0 12px !important;
+          font-size: 11.5px !important;
+        }
+
+        /* Body */
+        .tcal-body {
+          background: var(--bg-slate-50);
+        }
+        [data-theme='dark'] .tcal-body {
+          background: #0b0f1a !important;
+        }
+        .tcal-week {
+          background: var(--bg-pure-white);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .tcal-week {
+          background: #161b22 !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .tcal-week:last-child { border-bottom: none; }
+        .tcal-week.has-today {
+          background: linear-gradient(180deg, rgba(59,130,246,0.025), var(--bg-pure-white));
+        }
+        [data-theme='dark'] .tcal-week.has-today {
+          background: linear-gradient(180deg, rgba(59,130,246,0.06), #161b22) !important;
+        }
+        .tcal-week-label {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 8px 18px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+          gap: 12px;
+        }
+        [data-theme='dark'] .tcal-week-label {
+          background: #0f1419 !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .tcal-week.has-today .tcal-week-label {
+          background: rgba(59,130,246,0.06);
+          border-bottom-color: rgba(59,130,246,0.2);
+        }
+        [data-theme='dark'] .tcal-week.has-today .tcal-week-label {
+          background: rgba(59,130,246,0.12) !important;
+          border-bottom-color: rgba(59,130,246,0.3) !important;
+        }
+        .tcal-week-label-left {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 10px;
+          min-width: 0;
+        }
+        .tcal-week-num {
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--text-slate-700);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .tcal-week-num { color: #cbd5e1 !important; }
+        .tcal-week.has-today .tcal-week-num {
+          color: #1d4ed8;
+        }
+        [data-theme='dark'] .tcal-week.has-today .tcal-week-num {
+          color: #60a5fa !important;
+        }
+        .tcal-week-range {
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tcal-week-range { color: #94a3b8 !important; }
+        .tcal-week-count {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+        }
+        [data-theme='dark'] .tcal-week-count { color: #94a3b8 !important; }
+        .tcal-week-grid {
+          position: relative;
+        }
+        .tcal-week-days {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+        }
+        .tcal-day {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          padding: 8px 12px;
+          border-right: 1px solid var(--border-slate-100);
+        }
+        [data-theme='dark'] .tcal-day {
+          border-right-color: #1f2937 !important;
+        }
+        .tcal-day:last-child { border-right: none; }
+        .tcal-day.weekend:not(.outside) {
+          background: linear-gradient(180deg, rgba(148,163,184,0.04), transparent);
+        }
+        .tcal-day.today {
+          background: rgba(59,130,246,0.04);
+        }
+        [data-theme='dark'] .tcal-day.today {
+          background: rgba(59,130,246,0.1) !important;
+        }
+        .tcal-day.outside .tcal-day-wd,
+        .tcal-day.outside .tcal-day-num {
+          opacity: 0.45;
+        }
+        .tcal-day-wd {
+          font-size: 9.5px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .tcal-day-wd { color: #94a3b8 !important; }
+        .tcal-day.today .tcal-day-wd {
+          color: #1d4ed8;
+        }
+        [data-theme='dark'] .tcal-day.today .tcal-day-wd {
+          color: #60a5fa !important;
+        }
+        .tcal-day-num {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-slate-700);
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tcal-day-num { color: #cbd5e1 !important; }
+        .tcal-day-num.today {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 20px;
+          height: 20px;
+          padding: 0 6px;
+          background: #3b82f6;
+          color: #fff !important;
+          border-radius: 999px;
+          font-weight: 800;
+        }
+        .tcal-week-ribbons {
+          position: relative;
+          padding: 0 0 12px;
+        }
+        .tcal-week-empty {
+          padding: 14px 18px;
+          font-size: 11.5px;
+          font-weight: 500;
+          color: var(--text-slate-400);
+          font-style: italic;
+        }
+        [data-theme='dark'] .tcal-week-empty {
+          color: #64748b !important;
+        }
+
+        /* Ribbon */
+        .tcal-ribbon {
+          position: absolute;
+          height: 20px;
+          padding: 0 7px;
+          border-radius: 5px;
+          border: 1px solid;
+          font-family: inherit;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: -0.005em;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          overflow: hidden;
+          white-space: nowrap;
+          text-align: left;
+          transition: filter 0.15s ease, transform 0.15s ease;
+          pointer-events: auto;
+        }
+        .tcal-ribbon:hover {
+          filter: brightness(1.08);
+          transform: translateY(-1px);
+        }
+        .tcal-ribbon.cont-left {
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+          border-left: none;
+          padding-left: 5px;
+        }
+        .tcal-ribbon.cont-right {
+          border-top-right-radius: 0;
+          border-bottom-right-radius: 0;
+          border-right: none;
+          padding-right: 5px;
+        }
+        .tcal-ribbon-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .tcal-ribbon-num {
+          font-family: ui-monospace, monospace;
+          font-size: 9.5px;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+          opacity: 0.85;
+        }
+        .tcal-ribbon-title {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          flex-shrink: 1;
+        }
+
+        /* Empty state */
+        .tcal-empty {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 80px 24px;
+          gap: 8px;
+          background: var(--bg-pure-white);
+        }
+        [data-theme='dark'] .tcal-empty {
+          background: #161b22 !important;
+        }
+        .tcal-empty-title {
+          font-size: 14px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.015em;
+          margin-top: 8px;
+        }
+        [data-theme='dark'] .tcal-empty-title { color: #f1f5f9 !important; }
+        .tcal-empty-sub {
+          font-size: 12px;
+          color: var(--text-slate-500);
+          font-weight: 500;
+          max-width: 360px;
+          text-align: center;
+        }
+        [data-theme='dark'] .tcal-empty-sub { color: #94a3b8 !important; }
+
+        /* Legend (sticky footer) */
+        .tcal-legend {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 18px;
+          flex-wrap: wrap;
+          border-top: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50);
+          position: sticky;
+          bottom: 0;
+          z-index: 5;
+          border-radius: 0 0 12px 12px;
+        }
+        [data-theme='dark'] .tcal-legend {
+          background: #0f1419 !important;
+          border-top-color: #1f2937 !important;
+        }
+        .tcal-legend-label {
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin-right: 4px;
+        }
+        [data-theme='dark'] .tcal-legend-label { color: #94a3b8 !important; }
+        .tcal-legend-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 9px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-slate-700);
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme='dark'] .tcal-legend-chip {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+          color: #cbd5e1 !important;
+        }
+        .tcal-legend-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .tcal-legend-toggle {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 4px 10px;
+          background: transparent;
+          border: 1px dashed var(--border-slate-300, #cbd5e1);
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 700;
+          color: #3b82f6;
+          cursor: pointer;
+          font-family: inherit;
+        }
+        .tcal-legend-toggle:hover {
+          background: rgba(59,130,246,0.08);
+          border-color: rgba(59,130,246,0.4);
+          color: #1d4ed8;
+        }
+        [data-theme='dark'] .tcal-legend-toggle {
+          color: #60a5fa;
+          border-color: #2d3748;
+        }
+
+        /* Hover tooltip card */
+        .tcal-tooltip-wrap .ant-tooltip-arrow { display: none !important; }
+        .tcal-tooltip-wrap .ant-tooltip-inner {
+          background: transparent !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+          min-width: 300px !important;
+          max-width: 340px !important;
+        }
+        .tcal-tooltip {
+          width: 300px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 12px;
+          padding: 12px 14px 10px 16px;
+          position: relative;
+          overflow: hidden;
+          color: var(--text-slate-900);
+        }
+        [data-theme='dark'] .tcal-tooltip {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+          color: #f1f5f9 !important;
+        }
+        .tcal-tooltip-accent {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 3px;
+        }
+        .tcal-tooltip-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .tcal-tooltip-title-block {
+          min-width: 0;
+          flex: 1;
+        }
+        .tcal-tooltip-num {
+          font-family: ui-monospace, monospace;
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          letter-spacing: 0.04em;
+        }
+        [data-theme='dark'] .tcal-tooltip-num { color: #94a3b8 !important; }
+        .tcal-tooltip-name {
+          font-size: 13.5px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          line-height: 1.3;
+          margin-top: 2px;
+          color: var(--text-slate-900);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+        [data-theme='dark'] .tcal-tooltip-name { color: #f1f5f9 !important; }
+        .tcal-tooltip-sprint {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-slate-600);
+          margin-top: 4px;
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme='dark'] .tcal-tooltip-sprint { color: #cbd5e1 !important; }
+        .tcal-tooltip-sprint-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .tcal-tooltip-badges {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+          flex-shrink: 0;
+        }
+        .tcal-tooltip-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 2px 8px;
+          font-size: 9.5px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          border-radius: 999px;
+          border: 1px solid;
+        }
+        .tcal-tooltip-status-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+        }
+        .tcal-tooltip-prio {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 1px 6px;
+          font-size: 9px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          border-radius: 4px;
+        }
+        .tcal-tooltip-prio-high { color: #dc2626; background: rgba(239,68,68,0.1); }
+        .tcal-tooltip-prio-medium { color: #d97706; background: rgba(245,158,11,0.1); }
+        .tcal-tooltip-prio-low { color: #059669; background: rgba(16,185,129,0.1); }
+        [data-theme='dark'] .tcal-tooltip-prio-high { color: #f87171; background: rgba(239,68,68,0.15); }
+        [data-theme='dark'] .tcal-tooltip-prio-medium { color: #fbbf24; background: rgba(245,158,11,0.15); }
+        [data-theme='dark'] .tcal-tooltip-prio-low { color: #34d399; background: rgba(16,185,129,0.15); }
+        .tcal-tooltip-divider {
+          height: 1px;
+          background: var(--border-slate-100);
+          margin: 10px 0 8px;
+        }
+        [data-theme='dark'] .tcal-tooltip-divider { background: #1f2937 !important; }
+        .tcal-tooltip-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+        }
+        .tcal-tooltip-meta-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-slate-600);
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tcal-tooltip-meta-item { color: #cbd5e1 !important; }
+        .tcal-tooltip-meta-item b {
+          color: var(--text-slate-900);
+          font-weight: 700;
+        }
+        [data-theme='dark'] .tcal-tooltip-meta-item b { color: #f1f5f9 !important; }
+        .tcal-tooltip-arrow {
+          color: var(--text-slate-400);
+          font-weight: 600;
+        }
+        .tcal-tooltip-footer {
+          margin-top: 10px;
+          padding-top: 8px;
+          border-top: 1px dashed var(--border-slate-200);
+          font-size: 9.5px;
+          font-weight: 800;
+          color: var(--text-slate-400);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .tcal-tooltip-footer {
+          border-top-color: #2d3748 !important;
+          color: #64748b !important;
+        }
+
+        @media (max-width: 900px) {
+          .tcal-day { padding: 6px 8px; }
+          .tcal-ribbon { font-size: 9px; padding: 0 5px; height: 18px; }
+          .tcal-ribbon-title { display: none; }
+        }
+      `}</style>
     </div>
   );
 }

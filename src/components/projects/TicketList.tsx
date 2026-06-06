@@ -72,6 +72,9 @@ import {
   CalendarOutlined,
   FlagOutlined,
   PlayCircleOutlined,
+  MessageOutlined,
+  PaperClipOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -104,6 +107,8 @@ import { SprintCreationForm, type SprintFormData } from "./sprint-completion/Spr
 import { ManualCreateTicketModal } from "./ManualCreateTicketModal";
 import { AiCreateTicketModal } from "./AiCreateTicketModal";
 import TicketSkeleton from "./TicketSkeleton";
+import TicketSidebar from "./TicketSidebar";
+import TicketFilterPill from "./TicketFilterPill";
 import { TablePreferenceService } from "@/services/tablePreferenceService";
 
 const { Title, Text } = Typography;
@@ -152,9 +157,11 @@ interface FilterState {
   status: string[];
   priority: string[];
   assignee: string[];
+  createdBy: string[];
   type: string[];
   tags: string[];
   search: string;
+  ticketIds: string[];
 }
 
 interface TicketListProps {
@@ -186,10 +193,25 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     status: [],
     priority: [],
     assignee: [],
+    createdBy: [],
     type: [],
     tags: [],
     search: "",
+    ticketIds: [],
   });
+  // Label that explains an active ticketIds filter ("commented tickets", "tickets with attachments")
+  // Quick-filter toggles for the sidebar's "Show commented tickets" and
+  // "Show tickets with attachments" CTAs. Each can be on independently; when
+  // either is on the right side switches to a unified "filtered view" that
+  // pulls matching tickets from across the project (no sprint/backlog scope).
+  const [activeQuickFilters, setActiveQuickFilters] = useState<{
+    commented: boolean;
+    attached: boolean;
+    overdue: boolean;
+  }>({ commented: false, attached: false, overdue: false });
+  // Remember which section the user came from so the filtered view can offer
+  // a "Back to Sprint / Backlog" button. Defaults to 'sprint' (the initial section).
+  const [previousSection, setPreviousSection] = useState<"sprint" | "backlog">("sprint");
 
   const [viewMode, setViewMode] = useState<'list' | 'board' | 'calendar'>('list');
   const [kanbanScope, setKanbanScope] = useState<'active' | 'backlog'>('active');
@@ -258,8 +280,23 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+
+  // Sidebar visibility on narrow screens. Below ~1100px the sidebar is a
+  // drawer overlay (default closed); above it stays inline in the shell.
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia("(min-width: 1100px)").matches;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(min-width: 1100px)");
+    const handler = (e: MediaQueryListEvent) => setIsSidebarOpen(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [allTicketIds, setAllTicketIds] = useState<string[]>([]);
+  const [sidebarActiveSection, setSidebarActiveSection] = useState<"sprint" | "backlog" | "filtered" | null>("sprint");
 
   // Sprint Completion Modal state
   const [sprintCompletionModalOpen, setSprintCompletionModalOpen] = useState(false);
@@ -283,18 +320,33 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [backlogSelectedRowKeys, setBacklogSelectedRowKeys] = useState<React.Key[]>([]);
   const recentTicketCardRef = useRef<HTMLDivElement | null>(null);
 
-  // Measure active-sprint card head so the table column headers stick flush below it
-  const activeSprintCardRef = useRef<HTMLDivElement | null>(null);
-  const [activeSprintHeadOffset, setActiveSprintHeadOffset] = useState<number>(128);
+  // Measure the sticky top header so the sidebar and section anchors line up
+  // with its real rendered height (it can wrap on narrow screens). Cascades
+  // into a CSS variable used by the sidebar + scroll-margin computations.
+  const saasHeaderRef = useRef<HTMLDivElement | null>(null);
+  const [saasHeaderHeight, setSaasHeaderHeight] = useState<number>(56);
   useEffect(() => {
-    const el = activeSprintCardRef.current?.querySelector('.ant-card-head') as HTMLElement | null;
+    const el = saasHeaderRef.current;
     if (!el) return;
-    const update = () => setActiveSprintHeadOffset(56 + el.offsetHeight);
+    const update = () => setSaasHeaderHeight(el.offsetHeight || 56);
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [activeSprintCardRef.current]);
+  }, []);
+
+  // Measure active-sprint section head so the table column headers stick flush below it
+  const activeSprintCardRef = useRef<HTMLDivElement | null>(null);
+  const [activeSprintHeadOffset, setActiveSprintHeadOffset] = useState<number>(128);
+  useEffect(() => {
+    const el = activeSprintCardRef.current?.querySelector('.tl-section-head') as HTMLElement | null;
+    if (!el) return;
+    const update = () => setActiveSprintHeadOffset(saasHeaderHeight + el.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [activeSprintCardRef.current, saasHeaderHeight]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -331,7 +383,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // Pagination state
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 15,
   });
 
 
@@ -443,9 +495,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     priority: filters.priority.length > 0 ? filters.priority.join(",") : undefined,
     assigneeId:
       filters.assignee.length > 0 ? filters.assignee.join(",") : undefined,
+    createdById:
+      filters.createdBy.length > 0 ? filters.createdBy.join(",") : undefined,
     type: filters.type.length > 0 ? filters.type.join(",") : undefined,
     tags: filters.tags.length > 0 ? filters.tags.join(",") : undefined,
     search: filters.search || undefined,
+    ticketIds: filters.ticketIds.length > 0 ? filters.ticketIds.join(",") : undefined,
   };
 
   // Fetch Active Sprint to get ID for assignments (scoped to project)
@@ -456,6 +511,16 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     enabled: !!projectId && canReadTicketPlan,
   });
   const activeSprint = activeSprints && activeSprints.length > 0 ? activeSprints[0] : null;
+
+  // Recent comments + attachments for the sidebar (project-scoped, tenant-aware,
+  // and user-relevance filtered: items the current user authored OR items on
+  // tickets assigned to them).
+  const { data: recentActivity } = useQuery({
+    queryKey: ['ticketRecentActivity', projectId, user?.id],
+    queryFn: () => TicketService.getRecentActivity({ projectId, userId: user?.id, limit: 10 }),
+    enabled: !!projectId && !!user?.id && canReadTicket,
+    staleTime: 30 * 1000,
+  });
 
   // Persist current project as last visited
   useEffect(() => {
@@ -509,15 +574,145 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const backlogTickets = backlogData?.data || [];
   const totalBacklog = backlogData?.pagination?.total || 0;
 
-  // 3. Fetch ALL Active Sprint Tickets for progress calculation (UNFILTERED)
+  // 3. Fetch ALL Active Sprint Tickets for progress calculation (UNFILTERED).
+  // Intentionally NOT gated on `activeSprint` resolving — the backend
+  // already returns an empty set if there's no active sprint, and gating
+  // here causes the sidebar's "Your Sprint Contribution" stats to flash
+  // empty before the activeSprint query lands.
   const { data: overallSprintData } = useTickets({
     projectId,
     sprintId: 'active',
     limit: 9999
   }, {
-    enabled: !!activeSprint // Only fetch if we have an active sprint
+    enabled: !!projectId && canReadTicket,
   });
   const overallSprintTickets = overallSprintData?.data || [];
+
+  // Sidebar source-of-truth: union of the unfiltered "overall" sprint pool
+  // and the right-side `activeTickets`, deduped by id. The user already sees
+  // their tickets on the right, so this guarantees the sidebar sees them too
+  // even if the parallel `overallSprintData` query is delayed or empty.
+  const sidebarSprintPool = useMemo<Ticket[]>(() => {
+    const byId = new Map<string, Ticket>();
+    for (const t of overallSprintTickets) byId.set(t.id, t);
+    for (const t of activeTickets) if (!byId.has(t.id)) byId.set(t.id, t);
+    return Array.from(byId.values());
+  }, [overallSprintTickets, activeTickets]);
+
+  // Quick-filter derived state — drives the unified "filtered view" section.
+  const isFilteredView = activeQuickFilters.commented || activeQuickFilters.attached || activeQuickFilters.overdue;
+  const recentCommentedIds = useMemo(
+    () => Array.from(new Set((recentActivity?.comments || []).map((c) => c.ticket.id))),
+    [recentActivity]
+  );
+  const recentAttachedIds = useMemo(
+    () => Array.from(new Set((recentActivity?.attachments || []).map((a) => a.ticket.id))),
+    [recentActivity]
+  );
+  const overdueIds = useMemo(
+    () => Array.from(new Set((recentActivity?.overdue || []).map((o) => o.id))),
+    [recentActivity]
+  );
+  const quickFilterTicketIds = useMemo(() => {
+    const set = new Set<string>();
+    if (activeQuickFilters.commented) recentCommentedIds.forEach((id) => set.add(id));
+    if (activeQuickFilters.attached) recentAttachedIds.forEach((id) => set.add(id));
+    if (activeQuickFilters.overdue) overdueIds.forEach((id) => set.add(id));
+    return Array.from(set);
+  }, [activeQuickFilters, recentCommentedIds, recentAttachedIds, overdueIds]);
+
+  // Unified filtered-view query: project-wide tickets matching the active
+  // quick-filter set (no sprint/backlog scope restriction). Honors other
+  // filters (status/priority/etc) so the user can keep narrowing.
+  const filteredViewParams = {
+    ...baseQueryParams,
+    ticketIds: quickFilterTicketIds.length > 0 ? quickFilterTicketIds.join(",") : undefined,
+    page: pagination.current,
+    limit: pagination.pageSize,
+  };
+  const {
+    data: filteredViewData,
+    isFetching: filteredViewFetching,
+  } = useTickets(filteredViewParams, {
+    enabled: isFilteredView && quickFilterTicketIds.length > 0,
+  });
+  const filteredViewTickets = filteredViewData?.data || [];
+  const filteredViewTotal = filteredViewData?.pagination?.total || 0;
+
+  const filteredViewKindLabel = (() => {
+    const parts: string[] = [];
+    if (activeQuickFilters.commented) parts.push("Commented");
+    if (activeQuickFilters.attached) parts.push("Attached");
+    if (activeQuickFilters.overdue) parts.push("Overdue");
+    if (parts.length === 0) return "Filtered tickets";
+    return `${parts.join(" · ")} tickets`;
+  })();
+
+  const effectiveSection: "sprint" | "backlog" | "filtered" | null = isFilteredView ? "filtered" : sidebarActiveSection;
+
+  // ── Per-section filter scoping ───────────────────────────
+  // Filters are section-scoped (Sprint / Backlog / Filtered each keep their
+  // own status/priority/assignee/etc). Global `search` and `ticketIds` stay
+  // shared so the global search box behaves intuitively.
+  //
+  // On every scope change we (1) save the OUTGOING scope's section filters
+  // and (2) restore the INCOMING scope's snapshot into the live `filters`
+  // state. The backend queries already read off `filters`, so scoping is
+  // invisible to the rest of the component.
+  type SectionScope = "sprint" | "backlog" | "filtered";
+  type SectionScopedFilters = Pick<
+    FilterState,
+    "status" | "priority" | "assignee" | "createdBy" | "type" | "tags"
+  >;
+  const EMPTY_SECTION_SCOPED: SectionScopedFilters = {
+    status: [],
+    priority: [],
+    assignee: [],
+    createdBy: [],
+    type: [],
+    tags: [],
+  };
+  const currentScope: SectionScope = isFilteredView
+    ? "filtered"
+    : sidebarActiveSection === "backlog"
+    ? "backlog"
+    : "sprint";
+  const filterSnapshotsRef = useRef<Record<SectionScope, SectionScopedFilters>>({
+    sprint: { ...EMPTY_SECTION_SCOPED },
+    backlog: { ...EMPTY_SECTION_SCOPED },
+    filtered: { ...EMPTY_SECTION_SCOPED },
+  });
+  const prevScopeRef = useRef<SectionScope>(currentScope);
+  // Mirror `filters` into a ref so the scope-change effect can read the latest
+  // value without re-running on every keystroke.
+  const filtersRef = useRef(filters);
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
+  useEffect(() => {
+    if (prevScopeRef.current === currentScope) return;
+    const outgoingScope = prevScopeRef.current;
+    const f = filtersRef.current;
+    filterSnapshotsRef.current = {
+      ...filterSnapshotsRef.current,
+      [outgoingScope]: {
+        status: f.status,
+        priority: f.priority,
+        assignee: f.assignee,
+        createdBy: f.createdBy,
+        type: f.type,
+        tags: f.tags,
+      },
+    };
+    const incoming = filterSnapshotsRef.current[currentScope];
+    setFilters((prev) => ({
+      ...prev,
+      ...incoming,
+    }));
+    setPagination((prev) => ({ ...prev, current: 1 }));
+    prevScopeRef.current = currentScope;
+  }, [currentScope]);
 
   // ── Calendar view data (only when viewMode === 'calendar') ──────
   // Fetch ALL sprints for the project to get color/name mapping and date bounds
@@ -906,9 +1101,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   useEffect(() => {
     if (viewMode === 'board') {
       // Board mode uses Kanban endpoint, no pagination needed
-      setPagination(prev => ({ ...prev, current: 1, pageSize: 10 }));
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 15 }));
     } else {
-      setPagination(prev => ({ ...prev, current: 1, pageSize: 10 }));
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 15 }));
     }
   }, [viewMode]);
 
@@ -1589,7 +1784,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     {
       title: "Actions",
       key: "actions",
-      width: 180,
+      width: 116,
+      align: "right" as const,
       fixed: "right",
       render: (_: any, record: Ticket) => {
         const handleShare = () => {
@@ -1696,7 +1892,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       backgroundColor: 'var(--bg-pure-white)',
       minHeight: 'calc(100vh - 64px)',
       padding: '0 24px 24px 24px',
-      margin: '0 -24px'
+      margin: '0 -24px',
+      ['--tl-header-h' as any]: `${saasHeaderHeight}px`,
     }}>
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -1717,20 +1914,501 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         .tickets-cols-scroll::-webkit-scrollbar-track { background: transparent; }
         .tickets-cols-scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 3px; }
         .tickets-cols-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-slate-400); }
+
+        /* ── Two-column shell (sidebar + main) ───────────────
+           Left bleeds -24px so the sidebar background slips under the
+           global SideNav (cleaner edge). Right does NOT bleed because
+           the parent <Content> only has 8px padding — bleeding right
+           by -24px would push content 16px past the viewport-clipped
+           Content right edge, hiding the Complete-Sprint button / chart
+           icon / right-most table columns. */
+        .tl-shell-wrap { margin: 0 0 0 -24px; }
+        .tl-shell {
+          display: grid;
+          grid-template-columns: 264px minmax(0, 1fr);
+          gap: 0;
+          align-items: stretch;
+          min-height: calc(100vh - 64px - 56px);
+        }
+        .tl-main {
+          min-width: 0;
+          padding: 0 8px 24px 0;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        /* ── Sidebar toggle button (mobile/tablet) ──────────── */
+        .tl-sidebar-toggle-btn {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          color: var(--text-slate-700);
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .tl-sidebar-toggle-btn:hover {
+          background: var(--bg-slate-50);
+          border-color: var(--text-slate-400);
+          color: var(--text-slate-900);
+        }
+        [data-theme='dark'] .tl-sidebar-toggle-btn {
+          background: #111720;
+          border-color: #2d3748;
+          color: #cbd5e1;
+        }
+        [data-theme='dark'] .tl-sidebar-toggle-btn:hover {
+          background: #1c232e;
+          border-color: #475569;
+          color: #f1f5f9;
+        }
+
+        /* ── Sidebar backdrop (only used as overlay on narrow widths) ── */
+        .tl-sidebar-backdrop { display: none; }
+
+        /* ── Desktop ≥1100px ────────────────────────────────── */
+        @media (min-width: 1100px) {
+          .tl-sidebar-toggle-btn { display: none !important; }
+          .tl-shell-wrap.is-sidebar-closed .tl-shell {
+            grid-template-columns: minmax(0, 1fr);
+          }
+          .tl-shell-wrap.is-sidebar-closed > .tl-shell > aside.tl-sidebar {
+            display: none;
+          }
+        }
+
+        /* ── Tablet / Mobile <1100px ────────────────────────── */
+        @media (max-width: 1099.98px) {
+          .tl-sidebar-toggle-btn { display: inline-flex; }
+          .tl-shell { grid-template-columns: minmax(0, 1fr); }
+          /* Sidebar becomes a drawer overlay */
+          .tl-shell > aside.tl-sidebar {
+            position: fixed;
+            top: var(--tl-header-h, 56px);
+            left: 0;
+            width: 280px;
+            height: calc(100vh - 64px - var(--tl-header-h, 56px));
+            z-index: 60;
+            transform: translateX(-100%);
+            transition: transform 0.2s ease;
+            box-shadow: 1px 0 0 var(--border-slate-200);
+            padding: 10px 14px 16px;
+          }
+          [data-theme='dark'] .tl-shell > aside.tl-sidebar {
+            box-shadow: 1px 0 0 #1f2937;
+          }
+          .tl-shell-wrap.is-sidebar-open > .tl-shell > aside.tl-sidebar {
+            transform: translateX(0);
+          }
+          .tl-shell-wrap.is-sidebar-open > .tl-sidebar-backdrop {
+            display: block;
+            position: fixed;
+            top: var(--tl-header-h, 56px);
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.35);
+            z-index: 55;
+          }
+          /* Main column reclaims full width when sidebar is drawer */
+          .tl-main { padding-left: 0; padding-right: 8px; }
+        }
+
+        /* ── Narrow phone <640px ────────────────────────────── */
+        @media (max-width: 639.98px) {
+          .tl-section-head {
+            padding: 8px 10px !important;
+            gap: 6px !important;
+          }
+          .tl-filter-row {
+            padding: 6px 10px;
+            gap: 6px;
+          }
+          .tl-filter-row-label { display: none; }
+          .tl-filter-row-pills { gap: 4px; }
+          .tl-shell > aside.tl-sidebar { width: 86vw; }
+        }
+
+        /* ── Flat section (no card, borders for separation) ─ */
+        .tl-section {
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-200);
+          border-bottom: 1px solid var(--border-slate-200);
+          margin-bottom: 0;
+        }
+        [data-theme='dark'] .tl-section {
+          background: transparent;
+          border-top-color: #1f2937;
+          border-bottom-color: #1f2937;
+        }
+        .tl-section-head {
+          padding: 10px 16px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+          /* Sticks below the page-level header so the sprint info / actions
+             stay reachable while the user scrolls long ticket lists. */
+          position: sticky;
+          top: var(--tl-header-h, 56px);
+          z-index: 4;
+        }
+        [data-theme='dark'] .tl-section-head {
+          background: #0f1419;
+          border-bottom-color: #1f2937;
+        }
+        .tl-section-body { padding: 12px 0 0; }
+
+        /* Tight table rows — applies on top of size="small" */
+        .tl-table .ant-table-thead > tr > th {
+          padding: 7px 12px !important;
+          font-size: 11px !important;
+          font-weight: 800 !important;
+          background: var(--bg-slate-50) !important;
+          color: var(--text-slate-500) !important;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+        [data-theme='dark'] .tl-table .ant-table-thead > tr > th {
+          background: #0f1419 !important;
+          color: #94a3b8 !important;
+        }
+        .tl-table .ant-table-tbody > tr > td {
+          padding: 6px 12px !important;
+          font-size: 12.5px !important;
+        }
+        .tl-table .ant-table-cell {
+          line-height: 1.35 !important;
+        }
+
+        /* Sticky pagination — pins to viewport bottom (inside the scrolling
+           Content area) so the user always sees totals + page controls
+           even with hundreds of rows above. Selector matches both Ant v5
+           variants: the wrapper-element form (.ant-table-pagination) and
+           the merged-class form (.ant-pagination.ant-table-pagination). */
+        .tl-table-sticky-pagination .ant-table-pagination,
+        .tl-table-sticky-pagination > .ant-spin-nested-loading > .ant-spin-container > .ant-pagination,
+        .tl-table-sticky-pagination .ant-pagination.ant-table-pagination {
+          position: sticky !important;
+          bottom: 0 !important;
+          z-index: 5 !important;
+          margin: 0 !important;
+          padding: 8px 14px !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          display: flex !important;
+          flex-wrap: wrap !important;
+          align-items: center !important;
+          justify-content: flex-end !important;
+          gap: 6px !important;
+        }
+        [data-theme='dark'] .tl-table-sticky-pagination .ant-table-pagination,
+        [data-theme='dark'] .tl-table-sticky-pagination > .ant-spin-nested-loading > .ant-spin-container > .ant-pagination,
+        [data-theme='dark'] .tl-table-sticky-pagination .ant-pagination.ant-table-pagination {
+          background: #0f1419 !important;
+          border-top-color: #1f2937 !important;
+        }
+        /* Trim Ant's default pagination item heights to match small table size */
+        .tl-table-sticky-pagination .ant-pagination-item,
+        .tl-table-sticky-pagination .ant-pagination-prev,
+        .tl-table-sticky-pagination .ant-pagination-next,
+        .tl-table-sticky-pagination .ant-pagination-jump-prev,
+        .tl-table-sticky-pagination .ant-pagination-jump-next {
+          min-width: 28px !important;
+          height: 28px !important;
+          line-height: 26px !important;
+          font-size: 12px !important;
+        }
+        .tl-table-sticky-pagination .ant-pagination-options-size-changer .ant-select-selector {
+          height: 28px !important;
+          font-size: 12px !important;
+        }
+        .tl-table-sticky-pagination .ant-pagination-total-text {
+          margin-right: auto !important;
+        }
+
+        /* Ensure ancestor stacking contexts don't clip sticky pagination */
+        .tl-section, .tl-section-body, .tickets-table-shell { overflow: visible !important; }
+
+        /* ── Back-to button (filtered view section head) ─────── */
+        .tl-back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 28px;
+          padding: 0 12px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 999px;
+          font-family: inherit;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-slate-700);
+          letter-spacing: -0.005em;
+          cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .tl-back-btn:hover {
+          background: var(--bg-slate-50);
+          border-color: var(--text-slate-400);
+          color: var(--text-slate-900);
+        }
+        [data-theme='dark'] .tl-back-btn {
+          background: #111720;
+          border-color: #2d3748;
+          color: #cbd5e1;
+        }
+        [data-theme='dark'] .tl-back-btn:hover {
+          background: #1c232e;
+          border-color: #475569;
+          color: #f1f5f9;
+        }
+
+        /* ── Cross-section search banner ──────────────────────
+           Surfaces matches that live in the other section (Sprint ↔ Backlog)
+           so users don't think a ticket "doesn't exist" when it's just on
+           the section they aren't viewing. */
+        .tl-cross-banner {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin: 0 12px 10px;
+          padding: 8px 12px;
+          background: rgba(59,130,246,0.06);
+          border: 1px solid rgba(59,130,246,0.22);
+          border-radius: 8px;
+          color: var(--text-slate-700);
+        }
+        [data-theme='dark'] .tl-cross-banner {
+          background: rgba(59,130,246,0.14);
+          border-color: rgba(59,130,246,0.35);
+          color: #cbd5e1;
+        }
+        .tl-cross-banner-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          background: rgba(59,130,246,0.12);
+          color: #1d4ed8;
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-cross-banner-icon {
+          background: rgba(59,130,246,0.22);
+          color: #93c5fd;
+        }
+        .tl-cross-banner-text {
+          flex: 1 1 auto;
+          min-width: 0;
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: -0.005em;
+        }
+        .tl-cross-banner-text b {
+          font-weight: 800;
+          color: var(--text-slate-900);
+        }
+        [data-theme='dark'] .tl-cross-banner-text b { color: #f1f5f9; }
+        .tl-cross-banner-cta {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 28px;
+          padding: 0 12px;
+          background: #2563eb;
+          border: 1px solid #1d4ed8;
+          color: #fff;
+          border-radius: 999px;
+          font-family: inherit;
+          font-size: 11.5px;
+          font-weight: 800;
+          letter-spacing: -0.005em;
+          cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease;
+        }
+        .tl-cross-banner-cta:hover {
+          background: #1d4ed8;
+          border-color: #1e40af;
+        }
+
+        /* ── Inline filter row (compact pill strip) ────────── */
+        .tl-filter-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .tl-filter-row {
+          background: #0f1419;
+          border-bottom-color: #1f2937;
+        }
+        .tl-filter-row-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 10.5px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-filter-row-label { color: #94a3b8; }
+        .tl-filter-row-count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 6px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-500);
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0;
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tl-filter-row-count {
+          background: #111720;
+          border-color: #2d3748;
+          color: #cbd5e1;
+        }
+        .tl-filter-row-pills {
+          flex: 1 1 auto;
+          min-width: 0;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .tl-filter-row-actions {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .tl-filter-row-reset {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          height: 28px;
+          padding: 0 10px;
+          background: transparent;
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 999px;
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .tl-filter-row-reset:hover {
+          color: #1d4ed8;
+          border-color: rgba(59,130,246,0.45);
+          background: rgba(59,130,246,0.06);
+          border-style: solid;
+        }
+        .tl-filter-row-close {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          background: transparent;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 999px;
+          color: var(--text-slate-500);
+          cursor: pointer;
+          transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+        }
+        .tl-filter-row-close:hover {
+          color: var(--text-slate-900);
+          background: var(--bg-pure-white);
+          border-color: var(--text-slate-400);
+        }
+        [data-theme='dark'] .tl-filter-row-reset,
+        [data-theme='dark'] .tl-filter-row-close {
+          border-color: #2d3748;
+          color: #94a3b8;
+        }
+
+        /* ── Filter indicator chip (ticketIds filter) ──────── */
+        .tl-ticketids-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 10px 6px 12px;
+          background: rgba(59,130,246,0.08);
+          border: 1px solid rgba(59,130,246,0.22);
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 700;
+          color: #1d4ed8;
+          width: fit-content;
+          margin: 0 0 4px;
+          letter-spacing: -0.005em;
+        }
+        .tl-ticketids-chip b { font-weight: 800; }
+        [data-theme='dark'] .tl-ticketids-chip {
+          background: rgba(59,130,246,0.15) !important;
+          border-color: rgba(59,130,246,0.32) !important;
+          color: #93c5fd !important;
+        }
+        .tl-ticketids-clear {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: transparent;
+          border: 0;
+          padding: 2px 6px;
+          margin-left: 4px;
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 700;
+          color: currentColor;
+          cursor: pointer;
+          font-family: inherit;
+          opacity: 0.85;
+          transition: opacity 0.12s ease, background 0.12s ease;
+        }
+        .tl-ticketids-clear:hover {
+          opacity: 1;
+          background: rgba(59,130,246,0.10);
+        }
       `}} />
 
       {/* Premium Header Row - Sticky Glassmorphism */}
-      <div className="saas-header-container" style={{
+      <div ref={saasHeaderRef} className="saas-header-container" style={{
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        margin: '0 -24px 16px -24px',
+        margin: '0 -24px 0 -24px',
         padding: '8px 24px',
         display: 'flex',
         alignItems: 'center',
         gap: '16px',
         flexWrap: 'wrap'
       }}>
+        {/* Sidebar toggle (only visible on narrow screens via CSS) */}
+        <button
+          type="button"
+          className="tl-sidebar-toggle-btn"
+          onClick={() => setIsSidebarOpen((v) => !v)}
+          aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+          title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+        >
+          <BarsOutlined style={{ fontSize: 14 }} />
+        </button>
         {/* Project Switcher */}
         <Dropdown
           menu={{
@@ -1823,7 +2501,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   filters={filters}
                   onFilterChange={handleFilterChange}
                   members={members}
-                  onReset={() => setFilters({ status: [], priority: [], assignee: [], type: [], tags: [], search: filters.search })}
+                  onReset={() => { setFilters({ status: [], priority: [], assignee: [], createdBy: [], type: [], tags: [], search: filters.search, ticketIds: [] }); setActiveQuickFilters({ commented: false, attached: false, overdue: false }); }}
                   statusOptions={finalStatusOptions}
                   priorityOptions={finalPriorityOptions}
                   typeOptions={finalTypeOptions}
@@ -1831,6 +2509,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               }
               trigger="click"
               placement="bottomLeft"
+              overlayClassName="tf-popover-overlay"
+              styles={{ body: { padding: 0 } }}
             >
               <Button
                 icon={<FilterOutlined />}
@@ -2106,142 +2786,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         </Space>
       </div>
 
-      {/* Inline Filter Row */}
-      {isFilterRowOpen && (
-        <div className="ticket-filter-row">
-          <div className="ticket-filter-row__header">
-            <span className="ticket-filter-row__badge">
-              <FilterOutlined />
-            </span>
-            <div className="ticket-filter-row__title">
-              <span className="ticket-filter-row__title-text">View Filters</span>
-              <span className="ticket-filter-row__title-sub">
-                {activeFilterCount > 0 ? `${activeFilterCount} active` : 'No filters applied'}
-              </span>
-            </div>
-          </div>
-
-          <div className="ticket-filter-row__fields">
-            <div className="ticket-filter-row__field">
-              <label className="ticket-filter-row__label">
-                <CheckCircleOutlined /> Status
-              </label>
-              <Select
-                mode="multiple"
-                placeholder="Any status"
-                value={filters.status}
-                onChange={(val) => handleFilterChange('status', val)}
-                options={finalStatusOptions}
-                allowClear
-                maxTagCount={1}
-                className="ticket-filter-row__select"
-              />
-            </div>
-
-            <div className="ticket-filter-row__field">
-              <label className="ticket-filter-row__label">
-                <ThunderboltOutlined /> Priority
-              </label>
-              <Select
-                mode="multiple"
-                placeholder="Any priority"
-                value={filters.priority}
-                onChange={(val) => handleFilterChange('priority', val)}
-                options={finalPriorityOptions}
-                allowClear
-                maxTagCount={1}
-                className="ticket-filter-row__select"
-              />
-            </div>
-
-            <div className="ticket-filter-row__field">
-              <label className="ticket-filter-row__label">
-                <AppstoreOutlined /> Type
-              </label>
-              <Select
-                mode="multiple"
-                placeholder="Any type"
-                value={filters.type}
-                onChange={(val) => handleFilterChange('type', val)}
-                options={finalTypeOptions}
-                allowClear
-                maxTagCount={1}
-                className="ticket-filter-row__select"
-              />
-            </div>
-
-            <div className="ticket-filter-row__field">
-              <label className="ticket-filter-row__label">
-                <UserOutlined /> Assignee
-              </label>
-              <Select
-                mode="multiple"
-                placeholder="All members"
-                value={filters.assignee}
-                onChange={(val) => handleFilterChange('assignee', val)}
-                options={members.map((m) => ({ label: m.label, value: m.value }))}
-                allowClear
-                showSearch
-                maxTagCount={1}
-                filterOption={(input, option) => {
-                  const member = members.find((m) => m.value === option?.value);
-                  return member
-                    ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                    (member.position || '').toLowerCase().includes(input.toLowerCase())
-                    : false;
-                }}
-                className="ticket-filter-row__select"
-              />
-            </div>
-
-            <div className="ticket-filter-row__field">
-              <label className="ticket-filter-row__label">
-                <TagsOutlined /> Tags
-              </label>
-              <Select
-                mode="multiple"
-                placeholder="Any tag"
-                value={filters.tags}
-                onChange={(val) => handleFilterChange('tags', val)}
-                options={tagSuggestions.map((t) => ({ label: t, value: t }))}
-                allowClear
-                showSearch
-                maxTagCount={1}
-                notFoundContent="No tags yet"
-                filterOption={(input, option) =>
-                  String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
-                }
-                className="ticket-filter-row__select"
-              />
-            </div>
-          </div>
-
-          <div className="ticket-filter-row__actions">
-            {activeFilterCount > 0 && (
-              <Button
-                type="text"
-                size="small"
-                icon={<ReloadOutlined />}
-                onClick={() => setFilters({ status: [], priority: [], assignee: [], type: [], tags: [], search: filters.search })}
-                className="ticket-filter-row__reset"
-              >
-                Reset
-              </Button>
-            )}
-
-            <Tooltip title="Close filters">
-              <Button
-                type="text"
-                shape="circle"
-                icon={<CloseOutlined />}
-                onClick={() => setIsFilterRowOpen(false)}
-                aria-label="Close filter row"
-                className="ticket-filter-row__close"
-              />
-            </Tooltip>
-          </div>
-        </div>
-      )}
+      {/* Inline Filter Row moved into tl-main (renders after the sprint details header) */}
 
       {/* Inline Creation */}
       <InlineCreateTicket
@@ -2254,7 +2799,174 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         onTicketCreated={handleTicketCreated}
       />
 
-      {/* Tickets View */}
+      {/* Tickets View — wrapped in a 2-column shell (sidebar + main) */}
+      <div className={`tl-shell-wrap ${isSidebarOpen ? 'is-sidebar-open' : 'is-sidebar-closed'}`}>
+        {/* Mobile backdrop — closes the sidebar drawer when tapped */}
+        <div
+          className="tl-sidebar-backdrop"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden
+        />
+        <div className="tl-shell">
+          <TicketSidebar
+            activeSprint={activeSprint as any}
+            overallSprintTickets={sidebarSprintPool as any}
+            totalBacklog={totalBacklog}
+            currentUserId={user?.id}
+            currentUserName={user?.name}
+            typeOptions={finalTypeOptions as any}
+            recentComments={recentActivity?.comments || []}
+            recentAttachments={recentActivity?.attachments || []}
+            activeSection={effectiveSection}
+            isMyBacklogActive={!!user?.id && filters.assignee.length === 1 && filters.assignee[0] === user.id}
+            commentedFilterActive={activeQuickFilters.commented}
+            attachedFilterActive={activeQuickFilters.attached}
+            overdueFilterActive={activeQuickFilters.overdue}
+            overdueTickets={recentActivity?.overdue || []}
+            onShowOverdueTickets={() => {
+              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                setPreviousSection(sidebarActiveSection);
+              }
+              setActiveQuickFilters((prev) => ({ ...prev, overdue: !prev.overdue }));
+              setPagination((prev) => ({ ...prev, current: 1 }));
+              if (viewMode !== 'list') setViewMode('list');
+            }}
+            onShowCommentedTickets={() => {
+              // Remember where the user was so the filtered view can go back.
+              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                setPreviousSection(sidebarActiveSection);
+              }
+              setActiveQuickFilters((prev) => ({ ...prev, commented: !prev.commented }));
+              setPagination((prev) => ({ ...prev, current: 1 }));
+              if (viewMode !== 'list') setViewMode('list');
+            }}
+            onShowAttachedTickets={() => {
+              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                setPreviousSection(sidebarActiveSection);
+              }
+              setActiveQuickFilters((prev) => ({ ...prev, attached: !prev.attached }));
+              setPagination((prev) => ({ ...prev, current: 1 }));
+              if (viewMode !== 'list') setViewMode('list');
+            }}
+            onNavigate={(section) => {
+              // Leaving the filtered view should clear the quick filters too,
+              // so the user goes back to a clean Sprint/Backlog view.
+              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+              setSidebarActiveSection(section);
+              if (viewMode !== 'list') setViewMode('list');
+            }}
+            onShowMyBacklog={() => {
+              if (!user?.id) return;
+              const isOn = filters.assignee.length === 1 && filters.assignee[0] === user.id;
+              setFilters(prev => ({
+                ...prev,
+                assignee: isOn ? [] : [user.id],
+              }));
+              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+              setSidebarActiveSection('backlog');
+              if (viewMode !== 'list') setViewMode('list');
+            }}
+            onTicketClick={(id) => setSelectedTicketId(id)}
+          />
+          <div className="tl-main">
+      {/* Inline Filter Row — compact pill row, sits at top of main column */}
+      {isFilterRowOpen && (
+        <div className="tl-filter-row">
+          <div className="tl-filter-row-label">
+            <FilterOutlined style={{ fontSize: 11 }} />
+            <span>Filters</span>
+            <span className="tl-filter-row-count">
+              {activeFilterCount > 0 ? activeFilterCount : '0'}
+            </span>
+          </div>
+          <div className="tl-filter-row-pills">
+            <TicketFilterPill
+              icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
+              label="Status"
+              values={filters.status}
+              options={finalStatusOptions}
+              onChange={(val) => handleFilterChange('status', val)}
+              itemNoun="statuses"
+            />
+            <TicketFilterPill
+              icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
+              label="Priority"
+              values={filters.priority}
+              options={finalPriorityOptions}
+              onChange={(val) => handleFilterChange('priority', val)}
+              itemNoun="priorities"
+            />
+            <TicketFilterPill
+              icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
+              label="Type"
+              values={filters.type}
+              options={finalTypeOptions}
+              onChange={(val) => handleFilterChange('type', val)}
+              itemNoun="types"
+            />
+            <TicketFilterPill
+              icon={<UserOutlined style={{ fontSize: 11 }} />}
+              label="Assignee"
+              values={filters.assignee}
+              options={members.map((m) => ({
+                label: m.label,
+                value: m.value,
+                description: m.position || undefined,
+              }))}
+              onChange={(val) => handleFilterChange('assignee', val)}
+              itemNoun="members"
+              width={290}
+            />
+            <TicketFilterPill
+              icon={<EditOutlined style={{ fontSize: 11 }} />}
+              label="Created By"
+              values={filters.createdBy}
+              options={members.map((m) => ({
+                label: m.label,
+                value: m.value,
+                description: m.position || undefined,
+              }))}
+              onChange={(val) => handleFilterChange('createdBy', val)}
+              itemNoun="members"
+              width={290}
+            />
+            <TicketFilterPill
+              icon={<TagsOutlined style={{ fontSize: 11 }} />}
+              label="Tags"
+              values={filters.tags}
+              options={tagSuggestions.map((t) => ({ label: t, value: t }))}
+              onChange={(val) => handleFilterChange('tags', val)}
+              itemNoun="tags"
+            />
+          </div>
+          <div className="tl-filter-row-actions">
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                className="tl-filter-row-reset"
+                onClick={() => {
+                  setFilters({ status: [], priority: [], assignee: [], createdBy: [], type: [], tags: [], search: filters.search, ticketIds: [] });
+                  setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+                }}
+              >
+                <ReloadOutlined style={{ fontSize: 10 }} />
+                Reset
+              </button>
+            )}
+            <button
+              type="button"
+              className="tl-filter-row-close"
+              onClick={() => setIsFilterRowOpen(false)}
+              aria-label="Close filters"
+              title="Close filters"
+            >
+              <CloseOutlined style={{ fontSize: 10 }} />
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Legacy ticketIds chip replaced by the dedicated Filtered View section
+          driven by activeQuickFilters. Kept here only as a marker. */}
       {(isRefreshing || (viewMode === 'list' ? (activeSprintLoading || backlogLoading) : viewMode === 'calendar' ? (allSprintsLoading || calendarTicketsLoading) : isKanbanLoading)) ? (
         <TicketSkeleton viewMode={viewMode === 'calendar' ? 'list' : viewMode} />
       ) : viewMode === 'calendar' ? (
@@ -2483,20 +3195,19 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         </div>
       ) : viewMode === 'list' ? (
         <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Active Sprint Section */}
-          {activeSprint && (
-            <div id="active-section" ref={activeSprintCardRef} style={{ scrollMarginTop: '100px' }}>
-              <Card
-                className="saas-card saas-card-sticky"
-                title={
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: '12px',
-                    padding: '8px 0'
-                  }}>
+          {/* Active Sprint Section (only when Sprint selected in left nav) */}
+          {activeSprint && !isFilteredView && sidebarActiveSection === 'sprint' && (
+            <div id="active-section" ref={activeSprintCardRef} style={{ scrollMarginTop: `calc(var(--tl-header-h, 56px) + 4px)` }} className="tl-section">
+              <div
+                className="tl-section-head"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                }}
+              >
                     <Space size={[12, 8]} wrap>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)' }} />
                       <Text 
@@ -2670,16 +3381,16 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                         </>
                       )}
 
-                      <Button
+                      {/* <Button
                         type="default"
                         size="middle"
                         icon={<UnorderedListOutlined style={{ color: '#64748b' }} />}
-                        onClick={() => document.getElementById('backlog-section')?.scrollIntoView({ behavior: 'smooth' })}
+                        onClick={() => setSidebarActiveSection('backlog')}
                         className="saas-button-item"
                         style={{ height: 32, fontWeight: 600 }}
                       >
                         Go To Backlog
-                      </Button>
+                      </Button> */}
                       {canUpdateTicketPlan && (
                         <Button
                           type="primary"
@@ -2706,38 +3417,60 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       )}
                     </Space>
                   </div>
-                }
-              >
+              <div className="tl-section-body">
+                {filters.search && !activeSprintFetching && activeTickets.length === 0 && totalBacklog > 0 && (
+                  <div className="tl-cross-banner">
+                    <span className="tl-cross-banner-icon">
+                      <SearchOutlined style={{ fontSize: 12 }} />
+                    </span>
+                    <span className="tl-cross-banner-text">
+                      No matches for <b>“{filters.search}”</b> in this sprint —{' '}
+                      <b>{totalBacklog}</b> match{totalBacklog === 1 ? '' : 'es'} in the backlog.
+                    </span>
+                    <button
+                      type="button"
+                      className="tl-cross-banner-cta"
+                      onClick={() => setSidebarActiveSection('backlog')}
+                    >
+                      View in Backlog
+                      <RightOutlined style={{ fontSize: 10 }} />
+                    </button>
+                  </div>
+                )}
                 <Table
                   rowSelection={activeRowSelection}
                   columns={(getColumns('active') || []).filter((c: any) => !hiddenCols[c.key as string])}
                   dataSource={activeTickets}
                   loading={activeSprintFetching}
                   rowKey="id"
-                  pagination={false}
+                  pagination={{
+                    pageSize: 15,
+                    showSizeChanger: true,
+                    pageSizeOptions: ['10', '15', '25', '50'],
+                    showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
+                  }}
                   scroll={{ x: 'max-content' }}
-                  sticky={{ offsetHeader: activeSprintHeadOffset }}
                   tableLayout="fixed"
-                  className="saas-table"
-                  size="middle"
+                  className="saas-table tl-table tl-table-sticky-pagination"
+                  size="small"
                 />
-              </Card>
+              </div>
             </div>
           )}
 
-          {/* Backlog Section */}
-          <div id="backlog-section" style={{ scrollMarginTop: '100px' }}>
-            <Card
-              className="saas-card saas-card-sticky"
-              title={
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '12px',
-                  padding: '8px 0'
-                }}>
+          {/* Backlog Section (only when Backlog selected in left nav) */}
+          {!isFilteredView && sidebarActiveSection === 'backlog' && (
+          <div id="backlog-section" style={{ scrollMarginTop: `calc(var(--tl-header-h, 56px) + 4px)` }} className="tl-section">
+            <div
+              className="tl-section-head"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
                   <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px', flex: '1' }}>
                     <ProjectOutlined style={{ color: 'var(--text-slate-500)', fontSize: 18 }} />
                     <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)' }}>Backlog</Text>
@@ -2833,7 +3566,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       <Button
                         type="default"
                         icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
-                        onClick={() => document.getElementById('active-section')?.scrollIntoView({ behavior: 'smooth' })}
+                        onClick={() => setSidebarActiveSection('sprint')}
                         className="saas-button-item"
                         style={{ height: 32, fontWeight: 600 }}
                       >
@@ -2855,31 +3588,137 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
 
                 </div>
-              }
-            >
-              <div className="tickets-table-shell" data-density="comfortable">
+            <div className="tl-section-body">
+              {filters.search && !backlogFetching && totalBacklog === 0 && activeTickets.length > 0 && (
+                <div className="tl-cross-banner">
+                  <span className="tl-cross-banner-icon">
+                    <SearchOutlined style={{ fontSize: 12 }} />
+                  </span>
+                  <span className="tl-cross-banner-text">
+                    No matches for <b>“{filters.search}”</b> in the backlog —{' '}
+                    <b>{activeTickets.length}</b> match{activeTickets.length === 1 ? '' : 'es'} in the active sprint.
+                  </span>
+                  <button
+                    type="button"
+                    className="tl-cross-banner-cta"
+                    onClick={() => setSidebarActiveSection('sprint')}
+                  >
+                    View in Sprint
+                    <RightOutlined style={{ fontSize: 10 }} />
+                  </button>
+                </div>
+              )}
+              <div className="tickets-table-shell" data-density="compact">
                 <Table
                   rowSelection={backlogRowSelection}
                   columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
                   loading={backlogFetching}
                   dataSource={backlogTickets}
                   rowKey="id"
-                  className="saas-table"
-                  size="middle"
+                  className="saas-table tl-table tl-table-sticky-pagination"
+                  size="small"
                   pagination={{
                     current: pagination.current,
                     pageSize: pagination.pageSize,
                     total: totalBacklog,
                     showSizeChanger: true,
-                    pageSizeOptions: ['10', '25', '50'],
+                    pageSizeOptions: ['10', '15', '25', '50'],
                     showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
-                    onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 10 })
+                    onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 15 })
                   }}
                   scroll={{ x: 'max-content' }}
                 />
               </div>
-            </Card>
+            </div>
           </div>
+          )}
+
+          {/* Filtered View — unified set of tickets matching the sidebar quick filters.
+              Pulls from across the project (no sprint/backlog scope) so commented +
+              attached tickets from either side land in one table. */}
+          {isFilteredView && (
+            <div id="filtered-section" className="tl-section">
+              <div className="tl-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px', flex: '1', minWidth: 0 }}>
+                  <button
+                    type="button"
+                    className="tl-back-btn"
+                    onClick={() => {
+                      setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+                      setSidebarActiveSection(previousSection);
+                    }}
+                  >
+                    <ArrowLeftOutlined style={{ fontSize: 11 }} />
+                    Back to {previousSection === 'sprint' ? 'Sprint' : 'Backlog'}
+                  </button>
+                  <Text style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-slate-900)' }}>
+                    {filteredViewKindLabel}
+                  </Text>
+                  <Tag bordered={false} style={{
+                    margin: 0, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--bg-slate-50)', color: 'var(--text-slate-500)',
+                    fontWeight: 800, fontSize: 10, borderRadius: 4, textTransform: 'uppercase',
+                    border: '1px solid var(--border-slate-200)', padding: '0 8px'
+                  }}>
+                    {filteredViewTotal || quickFilterTicketIds.length} Tickets
+                  </Tag>
+                  {activeQuickFilters.commented && (
+                    <Tag bordered={false} style={{
+                      margin: 0, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(59,130,246,0.10)', color: '#1d4ed8',
+                      fontWeight: 800, fontSize: 10, borderRadius: 4, textTransform: 'uppercase',
+                      border: '1px solid rgba(59,130,246,0.25)', padding: '0 8px'
+                    }}>
+                      <MessageOutlined style={{ fontSize: 10, marginRight: 4 }} />
+                      Commented
+                    </Tag>
+                  )}
+                  {activeQuickFilters.attached && (
+                    <Tag bordered={false} style={{
+                      margin: 0, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(99,102,241,0.10)', color: '#4338ca',
+                      fontWeight: 800, fontSize: 10, borderRadius: 4, textTransform: 'uppercase',
+                      border: '1px solid rgba(99,102,241,0.25)', padding: '0 8px'
+                    }}>
+                      <PaperClipOutlined style={{ fontSize: 10, marginRight: 4 }} />
+                      Attached
+                    </Tag>
+                  )}
+                  {activeQuickFilters.overdue && (
+                    <Tag bordered={false} style={{
+                      margin: 0, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(239,68,68,0.10)', color: '#b91c1c',
+                      fontWeight: 800, fontSize: 10, borderRadius: 4, textTransform: 'uppercase',
+                      border: '1px solid rgba(239,68,68,0.28)', padding: '0 8px'
+                    }}>
+                      <WarningOutlined style={{ fontSize: 10, marginRight: 4 }} />
+                      Overdue
+                    </Tag>
+                  )}
+                </div>
+              </div>
+              <div className="tl-section-body">
+                <Table
+                  columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                  dataSource={filteredViewTickets}
+                  loading={filteredViewFetching}
+                  rowKey="id"
+                  className="saas-table tl-table tl-table-sticky-pagination"
+                  size="small"
+                  pagination={{
+                    current: pagination.current,
+                    pageSize: pagination.pageSize,
+                    total: filteredViewTotal,
+                    showSizeChanger: true,
+                    pageSizeOptions: ['10', '15', '25', '50'],
+                    showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
+                    onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 15 })
+                  }}
+                  scroll={{ x: 'max-content' }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="fadeIn">
@@ -2904,6 +3743,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           )}
         </div>
       )}
+          </div>
+        </div>
+      </div>
 
       {/* Overlays */}
       <TicketDetailDrawer
@@ -2935,10 +3777,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           body: { padding: 0 },
           content: {
             padding: 0,
-            borderRadius: 18,
+            borderRadius: 14,
             overflow: "hidden",
-            border: "1px solid var(--border-color)",
-            boxShadow: "0 24px 60px -20px rgba(15, 23, 42, 0.45)",
+            border: "1px solid var(--border-slate-200)",
+            boxShadow: "none",
           },
         }}
       >

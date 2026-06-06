@@ -103,10 +103,10 @@ export default function TicketSidebar({
     return { total, storyPoints, completed, notStarted };
   }, [mySprintTickets]);
 
-  // ── Type breakdown across active sprint (project-wide, not just current user) ──
+  // ── Type breakdown across active sprint (current user's tickets only) ──
   const typeBreakdown = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const t of overallSprintTickets) {
+    for (const t of mySprintTickets) {
       const key = (t.type || "untyped").toLowerCase();
       counts.set(key, (counts.get(key) || 0) + 1);
     }
@@ -124,7 +124,7 @@ export default function TicketSidebar({
       }
     });
     return ordered.sort((a, b) => b.count - a.count);
-  }, [overallSprintTickets, typeOptions]);
+  }, [mySprintTickets, typeOptions]);
 
   const hasUser = !!currentUserId;
 
@@ -302,7 +302,7 @@ export default function TicketSidebar({
         >
           <FireOutlined style={{ fontSize: SECTION_ICON_SIZE }} />
           <span>Type</span>
-          <span className="tl-sidebar-section-count">{overallSprintTickets.length}</span>
+          <span className="tl-sidebar-section-count">{mySprintTickets.length}</span>
           <DownOutlined
             className="tl-sidebar-section-caret"
             style={{ fontSize: 9, transform: typeOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}
@@ -310,7 +310,9 @@ export default function TicketSidebar({
         </button>
         {typeOpen && (
           typeBreakdown.length === 0 ? (
-            <div className="tl-sidebar-empty">No tickets in active sprint</div>
+            <div className="tl-sidebar-empty">
+              {hasUser ? 'No tickets assigned to you in active sprint' : 'Sign in to see your tickets'}
+            </div>
           ) : (
             <>
               <div className="tl-type-list">

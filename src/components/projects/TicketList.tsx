@@ -215,6 +215,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const [viewMode, setViewMode] = useState<'list' | 'board' | 'calendar'>('list');
   const [kanbanScope, setKanbanScope] = useState<'active' | 'backlog'>('active');
+  // "My Tickets" toggle in the active-sprint header — when on, the sprint
+  // table is filtered to tickets assigned to the signed-in user.
+  const [myTicketsOnly, setMyTicketsOnly] = useState(false);
   // Calendar view state
   const [calendarMonth, setCalendarMonth] = useState(() => dayjs());
   const [calLegendExpanded, setCalLegendExpanded] = useState(false);
@@ -347,6 +350,51 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     ro.observe(el);
     return () => ro.disconnect();
   }, [activeSprintCardRef.current, saasHeaderHeight]);
+
+  // ── Sprint header: collapse Progress/Tickets/Timeline cluster to a compact
+  // popover button when the section-head wraps to a second row. Detection is
+  // JS-based (not CSS media/container queries) because the wrap depends on
+  // the actual rendered cluster widths — sprint-name length, sidebar state,
+  // etc. — not just viewport or container width.
+  //
+  // Hysteresis: once collapsed at width W, we only re-expand when the
+  // section-head grows past W + 100px. Prevents oscillation since the
+  // compact button is much narrower than inline stats and would otherwise
+  // re-fit immediately, triggering a re-wrap → re-collapse loop.
+  const [sprintHeadEl, setSprintHeadEl] = useState<HTMLDivElement | null>(null);
+  const [statsCollapsed, setStatsCollapsed] = useState(false);
+  const collapsedWidthRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!sprintHeadEl) return;
+    const measure = () => {
+      const w = sprintHeadEl.offsetWidth;
+      if (statsCollapsed) {
+        const expandAt = (collapsedWidthRef.current ?? 0) + 100;
+        if (w >= expandAt) {
+          collapsedWidthRef.current = null;
+          setStatsCollapsed(false);
+        }
+        return;
+      }
+      // Detect wrap: last direct child sits lower than first direct child.
+      const children = sprintHeadEl.children;
+      if (children.length < 2) return;
+      const first = children[0] as HTMLElement;
+      const last = children[children.length - 1] as HTMLElement;
+      if (last.offsetTop > first.offsetTop + 3) {
+        collapsedWidthRef.current = w;
+        setStatsCollapsed(true);
+      }
+    };
+    // Defer the first measurement a tick so antd's Space children settle.
+    const raf = requestAnimationFrame(measure);
+    const ro = new ResizeObserver(measure);
+    ro.observe(sprintHeadEl);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [sprintHeadEl, statsCollapsed]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -488,13 +536,20 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   // --- React Query Hooks ---
 
-  // Base params (without pagination) for filters
+  // Base params (without pagination) for filters.
+  // "My Tickets" toggle (top header) overrides the assignee filter to the
+  // signed-in user — applies to whichever section (Sprint / Backlog /
+  // Filtered) the user is currently viewing.
   const baseQueryParams = {
     projectId, // From props, mandatory project context
     status: filters.status.length > 0 ? filters.status.join(",") : undefined,
     priority: filters.priority.length > 0 ? filters.priority.join(",") : undefined,
     assigneeId:
-      filters.assignee.length > 0 ? filters.assignee.join(",") : undefined,
+      myTicketsOnly && user?.id
+        ? user.id
+        : filters.assignee.length > 0
+          ? filters.assignee.join(",")
+          : undefined,
     createdById:
       filters.createdBy.length > 0 ? filters.createdBy.join(",") : undefined,
     type: filters.type.length > 0 ? filters.type.join(",") : undefined,
@@ -1887,6 +1942,303 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   return allCols.filter(c => activeColumnsSet.has(c?.key as string));
 };
 
+  // Active-sprint header used at the top of List, Board, and Calendar views.
+  // `variant: 'list'` enables the bulk-action branch driven by activeSelectedRowKeys
+  // (the table row-selection state only exists in List view).
+  const renderActiveSprintHeader = (variant: 'list' | 'compact' = 'compact') => {
+    if (!activeSprint) return null;
+    const showBulkActions = variant === 'list' && activeSelectedRowKeys.length > 0;
+    return (
+      <div
+        ref={setSprintHeadEl}
+        className={`tl-section-head${statsCollapsed ? ' is-stats-collapsed' : ''}`}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}
+      >
+        <Space size={[12, 8]} wrap>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)' }} />
+          <Text
+            style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)', maxWidth: 350 }}
+            ellipsis={{ tooltip: true }}
+          >
+            {activeSprint?.version || 'Active Sprint'}
+          </Text>
+          <Space size={6}>
+            {activeSprint.endDate && (() => {
+              const isDelayed = dayjs().isAfter(dayjs(activeSprint.endDate), 'day');
+              const isToday = dayjs().isSame(dayjs(activeSprint.endDate), 'day');
+              const days = Math.abs(dayjs().diff(dayjs(activeSprint.endDate), 'day'));
+              return (
+                <Tag bordered={false} style={{
+                  margin: 0,
+                  height: 24,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 90,
+                  fontSize: 10,
+                  fontWeight: 800,
+                  background: isDelayed ? 'rgba(239, 68, 68, 0.15)' : isToday ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                  color: isDelayed ? '#fb7185' : isToday ? '#fbbf24' : '#34d399',
+                  borderRadius: 4,
+                  border: `1px solid ${isDelayed ? 'rgba(239, 68, 68, 0.2)' : isToday ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`
+                }}>
+                  {isDelayed ? `${days}d Delayed` : isToday ? 'Ends Today' : `${days}d Left`}
+                </Tag>
+              );
+            })()}
+            <Tag bordered={false} style={{
+              margin: 0,
+              height: 24,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: 90,
+              background: '#f1f5f9',
+              color: '#64748b',
+              fontWeight: 800,
+              fontSize: 10,
+              borderRadius: 4,
+              textTransform: 'uppercase'
+            }}>
+              {activeTickets.length} Tickets
+            </Tag>
+          </Space>
+        </Space>
+        <Space size={[16, 8]} wrap>
+          {showBulkActions ? (
+            <>
+              {canManageTickets && (
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
+                  onClick={() => bulkArchiveMutation.mutate(activeSelectedRowKeys as string[])}
+                  style={{
+                    background: 'var(--premium-blue)',
+                    borderColor: 'var(--premium-blue)',
+                    fontWeight: 800,
+                    borderRadius: 4,
+                    height: 24,
+                    fontSize: 10,
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  Move to Archive
+                </Button>
+              )}
+              {canDeleteTicket && (
+                <Button
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                  onClick={() => {
+                    modal.confirm({
+                      title: 'Move to Trash',
+                      content: `Are you sure you want to move ${activeSelectedRowKeys.length} selected tickets to trash?`,
+                      okText: 'Move to Trash',
+                      okType: 'danger',
+                      onOk: () => bulkDeleteMutation.mutate(activeSelectedRowKeys as string[])
+                    });
+                  }}
+                  style={{
+                    fontWeight: 800,
+                    borderRadius: 4,
+                    height: 24,
+                    fontSize: 10,
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  Delete
+                </Button>
+              )}
+            </>
+          ) : (
+            (() => {
+              const completedCount = overallSprintTickets.filter((t) => ['completed'].includes(t.status?.toLowerCase() || '')).length;
+              const progressPct = overallSprintTickets.length > 0 ? Math.round((completedCount / overallSprintTickets.length) * 100) : 0;
+              const start = dayjs(activeSprint.startDate);
+              const end = dayjs(activeSprint.endDate);
+              const now = dayjs();
+              const totalDays = Math.max(end.diff(start, 'day'), 1);
+              const elapsedDays = Math.max(0, Math.min(totalDays, now.diff(start, 'day')));
+              const timelinePct = Math.round((elapsedDays / totalDays) * 100);
+              const isOverdue = now.isAfter(end, 'day');
+              const accent = isOverdue ? '#ef4444' : timelinePct >= 75 ? '#f59e0b' : '#10b981';
+
+              const inlineStats = (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Progress</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#10b981' }}>{progressPct}%</div>
+                    </div>
+                    <Divider type="vertical" style={{ height: 28, margin: 0, borderColor: '#e2e8f0', opacity: 0.8 }} />
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Tickets</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-slate-900)' }}>
+                        {completedCount}/{overallSprintTickets.length}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'left', minWidth: 180 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <div style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sprint Timeline</div>
+                      <Text style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: '0.02em' }}>
+                        {isOverdue ? 'OVERDUE' : `${Math.max(0, totalDays - elapsedDays)}d LEFT`}
+                      </Text>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>{start.format('MMM D')}</Text>
+                      <div style={{ flex: 1, position: 'relative', height: 6, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', minWidth: 80 }}>
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          width: `${Math.min(100, timelinePct)}%`,
+                          background: accent,
+                          opacity: 0.9,
+                          borderRadius: 999,
+                          transition: 'width 0.4s ease',
+                        }} />
+                      </div>
+                      <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>{end.format('MMM D')}</Text>
+                    </div>
+                  </div>
+                </>
+              );
+
+              const popoverContent = (
+                <div style={{ width: 280, padding: '4px 2px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Progress</div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: '#10b981', lineHeight: 1.1 }}>{progressPct}%</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tickets</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>
+                        {completedCount}<span style={{ color: '#94a3b8', fontWeight: 700 }}>/{overallSprintTickets.length}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ position: 'relative', height: 6, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', marginBottom: 14 }}>
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: `${Math.min(100, progressPct)}%`,
+                      background: '#10b981',
+                      borderRadius: 999,
+                      transition: 'width 0.4s ease',
+                    }} />
+                  </div>
+                  <div style={{ height: 1, background: 'var(--border-color, #e2e8f0)', opacity: 0.7, margin: '0 0 12px' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <div style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sprint Timeline</div>
+                    <Text style={{ fontSize: 10, fontWeight: 800, color: accent, letterSpacing: '0.02em' }}>
+                      {isOverdue ? 'OVERDUE' : `${Math.max(0, totalDays - elapsedDays)}d LEFT`}
+                    </Text>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>{start.format('MMM D')}</Text>
+                    <div style={{ flex: 1, position: 'relative', height: 6, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', minWidth: 80 }}>
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: `${Math.min(100, timelinePct)}%`,
+                        background: accent,
+                        opacity: 0.9,
+                        borderRadius: 999,
+                        transition: 'width 0.4s ease',
+                      }} />
+                    </div>
+                    <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>{end.format('MMM D')}</Text>
+                  </div>
+                </div>
+              );
+
+              return (
+                <>
+                  <div className="tl-sprint-stats-inline" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    {inlineStats}
+                  </div>
+                  <Popover
+                    content={popoverContent}
+                    trigger={['hover', 'click']}
+                    placement="bottomRight"
+                    overlayClassName="tl-sprint-stats-popover"
+                  >
+                    <button
+                      type="button"
+                      className="tl-sprint-stats-compact-btn"
+                      style={{
+                        display: 'none',
+                        alignItems: 'center',
+                        gap: 8,
+                        height: 32,
+                        padding: '0 12px',
+                        background: 'var(--bg-slate-50, #f8fafc)',
+                        border: '1px solid var(--border-color, #e2e8f0)',
+                        borderRadius: 6,
+                        color: 'var(--text-slate-700, #334155)',
+                        fontSize: 11.5,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.03em',
+                        transition: 'background 120ms ease, border-color 120ms ease',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: '50%',
+                          background: '#10b981',
+                          boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)',
+                        }}
+                      />
+                      Sprint Ticket Progress
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#10b981' }}>{progressPct}%</span>
+                    </button>
+                  </Popover>
+                </>
+              );
+            })()
+          )}
+          {canUpdateTicketPlan && (
+            <Button
+              type="primary"
+              size="middle"
+              icon={<CheckCircleOutlined />}
+              onClick={handleCompleteSprint}
+              className="saas-button-item"
+              style={{ height: 32, background: '#10b981', borderColor: '#10b981' }}
+            >
+              Complete Sprint
+            </Button>
+          )}
+          {activeSprint?.id && (
+            <Tooltip title="View Report">
+              <Button
+                type="default"
+                size="middle"
+                icon={<LineChartOutlined style={{ color: '#6366f1' }} />}
+                onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
+                className="saas-button-item"
+                style={{ height: 32, width: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              />
+            </Tooltip>
+          )}
+        </Space>
+      </div>
+    );
+  };
+
   return (
     <div style={{
       backgroundColor: 'var(--bg-pure-white)',
@@ -1914,6 +2266,32 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         .tickets-cols-scroll::-webkit-scrollbar-track { background: transparent; }
         .tickets-cols-scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 3px; }
         .tickets-cols-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-slate-400); }
+
+        /* ── Sprint stats: inline by default, compact popover button when the
+           sprint header container can't fit the row. Uses container queries so
+           the trigger follows actual available width (sidebars open/closed),
+           not viewport. ── */
+        .tl-sprint-stats-compact-btn:hover {
+          background: var(--bg-slate-100, #f1f5f9) !important;
+          border-color: var(--text-slate-300, #cbd5e1) !important;
+          color: var(--text-slate-900, #0f172a) !important;
+        }
+        .tl-sprint-stats-popover .ant-popover-inner {
+          border-radius: 12px !important;
+          padding: 14px 16px !important;
+          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 2px 4px rgba(15, 23, 42, 0.06) !important;
+          border: 1px solid var(--border-color, #e2e8f0) !important;
+        }
+        [data-theme='dark'] .tl-sprint-stats-popover .ant-popover-inner {
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+          border-color: #1f2937 !important;
+        }
+        /* Visibility toggled at runtime by JS — see "statsCollapsed" state.
+           Default rendering (no class on host) shows inline. When the section
+           head wraps to a second row, the host gets "is-stats-collapsed". */
+        .tl-section-head .tl-sprint-stats-compact-btn { display: none; }
+        .tl-section-head.is-stats-collapsed .tl-sprint-stats-inline { display: none !important; }
+        .tl-section-head.is-stats-collapsed .tl-sprint-stats-compact-btn { display: inline-flex !important; }
 
         /* ── Two-column shell (sidebar + main) ───────────────
            Left bleeds -24px so the sidebar background slips under the
@@ -2484,6 +2862,43 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         {/* Action Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+          {!!user?.id && (
+            <Tooltip
+              title={
+                myTicketsOnly
+                  ? `Showing only ${effectiveSection === 'backlog' ? 'backlog' : effectiveSection === 'filtered' ? 'filtered' : 'sprint'} tickets assigned to you`
+                  : 'Show only tickets assigned to you in the current section'
+              }
+            >
+              <label
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  height: 36,
+                  padding: '0 12px',
+                  background: myTicketsOnly ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-slate-50, #f8fafc)',
+                  border: `1px solid ${myTicketsOnly ? 'rgba(59, 130, 246, 0.45)' : 'var(--border-color, #e2e8f0)'}`,
+                  color: myTicketsOnly ? 'var(--premium-blue, #3b82f6)' : 'var(--text-slate-600, #475569)',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'background 120ms ease, border-color 120ms ease, color 120ms ease',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <UserOutlined style={{ fontSize: 12 }} />
+                My Tickets
+                <Switch
+                  size="small"
+                  checked={myTicketsOnly}
+                  onChange={(v) => setMyTicketsOnly(v)}
+                />
+              </label>
+            </Tooltip>
+          )}
           <Input
             placeholder="Quick search tickets..."
             prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
@@ -2726,7 +3141,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               icon={<ReloadOutlined spin={isRefreshing} />}
               onClick={async () => {
                 setIsRefreshing(true);
-                await queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                // Tickets + sidebar (recent comments / attachments / overdue) in parallel.
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: ['tickets'] }),
+                  queryClient.invalidateQueries({ queryKey: ['ticketRecentActivity'] }),
+                ]);
                 setIsRefreshing(false);
                 message.success("View refreshed");
               }}
@@ -2970,7 +3389,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       {(isRefreshing || (viewMode === 'list' ? (activeSprintLoading || backlogLoading) : viewMode === 'calendar' ? (allSprintsLoading || calendarTicketsLoading) : isKanbanLoading)) ? (
         <TicketSkeleton viewMode={viewMode === 'calendar' ? 'list' : viewMode} />
       ) : viewMode === 'calendar' ? (
-        <div className="fadeIn tcal-card">
+        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {activeSprint && !isFilteredView && (
+            <div className="tl-section">
+              {renderActiveSprintHeader('compact')}
+            </div>
+          )}
+        <div className="tcal-card">
           {/* Sticky header */}
           <div className="tcal-header">
             <div className="tcal-title-block">
@@ -3193,230 +3618,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             </div>
           )}
         </div>
+        </div>
       ) : viewMode === 'list' ? (
         <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Active Sprint Section (only when Sprint selected in left nav) */}
           {activeSprint && !isFilteredView && sidebarActiveSection === 'sprint' && (
             <div id="active-section" ref={activeSprintCardRef} style={{ scrollMarginTop: `calc(var(--tl-header-h, 56px) + 4px)` }} className="tl-section">
-              <div
-                className="tl-section-head"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '12px',
-                }}
-              >
-                    <Space size={[12, 8]} wrap>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)' }} />
-                      <Text 
-                        style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)', maxWidth: 350 }}
-                        ellipsis={{ tooltip: true }}
-                      >
-                        {activeSprint?.version || 'Active Sprint'}
-                      </Text>
-                      <Space size={6}>
-                        <Tag className="saas-tag saas-tag-green" style={{
-                          margin: 0,
-                          height: 24,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: 70,
-                          fontSize: 10,
-                          fontWeight: 800,
-                          borderRadius: 4
-                        }}>
-                          Current
-                        </Tag>
-                        {activeSprint.endDate && (() => {
-                          const isDelayed = dayjs().isAfter(dayjs(activeSprint.endDate), 'day');
-                          const isToday = dayjs().isSame(dayjs(activeSprint.endDate), 'day');
-                          const days = Math.abs(dayjs().diff(dayjs(activeSprint.endDate), 'day'));
-                          return (
-                            <Tag bordered={false} style={{
-                              margin: 0,
-                              height: 24,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              minWidth: 90,
-                              fontSize: 10,
-                              fontWeight: 800,
-                              background: isDelayed ? 'rgba(239, 68, 68, 0.15)' : isToday ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                              color: isDelayed ? '#fb7185' : isToday ? '#fbbf24' : '#34d399',
-                              borderRadius: 4,
-                              border: `1px solid ${isDelayed ? 'rgba(239, 68, 68, 0.2)' : isToday ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`
-                            }}>
-                              {isDelayed ? `${days}d Delayed` : isToday ? 'Ends Today' : `${days}d Left`}
-                            </Tag>
-                          );
-                        })()}
-                        <Tag bordered={false} style={{
-                          margin: 0,
-                          height: 24,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: 90,
-                          background: '#f1f5f9',
-                          color: '#64748b',
-                          fontWeight: 800,
-                          fontSize: 10,
-                          borderRadius: 4,
-                          textTransform: 'uppercase'
-                        }}>
-                          {activeTickets.length} Tickets
-                        </Tag>
-                      </Space>
-                    </Space>
-                    <Space size={[16, 8]} wrap>
-                      {activeSelectedRowKeys.length > 0 ? (
-                        <>
-                          {canManageTickets && (
-                            <Button
-                              type="primary"
-                              size="small"
-                              icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
-                              onClick={() => bulkArchiveMutation.mutate(activeSelectedRowKeys as string[])}
-                              style={{ 
-                                background: 'var(--premium-blue)', 
-                                borderColor: 'var(--premium-blue)', 
-                                fontWeight: 800, 
-                                borderRadius: 4, 
-                                height: 24, 
-                                fontSize: 10,
-                                textTransform: 'uppercase'
-                              }}
-                            >
-                              Move to Archive
-                            </Button>
-                          )}
-                          {canDeleteTicket && (
-                            <Button
-                              danger
-                              size="small"
-                              icon={<DeleteOutlined style={{ fontSize: 11 }} />}
-                              onClick={() => {
-                                modal.confirm({
-                                  title: 'Move to Trash',
-                                  content: `Are you sure you want to move ${activeSelectedRowKeys.length} selected tickets to trash?`,
-                                  okText: 'Move to Trash',
-                                  okType: 'danger',
-                                  onOk: () => bulkDeleteMutation.mutate(activeSelectedRowKeys as string[])
-                                });
-                              }}
-                              style={{ 
-                                fontWeight: 800, 
-                                borderRadius: 4, 
-                                height: 24, 
-                                fontSize: 10,
-                                textTransform: 'uppercase'
-                              }}
-                            >
-                              Delete
-                            </Button>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Progress</div>
-                              <div style={{ fontSize: 13, fontWeight: 800, color: '#10b981' }}>
-                                {overallSprintTickets.length > 0 ? Math.round((overallSprintTickets.filter(t => ['completed'].includes(t.status?.toLowerCase() || '')).length / overallSprintTickets.length) * 100) : 0}%
-                              </div>
-                            </div>
-                            <Divider type="vertical" style={{ height: 28, margin: 0, borderColor: '#e2e8f0', opacity: 0.8 }} />
-                            <div style={{ textAlign: 'left' }}>
-                              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Tickets</div>
-                              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-slate-900)' }}>
-                                {overallSprintTickets.filter(t => ['completed'].includes(t.status?.toLowerCase() || '')).length}/{overallSprintTickets.length}
-                              </div>
-                            </div>
-                          </div>
-                          {(() => {
-                            const start = dayjs(activeSprint.startDate);
-                            const end = dayjs(activeSprint.endDate);
-                            const now = dayjs();
-                            const totalDays = Math.max(end.diff(start, 'day'), 1);
-                            const elapsedDays = Math.max(0, Math.min(totalDays, now.diff(start, 'day')));
-                            const pct = Math.round((elapsedDays / totalDays) * 100);
-                            const isOverdue = now.isAfter(end, 'day');
-                            const accent = isOverdue ? '#ef4444' : pct >= 75 ? '#f59e0b' : '#10b981';
-
-                            return (
-                              <div style={{ textAlign: 'left', minWidth: 180 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                                  <div style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    Sprint Timeline
-                                  </div>
-                                  <Text style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: '0.02em' }}>
-                                    {isOverdue ? 'OVERDUE' : `${Math.max(0, totalDays - elapsedDays)}d LEFT`}
-                                  </Text>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
-                                    {start.format('MMM D')}
-                                  </Text>
-                                  <div style={{ flex: 1, position: 'relative', height: 6, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', minWidth: 80 }}>
-                                    <div style={{
-                                      position: 'absolute',
-                                      inset: 0,
-                                      width: `${Math.min(100, pct)}%`,
-                                      background: accent,
-                                      opacity: 0.9,
-                                      borderRadius: 999,
-                                      transition: 'width 0.4s ease',
-                                    }} />
-                                  </div>
-                                  <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
-                                    {end.format('MMM D')}
-                                  </Text>
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </>
-                      )}
-
-                      {/* <Button
-                        type="default"
-                        size="middle"
-                        icon={<UnorderedListOutlined style={{ color: '#64748b' }} />}
-                        onClick={() => setSidebarActiveSection('backlog')}
-                        className="saas-button-item"
-                        style={{ height: 32, fontWeight: 600 }}
-                      >
-                        Go To Backlog
-                      </Button> */}
-                      {canUpdateTicketPlan && (
-                        <Button
-                          type="primary"
-                          size="middle"
-                          icon={<CheckCircleOutlined />}
-                          onClick={handleCompleteSprint}
-                          className="saas-button-item"
-                          style={{ height: 32, background: '#10b981', borderColor: '#10b981' }}
-                        >
-                          Complete Sprint
-                        </Button>
-                      )}
-                      {activeSprint?.id && (
-                        <Tooltip title="View Report">
-                          <Button
-                            type="default"
-                            size="middle"
-                            icon={<LineChartOutlined style={{ color: '#6366f1' }} />}
-                            onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
-                            className="saas-button-item"
-                            style={{ height: 32, width: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          />
-                        </Tooltip>
-                      )}
-                    </Space>
-                  </div>
+              {renderActiveSprintHeader('list')}
               <div className="tl-section-body">
                 {filters.search && !activeSprintFetching && activeTickets.length === 0 && totalBacklog > 0 && (
                   <div className="tl-cross-banner">
@@ -3721,7 +3929,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           )}
         </div>
       ) : (
-        <div className="fadeIn">
+        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {activeSprint && !isFilteredView && kanbanScope === 'active' && (
+            <div className="tl-section">
+              {renderActiveSprintHeader('compact')}
+            </div>
+          )}
           {kanbanData ? (
             <TicketKanban
               tickets={kanbanData.columns ? Object.values(kanbanData.columns).flatMap((col: any) => col.tickets) : []}
@@ -3736,6 +3949,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               filters={filters}
               onFilterChange={handleFilterChange}
               onTicketClick={setSelectedTicketId}
+              hideSprintMeta={!!activeSprint && !isFilteredView && kanbanScope === 'active'}
               permissions={{ canUpdateTicket, canDeleteTicket, canAssignTicket, canManageTickets }}
             />
           ) : (

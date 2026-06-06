@@ -35,6 +35,12 @@ interface TicketKanbanProps {
   filters?: any;
   onFilterChange?: (key: string, value: any) => void;
   onTicketClick?: (ticketId: string) => void;
+  /**
+   * When true, the toolbar omits the sprint name chip, ticket-count chip,
+   * and Complete Sprint button — used when an external Sprint header above
+   * the kanban already renders that info.
+   */
+  hideSprintMeta?: boolean;
   permissions?: {
     canUpdateTicket: boolean;
     canDeleteTicket: boolean;
@@ -61,6 +67,7 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
   filters,
   onFilterChange,
   onTicketClick,
+  hideSprintMeta = false,
   permissions,
 }) => {
   const { canUpdateTicket, canDeleteTicket, canAssignTicket, canManageTickets } = permissions || {
@@ -153,7 +160,7 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
 
   const activeTicket = activeId ? tickets.find((t) => t.id === activeId) : null;
 
-  const showToolbar = !!onFilterChange || !!onScopeChange || (kanbanScope === 'active' && activeSprint && onCompleteSprint && canManageTickets);
+  const showToolbar = !!onFilterChange || !!onScopeChange || (!hideSprintMeta && kanbanScope === 'active' && activeSprint && onCompleteSprint && canManageTickets);
   const totalTickets = tickets.length;
 
   return (
@@ -171,16 +178,18 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
       {showToolbar && (
         <div className="kb-toolbar">
           <div className="kb-toolbar-left">
-            {kanbanScope === 'active' && activeSprint && (
+            {!hideSprintMeta && kanbanScope === 'active' && activeSprint && (
               <span className="kb-toolbar-meta">
                 <RocketOutlined />
                 {activeSprint?.name || 'Active Sprint'}
               </span>
             )}
-            <span className="kb-toolbar-meta" style={{ background: 'rgba(100, 116, 139, 0.1)', color: 'var(--kb-text-muted)' }}>
-              <TeamOutlined />
-              {totalTickets} {totalTickets === 1 ? 'ticket' : 'tickets'}
-            </span>
+            {!hideSprintMeta && (
+              <span className="kb-toolbar-meta" style={{ background: 'rgba(100, 116, 139, 0.1)', color: 'var(--kb-text-muted)' }}>
+                <TeamOutlined />
+                {totalTickets} {totalTickets === 1 ? 'ticket' : 'tickets'}
+              </span>
+            )}
 
             {members.length > 0 && (
               <Avatar.Group
@@ -243,7 +252,7 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
                 className="saas-segmented-premium"
               />
             )}
-            {kanbanScope === 'active' && activeSprint && onCompleteSprint && canManageTickets && (
+            {!hideSprintMeta && kanbanScope === 'active' && activeSprint && onCompleteSprint && canManageTickets && (
               <Button
                 type="primary"
                 icon={<CheckCircleOutlined />}

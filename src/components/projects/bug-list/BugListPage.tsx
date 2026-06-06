@@ -11,6 +11,7 @@ import {
   Dropdown,
   App,
 } from "antd";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 const { RangePicker } = DatePicker;
 import {
@@ -32,15 +33,15 @@ import {
   CheckCircle2,
   Folder,
   Layers,
-  User,
-  UserCheck,
   CircleDot,
   AlertTriangle,
   Tag,
   Box,
   Calendar,
+  CalendarDays,
   ChevronDown,
   Briefcase,
+  List,
 } from "lucide-react";
 import { useAllProjects } from "@/hooks/useGlobalData";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
@@ -51,6 +52,7 @@ import CreateBugDrawer from "./CreateBugDrawer";
 import { FolderModal, SheetModal } from "./FolderSheetModals";
 import AiReviewModal from "./AiReviewModal";
 import BulkTicketModal from "./BulkTicketModal";
+import BugCalendarView from "./BugCalendarView";
 import {
   useBugFolders,
   useBugSheets,
@@ -178,6 +180,7 @@ export default function BugListPage() {
   const [aiOpen, setAiOpen] = useState(false);
   const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(true);
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   const [quickTitle, setQuickTitle] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -358,6 +361,15 @@ export default function BugListPage() {
   }, [rawBugs, filters.bugStatus]);
   const total = bugsResponse?.pagination.total || 0;
   const shown = bugs.length;
+
+  const showPagination =
+    viewMode === "list" &&
+    !!selectedProjectId &&
+    !(folders?.length === 0 && scope === "all" && !foldersLoading) &&
+    (scope !== "archived" || !!selectedSheetId) &&
+    (scope !== "trash" || !!selectedSheetId) &&
+    !!bugsResponse?.pagination &&
+    total > 0;
 
   const moduleOptions = useMemo(() => {
     const set = new Set<string>();
@@ -654,12 +666,37 @@ export default function BugListPage() {
                 />
               </div>
 
+              <div className="hb-viewmode-toggle" role="tablist" aria-label="View mode">
+                <button
+                  type="button"
+                  className={`hb-viewmode-btn ${viewMode === "list" ? "active" : ""}`}
+                  onClick={() => setViewMode("list")}
+                  aria-pressed={viewMode === "list"}
+                  role="tab"
+                >
+                  <List size={13} />
+                  List
+                </button>
+                <button
+                  type="button"
+                  className={`hb-viewmode-btn ${viewMode === "calendar" ? "active" : ""}`}
+                  onClick={() => setViewMode("calendar")}
+                  aria-pressed={viewMode === "calendar"}
+                  role="tab"
+                >
+                  <CalendarDays size={13} />
+                  Calendar
+                </button>
+              </div>
+
               <button
                 className={`hb-btn hb-btn-ghost hb-filter-toggle ${
                   filtersVisible ? "active" : ""
                 }`}
                 onClick={() => setFiltersVisible((v) => !v)}
                 aria-pressed={filtersVisible}
+                disabled={viewMode === "calendar"}
+                style={viewMode === "calendar" ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
               >
                 <SlidersHorizontal size={14} />
                 Filters
@@ -758,13 +795,16 @@ export default function BugListPage() {
                   icon={<Activity size={14} />}
                   label="Health"
                   value={
+                    workspaceStats && workspaceStats.total > 0 ? `${percentage}%` : "—"
+                  }
+                  detail={
                     workspaceStats && workspaceStats.total > 0 ? (
                       <>
-                        {percentage}%
-                        <span className="hb-stat-sep">|</span>
-                        {workspaceStats.completed}/{workspaceStats.total}
+                        <strong>{workspaceStats.completed}</strong> completed out of{" "}
+                        <strong>{workspaceStats.total}</strong>{" "}
+                        {workspaceStats.total === 1 ? "Bug" : "Bugs"}
                       </>
-                    ) : "—"
+                    ) : undefined
                   }
                   tone={tone}
                 />
@@ -773,210 +813,194 @@ export default function BugListPage() {
           </div>
         )}
 
-        {filtersVisible && (
-        <div className="hb-filterbar">
-          <div className="hb-filterbar-lead">
-            <SlidersHorizontal size={14} strokeWidth={2.5} />
-            <span>Filters</span>
-            {activeFilterCount > 0 && (
-              <span className="hb-filter-badge">
-                {activeFilterCount}
-              </span>
-            )}
+        {filtersVisible && viewMode === "list" && (
+          <div className="hb-filterbar">
+            <div className="hb-filterbar-header">
+              <div className="hb-filterbar-lead">
+                <span className="hb-filterbar-lead-icon">
+                  <SlidersHorizontal size={13} strokeWidth={2.5} />
+                </span>
+                <span className="hb-filterbar-lead-text">Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="hb-filter-badge">{activeFilterCount}</span>
+                )}
+              </div>
+              <div className="hb-filterbar-actions">
+                {activeFilterCount > 0 && (
+                  <button
+                    className="hb-filter-reset"
+                    onClick={() => setFilters(DEFAULT_FILTERS)}
+                    title="Reset filters"
+                  >
+                    <RotateCcw size={12} />
+                    Reset
+                  </button>
+                )}
+                <Tooltip title="Hide filters">
+                  <button
+                    className="hb-icon-btn hb-filterbar-close"
+                    onClick={() => setFiltersVisible(false)}
+                    aria-label="Hide filters"
+                  >
+                    <X size={15} />
+                  </button>
+                </Tooltip>
+              </div>
             </div>
-            <div className="hb-filterbar-divider" />
 
-            <>
-                <div className={`hb-filter-group ${selectedFolderId ? "active" : ""}`}>
-                  <span className="hb-filter-label"><Folder size={12} /></span>
-                <Select
-                  allowClear
-                  showSearch
-                    placeholder="Folder"
-                  size="small"
-                  variant="borderless"
-                  value={selectedFolderId || undefined}
-                  onChange={(v) => {
-                    setSelectedFolderId(v || null);
-                    setSelectedSheetId(null);
-                  }}
-                  options={allFolders.map((f) => ({
-                    value: f.id,
-                    label: f.name,
+            <div className="hb-filter-grid">
+              <SearchableDropdown
+                triggerLabel="Folder"
+                placeholder="All folders"
+                searchPlaceholder="Search folders…"
+                itemNoun="folders"
+                value={selectedFolderId || undefined}
+                onChange={(v) => {
+                  setSelectedFolderId(v || null);
+                  setSelectedSheetId(null);
+                }}
+                options={allFolders.map((f) => ({
+                  value: f.id,
+                  label: f.name,
+                  badge: <Folder size={14} />,
+                }))}
+              />
+
+              <SearchableDropdown
+                triggerLabel="Sheet"
+                placeholder="All sheets"
+                searchPlaceholder="Search sheets…"
+                itemNoun="sheets"
+                value={selectedSheetId || undefined}
+                onChange={(v) => setSelectedSheetId(v || null)}
+                options={allSheets
+                  .filter((s) => !selectedFolderId || s.folderId === selectedFolderId)
+                  .map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                    badge: <Layers size={14} />,
                   }))}
-                  style={{ width: 140 }}
-                />
-              </div>
-                <div className={`hb-filter-group ${selectedSheetId ? "active" : ""}`}>
-                  <span className="hb-filter-label"><Layers size={12} /></span>
-                <Select
-                  allowClear
-                    showSearch
-                    placeholder="Sheet"
-                  size="small"
-                  variant="borderless"
-                  value={selectedSheetId || undefined}
-                  onChange={(v) => setSelectedSheetId(v || null)}
-                  options={allSheets
-                    .filter(s => !selectedFolderId || s.folderId === selectedFolderId)
-                    .map((s) => ({
-                      value: s.id,
-                      label: s.name,
-                    }))}
-                  style={{ width: 140 }}
-                />
-              </div>
-            </>
-          
-          <div className={`hb-filter-group ${filters.createdById ? "active" : ""}`}>
-            <span className="hb-filter-label"><User size={12} /></span>
-            <Select
-              allowClear
-              showSearch
-              placeholder="Created by"
-              size="small"
-              variant="borderless"
-              value={filters.createdById}
-              onChange={(v) => setFilters((f) => ({ ...f, createdById: v }))}
-              options={memberOptions}
-              filterOption={(input, option) =>
-                (option?.label as string)
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
-              style={{ width: 140 }}
-            />
-          </div>
+              />
 
-          <div className={`hb-filter-group ${filters.assigneeId ? "active" : ""}`}>
-            <span className="hb-filter-label"><UserCheck size={12} /></span>
-            <Select
-              allowClear
-              showSearch
-              placeholder="Assignee"
-              size="small"
-              variant="borderless"
-              value={filters.assigneeId}
-              onChange={(v) => setFilters((f) => ({ ...f, assigneeId: v }))}
-              options={memberOptions}
-              filterOption={(input, option) =>
-                (option?.label as string)
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
-              style={{ width: 140 }}
-            />
-          </div>
+              <SearchableDropdown
+                triggerLabel="Created by"
+                placeholder="Anyone"
+                searchPlaceholder="Search people…"
+                itemNoun="members"
+                value={filters.createdById || undefined}
+                onChange={(v) => setFilters((f) => ({ ...f, createdById: v }))}
+                options={memberOptions}
+              />
 
-          <div className={`hb-filter-group ${filters.status ? "active" : ""}`}>
-            <span className="hb-filter-label"><CircleDot size={12} /></span>
-            <Select
-              allowClear
-              placeholder="Status"
-              size="small"
-              variant="borderless"
-              value={filters.status}
-              onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
-              options={STATUS_OPTS.map((s) => ({ value: s, label: cap(s) }))}
-              style={{ width: 110 }}
-            />
-          </div>
+              <SearchableDropdown
+                triggerLabel="Assignee"
+                placeholder="Anyone"
+                searchPlaceholder="Search people…"
+                itemNoun="members"
+                value={filters.assigneeId || undefined}
+                onChange={(v) => setFilters((f) => ({ ...f, assigneeId: v }))}
+                options={memberOptions}
+              />
 
-          <div className={`hb-filter-group ${filters.bugStatus ? "active" : ""}`}>
-            <span className="hb-filter-label"><Activity size={12} /></span>
-            <Select
-              allowClear
-              placeholder="Bug Status"
-              size="small"
-              variant="borderless"
-              value={filters.bugStatus}
-              onChange={(v) => setFilters((f) => ({ ...f, bugStatus: v }))}
-              options={[
-                { value: "not started", label: "Not Started" },
-                { value: "pending", label: "Pending" },
-                { value: "completed", label: "Completed" },
-              ]}
-              style={{ width: 120 }}
-            />
-          </div>
+              <SearchableDropdown
+                triggerLabel="Status"
+                placeholder="Any status"
+                itemNoun="statuses"
+                value={filters.status || undefined}
+                onChange={(v) =>
+                  setFilters((f) => ({ ...f, status: v as BugStatus | undefined }))
+                }
+                options={STATUS_OPTS.map((s) => ({
+                  value: s,
+                  label: cap(s),
+                  badge: <CircleDot size={14} />,
+                }))}
+              />
 
-          <div className={`hb-filter-group ${filters.severity ? "active" : ""}`}>
-            <span className="hb-filter-label"><AlertTriangle size={12} /></span>
-            <Select
-              allowClear
-              placeholder="Severity"
-              size="small"
-              variant="borderless"
-              value={filters.severity}
-              onChange={(v) => setFilters((f) => ({ ...f, severity: v }))}
-              options={SEVERITY_OPTS.map((s) => ({ value: s, label: cap(s) }))}
-              style={{ width: 110 }}
-            />
-          </div>
+              <SearchableDropdown
+                triggerLabel="Bug status"
+                placeholder="Any progress"
+                itemNoun="states"
+                value={filters.bugStatus || undefined}
+                onChange={(v) =>
+                  setFilters((f) => ({
+                    ...f,
+                    bugStatus: v as "not started" | "pending" | "completed" | undefined,
+                  }))
+                }
+                options={[
+                  { value: "not started", label: "Not Started", badge: <Activity size={14} /> },
+                  { value: "pending", label: "Pending", badge: <Activity size={14} /> },
+                  { value: "completed", label: "Completed", badge: <Activity size={14} /> },
+                ]}
+              />
 
-                <div className={`hb-filter-group ${filters.bugType ? "active" : ""}`}>
-                  <span className="hb-filter-label"><Tag size={12} /></span>
-                  <Select
-                    allowClear
-                    placeholder="Type"
-                    size="small"
-                    variant="borderless"
-                    value={filters.bugType}
-                    onChange={(v) => setFilters((f) => ({ ...f, bugType: v }))}
-                    options={TYPE_OPTS.map((s) => ({
-                      value: s,
-                      label: s.toUpperCase(),
-                    }))}
-                    style={{ width: 100 }}
-                  />
-                </div>
+              <SearchableDropdown
+                triggerLabel="Severity"
+                placeholder="Any severity"
+                itemNoun="levels"
+                value={filters.severity || undefined}
+                onChange={(v) =>
+                  setFilters((f) => ({ ...f, severity: v as BugSeverity | undefined }))
+                }
+                options={SEVERITY_OPTS.map((s) => ({
+                  value: s,
+                  label: cap(s),
+                  badge: <AlertTriangle size={14} />,
+                }))}
+              />
 
-              <div className={`hb-filter-group ${filters.createdRange ? "active" : ""}`}>
-                <span className="hb-filter-label"><Calendar size={12} /> Created</span>
+              <SearchableDropdown
+                triggerLabel="Type"
+                placeholder="Any type"
+                itemNoun="types"
+                value={filters.bugType || undefined}
+                onChange={(v) =>
+                  setFilters((f) => ({ ...f, bugType: v as BugType | undefined }))
+                }
+                options={TYPE_OPTS.map((s) => ({
+                  value: s,
+                  label: s.toUpperCase(),
+                  badge: <Tag size={14} />,
+                }))}
+              />
+
+              <div
+                className={`hb-filter-range ${filters.createdRange ? "is-active" : ""}`}
+              >
+                <span className="hb-filter-range-label">
+                  <Calendar size={11} /> Created
+                </span>
                 <RangePicker
                   size="small"
                   variant="borderless"
                   value={filters.createdRange}
-                  onChange={(v) => setFilters((f) => ({ ...f, createdRange: v as any }))}
-                  style={{ width: 200 }}
+                  onChange={(v) =>
+                    setFilters((f) => ({ ...f, createdRange: v as any }))
+                  }
                 />
               </div>
 
-              <div className={`hb-filter-group ${filters.updatedRange ? "active" : ""}`}>
-                <span className="hb-filter-label"><Calendar size={12} /> Updated</span>
+              <div
+                className={`hb-filter-range ${filters.updatedRange ? "is-active" : ""}`}
+              >
+                <span className="hb-filter-range-label">
+                  <Calendar size={11} /> Updated
+                </span>
                 <RangePicker
                   size="small"
                   variant="borderless"
                   value={filters.updatedRange}
-                  onChange={(v) => setFilters((f) => ({ ...f, updatedRange: v as any }))}
-                  style={{ width: 200 }}
+                  onChange={(v) =>
+                    setFilters((f) => ({ ...f, updatedRange: v as any }))
+                  }
                 />
               </div>
-
-            {activeFilterCount > 0 && (
-              <button
-                className="hb-filter-reset"
-                onClick={() => setFilters(DEFAULT_FILTERS)}
-                title="Reset filters"
-              >
-                <RotateCcw size={13} />
-                Reset
-              </button>
-            )}
-            <div className="hb-filterbar-spacer" />
-            <Tooltip title="Hide filters">
-              <button
-                className="hb-icon-btn hb-filterbar-close"
-                onClick={() => setFiltersVisible(false)}
-                aria-label="Hide filters"
-              >
-                <X size={16} />
-              </button>
-            </Tooltip>
+            </div>
           </div>
         )}
 
-        {selectedSheetId && (scope === "all" || scope === "mine") && (
+        {viewMode === "list" && selectedSheetId && (scope === "all" || scope === "mine") && (
           <div className="hb-quickadd">
             <Plus size={14} />
             <input
@@ -992,7 +1016,7 @@ export default function BugListPage() {
           </div>
         )}
 
-        {selectedIds.size > 0 && (
+        {viewMode === "list" && selectedIds.size > 0 && (
           <div className="hb-bulkbar">
             <span>{selectedIds.size} selected</span>
             <div className="hb-bulkbar-actions">
@@ -1120,6 +1144,17 @@ export default function BugListPage() {
                 </button>
               </div>
             </div>
+          ) : viewMode === "calendar" ? (
+            <BugCalendarView
+              projectId={selectedProjectId}
+              folderId={selectedFolderId}
+              sheetId={selectedSheetId}
+              scope={scope}
+              onSelectBug={(bug) => {
+                setEditingBug(bug);
+                setBugDrawerOpen(true);
+              }}
+            />
           ) : (folders?.length === 0 && scope === "all" && !foldersLoading) ? (
             <div className="hb-empty-state hb-folders-empty">
               <div className="hb-empty-icon">
@@ -1130,7 +1165,7 @@ export default function BugListPage() {
               <h3>No Folders Found</h3>
               <p>This project doesn't have any bug folders yet. Create your first folder to start tracking bugs.</p>
               <div className="hb-empty-actions">
-                <button 
+                <button
                   className="hb-btn hb-btn-primary hb-btn-lg"
                   onClick={() => setFolderModalOpen(true)}
                 >
@@ -1261,64 +1296,65 @@ export default function BugListPage() {
                 isNestedInSheet={isNestedInSheet}
                 isNestedInFolder={isNestedInFolder}
               />
-              {bugsResponse?.pagination && total > 0 && (
-                <div className="hb-pagination">
-                  <div className="hb-pagination-info">
-                    Showing
-                    <strong>
-                      {" "}
-                      {(page - 1) * limit + 1}
-                      –{(page - 1) * limit + shown}{" "}
-                    </strong>
-                    of <strong>{total}</strong>
-                  </div>
-                  <div className="hb-pagination-controls">
-                    <label className="hb-pagination-pagesize">
-                      Rows
-                      <select
-                        value={limit}
-                        onChange={(e) => {
-                          setLimit(Number(e.target.value));
-                          setPage(1);
-                        }}
-                      >
-                        {[10, 25, 50, 100].map((n) => (
-                          <option key={n} value={n}>
-                            {n}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <div className="hb-pagination-pager">
-                      <button
-                        className="hb-pagination-btn"
-                        disabled={!bugsResponse.pagination.hasPrev}
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        aria-label="Previous page"
-                      >
-                        ‹ Prev
-                      </button>
-                      <span className="hb-pagination-page">
-                        Page <strong>{page}</strong> of{" "}
-                        <strong>{bugsResponse.pagination.pages}</strong>
-                      </span>
-                      <button
-                        className="hb-pagination-btn"
-                        disabled={!bugsResponse.pagination.hasNext}
-                        onClick={() => setPage((p) => p + 1)}
-                        aria-label="Next page"
-                      >
-                        Next ›
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </>
       )}
     </div>
+
+    {showPagination && bugsResponse?.pagination && (
+      <div className="hb-pagination">
+        <div className="hb-pagination-info">
+          Showing
+          <strong>
+            {" "}
+            {(page - 1) * limit + 1}
+            –{(page - 1) * limit + shown}{" "}
+          </strong>
+          of <strong>{total}</strong>
+        </div>
+        <div className="hb-pagination-controls">
+          <label className="hb-pagination-pagesize">
+            Rows
+            <select
+              value={limit}
+              onChange={(e) => {
+                setLimit(Number(e.target.value));
+                setPage(1);
+              }}
+            >
+              {[10, 25, 50, 100].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="hb-pagination-pager">
+            <button
+              className="hb-pagination-btn"
+              disabled={!bugsResponse.pagination.hasPrev}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              aria-label="Previous page"
+            >
+              ‹ Prev
+            </button>
+            <span className="hb-pagination-page">
+              Page <strong>{page}</strong> of{" "}
+              <strong>{bugsResponse.pagination.pages}</strong>
+            </span>
+            <button
+              className="hb-pagination-btn"
+              disabled={!bugsResponse.pagination.hasNext}
+              onClick={() => setPage((p) => p + 1)}
+              aria-label="Next page"
+            >
+              Next ›
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   </main>
 
       <CreateBugDrawer
@@ -1379,11 +1415,13 @@ function StatCard({
   icon,
   label,
   value,
+  detail,
   tone,
 }: {
   icon: React.ReactNode;
   label: string;
   value: React.ReactNode;
+  detail?: React.ReactNode;
   tone?: "default" | "success" | "danger" | "warning" | "info";
 }) {
   const toneClass =
@@ -1402,6 +1440,7 @@ function StatCard({
       <div className="hb-stat-body">
         <div className="hb-stat-label">{label}</div>
         <div className="hb-stat-value">{value}</div>
+        {detail && <div className="hb-stat-detail">{detail}</div>}
       </div>
     </div>
   );

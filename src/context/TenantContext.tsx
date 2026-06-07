@@ -11,6 +11,7 @@ interface TenantInfo {
   subdomain: string;
   planType: string;
   isActive: boolean;
+  isSetupComplete: boolean;
 }
 
 interface TenantContextType {
@@ -38,18 +39,24 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const hostname = window.location.hostname;
     
-    // For localhost development
+    // For plain localhost — fall back to localStorage (backward compat)
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      // Check if there's a tenant in localStorage for development
       const savedTenant = localStorage.getItem('devTenantSubdomain');
       return savedTenant || null;
+    }
+
+    // *.localhost subdomains (e.g. abraham-immanuel.localhost:3005)
+    if (hostname.endsWith('.localhost')) {
+      const subdomain = hostname.split('.localhost')[0];
+      if (subdomain && !['www', 'api', 'admin', 'app', 'mail'].includes(subdomain)) {
+        return subdomain;
+      }
     }
 
     // Production subdomain detection: subdomain.domain.com
     const parts = hostname.split('.');
     if (parts.length >= 3) {
       const subdomain = parts[0];
-      // Exclude common subdomains
       if (!['www', 'api', 'admin', 'app', 'mail'].includes(subdomain)) {
         return subdomain;
       }
@@ -78,6 +85,7 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           subdomain: info.subdomain,
           planType: info.planType,
           isActive: info.isActive,
+          isSetupComplete: info.isSetupComplete ?? true,
         };
 
         setTenantInfo(tenant);
@@ -151,6 +159,7 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               subdomain: 'zithmi',
               planType: 'enterprise',
               isActive: true,
+              isSetupComplete: true,
             };
             
             setTenantInfo(defaultTenant);
@@ -163,6 +172,17 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           }
         }
 
+        // On *.localhost subdomains (e.g. abraham-immanuel.localhost:3005), always
+        // resolve from the URL — localStorage may hold a stale tenant from a different session.
+        const initHostname = window.location.hostname;
+        if (initHostname.endsWith('.localhost') && initHostname !== 'localhost') {
+          const subdomain = initHostname.split('.localhost')[0];
+          if (subdomain) {
+            await resolveTenant(subdomain);
+            return;
+          }
+        }
+
         // First, try to get tenant from localStorage
         const savedTenant = localStorage.getItem('currentTenant');
         if (savedTenant) {
@@ -170,7 +190,7 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             const tenant: TenantInfo = JSON.parse(savedTenant);
             setTenantInfo(tenant);
             setIsLoading(false);
-            
+
             // Optionally refresh tenant data in background for production
             if (window.location.hostname !== 'localhost') {
               resolveTenant(tenant.subdomain);

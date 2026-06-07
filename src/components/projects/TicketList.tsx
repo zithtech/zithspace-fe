@@ -43,6 +43,8 @@ import {
   EditOutlined,
   AppstoreOutlined,
   BarsOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   FilterOutlined,
   TagsOutlined,
   ExpandAltOutlined,
@@ -110,11 +112,13 @@ import TicketSkeleton from "./TicketSkeleton";
 import TicketSidebar from "./TicketSidebar";
 import TicketFilterPill from "./TicketFilterPill";
 import { TablePreferenceService } from "@/services/tablePreferenceService";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const { Title, Text } = Typography;
 
 type TicketDensity = "compact" | "comfortable" | "spacious";
 const TICKETS_TABLE_KEY = "tickets_list_v1";
+const SIDEBAR_OPEN_STORAGE_KEY = "tl_sidebar_open_v1";
 const TICKETS_TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
   { key: "ticketNumber", label: "ID" },
   { key: "title", label: "Title" },
@@ -215,9 +219,6 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const [viewMode, setViewMode] = useState<'list' | 'board' | 'calendar'>('list');
   const [kanbanScope, setKanbanScope] = useState<'active' | 'backlog'>('active');
-  // "My Tickets" toggle in the active-sprint header — when on, the sprint
-  // table is filtered to tickets assigned to the signed-in user.
-  const [myTicketsOnly, setMyTicketsOnly] = useState(false);
   // Calendar view state
   const [calendarMonth, setCalendarMonth] = useState(() => dayjs());
   const [calLegendExpanded, setCalLegendExpanded] = useState(false);
@@ -280,23 +281,37 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [manualModalOpen, setManualModalOpen] = useState(false);
+  /** Set when the manual modal is opened from a kanban column "+" button — the
+   * column's status is applied to the new ticket instead of the default. */
+  const [manualCreateDefaultStatus, setManualCreateDefaultStatus] = useState<string | undefined>(undefined);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
-  // Sidebar visibility on narrow screens. Below ~1100px the sidebar is a
-  // drawer overlay (default closed); above it stays inline in the shell.
+  // Sidebar visibility. Defaults to OPEN for every user; once the user
+  // toggles it (via the header show/hide button or the mobile drawer
+  // trigger), the choice is persisted in localStorage and restored on
+  // subsequent visits. No automatic resize/breakpoint override — the
+  // user's last explicit choice wins across viewport changes.
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
-    return window.matchMedia("(min-width: 1100px)").matches;
+    try {
+      const stored = window.localStorage.getItem(SIDEBAR_OPEN_STORAGE_KEY);
+      if (stored === "true") return true;
+      if (stored === "false") return false;
+    } catch {
+      // localStorage unavailable (private mode etc.) — fall through to default
+    }
+    return true;
   });
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const mql = window.matchMedia("(min-width: 1100px)");
-    const handler = (e: MediaQueryListEvent) => setIsSidebarOpen(e.matches);
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, []);
+    try {
+      window.localStorage.setItem(SIDEBAR_OPEN_STORAGE_KEY, String(isSidebarOpen));
+    } catch {
+      // ignore quota / privacy errors — UI still works without persistence
+    }
+  }, [isSidebarOpen]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [allTicketIds, setAllTicketIds] = useState<string[]>([]);
   const [sidebarActiveSection, setSidebarActiveSection] = useState<"sprint" | "backlog" | "filtered" | null>("sprint");
@@ -431,7 +446,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // Pagination state
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 15,
+    pageSize: 20,
   });
 
 
@@ -537,19 +552,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // --- React Query Hooks ---
 
   // Base params (without pagination) for filters.
-  // "My Tickets" toggle (top header) overrides the assignee filter to the
-  // signed-in user — applies to whichever section (Sprint / Backlog /
-  // Filtered) the user is currently viewing.
   const baseQueryParams = {
     projectId, // From props, mandatory project context
     status: filters.status.length > 0 ? filters.status.join(",") : undefined,
     priority: filters.priority.length > 0 ? filters.priority.join(",") : undefined,
     assigneeId:
-      myTicketsOnly && user?.id
-        ? user.id
-        : filters.assignee.length > 0
-          ? filters.assignee.join(",")
-          : undefined,
+      filters.assignee.length > 0 ? filters.assignee.join(",") : undefined,
     createdById:
       filters.createdBy.length > 0 ? filters.createdBy.join(",") : undefined,
     type: filters.type.length > 0 ? filters.type.join(",") : undefined,
@@ -1156,9 +1164,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   useEffect(() => {
     if (viewMode === 'board') {
       // Board mode uses Kanban endpoint, no pagination needed
-      setPagination(prev => ({ ...prev, current: 1, pageSize: 15 }));
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 20 }));
     } else {
-      setPagination(prev => ({ ...prev, current: 1, pageSize: 15 }));
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 20 }));
     }
   }, [viewMode]);
 
@@ -1454,16 +1462,20 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         if (isEditing) {
           return (
-            <Select
+            <SearchableDropdown
               value={status}
-              style={{ width: "100%" }}
-              onChange={(value) =>
-                handleUpdateTicket(record.id, "status", value)
-              }
-              onBlur={() => setEditingField(null)}
-              autoFocus
+              defaultOpen
               loading={isUpdating}
               options={finalStatusOptions}
+              searchPlaceholder="Search status…"
+              itemNoun="statuses"
+              allowClear={false}
+              style={{ width: "100%", minWidth: 0, height: 32 }}
+              onChange={(value) => {
+                if (value !== undefined) handleUpdateTicket(record.id, "status", value);
+                setEditingField(null);
+              }}
+              onOpenChange={(open) => { if (!open) setEditingField(null); }}
             />
           );
         }
@@ -1502,29 +1514,24 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         if (isEditing) {
           return (
-            <Select
+            <SearchableDropdown
               value={assigneeId || undefined}
-              style={{ width: "100%" }}
-              onChange={(value) =>
-                handleUpdateTicket(record.id, "assignee", value)
-              }
-              onBlur={() => setEditingField(null)}
-              autoFocus
+              defaultOpen
               loading={isUpdating}
-              showSearch
-              allowClear
               placeholder="Select assignee"
-              filterOption={(input, option) => {
-                const member = members.find((m) => m.value === option?.value);
-                return member
-                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                  (member.position?.toLowerCase() ?? "").includes(input.toLowerCase())
-                  : false;
-              }}
+              searchPlaceholder="Search by name or role…"
+              itemNoun="members"
+              style={{ width: "100%", minWidth: 0, height: 32 }}
               options={members.map((member) => ({
-                label: `${member.label} - ${member.position}`,
                 value: member.value,
+                label: member.label,
+                description: member.position,
               }))}
+              onChange={(value) => {
+                handleUpdateTicket(record.id, "assignee", value ?? null);
+                setEditingField(null);
+              }}
+              onOpenChange={(open) => { if (!open) setEditingField(null); }}
             />
           );
         }
@@ -1568,20 +1575,24 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         if (isEditing) {
           return (
-            <Select
+            <SearchableDropdown
               value={priority}
-              style={{ width: "100%" }}
-              onChange={(value) =>
-                handleUpdateTicket(record.id, "priority", value)
-              }
-              onBlur={() => setEditingField(null)}
-              autoFocus
+              defaultOpen
               loading={isUpdating}
+              allowClear={false}
+              searchPlaceholder="Search priority…"
+              itemNoun="priorities"
+              style={{ width: "100%", minWidth: 0, height: 32 }}
               options={dbPriorityOptions.length > 0 ? dbPriorityOptions : [
                 { label: "High (P1)", value: "P1" },
                 { label: "Medium (P2)", value: "P2" },
                 { label: "Low (P3)", value: "P3" },
               ]}
+              onChange={(value) => {
+                if (value !== undefined) handleUpdateTicket(record.id, "priority", value);
+                setEditingField(null);
+              }}
+              onOpenChange={(open) => { if (!open) setEditingField(null); }}
             />
           );
         }
@@ -1611,21 +1622,25 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         if (isEditing) {
           return (
-            <Select
+            <SearchableDropdown
               value={type}
-              style={{ width: "100%" }}
-              onChange={(value) =>
-                handleUpdateTicket(record.id, "type", value)
-              }
-              onBlur={() => setEditingField(null)}
-              autoFocus
+              defaultOpen
               loading={isUpdating}
-              options={[
+              allowClear={false}
+              searchPlaceholder="Search type…"
+              itemNoun="types"
+              style={{ width: "100%", minWidth: 0, height: 32 }}
+              options={finalTypeOptions.length > 0 ? finalTypeOptions : [
                 { label: "Bug", value: "Bug" },
                 { label: "Task", value: "Task" },
                 { label: "Feature", value: "Feat" },
                 { label: "Overwrite", value: "Overwrite" },
               ]}
+              onChange={(value) => {
+                if (value !== undefined) handleUpdateTicket(record.id, "type", value);
+                setEditingField(null);
+              }}
+              onOpenChange={(open) => { if (!open) setEditingField(null); }}
             />
           );
         }
@@ -1945,296 +1960,165 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // Active-sprint header used at the top of List, Board, and Calendar views.
   // `variant: 'list'` enables the bulk-action branch driven by activeSelectedRowKeys
   // (the table row-selection state only exists in List view).
-  const renderActiveSprintHeader = (variant: 'list' | 'compact' = 'compact') => {
+  const renderActiveSprintHeader = (
+    variant: 'list' | 'compact' = 'compact',
+    sticky: boolean = true,
+  ) => {
     if (!activeSprint) return null;
     const showBulkActions = variant === 'list' && activeSelectedRowKeys.length > 0;
+
+    const completedCount = overallSprintTickets.filter((t) => ['completed'].includes(t.status?.toLowerCase() || '')).length;
+    const totalSprintTickets = overallSprintTickets.length;
+    const remainingCount = Math.max(0, totalSprintTickets - completedCount);
+    const progressPct = totalSprintTickets > 0 ? Math.round((completedCount / totalSprintTickets) * 100) : 0;
+    const start = activeSprint.startDate ? dayjs(activeSprint.startDate) : null;
+    const end = activeSprint.endDate ? dayjs(activeSprint.endDate) : null;
+    const now = dayjs();
+    const isDelayed = !!end && now.isAfter(end, 'day');
+    const isToday = !!end && now.isSame(end, 'day');
+    const daysFromEnd = end ? Math.abs(now.diff(end, 'day')) : 0;
+    const accent = isDelayed ? '#ef4444' : isToday ? '#f59e0b' : '#10b981';
+
     return (
       <div
         ref={setSprintHeadEl}
-        className={`tl-section-head${statsCollapsed ? ' is-stats-collapsed' : ''}`}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
+        className={`tl-section-head tl-sprint-head-v2${statsCollapsed ? ' is-stats-collapsed' : ''}${sticky ? '' : ' tl-section-head--static'}`}
       >
-        <Space size={[12, 8]} wrap>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)' }} />
-          <Text
-            style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)', maxWidth: 350 }}
-            ellipsis={{ tooltip: true }}
-          >
-            {activeSprint?.version || 'Active Sprint'}
-          </Text>
-          <Space size={6}>
-            {activeSprint.endDate && (() => {
-              const isDelayed = dayjs().isAfter(dayjs(activeSprint.endDate), 'day');
-              const isToday = dayjs().isSame(dayjs(activeSprint.endDate), 'day');
-              const days = Math.abs(dayjs().diff(dayjs(activeSprint.endDate), 'day'));
-              return (
-                <Tag bordered={false} style={{
-                  margin: 0,
-                  height: 24,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minWidth: 90,
-                  fontSize: 10,
-                  fontWeight: 800,
-                  background: isDelayed ? 'rgba(239, 68, 68, 0.15)' : isToday ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                  color: isDelayed ? '#fb7185' : isToday ? '#fbbf24' : '#34d399',
-                  borderRadius: 4,
-                  border: `1px solid ${isDelayed ? 'rgba(239, 68, 68, 0.2)' : isToday ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`
-                }}>
-                  {isDelayed ? `${days}d Delayed` : isToday ? 'Ends Today' : `${days}d Left`}
-                </Tag>
-              );
-            })()}
-            <Tag bordered={false} style={{
-              margin: 0,
-              height: 24,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: 90,
-              background: '#f1f5f9',
-              color: '#64748b',
-              fontWeight: 800,
-              fontSize: 10,
-              borderRadius: 4,
-              textTransform: 'uppercase'
-            }}>
-              {activeTickets.length} Tickets
-            </Tag>
-          </Space>
-        </Space>
-        <Space size={[16, 8]} wrap>
-          {showBulkActions ? (
-            <>
-              {canManageTickets && (
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
-                  onClick={() => bulkArchiveMutation.mutate(activeSelectedRowKeys as string[])}
-                  style={{
-                    background: 'var(--premium-blue)',
-                    borderColor: 'var(--premium-blue)',
-                    fontWeight: 800,
-                    borderRadius: 4,
-                    height: 24,
-                    fontSize: 10,
-                    textTransform: 'uppercase'
-                  }}
-                >
-                  Move to Archive
-                </Button>
-              )}
-              {canDeleteTicket && (
-                <Button
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined style={{ fontSize: 11 }} />}
-                  onClick={() => {
-                    modal.confirm({
-                      title: 'Move to Trash',
-                      content: `Are you sure you want to move ${activeSelectedRowKeys.length} selected tickets to trash?`,
-                      okText: 'Move to Trash',
-                      okType: 'danger',
-                      onOk: () => bulkDeleteMutation.mutate(activeSelectedRowKeys as string[])
-                    });
-                  }}
-                  style={{
-                    fontWeight: 800,
-                    borderRadius: 4,
-                    height: 24,
-                    fontSize: 10,
-                    textTransform: 'uppercase'
-                  }}
-                >
-                  Delete
-                </Button>
-              )}
-            </>
-          ) : (
-            (() => {
-              const completedCount = overallSprintTickets.filter((t) => ['completed'].includes(t.status?.toLowerCase() || '')).length;
-              const progressPct = overallSprintTickets.length > 0 ? Math.round((completedCount / overallSprintTickets.length) * 100) : 0;
-              const start = dayjs(activeSprint.startDate);
-              const end = dayjs(activeSprint.endDate);
-              const now = dayjs();
-              const totalDays = Math.max(end.diff(start, 'day'), 1);
-              const elapsedDays = Math.max(0, Math.min(totalDays, now.diff(start, 'day')));
-              const timelinePct = Math.round((elapsedDays / totalDays) * 100);
-              const isOverdue = now.isAfter(end, 'day');
-              const accent = isOverdue ? '#ef4444' : timelinePct >= 75 ? '#f59e0b' : '#10b981';
-
-              const inlineStats = (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Progress</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: '#10b981' }}>{progressPct}%</div>
-                    </div>
-                    <Divider type="vertical" style={{ height: 28, margin: 0, borderColor: '#e2e8f0', opacity: 0.8 }} />
-                    <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Tickets</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-slate-900)' }}>
-                        {completedCount}/{overallSprintTickets.length}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'left', minWidth: 180 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <div style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sprint Timeline</div>
-                      <Text style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: '0.02em' }}>
-                        {isOverdue ? 'OVERDUE' : `${Math.max(0, totalDays - elapsedDays)}d LEFT`}
-                      </Text>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>{start.format('MMM D')}</Text>
-                      <div style={{ flex: 1, position: 'relative', height: 6, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', minWidth: 80 }}>
-                        <div style={{
-                          position: 'absolute',
-                          inset: 0,
-                          width: `${Math.min(100, timelinePct)}%`,
-                          background: accent,
-                          opacity: 0.9,
-                          borderRadius: 999,
-                          transition: 'width 0.4s ease',
-                        }} />
-                      </div>
-                      <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>{end.format('MMM D')}</Text>
-                    </div>
-                  </div>
-                </>
-              );
-
-              const popoverContent = (
-                <div style={{ width: 280, padding: '4px 2px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <div>
-                      <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Progress</div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: '#10b981', lineHeight: 1.1 }}>{progressPct}%</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tickets</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>
-                        {completedCount}<span style={{ color: '#94a3b8', fontWeight: 700 }}>/{overallSprintTickets.length}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ position: 'relative', height: 6, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', marginBottom: 14 }}>
-                    <div style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: `${Math.min(100, progressPct)}%`,
-                      background: '#10b981',
-                      borderRadius: 999,
-                      transition: 'width 0.4s ease',
-                    }} />
-                  </div>
-                  <div style={{ height: 1, background: 'var(--border-color, #e2e8f0)', opacity: 0.7, margin: '0 0 12px' }} />
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <div style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sprint Timeline</div>
-                    <Text style={{ fontSize: 10, fontWeight: 800, color: accent, letterSpacing: '0.02em' }}>
-                      {isOverdue ? 'OVERDUE' : `${Math.max(0, totalDays - elapsedDays)}d LEFT`}
-                    </Text>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>{start.format('MMM D')}</Text>
-                    <div style={{ flex: 1, position: 'relative', height: 6, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', minWidth: 80 }}>
-                      <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        width: `${Math.min(100, timelinePct)}%`,
-                        background: accent,
-                        opacity: 0.9,
-                        borderRadius: 999,
-                        transition: 'width 0.4s ease',
-                      }} />
-                    </div>
-                    <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>{end.format('MMM D')}</Text>
-                  </div>
-                </div>
-              );
-
-              return (
-                <>
-                  <div className="tl-sprint-stats-inline" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    {inlineStats}
-                  </div>
-                  <Popover
-                    content={popoverContent}
-                    trigger={['hover', 'click']}
-                    placement="bottomRight"
-                    overlayClassName="tl-sprint-stats-popover"
-                  >
-                    <button
-                      type="button"
-                      className="tl-sprint-stats-compact-btn"
-                      style={{
-                        display: 'none',
-                        alignItems: 'center',
-                        gap: 8,
-                        height: 32,
-                        padding: '0 12px',
-                        background: 'var(--bg-slate-50, #f8fafc)',
-                        border: '1px solid var(--border-color, #e2e8f0)',
-                        borderRadius: 6,
-                        color: 'var(--text-slate-700, #334155)',
-                        fontSize: 11.5,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.03em',
-                        transition: 'background 120ms ease, border-color 120ms ease',
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 7,
-                          height: 7,
-                          borderRadius: '50%',
-                          background: '#10b981',
-                          boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)',
-                        }}
-                      />
-                      Sprint Ticket Progress
-                      <span style={{ fontSize: 11, fontWeight: 800, color: '#10b981' }}>{progressPct}%</span>
-                    </button>
-                  </Popover>
-                </>
-              );
-            })()
-          )}
-          {canUpdateTicketPlan && (
-            <Button
-              type="primary"
-              size="middle"
-              icon={<CheckCircleOutlined />}
-              onClick={handleCompleteSprint}
-              className="saas-button-item"
-              style={{ height: 32, background: '#10b981', borderColor: '#10b981' }}
+        {/* Row 1: dot + title + status tags + action buttons */}
+        <div className="tl-sprint-row1">
+          <div className="tl-sprint-title-block">
+            <span
+              className="tl-sprint-dot"
+              style={{ background: accent, boxShadow: `0 0 0 3px ${accent}33` }}
+            />
+            <Text
+              className="tl-sprint-title"
+              ellipsis={{ tooltip: `${projectName} — ${activeSprint?.version || 'Active Sprint'}` }}
             >
-              Complete Sprint
-            </Button>
+              {projectName} — {activeSprint?.version || 'Active Sprint'}
+            </Text>
+            {end && (
+              <span className="tl-sprint-tags">
+                {isDelayed && (
+                  <span className="tl-sprint-tag tl-sprint-tag-delayed">{daysFromEnd}D DELAYED</span>
+                )}
+                {isToday && (
+                  <span className="tl-sprint-tag tl-sprint-tag-today">ENDS TODAY</span>
+                )}
+                {!isDelayed && !isToday && (
+                  <span className="tl-sprint-tag tl-sprint-tag-active">{daysFromEnd}D LEFT</span>
+                )}
+                {isDelayed && (
+                  <span className="tl-sprint-tag tl-sprint-tag-overdue">OVERDUE</span>
+                )}
+              </span>
+            )}
+          </div>
+          <div className="tl-sprint-actions">
+            {showBulkActions ? (
+              <>
+                {canManageTickets && (
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
+                    onClick={() => bulkArchiveMutation.mutate(activeSelectedRowKeys as string[])}
+                    style={{
+                      background: 'var(--premium-blue)',
+                      borderColor: 'var(--premium-blue)',
+                      fontWeight: 800,
+                      borderRadius: 4,
+                      height: 28,
+                      fontSize: 11,
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    Move to Archive
+                  </Button>
+                )}
+                {canDeleteTicket && (
+                  <Button
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                    onClick={() => {
+                      modal.confirm({
+                        title: 'Move to Trash',
+                        content: `Are you sure you want to move ${activeSelectedRowKeys.length} selected tickets to trash?`,
+                        okText: 'Move to Trash',
+                        okType: 'danger',
+                        onOk: () => bulkDeleteMutation.mutate(activeSelectedRowKeys as string[])
+                      });
+                    }}
+                    style={{
+                      fontWeight: 800,
+                      borderRadius: 4,
+                      height: 28,
+                      fontSize: 11,
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    Delete
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                {activeSprint?.id && (
+                  <Button
+                    type="default"
+                    size="small"
+                    icon={<LineChartOutlined />}
+                    onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
+                    className="saas-button-item tl-sprint-burndown-btn"
+                  >
+                    Burndown
+                  </Button>
+                )}
+                {canUpdateTicketPlan && (
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<CheckCircleOutlined />}
+                    onClick={handleCompleteSprint}
+                    className="saas-button-item tl-sprint-complete-btn"
+                  >
+                    Complete Sprint
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Row 2: date range + ticket counts */}
+        <div className="tl-sprint-row2">
+          {start && end && (
+            <span className="tl-sprint-meta">
+              <CalendarOutlined style={{ fontSize: 11 }} />
+              <span>{start.format('MMM D')}</span>
+              <span className="tl-sprint-meta-arrow">→</span>
+              <span>{end.format('MMM D')}</span>
+            </span>
           )}
-          {activeSprint?.id && (
-            <Tooltip title="View Report">
-              <Button
-                type="default"
-                size="middle"
-                icon={<LineChartOutlined style={{ color: '#6366f1' }} />}
-                onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
-                className="saas-button-item"
-                style={{ height: 32, width: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              />
-            </Tooltip>
-          )}
-        </Space>
+          <span className="tl-sprint-meta">
+            <b>{completedCount}</b>/{totalSprintTickets} tickets completed
+          </span>
+          <span className="tl-sprint-meta">
+            <b>{remainingCount}</b> remaining
+          </span>
+        </div>
+
+        {/* Row 3: wide ticket-completion progress bar + % */}
+        <div className="tl-sprint-row3">
+          <div className="tl-sprint-progress-bar">
+            <div
+              className="tl-sprint-progress-fill"
+              style={{ width: `${Math.min(100, progressPct)}%` }}
+            />
+          </div>
+          <span className="tl-sprint-progress-pct">{progressPct}%</span>
+        </div>
       </div>
     );
   };
@@ -2243,7 +2127,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     <div style={{
       backgroundColor: 'var(--bg-pure-white)',
       minHeight: 'calc(100vh - 64px)',
-      padding: '0 24px 24px 24px',
+      padding: '0 24px 16px 24px',
       margin: '0 -24px',
       ['--tl-header-h' as any]: `${saasHeaderHeight}px`,
     }}>
@@ -2258,9 +2142,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         .ant-table-cell-fix-left-first::after, .ant-table-cell-fix-left-last::after,
         .ant-table-cell-fix-right-first::after, .ant-table-cell-fix-right-last::after {
           box-shadow: none !important;
-        }.tickets-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 5px 12px !important; }
-        .tickets-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 9px 16px !important; }
-        .tickets-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 14px 20px !important; }
+        }.tickets-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 4px 10px !important; }
+        .tickets-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 7px 14px !important; }
+        .tickets-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 11px 18px !important; }
         .tickets-table-settings-popover .ant-popover-inner { padding: 14px !important; border-radius: 12px !important; }
         .tickets-cols-scroll::-webkit-scrollbar { width: 6px; }
         .tickets-cols-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -2300,21 +2184,78 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
            by -24px would push content 16px past the viewport-clipped
            Content right edge, hiding the Complete-Sprint button / chart
            icon / right-most table columns. */
-        .tl-shell-wrap { margin: 0 0 0 -24px; }
+        /* Left bleed (-24px) tucks the sidebar bg under the global SideNav
+           so the seam disappears. When the sidebar is hidden the bleed is
+           removed so the main column doesn't slide under the SideNav.
+           Animate margin-left for a smooth shift. */
+        .tl-shell-wrap {
+          margin: 0 -8px 0 -24px;
+          transition: margin-left 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .tl-shell-wrap.is-sidebar-closed { margin-left: 0; }
         .tl-shell {
           display: grid;
           grid-template-columns: 264px minmax(0, 1fr);
           gap: 0;
           align-items: stretch;
           min-height: calc(100vh - 64px - 56px);
+          transition: grid-template-columns 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        /* Sidebar collapse animation — width via grid-template-columns,
+           contents fade + clip so they don't bleed during the transition. */
+        .tl-shell > aside.tl-sidebar {
+          transition: opacity 0.22s ease, padding 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+          overflow-y: auto;
+          overflow-x: hidden;
         }
         .tl-main {
           min-width: 0;
-          padding: 0 8px 24px 0;
+          padding: 0 0 16px 0;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 8px;
         }
+        /* ── Sidebar show/hide toggle (always visible in top header) ── */
+        .tl-sidebar-show-toggle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          background: var(--bg-slate-50, #f8fafc);
+          border: 1px solid var(--border-color, #e2e8f0);
+          border-radius: 8px;
+          color: var(--text-slate-600, #475569);
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .tl-sidebar-show-toggle:hover {
+          background: var(--bg-slate-100, #f1f5f9);
+          border-color: var(--text-slate-400, #94a3b8);
+          color: var(--text-slate-900, #0f172a);
+        }
+        .tl-sidebar-show-toggle[aria-pressed='true'] {
+          background: rgba(59, 130, 246, 0.10);
+          border-color: rgba(59, 130, 246, 0.32);
+          color: var(--premium-blue, #3b82f6);
+        }
+        [data-theme='dark'] .tl-sidebar-show-toggle {
+          background: #111720;
+          border-color: #2d3748;
+          color: #cbd5e1;
+        }
+        [data-theme='dark'] .tl-sidebar-show-toggle:hover {
+          background: #1c232e;
+          border-color: #475569;
+          color: #f1f5f9;
+        }
+        [data-theme='dark'] .tl-sidebar-show-toggle[aria-pressed='true'] {
+          background: rgba(59, 130, 246, 0.18);
+          border-color: rgba(59, 130, 246, 0.38);
+          color: #93c5fd;
+        }
+
         /* ── Sidebar toggle button (mobile/tablet) ──────────── */
         .tl-sidebar-toggle-btn {
           display: none;
@@ -2353,47 +2294,72 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         @media (min-width: 1100px) {
           .tl-sidebar-toggle-btn { display: none !important; }
           .tl-shell-wrap.is-sidebar-closed .tl-shell {
-            grid-template-columns: minmax(0, 1fr);
+            /* Animate the first track from 264px → 0 instead of removing
+               the column entirely; keeps grid-template-columns smoothly
+               interpolatable so the main column slides in. */
+            grid-template-columns: 0px minmax(0, 1fr);
           }
           .tl-shell-wrap.is-sidebar-closed > .tl-shell > aside.tl-sidebar {
-            display: none;
+            opacity: 0;
+            padding-left: 0;
+            padding-right: 0;
+            pointer-events: none;
+            border-right-color: transparent;
           }
         }
 
-        /* ── Tablet / Mobile <1100px ────────────────────────── */
+        /* ── Tablet / Mobile <1100px ──────────────────────────
+           Vertical stack: sidebar moves ABOVE the main content as a
+           horizontal pill bar (rather than overlapping it as a drawer).
+           Items scroll horizontally; show/hide collapses the bar to 0
+           height, animated via max-height. */
         @media (max-width: 1099.98px) {
-          .tl-sidebar-toggle-btn { display: inline-flex; }
-          .tl-shell { grid-template-columns: minmax(0, 1fr); }
-          /* Sidebar becomes a drawer overlay */
+          /* Hide the legacy hamburger button — the header toggle handles
+             open/close uniformly across viewports now. */
+          .tl-sidebar-toggle-btn { display: none !important; }
+          .tl-shell {
+            display: flex;
+            flex-direction: column;
+            grid-template-columns: none;
+            min-height: auto;
+            transition: none;
+          }
           .tl-shell > aside.tl-sidebar {
-            position: fixed;
-            top: var(--tl-header-h, 56px);
-            left: 0;
-            width: 280px;
-            height: calc(100vh - 64px - var(--tl-header-h, 56px));
-            z-index: 60;
-            transform: translateX(-100%);
-            transition: transform 0.2s ease;
-            box-shadow: 1px 0 0 var(--border-slate-200);
-            padding: 10px 14px 16px;
+            position: static;
+            top: auto;
+            left: auto;
+            width: auto;
+            height: auto;
+            max-height: 220px;
+            transform: none;
+            transition: max-height 0.28s cubic-bezier(0.25, 1, 0.5, 1),
+                        opacity 0.22s ease,
+                        padding 0.22s ease;
+            box-shadow: none;
+            padding: 8px 10px;
+            border-right: 0;
+            border-top: 1px solid var(--border-slate-200);
+            border-bottom: 1px solid var(--border-slate-200);
+            overflow-x: auto;
+            overflow-y: hidden;
           }
           [data-theme='dark'] .tl-shell > aside.tl-sidebar {
-            box-shadow: 1px 0 0 #1f2937;
+            border-top-color: #1f2937;
+            border-bottom-color: #1f2937;
           }
-          .tl-shell-wrap.is-sidebar-open > .tl-shell > aside.tl-sidebar {
-            transform: translateX(0);
+          /* Hidden state — collapse the horizontal bar to 0 height. */
+          .tl-shell-wrap.is-sidebar-closed > .tl-shell > aside.tl-sidebar {
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            border-top-width: 0;
+            border-bottom-width: 0;
+            opacity: 0;
+            pointer-events: none;
           }
-          .tl-shell-wrap.is-sidebar-open > .tl-sidebar-backdrop {
-            display: block;
-            position: fixed;
-            top: var(--tl-header-h, 56px);
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(15, 23, 42, 0.35);
-            z-index: 55;
-          }
-          /* Main column reclaims full width when sidebar is drawer */
+          /* Drawer backdrop isn't used in horizontal mode. */
+          .tl-sidebar-backdrop { display: none !important; }
+          /* Main column reclaims full width below the sidebar bar. */
           .tl-main { padding-left: 0; padding-right: 8px; }
         }
 
@@ -2425,25 +2391,198 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           border-bottom-color: #1f2937;
         }
         .tl-section-head {
-          padding: 10px 16px;
+          padding: 6px 14px;
           background: var(--bg-slate-50);
           border-bottom: 1px solid var(--border-slate-200);
           /* Sticks below the page-level header so the sprint info / actions
-             stay reachable while the user scrolls long ticket lists. */
+             stay reachable while the user scrolls long ticket lists. Used in
+             the List and Board views. The Calendar view opts out via the
+             tl-section-head--static modifier — calendar has its own sticky
+             chrome and the sprint banner doesn't need to follow the scroll. */
           position: sticky;
           top: var(--tl-header-h, 56px);
           z-index: 4;
+        }
+        .tl-section-head.tl-section-head--static {
+          position: static;
+          top: auto;
+          z-index: auto;
         }
         [data-theme='dark'] .tl-section-head {
           background: #0f1419;
           border-bottom-color: #1f2937;
         }
-        .tl-section-body { padding: 12px 0 0; }
+        .tl-section-body { padding: 4px 0 0; }
+
+        /* ── Sprint head v2: vertical 3-row layout ──────────── */
+        .tl-sprint-head-v2 {
+          display: flex !important;
+          flex-direction: column;
+          gap: 6px;
+          padding: 10px 14px !important;
+        }
+        .tl-sprint-row1 {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .tl-sprint-title-block {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .tl-sprint-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .tl-sprint-title {
+          font-size: 14px !important;
+          font-weight: 800 !important;
+          color: var(--text-slate-900) !important;
+          letter-spacing: -0.01em;
+          max-width: 460px;
+        }
+        [data-theme='dark'] .tl-sprint-title { color: #f1f5f9 !important; }
+        .tl-sprint-tags {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .tl-sprint-tag {
+          display: inline-flex;
+          align-items: center;
+          height: 18px;
+          padding: 0 6px;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          border-radius: 4px;
+          border: 1px solid transparent;
+          text-transform: uppercase;
+          line-height: 1;
+        }
+        .tl-sprint-tag-delayed {
+          background: rgba(239, 68, 68, 0.18);
+          color: #fca5a5;
+          border-color: rgba(239, 68, 68, 0.32);
+        }
+        .tl-sprint-tag-overdue {
+          background: rgba(245, 158, 11, 0.15);
+          color: #fbbf24;
+          border-color: rgba(245, 158, 11, 0.32);
+        }
+        .tl-sprint-tag-today {
+          background: rgba(245, 158, 11, 0.15);
+          color: #fbbf24;
+          border-color: rgba(245, 158, 11, 0.32);
+        }
+        .tl-sprint-tag-active {
+          background: rgba(16, 185, 129, 0.15);
+          color: #34d399;
+          border-color: rgba(16, 185, 129, 0.32);
+        }
+        [data-theme='dark'] .tl-sprint-tag-delayed {
+          background: rgba(239, 68, 68, 0.22);
+          color: #fca5a5;
+        }
+        .tl-sprint-actions {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+        .tl-sprint-burndown-btn.ant-btn {
+          height: 28px;
+          font-size: 12px;
+          font-weight: 600;
+          border-radius: 6px;
+        }
+        .tl-sprint-complete-btn.ant-btn.ant-btn-primary {
+          height: 28px;
+          font-size: 12px;
+          font-weight: 700;
+          background: #10b981;
+          border-color: #10b981;
+          border-radius: 6px;
+        }
+        .tl-sprint-complete-btn.ant-btn.ant-btn-primary:hover {
+          background: #059669 !important;
+          border-color: #059669 !important;
+        }
+
+        .tl-sprint-row2 {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          flex-wrap: wrap;
+          padding-left: 15px;
+        }
+        .tl-sprint-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          letter-spacing: -0.005em;
+        }
+        .tl-sprint-meta b {
+          color: var(--text-slate-900);
+          font-weight: 800;
+        }
+        [data-theme='dark'] .tl-sprint-meta { color: #94a3b8 !important; }
+        [data-theme='dark'] .tl-sprint-meta b { color: #f1f5f9 !important; }
+        .tl-sprint-meta-arrow {
+          color: var(--text-slate-400);
+          font-weight: 600;
+        }
+        [data-theme='dark'] .tl-sprint-meta-arrow { color: #64748b !important; }
+
+        .tl-sprint-row3 {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding-left: 15px;
+        }
+        .tl-sprint-progress-bar {
+          flex: 1 1 auto;
+          position: relative;
+          height: 6px;
+          background: var(--bg-slate-100);
+          border-radius: 999px;
+          overflow: hidden;
+          min-width: 60px;
+        }
+        [data-theme='dark'] .tl-sprint-progress-bar { background: #1f2937 !important; }
+        .tl-sprint-progress-fill {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, #3b82f6, #6366f1);
+          border-radius: 999px;
+          transition: width 0.4s ease;
+        }
+        .tl-sprint-progress-pct {
+          flex-shrink: 0;
+          font-size: 12px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          font-variant-numeric: tabular-nums;
+          min-width: 36px;
+          text-align: right;
+        }
+        [data-theme='dark'] .tl-sprint-progress-pct { color: #f1f5f9 !important; }
 
         /* Tight table rows — applies on top of size="small" */
         .tl-table .ant-table-thead > tr > th {
-          padding: 7px 12px !important;
-          font-size: 11px !important;
+          padding: 5px 10px !important;
+          font-size: 10px !important;
           font-weight: 800 !important;
           background: var(--bg-slate-50) !important;
           color: var(--text-slate-500) !important;
@@ -2455,11 +2594,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           color: #94a3b8 !important;
         }
         .tl-table .ant-table-tbody > tr > td {
-          padding: 6px 12px !important;
-          font-size: 12.5px !important;
+          padding: 4px 10px !important;
+          font-size: 11.5px !important;
         }
         .tl-table .ant-table-cell {
-          line-height: 1.35 !important;
+          line-height: 1.3 !important;
         }
 
         /* Sticky pagination — pins to viewport bottom (inside the scrolling
@@ -2474,14 +2613,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           bottom: 0 !important;
           z-index: 5 !important;
           margin: 0 !important;
-          padding: 8px 14px !important;
+          padding: 6px 12px !important;
           background: var(--bg-pure-white) !important;
           border-top: 1px solid var(--border-slate-200) !important;
           display: flex !important;
           flex-wrap: wrap !important;
           align-items: center !important;
           justify-content: flex-end !important;
-          gap: 6px !important;
+          gap: 4px !important;
         }
         [data-theme='dark'] .tl-table-sticky-pagination .ant-table-pagination,
         [data-theme='dark'] .tl-table-sticky-pagination > .ant-spin-nested-loading > .ant-spin-container > .ant-pagination,
@@ -2495,14 +2634,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         .tl-table-sticky-pagination .ant-pagination-next,
         .tl-table-sticky-pagination .ant-pagination-jump-prev,
         .tl-table-sticky-pagination .ant-pagination-jump-next {
-          min-width: 28px !important;
-          height: 28px !important;
-          line-height: 26px !important;
-          font-size: 12px !important;
+          min-width: 24px !important;
+          height: 24px !important;
+          line-height: 22px !important;
+          font-size: 11px !important;
         }
         .tl-table-sticky-pagination .ant-pagination-options-size-changer .ant-select-selector {
-          height: 28px !important;
-          font-size: 12px !important;
+          height: 24px !important;
+          font-size: 11px !important;
         }
         .tl-table-sticky-pagination .ant-pagination-total-text {
           margin-right: auto !important;
@@ -2771,10 +2910,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         top: 0,
         zIndex: 100,
         margin: '0 -24px 0 -24px',
-        padding: '8px 24px',
+        padding: '9.7px 16px',
         display: 'flex',
         alignItems: 'center',
-        gap: '16px',
+        gap: '10px',
         flexWrap: 'wrap'
       }}>
         {/* Sidebar toggle (only visible on narrow screens via CSS) */}
@@ -2834,76 +2973,59 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           }}
           trigger={['click']}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '4px 8px', borderRadius: 8 }} className="project-switch-trigger transition-colors">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '2px 6px', borderRadius: 8 }} className="project-switch-trigger transition-colors">
             <div style={{
-              padding: '0 8px',
-              height: 32,
+              padding: '0 6px',
+              height: 26,
               borderRadius: 6,
               background: 'var(--premium-gradient)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#fff',
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: 800,
               boxShadow: 'var(--premium-shadow-lg)',
-              minWidth: 36
+              minWidth: 30
             }}>
               {projectCode?.toUpperCase()}
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>{projectName}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-slate-500)', fontWeight: 600 }}>Switch Project <CaretRightOutlined style={{ fontSize: 8 }} /></div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>{projectName}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 600 }}>Switch Project <CaretRightOutlined style={{ fontSize: 7 }} /></div>
             </div>
           </div>
         </Dropdown>
 
-        <Divider type="vertical" style={{ height: 32, margin: 0, opacity: 0.5 }} />
+        <Divider type="vertical" style={{ height: 24, margin: 0, opacity: 0.5 }} />
+
+        {/* Sidebar show/hide toggle — sits between the Switch Project divider
+            and the quick search. Drives the same isSidebarOpen state the
+            mobile drawer uses, so the existing .is-sidebar-closed CSS
+            handles both desktop (single-column grid) and mobile cases. */}
+        <Tooltip title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'} placement="bottom">
+          <button
+            type="button"
+            className="tl-sidebar-show-toggle"
+            onClick={() => setIsSidebarOpen((v) => !v)}
+            aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+            aria-pressed={!isSidebarOpen}
+          >
+            {isSidebarOpen ? (
+              <MenuFoldOutlined style={{ fontSize: 14 }} />
+            ) : (
+              <MenuUnfoldOutlined style={{ fontSize: 14 }} />
+            )}
+          </button>
+        </Tooltip>
 
         {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-          {!!user?.id && (
-            <Tooltip
-              title={
-                myTicketsOnly
-                  ? `Showing only ${effectiveSection === 'backlog' ? 'backlog' : effectiveSection === 'filtered' ? 'filtered' : 'sprint'} tickets assigned to you`
-                  : 'Show only tickets assigned to you in the current section'
-              }
-            >
-              <label
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  height: 36,
-                  padding: '0 12px',
-                  background: myTicketsOnly ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-slate-50, #f8fafc)',
-                  border: `1px solid ${myTicketsOnly ? 'rgba(59, 130, 246, 0.45)' : 'var(--border-color, #e2e8f0)'}`,
-                  color: myTicketsOnly ? 'var(--premium-blue, #3b82f6)' : 'var(--text-slate-600, #475569)',
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'background 120ms ease, border-color 120ms ease, color 120ms ease',
-                  flexShrink: 0,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <UserOutlined style={{ fontSize: 12 }} />
-                My Tickets
-                <Switch
-                  size="small"
-                  checked={myTicketsOnly}
-                  onChange={(v) => setMyTicketsOnly(v)}
-                />
-              </label>
-            </Tooltip>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
           <Input
             placeholder="Quick search tickets..."
-            prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+            prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
             className="saas-input"
-            style={{ maxWidth: 280, borderRadius: 8, height: 36, background: 'transparent' }}
+            style={{ maxWidth: 240, borderRadius: 8, height: 30, background: 'transparent', fontSize: 12 }}
             value={localSearchValue}
             onChange={(e) => setLocalSearchValue(e.target.value)}
             allowClear
@@ -2930,14 +3052,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               <Button
                 icon={<FilterOutlined />}
                 className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
-                style={{ height: 36, fontWeight: 600 }}
+                style={{ height: 30, fontWeight: 600, fontSize: 12 }}
               >
                 Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
               </Button>
             </Popover>
             <Button
               icon={<ExpandAltOutlined />}
-              style={{ height: 36 }}
+              style={{ height: 30 }}
               aria-label="Expand filters"
               onClick={() => setIsFilterRowOpen(prev => !prev)}
             />
@@ -3237,7 +3359,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             recentComments={recentActivity?.comments || []}
             recentAttachments={recentActivity?.attachments || []}
             activeSection={effectiveSection}
-            isMyBacklogActive={!!user?.id && filters.assignee.length === 1 && filters.assignee[0] === user.id}
+            isMySprintActive={!!user?.id && effectiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0] === user.id}
+            isMyBacklogActive={!!user?.id && effectiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0] === user.id}
             commentedFilterActive={activeQuickFilters.commented}
             attachedFilterActive={activeQuickFilters.attached}
             overdueFilterActive={activeQuickFilters.overdue}
@@ -3271,19 +3394,45 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               // Leaving the filtered view should clear the quick filters too,
               // so the user goes back to a clean Sprint/Backlog view.
               if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+              // If the user was in a "My Sprint/Backlog Tickets" view (assignee
+              // pinned to self), clicking the plain Sprint/Backlog row should
+              // drop that filter and show the full section.
+              if (user?.id && filters.assignee.length === 1 && filters.assignee[0] === user.id) {
+                setFilters(prev => ({ ...prev, assignee: [] }));
+              }
               setSidebarActiveSection(section);
-              if (viewMode !== 'list') setViewMode('list');
+              // In Board view, switch the kanban scope to match instead of
+              // dragging the user into List view. Calendar stays as-is.
+              if (viewMode === 'board') {
+                setKanbanScope(section === 'sprint' ? 'active' : 'backlog');
+              } else if (viewMode === 'calendar' && section === 'backlog') {
+                // Calendar has no backlog representation — fall back to List
+                // so the user actually sees the backlog table.
+                setViewMode('list');
+              }
+            }}
+            onShowMySprintTickets={() => {
+              if (!user?.id) return;
+              const isOn = sidebarActiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0] === user.id;
+              setFilters(prev => ({
+                ...prev,
+                assignee: isOn ? [] : [user.id],
+              }));
+              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+              setSidebarActiveSection('sprint');
+              if (viewMode === 'board') setKanbanScope('active');
             }}
             onShowMyBacklog={() => {
               if (!user?.id) return;
-              const isOn = filters.assignee.length === 1 && filters.assignee[0] === user.id;
+              const isOn = sidebarActiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0] === user.id;
               setFilters(prev => ({
                 ...prev,
                 assignee: isOn ? [] : [user.id],
               }));
               if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
               setSidebarActiveSection('backlog');
-              if (viewMode !== 'list') setViewMode('list');
+              if (viewMode === 'board') setKanbanScope('backlog');
+              else if (viewMode === 'calendar') setViewMode('list');
             }}
             onTicketClick={(id) => setSelectedTicketId(id)}
           />
@@ -3389,10 +3538,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       {(isRefreshing || (viewMode === 'list' ? (activeSprintLoading || backlogLoading) : viewMode === 'calendar' ? (allSprintsLoading || calendarTicketsLoading) : isKanbanLoading)) ? (
         <TicketSkeleton viewMode={viewMode === 'calendar' ? 'list' : viewMode} />
       ) : viewMode === 'calendar' ? (
-        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {activeSprint && !isFilteredView && (
             <div className="tl-section">
-              {renderActiveSprintHeader('compact')}
+              {renderActiveSprintHeader('compact', false)}
             </div>
           )}
         <div className="tcal-card">
@@ -3597,30 +3746,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             )}
           </div>
 
-          {/* Sticky footer — sprint legend */}
-          {allProjectSprints.length > 0 && (
-            <div className="tcal-legend">
-              <span className="tcal-legend-label">Sprints</span>
-              {(calLegendExpanded ? allProjectSprints : allProjectSprints.slice(0, CAL_LEGEND_LIMIT)).map((s: any, i: number) => {
-                const c = SPRINT_PALETTE[i % SPRINT_PALETTE.length];
-                return (
-                  <span key={s.id} className="tcal-legend-chip" title={s.version || s.name}>
-                    <span className="tcal-legend-dot" style={{ background: c }} />
-                    {s.version || s.name}
-                  </span>
-                );
-              })}
-              {allProjectSprints.length > CAL_LEGEND_LIMIT && (
-                <button className="tcal-legend-toggle" onClick={() => setCalLegendExpanded(v => !v)}>
-                  {calLegendExpanded ? 'Show less' : `+${allProjectSprints.length - CAL_LEGEND_LIMIT} more`}
-                </button>
-              )}
-            </div>
-          )}
         </div>
         </div>
       ) : viewMode === 'list' ? (
-        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {/* Active Sprint Section (only when Sprint selected in left nav) */}
           {activeSprint && !isFilteredView && sidebarActiveSection === 'sprint' && (
             <div id="active-section" ref={activeSprintCardRef} style={{ scrollMarginTop: `calc(var(--tl-header-h, 56px) + 4px)` }} className="tl-section">
@@ -3652,9 +3781,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   loading={activeSprintFetching}
                   rowKey="id"
                   pagination={{
-                    pageSize: 15,
+                    pageSize: 20,
                     showSizeChanger: true,
-                    pageSizeOptions: ['10', '15', '25', '50'],
+                    pageSizeOptions: ['10', '20', '25', '50'],
                     showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
                   }}
                   scroll={{ x: 'max-content' }}
@@ -3679,20 +3808,20 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 gap: '12px',
               }}
             >
-                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px', flex: '1' }}>
-                    <ProjectOutlined style={{ color: 'var(--text-slate-500)', fontSize: 18 }} />
-                    <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)' }}>Backlog</Text>
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', flex: '1' }}>
+                    <ProjectOutlined style={{ color: 'var(--text-slate-500)', fontSize: 14 }} />
+                    <Text style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-slate-900)' }}>Backlog</Text>
                     <Tag bordered={false} style={{
                       margin: 0,
-                      height: 24,
+                      height: 20,
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      minWidth: 90,
+                      minWidth: 78,
                       background: 'var(--bg-slate-50)',
                       color: 'var(--text-slate-500)',
                       fontWeight: 800,
-                      fontSize: 10,
+                      fontSize: 9,
                       borderRadius: 4,
                       textTransform: 'uppercase',
                       border: '1px solid var(--border-color)'
@@ -3700,16 +3829,17 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       {totalBacklog} Tickets
                     </Tag>
                   </div>
-                  <Space size={12}>
+                  <Space size={8}>
                     <Select
                       mode="multiple"
                       placeholder="Filter Status"
-                      style={{ width: 160 }}
+                      style={{ width: 140 }}
                       value={backlogStatusFilter}
                       onChange={setBacklogStatusFilter}
                       options={finalStatusOptions}
                       allowClear
                       maxTagCount={1}
+                      size="small"
                       className="saas-select-minimal"
                     />
                     {backlogSelectedRowKeys.length > 0 && (
@@ -3762,21 +3892,22 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     )}
                     <Input
                       placeholder="Search backlog..."
-                      prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
+                      prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 11 }} />}
                       className="saas-input"
-                      style={{ width: 220, borderRadius: 6, height: 32, fontSize: 12, background: 'transparent' }}
+                      style={{ width: 180, borderRadius: 6, height: 28, fontSize: 11.5, background: 'transparent' }}
                       value={backlogSearchValue}
                       onChange={(e) => setBacklogSearchValue(e.target.value)}
                       allowClear
                     />
-                    <Divider type="vertical" style={{ height: 20, margin: 0 }} />
+                    <Divider type="vertical" style={{ height: 18, margin: 0 }} />
                     {activeSprint && (
                       <Button
                         type="default"
+                        size="small"
                         icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
                         onClick={() => setSidebarActiveSection('sprint')}
                         className="saas-button-item"
-                        style={{ height: 32, fontWeight: 600 }}
+                        style={{ height: 28, fontWeight: 600, fontSize: 12 }}
                       >
                         Go To Sprint
                       </Button>
@@ -3784,10 +3915,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     {canCreateTicketPlan && (
                       <Button
                         type="default"
+                        size="small"
                         icon={<PlusOutlined />}
                         onClick={() => setCreateSprintModalOpen(true)}
                         className="saas-button-item"
-                        style={{ height: 32, fontWeight: 600 }}
+                        style={{ height: 28, fontWeight: 600, fontSize: 12 }}
                       >
                         New Sprint
                       </Button>
@@ -3830,9 +3962,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     pageSize: pagination.pageSize,
                     total: totalBacklog,
                     showSizeChanger: true,
-                    pageSizeOptions: ['10', '15', '25', '50'],
+                    pageSizeOptions: ['10', '20', '25', '50'],
                     showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
-                    onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 15 })
+                    onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 20 })
                   }}
                   scroll={{ x: 'max-content' }}
                 />
@@ -3846,8 +3978,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               attached tickets from either side land in one table. */}
           {isFilteredView && (
             <div id="filtered-section" className="tl-section">
-              <div className="tl-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px', flex: '1', minWidth: 0 }}>
+              <div className="tl-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', flex: '1', minWidth: 0 }}>
                   <button
                     type="button"
                     className="tl-back-btn"
@@ -3856,50 +3988,50 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       setSidebarActiveSection(previousSection);
                     }}
                   >
-                    <ArrowLeftOutlined style={{ fontSize: 11 }} />
+                    <ArrowLeftOutlined style={{ fontSize: 10 }} />
                     Back to {previousSection === 'sprint' ? 'Sprint' : 'Backlog'}
                   </button>
-                  <Text style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-slate-900)' }}>
+                  <Text style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-slate-900)' }}>
                     {filteredViewKindLabel}
                   </Text>
                   <Tag bordered={false} style={{
-                    margin: 0, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     background: 'var(--bg-slate-50)', color: 'var(--text-slate-500)',
-                    fontWeight: 800, fontSize: 10, borderRadius: 4, textTransform: 'uppercase',
-                    border: '1px solid var(--border-slate-200)', padding: '0 8px'
+                    fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
+                    border: '1px solid var(--border-slate-200)', padding: '0 6px'
                   }}>
                     {filteredViewTotal || quickFilterTicketIds.length} Tickets
                   </Tag>
                   {activeQuickFilters.commented && (
                     <Tag bordered={false} style={{
-                      margin: 0, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       background: 'rgba(59,130,246,0.10)', color: '#1d4ed8',
-                      fontWeight: 800, fontSize: 10, borderRadius: 4, textTransform: 'uppercase',
-                      border: '1px solid rgba(59,130,246,0.25)', padding: '0 8px'
+                      fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
+                      border: '1px solid rgba(59,130,246,0.25)', padding: '0 6px'
                     }}>
-                      <MessageOutlined style={{ fontSize: 10, marginRight: 4 }} />
+                      <MessageOutlined style={{ fontSize: 9, marginRight: 3 }} />
                       Commented
                     </Tag>
                   )}
                   {activeQuickFilters.attached && (
                     <Tag bordered={false} style={{
-                      margin: 0, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       background: 'rgba(99,102,241,0.10)', color: '#4338ca',
-                      fontWeight: 800, fontSize: 10, borderRadius: 4, textTransform: 'uppercase',
-                      border: '1px solid rgba(99,102,241,0.25)', padding: '0 8px'
+                      fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
+                      border: '1px solid rgba(99,102,241,0.25)', padding: '0 6px'
                     }}>
-                      <PaperClipOutlined style={{ fontSize: 10, marginRight: 4 }} />
+                      <PaperClipOutlined style={{ fontSize: 9, marginRight: 3 }} />
                       Attached
                     </Tag>
                   )}
                   {activeQuickFilters.overdue && (
                     <Tag bordered={false} style={{
-                      margin: 0, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       background: 'rgba(239,68,68,0.10)', color: '#b91c1c',
-                      fontWeight: 800, fontSize: 10, borderRadius: 4, textTransform: 'uppercase',
-                      border: '1px solid rgba(239,68,68,0.28)', padding: '0 8px'
+                      fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
+                      border: '1px solid rgba(239,68,68,0.28)', padding: '0 6px'
                     }}>
-                      <WarningOutlined style={{ fontSize: 10, marginRight: 4 }} />
+                      <WarningOutlined style={{ fontSize: 9, marginRight: 3 }} />
                       Overdue
                     </Tag>
                   )}
@@ -3918,9 +4050,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     pageSize: pagination.pageSize,
                     total: filteredViewTotal,
                     showSizeChanger: true,
-                    pageSizeOptions: ['10', '15', '25', '50'],
+                    pageSizeOptions: ['10', '20', '25', '50'],
                     showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
-                    onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 15 })
+                    onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 20 })
                   }}
                   scroll={{ x: 'max-content' }}
                 />
@@ -3951,6 +4083,20 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               onTicketClick={setSelectedTicketId}
               hideSprintMeta={!!activeSprint && !isFilteredView && kanbanScope === 'active'}
               permissions={{ canUpdateTicket, canDeleteTicket, canAssignTicket, canManageTickets }}
+              onAddTicketToColumn={canCreateTicket ? (statusId: string) => {
+                setManualCreateDefaultStatus(statusId);
+                setManualModalOpen(true);
+              } : undefined}
+              onBulkArchive={(ids) => bulkArchiveMutation.mutate(ids)}
+              onBulkDelete={(ids) => {
+                modal.confirm({
+                  title: 'Move to Trash',
+                  content: `Move ${ids.length} ticket${ids.length === 1 ? '' : 's'} to trash?`,
+                  okText: 'Move to Trash',
+                  okType: 'danger',
+                  onOk: () => bulkDeleteMutation.mutate(ids),
+                });
+              }}
             />
           ) : (
             <Card className="saas-card"><Empty description="No tickets found" /></Card>
@@ -4008,9 +4154,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       </Modal>
       <ManualCreateTicketModal
         open={manualModalOpen}
-        onClose={() => setManualModalOpen(false)}
+        onClose={() => {
+          setManualModalOpen(false);
+          setManualCreateDefaultStatus(undefined);
+        }}
         projectId={projectId}
         onTicketCreated={handleTicketCreated}
+        defaultStatus={manualCreateDefaultStatus}
       />
 
       <AiCreateTicketModal
@@ -4021,11 +4171,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       />
 
       <style jsx global>{`
-        /* ── Ticket Calendar view ────────────────────────────── */
+        /* ── Ticket Calendar view ──────────────────────────────
+           The card sits flush against the sprint detail header above —
+           drop the top border + top-radius so the seam between them
+           disappears. Bottom + sides keep their card chrome. */
         .tcal-card {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
-          border-radius: 12px;
+          border-top: 0;
+          border-radius: 0 0 12px 12px;
           position: relative;
         }
         [data-theme='dark'] .tcal-card {
@@ -4043,7 +4197,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           position: sticky;
           top: 52px;
           z-index: 5;
-          border-radius: 12px 12px 0 0;
+          border-radius: 0;
         }
         [data-theme='dark'] .tcal-header {
           background: #161b22 !important;

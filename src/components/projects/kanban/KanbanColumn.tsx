@@ -3,8 +3,20 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Ticket } from '@/services/ticketService';
 import { KanbanCard } from './KanbanCard';
-import { InboxOutlined } from '@ant-design/icons';
+import { Dropdown, type MenuProps } from 'antd';
+import {
+  InboxOutlined,
+  FilterOutlined,
+  MoreOutlined,
+  PlusOutlined,
+  SortAscendingOutlined,
+  ShrinkOutlined,
+  ArrowsAltOutlined,
+  ClearOutlined,
+} from '@ant-design/icons';
 import { getStatusColor } from '@/utils/ticketUtils';
+
+type ColumnSortKey = 'priority' | 'date' | 'title';
 
 interface KanbanColumnProps {
   id: string;
@@ -17,6 +29,23 @@ interface KanbanColumnProps {
   kanbanScope?: 'active' | 'backlog';
   onSprintAssignment?: (ticketId: string, action: 'add' | 'remove') => void;
   onTicketClick?: (ticketId: string) => void;
+  /** Optional WIP limit — when set, renders a "MAX: N" indicator on the column header. */
+  maxItems?: number;
+  /** Column-local state — sort, collapse, and clear-state — provided by TicketKanban. */
+  sortKey?: ColumnSortKey;
+  onSortChange?: (key: ColumnSortKey | undefined) => void;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
+  onClearColumnState?: () => void;
+  /** "+" — open create flow scoped to this column's status. */
+  onAddTicket?: () => void;
+  /** Selection wiring for the column checkbox + cards. */
+  selectionAllChecked?: boolean;
+  selectionPartial?: boolean;
+  onToggleSelectAll?: () => void;
+  selectedTicketIds?: Set<string>;
+  onToggleTicketSelected?: (ticketId: string) => void;
+  hasAnySelection?: boolean;
   permissions?: {
     canUpdateTicket: boolean;
     canDeleteTicket: boolean;
@@ -63,11 +92,78 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   kanbanScope,
   onSprintAssignment,
   onTicketClick,
+  maxItems,
+  sortKey,
+  onSortChange,
+  collapsed = false,
+  onToggleCollapsed,
+  onClearColumnState,
+  onAddTicket,
+  selectionAllChecked = false,
+  selectionPartial = false,
+  onToggleSelectAll,
+  selectedTicketIds,
+  onToggleTicketSelected,
+  hasAnySelection = false,
   permissions,
 }) => {
   const { setNodeRef, isOver } = useDroppable({ id });
 
   const accent = getAccent(id);
+  const overLimit = typeof maxItems === 'number' && tickets.length > maxItems;
+
+  const sortLabel: Record<ColumnSortKey, string> = {
+    priority: 'Priority',
+    date: 'Due date',
+    title: 'Title',
+  };
+
+  const sortSubmenu: NonNullable<MenuProps['items']> = (['priority', 'date', 'title'] as ColumnSortKey[]).map((k) => ({
+    key: `sort-${k}`,
+    label: sortLabel[k],
+    onClick: () => onSortChange?.(sortKey === k ? undefined : k),
+    icon: sortKey === k ? <SortAscendingOutlined /> : <span style={{ display: 'inline-block', width: 14 }} />,
+  }));
+
+  const menuItems: NonNullable<MenuProps['items']> = [
+    {
+      key: 'sort',
+      label: sortKey ? `Sort: ${sortLabel[sortKey]}` : 'Sort tickets',
+      icon: <SortAscendingOutlined />,
+      children: sortSubmenu,
+    },
+    {
+      key: 'collapse',
+      label: collapsed ? 'Expand column' : 'Collapse column',
+      icon: collapsed ? <ArrowsAltOutlined /> : <ShrinkOutlined />,
+      onClick: () => onToggleCollapsed?.(),
+    },
+    { type: 'divider' as const },
+    {
+      key: 'clear',
+      label: 'Clear column state',
+      icon: <ClearOutlined />,
+      disabled: !sortKey && !collapsed,
+      onClick: () => onClearColumnState?.(),
+    },
+  ];
+
+  if (collapsed) {
+    return (
+      <div
+        className="kb-column kb-column-collapsed"
+        style={{ ['--kb-st-accent' as any]: accent }}
+        onClick={() => onToggleCollapsed?.()}
+        title={`Expand ${title}`}
+        role="button"
+      >
+        <div className="kb-col-collapsed-inner">
+          <span className="kb-col-collapsed-title">{title}</span>
+          <span className="kb-col-collapsed-count">{tickets.length}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -75,11 +171,43 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       style={{ ['--kb-st-accent' as any]: accent }}
     >
       <div className="kb-column-header">
-        <div className="kb-col-title">
-          <span className="kb-col-dot" />
-          <span>{title}</span>
+        <div className="kb-col-header-row">
+          <span className="kb-col-title">{title}</span>
+          {typeof maxItems === 'number' && (
+            <span className={`kb-col-max ${overLimit ? 'is-over' : ''}`}>MAX: {maxItems}</span>
+          )}
         </div>
-        <span className="kb-col-count">{tickets.length}</span>
+        <div className="kb-col-toolbar">
+          <span className="kb-col-toolbar-count">
+            <FilterOutlined />
+            {tickets.length}
+          </span>
+          <div className="kb-col-toolbar-actions">
+            <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
+              <button type="button" className="kb-col-icon-btn" aria-label="More" title="More options">
+                <MoreOutlined />
+              </button>
+            </Dropdown>
+            <button
+              type="button"
+              className="kb-col-icon-btn"
+              aria-label="Add ticket"
+              title="Add ticket to this column"
+              onClick={onAddTicket}
+              disabled={!onAddTicket}
+            >
+              <PlusOutlined />
+            </button>
+            <button
+              type="button"
+              className={`kb-col-checkbox ${selectionAllChecked ? 'is-checked' : ''} ${selectionPartial ? 'is-partial' : ''}`}
+              aria-label={selectionAllChecked ? 'Deselect all' : 'Select all'}
+              title={selectionAllChecked ? 'Deselect all in column' : 'Select all in column'}
+              onClick={onToggleSelectAll}
+              disabled={tickets.length === 0}
+            />
+          </div>
+        </div>
       </div>
 
       <div ref={setNodeRef} className="kb-col-body custom-scrollbar">
@@ -103,6 +231,9 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
                 onSprintAssignment={onSprintAssignment}
                 onClick={onTicketClick ? () => onTicketClick(ticket.id) : undefined}
                 permissions={permissions}
+                selected={selectedTicketIds?.has(ticket.id) ?? false}
+                onToggleSelected={onToggleTicketSelected ? () => onToggleTicketSelected(ticket.id) : undefined}
+                showSelectionAffordance={hasAnySelection}
               />
             ))
           )}

@@ -237,6 +237,7 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
           align-items: center;
           gap: 10px;
           padding: 8px 10px 8px 8px;
+          margin-top: 8px;
           margin-bottom: 16px;
           background: var(--bg-secondary, #ffffff);
           border: 1px solid var(--border-color, #e2e8f0);

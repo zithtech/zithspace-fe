@@ -725,7 +725,7 @@ export default function SprintPlanComponent() {
 
 
   return (
-    <div style={{ background: "var(--bg-pure-white)", minHeight: "100vh" }}>
+    <div className="sp-page-root" style={{ minHeight: "100vh" }}>
       {/* {contextHolder} */}
 
       {/* Workstation Header */}
@@ -806,8 +806,10 @@ export default function SprintPlanComponent() {
             {/* Projects */}
             <div className="sp-sidebar-section">
               <div className="sp-sidebar-section-head">
-                <ProjectOutlined style={{ fontSize: 10 }} />
-                <span>Projects</span>
+                <span className="sp-sidebar-section-icon blue">
+                  <ProjectOutlined style={{ fontSize: 11 }} />
+                </span>
+                <span className="sp-sidebar-section-title">Projects</span>
                 <span className="sp-sidebar-section-count">{projects.length}</span>
               </div>
               <div className="sp-sidebar-list sp-sidebar-list-scroll">
@@ -858,13 +860,14 @@ export default function SprintPlanComponent() {
               </div>
             </div>
 
-            <div className="sp-sidebar-divider" />
-
             {/* Status */}
+            <div className="sp-sidebar-divider" />
             <div className="sp-sidebar-section">
               <div className="sp-sidebar-section-head">
-                <FlagOutlined style={{ fontSize: 10 }} />
-                <span>Status</span>
+                <span className="sp-sidebar-section-icon amber">
+                  <FlagOutlined style={{ fontSize: 11 }} />
+                </span>
+                <span className="sp-sidebar-section-title">Status</span>
               </div>
               <div className="sp-sidebar-list">
                 {([
@@ -877,12 +880,26 @@ export default function SprintPlanComponent() {
                   return (
                     <button
                       key={seg.k}
-                      className={`sp-sidebar-item ${active ? 'active' : ''}`}
+                      className={`sp-sidebar-item sp-sidebar-status-item ${active ? 'active' : ''}`}
                       onClick={() => setTableFilters(prev => ({ ...prev, status: seg.k === 'all' ? '' : seg.k }))}
+                      style={active ? { ['--sp-accent' as any]: seg.color } : undefined}
                     >
-                      <span className={`sp-sidebar-item-dot ${seg.pulse ? 'pulse' : ''}`} style={{ background: seg.color }} />
+                      <span
+                        className="sp-sidebar-status-chip"
+                        style={{ background: `${seg.color}14`, borderColor: `${seg.color}33` }}
+                      >
+                        <span
+                          className={`sp-sidebar-status-dot ${seg.pulse ? 'pulse' : ''}`}
+                          style={{ background: seg.color, ['--sp-dot' as any]: seg.color }}
+                        />
+                      </span>
                       <span className="sp-sidebar-item-label">{seg.label}</span>
-                      <span className="sp-sidebar-item-count">{seg.n}</span>
+                      <span
+                        className="sp-sidebar-item-count"
+                        style={active ? { background: `${seg.color}1a`, borderColor: `${seg.color}40`, color: seg.color } : undefined}
+                      >
+                        {seg.n}
+                      </span>
                     </button>
                   );
                 })}
@@ -4418,6 +4435,12 @@ export default function SprintPlanComponent() {
         }
 
         /* ── Two-column shell ─────────────────────────────────── */
+        .sp-page-root {
+          background: #f8fafc;
+        }
+        [data-theme='dark'] .sp-page-root {
+          background: var(--bg-pure-white) !important;
+        }
         .sp-shell-wrap {
           margin: 0 -24px;
         }
@@ -4430,7 +4453,11 @@ export default function SprintPlanComponent() {
         }
         .sp-main {
           min-width: 0;
-          padding: 10px 20px 28px;
+          padding: 14px 20px 28px;
+          background: #f8fafc;
+        }
+        [data-theme='dark'] .sp-main {
+          background: transparent !important;
         }
 
         /* ── Sidebar (full-height left rail) ──────────────────── */
@@ -4462,9 +4489,9 @@ export default function SprintPlanComponent() {
         .sp-sidebar-section-head {
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 6px 10px 8px;
-          font-size: 10px;
+          gap: 8px;
+          padding: 4px 8px 10px;
+          font-size: 10.5px;
           font-weight: 800;
           color: var(--text-slate-500);
           text-transform: uppercase;
@@ -4473,16 +4500,43 @@ export default function SprintPlanComponent() {
         [data-theme='dark'] .sp-sidebar-section-head {
           color: #94a3b8 !important;
         }
+        .sp-sidebar-section-icon {
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .sp-sidebar-section-icon.blue {
+          background: rgba(59,130,246,0.10);
+          color: #3b82f6;
+        }
+        .sp-sidebar-section-icon.amber {
+          background: rgba(245,158,11,0.10);
+          color: #f59e0b;
+        }
+        .sp-sidebar-section-title {
+          flex: 1;
+          color: var(--text-slate-700);
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .sp-sidebar-section-title {
+          color: #cbd5e1 !important;
+        }
         .sp-sidebar-section-count {
           margin-left: auto;
           background: var(--bg-slate-50);
           border: 1px solid var(--border-slate-200);
           border-radius: 999px;
-          padding: 0 6px;
-          font-size: 9.5px;
+          padding: 1px 7px;
+          font-size: 10px;
+          font-weight: 700;
           color: var(--text-slate-500);
           letter-spacing: 0;
           text-transform: none;
+          font-variant-numeric: tabular-nums;
         }
         [data-theme='dark'] .sp-sidebar-section-count {
           background: #1c232e !important;
@@ -4492,16 +4546,17 @@ export default function SprintPlanComponent() {
         .sp-sidebar-list {
           display: flex;
           flex-direction: column;
-          gap: 1px;
+          gap: 2px;
         }
         .sp-sidebar-list-scroll {
           /* sidebar itself scrolls; no inner scroll cap */
         }
         .sp-sidebar-item {
+          position: relative;
           display: flex;
           align-items: center;
-          gap: 9px;
-          padding: 7px 10px;
+          gap: 10px;
+          padding: 7px 10px 7px 12px;
           background: transparent;
           border: 1px solid transparent;
           border-radius: 8px;
@@ -4510,36 +4565,72 @@ export default function SprintPlanComponent() {
           color: var(--text-slate-700);
           text-align: left;
           width: 100%;
-          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+          transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, padding 0.15s ease;
           min-width: 0;
+        }
+        .sp-sidebar-item::before {
+          content: '';
+          position: absolute;
+          left: 3px;
+          top: 50%;
+          transform: translateY(-50%) scaleY(0);
+          width: 3px;
+          height: 18px;
+          border-radius: 0 3px 3px 0;
+          background: #3b82f6;
+          transition: transform 0.18s ease;
+          transform-origin: center;
         }
         .sp-sidebar-item:hover {
           background: var(--bg-slate-50);
+          border-color: var(--border-slate-100);
         }
         [data-theme='dark'] .sp-sidebar-item {
           color: #cbd5e1 !important;
         }
         [data-theme='dark'] .sp-sidebar-item:hover {
           background: #1c232e !important;
+          border-color: #1f2937 !important;
         }
         .sp-sidebar-item.active {
-          background: rgba(59,130,246,0.08);
-          border-color: rgba(59,130,246,0.18);
+          background: linear-gradient(90deg, rgba(59,130,246,0.10) 0%, rgba(59,130,246,0.04) 100%);
+          border-color: rgba(59,130,246,0.20);
           color: #1d4ed8;
+          padding-left: 14px;
+        }
+        .sp-sidebar-item.active::before {
+          transform: translateY(-50%) scaleY(1);
+        }
+        .sp-sidebar-status-item.active::before {
+          background: var(--sp-accent, #3b82f6);
+        }
+        .sp-sidebar-status-item.active {
+          background: color-mix(in srgb, var(--sp-accent, #3b82f6) 9%, transparent);
+          border-color: color-mix(in srgb, var(--sp-accent, #3b82f6) 22%, transparent);
+          color: var(--sp-accent, #1d4ed8);
         }
         [data-theme='dark'] .sp-sidebar-item.active {
-          background: rgba(59,130,246,0.15) !important;
-          border-color: rgba(59,130,246,0.3) !important;
+          background: linear-gradient(90deg, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0.06) 100%) !important;
+          border-color: rgba(59,130,246,0.32) !important;
           color: #60a5fa !important;
         }
-        .sp-sidebar-item-dot {
+        .sp-sidebar-status-chip {
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          border: 1px solid;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .sp-sidebar-status-dot {
           width: 7px;
           height: 7px;
           border-radius: 50%;
           flex-shrink: 0;
-          margin: 0 6px;
         }
-        .sp-sidebar-item-dot.pulse {
+        .sp-sidebar-status-dot.pulse {
           animation: sp-pulse-dot 2s infinite;
         }
         .sp-sidebar-item-avatar {
@@ -4603,8 +4694,8 @@ export default function SprintPlanComponent() {
         }
         .sp-sidebar-divider {
           height: 1px;
-          background: var(--border-slate-100);
-          margin: 6px 4px;
+          background: var(--border-slate-200);
+          margin: 8px 6px;
         }
         [data-theme='dark'] .sp-sidebar-divider {
           background: #1f2937 !important;

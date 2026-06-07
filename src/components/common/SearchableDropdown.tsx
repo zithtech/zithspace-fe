@@ -53,6 +53,10 @@ export interface SearchableDropdownProps {
   className?: string;
   /** Forwarded onto the trigger element so consumers can size it themselves. */
   style?: React.CSSProperties;
+  /** Open the overlay on mount — useful for inline-edit / modal flows. */
+  defaultOpen?: boolean;
+  /** Notified whenever the overlay opens/closes (e.g. for click-outside cancel). */
+  onOpenChange?: (open: boolean) => void;
 }
 
 const initialsFor = (s: string): string => {
@@ -80,8 +84,10 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   allowClear = true,
   className,
   style,
+  defaultOpen = false,
+  onOpenChange,
 }) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -225,7 +231,11 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       content={overlay}
       trigger="click"
       open={disabled ? false : open}
-      onOpenChange={(v) => !disabled && setOpen(v)}
+      onOpenChange={(v) => {
+        if (disabled) return;
+        setOpen(v);
+        onOpenChange?.(v);
+      }}
       placement="bottomLeft"
       overlayClassName="sd-overlay-popover"
       destroyTooltipOnHide

@@ -1037,10 +1037,13 @@ export default function BucketManagementPage() {
         /* ── Page shell ──────────────────────────────────────────── */
         .bh2-page {
           margin: 0 -24px;
-          background: var(--bg-pure-white);
+          background: #f8fafc;
           min-height: calc(100vh - 64px);
           display: flex;
           flex-direction: column;
+        }
+        [data-theme="dark"] .bh2-page {
+          background: var(--bg-pure-white) !important;
         }
 
         .bh2-shell-wrap {
@@ -1056,6 +1059,10 @@ export default function BucketManagementPage() {
         .bh2-main {
           min-width: 0;
           padding: 14px 24px 32px;
+          background: #f8fafc;
+        }
+        [data-theme="dark"] .bh2-main {
+          background: transparent !important;
         }
 
         /* ── Sidebar ─────────────────────────────────────────────── */
@@ -1506,8 +1513,8 @@ export default function BucketManagementPage() {
         .bh2-list {
           display: flex;
           flex-direction: column;
-          gap: 10px;
-          padding-top: 14px;
+          gap: 8px;
+          padding-top: 10px;
         }
 
         /* ── Sticky pagination footer ──────────────────────────── */
@@ -1545,15 +1552,15 @@ export default function BucketManagementPage() {
           position: relative;
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
-          border-radius: 14px;
+          border-radius: 12px;
           /* When we smooth-scroll a card into view on Manage-Tickets click,
              land its top 120px below the viewport so it clears the sticky
              page header (~52px) + sticky toolbar (~60px). */
           scroll-margin-top: 120px;
-          padding: 18px 20px 16px 22px;
+          padding: 10px 14px 10px 16px;
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 8px;
           overflow: hidden;
           transition: border-color 0.2s ease, background 0.2s ease;
         }
@@ -1568,13 +1575,13 @@ export default function BucketManagementPage() {
           background: #1c232e !important;
         }
         .bh2-list-card-skel {
-          min-height: 130px;
+          min-height: 96px;
         }
         .bh2-list-stripe {
           position: absolute;
           left: 0;
-          top: 18px;
-          bottom: 18px;
+          top: 10px;
+          bottom: 10px;
           width: 3px;
           border-radius: 0 999px 999px 0;
           opacity: 0.85;
@@ -1674,7 +1681,7 @@ export default function BucketManagementPage() {
         .bh2-list-seg-name {
           flex: 1;
           min-width: 0;
-          font-size: 15.5px;
+          font-size: 13.5px;
           font-weight: 800;
           color: var(--text-slate-900);
           letter-spacing: -0.025em;
@@ -1693,14 +1700,14 @@ export default function BucketManagementPage() {
           color: #60a5fa !important;
         }
         .bh2-list-avatar {
-          width: 44px;
-          height: 44px;
-          border-radius: 11px;
+          width: 34px;
+          height: 34px;
+          border-radius: 9px;
           border: 1px solid;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          font-size: 17px;
+          font-size: 14px;
           font-weight: 800;
           letter-spacing: -0.025em;
           flex-shrink: 0;
@@ -1734,8 +1741,8 @@ export default function BucketManagementPage() {
 
         .bh2-list-desc {
           margin: 0;
-          padding: 6px 10px;
-          font-size: 12px;
+          padding: 4px 8px;
+          font-size: 11.5px;
           font-weight: 500;
           color: var(--text-slate-600);
           background: var(--bg-slate-50);
@@ -1757,16 +1764,16 @@ export default function BucketManagementPage() {
         .bh2-list-body {
           display: grid;
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-          gap: 14px;
+          gap: 8px;
         }
         .bh2-list-block {
           background: var(--bg-slate-50);
           border: 1px solid var(--border-slate-100);
-          border-radius: 10px;
-          padding: 10px 12px;
+          border-radius: 8px;
+          padding: 6px 10px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 2px;
           min-width: 0;
         }
         [data-theme="dark"] .bh2-list-block {
@@ -1781,8 +1788,8 @@ export default function BucketManagementPage() {
         .bh2-list-block-label {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          font-size: 10px;
+          gap: 5px;
+          font-size: 9px;
           font-weight: 800;
           color: var(--text-slate-500);
           text-transform: uppercase;
@@ -1794,15 +1801,15 @@ export default function BucketManagementPage() {
         .bh2-list-stats {
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 10px;
         }
         .bh2-list-stat {
           display: inline-flex;
           align-items: baseline;
-          gap: 6px;
+          gap: 5px;
         }
         .bh2-list-stat-value {
-          font-size: 18px;
+          font-size: 15px;
           font-weight: 800;
           color: var(--text-slate-900);
           font-variant-numeric: tabular-nums;
@@ -1812,13 +1819,13 @@ export default function BucketManagementPage() {
           color: #f1f5f9 !important;
         }
         .bh2-list-stat-label {
-          font-size: 11px;
+          font-size: 10.5px;
           font-weight: 600;
           color: var(--text-slate-500);
         }
         .bh2-list-stat-sep {
           width: 1px;
-          height: 18px;
+          height: 14px;
           background: var(--border-slate-200);
         }
         [data-theme="dark"] .bh2-list-stat-sep {
@@ -1827,15 +1834,16 @@ export default function BucketManagementPage() {
         .bh2-list-owner {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
         }
         .bh2-list-owner-info {
           display: flex;
           flex-direction: column;
           min-width: 0;
+          line-height: 1.25;
         }
         .bh2-list-owner-name {
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 700;
           color: var(--text-slate-800);
           overflow: hidden;
@@ -1846,7 +1854,7 @@ export default function BucketManagementPage() {
           color: #e2e8f0 !important;
         }
         .bh2-list-owner-email {
-          font-size: 11px;
+          font-size: 10.5px;
           font-weight: 500;
           color: var(--text-slate-500);
           overflow: hidden;
@@ -1860,7 +1868,7 @@ export default function BucketManagementPage() {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          padding-top: 8px;
+          padding-top: 4px;
           border-top: 1px solid var(--border-slate-100);
         }
         [data-theme="dark"] .bh2-list-foot {
@@ -1871,8 +1879,8 @@ export default function BucketManagementPage() {
         .bh2-list-divider {
           height: 1px;
           background: var(--border-slate-100);
-          /* Extend to the card's edges, eating the parent padding (18 22 16 22) */
-          margin: 2px -20px 2px -22px;
+          /* Extend to the card's edges, eating the parent padding (10 14 10 16) */
+          margin: 2px -14px 2px -16px;
         }
         [data-theme="dark"] .bh2-list-divider {
           background: #1f2937 !important;

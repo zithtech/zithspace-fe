@@ -274,16 +274,38 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
           grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
           gap: 16px;
         }
+        .du-header-actions {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px;
+          justify-content: end;
+        }
         @keyframes dudPulseDot {
           0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
           70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
           100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
+        @media (max-width: 768px) {
+          .btn-text-mobile-hide {
+            display: none;
+          }
+        }
+        @media (max-width: 500px) {
+          .du-header-actions {
+            grid-template-columns: 1fr;
+            justify-content: start;
+          }
+          .du-header-actions button:first-child,
+          .du-header-actions button:nth-child(2) {
+            grid-column: 1 / -1;
+          }
+        }
       `}} />
 
       <TimeTrackingHeader
-        style={{ 
-          padding: '3px 32px', 
+        style={{
+          padding: '3px 32px',
           borderBottom: '1px solid var(--border-slate-200)',
           marginBottom: 20
         }}
@@ -298,8 +320,8 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         }
         description="Review team updates and track daily work statuses."
         extra={
-          <Space size="middle" align="center">
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 4 }}>
+          <Space size="middle" align="center" wrap>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 4, whiteSpace: "nowrap" }}>
               <div
                 style={{
                   width: 8,
@@ -314,61 +336,66 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                 {updates.length} Updates found
               </Text>
             </div>
-            {canViewTeam && (
+
+            <div className="du-header-actions">
+              {canViewTeam && (
+                <Button
+                  icon={<Clock size={16} />}
+                  onClick={() => setManageTimeOpen(true)}
+                  style={{
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    height: 38,
+                    background: "var(--bg-sky-50)",
+                    color: "var(--text-blue-700)",
+                    border: "1px solid var(--border-blue-200)"
+                  }}
+                >
+                  <span className="btn-text-mobile-hide">Manage Time</span>
+                </Button>
+              )}
               <Button
-                icon={<Clock size={16} />}
-                onClick={() => setManageTimeOpen(true)}
-                style={{ 
-                  borderRadius: 10, 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: 8,
-                  height: 38,
-                  background: "var(--bg-sky-50)",
-                  color: "var(--text-blue-700)",
-                  border: "1px solid var(--border-blue-200)"
-                }}
-              >
-                Manage Time
-              </Button>
-            )}
-            <Button
-              icon={<RefreshCw size={16} />}
-              onClick={handleRefresh}
-              loading={loading}
-              style={{ height: 38, borderRadius: 10, display: "flex", alignItems: "center", gap: 8 }}
-            >
-              Refresh
-            </Button>
-            {canReadActivityLog && (
-              <Button
-                icon={<History size={16} />}
-                onClick={() => setHistoryOpen(true)}
+                icon={<RefreshCw size={16} />}
+                onClick={handleRefresh}
+                loading={loading}
                 style={{ height: 38, borderRadius: 10, display: "flex", alignItems: "center", gap: 8 }}
               >
-                History
+                <span className="btn-text-mobile-hide">Refresh</span>
               </Button>
-            )}
-            {canCreateDailyUpdate && (
-              <Button
-                type="primary"
-                icon={<Plus size={16} />}
-                onClick={handleSubmitNew}
-                style={{
-                  height: 38,
-                  padding: "0 20px",
-                  borderRadius: 10,
-                  fontWeight: 600,
-                  background: '#1677ff',
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  border: 'none'
-                }}
-              >
-                Submit Update
-              </Button>
-            )}
+              {canReadActivityLog && (
+                <Button
+                  icon={<History size={16} />}
+                  onClick={() => setHistoryOpen(true)}
+                  style={{ height: 38, borderRadius: 10, display: "flex", alignItems: "center", gap: 8 }}
+                >
+                  <span className="btn-text-mobile-hide">History</span>
+                </Button>
+              )}
+              {canCreateDailyUpdate && (
+                <Button
+                  type="primary"
+                  icon={<Plus size={16} />}
+                  onClick={handleSubmitNew}
+                  style={{
+                    height: 38,
+                    padding: "0 20px",
+                    borderRadius: 10,
+                    fontWeight: 600,
+                    background: '#1677ff',
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    border: 'none'
+                  }}
+                >
+                  Submit Update
+                </Button>
+              )}
+
+            </div>
+
           </Space>
         }
       />
@@ -544,7 +571,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         open={detailsModalOpen}
         onClose={handleCloseDetails}
       />
-      <ManageTimeDrawer 
+      <ManageTimeDrawer
         open={manageTimeOpen}
         onClose={() => setManageTimeOpen(false)}
         onSuccess={handleRefresh}

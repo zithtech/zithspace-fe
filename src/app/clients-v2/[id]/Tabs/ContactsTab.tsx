@@ -998,32 +998,6 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
           color: #fff !important;
         }
 
-
-        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
-        @media (max-width: 1200px) {
-          html body .contacts-header-wrap .saas-header-container .saas-header-row {
-            flex-wrap: nowrap !important;
-          }
-          html body .contacts-header-wrap .saas-header-container .saas-header-left-col {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-          }
-          html body .contacts-header-wrap .saas-header-container .saas-header-extra-col {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            margin-top: 0 !important;
-          }
-          html body .contacts-header-wrap .saas-header-container .saas-header-left-group {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 16px !important;
-          }
-          html body .contacts-header-wrap .saas-header-container .bh-header-divider {
-            display: inline-block !important;
-          }
-        }
-
         /* Prevent horizontal overflow from edge-to-edge header bleed */
         .cd-tabs .ant-tabs-content-holder {
           overflow-x: hidden !important;

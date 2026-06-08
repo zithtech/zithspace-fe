@@ -320,7 +320,14 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         }
         description="Review team updates and track daily work statuses."
         extra={
-          <Space size="middle" align="center" wrap>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12
+          }}>
+            {/* left side */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 4, whiteSpace: "nowrap" }}>
               <div
                 style={{
@@ -396,7 +403,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
 
             </div>
 
-          </Space>
+          </div>
         }
       />
 

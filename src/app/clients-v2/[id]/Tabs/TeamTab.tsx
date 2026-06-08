@@ -1093,6 +1093,7 @@ function TeamMemberModal({
               placeholder="What they specialise in, years at the company, etc."
               maxLength={500}
               showCount
+              style={{ padding: "10px 12px" }}
             />
           </Form.Item>
         </ModalSection>

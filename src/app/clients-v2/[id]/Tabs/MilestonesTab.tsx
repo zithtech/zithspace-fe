@@ -1115,6 +1115,7 @@ function MilestoneModal({
               placeholder="What the client gets when this lands…"
               maxLength={1000}
               showCount
+              style={{ padding: "10px 12px" }}
             />
           </Form.Item>
         </ModalSection>

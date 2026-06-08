@@ -2349,6 +2349,27 @@ export default function LeadSettingsPage() {
                         border-radius: 7px !important;
                     }
 
+                    @media (max-width: 900px) {
+                        .lset-pane-hero {
+                            flex-wrap: wrap;
+                            flex-direction: column;
+                            align-items: flex-start;
+                            gap: 12px;
+                        }
+                        .lset-pane-hero-left {
+                            width: 100%;
+                        }
+                        .lset-pane-hero-right {
+                            width: 100%;
+                            flex-wrap: wrap;
+                            justify-content: flex-start;
+                            margin-top: 4px;
+                        }
+                        .lset-stat-chips {
+                            flex-wrap: wrap;
+                        }
+                    }
+
                     .lset-toolbar {
                         display: flex; align-items: center; gap: 8px;
                         flex-wrap: wrap;

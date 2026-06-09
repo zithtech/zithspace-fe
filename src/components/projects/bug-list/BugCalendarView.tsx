@@ -231,12 +231,12 @@ export default function BugCalendarView({
             label="Completed"
             value={monthBuckets.completed}
           />
-          <SummaryStat
+          {/* <SummaryStat
             tone="accent"
             icon={<ShieldCheck size={12} />}
             label="Verified"
             value={monthBuckets.verified}
-          />
+          /> */}
           <SummaryStat
             tone="warning"
             icon={<TicketIcon size={12} />}

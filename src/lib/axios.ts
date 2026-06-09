@@ -16,6 +16,12 @@ const TenantUtils = {
       const savedTenant = localStorage.getItem('currentTenant');
       if (savedTenant) {
         const tenant = JSON.parse(savedTenant);
+        // On *.localhost, only trust the stored ID if it matches the URL subdomain
+        const hostname = window.location.hostname;
+        if (hostname.endsWith('.localhost') && hostname !== 'localhost') {
+          const urlSubdomain = hostname.split('.localhost')[0];
+          if (tenant.subdomain !== urlSubdomain) return null;
+        }
         return tenant.tenantId || null;
       }
     } catch (error) {
@@ -29,12 +35,20 @@ const TenantUtils = {
 
     const hostname = window.location.hostname;
 
-    // For localhost development
+    // Plain localhost — read from localStorage (backward compat)
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return localStorage.getItem('devTenantSubdomain') || null;
     }
 
-    // Production subdomain detection
+    // *.localhost subdomains (e.g. abraham-immanuel.localhost:3005)
+    if (hostname.endsWith('.localhost')) {
+      const subdomain = hostname.split('.localhost')[0];
+      if (subdomain && !['www', 'api', 'admin', 'app', 'mail'].includes(subdomain)) {
+        return subdomain;
+      }
+    }
+
+    // Production: subdomain.domain.tld
     const parts = hostname.split('.');
     if (parts.length >= 3) {
       const subdomain = parts[0];

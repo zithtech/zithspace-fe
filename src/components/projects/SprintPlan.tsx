@@ -122,7 +122,7 @@ export default function SprintPlanComponent() {
 
   const ticketOptions = useMemo(() => {
     const optionsMap = new Map<string, { label: string; value: string; item: any }>();
-    
+
     // Add available tickets
     availableTickets.forEach(t => {
       optionsMap.set(t.id, {
@@ -725,7 +725,7 @@ export default function SprintPlanComponent() {
 
 
   return (
-    <div style={{ background: "var(--bg-pure-white)", minHeight: "100vh" }}>
+    <div className="sp-page-root" style={{ minHeight: "100vh" }}>
       {/* {contextHolder} */}
 
       {/* Workstation Header */}
@@ -806,8 +806,10 @@ export default function SprintPlanComponent() {
             {/* Projects */}
             <div className="sp-sidebar-section">
               <div className="sp-sidebar-section-head">
-                <ProjectOutlined style={{ fontSize: 10 }} />
-                <span>Projects</span>
+                <span className="sp-sidebar-section-icon blue">
+                  <ProjectOutlined style={{ fontSize: 11 }} />
+                </span>
+                <span className="sp-sidebar-section-title">Projects</span>
                 <span className="sp-sidebar-section-count">{projects.length}</span>
               </div>
               <div className="sp-sidebar-list sp-sidebar-list-scroll">
@@ -858,13 +860,14 @@ export default function SprintPlanComponent() {
               </div>
             </div>
 
-            <div className="sp-sidebar-divider" />
-
             {/* Status */}
+            <div className="sp-sidebar-divider" />
             <div className="sp-sidebar-section">
               <div className="sp-sidebar-section-head">
-                <FlagOutlined style={{ fontSize: 10 }} />
-                <span>Status</span>
+                <span className="sp-sidebar-section-icon amber">
+                  <FlagOutlined style={{ fontSize: 11 }} />
+                </span>
+                <span className="sp-sidebar-section-title">Status</span>
               </div>
               <div className="sp-sidebar-list">
                 {([
@@ -877,12 +880,26 @@ export default function SprintPlanComponent() {
                   return (
                     <button
                       key={seg.k}
-                      className={`sp-sidebar-item ${active ? 'active' : ''}`}
+                      className={`sp-sidebar-item sp-sidebar-status-item ${active ? 'active' : ''}`}
                       onClick={() => setTableFilters(prev => ({ ...prev, status: seg.k === 'all' ? '' : seg.k }))}
+                      style={active ? { ['--sp-accent' as any]: seg.color } : undefined}
                     >
-                      <span className={`sp-sidebar-item-dot ${seg.pulse ? 'pulse' : ''}`} style={{ background: seg.color }} />
+                      <span
+                        className="sp-sidebar-status-chip"
+                        style={{ background: `${seg.color}14`, borderColor: `${seg.color}33` }}
+                      >
+                        <span
+                          className={`sp-sidebar-status-dot ${seg.pulse ? 'pulse' : ''}`}
+                          style={{ background: seg.color, ['--sp-dot' as any]: seg.color }}
+                        />
+                      </span>
                       <span className="sp-sidebar-item-label">{seg.label}</span>
-                      <span className="sp-sidebar-item-count">{seg.n}</span>
+                      <span
+                        className="sp-sidebar-item-count"
+                        style={active ? { background: `${seg.color}1a`, borderColor: `${seg.color}40`, color: seg.color } : undefined}
+                      >
+                        {seg.n}
+                      </span>
                     </button>
                   );
                 })}
@@ -1020,7 +1037,7 @@ export default function SprintPlanComponent() {
                 <Input
                   placeholder="Search by name, goal, or description"
                   variant="borderless"
-                  style={{ fontSize: 12.5, fontWeight: 500, padding: '4px 0', flex: 1, background: 'transparent' }}
+                  style={{ fontSize: 12.5, fontWeight: 500, padding: '4px 8px', flex: 1, background: 'transparent' }}
                   value={tableFilters.search}
                   onChange={(e) => setTableFilters(prev => ({ ...prev, search: e.target.value }))}
                   allowClear
@@ -1368,404 +1385,404 @@ export default function SprintPlanComponent() {
               </div>
             )}
             {viewMode === 'list' && (
-            <div className="sp-table-card">
-          <div className="sp-table-toolbar">
-            <div className="sp-table-toolbar-title">
-              <span className="sp-table-toolbar-icon">
-                <CalendarOutlined style={{ fontSize: 13, color: '#3b82f6' }} />
-              </span>
-              <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-slate-900)' }}>Sprint Cycles</Text>
-              <span className="sp-table-toolbar-chip">{sortedSprintPlans.length} {sortedSprintPlans.length === 1 ? 'result' : 'results'}</span>
-            </div>
-            <div className="sp-table-toolbar-meta">
-              <span className="sp-table-toolbar-meta-item">
-                <span className="sp-segmented-dot" style={{ background: '#10b981', width: 6, height: 6 }} />
-                {metrics.active} active
-              </span>
-              <span className="sp-table-toolbar-meta-divider" />
-              <span className="sp-table-toolbar-meta-item">
-                Avg <b style={{ color: 'var(--text-slate-900)', marginLeft: 4 }}>{metrics.avgProgress}%</b>
-              </span>
-            </div>
-          </div>
-          {/* Premium card list */}
-          <div className="sp-plist">
-            {loading ? (
-              <div className="sp-card-loading">
-                <Spin />
-              </div>
-            ) : pagedSprintPlans.length === 0 ? (
-              <div className="sp-empty-state">
-                <div className="sp-empty-icon">
-                  <CalendarOutlined style={{ fontSize: 28, color: '#3b82f6' }} />
+              <div className="sp-table-card">
+                <div className="sp-table-toolbar">
+                  <div className="sp-table-toolbar-title">
+                    <span className="sp-table-toolbar-icon">
+                      <CalendarOutlined style={{ fontSize: 13, color: '#3b82f6' }} />
+                    </span>
+                    <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-slate-900)' }}>Sprint Cycles</Text>
+                    <span className="sp-table-toolbar-chip">{sortedSprintPlans.length} {sortedSprintPlans.length === 1 ? 'result' : 'results'}</span>
+                  </div>
+                  <div className="sp-table-toolbar-meta">
+                    <span className="sp-table-toolbar-meta-item">
+                      <span className="sp-segmented-dot" style={{ background: '#10b981', width: 6, height: 6 }} />
+                      {metrics.active} active
+                    </span>
+                    <span className="sp-table-toolbar-meta-divider" />
+                    <span className="sp-table-toolbar-meta-item">
+                      Avg <b style={{ color: 'var(--text-slate-900)', marginLeft: 4 }}>{metrics.avgProgress}%</b>
+                    </span>
+                  </div>
                 </div>
-                <Title level={5} style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--text-slate-900)' }}>
-                  No sprint cycles yet
-                </Title>
-                <Text style={{ fontSize: 13, color: 'var(--text-slate-500)', display: 'block', marginBottom: 20, maxWidth: 360, textAlign: 'center' }}>
-                  Plan your first sprint to start tracking delivery, milestones, and team velocity in one place.
-                </Text>
-                {canCreateTicketPlan && (
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => setShowCreateModal(true)}
-                    style={{
-                      height: 36,
-                      fontWeight: 700,
-                      borderRadius: 8,
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                      border: 'none'
-                    }}
-                  >
-                    Plan your first sprint
-                  </Button>
-                )}
-              </div>
-            ) : (
-              pagedSprintPlans.map((record) => {
-                const project = typeof record.project === 'object' ? record.project : null;
-                const initial = (record.name || '?').charAt(0).toUpperCase();
-                const accent =
-                  record.status === 'active' ? '#3b82f6' :
-                    record.status === 'completed' ? '#10b981' :
-                      record.status === 'planning' ? '#f59e0b' : '#64748b';
-
-                const statusCfg =
-                  record.status === 'active' ? { dot: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', color: '#047857', label: 'Active', pulse: true } :
-                    record.status === 'planning' ? { dot: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)', color: '#b45309', label: 'Planning', pulse: false } :
-                      record.status === 'completed' ? { dot: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)', color: '#1d4ed8', label: 'Completed', pulse: false } :
-                        { dot: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)', color: '#475569', label: record.status?.toUpperCase() || '—', pulse: false };
-
-                const pct = record.progress || 0;
-                const done = record?.completedTickets || 0;
-                const total = record?.totalTickets || 0;
-                const progressAccent = pct >= 100 ? '#10b981' : pct >= 60 ? '#3b82f6' : pct >= 30 ? '#6366f1' : '#94a3b8';
-
-                const today = dayjs();
-                const start = record.startDate ? dayjs(record.startDate) : null;
-                const end = record.endDate ? dayjs(record.endDate) : null;
-                const hasDates = !!(start && end);
-                const days = hasDates ? Math.max(end!.diff(start!, 'day'), 1) : 0;
-                let phaseLabel = '';
-                let phaseColor = '#64748b';
-                let phaseBg = 'rgba(100,116,139,0.08)';
-                if (record.status === 'completed') {
-                  phaseLabel = 'Closed';
-                  phaseColor = '#3b82f6';
-                  phaseBg = 'rgba(59,130,246,0.08)';
-                } else if (hasDates) {
-                  if (today.isBefore(start!)) {
-                    phaseLabel = `Starts in ${start!.diff(today, 'day')}d`;
-                    phaseColor = '#8b5cf6';
-                    phaseBg = 'rgba(139,92,246,0.08)';
-                  } else if (today.isAfter(end!)) {
-                    phaseLabel = `${today.diff(end!, 'day')}d overdue`;
-                    phaseColor = '#ef4444';
-                    phaseBg = 'rgba(239,68,68,0.08)';
-                  } else {
-                    const remaining = end!.diff(today, 'day');
-                    phaseLabel = remaining === 0 ? 'Ends today' : `${remaining}d left`;
-                    phaseColor = remaining <= 2 ? '#f59e0b' : '#10b981';
-                    phaseBg = remaining <= 2 ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)';
-                  }
-                }
-                const elapsedPct = hasDates ? Math.min(Math.max((today.diff(start!, 'day') / days) * 100, 0), 100) : 0;
-
-                const startedAt = record.startedAt ? dayjs(record.startedAt) : null;
-                const completedAt = record.completedAt ? dayjs(record.completedAt) : null;
-                const startVariance = startedAt && start ? startedAt.diff(start, 'day') : null;
-                const endVariance = completedAt && end ? completedAt.diff(end, 'day') : null;
-                const actualDuration = startedAt && completedAt ? Math.max(completedAt.diff(startedAt, 'day'), 1) : null;
-                const isExpanded = expandedRowId === record.id;
-
-                return (
-                  <article
-                    key={record.id}
-                    className="sp-plist-card"
-                    style={{ ['--row-accent' as any]: accent }}
-                  >
-                    <span className="sp-plist-stripe" style={{ background: accent }} />
-
-                    {/* Header — single row: avatar | project | sprint name | priority | status */}
-                    <header className="sp-plist-head">
-                      <div
-                        className="sp-plist-row"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => handleViewTickets(record)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleViewTickets(record); } }}
-                      >
-                        <div
-                          className="sp-plist-avatar"
+                {/* Premium card list */}
+                <div className="sp-plist">
+                  {loading ? (
+                    <div className="sp-card-loading">
+                      <Spin />
+                    </div>
+                  ) : pagedSprintPlans.length === 0 ? (
+                    <div className="sp-empty-state">
+                      <div className="sp-empty-icon">
+                        <CalendarOutlined style={{ fontSize: 28, color: '#3b82f6' }} />
+                      </div>
+                      <Title level={5} style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--text-slate-900)' }}>
+                        No sprint cycles yet
+                      </Title>
+                      <Text style={{ fontSize: 13, color: 'var(--text-slate-500)', display: 'block', marginBottom: 20, maxWidth: 360, textAlign: 'center' }}>
+                        Plan your first sprint to start tracking delivery, milestones, and team velocity in one place.
+                      </Text>
+                      {canCreateTicketPlan && (
+                        <Button
+                          type="primary"
+                          icon={<PlusOutlined />}
+                          onClick={() => setShowCreateModal(true)}
                           style={{
-                            background: `linear-gradient(135deg, ${accent}22 0%, ${accent}3a 100%)`,
-                            color: accent,
-                            borderColor: `${accent}66`,
+                            height: 36,
+                            fontWeight: 700,
+                            borderRadius: 8,
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                            border: 'none'
                           }}
                         >
-                          <span className="sp-plist-avatar-letter">{initial}</span>
-                        </div>
-
-                        <div className="sp-plist-row-segments">
-                          <span className="sp-plist-seg sp-plist-seg-project">
-                            <span className="sp-plist-seg-label">Project:</span>
-                            {project ? (
-                              <span className="sp-plist-seg-value" title={project.name}>
-                                <span className="sp-plist-seg-dot" style={{ background: accent }} />
-                                {project.name}
-                              </span>
-                            ) : (
-                              <span className="sp-plist-seg-value muted">—</span>
-                            )}
-                          </span>
-
-                          <span className="sp-plist-row-div" />
-
-                          <span className="sp-plist-seg-name" title={record.name}>{record.name}</span>
-
-                          {record.priority && (
-                            <>
-                              <span className="sp-plist-row-div" />
-                              <span className={`sp-plist-prio sp-plist-prio-${(record.priority || '').toLowerCase()}`}>
-                                <FlagOutlined style={{ fontSize: 9 }} />
-                                {record.priority}
-                              </span>
-                            </>
-                          )}
-
-                          <span className="sp-plist-row-div" />
-
-                          <span
-                            className="sp-plist-status"
-                            style={{
-                              background: `linear-gradient(135deg, ${statusCfg.bg}, ${statusCfg.dot}26)`,
-                              borderColor: statusCfg.border,
-                              color: statusCfg.color,
-                            }}
-                          >
-                            <span
-                              className={`sp-plist-status-dot ${statusCfg.pulse ? 'pulse' : ''}`}
-                              style={{ background: statusCfg.dot, boxShadow: `0 0 0 3px ${statusCfg.dot}26` }}
-                            />
-                            {statusCfg.label}
-                          </span>
-                        </div>
-                      </div>
-                    </header>
-
-                    {record.goal && (
-                      <p className="sp-plist-goal-row" title={record.goal}>
-                        <BulbDot />
-                        {record.goal.length > 140 ? `${record.goal.substring(0, 140)}…` : record.goal}
-                      </p>
-                    )}
-
-                    {/* Body — Progress + Timeline */}
-                    <div className="sp-plist-body">
-                      {/* Progress block */}
-                      <div className="sp-plist-block">
-                        <div className="sp-plist-block-head">
-                          <div className="sp-plist-block-label">
-                            <LineChartOutlined style={{ fontSize: 10 }} />
-                            Progress
-                          </div>
-                          <div className="sp-plist-block-pct" style={{ color: progressAccent }}>
-                            <span className="sp-plist-block-pct-num">{pct}</span>
-                            <span className="sp-plist-block-pct-unit">%</span>
-                            {pct >= 100 && <CheckCircleOutlined style={{ color: '#10b981', fontSize: 11, marginLeft: 4 }} />}
-                          </div>
-                        </div>
-                        <div className="sp-plist-bar">
-                          <div
-                            className="sp-plist-bar-fill"
-                            style={{
-                              width: `${pct}%`,
-                              background: `linear-gradient(90deg, ${progressAccent}, ${progressAccent}cc)`,
-                            }}
-                          />
-                        </div>
-                        <div className="sp-plist-chips">
-                          <span className="sp-plist-chip done">
-                            <span className="sp-plist-chip-dot" />
-                            <b>{done}</b> done
-                          </span>
-                          <span className="sp-plist-chip total">
-                            <b>{total}</b> total
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Timeline block */}
-                      <div className="sp-plist-block">
-                        <div className="sp-plist-block-head">
-                          <div className="sp-plist-block-label">
-                            <CalendarOutlined style={{ fontSize: 10 }} />
-                            Timeline
-                          </div>
-                          {hasDates && (
-                            <span className="sp-plist-cycle">{days}d cycle</span>
-                          )}
-                        </div>
-                        <div className="sp-plist-dates">
-                          <div className="sp-plist-date-cell">
-                            <span className="sp-plist-date-label">Start</span>
-                            <span className="sp-plist-date-value">{start ? start.format('MMM D') : '—'}</span>
-                          </div>
-                          <div className="sp-plist-date-link">
-                            <div
-                              className="sp-plist-date-link-fill"
-                              style={{ width: `${elapsedPct}%`, background: phaseColor }}
-                            />
-                          </div>
-                          <div className="sp-plist-date-cell sp-plist-date-cell-right">
-                            <span className="sp-plist-date-label">End</span>
-                            <span className="sp-plist-date-value">{end ? end.format('MMM D') : '—'}</span>
-                          </div>
-                        </div>
-                        {phaseLabel && (
-                          <div className="sp-plist-phase-row">
-                            <span
-                              className="sp-plist-phase"
-                              style={{ color: phaseColor, background: phaseBg, borderColor: `${phaseColor}40` }}
-                            >
-                              <span className="sp-plist-phase-dot" style={{ background: phaseColor }} />
-                              {phaseLabel}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                          Plan your first sprint
+                        </Button>
+                      )}
                     </div>
+                  ) : (
+                    pagedSprintPlans.map((record) => {
+                      const project = typeof record.project === 'object' ? record.project : null;
+                      const initial = (record.name || '?').charAt(0).toUpperCase();
+                      const accent =
+                        record.status === 'active' ? '#3b82f6' :
+                          record.status === 'completed' ? '#10b981' :
+                            record.status === 'planning' ? '#f59e0b' : '#64748b';
 
-                    {/* Footer — single inline meta line */}
-                    <footer className="sp-plist-foot">
-                      <div className="sp-plist-foot-inline">
-                        <span className="sp-plist-foot-item sp-plist-foot-item-creator" title={record.createdBy?.email}>
-                          <span className="sp-plist-foot-label">Created by:</span>
-                          {record.createdBy ? (
-                            <span className="sp-plist-creator-mini">
-                              <span className="sp-plist-creator-avatar-sm">
-                                {(record.createdBy.name || '?').charAt(0).toUpperCase()}
-                              </span>
-                              <b>{record.createdBy.name || record.createdBy.email}</b>
-                            </span>
-                          ) : (
-                            <span className="sp-plist-foot-muted">—</span>
-                          )}
-                        </span>
+                      const statusCfg =
+                        record.status === 'active' ? { dot: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', color: '#047857', label: 'Active', pulse: true } :
+                          record.status === 'planning' ? { dot: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)', color: '#b45309', label: 'Planning', pulse: false } :
+                            record.status === 'completed' ? { dot: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)', color: '#1d4ed8', label: 'Completed', pulse: false } :
+                              { dot: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)', color: '#475569', label: record.status?.toUpperCase() || '—', pulse: false };
 
-                        {record.createdAt && (
-                          <>
-                            <span className="sp-plist-foot-div" />
-                            <span className="sp-plist-foot-item">
-                              <CalendarOutlined style={{ fontSize: 10, color: '#64748b' }} />
-                              <span className="sp-plist-foot-label">Created:</span>
-                              <b>{dayjs(record.createdAt).format('MMM D, YYYY')}</b>
-                            </span>
-                          </>
-                        )}
+                      const pct = record.progress || 0;
+                      const done = record?.completedTickets || 0;
+                      const total = record?.totalTickets || 0;
+                      const progressAccent = pct >= 100 ? '#10b981' : pct >= 60 ? '#3b82f6' : pct >= 30 ? '#6366f1' : '#94a3b8';
 
-                        {startedAt && (
-                          <>
-                            <span className="sp-plist-foot-div" />
-                            <span className="sp-plist-foot-item">
-                              <PlayCircleOutlined style={{ fontSize: 10, color: '#10b981' }} />
-                              <span className="sp-plist-foot-label">Started:</span>
-                              <b>{startedAt.format('MMM D, YYYY')}</b>
-                              {startVariance !== null && startVariance !== 0 && (
-                                <span className={`sp-plist-variance ${startVariance > 0 ? 'late' : 'early'}`}>
-                                  {startVariance > 0 ? `+${startVariance}d` : `${startVariance}d`}
-                                </span>
-                              )}
-                            </span>
-                          </>
-                        )}
+                      const today = dayjs();
+                      const start = record.startDate ? dayjs(record.startDate) : null;
+                      const end = record.endDate ? dayjs(record.endDate) : null;
+                      const hasDates = !!(start && end);
+                      const days = hasDates ? Math.max(end!.diff(start!, 'day'), 1) : 0;
+                      let phaseLabel = '';
+                      let phaseColor = '#64748b';
+                      let phaseBg = 'rgba(100,116,139,0.08)';
+                      if (record.status === 'completed') {
+                        phaseLabel = 'Closed';
+                        phaseColor = '#3b82f6';
+                        phaseBg = 'rgba(59,130,246,0.08)';
+                      } else if (hasDates) {
+                        if (today.isBefore(start!)) {
+                          phaseLabel = `Starts in ${start!.diff(today, 'day')}d`;
+                          phaseColor = '#8b5cf6';
+                          phaseBg = 'rgba(139,92,246,0.08)';
+                        } else if (today.isAfter(end!)) {
+                          phaseLabel = `${today.diff(end!, 'day')}d overdue`;
+                          phaseColor = '#ef4444';
+                          phaseBg = 'rgba(239,68,68,0.08)';
+                        } else {
+                          const remaining = end!.diff(today, 'day');
+                          phaseLabel = remaining === 0 ? 'Ends today' : `${remaining}d left`;
+                          phaseColor = remaining <= 2 ? '#f59e0b' : '#10b981';
+                          phaseBg = remaining <= 2 ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)';
+                        }
+                      }
+                      const elapsedPct = hasDates ? Math.min(Math.max((today.diff(start!, 'day') / days) * 100, 0), 100) : 0;
 
-                        {completedAt && (
-                          <>
-                            <span className="sp-plist-foot-div" />
-                            <span className="sp-plist-foot-item">
-                              <CheckCircleOutlined style={{ fontSize: 10, color: '#3b82f6' }} />
-                              <span className="sp-plist-foot-label">Closed:</span>
-                              <b>{completedAt.format('MMM D, YYYY')}</b>
-                              {endVariance !== null && endVariance !== 0 && (
-                                <span className={`sp-plist-variance ${endVariance > 0 ? 'late' : 'early'}`}>
-                                  {endVariance > 0 ? `+${endVariance}d` : `${endVariance}d`}
-                                </span>
-                              )}
-                            </span>
-                          </>
-                        )}
+                      const startedAt = record.startedAt ? dayjs(record.startedAt) : null;
+                      const completedAt = record.completedAt ? dayjs(record.completedAt) : null;
+                      const startVariance = startedAt && start ? startedAt.diff(start, 'day') : null;
+                      const endVariance = completedAt && end ? completedAt.diff(end, 'day') : null;
+                      const actualDuration = startedAt && completedAt ? Math.max(completedAt.diff(startedAt, 'day'), 1) : null;
+                      const isExpanded = expandedRowId === record.id;
 
-                        {(record.status === 'active' || record.status === 'completed') && (
-                          <>
-                            <span className="sp-plist-foot-div" />
-                            <button
-                              className="sp-plist-foot-link"
-                              onClick={() => router.push(`/tickets/reports/${record.id}`)}
+                      return (
+                        <article
+                          key={record.id}
+                          className="sp-plist-card"
+                          style={{ ['--row-accent' as any]: accent }}
+                        >
+                          <span className="sp-plist-stripe" style={{ background: accent }} />
+
+                          {/* Header — single row: avatar | project | sprint name | priority | status */}
+                          <header className="sp-plist-head">
+                            <div
+                              className="sp-plist-row"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => handleViewTickets(record)}
+                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleViewTickets(record); } }}
                             >
-                              <LineChartOutlined style={{ fontSize: 11 }} />
-                              Report
-                            </button>
-                          </>
-                        )}
-                      </div>
+                              <div
+                                className="sp-plist-avatar"
+                                style={{
+                                  background: `linear-gradient(135deg, ${accent}22 0%, ${accent}3a 100%)`,
+                                  color: accent,
+                                  borderColor: `${accent}66`,
+                                }}
+                              >
+                                <span className="sp-plist-avatar-letter">{initial}</span>
+                              </div>
 
-                      <div className="sp-plist-actions">
-                        {record.status === 'planning' && canUpdateTicketPlan && (
-                          <Popconfirm title="Activate this sprint?" onConfirm={() => handleStartSprint(record)}>
-                            <Tooltip title="Start sprint">
-                              <Button type="text" size="small" icon={<PlayCircleOutlined style={{ color: '#10b981' }} />} className="sp-plist-action-btn" />
-                            </Tooltip>
-                          </Popconfirm>
-                        )}
-                        {record.status === 'active' && canUpdateTicketPlan && (
-                          <Tooltip title="Complete sprint">
-                            <Button type="text" size="small" icon={<CheckCircleOutlined style={{ color: '#3b82f6' }} />} onClick={() => handleCompleteSprint(record)} className="sp-plist-action-btn" />
-                          </Tooltip>
-                        )}
-                        <Tooltip title="View details">
-                          <Button type="text" size="small" icon={<EyeOutlined style={{ color: '#64748b' }} />} onClick={() => handleViewTickets(record)} className="sp-plist-action-btn" />
-                        </Tooltip>
-                        {canUpdateTicketPlan && (
-                          <Tooltip title="Edit">
-                            <Button type="text" size="small" icon={<EditOutlined style={{ color: '#64748b' }} />} onClick={() => handleEdit(record)} className="sp-plist-action-btn" />
-                          </Tooltip>
-                        )}
-                        {canDeleteTicketPlan && (
-                          <Popconfirm title="Delete this sprint?" onConfirm={() => handleDelete(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
-                            <Tooltip title="Delete">
-                              <Button type="text" size="small" danger icon={<DeleteOutlined />} className="sp-plist-action-btn" />
-                            </Tooltip>
-                          </Popconfirm>
-                        )}
-                      </div>
-                    </footer>
-                  </article>
-                );
-              })
-            )}
-          </div>
+                              <div className="sp-plist-row-segments">
+                                <span className="sp-plist-seg sp-plist-seg-project">
+                                  <span className="sp-plist-seg-label">Project:</span>
+                                  {project ? (
+                                    <span className="sp-plist-seg-value" title={project.name}>
+                                      <span className="sp-plist-seg-dot" style={{ background: accent }} />
+                                      {project.name}
+                                    </span>
+                                  ) : (
+                                    <span className="sp-plist-seg-value muted">—</span>
+                                  )}
+                                </span>
 
-          {/* Pagination */}
-          {!loading && sortedSprintPlans.length > 0 && (
-            <div className="sp-card-pagination">
-              <Text style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>
-                <span style={{ color: 'var(--text-slate-900)', fontWeight: 700 }}>
-                  {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, sortedSprintPlans.length)}
-                </span> of <span style={{ color: 'var(--text-slate-900)', fontWeight: 700 }}>{sortedSprintPlans.length}</span> sprint{sortedSprintPlans.length !== 1 ? 's' : ''}
-              </Text>
-              <Pagination
-                current={currentPage}
-                pageSize={pageSize}
-                total={sortedSprintPlans.length}
-                onChange={(p, s) => { setCurrentPage(p); setPageSize(s); }}
-                showSizeChanger
-                size="small"
-              />
-            </div>
-          )}
-        </div>
+                                <span className="sp-plist-row-div" />
+
+                                <span className="sp-plist-seg-name" title={record.name}>{record.name}</span>
+
+                                {record.priority && (
+                                  <>
+                                    <span className="sp-plist-row-div" />
+                                    <span className={`sp-plist-prio sp-plist-prio-${(record.priority || '').toLowerCase()}`}>
+                                      <FlagOutlined style={{ fontSize: 9 }} />
+                                      {record.priority}
+                                    </span>
+                                  </>
+                                )}
+
+                                <span className="sp-plist-row-div" />
+
+                                <span
+                                  className="sp-plist-status"
+                                  style={{
+                                    background: `linear-gradient(135deg, ${statusCfg.bg}, ${statusCfg.dot}26)`,
+                                    borderColor: statusCfg.border,
+                                    color: statusCfg.color,
+                                  }}
+                                >
+                                  <span
+                                    className={`sp-plist-status-dot ${statusCfg.pulse ? 'pulse' : ''}`}
+                                    style={{ background: statusCfg.dot, boxShadow: `0 0 0 3px ${statusCfg.dot}26` }}
+                                  />
+                                  {statusCfg.label}
+                                </span>
+                              </div>
+                            </div>
+                          </header>
+
+                          {record.goal && (
+                            <p className="sp-plist-goal-row" title={record.goal}>
+                              <BulbDot />
+                              {record.goal.length > 140 ? `${record.goal.substring(0, 140)}…` : record.goal}
+                            </p>
+                          )}
+
+                          {/* Body — Progress + Timeline */}
+                          <div className="sp-plist-body">
+                            {/* Progress block */}
+                            <div className="sp-plist-block">
+                              <div className="sp-plist-block-head">
+                                <div className="sp-plist-block-label">
+                                  <LineChartOutlined style={{ fontSize: 10 }} />
+                                  Progress
+                                </div>
+                                <div className="sp-plist-block-pct" style={{ color: progressAccent }}>
+                                  <span className="sp-plist-block-pct-num">{pct}</span>
+                                  <span className="sp-plist-block-pct-unit">%</span>
+                                  {pct >= 100 && <CheckCircleOutlined style={{ color: '#10b981', fontSize: 11, marginLeft: 4 }} />}
+                                </div>
+                              </div>
+                              <div className="sp-plist-bar">
+                                <div
+                                  className="sp-plist-bar-fill"
+                                  style={{
+                                    width: `${pct}%`,
+                                    background: `linear-gradient(90deg, ${progressAccent}, ${progressAccent}cc)`,
+                                  }}
+                                />
+                              </div>
+                              <div className="sp-plist-chips">
+                                <span className="sp-plist-chip done">
+                                  <span className="sp-plist-chip-dot" />
+                                  <b>{done}</b> done
+                                </span>
+                                <span className="sp-plist-chip total">
+                                  <b>{total}</b> total
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Timeline block */}
+                            <div className="sp-plist-block">
+                              <div className="sp-plist-block-head">
+                                <div className="sp-plist-block-label">
+                                  <CalendarOutlined style={{ fontSize: 10 }} />
+                                  Timeline
+                                </div>
+                                {hasDates && (
+                                  <span className="sp-plist-cycle">{days}d cycle</span>
+                                )}
+                              </div>
+                              <div className="sp-plist-dates">
+                                <div className="sp-plist-date-cell">
+                                  <span className="sp-plist-date-label">Start</span>
+                                  <span className="sp-plist-date-value">{start ? start.format('MMM D') : '—'}</span>
+                                </div>
+                                <div className="sp-plist-date-link">
+                                  <div
+                                    className="sp-plist-date-link-fill"
+                                    style={{ width: `${elapsedPct}%`, background: phaseColor }}
+                                  />
+                                </div>
+                                <div className="sp-plist-date-cell sp-plist-date-cell-right">
+                                  <span className="sp-plist-date-label">End</span>
+                                  <span className="sp-plist-date-value">{end ? end.format('MMM D') : '—'}</span>
+                                </div>
+                              </div>
+                              {phaseLabel && (
+                                <div className="sp-plist-phase-row">
+                                  <span
+                                    className="sp-plist-phase"
+                                    style={{ color: phaseColor, background: phaseBg, borderColor: `${phaseColor}40` }}
+                                  >
+                                    <span className="sp-plist-phase-dot" style={{ background: phaseColor }} />
+                                    {phaseLabel}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Footer — single inline meta line */}
+                          <footer className="sp-plist-foot">
+                            <div className="sp-plist-foot-inline">
+                              <span className="sp-plist-foot-item sp-plist-foot-item-creator" title={record.createdBy?.email}>
+                                <span className="sp-plist-foot-label">Created by:</span>
+                                {record.createdBy ? (
+                                  <span className="sp-plist-creator-mini">
+                                    <span className="sp-plist-creator-avatar-sm">
+                                      {(record.createdBy.name || '?').charAt(0).toUpperCase()}
+                                    </span>
+                                    <b>{record.createdBy.name || record.createdBy.email}</b>
+                                  </span>
+                                ) : (
+                                  <span className="sp-plist-foot-muted">—</span>
+                                )}
+                              </span>
+
+                              {record.createdAt && (
+                                <>
+                                  <span className="sp-plist-foot-div" />
+                                  <span className="sp-plist-foot-item">
+                                    <CalendarOutlined style={{ fontSize: 10, color: '#64748b' }} />
+                                    <span className="sp-plist-foot-label">Created:</span>
+                                    <b>{dayjs(record.createdAt).format('MMM D, YYYY')}</b>
+                                  </span>
+                                </>
+                              )}
+
+                              {startedAt && (
+                                <>
+                                  <span className="sp-plist-foot-div" />
+                                  <span className="sp-plist-foot-item">
+                                    <PlayCircleOutlined style={{ fontSize: 10, color: '#10b981' }} />
+                                    <span className="sp-plist-foot-label">Started:</span>
+                                    <b>{startedAt.format('MMM D, YYYY')}</b>
+                                    {startVariance !== null && startVariance !== 0 && (
+                                      <span className={`sp-plist-variance ${startVariance > 0 ? 'late' : 'early'}`}>
+                                        {startVariance > 0 ? `+${startVariance}d` : `${startVariance}d`}
+                                      </span>
+                                    )}
+                                  </span>
+                                </>
+                              )}
+
+                              {completedAt && (
+                                <>
+                                  <span className="sp-plist-foot-div" />
+                                  <span className="sp-plist-foot-item">
+                                    <CheckCircleOutlined style={{ fontSize: 10, color: '#3b82f6' }} />
+                                    <span className="sp-plist-foot-label">Closed:</span>
+                                    <b>{completedAt.format('MMM D, YYYY')}</b>
+                                    {endVariance !== null && endVariance !== 0 && (
+                                      <span className={`sp-plist-variance ${endVariance > 0 ? 'late' : 'early'}`}>
+                                        {endVariance > 0 ? `+${endVariance}d` : `${endVariance}d`}
+                                      </span>
+                                    )}
+                                  </span>
+                                </>
+                              )}
+
+                              {(record.status === 'active' || record.status === 'completed') && (
+                                <>
+                                  <span className="sp-plist-foot-div" />
+                                  <button
+                                    className="sp-plist-foot-link"
+                                    onClick={() => router.push(`/tickets/reports/${record.id}`)}
+                                  >
+                                    <LineChartOutlined style={{ fontSize: 11 }} />
+                                    Report
+                                  </button>
+                                </>
+                              )}
+                            </div>
+
+                            <div className="sp-plist-actions">
+                              {record.status === 'planning' && canUpdateTicketPlan && (
+                                <Popconfirm title="Activate this sprint?" onConfirm={() => handleStartSprint(record)}>
+                                  <Tooltip title="Start sprint">
+                                    <Button type="text" size="small" icon={<PlayCircleOutlined style={{ color: '#10b981' }} />} className="sp-plist-action-btn" />
+                                  </Tooltip>
+                                </Popconfirm>
+                              )}
+                              {record.status === 'active' && canUpdateTicketPlan && (
+                                <Tooltip title="Complete sprint">
+                                  <Button type="text" size="small" icon={<CheckCircleOutlined style={{ color: '#3b82f6' }} />} onClick={() => handleCompleteSprint(record)} className="sp-plist-action-btn" />
+                                </Tooltip>
+                              )}
+                              <Tooltip title="View details">
+                                <Button type="text" size="small" icon={<EyeOutlined style={{ color: '#64748b' }} />} onClick={() => handleViewTickets(record)} className="sp-plist-action-btn" />
+                              </Tooltip>
+                              {canUpdateTicketPlan && (
+                                <Tooltip title="Edit">
+                                  <Button type="text" size="small" icon={<EditOutlined style={{ color: '#64748b' }} />} onClick={() => handleEdit(record)} className="sp-plist-action-btn" />
+                                </Tooltip>
+                              )}
+                              {canDeleteTicketPlan && (
+                                <Popconfirm title="Delete this sprint?" onConfirm={() => handleDelete(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
+                                  <Tooltip title="Delete">
+                                    <Button type="text" size="small" danger icon={<DeleteOutlined />} className="sp-plist-action-btn" />
+                                  </Tooltip>
+                                </Popconfirm>
+                              )}
+                            </div>
+                          </footer>
+                        </article>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Pagination */}
+                {!loading && sortedSprintPlans.length > 0 && (
+                  <div className="sp-card-pagination">
+                    <Text style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>
+                      <span style={{ color: 'var(--text-slate-900)', fontWeight: 700 }}>
+                        {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, sortedSprintPlans.length)}
+                      </span> of <span style={{ color: 'var(--text-slate-900)', fontWeight: 700 }}>{sortedSprintPlans.length}</span> sprint{sortedSprintPlans.length !== 1 ? 's' : ''}
+                    </Text>
+                    <Pagination
+                      current={currentPage}
+                      pageSize={pageSize}
+                      total={sortedSprintPlans.length}
+                      onChange={(p, s) => { setCurrentPage(p); setPageSize(s); }}
+                      showSizeChanger
+                      size="small"
+                    />
+                  </div>
+                )}
+              </div>
             )}
           </main>
         </div>
@@ -4418,6 +4435,12 @@ export default function SprintPlanComponent() {
         }
 
         /* ── Two-column shell ─────────────────────────────────── */
+        .sp-page-root {
+          background: #f8fafc;
+        }
+        [data-theme='dark'] .sp-page-root {
+          background: var(--bg-pure-white) !important;
+        }
         .sp-shell-wrap {
           margin: 0 -24px;
         }
@@ -4430,7 +4453,11 @@ export default function SprintPlanComponent() {
         }
         .sp-main {
           min-width: 0;
-          padding: 10px 20px 28px;
+          padding: 14px 20px 28px;
+          background: #f8fafc;
+        }
+        [data-theme='dark'] .sp-main {
+          background: transparent !important;
         }
 
         /* ── Sidebar (full-height left rail) ──────────────────── */
@@ -4462,9 +4489,9 @@ export default function SprintPlanComponent() {
         .sp-sidebar-section-head {
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 6px 10px 8px;
-          font-size: 10px;
+          gap: 8px;
+          padding: 4px 8px 10px;
+          font-size: 10.5px;
           font-weight: 800;
           color: var(--text-slate-500);
           text-transform: uppercase;
@@ -4473,16 +4500,43 @@ export default function SprintPlanComponent() {
         [data-theme='dark'] .sp-sidebar-section-head {
           color: #94a3b8 !important;
         }
+        .sp-sidebar-section-icon {
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .sp-sidebar-section-icon.blue {
+          background: rgba(59,130,246,0.10);
+          color: #3b82f6;
+        }
+        .sp-sidebar-section-icon.amber {
+          background: rgba(245,158,11,0.10);
+          color: #f59e0b;
+        }
+        .sp-sidebar-section-title {
+          flex: 1;
+          color: var(--text-slate-700);
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .sp-sidebar-section-title {
+          color: #cbd5e1 !important;
+        }
         .sp-sidebar-section-count {
           margin-left: auto;
           background: var(--bg-slate-50);
           border: 1px solid var(--border-slate-200);
           border-radius: 999px;
-          padding: 0 6px;
-          font-size: 9.5px;
+          padding: 1px 7px;
+          font-size: 10px;
+          font-weight: 700;
           color: var(--text-slate-500);
           letter-spacing: 0;
           text-transform: none;
+          font-variant-numeric: tabular-nums;
         }
         [data-theme='dark'] .sp-sidebar-section-count {
           background: #1c232e !important;
@@ -4492,16 +4546,17 @@ export default function SprintPlanComponent() {
         .sp-sidebar-list {
           display: flex;
           flex-direction: column;
-          gap: 1px;
+          gap: 2px;
         }
         .sp-sidebar-list-scroll {
           /* sidebar itself scrolls; no inner scroll cap */
         }
         .sp-sidebar-item {
+          position: relative;
           display: flex;
           align-items: center;
-          gap: 9px;
-          padding: 7px 10px;
+          gap: 10px;
+          padding: 7px 10px 7px 12px;
           background: transparent;
           border: 1px solid transparent;
           border-radius: 8px;
@@ -4510,36 +4565,72 @@ export default function SprintPlanComponent() {
           color: var(--text-slate-700);
           text-align: left;
           width: 100%;
-          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+          transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, padding 0.15s ease;
           min-width: 0;
+        }
+        .sp-sidebar-item::before {
+          content: '';
+          position: absolute;
+          left: 3px;
+          top: 50%;
+          transform: translateY(-50%) scaleY(0);
+          width: 3px;
+          height: 18px;
+          border-radius: 0 3px 3px 0;
+          background: #3b82f6;
+          transition: transform 0.18s ease;
+          transform-origin: center;
         }
         .sp-sidebar-item:hover {
           background: var(--bg-slate-50);
+          border-color: var(--border-slate-100);
         }
         [data-theme='dark'] .sp-sidebar-item {
           color: #cbd5e1 !important;
         }
         [data-theme='dark'] .sp-sidebar-item:hover {
           background: #1c232e !important;
+          border-color: #1f2937 !important;
         }
         .sp-sidebar-item.active {
-          background: rgba(59,130,246,0.08);
-          border-color: rgba(59,130,246,0.18);
+          background: linear-gradient(90deg, rgba(59,130,246,0.10) 0%, rgba(59,130,246,0.04) 100%);
+          border-color: rgba(59,130,246,0.20);
           color: #1d4ed8;
+          padding-left: 14px;
+        }
+        .sp-sidebar-item.active::before {
+          transform: translateY(-50%) scaleY(1);
+        }
+        .sp-sidebar-status-item.active::before {
+          background: var(--sp-accent, #3b82f6);
+        }
+        .sp-sidebar-status-item.active {
+          background: color-mix(in srgb, var(--sp-accent, #3b82f6) 9%, transparent);
+          border-color: color-mix(in srgb, var(--sp-accent, #3b82f6) 22%, transparent);
+          color: var(--sp-accent, #1d4ed8);
         }
         [data-theme='dark'] .sp-sidebar-item.active {
-          background: rgba(59,130,246,0.15) !important;
-          border-color: rgba(59,130,246,0.3) !important;
+          background: linear-gradient(90deg, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0.06) 100%) !important;
+          border-color: rgba(59,130,246,0.32) !important;
           color: #60a5fa !important;
         }
-        .sp-sidebar-item-dot {
+        .sp-sidebar-status-chip {
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          border: 1px solid;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .sp-sidebar-status-dot {
           width: 7px;
           height: 7px;
           border-radius: 50%;
           flex-shrink: 0;
-          margin: 0 6px;
         }
-        .sp-sidebar-item-dot.pulse {
+        .sp-sidebar-status-dot.pulse {
           animation: sp-pulse-dot 2s infinite;
         }
         .sp-sidebar-item-avatar {
@@ -4603,8 +4694,8 @@ export default function SprintPlanComponent() {
         }
         .sp-sidebar-divider {
           height: 1px;
-          background: var(--border-slate-100);
-          margin: 6px 4px;
+          background: var(--border-slate-200);
+          margin: 8px 6px;
         }
         [data-theme='dark'] .sp-sidebar-divider {
           background: #1f2937 !important;

@@ -969,31 +969,6 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           }
         }
 
-        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
-        @media (max-width: 1200px) {
-          html body .projects-header-wrap .saas-header-container .saas-header-row {
-            flex-wrap: nowrap !important;
-          }
-          html body .projects-header-wrap .saas-header-container .saas-header-left-col {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-          }
-          html body .projects-header-wrap .saas-header-container .saas-header-extra-col {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            margin-top: 0 !important;
-          }
-          html body .projects-header-wrap .saas-header-container .saas-header-left-group {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 16px !important;
-          }
-          html body .projects-header-wrap .saas-header-container .bh-header-divider {
-            display: inline-block !important;
-          }
-        }
-
         /* Borderless/transparent unified search and filter dropdown controls */
         .projects-search-input.ant-input-affix-wrapper {
           height: 38px !important;

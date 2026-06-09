@@ -25,6 +25,8 @@ interface ManualCreateTicketModalProps {
   onClose: () => void;
   projectId: string;
   onTicketCreated?: (ticket: Ticket) => void;
+  /** Status to apply when the new ticket is submitted. Defaults to 'not_started'. */
+  defaultStatus?: string;
 }
 
 export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = ({
@@ -32,6 +34,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
   onClose,
   projectId,
   onTicketCreated,
+  defaultStatus,
 }) => {
   const [form] = Form.useForm();
   const { message } = App.useApp();
@@ -81,7 +84,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
         ...values,
         startDate: values.startDate?.format("YYYY-MM-DD") || "",
         endDate: values.endDate?.format("YYYY-MM-DD") || "",
-        status: "not_started"
+        status: defaultStatus || "not_started"
       };
 
       const savedTicket = await createTicketMutation.mutateAsync(ticketData);

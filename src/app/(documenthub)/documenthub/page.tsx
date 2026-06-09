@@ -60,7 +60,6 @@ import {
   Input,
   Modal,
   Row,
-  Select,
   Table,
   Tooltip,
   DatePicker,
@@ -82,9 +81,9 @@ import dayjs from "dayjs";
 import TrashDrawer from "@/components/documenthub/TrashDrawer";
 import DocumentHubDashboard from "@/components/documenthub/DocumentHubDashboard";
 import AiCreateHubModal from "@/components/documenthub/AiCreateHubModal";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 
-const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 // Six brand-accent colors used to tag each hub by a deterministic id-hash.
@@ -148,7 +147,6 @@ const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
 ];
 
 const InlineTicketSelector = ({ record, updateHub, user }: any) => {
-  const [searchValue, setSearchValue] = React.useState("");
   const [isEditing, setIsEditing] = React.useState(false);
   const { open: openTicketDrawer } = useTicketDrawer();
   const { theme } = useTheme();
@@ -158,34 +156,6 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
 
   const { data: rowTickets = [], isLoading: rowTicketsLoading } =
     useUserTicketsByProjects(record.projectId);
-
-  const getOptions = () => {
-    const sortedTickets = [...(rowTickets || [])].sort((a: any, b: any) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    let filtered = sortedTickets;
-    if (searchValue) {
-      const search = searchValue.toLowerCase();
-      filtered = sortedTickets.filter((t: any) =>
-        t.ticketNumber?.toLowerCase().includes(search) ||
-        t.title?.toLowerCase().includes(search)
-      );
-    }
-    let limited = filtered.slice(0, 10);
-    if (record.ticketId && !limited.find(t => t.id === record.ticketId)) {
-      const currentTicket = sortedTickets.find(t => t.id === record.ticketId);
-      if (currentTicket) limited.push(currentTicket);
-    }
-    return limited.map((t: any) => ({
-      label: (
-        <div className="flex flex-col py-1">
-          <span className="font-semibold text-slate-700" style={{ fontSize: '11px', lineHeight: '1.2' }}>{t.ticketNumber}</span>
-          <span className="text-slate-400 truncate" style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '160px' }}>{t.title}</span>
-        </div>
-      ),
-      value: t.id
-    }));
-  };
 
   if (record.ticketId && !isEditing) {
     const ticketTooltip = (
@@ -301,29 +271,39 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
     );
   }
 
+  const ddOptions = (() => {
+    const sorted = [...(rowTickets || [])].sort((a: any, b: any) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    const limited = sorted.slice(0, 50);
+    if (record.ticketId && !limited.find((t: any) => t.id === record.ticketId)) {
+      const current = sorted.find((t: any) => t.id === record.ticketId);
+      if (current) limited.push(current);
+    }
+    return limited.map((t: any) => ({
+      value: t.id,
+      label: t.ticketNumber,
+      description: t.title,
+    }));
+  })();
+
   return (
     <div onClick={(e) => e.stopPropagation()}>
-      <Select
-        placeholder={<span className="text-slate-400">Search...</span>}
+      <SearchableDropdown
         value={record.ticketId || undefined}
         disabled={!isOwner}
         loading={rowTicketsLoading}
-        className="w-full premium-inline-select"
-        variant="borderless"
-        showSearch
-        allowClear
-        autoFocus
+        placeholder="Search ticket…"
+        searchPlaceholder="Search by number or title"
+        itemNoun="tickets"
         defaultOpen
-        onSearch={setSearchValue}
-        searchValue={searchValue}
-        onBlur={() => setIsEditing(false)}
+        onOpenChange={(open) => { if (!open) setIsEditing(false); }}
         onChange={(value) => {
           updateHub(record.id, { ticketId: value, name: record.name });
-          setSearchValue("");
           setIsEditing(false);
         }}
-        options={getOptions()}
-        filterOption={false}
+        options={ddOptions}
+        width={300}
         style={{ minWidth: 220 }}
       />
     </div>
@@ -334,20 +314,6 @@ const InlineProjectSelector = ({ record, projects, projectsLoading, updateHub, u
   const [isEditing, setIsEditing] = React.useState(false);
   const { canUpdateDocument } = usePermission();
   const isOwner = user?.id === record.createdById && canUpdateDocument;
-
-  const getOptions = () => {
-    return (projects || []).map((p: any) => ({
-      label: (
-        <div className="flex flex-col py-1">
-          <span className="font-semibold text-slate-700" style={{ fontSize: '11px', lineHeight: '1.2' }}>{p.label}</span>
-          {p.code && (
-            <span className="text-slate-400" style={{ fontSize: '9px', lineHeight: '1.2' }}>{p.code}</span>
-          )}
-        </div>
-      ),
-      value: p.value
-    }));
-  };
 
   if (record.projectId && !isEditing) {
     return (
@@ -387,22 +353,25 @@ const InlineProjectSelector = ({ record, projects, projectsLoading, updateHub, u
 
   return (
     <div onClick={(e) => e.stopPropagation()}>
-      <Select
-        placeholder={<span className="text-slate-400">Search project...</span>}
+      <SearchableDropdown
         value={record.projectId || undefined}
         disabled={!isOwner}
         loading={projectsLoading}
-        className="w-full premium-inline-select"
-        variant="borderless"
-        showSearch
-        autoFocus
+        placeholder="Search project…"
+        searchPlaceholder="Search by name or code"
+        itemNoun="projects"
         defaultOpen
-        onBlur={() => setIsEditing(false)}
+        onOpenChange={(open) => { if (!open) setIsEditing(false); }}
         onChange={(value) => {
           updateHub(record.id, { projectId: value, name: record.name });
           setIsEditing(false);
         }}
-        options={getOptions()}
+        options={(projects || []).map((p: any) => ({
+          value: p.value,
+          label: p.label,
+          description: p.code,
+        }))}
+        width={280}
         style={{ minWidth: 220 }}
       />
     </div>
@@ -607,96 +576,69 @@ const HubCard: React.FC<{
   const isRail = variant === 'rail';
   const updatedRel = formatDistanceToNow(new Date(hub.updatedAt), { addSuffix: true });
 
+  const isPublic = hub.visibility === 'public';
+
   return (
     <div
       role="button"
       onClick={() => onOpen(hub.id)}
-      className={`dh-card ${isRail ? 'dh-card-rail' : ''} group cursor-pointer transition-all overflow-hidden flex flex-col`}
+      className={`dh-card ${isRail ? 'dh-card-rail' : ''} group cursor-pointer transition-all flex flex-col relative`}
       style={{
         width: isRail ? undefined : '100%',
-        minHeight: isRail ? 132 : 168,
-        borderRadius: 14,
+        minHeight: isRail ? 110 : 134,
+        borderRadius: 12,
         border: '1px solid var(--border-slate-200)',
         background: 'var(--bg-pure-white)',
       }}
     >
-      {/* Cover */}
-      <div
-        className="relative"
-        style={{
-          height: isRail ? 42 : 56,
-          background: `linear-gradient(135deg, ${accent.from} 0%, ${accent.to} 100%)`,
-        }}
+      {/* Corner ribbon — Public/Private */}
+      <span
+        className={`dh-ribbon ${isPublic ? 'dh-ribbon-public' : 'dh-ribbon-private'}`}
+        aria-label={isPublic ? 'Public' : 'Private'}
       >
-        <div className="absolute top-2 right-2 flex items-center gap-1.5">
-          <span
-            className="inline-flex items-center gap-1 rounded-full font-semibold"
-            style={{
-              height: 18,
-              padding: '0 7px',
-              fontSize: 9.5,
-              background: 'rgba(255,255,255,0.18)',
-              color: '#fff',
-              backdropFilter: 'blur(6px)',
-              border: '1px solid rgba(255,255,255,0.22)',
-              letterSpacing: '0.02em',
-            }}
-          >
-            {hub.visibility === 'public' ? (
-              <GlobalOutlined style={{ fontSize: 9 }} />
-            ) : (
-              <LockOutlined style={{ fontSize: 9 }} />
-            )}
-            {hub.visibility === 'public' ? 'Public' : 'Private'}
-          </span>
-          <button
-            type="button"
-            onClick={(e) => onToggleStar(e, hub)}
-            aria-label={starred ? 'Unstar' : 'Star'}
-            className="dh-card-icon-btn"
-            style={{ color: starred ? '#fbbf24' : 'rgba(255,255,255,0.85)' }}
-          >
-            {starred ? <StarFilled style={{ fontSize: 12 }} /> : <StarOutlined style={{ fontSize: 12 }} />}
-          </button>
-        </div>
-        <div
-          className="absolute -bottom-4 left-3 flex items-center justify-center text-white shadow-md"
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 10,
-            background: `linear-gradient(135deg, ${accent.from} 0%, ${accent.to} 100%)`,
-            border: '2px solid var(--bg-pure-white)',
-          }}
-        >
-          <FolderOutlined style={{ fontSize: 13 }} />
-        </div>
-      </div>
+        {isPublic ? (
+          <GlobalOutlined style={{ fontSize: 9 }} />
+        ) : (
+          <LockOutlined style={{ fontSize: 9 }} />
+        )}
+        {isPublic ? 'Public' : 'Private'}
+      </span>
 
       {/* Body */}
-      <div className="flex-1 flex flex-col p-3 pt-5 min-w-0">
-        <div className="flex items-start justify-between gap-2 min-w-0">
-          <h4
-            className="m-0 font-semibold text-[13px] leading-tight truncate flex-1"
-            style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}
-            title={hub.name}
+      <div className="flex-1 flex flex-col p-3 min-w-0">
+        <div className="flex items-start gap-2 min-w-0 pr-[68px]">
+          <div
+            className="flex items-center justify-center shrink-0"
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: accent.tint,
+              color: accent.from,
+            }}
           >
-            {hub.name}
-          </h4>
-        </div>
-
-        <div className="flex items-center gap-1.5 mt-1.5 min-w-0">
-          {hub.project?.name && (
-            <Tooltip title={hub.project.name}>
-              <span
-                className="inline-flex items-center gap-1 px-1.5 py-[2px] rounded text-[10px] font-medium truncate"
-                style={{ background: accent.tint, color: accent.from, maxWidth: 120 }}
-              >
-                <ProjectOutlined style={{ fontSize: 9 }} />
-                <span className="truncate">{hub.project.name}</span>
-              </span>
-            </Tooltip>
-          )}
+            <FolderOutlined style={{ fontSize: 14 }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4
+              className="m-0 font-semibold text-[13px] leading-tight truncate"
+              style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}
+              title={hub.name}
+            >
+              {hub.name}
+            </h4>
+            {hub.project?.name && (
+              <Tooltip title={hub.project.name}>
+                <span
+                  className="inline-flex items-center gap-1 px-1.5 py-[1px] rounded text-[10px] font-medium truncate mt-1"
+                  style={{ background: accent.tint, color: accent.from, maxWidth: 140 }}
+                >
+                  <ProjectOutlined style={{ fontSize: 9 }} />
+                  <span className="truncate">{hub.project.name}</span>
+                </span>
+              </Tooltip>
+            )}
+          </div>
         </div>
 
         <div className="mt-auto pt-2 flex items-center justify-between gap-2">
@@ -716,10 +658,18 @@ const HubCard: React.FC<{
               {docCount} {docCount === 1 ? 'doc' : 'docs'} · {updatedRel}
             </span>
           </div>
-          <div
-            className={`flex items-center gap-0.5 transition-opacity ${isRail ? '' : 'opacity-0 group-hover:opacity-100'
-              }`}
-          >
+          <div className="flex items-center gap-0.5">
+            <Tooltip title={starred ? 'Unstar' : 'Star'}>
+              <button
+                type="button"
+                onClick={(e) => onToggleStar(e, hub)}
+                aria-label={starred ? 'Unstar' : 'Star'}
+                className="dh-card-action-btn"
+                style={{ color: starred ? '#f59e0b' : undefined }}
+              >
+                {starred ? <StarFilled style={{ fontSize: 11 }} /> : <StarOutlined style={{ fontSize: 11 }} />}
+              </button>
+            </Tooltip>
             <Tooltip title="Share">
               <button
                 type="button"
@@ -1545,16 +1495,16 @@ const DocumentHubPage = () => {
       render: (visibility, record) => {
         const isOwner = user?.id === record.createdById;
         return (
-          <div onClick={(e) => e.stopPropagation()}>
-            <Select
-              size="small"
+          <div onClick={(e) => e.stopPropagation()} style={{ width: 124 }}>
+            <SearchableDropdown
               value={visibility || 'private'}
               disabled={!isOwner}
-              style={{ width: 100 }}
-              variant="borderless"
-              className="visibility-select font-medium"
-              suffixIcon={null}
+              placeholder="Private"
+              itemNoun="visibilities"
+              allowClear={false}
+              width={200}
               onChange={async (value) => {
+                if (!value) return;
                 try {
                   if (value === 'public') {
                     await DocumentHubService.shareDocumentHub(record.id, 'public');
@@ -1569,8 +1519,18 @@ const DocumentHubPage = () => {
                 }
               }}
               options={[
-                { value: 'private', label: <Space size={6} style={{ color: 'var(--text-slate-500)' }}><LockOutlined style={{ fontSize: 10 }} /> <span style={{ fontSize: 11 }}>Private</span></Space> },
-                { value: 'public', label: <Space size={6} style={{ color: 'var(--text-blue-500)' }}><GlobalOutlined style={{ fontSize: 10 }} /> <span style={{ fontSize: 11 }}>Public</span></Space> },
+                {
+                  value: 'private',
+                  label: 'Private',
+                  description: 'Only invited members',
+                  badge: <LockOutlined style={{ fontSize: 13 }} />,
+                },
+                {
+                  value: 'public',
+                  label: 'Public',
+                  description: 'Anyone with the link',
+                  badge: <GlobalOutlined style={{ fontSize: 13 }} />,
+                },
               ]}
             />
           </div>
@@ -2401,115 +2361,108 @@ const DocumentHubPage = () => {
             <div
               className="dh-toolbar flex items-center gap-2 rounded-2xl w-full"
               style={{
-                padding: '10px 14px',
+                padding: '8px 12px',
                 background: 'var(--bg-secondary)',
                 border: '1px solid var(--border-slate-200)',
                 overflowX: 'auto',
               }}
             >
+              {/* Search */}
               <div className="relative shrink-0" style={{ width: isMobile ? 180 : 240 }}>
                 <Input
-                  placeholder={isMobile ? 'Search...' : 'Search hubs...'}
+                  placeholder={isMobile ? 'Search...' : 'Search hubs by name…'}
                   prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-                  className="premium-search-input rounded-xl transition-all"
+                  className="premium-search-input rounded-lg transition-all"
                   style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 36 }}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                   allowClear
                 />
               </div>
-              <div className="h-5 w-[1px] shrink-0 hidden md:block" style={{ background: 'var(--border-slate-200)' }} />
-              <Select
-                placeholder={<Space size={4}><ProjectOutlined style={{ fontSize: 10 }} /> <span style={{ fontSize: 11 }}>Project</span></Space>}
-                className="premium-select shrink-0"
-                style={{ height: 36, width: 150 }}
-                allowClear
-                showSearch
-                value={filterProjectId}
-                onChange={setFilterProjectId}
-                loading={projectsLoading}
-                filterOption={(input, option: any) => {
-                  const project = projects.find(p => p.value === option.value);
-                  if (!project) return false;
-                  return (
-                    project.label?.toLowerCase().includes(input.toLowerCase()) ||
-                    project.code?.toLowerCase().includes(input.toLowerCase())
-                  );
-                }}
-                options={projects.map((p: any) => ({
-                  label: (
-                    <div className="flex flex-col py-1">
-                      <span className="font-semibold" style={{ fontSize: 11, lineHeight: '1.2', color: 'var(--text-slate-900)' }}>{p.label}</span>
-                      {p.code && <span style={{ fontSize: 9, lineHeight: '1.2', color: 'var(--text-slate-500)' }}>{p.code}</span>}
-                    </div>
-                  ),
-                  value: p.value
-                }))}
-              />
-              <Select
-                placeholder={<Space size={4}><TagOutlined style={{ fontSize: 10 }} /> <span style={{ fontSize: 11 }}>Ticket</span></Space>}
-                className="premium-select shrink-0"
-                style={{ height: 36, width: 180 }}
-                allowClear
-                showSearch
-                value={filterTicketId}
-                onChange={setFilterTicketId}
-                loading={filterTicketsLoading}
-                filterOption={(input, option: any) => {
-                  const options = filterProjectId ? filterTickets : Array.from(new Map(documentHubs.filter(h => h.ticket).map(h => [h.ticket!.id, h.ticket])).values());
-                  const ticket: any = options.find((t: any) => t.id === option.value);
-                  if (!ticket) return false;
-                  return (
-                    ticket.ticketNumber?.toLowerCase().includes(input.toLowerCase()) ||
-                    ticket.title?.toLowerCase().includes(input.toLowerCase())
-                  );
-                }}
-                options={(() => {
-                  if (filterProjectId) {
-                    return filterTickets.map((t: any) => ({
-                      label: (
-                        <div className="flex flex-col py-1">
-                          <span className="font-semibold" style={{ fontSize: 11, lineHeight: '1.2', color: 'var(--text-slate-900)' }}>{t.ticketNumber}</span>
-                          <span className="truncate" style={{ fontSize: 9, lineHeight: '1.2', maxWidth: 180, color: 'var(--text-slate-500)' }}>{t.title}</span>
-                        </div>
-                      ),
-                      value: t.id
+
+              <span className="dh-filter-divider" aria-hidden />
+
+              {/* Filter group */}
+              <div className="dh-filter-group flex items-center gap-1.5 shrink-0">
+                <SearchableDropdown
+                  value={filterProjectId}
+                  onChange={(v) => setFilterProjectId(v)}
+                  placeholder="Project"
+                  searchPlaceholder="Search by name or code"
+                  itemNoun="projects"
+                  loading={projectsLoading}
+                  width={280}
+                  style={{ width: 150 }}
+                  options={projects.map((p: any) => ({
+                    value: p.value,
+                    label: p.label,
+                    description: p.code,
+                  }))}
+                />
+                <SearchableDropdown
+                  value={filterTicketId}
+                  onChange={(v) => setFilterTicketId(v)}
+                  placeholder="Ticket"
+                  searchPlaceholder="Search by number or title"
+                  itemNoun="tickets"
+                  loading={filterTicketsLoading}
+                  width={300}
+                  style={{ width: 170 }}
+                  options={(() => {
+                    const source = filterProjectId
+                      ? filterTickets
+                      : Array.from(
+                          new Map(
+                            documentHubs
+                              .filter((hub) => hub.ticket)
+                              .map((hub) => [hub.ticket!.id, hub.ticket]),
+                          ).values(),
+                        );
+                    return (source as any[]).map((t: any) => ({
+                      value: t.id,
+                      label: t.ticketNumber,
+                      description: t.title,
                     }));
-                  }
-                  const uniqueTickets = Array.from(
-                    new Map(
-                      documentHubs.filter(hub => hub.ticket).map(hub => [hub.ticket!.id, hub.ticket])
-                    ).values()
-                  );
-                  return uniqueTickets.map((t: any) => ({
-                    label: (
-                      <div className="flex flex-col py-1">
-                        <span className="font-semibold" style={{ fontSize: 11, lineHeight: '1.2', color: 'var(--text-slate-900)' }}>{t.ticketNumber}</span>
-                        <span className="truncate" style={{ fontSize: 9, lineHeight: '1.2', maxWidth: 180, color: 'var(--text-slate-500)' }}>{t.title}</span>
-                      </div>
-                    ),
-                    value: t.id
-                  }));
-                })()}
-              />
-              <Select
-                placeholder={<Space size={4}><UserOutlined style={{ fontSize: 10 }} /> <span style={{ fontSize: 11 }}>Created By</span></Space>}
-                className="premium-select shrink-0"
-                style={{ height: 36, width: 150 }}
-                showSearch
-                allowClear
-                optionFilterProp="label"
-                value={selectedUser}
-                onChange={setSelectedUser}
-                loading={membersLoading}
-                options={members.map((m: any) => ({ label: m.label, value: m.value }))}
-              />
-              <RangePicker
-                className="premium-range-picker rounded-xl shrink-0"
-                style={{ width: 220, background: 'var(--bg-pure-white)', height: 36 }}
-                value={dateRange}
-                onChange={(dates) => setDateRange(dates as any)}
-              />
+                  })()}
+                />
+                <SearchableDropdown
+                  value={selectedUser}
+                  onChange={(v) => setSelectedUser(v)}
+                  placeholder="Created by"
+                  searchPlaceholder="Search by name"
+                  itemNoun="people"
+                  loading={membersLoading}
+                  width={260}
+                  style={{ width: 150 }}
+                  options={members.map((m: any) => ({
+                    value: m.value,
+                    label: m.label,
+                  }))}
+                />
+                <RangePicker
+                  className="premium-range-picker rounded-lg shrink-0"
+                  style={{ width: 220, background: 'var(--bg-pure-white)', height: 36 }}
+                  value={dateRange}
+                  onChange={(dates) => setDateRange(dates as any)}
+                />
+                {(filterProjectId || filterTicketId || selectedUser || (dateRange && (dateRange[0] || dateRange[1])) || searchText) && (
+                  <button
+                    type="button"
+                    className="dh-filter-clear"
+                    onClick={() => {
+                      setSearchText('');
+                      setFilterProjectId(undefined);
+                      setFilterTicketId(undefined);
+                      setSelectedUser(undefined);
+                      setDateRange(null);
+                    }}
+                    aria-label="Clear filters"
+                  >
+                    <CloseOutlined style={{ fontSize: 10 }} />
+                    Clear
+                  </button>
+                )}
+              </div>
 
               {/* Spacer pushes the right-side controls to the end of the row. */}
               <div className="flex-1 min-w-[8px]" aria-hidden />
@@ -2742,54 +2695,38 @@ const DocumentHubPage = () => {
             <Row gutter={[12, 0]}>
               <Col span={24}>
                 <Form.Item name="projectId" className="mb-3">
-                  <Select
-                    size="large"
-                    placeholder={
-                      <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-slate-400)' }}>
-                        <ProjectOutlined style={{ fontSize: 12 }} /> Select a project
-                      </span>
-                    }
+                  <SearchableDropdown
+                    placeholder="Select a project"
+                    searchPlaceholder="Search by name or code"
+                    itemNoun="projects"
                     loading={projectsLoading}
-                    suffixIcon={<ProjectOutlined style={{ color: 'var(--text-slate-400)', fontSize: 11 }} />}
                     onChange={(value) => {
                       setSelectedProjectId(value);
                       form.setFieldsValue({ projectId: value, ticketId: undefined });
                     }}
-                    allowClear
-                    style={{ borderRadius: 10 }}
-                  >
-                    {projects.map((project) => (
-                      <Option key={project.value} value={project.value}>
-                        {project.label} ({project.code})
-                      </Option>
-                    ))}
-                  </Select>
+                    options={projects.map((project) => ({
+                      value: project.value,
+                      label: project.label,
+                      description: project.code,
+                    }))}
+                  />
                 </Form.Item>
               </Col>
               <Col span={24}>
                 <Form.Item name="ticketId" className="mb-2">
-                  <Select
-                    size="large"
-                    showSearch
+                  <SearchableDropdown
                     placeholder={
-                      <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-slate-400)' }}>
-                        <TagOutlined style={{ fontSize: 12 }} />
-                        {selectedProjectId ? 'Select a ticket' : 'Pick a project first to link a ticket'}
-                      </span>
+                      selectedProjectId ? 'Select a ticket' : 'Pick a project first to link a ticket'
                     }
+                    searchPlaceholder="Search by number or title"
+                    itemNoun="tickets"
                     loading={ticketsLoading}
-                    suffixIcon={<TagOutlined style={{ color: 'var(--text-slate-400)', fontSize: 11 }} />}
-                    allowClear
                     disabled={!selectedProjectId}
-                    optionFilterProp="label"
                     options={tickets.map((ticket: any) => ({
                       value: ticket.id,
-                      label: `${ticket.ticketNumber} (${ticket.title})`,
+                      label: ticket.ticketNumber,
+                      description: ticket.title,
                     }))}
-                    filterOption={(input, option) =>
-                      String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                    }
-                    style={{ borderRadius: 10 }}
                   />
                 </Form.Item>
               </Col>
@@ -3036,19 +2973,17 @@ const DocumentHubPage = () => {
           </div>
         </div>
         <div className="px-5 pt-4 pb-5">
-          <Select
-            size="large"
+          <SearchableDropdown
             placeholder="Select a project (or leave empty to unassign)"
+            searchPlaceholder="Search by name or code"
+            itemNoun="projects"
             value={bulkProjectId}
-            onChange={setBulkProjectId}
+            onChange={(v) => setBulkProjectId(v)}
             loading={projectsLoading}
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            style={{ width: '100%', borderRadius: 10 }}
             options={projects.map((p: any) => ({
-              label: `${p.label}${p.code ? ` (${p.code})` : ''}`,
               value: p.value,
+              label: p.label,
+              description: p.code,
             }))}
           />
         </div>
@@ -3310,6 +3245,53 @@ const DocumentHubPage = () => {
           background: #0f172a !important;
         }
 
+        /* Filter bar */
+        .dh-filter-divider {
+          flex-shrink: 0;
+          width: 1px;
+          height: 22px;
+          background: var(--border-slate-200);
+          margin: 0 2px;
+        }
+        [data-theme='dark'] .dh-filter-divider {
+          background: rgba(255,255,255,0.08);
+        }
+        .dh-filter-group .sd-trigger {
+          height: 36px !important;
+          min-width: 0;
+        }
+        .dh-filter-clear {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          height: 36px;
+          padding: 0 10px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          background: transparent;
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 8px;
+          cursor: pointer;
+          transition: color .15s ease, border-color .15s ease, background .15s ease;
+          white-space: nowrap;
+        }
+        .dh-filter-clear:hover {
+          color: #b91c1c;
+          border-color: rgba(185, 28, 28, 0.35);
+          border-style: solid;
+          background: rgba(239, 68, 68, 0.06);
+        }
+        [data-theme='dark'] .dh-filter-clear {
+          color: #94a3b8;
+          border-color: rgba(255,255,255,0.10);
+        }
+        [data-theme='dark'] .dh-filter-clear:hover {
+          color: #fca5a5;
+          border-color: rgba(252, 165, 165, 0.4);
+          background: rgba(239, 68, 68, 0.10);
+        }
+
         .dh-table-shell {
           border: none !important;
         }
@@ -3439,18 +3421,46 @@ const DocumentHubPage = () => {
         /* "Add Project" / "Add Ticket" empty-state buttons. */
         .dh-inline-add-btn:hover:not(:disabled) { background: rgba(59, 130, 246, 0.08) !important; }
         [data-theme='dark'] .dh-inline-add-btn:hover:not(:disabled) { background: rgba(96, 165, 250, 0.12) !important; }
-        .dh-card-icon-btn {
-          width: 22px; height: 22px;
-          display: inline-flex; align-items: center; justify-content: center;
-          border: none;
-          border-radius: 7px;
-          cursor: pointer;
-          background: rgba(255, 255, 255, 0.18);
-          backdrop-filter: blur(4px);
-          transition: background 0.15s;
+        /* Corner ribbon on hub cards — flag-style tag pinned to top-right.
+         * Two variants: public (sky) and private (slate). Sits flush to the
+         * card edge with a small triangular notch on the left for the "flag"
+         * silhouette. */
+        .dh-ribbon {
+          position: absolute;
+          top: 10px;
+          right: -4px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          height: 18px;
+          padding: 0 8px 0 10px;
+          font-size: 9.5px;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          color: #fff;
+          z-index: 1;
+          clip-path: polygon(6px 0, 100% 0, 100% 100%, 6px 100%, 0 50%);
         }
-        .dh-card-icon-btn:hover {
-          background: rgba(255, 255, 255, 0.30);
+        .dh-ribbon::after {
+          content: '';
+          position: absolute;
+          right: 0;
+          bottom: -4px;
+          border-style: solid;
+          border-width: 4px 4px 0 0;
+          border-color: transparent;
+        }
+        .dh-ribbon-public {
+          background: #0EA5E9;
+        }
+        .dh-ribbon-public::after {
+          border-top-color: #075985;
+        }
+        .dh-ribbon-private {
+          background: #64748B;
+        }
+        .dh-ribbon-private::after {
+          border-top-color: #334155;
         }
         .dh-card-action-btn {
           width: 24px; height: 24px;

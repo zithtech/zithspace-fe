@@ -1854,6 +1854,28 @@ export default function LeadsPage() {
     });
   }, [creatorOptions]);
 
+  const sortDropdownOptions = useMemo(() => [
+    { value: "newest", label: "Newest first" },
+    { value: "oldest", label: "Oldest first" },
+    { value: "value_high", label: "Value: high → low" },
+    { value: "value_low", label: "Value: low → high" },
+    { value: "score", label: "AI score: highest" },
+    { value: "activity", label: "Recently active" },
+  ], []);
+
+  const mailDropdownOptions = useMemo(() => [
+    {
+      value: "sent",
+      label: "Sent",
+      badge: <CheckCircle size={14} style={{ color: '#10b981' }} />
+    },
+    {
+      value: "not_sent",
+      label: "Not Sent",
+      badge: <Mail size={14} style={{ color: '#94a3b8' }} />
+    }
+  ], []);
+
   // Icon-key → render fn map. Mirrors the catalogue in /leads/settings so we
   // can resolve whatever the admin saved on a platform's logo_url ("icon:upwork")
   // or a status's icon column ("trophy").
@@ -2439,40 +2461,17 @@ export default function LeadsPage() {
                   width={220}
                 />
 
-                <Dropdown
-                  trigger={["click"]}
-                  placement="bottomRight"
-                  menu={{
-                    selectable: true,
-                    selectedKeys: [sortKey],
-                    onClick: ({ key }) => setSortKey(key as typeof sortKey),
-                    items: [
-                      { key: "newest", label: "Newest first" },
-                      { key: "oldest", label: "Oldest first" },
-                      { type: "divider" as const },
-                      { key: "value_high", label: "Value: high → low" },
-                      { key: "value_low", label: "Value: low → high" },
-                      { type: "divider" as const },
-                      { key: "score", label: "AI score: highest" },
-                      { key: "activity", label: "Recently active" },
-                    ],
+                <SearchableDropdown
+                  placeholder="Sort"
+                  options={sortDropdownOptions}
+                  value={sortKey}
+                  onChange={(v) => {
+                    if (v) setSortKey(v as any);
                   }}
-                >
-                  <Button className="lm-filter-settings-btn lm-toolbar-filters-btn">
-                    <TrendingDown size={13} />
-                    Sort:{" "}
-                    <span className="lm-toolbar-sort-current">
-                      {{
-                        newest: "Newest",
-                        oldest: "Oldest",
-                        value_high: "Value ↓",
-                        value_low: "Value ↑",
-                        score: "AI score",
-                        activity: "Active",
-                      }[sortKey]}
-                    </span>
-                  </Button>
-                </Dropdown>
+                  style={{ height: 32, minWidth: 150, width: 150, borderRadius: 8 }}
+                  width={200}
+                  allowClear={false}
+                />
 
                 <Popover
                   trigger={["click"]}
@@ -2484,77 +2483,40 @@ export default function LeadsPage() {
                         <Filter size={11} />
                         <span>Workflow</span>
                       </div>
-                      <Select
+                      <SearchableDropdown
                         placeholder="Any workflow"
-                        className="lm-filter-select"
-                        style={{ width: "100%" }}
-                        allowClear
-                        value={filterAction}
-                        onChange={setFilterAction}
-                      >
-                        {configActions.map(a => (
-                          <Select.Option key={a.id} value={a.name}>
-                            <Space size={6}>
-                              {renderActionIcon(a.icon)}
-                              {a.name}
-                            </Space>
-                          </Select.Option>
-                        ))}
-                      </Select>
+                        options={actionDropdownOptions}
+                        value={filterAction || undefined}
+                        onChange={(v) => setFilterAction(v || null)}
+                        style={{ width: "100%", borderRadius: 8, height: 36 }}
+                        width={220}
+                      />
 
                       <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
                         <User size={11} />
                         <span>Created by</span>
                       </div>
-                      <Select
+                      <SearchableDropdown
                         placeholder="Anyone"
-                        className="lm-filter-select"
-                        style={{ width: "100%" }}
-                        allowClear
-                        value={filterCreatedBy}
-                        onChange={setFilterCreatedBy}
-                        showSearch
-                        filterOption={(input, option) =>
-                          String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
-                        }
-                      >
-                        {creatorOptions.map((name) => {
-                          const palette = getAvatarStyle(name);
-                          return (
-                            <Select.Option key={name} value={name}>
-                              <Space size={8}>
-                                <span
-                                  className="lm-creator-avatar"
-                                  style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
-                                >
-                                  {getInitials(name)}
-                                </span>
-                                <span style={{ fontSize: 12.5 }}>{name}</span>
-                              </Space>
-                            </Select.Option>
-                          );
-                        })}
-                      </Select>
+                        options={creatorDropdownOptions}
+                        value={filterCreatedBy || undefined}
+                        onChange={(v) => setFilterCreatedBy(v || null)}
+                        style={{ width: "100%", borderRadius: 8, height: 36 }}
+                        width={220}
+                      />
 
                       <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
                         <Mail size={11} />
                         <span>Mail status</span>
                       </div>
-                      <Select
-                        placeholder="Any"
-                        className="lm-filter-select"
-                        style={{ width: "100%" }}
-                        allowClear
-                        value={filterMailStatus}
-                        onChange={setFilterMailStatus}
-                      >
-                        <Select.Option value="sent">
-                          <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
-                        </Select.Option>
-                        <Select.Option value="not_sent">
-                          <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
-                        </Select.Option>
-                      </Select>
+                      <SearchableDropdown
+                        placeholder="Any mail status"
+                        options={mailDropdownOptions}
+                        value={filterMailStatus || undefined}
+                        onChange={(v) => setFilterMailStatus(v || null)}
+                        style={{ width: "100%", borderRadius: 8, height: 36 }}
+                        width={220}
+                      />
 
                       <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
                         <Clock size={11} />
@@ -2603,7 +2565,7 @@ export default function LeadsPage() {
                 </Popover>
 
                 <Button
-                  className="lm-filter-settings-btn lm-toolbar-filters-btn"
+                  className="lm-filter-settings-btn lm-toolbar-filters-btn lm-toolbar-export-btn"
                   onClick={() => {
                     const headers = ["Lead", "Company", "Stage", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
                     const rows = filteredLeads.map(l => {
@@ -4174,6 +4136,15 @@ export default function LeadsPage() {
               color: var(--text-slate-700) !important;
               white-space: nowrap !important;
               flex-shrink: 0 !important;
+            }
+            .lm-table-toolbar .lm-toolbar-export-btn.ant-btn,
+            .lm-table-toolbar button.lm-toolbar-export-btn.ant-btn {
+              background: var(--bg-slate-50) !important;
+            }
+            .lm-table-toolbar .lm-toolbar-export-btn.ant-btn:hover,
+            .lm-table-toolbar button.lm-toolbar-export-btn.ant-btn:hover {
+              background: var(--bg-slate-100) !important;
+              border-color: var(--border-slate-200) !important;
             }
             .lm-toolbar-sort-current {
               color: var(--text-slate-900);
@@ -6143,6 +6114,12 @@ export default function LeadsPage() {
                 width: 100%;
                 -ms-overflow-style: none;
                 scrollbar-width: none;
+              }
+              .lm-side-section + .lm-side-section {
+                border-top: 1px solid var(--border-slate-100) !important;
+                padding-top: 10px !important;
+                margin-top: 4px !important;
+                width: 100%;
               }
               .lm-side-section::-webkit-scrollbar {
                 display: none;

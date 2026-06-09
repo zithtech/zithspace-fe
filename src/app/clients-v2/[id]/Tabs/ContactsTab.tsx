@@ -148,6 +148,17 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
     }
   };
 
+  const handleDelete = async (contactId: string) => {
+    try {
+      await api.delete(`/api/clients-v2/contacts/${contactId}`);
+      messageApi.success("Contact deleted successfully");
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+      messageApi.error("Failed to delete contact");
+    }
+  };
+
   const columns = [
     {
       title: "Contact Person",
@@ -245,6 +256,23 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
               onClick={() => openEditModal(record)}
               style={{ color: "var(--text-slate-500)" }}
             />
+          )}
+          {canUpdateClient && (
+            <Popconfirm
+              title="Delete contact"
+              description={`Are you sure you want to delete ${record.firstName} ${record.lastName}? This action cannot be undone.`}
+              onConfirm={() => handleDelete(record.id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                type="text"
+                className="premium-action-btn"
+                icon={<Trash2 size={16} />}
+                style={{ color: "var(--text-slate-400)" }}
+              />
+            </Popconfirm>
           )}
         </Space>
       ),

@@ -509,6 +509,7 @@ export default function AccountsSettingsPage() {
                     rules={[{ max: 200, message: "Description cannot exceed 200 characters" }]}
                   >
                     <TextArea
+                      size="large"
                       rows={4}
                       placeholder="Brief description of this category..."
                       showCount
@@ -981,15 +982,44 @@ export default function AccountsSettingsPage() {
         }
         .settings-form .ant-input:hover,
         .settings-form .ant-input-affix-wrapper:hover,
-        .settings-form .ant-select:hover .ant-select-selector {
+        .settings-form .ant-select:hover .ant-select-selector,
+        .settings-form .ant-input-textarea:hover {
           border-color: #6366f1 !important;
         }
         .settings-form .ant-input:focus,
         .settings-form .ant-input-focused,
         .settings-form .ant-input-affix-wrapper-focused,
-        .settings-form .ant-select-focused .ant-select-selector {
+        .settings-form .ant-select-focused .ant-select-selector,
+        .settings-form .ant-input-textarea:focus-within {
           border-color: #6366f1 !important;
           box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important;
+        }
+
+        /* Custom overrides for textareas with showCount */
+        .settings-form .ant-input-textarea,
+        .settings-form .ant-input-textarea-show-count {
+          position: relative !important;
+          padding: 0 !important;
+        }
+        .settings-form .ant-input-textarea textarea,
+        .settings-form .ant-input-textarea-show-count textarea {
+          border: none !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          padding: 10px 14px 28px 14px !important;
+          outline: none !important;
+          resize: none !important;
+        }
+        .settings-form .ant-input-textarea .ant-input-data-count,
+        .settings-form .ant-input-textarea-show-count .ant-input-data-count {
+          position: absolute !important;
+          bottom: 8px !important;
+          right: 14px !important;
+          font-size: 11px !important;
+          color: var(--accounts-stat-sub) !important;
+          margin: 0 !important;
+          float: none !important;
+          pointer-events: none !important;
         }
 
         /* Color picker */

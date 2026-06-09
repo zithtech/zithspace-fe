@@ -918,36 +918,66 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </Col>
-              <Col xs={24} md={8}>
-                <Row gutter={12}>
-                  <Col span={12}>
+              <Col xs={24} md={10} lg={8} xl={8}>
+                <Row gutter={[12, 12]}>
+                  <Col xs={12} sm={12} md={12}>
                     <div style={{
                       background: 'rgba(255,255,255,0.12)',
                       backdropFilter: 'blur(8px)',
                       border: '1px solid rgba(255,255,255,0.18)',
                       borderRadius: 14,
-                      padding: '14px 16px'
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      minWidth: 0,
+                      height: '100%'
                     }}>
-                      <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <Text style={{ 
+                        color: 'rgba(255,255,255,0.75)', 
+                        fontSize: 10.5, 
+                        fontWeight: 600, 
+                        textTransform: 'uppercase', 
+                        letterSpacing: '0.05em',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: 'block'
+                      }}>
                         Logo Versions
                       </Text>
-                      <div style={{ fontSize: 26, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginTop: 4 }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginTop: 4 }}>
                         {logoVersions.length}
                       </div>
                     </div>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={12} sm={12} md={12}>
                     <div style={{
                       background: 'rgba(255,255,255,0.12)',
                       backdropFilter: 'blur(8px)',
                       border: '1px solid rgba(255,255,255,0.18)',
                       borderRadius: 14,
-                      padding: '14px 16px'
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      minWidth: 0,
+                      height: '100%'
                     }}>
-                      <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <Text style={{ 
+                        color: 'rgba(255,255,255,0.75)', 
+                        fontSize: 10.5, 
+                        fontWeight: 600, 
+                        textTransform: 'uppercase', 
+                        letterSpacing: '0.05em',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: 'block'
+                      }}>
                         Status
                       </Text>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, minWidth: 0 }}>
                         <div style={{
                           width: 8,
                           height: 8,
@@ -955,9 +985,17 @@ export default function SettingsPage() {
                           background: tenantProfile?.settings?.logoUrl ? '#34D399' : '#FBBF24',
                           boxShadow: tenantProfile?.settings?.logoUrl
                             ? '0 0 0 3px rgba(52, 211, 153, 0.25)'
-                            : '0 0 0 3px rgba(251, 191, 36, 0.25)'
+                            : '0 0 0 3px rgba(251, 191, 36, 0.25)',
+                          flexShrink: 0
                         }} />
-                        <Text style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>
+                        <Text style={{ 
+                          color: '#fff', 
+                          fontSize: 13, 
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>
                           {tenantProfile?.settings?.logoUrl ? 'Active' : 'Pending'}
                         </Text>
                       </div>

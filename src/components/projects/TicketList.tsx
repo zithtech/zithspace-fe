@@ -1519,13 +1519,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               defaultOpen
               loading={isUpdating}
               placeholder="Select assignee"
-              searchPlaceholder="Search by name or role…"
+              searchPlaceholder="Search people…"
               itemNoun="members"
               style={{ width: "100%", minWidth: 0, height: 32 }}
               options={members.map((member) => ({
                 value: member.value,
                 label: member.label,
                 description: member.position,
+                avatarUrl: member.avatarUrl || null,
               }))}
               onChange={(value) => {
                 handleUpdateTicket(record.id, "assignee", value ?? null);
@@ -3480,10 +3481,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 label: m.label,
                 value: m.value,
                 description: m.position || undefined,
+                avatarUrl: m.avatarUrl || null,
               }))}
               onChange={(val) => handleFilterChange('assignee', val)}
               itemNoun="members"
               width={290}
+              showAvatar
+              searchPlaceholder="Search people..."
             />
             <TicketFilterPill
               icon={<EditOutlined style={{ fontSize: 11 }} />}
@@ -3493,10 +3497,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 label: m.label,
                 value: m.value,
                 description: m.position || undefined,
+                avatarUrl: m.avatarUrl || null,
               }))}
               onChange={(val) => handleFilterChange('createdBy', val)}
               itemNoun="members"
               width={290}
+              showAvatar
+              searchPlaceholder="Search people..."
             />
             <TicketFilterPill
               icon={<TagsOutlined style={{ fontSize: 11 }} />}

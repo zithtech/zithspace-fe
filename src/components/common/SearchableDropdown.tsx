@@ -30,6 +30,8 @@ export interface SearchableDropdownOption {
   badge?: React.ReactNode;
   meta?: React.ReactNode;
   disabled?: boolean;
+  /** Avatar image URL — renders an image instead of initials when provided. */
+  avatarUrl?: string | null;
 }
 
 export interface SearchableDropdownProps {
@@ -67,6 +69,17 @@ const initialsFor = (s: string): string => {
     .filter(Boolean);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return s.slice(0, 2).toUpperCase();
+};
+
+/** Deterministic color from string so the same person always gets the same color */
+const avatarColorFor = (str: string): string => {
+  const COLORS = [
+    '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
+    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
+  ];
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return COLORS[Math.abs(h) % COLORS.length];
 };
 
 export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
@@ -171,8 +184,20 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
                     commit(isSelected ? undefined : opt.value);
                   }}
                 >
-                  <div className="sd-option-avatar">
-                    {opt.badge ?? initialsFor(opt.label)}
+                  <div
+                    className="sd-option-avatar"
+                    style={opt.badge ? undefined : {
+                      backgroundColor: opt.avatarUrl ? 'transparent' : avatarColorFor(opt.value || opt.label),
+                      color: opt.avatarUrl ? undefined : '#fff',
+                      borderColor: opt.avatarUrl ? undefined : 'transparent',
+                    }}
+                  >
+                    {opt.badge
+                      ? opt.badge
+                      : opt.avatarUrl
+                        ? <img src={opt.avatarUrl} alt={initialsFor(opt.label)} />
+                        : initialsFor(opt.label)
+                    }
                   </div>
                   <div className="sd-option-content">
                     <span className="sd-option-name">{opt.label}</span>

@@ -2535,6 +2535,13 @@ select:-webkit-autofill:focus {
   margin-bottom: 0;
 }
 
+.description-viewer-v2__content hr {
+  border: none;
+  border-top: 2px solid var(--border-color, #e2e8f0);
+  margin: 18px 0;
+  opacity: 0.7;
+}
+
 .description-viewer-v2__content h1,
 .description-viewer-v2__content h2,
 .description-viewer-v2__content h3 {

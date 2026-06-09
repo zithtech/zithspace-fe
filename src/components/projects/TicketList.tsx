@@ -4062,45 +4062,55 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         </div>
       ) : (
         <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {activeSprint && !isFilteredView && kanbanScope === 'active' && (
-            <div className="tl-section">
-              {renderActiveSprintHeader('compact')}
-            </div>
-          )}
-          {kanbanData ? (
-            <TicketKanban
-              tickets={kanbanData.columns ? Object.values(kanbanData.columns).flatMap((col: any) => col.tickets) : []}
-              projects={projects}
-              members={members}
-              onTicketUpdate={handleKanbanUpdate}
-              activeSprint={activeSprint}
-              kanbanScope={kanbanScope}
-              onScopeChange={setKanbanScope}
-              onSprintAssignment={handleSprintAssignment}
-              onCompleteSprint={handleCompleteSprint}
-              filters={filters}
-              onFilterChange={handleFilterChange}
-              onTicketClick={setSelectedTicketId}
-              hideSprintMeta={!!activeSprint && !isFilteredView && kanbanScope === 'active'}
-              permissions={{ canUpdateTicket, canDeleteTicket, canAssignTicket, canManageTickets }}
-              onAddTicketToColumn={canCreateTicket ? (statusId: string) => {
-                setManualCreateDefaultStatus(statusId);
-                setManualModalOpen(true);
-              } : undefined}
-              onBulkArchive={(ids) => bulkArchiveMutation.mutate(ids)}
-              onBulkDelete={(ids) => {
-                modal.confirm({
-                  title: 'Move to Trash',
-                  content: `Move ${ids.length} ticket${ids.length === 1 ? '' : 's'} to trash?`,
-                  okText: 'Move to Trash',
-                  okType: 'danger',
-                  onOk: () => bulkDeleteMutation.mutate(ids),
-                });
-              }}
-            />
-          ) : (
-            <Card className="saas-card"><Empty description="No tickets found" /></Card>
-          )}
+          {(() => {
+            const kanbanContent = kanbanData ? (
+              <TicketKanban
+                tickets={kanbanData.columns ? Object.values(kanbanData.columns).flatMap((col: any) => col.tickets) : []}
+                projects={projects}
+                members={members}
+                onTicketUpdate={handleKanbanUpdate}
+                activeSprint={activeSprint}
+                kanbanScope={kanbanScope}
+                onScopeChange={setKanbanScope}
+                onSprintAssignment={handleSprintAssignment}
+                onCompleteSprint={handleCompleteSprint}
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onTicketClick={setSelectedTicketId}
+                hideSprintMeta={!!activeSprint && !isFilteredView && kanbanScope === 'active'}
+                permissions={{ canUpdateTicket, canDeleteTicket, canAssignTicket, canManageTickets }}
+                onAddTicketToColumn={canCreateTicket ? (statusId: string) => {
+                  setManualCreateDefaultStatus(statusId);
+                  setManualModalOpen(true);
+                } : undefined}
+                onBulkArchive={(ids) => bulkArchiveMutation.mutate(ids)}
+                onBulkDelete={(ids) => {
+                  modal.confirm({
+                    title: 'Move to Trash',
+                    content: `Move ${ids.length} ticket${ids.length === 1 ? '' : 's'} to trash?`,
+                    okText: 'Move to Trash',
+                    okType: 'danger',
+                    onOk: () => bulkDeleteMutation.mutate(ids),
+                  });
+                }}
+              />
+            ) : (
+              <Card className="saas-card"><Empty description="No tickets found" /></Card>
+            );
+
+            if (activeSprint && !isFilteredView && kanbanScope === 'active') {
+              return (
+                <div className="tl-section">
+                  {renderActiveSprintHeader('compact')}
+                  <div className="tl-section-body" style={{ padding: '16px 0 0' }}>
+                    {kanbanContent}
+                  </div>
+                </div>
+              );
+            }
+
+            return kanbanContent;
+          })()}
         </div>
       )}
           </div>

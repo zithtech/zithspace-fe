@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, Input, Select, Skeleton, Tooltip, message, ConfigProvider, theme as antdTheme } from "antd";
+import { Modal, Input, Select, Skeleton, Tooltip, App, ConfigProvider, theme as antdTheme } from "antd";
 import {
   Sparkles,
   Wand2,
@@ -54,6 +54,7 @@ interface EditableGroup {
 
 export default function AiReviewModal({ open, onClose, bugs }: Props) {
   const { theme } = useTheme();
+  const { message } = App.useApp();
   const [step, setStep] = useState<Step>("review");
   const [reviewResults, setReviewResults] = useState<AiReviewResult[]>([]);
   const [reviewStarted, setReviewStarted] = useState(false);

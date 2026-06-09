@@ -11,7 +11,7 @@ import {
   ColorPicker,
   Switch,
   Space,
-  message,
+  App,
   Popconfirm,
   Tabs,
   Row,
@@ -61,7 +61,7 @@ interface DropdownManagerProps {
 export default function DropdownManager({ onDataChange }: DropdownManagerProps) {
   const { theme } = useTheme();
   const [form] = Form.useForm();
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -500,7 +500,6 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {contextHolder}
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}

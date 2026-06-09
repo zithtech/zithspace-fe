@@ -232,7 +232,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       },
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       align: "right" as const,
       render: (_: any, record: any) => (

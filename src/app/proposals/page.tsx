@@ -44,6 +44,7 @@ import {
 import { Sparkles, Settings, Layers, Mail } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
+import { userService } from '@/services/userService';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { TablePreferenceService } from '@/services/tablePreferenceService';
@@ -119,6 +120,7 @@ export default function ProposalsListPage() {
   const router = useRouter();
 
   const [proposals, setProposals] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [searchText, setSearchText] = useState('');
@@ -208,8 +210,25 @@ export default function ProposalsListPage() {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const data = await userService.getUsers();
+      if (Array.isArray(data)) {
+        setUsers(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchProposals();
+    fetchUsers();
+  };
+
   useEffect(() => {
     fetchProposals();
+    fetchUsers();
   }, []);
 
   const handleDelete = async (id: string) => {
@@ -386,14 +405,32 @@ export default function ProposalsListPage() {
 
   const creatorOptions = useMemo(() => {
     const byId = new Map<string, { id: string; name: string; avatarUrl?: string }>();
+    
+    users.forEach((u) => {
+      if (u.id && u.name) {
+        byId.set(u.id, {
+          id: u.id,
+          name: u.name,
+          avatarUrl: u.avatar || u.avatarUrl,
+        });
+      }
+    });
+
     proposals.forEach((p) => {
       const c = p.createdBy;
-      if (c?.id && c?.name) byId.set(c.id, c);
+      if (c?.id && c?.name && !byId.has(c.id)) {
+        byId.set(c.id, {
+          id: c.id,
+          name: c.name,
+          avatarUrl: c.avatarUrl || c.avatar,
+        });
+      }
     });
+
     return Array.from(byId.values())
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((u) => ({ value: u.id, label: u.name, avatarUrl: u.avatarUrl }));
-  }, [proposals]);
+  }, [users, proposals]);
 
   const statusOptions: { value: StatusKey; label: string; color?: string }[] = [
     { value: 'all', label: 'All statuses' },
@@ -553,7 +590,7 @@ export default function ProposalsListPage() {
       },
     },
     {
-      title: '',
+      title: 'ACTIONS',
       key: 'actions',
       align: 'right' as const,
       width: 80,
@@ -622,7 +659,7 @@ export default function ProposalsListPage() {
                 type="default"
                 className="prop-cta-secondary"
                 icon={<ReloadOutlined />}
-                onClick={fetchProposals}
+                onClick={handleRefresh}
                 loading={loading}
               >
                 Refresh

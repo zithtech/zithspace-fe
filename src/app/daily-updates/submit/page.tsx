@@ -48,6 +48,7 @@ import {
 } from "@/types/dailyUpdate";
 import dayjs, { Dayjs } from "dayjs";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { useTheme } from "@/context/ThemeContext";
 import { useActivitySource } from "@/hooks/useActivitySource";
 
 const { Text } = Typography;
@@ -122,6 +123,8 @@ export default function SubmitDailyUpdatePage() {
 }
 
 function SubmitDailyUpdateContent() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const router = useRouter();
   const [form] = Form.useForm();
   const { message: messageApi } = App.useApp();
@@ -674,7 +677,7 @@ function SubmitDailyUpdateContent() {
         }
         .mood-btn:hover { border-color: #cbd5e1 !important; }
         .mood-btn-active-happy    { background: #fef9c3 !important; border-color: #fde68a !important; color: #a16207 !important; }
-        .mood-btn-active-neutral  { background: var(--bg-slate-50) !important; border-color: var(--border-slate-200) !important; color: var(--text-slate-900) !important; }
+        .mood-btn-active-neutral  { background: #e0f2fe !important; border-color: #7dd3fc !important; color: #0369a1 !important; }
         .mood-btn-active-stressed { background: #ffedd5 !important; border-color: #fed7aa !important; color: #9a3412 !important; }
         .mood-btn-active-blocked  { background: #fee2e2 !important; border-color: #fca5a5 !important; color: #991b1b !important; }
 
@@ -892,15 +895,15 @@ function SubmitDailyUpdateContent() {
               <div className="dud-anim" style={{
                 marginBottom: 22,
                 padding: "12px 16px",
-                background: "#fffbeb",
-                border: "1px solid #fde68a",
+                background: isDark ? "rgba(251, 191, 36, 0.08)" : "#fffbeb",
+                border: isDark ? "1px solid rgba(251, 191, 36, 0.2)" : "1px solid #fde68a",
                 borderRadius: 12,
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
               }}>
-                <AlertTriangle size={16} color="#b45309" />
-                <Text style={{ fontSize: 12, color: "#92400e", fontWeight: 600 }}>
+                <AlertTriangle size={16} color={isDark ? "#fbbf24" : "#b45309"} />
+                <Text style={{ fontSize: 12, color: isDark ? "#fbbf24" : "#92400e", fontWeight: 600 }}>
                   Date for the missed update:
                 </Text>
                 <DatePicker

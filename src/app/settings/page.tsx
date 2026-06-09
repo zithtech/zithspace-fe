@@ -63,6 +63,8 @@ import { CompanyLocationService } from '@/services/companyLocationService';
 import { MailService, MailProvider } from '@/services/mailService';
 import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
 import { ApiError } from '@/lib/axios';
+import { History } from 'lucide-react';
+import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile, UploadProps } from 'antd';
 import dayjs from 'dayjs';
@@ -141,10 +143,11 @@ export default function SettingsPage() {
       border: `1px solid ${token.colorBorderSecondary}`
     }
   };
-  const { canReadSettings, canUpdateSettings, canDeleteSettings, canManageSettings, canReadMail, canUpdateMail } = usePermission();
+  const { canReadSettings, canUpdateSettings, canDeleteSettings, canManageSettings, canReadMail, canUpdateMail, canReadActivityLog } = usePermission();
   const router = useRouter();
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Route guard
   useEffect(() => {
@@ -2015,6 +2018,17 @@ export default function SettingsPage() {
           icon={<SettingOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
           title="System Settings"
           description="Configure your workspace, manage shifts, and customize branding."
+          extra={
+            canReadActivityLog && (
+              <Button
+                icon={<History size={14} />}
+                onClick={() => setHistoryOpen(true)}
+                style={{ borderRadius: 8, height: 38, fontWeight: 600, color: "var(--text-secondary)" }}
+              >
+                History
+              </Button>
+            )
+          }
         />
 
         <div style={{ padding: "0 32px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -2290,6 +2304,15 @@ export default function SettingsPage() {
             </div>
           </Form>
         </Modal>
+      {tenantProfile && (
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          entityType="tenant_settings"
+          entityId={tenantProfile.id}
+          subtitle={tenantProfile.name}
+        />
+      )}
       </div>
     </MainLayout>
   );

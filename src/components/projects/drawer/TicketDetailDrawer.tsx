@@ -198,10 +198,19 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const { data: linkedHubs = [], isLoading: linkedHubsLoading } = useTicketDocumentHubs(currentTicketId || "");
   const queryClient = useQueryClient();
 
-  // Update editor content when description changes externally
+  // Update editor content when description changes externally or when ticket changes
   React.useEffect(() => {
     setEditorContent(ticket?.description || "");
-  }, [ticket?.description]);
+  }, [ticket?.description, currentTicketId]);
+
+  // Reset description editor and Zai states when currentTicketId changes
+  useEffect(() => {
+    setDescriptionEditorOpen(false);
+    setEnhanceZaiOpen(false);
+    setZaiHint("");
+    setZaiError(null);
+    setZaiMode("enhance");
+  }, [currentTicketId]);
 
   // Pagination Navigation
   const currentIndex = ticketIds.indexOf(currentTicketId || "");

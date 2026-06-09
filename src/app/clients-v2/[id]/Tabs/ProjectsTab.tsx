@@ -403,7 +403,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       )
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       align: "right" as const,
       render: (_: any, record: any) => (

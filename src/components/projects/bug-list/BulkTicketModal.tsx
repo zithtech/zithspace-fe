@@ -933,10 +933,34 @@ function buildSingleBugDescription(b: BugListItem): string {
 }
 
 function buildDescription(bugs: BugListItem[]): string {
-  return bugs
-    .map((b) => b.description || "")
-    .filter((s) => s.trim().length > 0)
-    .join("\n\n---\n\n");
+  const hasMeaningfulDesc = (desc: string) => desc && desc.trim() !== "" && desc.trim() !== "<p></p>" && desc.trim() !== "<p><br></p>";
+
+  const parts = bugs
+    .map((b, i) => {
+      const bugLabel = b.bugNumber ? `Bug #${b.bugNumber}` : `Bug ${i + 1}`;
+      const bugTitle = b.title ? ` — ${b.title}` : "";
+      const desc = hasMeaningfulDesc(b.description) ? b.description : "<p><em>No description provided.</em></p>";
+      const separator = i < bugs.length - 1
+        ? `<hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;" />`
+        : "";
+      return (
+        `<div style="margin-bottom:8px;">` +
+        `<p style="font-weight:600;color:#1e293b;font-size:13px;margin:0 0 8px 0;">` +
+        `${bugLabel}${bugTitle}` +
+        `</p>` +
+        desc +
+        `</div>` +
+        separator
+      );
+    })
+    .filter(Boolean);
+
+  if (parts.length === 0) return "";
+  if (parts.length === 1) {
+    // Single bug: just return the raw description without extra wrapper
+    return bugs[0].description || "";
+  }
+  return parts.join("\n");
 }
 
 function cap(s: string) {

@@ -459,7 +459,11 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
 
             <Row gutter={12} align="top">
               <Col xs={24} sm={12}>
-                <Form.Item name="mobileNumber" label="Contact number">
+                <Form.Item
+                  name="mobileNumber"
+                  label="Contact number"
+                  rules={[{ required: true, message: "Contact number is required" }]}
+                >
                   <Input
                     placeholder="+1 (555) 000-0000"
                     type="number"
@@ -606,7 +610,11 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
 
             <Row gutter={12} align="top">
               <Col xs={24} sm={12}>
-                <Form.Item name="mobileNumber" label="Contact number">
+                <Form.Item
+                  name="mobileNumber"
+                  label="Contact number"
+                  rules={[{ required: true, message: "Contact number is required" }]}
+                >
                   <Input
                     placeholder="+1 (555) 000-0000"
                     type="number"

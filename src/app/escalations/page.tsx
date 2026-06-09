@@ -55,6 +55,8 @@ import CreateEscalationDrawer from '@/components/escalations/CreateEscalationDra
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useActivitySource } from '@/hooks/useActivitySource';
+import { History } from 'lucide-react';
+import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 
 dayjs.extend(relativeTime);
 
@@ -153,7 +155,8 @@ export default function EscalationListPage() {
   useActivitySource({ section: "WORK", module: "Escalations", page: "EscalationList" });
   const router = useRouter();
   const { user, isLoading } = useAuth();
-  const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation } = usePermission();
+  const { canReadEscalation, canCreateEscalation, canUpdateEscalation, canDeleteEscalation, canReadActivityLog } = usePermission();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const [searchText, setSearchText] = useState('');
   const [activeTab, setActiveTab] = useState('1');
@@ -175,6 +178,10 @@ export default function EscalationListPage() {
 
   // Create drawer
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
+
+  // Edit drawer
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
 
   const { message } = App.useApp();
 
@@ -427,7 +434,7 @@ export default function EscalationListPage() {
       key: 'subject',
       render: (text: string, record: any) => (
         <Space direction="vertical" size={2}>
-          <Text strong style={{ fontSize: 14 }}>
+          <Text strong style={{ fontSize: 14, whiteSpace: 'nowrap' }}>
             {text || record.short_summary || 'No Subject'}
           </Text>
           {getCategoryTag(record.category || { name: record.category_name })}
@@ -438,6 +445,7 @@ export default function EscalationListPage() {
       title: 'Target Team Members',
       dataIndex: 'targetMembers',
       key: 'targetMembers',
+      width: 220,
       render: (members: any[], record: any) => {
         const list = members || record.targetMembers || [];
         if (list.length === 0)
@@ -475,6 +483,7 @@ export default function EscalationListPage() {
       title: 'Tickets',
       dataIndex: 'tickets',
       key: 'tickets',
+      width: 160,
       render: (tickets: any[]) => (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 150 }}>
           {tickets?.map((t, idx) => (
@@ -507,17 +516,20 @@ export default function EscalationListPage() {
       title: 'Priority',
       dataIndex: 'priority',
       key: 'priority',
+      width: 120,
       render: (priority: any, record: any) => getPriorityTag(priority || { name: record.priority_name }),
     },
     {
       title: 'Status',
       key: 'status',
+      width: 130,
       render: (_: any, record: any) => getStatusBadge(record),
     },
     {
       title: 'Raised By',
       dataIndex: 'createdBy',
       key: 'createdBy',
+      width: 160,
       render: (user: any) => (
         <Space>
           <Avatar size="small" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-slate-400)' }}>
@@ -533,6 +545,7 @@ export default function EscalationListPage() {
       title: 'Raised Date',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      width: 140,
       render: (date: string, record: any) => (
         <Tooltip title={dayjs(date || record.created_at).format('YYYY-MM-DD HH:mm:ss')}>
           <Text style={{ fontSize: 13, color: 'var(--text-slate-400)' }}>
@@ -544,18 +557,18 @@ export default function EscalationListPage() {
     {
       title: 'Action',
       key: 'action',
+      fixed: 'right' as const,
+      width: 120,
       render: (_: any, record: any) => (
         <Space size={4} onClick={(e) => e.stopPropagation()}>
           {canUpdateEscalation && (
-            <Tooltip title="Edit / View Details">
+            <Tooltip title="Edit Escalation">
               <Button
                 type="text"
                 icon={<EditOutlined style={{ color: BLUE_PRIMARY }} />}
                 onClick={() => {
-                  setSelectedEscalation(record);
-                  setTempStatus(record.statusId || record.status);
-                  setIsEditing(true);
-                  setDrawerVisible(true);
+                  setEditingRecord(record);
+                  setEditDrawerOpen(true);
                 }}
               />
             </Tooltip>
@@ -600,16 +613,25 @@ export default function EscalationListPage() {
             marginBottom: 20,
           }}
           extra={
-            canCreateEscalation && (
+            <Space>
               <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setCreateDrawerOpen(true)}
-                className="qe-primary-btn"
+                icon={<DeleteOutlined />}
+                onClick={() => router.push('/escalations/trash')}
+                style={{ borderRadius: 8, height: 36 }}
               >
-                Raise Escalation
+                Trash
               </Button>
-            )
+              {canCreateEscalation && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setCreateDrawerOpen(true)}
+                  className="qe-primary-btn"
+                >
+                  Raise Escalation
+                </Button>
+              )}
+            </Space>
           }
         />
 
@@ -987,6 +1009,7 @@ export default function EscalationListPage() {
               rowKey="id"
               loading={loading}
               className="premium-table qe-table"
+              scroll={{ x: 'max-content' }}
               onRow={(record) => ({
                 onClick: () => {
                   setSelectedEscalation(record);
@@ -1020,6 +1043,18 @@ export default function EscalationListPage() {
           onClose={() => setDrawerVisible(false)}
           open={drawerVisible}
           width={600}
+          extra={
+            canReadActivityLog && selectedEscalation && (
+              <Button
+                icon={<History size={14} />}
+                onClick={() => setHistoryOpen(true)}
+                size="small"
+                style={{ borderRadius: 6 }}
+              >
+                History
+              </Button>
+            )
+          }
           styles={{
             header: { borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
             body: { padding: 0, background: 'var(--bg-pure-white)' },
@@ -1327,6 +1362,25 @@ export default function EscalationListPage() {
           open={createDrawerOpen}
           onClose={() => setCreateDrawerOpen(false)}
           onSuccess={fetchEscalations}
+        />
+
+        {selectedEscalation && (
+          <TransactionHistoryDrawer
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            entityType="escalation"
+            entityId={selectedEscalation.id}
+            subtitle={selectedEscalation.title || selectedEscalation.subject || `Escalation #${selectedEscalation.id.split('-')[0].toUpperCase()}`}
+          />
+        )}
+        <CreateEscalationDrawer
+          open={editDrawerOpen}
+          onClose={() => {
+            setEditDrawerOpen(false);
+            setEditingRecord(null);
+          }}
+          onSuccess={fetchEscalations}
+          editingId={editingRecord?.id}
         />
       </div>
     </MainLayout>

@@ -589,10 +589,16 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
           gap: 6px;
         }
         .ttp-form .ant-select-selector,
-        .ttp-form .ant-input,
+        .ttp-form .ant-input {
+          border-radius: 10px !important;
+          background: var(--bg-pure-white) !important;
+        }
         .ttp-form textarea.ant-input {
           border-radius: 10px !important;
           background: var(--bg-pure-white) !important;
+          padding: 10px 12px 26px 12px !important;
+          line-height: 1.5;
+          resize: none;
         }
         .ttp-form .ant-select-selector:hover,
         .ttp-form .ant-input:hover {

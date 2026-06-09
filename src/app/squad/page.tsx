@@ -529,32 +529,52 @@ export default function SquadManagement() {
 
   return (
     <MainLayout>
-      <div className="squad-shell">
-        <TimeTrackingHeader
-          icon={<TeamOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
-          title="Squad Management"
-          description="Configure and manage project teams, leadership roles, and member allocations."
-          style={{
-            borderBottom: '1px solid var(--border-slate-200)',
-            padding: '9.5px 32px',
-            marginBottom: 20,
-            boxShadow: 'none'
-          }}
-          extra={
-            canCreateSquad && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleCreate}
-                className="sq-primary-btn"
-              >
-                Create Squad
-              </Button>
-            )
-          }
-        />
+      <div
+        style={{
+          margin: '0 -24px',
+          height: 'calc(100vh - 72px)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          backgroundColor: 'var(--bg-pure-white)',
+        }}
+      >
+        {/* Static Header */}
+        <div style={{ flexShrink: 0 }}>
+          <TimeTrackingHeader
+            icon={<TeamOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
+            title="Squad Management"
+            description="Configure and manage project teams, leadership roles, and member allocations."
+            style={{
+              borderBottom: '1px solid var(--border-slate-200)',
+              padding: '9.5px 32px',
+              boxShadow: 'none',
+            }}
+            extra={
+              canCreateSquad && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleCreate}
+                  className="sq-primary-btn"
+                >
+                  Create Squad
+                </Button>
+              )
+            }
+          />
+        </div>
 
-        <div className="squad-content">
+        {/* Scrollable Content */}
+        <div
+          className="squad-content"
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '20px 32px 32px',
+            scrollbarWidth: 'none',
+          }}
+        >
           {/* Stats Overview */}
           <div className="sq-stat-grid">
             <StatCard

@@ -163,7 +163,7 @@ export const searchablePages = [
   },
   {
     pageName: "Grades",
-    url: "https://zithmi.zithspace.comorg-structure/grades",
+    url: "/org-structure/grades",
     tags: ["grade", "Grade"],
   },
   {
@@ -173,7 +173,7 @@ export const searchablePages = [
   },
   {
     pageName: "Departments Management",
-    url: "https://zithmi.zithspace.com",
+    url: "/org-structure/departments",
     tags: [
       "department management ",
       "dept manager",
@@ -183,37 +183,12 @@ export const searchablePages = [
   },
   {
     pageName: "Sub-Departments Management",
-    url: "https://zithmi.zithspace.com",
+    url: "/org-structure/sub-departments",
     tags: ["sub department management", "add sub department", "add sub dept"],
   },
   {
     pageName: "Positions Management",
-    url: "https://zithmi.zithspace.com",
+    url: "/org-structure/positions",
     tags: ["position management", "add position", "add position"],
-  },
-  {
-    pageName: "",
-    url: "https://zithmi.zithspace.com",
-    tags: [],
-  },
-  {
-    pageName: "",
-    url: "https://zithmi.zithspace.com",
-    tags: [],
-  },
-  {
-    pageName: "",
-    url: "https://zithmi.zithspace.com",
-    tags: [],
-  },
-  {
-    pageName: "",
-    url: "https://zithmi.zithspace.com",
-    tags: [],
-  },
-  {
-    pageName: "",
-    url: "https://zithmi.zithspace.com",
-    tags: [],
   },
 ];

@@ -723,7 +723,7 @@ export default function MeetingsTab({
           //   ),
           // },
           {
-            title: "",
+            title: "Actions",
             key: "actions",
             width: 110,
             align: "right" as const,

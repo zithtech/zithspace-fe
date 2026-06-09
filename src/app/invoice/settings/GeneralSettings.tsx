@@ -112,6 +112,7 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
   const [form] = Form.useForm();
   const [logoFileList, setLogoFileList] = useState<UploadFile[]>([]);
   const [signatureFileList, setSignatureFileList] = useState<UploadFile[]>([]);
+  const [messageApi, contextHolder] = message.useMessage();
 
   const prevLogoRef = useRef<string | null>(null);
   const prevSignatureRef = useRef<string | null>(null);
@@ -164,10 +165,115 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
 
   const beforeUpload = (file: File) => {
     const isImage = file.type.startsWith("image/");
-    if (!isImage) message.error("Only image files allowed");
+    if (!isImage) messageApi.error("Only image files allowed");
     const isLt2M = file.size / 1024 / 1024 < 2;
-    if (!isLt2M) message.error("Image must be smaller than 2MB");
+    if (!isLt2M) messageApi.error("Image must be smaller than 2MB");
     return isImage && isLt2M;
+  };
+
+  const validateSignatureImageClient = (file: File): Promise<{ isValid: boolean; error?: string }> => {
+    return new Promise((resolve) => {
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        return resolve({
+          isValid: false,
+          error: "Invalid signature image. Please upload a clear signature on a transparent or white background.",
+        });
+      }
+
+      const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+      if (!allowedTypes.includes(file.type)) {
+        return resolve({
+          isValid: false,
+          error: "Invalid signature image. Please upload a clear signature on a transparent or white background.",
+        });
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+              return resolve({ isValid: true });
+            }
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            const totalPixels = canvas.width * canvas.height;
+
+            if (totalPixels === 0) {
+              return resolve({
+                isValid: false,
+                error: "Signature image is blank or has too few details.",
+              });
+            }
+
+            let backgroundPixels = 0;
+            let inkPixels = 0;
+
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
+              const a = data[i + 3];
+
+              if (a < 50 || (r > 240 && g > 240 && b > 240)) {
+                backgroundPixels++;
+              } else {
+                inkPixels++;
+              }
+            }
+
+            const backgroundRatio = backgroundPixels / totalPixels;
+            const inkRatio = inkPixels / totalPixels;
+
+            if (backgroundRatio < 0.7) {
+              return resolve({
+                isValid: false,
+                error: "Invalid signature image. Please upload a clear signature on a transparent or white background.",
+              });
+            }
+
+            if (inkRatio < 0.005) {
+              return resolve({
+                isValid: false,
+                error: "Signature image is blank or has too few details.",
+              });
+            }
+
+            resolve({ isValid: true });
+          } catch (err) {
+            console.error("Canvas read error:", err);
+            resolve({ isValid: true });
+          }
+        };
+        img.onerror = () => {
+          resolve({
+            isValid: false,
+            error: "Invalid signature image. Please upload a clear signature on a transparent or white background.",
+          });
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => {
+        resolve({
+          isValid: false,
+          error: "Invalid signature image. Please upload a clear signature on a transparent or white background.",
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const beforeSignatureUpload = (file: File) => {
+    // Return false to prevent automatic server upload.
+    // Validation is performed asynchronously in handleSignatureChange.
+    return false;
   };
 
   const handleValuesChange = () => {
@@ -179,29 +285,93 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
   };
 
   const handleLogoChange: UploadProps["onChange"] = async ({ fileList }) => {
-    setLogoFileList(fileList);
-    let base64 = fileList[0]?.url || null;
-    if (fileList[0]?.originFileObj) {
-      base64 = await fileToBase64(fileList[0].originFileObj as File);
+    if (fileList.length === 0) {
+      setLogoFileList([]);
+      onSave({
+        ...form.getFieldsValue(),
+        companyLogo: null,
+        signature: signatureFileList[0]?.url ?? null,
+      });
+      return;
     }
-    onSave({
-      ...form.getFieldsValue(),
-      companyLogo: base64 ?? null,
-      signature: signatureFileList[0]?.url ?? null,
-    });
+
+    const file = fileList[0];
+    if (file.url && !file.originFileObj) {
+      setLogoFileList(fileList);
+      onSave({
+        ...form.getFieldsValue(),
+        companyLogo: file.url,
+        signature: signatureFileList[0]?.url ?? null,
+      });
+      return;
+    }
+
+    if (file.originFileObj) {
+      const isImage = file.originFileObj.type.startsWith("image/");
+      const isLt2M = file.originFileObj.size / 1024 / 1024 < 2;
+
+      if (!isImage || !isLt2M) {
+        setLogoFileList([]);
+        return;
+      }
+
+      const base64 = await fileToBase64(file.originFileObj as File);
+      setLogoFileList([{
+        ...file,
+        status: 'done',
+        url: base64
+      }]);
+      onSave({
+        ...form.getFieldsValue(),
+        companyLogo: base64,
+        signature: signatureFileList[0]?.url ?? null,
+      });
+    }
   };
 
   const handleSignatureChange: UploadProps["onChange"] = async ({ fileList }) => {
-    setSignatureFileList(fileList);
-    let base64 = fileList[0]?.url || null;
-    if (fileList[0]?.originFileObj) {
-      base64 = await fileToBase64(fileList[0].originFileObj as File);
+    if (fileList.length === 0) {
+      setSignatureFileList([]);
+      onSave({
+        ...form.getFieldsValue(),
+        companyLogo: logoFileList[0]?.url ?? null,
+        signature: null,
+      });
+      return;
     }
-    onSave({
-      ...form.getFieldsValue(),
-      companyLogo: logoFileList[0]?.url ?? null,
-      signature: base64 ?? null,
-    });
+
+    const file = fileList[0];
+    if (file.url && !file.originFileObj) {
+      setSignatureFileList(fileList);
+      onSave({
+        ...form.getFieldsValue(),
+        companyLogo: logoFileList[0]?.url ?? null,
+        signature: file.url,
+      });
+      return;
+    }
+
+    if (file.originFileObj) {
+      // Validate asynchronously
+      const result = await validateSignatureImageClient(file.originFileObj as File);
+      if (!result.isValid) {
+        messageApi.error(result.error);
+        setSignatureFileList([]);
+        return;
+      }
+
+      const base64 = await fileToBase64(file.originFileObj as File);
+      setSignatureFileList([{
+        ...file,
+        status: 'done',
+        url: base64
+      }]);
+      onSave({
+        ...form.getFieldsValue(),
+        companyLogo: logoFileList[0]?.url ?? null,
+        signature: base64,
+      });
+    }
   };
 
   return (
@@ -213,6 +383,7 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
       requiredMark={false}
       className="flex flex-col gap-5"
     >
+      {contextHolder}
       {/* COMPANY */}
       <Card>
         <SectionHeader
@@ -372,7 +543,7 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
                 <Upload
                   listType="picture-card"
                   fileList={signatureFileList}
-                  beforeUpload={beforeUpload}
+                  beforeUpload={beforeSignatureUpload}
                   onChange={handleSignatureChange}
                   maxCount={1}
                   className="premium-uploader"

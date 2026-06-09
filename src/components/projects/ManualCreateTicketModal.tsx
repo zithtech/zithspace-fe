@@ -9,6 +9,7 @@ import {
   LineChartOutlined, FundProjectionScreenOutlined, TagsOutlined
 } from "@ant-design/icons";
 import { ProjectService } from "@/services/projectService";
+import { MembersService } from "@/services/membersService";
 import { useCreateTicket, useAllTicketTags } from "@/hooks/useTickets";
 import { useUserProjects, useTicketConfig } from "@/hooks/useGlobalData";
 import { PRIORITY_OPTIONS, TYPE_OPTIONS, getPriorityColor } from "@/utils/ticketUtils";
@@ -24,6 +25,8 @@ interface ManualCreateTicketModalProps {
   onClose: () => void;
   projectId: string;
   onTicketCreated?: (ticket: Ticket) => void;
+  /** Status to apply when the new ticket is submitted. Defaults to 'not_started'. */
+  defaultStatus?: string;
 }
 
 export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = ({
@@ -31,6 +34,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
   onClose,
   projectId,
   onTicketCreated,
+  defaultStatus,
 }) => {
   const [form] = Form.useForm();
   const { message } = App.useApp();
@@ -38,7 +42,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
   //   placement: 'top',
   // });
   const [loading, setLoading] = useState(false);
-  const [projectMembers, setProjectMembers] = useState<any[]>([]);
+  const [companyMembers, setCompanyMembers] = useState<any[]>([]);
 
   const { data: projects = [] } = useUserProjects();
   const { data: ticketConfig } = useTicketConfig();
@@ -56,18 +60,20 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
   const tagsValue: string[] = Form.useWatch("tags", form) || [];
 
   useEffect(() => {
+    if (open) {
+      loadCompanyMembers();
+    }
     if (open && projectId) {
       form.setFieldsValue({ project: projectId });
-      loadProjectMembers(projectId);
     }
   }, [open, projectId, form]);
 
-  const loadProjectMembers = async (id: string) => {
+  const loadCompanyMembers = async () => {
     try {
-      const members = await ProjectService.getProjectMembers(id);
-      setProjectMembers(members || []);
+      const members = await MembersService.getMembersForSelect();
+      setCompanyMembers(members || []);
     } catch (error) {
-      console.error("Error loading project members:", error);
+      console.error("Error loading company members:", error);
     }
   };
 
@@ -78,7 +84,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
         ...values,
         startDate: values.startDate?.format("YYYY-MM-DD") || "",
         endDate: values.endDate?.format("YYYY-MM-DD") || "",
-        status: "not_started"
+        status: defaultStatus || "not_started"
       };
 
       const savedTicket = await createTicketMutation.mutateAsync(ticketData);
@@ -310,10 +316,10 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
                   <Col span={12}>
                     <Form.Item name="assignee" label={<Text style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-slate-500)' }}>Primary Owner</Text>} style={{ marginBottom: 0 }}>
                       <Select size="middle" showSearch optionFilterProp="label" placeholder="Select owner" style={{ height: 36 }} dropdownStyle={{ borderRadius: 0 }}>
-                        {projectMembers.map(m => (
+                        {companyMembers.map(m => (
                           <Option key={m.value} value={m.value} label={m.label}>
                             <Space size={8}>
-                              <Avatar size={20} style={{ fontSize: 10, backgroundColor: '#3b82f6' }}>{m.label[0]}</Avatar>
+                              <Avatar size={20} src={m.avatarUrl || undefined} style={{ fontSize: 10, backgroundColor: '#3b82f6' }}>{m.label[0]}</Avatar>
                               <span style={{ fontSize: 13, fontWeight: 500 }}>{m.label}</span>
                             </Space>
                           </Option>
@@ -324,10 +330,10 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
                   <Col span={12}>
                     <Form.Item name="reportTo" label={<Text style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-slate-500)' }}>Reporter</Text>} style={{ marginBottom: 0 }}>
                       <Select size="middle" showSearch optionFilterProp="label" placeholder="Select reporter" style={{ height: 36 }} dropdownStyle={{ borderRadius: 0 }}>
-                        {projectMembers.map(m => (
+                        {companyMembers.map(m => (
                           <Option key={m.value} value={m.value} label={m.label}>
                             <Space size={8}>
-                              <Avatar size={20} style={{ fontSize: 10, backgroundColor: 'var(--text-slate-500)' }}>{m.label[0]}</Avatar>
+                              <Avatar size={20} src={m.avatarUrl || undefined} style={{ fontSize: 10, backgroundColor: 'var(--text-slate-500)' }}>{m.label[0]}</Avatar>
                               <span style={{ fontSize: 13, fontWeight: 500 }}>{m.label}</span>
                             </Space>
                           </Option>

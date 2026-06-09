@@ -20,10 +20,9 @@ import {
   CheckSquareOutlined,
   ThunderboltOutlined,
   RetweetOutlined,
-  MessageOutlined,
-  PaperClipOutlined,
-  FlagFilled,
   UserAddOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
 } from '@ant-design/icons';
 
 interface KanbanCardProps {
@@ -36,6 +35,14 @@ interface KanbanCardProps {
   onSprintAssignment?: (ticketId: string, action: 'add' | 'remove') => void;
   onClick?: () => void;
   isOverlay?: boolean;
+  /** Whether this card is in the bulk-selection set. */
+  selected?: boolean;
+  /** Toggle this card's selection state — wired by the column. */
+  onToggleSelected?: () => void;
+  /** Show the selection checkbox even when this card isn't selected
+   * (i.e. some OTHER card on the board is selected). Hides the affordance
+   * otherwise so the card stays minimal. */
+  showSelectionAffordance?: boolean;
   permissions?: {
     canUpdateTicket: boolean;
     canDeleteTicket: boolean;
@@ -74,6 +81,9 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
   onSprintAssignment,
   onClick,
   isOverlay = false,
+  selected = false,
+  onToggleSelected,
+  showSelectionAffordance = false,
   permissions,
 }) => {
   const { canUpdateTicket, canDeleteTicket, canAssignTicket, canManageTickets } = permissions || {
@@ -128,14 +138,26 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    // expose CSS variables so card stripes/chips pick up the right hue
+    // expose CSS variables so the card stripe + footer accents pick up the
+    // right hue. The left stripe now follows the TYPE color (matches the
+    // image), while the priority arrow uses its own priority hue.
     ['--kb-pri-color' as any]: priorityColor,
     ['--kb-type-color' as any]: typeMeta.color,
   };
 
-  const commentCount = ticket.comments?.length || 0;
-  const attachmentCount = ticket.attachments?.length || 0;
-  const subtaskCount = ticket.subTasks?.length || 0;
+  const renderPriorityArrow = () => {
+    const p = (ticket.priority || '').toUpperCase();
+    if (p === 'P1') {
+      return <ArrowUpOutlined className="kb-card-pri-arrow up" />;
+    }
+    if (p === 'P3') {
+      return <ArrowDownOutlined className="kb-card-pri-arrow down" />;
+    }
+    if (p === 'P2') {
+      return <span className="kb-card-pri-dash">—</span>;
+    }
+    return null;
+  };
 
   const getMenuItems = (): MenuProps['items'] => {
     const items: MenuProps['items'] = [];
@@ -164,6 +186,8 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     'kb-card',
     isDragging ? 'kb-card-dragging' : '',
     isOverlay ? 'kb-card-overlay' : '',
+    selected ? 'kb-card-selected' : '',
+    showSelectionAffordance ? 'kb-card-select-mode' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -211,120 +235,61 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     );
   };
 
-  const renderType = () => {
-    if (editingField === 'type') {
-      return (
-        <div onPointerDown={stopPropagation}>
-          <Select
-            autoFocus
-            open
-            size="small"
-            style={{ width: 100 }}
-            value={activeValue}
-            onChange={(val) => handleSave(val)}
-            onBlur={cleanup}
-            options={TYPE_OPTIONS}
-          />
-        </div>
-      );
-    }
-    return (
-      <Tooltip title={`Type: ${ticket.type}`}>
-        <span
-          className="kb-chip kb-chip-type"
-          onPointerDown={stopPropagation}
-          onMouseDown={stopPropagation}
-          onClick={(e) => {
-            if (!canUpdateTicket) return;
-            e.stopPropagation();
-            startEditing('type', ticket.type);
-          }}
-        >
-          {typeMeta.icon}
-          {ticket.type}
-        </span>
-      </Tooltip>
-    );
-  };
+  // Editing-only render helpers — invoked from the footer when the matching
+  // editingField is active; the non-editing visual is rendered inline.
+  const renderType = () => (
+    <div onPointerDown={stopPropagation}>
+      <Select
+        autoFocus
+        open
+        size="small"
+        style={{ width: 100 }}
+        value={activeValue}
+        onChange={(val) => handleSave(val)}
+        onBlur={cleanup}
+        options={TYPE_OPTIONS}
+      />
+    </div>
+  );
 
-  const renderPriority = () => {
-    if (editingField === 'priority') {
-      return (
-        <div onPointerDown={stopPropagation}>
-          <Select
-            autoFocus
-            open
-            size="small"
-            style={{ width: 110 }}
-            value={activeValue}
-            onChange={(val) => handleSave(val)}
-            onBlur={cleanup}
-            options={PRIORITY_OPTIONS}
-          />
-        </div>
-      );
-    }
-    return (
-      <Tooltip title={`Priority: ${PRIORITY_LABEL[ticket.priority] || ticket.priority || '—'}`}>
-        <span
-          className="kb-chip kb-chip-pri"
-          onPointerDown={stopPropagation}
-          onMouseDown={stopPropagation}
-          onClick={(e) => {
-            if (!canUpdateTicket) return;
-            e.stopPropagation();
-            startEditing('priority', ticket.priority);
-          }}
-        >
-          <FlagFilled style={{ fontSize: 9 }} />
-          {ticket.priority || '—'}
-        </span>
-      </Tooltip>
-    );
-  };
+  const renderPriority = () => (
+    <div onPointerDown={stopPropagation}>
+      <Select
+        autoFocus
+        open
+        size="small"
+        style={{ width: 110 }}
+        value={activeValue}
+        onChange={(val) => handleSave(val)}
+        onBlur={cleanup}
+        options={PRIORITY_OPTIONS}
+      />
+    </div>
+  );
 
   const renderStoryPoints = () => {
-    if (editingField === 'storyPoint') {
-      return (
-        <div onPointerDown={stopPropagation}>
-          <Input
-            type="number"
-            size="small"
-            style={{ width: 70 }}
-            autoFocus
-            value={activeValue}
-            onChange={(e) => setActiveValue(e.target.value)}
-            onBlur={() => {
+    return (
+      <div onPointerDown={stopPropagation}>
+        <Input
+          type="number"
+          size="small"
+          style={{ width: 70 }}
+          autoFocus
+          value={activeValue}
+          onChange={(e) => setActiveValue(e.target.value)}
+          onBlur={() => {
+            const val = parseFloat(activeValue);
+            handleSave(isNaN(val) ? 0 : val);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
               const val = parseFloat(activeValue);
               handleSave(isNaN(val) ? 0 : val);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                const val = parseFloat(activeValue);
-                handleSave(isNaN(val) ? 0 : val);
-              }
-              if (e.key === 'Escape') cleanup();
-            }}
-          />
-        </div>
-      );
-    }
-    const hasSp = ticket.storyPoint !== undefined && ticket.storyPoint !== null;
-    return (
-      <Tooltip title="Story points">
-        <span
-          className="kb-chip kb-chip-sp"
-          onPointerDown={stopPropagation}
-          onMouseDown={stopPropagation}
-          onClick={(e) => {
-            if (!canUpdateTicket) return;
-            e.stopPropagation();
-            startEditing('storyPoint', ticket.storyPoint);
+            }
+            if (e.key === 'Escape') cleanup();
           }}
-        >
-          {hasSp ? `${ticket.storyPoint} SP` : '— SP'}
-        </span>
-      </Tooltip>
+        />
+      </div>
     );
   };
 
@@ -396,6 +361,13 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
   const handleCardClick = (e: React.MouseEvent) => {
     if (isOverlay || editingField) return;
     if (e.defaultPrevented) return;
+    // When the board is in selection mode, plain clicks on a card toggle its
+    // selection state instead of opening the detail drawer. Click the title
+    // area to open the drawer in select mode.
+    if (showSelectionAffordance && onToggleSelected) {
+      onToggleSelected();
+      return;
+    }
     onClick?.();
   };
 
@@ -410,51 +382,81 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     >
       <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']} disabled={!menuItems?.length}>
         <div>
-          <div className="kb-card-head">
-            <span className="kb-card-id">{ticket.ticketNumber}</span>
-            <div className="kb-card-actions" onPointerDown={stopPropagation} onMouseDown={stopPropagation}>
-              {menuItems && menuItems.length > 0 && (
-                <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
-                  <Button type="text" size="small" icon={<MoreOutlined />} onClick={(e) => e.stopPropagation()} />
-                </Dropdown>
-              )}
+          {/* Selection checkbox — visible when the board is in select mode
+              or this card is already selected. Click stops propagation so
+              the card's drag listeners don't activate. */}
+          {(showSelectionAffordance || selected) && onToggleSelected && (
+            <button
+              type="button"
+              className={`kb-card-select ${selected ? 'is-checked' : ''}`}
+              aria-label={selected ? 'Deselect ticket' : 'Select ticket'}
+              onPointerDown={stopPropagation}
+              onMouseDown={stopPropagation}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSelected();
+              }}
+            />
+          )}
+
+          {/* Hover-only action menu, top-right */}
+          {menuItems && menuItems.length > 0 && (
+            <div
+              className="kb-card-actions"
+              onPointerDown={stopPropagation}
+              onMouseDown={stopPropagation}
+            >
+              <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<MoreOutlined />}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Dropdown>
             </div>
-          </div>
+          )}
 
           {renderTitle()}
 
-          <div className="kb-card-meta">
-            {renderType()}
-            {renderPriority()}
-            {renderStoryPoints()}
-          </div>
-
           <div className="kb-card-foot">
             <div className="kb-card-foot-left">
-              {commentCount > 0 && (
-                <Tooltip title={`${commentCount} comment${commentCount > 1 ? 's' : ''}`}>
-                  <span className="kb-foot-stat">
-                    <MessageOutlined />
-                    {commentCount}
+              <Tooltip title={`Type: ${ticket.type || '—'}`}>
+                <span
+                  className="kb-card-type-icon"
+                  onPointerDown={stopPropagation}
+                  onMouseDown={stopPropagation}
+                  onClick={(e) => {
+                    if (!canUpdateTicket) return;
+                    e.stopPropagation();
+                    startEditing('type', ticket.type);
+                  }}
+                >
+                  {editingField === 'type' ? renderType() : typeMeta.icon}
+                </span>
+              </Tooltip>
+              <span className="kb-card-id">{ticket.ticketNumber}</span>
+              {editingField === 'priority' ? (
+                renderPriority()
+              ) : (
+                <Tooltip
+                  title={`Priority: ${PRIORITY_LABEL[ticket.priority] || ticket.priority || '—'}`}
+                >
+                  <span
+                    className="kb-card-pri-wrap"
+                    onPointerDown={stopPropagation}
+                    onMouseDown={stopPropagation}
+                    onClick={(e) => {
+                      if (!canUpdateTicket) return;
+                      e.stopPropagation();
+                      startEditing('priority', ticket.priority);
+                    }}
+                  >
+                    {renderPriorityArrow()}
                   </span>
                 </Tooltip>
               )}
-              {attachmentCount > 0 && (
-                <Tooltip title={`${attachmentCount} attachment${attachmentCount > 1 ? 's' : ''}`}>
-                  <span className="kb-foot-stat">
-                    <PaperClipOutlined />
-                    {attachmentCount}
-                  </span>
-                </Tooltip>
-              )}
-              {subtaskCount > 0 && (
-                <Tooltip title={`${subtaskCount} subtask${subtaskCount > 1 ? 's' : ''}`}>
-                  <span className="kb-foot-stat">
-                    <CheckSquareOutlined />
-                    {subtaskCount}
-                  </span>
-                </Tooltip>
-              )}
+              {editingField === 'storyPoint' && renderStoryPoints()}
             </div>
 
             {renderAssignee()}

@@ -35,11 +35,11 @@ const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
 };
 
 const MODULE_ACCENT: Record<string, string> = {
-  HOME: '#6366F1',     // indigo
-  WORK: '#0EA5E9',     // sky
-  ADMIN: '#10B981',    // emerald
-  HRMS: '#F59E0B',     // amber
-  FINANCE: '#8B5CF6',  // violet
+  HOME: '#3250ce',     // indigo
+  WORK: '#3250ce',     // sky
+  ADMIN: '#3250ce',    // emerald
+  HRMS: '#3250ce',     // amber
+  FINANCE: '#3250ce',  // violet
 };
 
 interface ShortcutItem {
@@ -525,7 +525,7 @@ export default function TopNav({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        height: 64,
+        height: 54,
         position: "fixed",
         top: 0,
         right: 0,
@@ -539,8 +539,8 @@ export default function TopNav({
         {/* Logo Area */}
         <div
           style={{
-            width: isMobile ? 'auto' : (collapsed ? 65 : 200),
-            minWidth: isMobile ? 'auto' : (collapsed ? 65 : 200),
+            width: isMobile ? 'auto' : (collapsed ? 52 : 200),
+            minWidth: isMobile ? 'auto' : (collapsed ? 52 : 200),
             marginRight: isMobile ? 12 : 0,
             paddingLeft: (!isMobile && !collapsed) ? 24 : 0,
             height: '100%',
@@ -961,7 +961,7 @@ export default function TopNav({
 
       <style jsx global>{`
                 .ant-menu-horizontal {
-                    line-height: 64px !important;
+                    line-height: 54px !important;
                     border-bottom: none !important;
                     background: transparent !important;
                 }

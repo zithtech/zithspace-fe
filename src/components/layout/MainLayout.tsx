@@ -209,7 +209,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
         collapsed={collapsed}
       />
 
-      <Layout style={{ marginTop: 64, background: 'var(--bg-pure-white)' }}>
+      <Layout style={{ marginTop: 54, background: 'var(--bg-pure-white)' }}>
         <SideNav
           activeModule={activeModule}
           collapsed={collapsed}
@@ -224,9 +224,9 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
             paddingRight: noPadding ? 0 : "8px",
             // background: "#f5f5f5",
             background: 'var(--bg-pure-white)',
-            marginLeft: collapsed ? 65 : 200,
+            marginLeft: collapsed ? 50 : 200,
             transition: "all 0.2s",
-            height: "calc(100vh - 64px)",
+            height: "calc(100vh - 54px)",
             overflowY: "auto",
             overflowX: "hidden",
             position: "relative",

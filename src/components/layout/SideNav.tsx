@@ -176,7 +176,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
             collapsible
             collapsed={collapsed}
             width={200}
-            collapsedWidth={65}
+            collapsedWidth={52}
             theme={theme as "light" | "dark"}
             className="glass-panel sidebar-sider"
             style={{
@@ -184,9 +184,9 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                 borderRight: "1px solid var(--border-color) !important",
                 position: "fixed",
                 left: 0,
-                top: 64,
+                top: 54,
                 bottom: 0,
-                height: "calc(100vh - 64px)",
+                height: "calc(100vh - 54px)",
                 zIndex: 99,
                 overflow: 'hidden',
                 display: 'flex',
@@ -195,7 +195,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
         >
             {/* Collapse Toggle Button at Top */}
             <div style={{
-                padding: '10px 8px',
+                padding: '8px 8px',
                 borderBottom: '1px solid var(--border-color)',
                 display: 'flex',
                 justifyContent: collapsed ? 'center' : 'flex-end',
@@ -240,10 +240,10 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                 .sidebar-sider .ant-menu-submenu-title {
                     width: calc(100% - 20px) !important;
                     margin-inline: auto !important;
-                    margin-block: 3px !important;
+                    margin-block: 2px !important;
                     border-radius: 10px !important;
-                    height: 40px !important;
-                    line-height: 40px !important;
+                    height: 38px !important;
+                    line-height: 38px !important;
                 }
 
                 /* Center icons when collapsed */
@@ -267,14 +267,14 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
 
                 /* Lucide icon defaults — premium, consistent sizing */
                 .sidebar-sider .nav-lucide-icon {
-                    width: 16px;
-                    height: 16px;
+                    width: 15px;
+                    height: 15px;
                     vertical-align: -0.125em;
                     flex-shrink: 0;
                 }
                 .sidebar-sider.ant-layout-sider-collapsed .nav-lucide-icon {
-                    width: 17px !important;
-                    height: 17px !important;
+                    width: 16px !important;
+                    height: 16px !important;
                     margin: 0 !important;
                 }
 
@@ -311,17 +311,16 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                     color: var(--premium-blue) !important;
                 }
 
-                /* Left accent indicator bar — only when expanded (labels visible) */
-                .sidebar-sider:not(.ant-layout-sider-collapsed) .ant-menu-item-selected::before {
+                /* Left accent indicator bar */
+                .sidebar-sider .ant-menu-item-selected::before {
                     content: '';
                     position: absolute;
-                    left: 7px;
-                    top: 50%;
-                    transform: translateY(-50%);
+                    left: 0;
+                    top: 11px;
+                    bottom: 11px;
                     width: 3px;
-                    height: 56%;
                     border-radius: 0 3px 3px 0;
-                    background: var(--premium-blue);
+                    background: linear-gradient(180deg, #3B82F6 0%, #6366F1 100%);
                 }
 
                 /* Dark theme accent tints */

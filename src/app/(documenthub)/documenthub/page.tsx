@@ -130,14 +130,14 @@ const NEW_BADGE_MS = 5 * 60 * 1000;
 
 // Default widths used when the user hasn't dragged a column yet.
 const DEFAULT_COL_WIDTHS: Record<string, number> = {
-  name: 220,
+  name: 280,
   project: 110,
   ticket: 126,
   createdBy: 124,
   createdAt: 100,
   updatedAt: 100,
-  visibility: 116,
-  actions: 100,
+  visibility: 86,
+  actions: 60,
 };
 
 // Toggleable columns (star/name/actions are always visible).
@@ -241,7 +241,7 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
             role="button"
             tabIndex={0}
             onClick={(e) => { e.stopPropagation(); openTicketDrawer(record.ticketId); }}
-            className="font-semibold text-sky-500 group-hover:text-sky-600 cursor-pointer truncate"
+            className="font-semibold text-[#3250ce] group-hover:text-[#3250ce] dark:text-sky-600 dark:hover:text-sky-700 cursor-pointer truncate"
             style={{ fontSize: '12px', lineHeight: '1.2' }}
           >
             {record.ticket?.ticketNumber}
@@ -311,7 +311,7 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
         }}
         options={ddOptions}
         width={300}
-        style={{ minWidth: 220 }}
+        style={{ minWidth: 0, width: '100%', height: 28, padding: '0 8px' }}
       />
     </div>
   );
@@ -330,7 +330,7 @@ const InlineProjectSelector = ({ record, projects, projectsLoading, updateHub, u
         style={{ width: 'fit-content', maxWidth: '100%' }}
       >
         <span style={{ width: 6, height: 6, borderRadius: 999, background: '#3b82f6', flex: 'none' }} />
-        <span className="font-semibold text-sky-600 group-hover:text-sky-700 truncate" style={{ fontSize: '12px', lineHeight: '1.2', maxWidth: '100%' }}>
+        <span className="font-semibold text-[#3250ce] group-hover:text-[#3250ce] dark:text-sky-600 dark:hover:text-sky-700 truncate" style={{ fontSize: '12px', lineHeight: '1.2', maxWidth: '100%' }}>
           {record.project?.name}
         </span>
       </div>
@@ -375,7 +375,7 @@ const InlineProjectSelector = ({ record, projects, projectsLoading, updateHub, u
           description: p.code,
         }))}
         width={280}
-        style={{ minWidth: 220 }}
+        style={{ minWidth: 0, width: '100%', height: 28, padding: '0 8px' }}
       />
     </div>
   );
@@ -1228,7 +1228,7 @@ const DocumentHubPage = () => {
           margin: "0 -24px",
           padding: "24px 32px",
           background: "var(--bg-pure-white)",
-          minHeight: "calc(100vh - 64px)",
+          minHeight: "calc(100vh - 54px)",
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center'
@@ -1296,15 +1296,19 @@ const DocumentHubPage = () => {
               </button>
             </Tooltip>
             <div
-              className="flex items-center justify-center shrink-0"
-              style={{
-                width: 30, height: 30, borderRadius: 8,
-                background: 'var(--bg-slate-100)',
-                border: '1px solid var(--border-slate-200)',
-                color: 'var(--text-slate-500)',
-              }}
+              className="flex items-center justify-center shrink-0  
+              w-[30px] h-[30px] rounded-lg
+              bg-blue-50 dark:bg-[#1e3a8a]
+              border border-blue-100 dark:border-[#3250ce]
+              text-slate-500 dark:text-slate-300"
+            // style={{
+            //   width: 30, height: 30, borderRadius: 8,
+            //   background: '#eff6ff',
+            //   border: '1px solid var(--border-slate-200)',
+            //   color: 'var(--text-slate-500)',
+            // }}
             >
-              <FolderOutlined style={{ fontSize: 14 }} />
+              <FolderOutlined style={{ fontSize: 14, color: "#3250ce" }} />
             </div>
             <div className="flex flex-col min-w-0 flex-1">
               {isEditingThis ? (
@@ -1494,11 +1498,11 @@ const DocumentHubPage = () => {
       title: (
         <span
           style={{
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: '0.06em',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.05em',
             textTransform: 'uppercase',
-            color: 'var(--text-slate-400)',
+            color: 'var(--text-slate-500)',
           }}
         >
           Actions
@@ -1563,10 +1567,10 @@ const DocumentHubPage = () => {
 
   const savedViews: { key: SavedView; label: string; icon: React.ReactNode; color: string }[] = [
     { key: 'all', label: 'All hubs', icon: <FolderOutlined />, color: '#3B82F6' },
-    { key: 'mine', label: 'My hubs', icon: <UserOutlined />, color: '#8B5CF6' },
+    { key: 'mine', label: 'My hubs', icon: <UserOutlined />, color: '#3B82F6' },
     // { key: 'shared', label: 'Shared with me', icon: <TeamOutlined />, color: '#10B981' },
-    { key: 'public', label: 'Public', icon: <GlobalOutlined />, color: '#0EA5E9' },
-    { key: 'starred', label: 'Starred', icon: <StarFilled />, color: '#F59E0B' },
+    { key: 'public', label: 'Public', icon: <GlobalOutlined />, color: '#3B82F6' },
+    { key: 'starred', label: 'Starred', icon: <StarFilled />, color: '#3B82F6' },
   ];
 
   const renderEmpty = () => {
@@ -1715,82 +1719,83 @@ const DocumentHubPage = () => {
     const pageStart = (curPage - 1) * tablePageSize;
     const pagedHubs = filteredHubs.slice(pageStart, pageStart + tablePageSize);
     return (
-    <div
-      className="dh-table-shell"
-      data-density={density}
-      style={{
-        borderRadius: 16,
-        background: 'var(--bg-pure-white)',
-        border: 'none',
-      }}
-    >
-      <Table
-        columns={visibleColumns}
-        dataSource={pagedHubs}
-        rowKey="id"
-        loading={hubsLoading || hubsFetching}
-        pagination={false}
-        size="small"
-        className="premium-table dh-table"
-        tableLayout="fixed"
-        sticky={{ offsetHeader: 0 }}
-        locale={{ emptyText: renderEmpty() }}
-        components={{
-          header: { cell: ResizableHeaderCell },
+      <div
+        className="dh-table-shell"
+        data-density={density}
+        style={{
+          borderRadius: 16,
+          background: 'var(--bg-pure-white)',
+          border: 'none',
         }}
-        rowSelection={{
-          selectedRowKeys: selectedKeys,
-          onChange: (keys) => setSelectedKeys(keys),
-          columnWidth: 36,
-        }}
-        expandable={{
-          expandedRowKeys: expandedKeys,
-          onExpand: (expanded, record) => {
-            setExpandedKeys((prev) =>
-              expanded ? [...prev, record.id] : prev.filter((k) => k !== record.id),
-            );
-          },
-          expandedRowRender: (record) => (
-            <HubInlinePreview hub={record} onOpen={openHub} />
-          ),
-          expandIcon: ({ expanded, onExpand, record }) => (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onExpand(record, e as any); }}
-              className="dh-expand-btn"
-              aria-label={expanded ? 'Collapse' : 'Expand preview'}
-              aria-expanded={expanded}
-              style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
-            >
-              <RightOutlined style={{ fontSize: 10 }} />
-            </button>
-          ),
-          expandIconColumnIndex: 1,
-          rowExpandable: () => true,
-          expandedRowClassName: () => 'dh-expanded-row',
-        }}
-        onChange={(_pagination, _filters, sorter: any) => {
-          if (sorter && !Array.isArray(sorter)) {
-            setSortedInfo({
-              key: sorter.order ? (sorter.columnKey as string) : null,
-              dir: sorter.order ?? null,
-            });
-          }
-        }}
-        onRow={(record) => ({
-          onClick: (e) => {
-            // Skip navigation if click came from selection cell or interactive control.
-            const target = e.target as HTMLElement;
-            if (target.closest('.ant-checkbox-wrapper, .ant-table-selection-column, .dh-expand-btn, .dh-row-actions, button, input, .ant-select')) {
-              return;
+      >
+        <Table
+          columns={visibleColumns}
+          dataSource={pagedHubs}
+          rowKey="id"
+          loading={hubsLoading || hubsFetching}
+          pagination={false}
+          size="small"
+          className="premium-table dh-table"
+          tableLayout="fixed"
+          sticky={{ offsetHeader: 0 }}
+          locale={{ emptyText: renderEmpty() }}
+          components={{
+            header: { cell: ResizableHeaderCell },
+          }}
+          rowSelection={{
+            selectedRowKeys: selectedKeys,
+            onChange: (keys) => setSelectedKeys(keys),
+            columnWidth: 26,
+          }}
+          expandable={{
+            columnWidth: 24,
+            expandedRowKeys: expandedKeys,
+            onExpand: (expanded, record) => {
+              setExpandedKeys((prev) =>
+                expanded ? [...prev, record.id] : prev.filter((k) => k !== record.id),
+              );
+            },
+            expandedRowRender: (record) => (
+              <HubInlinePreview hub={record} onOpen={openHub} />
+            ),
+            expandIcon: ({ expanded, onExpand, record }) => (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onExpand(record, e as any); }}
+                className="dh-expand-btn"
+                aria-label={expanded ? 'Collapse' : 'Expand preview'}
+                aria-expanded={expanded}
+                style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+              >
+                <RightOutlined style={{ fontSize: 10 }} />
+              </button>
+            ),
+            expandIconColumnIndex: 1,
+            rowExpandable: () => true,
+            expandedRowClassName: () => 'dh-expanded-row',
+          }}
+          onChange={(_pagination, _filters, sorter: any) => {
+            if (sorter && !Array.isArray(sorter)) {
+              setSortedInfo({
+                key: sorter.order ? (sorter.columnKey as string) : null,
+                dir: sorter.order ?? null,
+              });
             }
-            openHub(record.id);
-          },
-          onMouseEnter: () => setFocusedRowId(record.id),
-          className: `cursor-pointer ${focusedRowId === record.id ? 'dh-row-focused' : ''}`,
-        })}
-      />
-    </div>
+          }}
+          onRow={(record) => ({
+            onClick: (e) => {
+              // Skip navigation if click came from selection cell or interactive control.
+              const target = e.target as HTMLElement;
+              if (target.closest('.ant-checkbox-wrapper, .ant-table-selection-column, .dh-expand-btn, .dh-row-actions, button, input, .ant-select')) {
+                return;
+              }
+              openHub(record.id);
+            },
+            onMouseEnter: () => setFocusedRowId(record.id),
+            className: `cursor-pointer ${focusedRowId === record.id ? 'dh-row-focused' : ''}`,
+          })}
+        />
+      </div>
     );
   };
 
@@ -1865,7 +1870,7 @@ const DocumentHubPage = () => {
 
   // === Primary "Cards" view: table-aligned row-cards (small height, all fields). ===
   const ROWCARD_GRID =
-    '28px minmax(150px, 1.6fr) minmax(92px, 1fr) minmax(104px, 1.1fr) minmax(104px, 1.1fr) minmax(82px, 0.85fr) minmax(82px, 0.85fr) minmax(112px, 140px) 92px';
+    '26px minmax(180px, 1.8fr) minmax(92px, 1fr) minmax(104px, 1.1fr) minmax(104px, 1.1fr) minmax(82px, 0.85fr) minmax(82px, 0.85fr) minmax(86px, 110px) 80px';
 
   const renderRowCards = () => {
     if (!filteredHubs.length) return renderEmpty();
@@ -2095,7 +2100,7 @@ const DocumentHubPage = () => {
   };
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       {contextHolder}
       {modalContextHolder}
       <div className="dh-shell">
@@ -2198,7 +2203,7 @@ const DocumentHubPage = () => {
             {documentHubs.length > 0 && (
               <div className="dh-side-group">
                 <div className="dh-side-label">Views</div>
-                <div className="flex flex-col gap-0.5">
+                <div className="flex flex-col gap-0.2" >
                   {savedViews.map((sv) => {
                     const active = savedView === sv.key;
                     return (
@@ -2215,7 +2220,7 @@ const DocumentHubPage = () => {
                         <span className="dh-side-view-label">{sv.label}</span>
                         <span
                           className="dh-side-view-count"
-                          style={active ? { background: sv.color, color: '#fff' } : undefined}
+                          style={active ? { background: `${sv.color}30`, color: sv.color } : undefined}
                         >
                           {viewCounts[sv.key]}
                         </span>
@@ -2254,12 +2259,12 @@ const DocumentHubPage = () => {
                     const source = filterProjectId
                       ? filterTickets
                       : Array.from(
-                          new Map(
-                            documentHubs
-                              .filter((hub) => hub.ticket)
-                              .map((hub) => [hub.ticket!.id, hub.ticket]),
-                          ).values(),
-                        );
+                        new Map(
+                          documentHubs
+                            .filter((hub) => hub.ticket)
+                            .map((hub) => [hub.ticket!.id, hub.ticket]),
+                        ).values(),
+                      );
                     return (source as any[]).map((t: any) => ({ value: t.id, label: t.ticketNumber, description: t.title }));
                   })()}
                 />
@@ -2275,8 +2280,8 @@ const DocumentHubPage = () => {
                   options={members.map((m: any) => ({ value: m.value, label: m.label }))}
                 />
                 <RangePicker
-                  className="premium-range-picker rounded-lg"
-                  style={{ width: '100%', background: 'var(--bg-pure-white)', height: 40 }}
+                  className="premium-range-picker rounded-sm"
+                  style={{ width: '100%', background: 'var(--bg-pure-white)', height: 35 }}
                   value={dateRange}
                   onChange={(dates) => setDateRange(dates as any)}
                 />
@@ -2396,16 +2401,36 @@ const DocumentHubPage = () => {
             </div>
 
             <div className="dh-main-controls">
-              <Segmented
-                value={viewMode}
-                onChange={(v) => setViewMode(v as ViewMode)}
-                size="middle"
-                className="dh-view-segmented"
-                options={[
-                  { label: <Tooltip title="Cards"><AppstoreOutlined /></Tooltip>, value: 'cards' },
-                  { label: <Tooltip title="Table"><UnorderedListOutlined /></Tooltip>, value: 'table' },
-                ]}
-              />
+              <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
+                <Tooltip title="Cards">
+                  <button
+                    onClick={() => setViewMode('cards')}
+                    className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                    style={{
+                      width: 30, height: 30,
+                      background: viewMode === 'cards' ? 'var(--bg-slate-100)' : 'transparent',
+                      color: viewMode === 'cards' ? 'var(--text-slate-700)' : 'var(--text-slate-400)',
+                      border: 'none', cursor: 'pointer'
+                    }}
+                  >
+                    <AppstoreOutlined style={{ fontSize: 16 }} />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Table">
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                    style={{
+                      width: 30, height: 30,
+                      background: viewMode === 'table' ? 'var(--bg-slate-100)' : 'transparent',
+                      color: viewMode === 'table' ? 'var(--text-slate-700)' : 'var(--text-slate-400)',
+                      border: 'none', cursor: 'pointer'
+                    }}
+                  >
+                    <UnorderedListOutlined style={{ fontSize: 16 }} />
+                  </button>
+                </Tooltip>
+              </div>
               {viewMode === 'table' && (
                 <Popover
                   trigger={['click']}
@@ -2527,7 +2552,6 @@ const DocumentHubPage = () => {
                   )}
                 </div>
                 <Pagination
-                  size="small"
                   current={curPage}
                   pageSize={tablePageSize}
                   total={total}
@@ -3102,10 +3126,10 @@ const DocumentHubPage = () => {
       <style jsx global>{`
         /* ===================== Side-layout shell ===================== */
         .dh-shell {
-          margin: 0 -16px;
+          margin: 0;
           display: flex;
           align-items: stretch;
-          min-height: calc(100vh - 64px);
+          min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
         }
 
@@ -3114,7 +3138,7 @@ const DocumentHubPage = () => {
           position: sticky;
           top: 0;
           align-self: flex-start;
-          height: calc(100vh - 64px);
+          height: calc(100vh - 54px);
           width: 272px;
           flex-shrink: 0;
           display: flex;
@@ -3123,7 +3147,7 @@ const DocumentHubPage = () => {
           border-right: 1px solid var(--border-slate-200);
         }
         .dh-sidebar-top {
-          padding: 14px 14px 12px 14px;
+          padding: 14px 14px 12px 18px;
           border-bottom: 1px solid var(--border-slate-200);
         }
         .dh-sidebar-brand {
@@ -3147,10 +3171,10 @@ const DocumentHubPage = () => {
           color: var(--text-slate-500);
         }
         .dh-side-create {
-          height: 40px !important;
+          height: 36px !important;
           border-radius: 11px !important;
           font-weight: 600 !important;
-          background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%) !important;
+          background: linear-gradient(135deg, #3250ce 0%, #3250ce 100%) !important;
           border: none !important;
           box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18) !important;
         }
@@ -3158,16 +3182,19 @@ const DocumentHubPage = () => {
           flex: 1;
           min-height: 0;
           overflow-y: auto;
-          padding: 10px 10px 6px 10px;
+          padding: 10px 10px 6px 16px;
           scrollbar-width: none;        /* Firefox */
           -ms-overflow-style: none;     /* IE/Edge legacy */
         }
         .dh-sidebar-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
         /* Compact filters */
         .dh-side-filters .sd-trigger {
-          height: 40px !important;
-          min-height: 40px !important;
+          height: 35px !important;
+          min-height: 35px !important;
           font-size: 13px;
+        }
+        .premium-range-picker {
+          border: 1px dashed var(--border-slate-200) !important;
         }
         .dh-side-group { margin-bottom: 13px; }
         .dh-side-label {
@@ -3210,7 +3237,7 @@ const DocumentHubPage = () => {
           font-size: 12px;
           font-weight: 600;
           padding: 1px 8px;
-          border-radius: 999px;
+          border-radius: 5px;
           background: transparent;
           color: var(--text-slate-400);
         }
@@ -3314,7 +3341,7 @@ const DocumentHubPage = () => {
         .dh-main {
           flex: 1;
           min-width: 0;
-          height: calc(100vh - 64px);
+          height: calc(100vh - 54px);
           display: flex;
           flex-direction: column;
           overflow: hidden;
@@ -3348,13 +3375,36 @@ const DocumentHubPage = () => {
           box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
         }
         .dh-footer-summary {
-          font-size: 12px;
+          font-size: 13px;
           color: var(--text-slate-500);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
-        .dh-footer-strong { font-weight: 600; color: var(--text-slate-700); }
+        .dh-footer-strong { font-weight: 700; color: var(--text-slate-700); }
+        
+        /* Custom Pagination Styles */
+        .dh-main-footer .ant-pagination-item,
+        .dh-main-footer .ant-pagination-prev .ant-pagination-item-link,
+        .dh-main-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .dh-main-footer .ant-pagination-item-active {
+          background: #3b82f6 !important; /* using standard blue accent */
+          border-color: #3b82f6 !important;
+        }
+        .dh-main-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .dh-main-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          color: var(--text-slate-500) !important;
+        }
+        
         .dh-main-search { width: 320px; max-width: 42%; flex-shrink: 0; }
         .dh-search-kbd {
           display: inline-flex;
@@ -3456,14 +3506,14 @@ const DocumentHubPage = () => {
         @media (max-width: 860px) {
           .dh-shell {
             display: block;
-            margin: 0 -16px;
+            margin: 0;
             padding-left: 0;
             gap: 0;
           }
           /* Sidebar becomes a slide-in drawer */
           .dh-sidebar {
             position: fixed;
-            top: 64px; left: 0; bottom: 0;
+            top: 54px; left: 0; bottom: 0;
             height: auto;
             width: 286px;
             max-width: 86vw;
@@ -3481,7 +3531,7 @@ const DocumentHubPage = () => {
           .dh-sidebar-backdrop {
             display: block;
             position: fixed;
-            inset: 64px 0 0 0;
+            inset: 54px 0 0 0;
             background: rgba(15, 23, 42, 0.45);
             backdrop-filter: blur(2px);
             opacity: 0;
@@ -3492,7 +3542,7 @@ const DocumentHubPage = () => {
           .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
           .dh-main {
             height: auto;
-            min-height: calc(100vh - 64px);
+            min-height: calc(100vh - 54px);
             overflow: visible;
           }
           .dh-main-scroll { overflow: visible; }
@@ -3838,6 +3888,10 @@ const DocumentHubPage = () => {
         }
         /* Inline editable cells (Project/Ticket) — theme-aware hover bg.
          * Light: light-sky tint. Dark: subtle sky-tinted overlay. */
+        .dh-inline-cell {
+          background: #eff6ff;  /* always-on background */
+        }
+        [data-theme='dark'] .dh-inline-cell { background: rgba(56, 189, 248, 0.10); }
         .dh-inline-cell:hover { background: rgba(14, 165, 233, 0.08); }
         [data-theme='dark'] .dh-inline-cell:hover { background: rgba(56, 189, 248, 0.10); }
         /* "Add Project" / "Add Ticket" empty-state buttons. */

@@ -70,7 +70,7 @@ export function TimeTrackingHeader({
                 </div>
 
                 {description && <Divider type="vertical" className="bh-header-divider" />}
-                
+
                 {description && (
                   <div className="saas-header-description-box">
                     <Text style={{ fontSize: 12, color: 'var(--text-slate-600)', fontWeight: 600 }}>
@@ -159,7 +159,7 @@ export function TimeTrackingHeader({
         .saas-header-container .ant-row {
           row-gap: 8px !important;
         }
-        @media (max-width: 987px) {
+        @media (max-width: 992px) {
           .saas-header-left-group {
             flex-direction: column;
             align-items: flex-start !important;

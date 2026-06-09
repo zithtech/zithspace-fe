@@ -10,6 +10,7 @@ import {
   Segmented,
   Dropdown,
   App,
+  Drawer,
 } from "antd";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 
@@ -42,6 +43,7 @@ import {
   ChevronDown,
   Briefcase,
   List,
+  Menu,
 } from "lucide-react";
 import { useAllProjects } from "@/hooks/useGlobalData";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
@@ -203,6 +205,18 @@ export default function BugListPage() {
   const [sidebarWidth, setSidebarWidth] = useState(252);
   const [isResizing, setIsResizing] = useState(false);
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(max-width: 1024px)");
+    setIsMobile(mql.matches);
+    const handler = (e: MediaQueryListEvent | any) => setIsMobile(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
+
   const startResizing = useCallback((e: React.MouseEvent) => {
     setIsResizing(true);
     e.preventDefault();
@@ -251,16 +265,16 @@ export default function BugListPage() {
   const members = users.map(u => ({ value: u.value, label: u.label }));
   const allFolders = useMemo(() => {
     const res = [...(folders || [])];
-    archivedFolders?.forEach(f => { if(!res.find(x => x.id === f.id)) res.push(f); });
-    trashedFolders?.forEach(f => { if(!res.find(x => x.id === f.id)) res.push(f); });
+    archivedFolders?.forEach(f => { if (!res.find(x => x.id === f.id)) res.push(f); });
+    trashedFolders?.forEach(f => { if (!res.find(x => x.id === f.id)) res.push(f); });
     return res;
   }, [folders, archivedFolders, trashedFolders]);
 
   const allSheets = useMemo(() => {
     const res = [...(sheets || [])];
-    projectSheets?.forEach(s => { if(!res.find(x => x.id === s.id)) res.push(s); });
-    archivedSheets?.forEach(s => { if(!res.find(x => x.id === s.id)) res.push(s); });
-    trashedSheets?.forEach(s => { if(!res.find(x => x.id === s.id)) res.push(s); });
+    projectSheets?.forEach(s => { if (!res.find(x => x.id === s.id)) res.push(s); });
+    archivedSheets?.forEach(s => { if (!res.find(x => x.id === s.id)) res.push(s); });
+    trashedSheets?.forEach(s => { if (!res.find(x => x.id === s.id)) res.push(s); });
     return res;
   }, [sheets, projectSheets, archivedSheets, trashedSheets]);
 
@@ -424,6 +438,9 @@ export default function BugListPage() {
     if (isSelectingCollection && (scope === "mine" || scope === "trash" || scope === "archived")) {
       setScope("all");
     }
+    if (typeof window !== "undefined" && window.innerWidth <= 1024) {
+      setMobileMenuOpen(false);
+    }
   };
 
   const openCreateBug = () => {
@@ -508,43 +525,98 @@ export default function BugListPage() {
     <div className={`hb-root ${theme === "dark" ? "hb-dark" : "hb-light"}`}>
       <style>{hivebugStyles}</style>
 
-      <HivebugSidebar
-        scope={scope}
-        width={sidebarWidth}
-        onResizerMouseDown={startResizing}
-        onScopeChange={setScope}
-        selectedFolderId={selectedFolderId}
-        selectedSheetId={selectedSheetId}
-        onSelect={handleSelectFromSidebar}
-        onCreateFolder={() => {
-          setEditingFolder(null);
-          setFolderModalOpen(true);
-        }}
-        onEditFolder={(f) => {
-          setEditingFolder(f);
-          setFolderModalOpen(true);
-        }}
-        onCreateSheet={(folderId) => {
-          setSheetParentFolderId(folderId);
-          setEditingSheet(null);
-          setSheetModalOpen(true);
-        }}
-        onEditSheet={(s) => {
-          setSheetParentFolderId(s.folderId);
-          setEditingSheet(s);
-          setSheetModalOpen(true);
-        }}
-        selectedProjectId={selectedProjectId}
-        onProjectChange={(id) => {
-          setSelectedProjectId(id);
-          setSelectedFolderId(null);
-          setSelectedSheetId(null);
-        }}
-      />
+      {isMobile ? (
+        <Drawer
+          className={`hb-root ${theme === "dark" ? "hb-dark" : "hb-light"}`}
+          placement="left"
+          open={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          styles={{ body: { padding: 0 }, header: { display: "none" } }}
+          width={210}
+          closeIcon={null}
+        >
+          <HivebugSidebar
+            scope={scope}
+            width={210}
+            onResizerMouseDown={startResizing}
+            onScopeChange={setScope}
+            selectedFolderId={selectedFolderId}
+            selectedSheetId={selectedSheetId}
+            onSelect={handleSelectFromSidebar}
+            onCreateFolder={() => {
+              setEditingFolder(null);
+              setFolderModalOpen(true);
+            }}
+            onEditFolder={(f) => {
+              setEditingFolder(f);
+              setFolderModalOpen(true);
+            }}
+            onCreateSheet={(folderId) => {
+              setSheetParentFolderId(folderId);
+              setEditingSheet(null);
+              setSheetModalOpen(true);
+            }}
+            onEditSheet={(s) => {
+              setSheetParentFolderId(s.folderId);
+              setEditingSheet(s);
+              setSheetModalOpen(true);
+            }}
+            selectedProjectId={selectedProjectId}
+            onProjectChange={(id) => {
+              setSelectedProjectId(id);
+              setSelectedFolderId(null);
+              setSelectedSheetId(null);
+            }}
+          />
+        </Drawer>
+      ) : (
+        <HivebugSidebar
+          scope={scope}
+          width={sidebarWidth}
+          onResizerMouseDown={startResizing}
+          onScopeChange={setScope}
+          selectedFolderId={selectedFolderId}
+          selectedSheetId={selectedSheetId}
+          onSelect={handleSelectFromSidebar}
+          onCreateFolder={() => {
+            setEditingFolder(null);
+            setFolderModalOpen(true);
+          }}
+          onEditFolder={(f) => {
+            setEditingFolder(f);
+            setFolderModalOpen(true);
+          }}
+          onCreateSheet={(folderId) => {
+            setSheetParentFolderId(folderId);
+            setEditingSheet(null);
+            setSheetModalOpen(true);
+          }}
+          onEditSheet={(s) => {
+            setSheetParentFolderId(s.folderId);
+            setEditingSheet(s);
+            setSheetModalOpen(true);
+          }}
+          selectedProjectId={selectedProjectId}
+          onProjectChange={(id) => {
+            setSelectedProjectId(id);
+            setSelectedFolderId(null);
+            setSelectedSheetId(null);
+          }}
+        />
+      )}
 
       <main className="hb-main">
         <header className="hb-header">
           <div className="hb-breadcrumb" style={{ paddingLeft: 0 }}>
+            {isMobile && (
+              <button
+                className="hb-btn hb-btn-icon hb-btn-ghost"
+                onClick={() => setMobileMenuOpen(true)}
+                style={{ marginRight: 8, padding: "4px 8px" }}
+              >
+                <Menu size={18} />
+              </button>
+            )}
             <div className="hb-project-switcher-header">
               <Dropdown
                 trigger={["click"]}
@@ -565,7 +637,7 @@ export default function BugListPage() {
                       key: p.value,
                       label: (
                         <div className={`hb-project-dropdown-item ${p.value === selectedProjectId ? 'hb-selected' : ''}`}>
-                          <div className="hb-project-code-badge" style={{ 
+                          <div className="hb-project-code-badge" style={{
                             background: p.value === selectedProjectId ? 'var(--hb-accent)' : `hsla(${stringToHash(p.code || 'PRJ') % 360}, 70%, 50%, 0.1)`,
                             color: p.value === selectedProjectId ? '#fff' : `hsl(${stringToHash(p.code || 'PRJ') % 360}, 70%, 50%)`
                           }}>
@@ -690,16 +762,15 @@ export default function BugListPage() {
               </div>
 
               <button
-                className={`hb-btn hb-btn-ghost hb-filter-toggle ${
-                  filtersVisible ? "active" : ""
-                }`}
+                className={`hb-btn hb-btn-ghost hb-filter-toggle ${filtersVisible ? "active" : ""
+                  }`}
                 onClick={() => setFiltersVisible((v) => !v)}
                 aria-pressed={filtersVisible}
                 disabled={viewMode === "calendar"}
                 style={viewMode === "calendar" ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
               >
                 <SlidersHorizontal size={14} />
-                Filters
+                <span className="hb-btn-text">Filters</span>
                 {activeFilterCount > 0 && (
                   <span className="hb-filter-badge">{activeFilterCount}</span>
                 )}
@@ -715,6 +786,7 @@ export default function BugListPage() {
                   }}
                 >
                   <Trash2 size={14} />
+                  <span className="hb-btn-text">Trash</span>
                 </button>
               </Tooltip>
 
@@ -728,6 +800,8 @@ export default function BugListPage() {
                   }}
                 >
                   <Archive size={14} />
+                  <span className="hb-btn-text">Archive</span>
+
                 </button>
               </Tooltip>
 
@@ -1055,9 +1129,9 @@ export default function BugListPage() {
                     onChange={(targetSheetId) => {
                       if (!targetSheetId) return;
                       bulkMoveBugs.mutate(
-                        { 
-                          bugIds: Array.from(selectedIds), 
-                          targetSheetId 
+                        {
+                          bugIds: Array.from(selectedIds),
+                          targetSheetId
                         },
                         {
                           onSuccess: () => {
@@ -1088,7 +1162,7 @@ export default function BugListPage() {
                     <Sparkles size={13} />
                     Create ticket{selectedIds.size === 1 ? "" : "s"}
                   </button>
-                   {/* <button
+                  {/* <button
                     className="hb-btn hb-btn-ghost"
                     onClick={() =>
                       bulkUpdateStatus.mutate({
@@ -1107,7 +1181,7 @@ export default function BugListPage() {
                     onConfirm={() => bulkDelete.mutate(Array.from(selectedIds))}
                     disabled={!canDeleteBug}
                   >
-                    <button 
+                    <button
                       className="hb-btn hb-btn-danger"
                       disabled={!canDeleteBug}
                       style={{ opacity: canDeleteBug ? 1 : 0.5, cursor: canDeleteBug ? 'pointer' : 'not-allowed' }}
@@ -1133,7 +1207,7 @@ export default function BugListPage() {
               <h3>Choose a Project</h3>
               <p>To view bugs and manage your workflow, please select a project from the header above.</p>
               <div className="hb-empty-actions">
-                <button 
+                <button
                   className="hb-btn hb-btn-primary hb-btn-lg"
                   onClick={() => {
                     message.info("Click the project switcher in the top-left");
@@ -1177,185 +1251,185 @@ export default function BugListPage() {
           ) : (
             <>
               {scope === "archived" && !selectedSheetId && (
-            <ArchiveView
-              selectedSheetId={selectedSheetId}
-              selectedFolderId={selectedFolderId}
-              onSelectFolder={setSelectedFolderId}
-              activeTab={subScope as any}
-              onTabChange={(v) => setSubScope(v as any)}
-              onSelectSheet={setSelectedSheetId}
-              onSelectBug={(bug) => {
-                setEditingBug(bug);
-                setBugDrawerOpen(true);
-              }}
-            />
-          )}
-          {scope === "trash" && !selectedSheetId && (
-            <TrashView
-              selectedSheetId={selectedSheetId}
-              selectedFolderId={selectedFolderId}
-              onSelectFolder={setSelectedFolderId}
-              activeTab={subScope as any}
-              onTabChange={(v) => setSubScope(v as any)}
-              onSelectSheet={setSelectedSheetId}
-              onSelectBug={(bug) => {
-                setEditingBug(bug);
-                setBugDrawerOpen(true);
-              }}
-            />
-          )}
+                <ArchiveView
+                  selectedSheetId={selectedSheetId}
+                  selectedFolderId={selectedFolderId}
+                  onSelectFolder={setSelectedFolderId}
+                  activeTab={subScope as any}
+                  onTabChange={(v) => setSubScope(v as any)}
+                  onSelectSheet={setSelectedSheetId}
+                  onSelectBug={(bug) => {
+                    setEditingBug(bug);
+                    setBugDrawerOpen(true);
+                  }}
+                />
+              )}
+              {scope === "trash" && !selectedSheetId && (
+                <TrashView
+                  selectedSheetId={selectedSheetId}
+                  selectedFolderId={selectedFolderId}
+                  onSelectFolder={setSelectedFolderId}
+                  activeTab={subScope as any}
+                  onTabChange={(v) => setSubScope(v as any)}
+                  onSelectSheet={setSelectedSheetId}
+                  onSelectBug={(bug) => {
+                    setEditingBug(bug);
+                    setBugDrawerOpen(true);
+                  }}
+                />
+              )}
 
-          {/* ── archived sheet context banner ── */}
-          {scope === "archived" && selectedSheetId && (
-            <div className="hb-archive-banner">
-              <div className="hb-archive-banner-icon">
-                <Archive size={14} />
-              </div>
-              <div className="hb-archive-banner-text">
-                <div className="hb-archive-banner-title">
-                  Archived Sheet — Read Only
+              {/* ── archived sheet context banner ── */}
+              {scope === "archived" && selectedSheetId && (
+                <div className="hb-archive-banner">
+                  <div className="hb-archive-banner-icon">
+                    <Archive size={14} />
+                  </div>
+                  <div className="hb-archive-banner-text">
+                    <div className="hb-archive-banner-title">
+                      Archived Sheet — Read Only
+                    </div>
+                    <div className="hb-archive-banner-sub">
+                      You're viewing bugs from{" "}
+                      <strong>
+                        {archivedSheets?.find((s) => s.id === selectedSheetId)?.name || "this sheet"}
+                      </strong>.
+                      Archived sheets cannot be edited.
+                    </div>
+                  </div>
+                  <button
+                    className="hb-archive-banner-back"
+                    onClick={() => setSelectedSheetId(null)}
+                  >
+                    <ChevronLeft size={13} />
+                    Back to Archived Sheets
+                  </button>
                 </div>
-                <div className="hb-archive-banner-sub">
-                  You're viewing bugs from{" "}
-                  <strong>
-                    {archivedSheets?.find((s) => s.id === selectedSheetId)?.name || "this sheet"}
-                  </strong>.
-                  Archived sheets cannot be edited.
-                </div>
-              </div>
-              <button
-                className="hb-archive-banner-back"
-                onClick={() => setSelectedSheetId(null)}
-              >
-                <ChevronLeft size={13} />
-                Back to Archived Sheets
-              </button>
-            </div>
-          )}
+              )}
 
-          {/* ── trash sheet context banner ── */}
-          {scope === "trash" && selectedSheetId && (
-            <div className="hb-archive-banner">
-              <div className="hb-archive-banner-icon">
-                <Trash2 size={14} />
-              </div>
-              <div className="hb-archive-banner-text">
-                <div className="hb-archive-banner-title">
-                  Trashed Sheet — Read Only
+              {/* ── trash sheet context banner ── */}
+              {scope === "trash" && selectedSheetId && (
+                <div className="hb-archive-banner">
+                  <div className="hb-archive-banner-icon">
+                    <Trash2 size={14} />
+                  </div>
+                  <div className="hb-archive-banner-text">
+                    <div className="hb-archive-banner-title">
+                      Trashed Sheet — Read Only
+                    </div>
+                    <div className="hb-archive-banner-sub">
+                      You're viewing bugs from{" "}
+                      <strong>
+                        {trashedSheets?.find((s) => s.id === selectedSheetId)?.name || "this trashed sheet"}
+                      </strong>.
+                      Trashed sheets can be restored or permanently deleted.
+                    </div>
+                  </div>
+                  <button
+                    className="hb-archive-banner-back"
+                    onClick={() => setSelectedSheetId(null)}
+                  >
+                    <ChevronLeft size={13} />
+                    Back to Trash
+                  </button>
                 </div>
-                <div className="hb-archive-banner-sub">
-                  You're viewing bugs from{" "}
-                  <strong>
-                    {trashedSheets?.find((s) => s.id === selectedSheetId)?.name || "this trashed sheet"}
-                  </strong>.
-                  Trashed sheets can be restored or permanently deleted.
-                </div>
-              </div>
-              <button
-                className="hb-archive-banner-back"
-                onClick={() => setSelectedSheetId(null)}
-              >
-                <ChevronLeft size={13} />
-                Back to Trash
-              </button>
-            </div>
-          )}
-          {(scope !== "archived" || (scope === "archived" && selectedSheetId)) && (scope !== "trash" || (scope === "trash" && selectedSheetId)) && (
-            <>
-              <HivebugTable
-                bugs={bugs}
-                loading={isLoading || isFetching}
-                selectedIds={selectedIds}
-                onToggleAll={toggleAll}
-                onToggle={toggleOne}
-                onEdit={(bug) => {
-                  setEditingBug(bug);
-                  setBugDrawerOpen(true);
-                }}
-                onCreateTicket={(bug) => {
-                  setSelectedIds(new Set([bug.id]));
-                  setBulkTicketOpen(true);
-                }}
-                onVerify={(bug) => verifyBug.mutate(bug.id)}
-                onReopen={(bug) => reopenBug.mutate(bug.id)}
-                onIgnore={(bug) =>
-                  bulkUpdateStatus.mutate({ bugIds: [bug.id], status: "ignored" })
-                }
-                onDelete={(bug) =>
-                  scope === "trash"
-                    ? permanentDeleteBug.mutate(bug.id)
-                    : deleteBug.mutate(bug.id)
-                }
-                onRestore={(bug) => restoreBug.mutate(bug.id)}
-                onArchive={(bug) =>
-                  bulkUpdateStatus.mutate({ bugIds: [bug.id], status: "archived" })
-                }
-                onBugStatusUpdate={handleBugStatusUpdate}
-                isTrashView={scope === "trash"}
-                isArchiveView={scope === "archived"}
-                isNestedInSheet={isNestedInSheet}
-                isNestedInFolder={isNestedInFolder}
-              />
+              )}
+              {(scope !== "archived" || (scope === "archived" && selectedSheetId)) && (scope !== "trash" || (scope === "trash" && selectedSheetId)) && (
+                <>
+                  <HivebugTable
+                    bugs={bugs}
+                    loading={isLoading || isFetching}
+                    selectedIds={selectedIds}
+                    onToggleAll={toggleAll}
+                    onToggle={toggleOne}
+                    onEdit={(bug) => {
+                      setEditingBug(bug);
+                      setBugDrawerOpen(true);
+                    }}
+                    onCreateTicket={(bug) => {
+                      setSelectedIds(new Set([bug.id]));
+                      setBulkTicketOpen(true);
+                    }}
+                    onVerify={(bug) => verifyBug.mutate(bug.id)}
+                    onReopen={(bug) => reopenBug.mutate(bug.id)}
+                    onIgnore={(bug) =>
+                      bulkUpdateStatus.mutate({ bugIds: [bug.id], status: "ignored" })
+                    }
+                    onDelete={(bug) =>
+                      scope === "trash"
+                        ? permanentDeleteBug.mutate(bug.id)
+                        : deleteBug.mutate(bug.id)
+                    }
+                    onRestore={(bug) => restoreBug.mutate(bug.id)}
+                    onArchive={(bug) =>
+                      bulkUpdateStatus.mutate({ bugIds: [bug.id], status: "archived" })
+                    }
+                    onBugStatusUpdate={handleBugStatusUpdate}
+                    isTrashView={scope === "trash"}
+                    isArchiveView={scope === "archived"}
+                    isNestedInSheet={isNestedInSheet}
+                    isNestedInFolder={isNestedInFolder}
+                  />
+                </>
+              )}
             </>
           )}
-        </>
-      )}
-    </div>
+        </div>
 
-    {showPagination && bugsResponse?.pagination && (
-      <div className="hb-pagination">
-        <div className="hb-pagination-info">
-          Showing
-          <strong>
-            {" "}
-            {(page - 1) * limit + 1}
-            –{(page - 1) * limit + shown}{" "}
-          </strong>
-          of <strong>{total}</strong>
-        </div>
-        <div className="hb-pagination-controls">
-          <label className="hb-pagination-pagesize">
-            Rows
-            <select
-              value={limit}
-              onChange={(e) => {
-                setLimit(Number(e.target.value));
-                setPage(1);
-              }}
-            >
-              {[10, 25, 50, 100].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="hb-pagination-pager">
-            <button
-              className="hb-pagination-btn"
-              disabled={!bugsResponse.pagination.hasPrev}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              aria-label="Previous page"
-            >
-              ‹ Prev
-            </button>
-            <span className="hb-pagination-page">
-              Page <strong>{page}</strong> of{" "}
-              <strong>{bugsResponse.pagination.pages}</strong>
-            </span>
-            <button
-              className="hb-pagination-btn"
-              disabled={!bugsResponse.pagination.hasNext}
-              onClick={() => setPage((p) => p + 1)}
-              aria-label="Next page"
-            >
-              Next ›
-            </button>
+        {showPagination && bugsResponse?.pagination && (
+          <div className="hb-pagination">
+            <div className="hb-pagination-info">
+              Showing
+              <strong>
+                {" "}
+                {(page - 1) * limit + 1}
+                –{(page - 1) * limit + shown}{" "}
+              </strong>
+              of <strong>{total}</strong>
+            </div>
+            <div className="hb-pagination-controls">
+              <label className="hb-pagination-pagesize">
+                Rows
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setPage(1);
+                  }}
+                >
+                  {[10, 25, 50, 100].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="hb-pagination-pager">
+                <button
+                  className="hb-pagination-btn"
+                  disabled={!bugsResponse.pagination.hasPrev}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  aria-label="Previous page"
+                >
+                  ‹ Prev
+                </button>
+                <span className="hb-pagination-page">
+                  Page <strong>{page}</strong> of{" "}
+                  <strong>{bugsResponse.pagination.pages}</strong>
+                </span>
+                <button
+                  className="hb-pagination-btn"
+                  disabled={!bugsResponse.pagination.hasNext}
+                  onClick={() => setPage((p) => p + 1)}
+                  aria-label="Next page"
+                >
+                  Next ›
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    )}
-  </main>
+        )}
+      </main>
 
       <CreateBugDrawer
         open={bugDrawerOpen}

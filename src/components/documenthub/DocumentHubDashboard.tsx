@@ -6,7 +6,7 @@ import {
     FileTextOutlined,
     FolderOutlined,
     ProjectOutlined,
-    UserOutlined,
+    TeamOutlined,
     RiseOutlined,
 } from '@ant-design/icons';
 import { DocumentHub } from '@/services/documentHub';
@@ -31,10 +31,7 @@ const WeekRing: React.FC<{
     const size = 44;
     const stroke = 4;
     const r = (size - stroke) / 2;
-    const c = 2 * Math.PI * r;
     const pct = total > 0 ? Math.min(weekCount / total, 1) : 0;
-    const dash = c * pct;
-    const display = weekCount > 99 ? '99+' : weekCount;
 
     const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     const today = new Date().getDay();
@@ -156,43 +153,29 @@ const WeekRing: React.FC<{
             }}
         >
             <div className="relative cursor-default" style={{ width: size, height: size }}>
-                <svg width={size} height={size} style={{ display: 'block', transform: 'rotate(-90deg)' }}>
+                <svg width={size} height={size} style={{ display: 'block' }}>
                     <circle
                         cx={size / 2}
                         cy={size / 2}
                         r={r}
                         fill="none"
-                        stroke={color}
-                        strokeOpacity={0.14}
+                        stroke={isDark ? 'rgba(255,255,255,0.16)' : '#e2e8f0'}
                         strokeWidth={stroke}
-                    />
-                    <circle
-                        cx={size / 2}
-                        cy={size / 2}
-                        r={r}
-                        fill="none"
-                        stroke={color}
-                        strokeWidth={stroke}
-                        strokeLinecap="round"
-                        strokeDasharray={`${dash} ${c - dash}`}
-                        style={{ transition: 'stroke-dasharray 400ms ease' }}
                     />
                 </svg>
                 <div
-                    className="absolute inset-0 flex flex-col items-center justify-center"
+                    className="absolute inset-0 flex items-center justify-center"
                     style={{ lineHeight: 1 }}
                 >
                     <span
-                        className="font-bold tracking-tight"
-                        style={{ fontSize: 12, color, letterSpacing: '-0.02em' }}
+                        className="font-semibold"
+                        style={{
+                            fontSize: 11,
+                            color: isDark ? 'rgba(255,255,255,0.55)' : 'var(--text-slate-400, #94a3b8)',
+                            letterSpacing: '0.02em',
+                        }}
                     >
-                        {display}
-                    </span>
-                    <span
-                        className="font-semibold uppercase"
-                        style={{ fontSize: 7, color: 'var(--text-slate-400)', letterSpacing: '0.06em', marginTop: 1 }}
-                    >
-                        7d
+                        7D
                     </span>
                 </div>
             </div>
@@ -269,7 +252,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                 key: 'people',
                 title: 'Contributors',
                 value: uniqueCreators,
-                icon: <UserOutlined />,
+                icon: <TeamOutlined />,
                 color: '#F59E0B',
                 tint: 'rgba(245, 158, 11, 0.10)',
                 trend: days.map((d) => usersByDay[dayKey(d)]),
@@ -279,15 +262,16 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
 
     if (isLoading) {
         return (
-            <div
-                className="flex items-center gap-0 mb-3 rounded-2xl overflow-hidden"
-                style={{
-                    border: '1px solid var(--border-slate-200)',
-                    background: 'var(--bg-pure-white)',
-                }}
-            >
+            <div className="dh-stats-grid grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
                 {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex-1 px-5 py-3" style={{ borderRight: i < 4 ? '1px solid var(--border-slate-200)' : 'none' }}>
+                    <div
+                        key={i}
+                        className="rounded-xl px-4 py-3.5"
+                        style={{
+                            border: '1px solid var(--border-slate-200)',
+                            background: 'var(--bg-pure-white)',
+                        }}
+                    >
                         <Skeleton active paragraph={{ rows: 1 }} title={{ width: '60%' }} />
                     </div>
                 ))}
@@ -296,86 +280,74 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
     }
 
     return (
-        <div
-            className="dh-stats-strip flex flex-col sm:flex-row items-stretch mb-3 rounded-2xl overflow-hidden"
-            style={{
-                border: '1px solid var(--border-slate-200)',
-                background: 'var(--bg-pure-white)',
-                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-            }}
-        >
-            {stats.map((s, i) => (
-                <div
-                    key={s.key}
-                    className={`dh-stats-cell flex-1 flex items-center gap-2 lg:gap-3 px-3 lg:px-5 py-3 transition-colors ${i < stats.length - 1 ? 'dh-stats-cell-divider' : ''}`}
-                    style={{ minWidth: 0 }}
-                >
+        <div className="dh-stats-grid grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+            {stats.map((s) => {
+                const delta = s.trend.reduce((a, b) => a + b, 0);
+                return (
                     <div
-                        className="flex items-center justify-center shrink-0 rounded-xl"
+                        key={s.key}
+                        className="dh-stats-card flex items-start gap-3 rounded-xl px-4 py-3.5 transition-all"
                         style={{
-                            width: 38,
-                            height: 38,
-                            background: s.tint,
-                            color: s.color,
-                            fontSize: 16,
+                            border: '1px solid var(--border-slate-200)',
+                            background: 'var(--bg-pure-white)',
+                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
                         }}
                     >
-                        {s.icon}
-                    </div>
-                    <div className="flex flex-col min-w-0 flex-1">
-                        <span
-                            className="text-[9.5px] lg:text-[10.5px] font-semibold uppercase tracking-[0.08em] truncate"
-                            style={{ color: 'var(--text-slate-400)' }}
+                        <div
+                            className="flex items-center justify-center shrink-0"
+                            style={{
+                                width: 34,
+                                color: 'var(--text-slate-800, #1e293b)',
+                                fontSize: 24,
+                            }}
                         >
-                            {s.title}
-                        </span>
-                        <div className="flex flex-wrap items-baseline gap-1.5 lg:gap-2">
+                            {s.icon}
+                        </div>
+                        <div className="flex flex-col min-w-0 flex-1">
                             <span
-                                className="text-[16px] lg:text-[22px] font-bold leading-none tracking-tight"
-                                style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}
+                                className="text-[10px] lg:text-[10.5px] font-semibold uppercase tracking-[0.08em] truncate"
+                                style={{ color: 'var(--text-slate-400)' }}
                             >
-                                {s.value}
+                                {s.title}
                             </span>
-                            {'delta' in s && (s as any).delta > 0 && (
-                                <Tooltip title="New this week">
-                                    <span
-                                        className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-[1px] rounded-full"
-                                        style={{ background: s.tint, color: s.color }}
-                                    >
-                                        <RiseOutlined style={{ fontSize: 8 }} />+{(s as any).delta}
-                                    </span>
-                                </Tooltip>
-                            )}
+                            <div className="flex flex-wrap items-baseline gap-2 mt-0.5">
+                                <span
+                                    className="text-[20px] lg:text-[24px] font-bold leading-none tracking-tight"
+                                    style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}
+                                >
+                                    {s.value}
+                                </span>
+                                {delta > 0 && (
+                                    <Tooltip title="New this week">
+                                        <span
+                                            className="inline-flex items-center gap-0.5 text-[11px] font-bold"
+                                            style={{ color: '#16a34a' }}
+                                        >
+                                            <RiseOutlined style={{ fontSize: 9 }} />+{delta}
+                                        </span>
+                                    </Tooltip>
+                                )}
+                            </div>
+                        </div>
+                        <div className="shrink-0">
+                            <WeekRing
+                                title={s.title}
+                                weekCount={delta}
+                                total={s.value}
+                                color={s.color}
+                                trend={s.trend}
+                            />
                         </div>
                     </div>
-                    <div className="shrink-0 hidden lg:block">
-                        <WeekRing
-                            title={s.title}
-                            weekCount={s.trend.reduce((a, b) => a + b, 0)}
-                            total={s.value}
-                            color={s.color}
-                            trend={s.trend}
-                        />
-                    </div>
-                </div>
-            ))}
+                );
+            })}
             <style jsx>{`
-                .dh-stats-cell:hover {
-                    background: var(--bg-slate-50, #f8fafc);
+                .dh-stats-card:hover {
+                    border-color: var(--border-slate-300, #cbd5e1);
+                    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
                 }
-                :global([data-theme='dark']) .dh-stats-cell:hover {
+                :global([data-theme='dark']) .dh-stats-card:hover {
                     background: rgba(255, 255, 255, 0.02);
-                }
-                /* Divider switches direction with the flex axis: vertical (right edge) on
-                 * desktop row layout, horizontal (bottom edge) on mobile column layout. */
-                .dh-stats-cell-divider {
-                    border-bottom: 1px solid var(--border-slate-200);
-                }
-                @media (min-width: 640px) {
-                    .dh-stats-cell-divider {
-                        border-bottom: none;
-                        border-right: 1px solid var(--border-slate-200);
-                    }
                 }
             `}</style>
         </div>

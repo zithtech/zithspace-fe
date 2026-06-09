@@ -50,6 +50,8 @@ import {
   FileOutlined,
   CaretUpFilled,
   CaretDownFilled,
+  MenuOutlined,
+  DownOutlined,
 } from "@ant-design/icons";
 import ShareModal from "@/components/documenthub/ShareModal";
 import {
@@ -72,6 +74,8 @@ import {
   Popover,
   Switch,
   Grid,
+  Checkbox,
+  Pagination,
 } from "antd";
 import type { MenuProps } from "antd";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -104,12 +108,12 @@ const accentForId = (id: string) => {
 };
 
 const RECENT_KEY = 'dh_recent_v1';
-const VIEW_KEY = 'dh_view_v1';
+const VIEW_KEY = 'dh_view_v2';
 const SAVED_VIEW_KEY = 'dh_savedview_v1';
 const TOUR_KEY = 'dh_tour_seen_v1';
 const DENSITY_KEY = 'dh_density_v1';
 const COLS_KEY = 'dh_cols_v1';
-const COL_WIDTHS_KEY = 'dh_col_widths_v1';
+const COL_WIDTHS_KEY = 'dh_col_widths_v3';
 const RAILS_KEY = 'dh_rails_v1';
 
 // Default rail visibility: only "Recently opened" is on by default; users opt
@@ -117,7 +121,7 @@ const RAILS_KEY = 'dh_rails_v1';
 const DEFAULT_RAILS = { pinned: false, recent: true };
 type RailVisibility = typeof DEFAULT_RAILS;
 
-type ViewMode = 'table' | 'grid' | 'kanban';
+type ViewMode = 'cards' | 'table';
 type SavedView = 'all' | 'mine' | 'shared' | 'public' | 'starred';
 type Density = 'compact' | 'comfortable' | 'spacious';
 
@@ -126,14 +130,14 @@ const NEW_BADGE_MS = 5 * 60 * 1000;
 
 // Default widths used when the user hasn't dragged a column yet.
 const DEFAULT_COL_WIDTHS: Record<string, number> = {
-  name: 320,
-  project: 150,
-  ticket: 160,
-  createdBy: 160,
-  createdAt: 140,
-  updatedAt: 140,
-  visibility: 120,
-  actions: 140,
+  name: 220,
+  project: 110,
+  ticket: 126,
+  createdBy: 124,
+  createdAt: 100,
+  updatedAt: 100,
+  visibility: 116,
+  actions: 100,
 };
 
 // Toggleable columns (star/name/actions are always visible).
@@ -230,25 +234,28 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
         }}
       >
         <div
-          className="dh-inline-cell flex flex-col py-0.5 px-2 rounded-md transition-colors group"
+          className="dh-inline-cell flex items-center gap-1 py-1 px-2 rounded-md transition-colors group"
           style={{ width: 'fit-content', maxWidth: '100%' }}
         >
           <span
             role="button"
             tabIndex={0}
             onClick={(e) => { e.stopPropagation(); openTicketDrawer(record.ticketId); }}
-            className="font-semibold text-sky-500 group-hover:text-sky-600 cursor-pointer"
-            style={{ fontSize: '11px', lineHeight: '1.2' }}
+            className="font-semibold text-sky-500 group-hover:text-sky-600 cursor-pointer truncate"
+            style={{ fontSize: '12px', lineHeight: '1.2' }}
           >
             {record.ticket?.ticketNumber}
           </span>
-          <span
-            onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-            className="text-slate-400 truncate group-hover:text-slate-500 cursor-pointer"
-            style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '160px' }}
-          >
-            {record.ticket?.title}
-          </span>
+          {isOwner && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+              className="dh-name-pencil opacity-0 group-hover:opacity-100"
+              aria-label="Change ticket"
+            >
+              <EditOutlined style={{ fontSize: 10 }} />
+            </button>
+          )}
         </div>
       </Tooltip>
     );
@@ -319,17 +326,13 @@ const InlineProjectSelector = ({ record, projects, projectsLoading, updateHub, u
     return (
       <div
         onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-        className="dh-inline-cell flex flex-col py-0.5 px-2 rounded-md cursor-pointer transition-colors group"
+        className="dh-inline-cell flex items-center gap-1.5 py-1 px-2 rounded-md cursor-pointer transition-colors group"
         style={{ width: 'fit-content', maxWidth: '100%' }}
       >
-        <span className="font-semibold text-sky-600 group-hover:text-sky-700" style={{ fontSize: '11px', lineHeight: '1.2' }}>
+        <span style={{ width: 6, height: 6, borderRadius: 999, background: '#3b82f6', flex: 'none' }} />
+        <span className="font-semibold text-sky-600 group-hover:text-sky-700 truncate" style={{ fontSize: '12px', lineHeight: '1.2', maxWidth: '100%' }}>
           {record.project?.name}
         </span>
-        {record.project?.code && (
-          <span className="text-slate-400 group-hover:text-slate-500 truncate" style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '130px' }}>
-            {record.project.code}
-          </span>
-        )}
       </div>
     );
   }
@@ -735,6 +738,7 @@ const DocumentHubPage = () => {
   const [optimisticStarred, setOptimisticStarred] = useState<Record<string, boolean>>({});
   const [isCreating, setIsCreating] = useState(false);
   const [trashVisible, setTrashVisible] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [aiModalVisible, setAiModalVisible] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
@@ -845,7 +849,7 @@ const DocumentHubPage = () => {
   useEffect(() => {
     try {
       const v = localStorage.getItem(VIEW_KEY) as ViewMode | null;
-      if (v && ['table', 'grid', 'kanban'].includes(v)) setViewMode(v);
+      if (v && ['cards', 'table'].includes(v)) setViewMode(v);
       const s = localStorage.getItem(SAVED_VIEW_KEY) as SavedView | null;
       if (s && ['all', 'mine', 'shared', 'public', 'starred'].includes(s)) setSavedView(s);
       const r = localStorage.getItem(RECENT_KEY);
@@ -1181,7 +1185,7 @@ const DocumentHubPage = () => {
 
   // Keyboard navigation (j/k/enter) for the table view.
   useEffect(() => {
-    if (viewMode !== 'table') return;
+    if (viewMode !== 'table' && viewMode !== 'cards') return;
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
@@ -1259,7 +1263,7 @@ const DocumentHubPage = () => {
       _key: 'name',
       title: (
         <span style={{ paddingLeft: 38, display: 'inline-flex' }}>
-          <ColumnTitle icon={<FolderOutlined />} label="Doc Name" sortKey="name" sortedKey={sortedKey} sortedDir={sortedDir} />
+          <ColumnTitle icon={<FolderOutlined />} label="Name" sortKey="name" sortedKey={sortedKey} sortedDir={sortedDir} />
         </span>
       ),
       dataIndex: 'name',
@@ -1267,7 +1271,6 @@ const DocumentHubPage = () => {
       width: colWidths.name,
       // fixed: 'left',
       render: (text, record) => {
-        const accent = accentForId(record.id);
         const docCount = (record as any).treeNodes?.filter((n: any) => n.type === 'file').length || 0;
         const updatedRel = formatDistanceToNow(new Date(record.updatedAt), { addSuffix: true });
         const isNew = Date.now() - new Date(record.createdAt).getTime() < NEW_BADGE_MS;
@@ -1293,14 +1296,15 @@ const DocumentHubPage = () => {
               </button>
             </Tooltip>
             <div
-              className="flex items-center justify-center shrink-0 text-white"
+              className="flex items-center justify-center shrink-0"
               style={{
                 width: 30, height: 30, borderRadius: 8,
-                background: `linear-gradient(135deg, ${accent.from} 0%, ${accent.to} 100%)`,
-                boxShadow: `0 2px 6px ${accent.tint}`,
+                background: 'var(--bg-slate-100)',
+                border: '1px solid var(--border-slate-200)',
+                color: 'var(--text-slate-500)',
               }}
             >
-              <FolderOutlined style={{ fontSize: 13 }} />
+              <FolderOutlined style={{ fontSize: 14 }} />
             </div>
             <div className="flex flex-col min-w-0 flex-1">
               {isEditingThis ? (
@@ -1406,17 +1410,8 @@ const DocumentHubPage = () => {
       dataIndex: ['createdBy', 'name'],
       key: 'createdBy',
       width: colWidths.createdBy,
-      render: (text, record) => (
-        <Space>
-          <Avatar
-            size={24}
-            src={record.createdBy?.avatarUrl}
-            style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: '10px' }}
-          >
-            {text?.charAt(0).toUpperCase()}
-          </Avatar>
-          <span style={{ color: 'var(--text-slate-700)' }}>{text}</span>
-        </Space>
+      render: (text) => (
+        <span className="text-[12.5px]" style={{ color: 'var(--text-slate-700)' }}>{text}</span>
       ),
     },
     {
@@ -1492,50 +1487,7 @@ const DocumentHubPage = () => {
       dataIndex: 'visibility',
       key: 'visibility',
       width: colWidths.visibility,
-      render: (visibility, record) => {
-        const isOwner = user?.id === record.createdById;
-        return (
-          <div onClick={(e) => e.stopPropagation()} style={{ width: 124 }}>
-            <SearchableDropdown
-              value={visibility || 'private'}
-              disabled={!isOwner}
-              placeholder="Private"
-              itemNoun="visibilities"
-              allowClear={false}
-              width={200}
-              onChange={async (value) => {
-                if (!value) return;
-                try {
-                  if (value === 'public') {
-                    await DocumentHubService.shareDocumentHub(record.id, 'public');
-                  } else {
-                    await DocumentHubService.revokeHubShare(record.id);
-                  }
-                  messageApi.success(`Hub is now ${value}`);
-                  refetch();
-                } catch (error) {
-                  console.error(error);
-                  messageApi.error("Failed to update visibility");
-                }
-              }}
-              options={[
-                {
-                  value: 'private',
-                  label: 'Private',
-                  description: 'Only invited members',
-                  badge: <LockOutlined style={{ fontSize: 13 }} />,
-                },
-                {
-                  value: 'public',
-                  label: 'Public',
-                  description: 'Anyone with the link',
-                  badge: <GlobalOutlined style={{ fontSize: 13 }} />,
-                },
-              ]}
-            />
-          </div>
-        );
-      },
+      render: (_visibility, record) => renderVisibilityCell(record),
     },
     {
       _key: 'actions',
@@ -1554,7 +1506,6 @@ const DocumentHubPage = () => {
       ),
       key: 'actions',
       width: colWidths.actions,
-      fixed: 'right',
       render: (_text, record) => (
         <div className="dh-row-actions" onClick={(e) => e.stopPropagation()}>
           <Tooltip title="Share">
@@ -1756,142 +1707,14 @@ const DocumentHubPage = () => {
     );
   };
 
-  const renderGrid = () => {
-    if (!filteredHubs.length) return renderEmpty();
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-        {filteredHubs.map((hub) => (
-          <HubCard
-            key={hub.id}
-            hub={hub}
-            starred={isHubStarred(hub)}
-            onOpen={openHub}
-            onToggleStar={handleToggleStar}
-            onShare={handleShareHub}
-            onDelete={handleDeleteHub}
-            variant="grid"
-          />
-        ))}
-      </div>
-    );
-  };
-
-  const renderKanban = () => {
-    if (!filteredHubs.length) return renderEmpty();
-    // Group by project; "Unassigned" column for hubs without a project.
-    const groups = new Map<string, { name: string; code?: string; hubs: DocumentHub[] }>();
-    filteredHubs.forEach((hub) => {
-      const key = hub.project?.id || '__none__';
-      const name = hub.project?.name || 'Unassigned';
-      const code = hub.project?.code;
-      if (!groups.has(key)) groups.set(key, { name, code, hubs: [] });
-      groups.get(key)!.hubs.push(hub);
-    });
-    const cols = Array.from(groups.entries()).sort((a, b) => {
-      if (a[0] === '__none__') return 1;
-      if (b[0] === '__none__') return -1;
-      return a[1].name.localeCompare(b[1].name);
-    });
-    return (
-      <div
-        className="flex gap-3 overflow-x-auto pb-2 dh-kanban-scroll"
-        style={{ scrollSnapType: 'x mandatory' }}
-      >
-        {cols.map(([key, col]) => (
-          <div
-            key={key}
-            className="flex flex-col rounded-2xl shrink-0"
-            style={{
-              width: 304,
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-slate-200)',
-              scrollSnapAlign: 'start',
-              maxHeight: 'calc(100vh - 360px)',
-            }}
-          >
-            <div
-              className="flex items-center justify-between px-3 py-2.5 border-b"
-              style={{ borderColor: 'var(--border-slate-200)' }}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span
-                  className="inline-flex items-center justify-center rounded-md shrink-0"
-                  style={{
-                    width: 22, height: 22,
-                    background: key === '__none__' ? 'var(--bg-slate-100)' : 'rgba(139, 92, 246, 0.10)',
-                    color: key === '__none__' ? 'var(--text-slate-500)' : '#8B5CF6',
-                  }}
-                >
-                  {key === '__none__' ? <FolderOutlined style={{ fontSize: 11 }} /> : <ProjectFilled style={{ fontSize: 11 }} />}
-                </span>
-                <span className="text-[12px] font-bold tracking-tight truncate" style={{ color: 'var(--text-slate-900)' }}>
-                  {col.name}
-                </span>
-                {col.code && (
-                  <span className="text-[10px] font-medium px-1.5 py-[1px] rounded" style={{ background: 'var(--bg-slate-100)', color: 'var(--text-slate-500)' }}>
-                    {col.code}
-                  </span>
-                )}
-              </div>
-              <span
-                className="text-[10.5px] font-bold px-1.5 py-[2px] rounded-full"
-                style={{ background: 'var(--bg-pure-white)', color: 'var(--text-slate-500)', border: '1px solid var(--border-slate-200)' }}
-              >
-                {col.hubs.length}
-              </span>
-            </div>
-            <div className="flex flex-col gap-2 p-2 overflow-y-auto">
-              {col.hubs.map((hub) => (
-                <HubCard
-                  key={hub.id}
-                  hub={hub}
-                  starred={isHubStarred(hub)}
-                  onOpen={openHub}
-                  onToggleStar={handleToggleStar}
-                  onShare={handleShareHub}
-                  onDelete={handleDeleteHub}
-                  variant="grid"
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const renderTableFooter = () => {
+  const renderTable = () => {
+    // Manual paging so the shared fixed footer (below the table) drives pagination.
     const total = filteredHubs.length;
-    if (!total) return null;
-    const start = (tablePage - 1) * tablePageSize + 1;
-    const end = Math.min(tablePage * tablePageSize, total);
+    const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+    const curPage = Math.min(tablePage, pageCount);
+    const pageStart = (curPage - 1) * tablePageSize;
+    const pagedHubs = filteredHubs.slice(pageStart, pageStart + tablePageSize);
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1 py-0.5">
-        <div className="text-[12px]" style={{ color: 'var(--text-slate-500)' }}>
-          Showing <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{start}–{end}</span> of{' '}
-          <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{total}</span> hub{total === 1 ? '' : 's'}
-          {starredVisibleCount > 0 && (
-            <>
-              {' · '}
-              <span className="inline-flex items-center gap-1" style={{ color: '#b45309' }}>
-                <StarFilled style={{ fontSize: 10 }} /> {starredVisibleCount} starred
-              </span>
-            </>
-          )}
-          {sharedWithMeCount > 0 && (
-            <>
-              {' · '}
-              <span style={{ color: 'var(--text-slate-600)' }}>
-                {sharedWithMeCount} shared with you
-              </span>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderTable = () => (
     <div
       className="dh-table-shell"
       data-density={density}
@@ -1903,24 +1726,14 @@ const DocumentHubPage = () => {
     >
       <Table
         columns={visibleColumns}
-        dataSource={filteredHubs}
+        dataSource={pagedHubs}
         rowKey="id"
         loading={hubsLoading || hubsFetching}
-        pagination={{
-          pageSize: tablePageSize,
-          current: tablePage,
-          showSizeChanger: true,
-          pageSizeOptions: [10, 15, 25, 50, 100],
-          onChange: (p, size) => {
-            setTablePage(p);
-            setTablePageSize(size);
-          },
-          showTotal: () => null,
-        }}
+        pagination={false}
         size="small"
         className="premium-table dh-table"
-        scroll={{ x: 1300 }}
-        sticky={{ offsetHeader: 142 }}
+        tableLayout="fixed"
+        sticky={{ offsetHeader: 0 }}
         locale={{ emptyText: renderEmpty() }}
         components={{
           header: { cell: ResizableHeaderCell },
@@ -1929,7 +1742,6 @@ const DocumentHubPage = () => {
           selectedRowKeys: selectedKeys,
           onChange: (keys) => setSelectedKeys(keys),
           columnWidth: 36,
-          fixed: true,
         }}
         expandable={{
           expandedRowKeys: expandedKeys,
@@ -1965,7 +1777,6 @@ const DocumentHubPage = () => {
             });
           }
         }}
-        footer={renderTableFooter}
         onRow={(record) => ({
           onClick: (e) => {
             // Skip navigation if click came from selection cell or interactive control.
@@ -1980,226 +1791,337 @@ const DocumentHubPage = () => {
         })}
       />
     </div>
-  );
+    );
+  };
+
+  // Visibility status-pill shared by the table column and the row-card list.
+  // Clean light-bordered pill with a green (public) / slate (private) dot and a
+  // chevron; owners can click to switch via a small dropdown.
+  const renderVisibilityCell = (record: DocumentHub) => {
+    const isOwner = user?.id === record.createdById;
+    const isPublic = ((record as any).visibility || 'private') === 'public';
+
+    const setVisibility = async (value: 'public' | 'private') => {
+      if ((isPublic ? 'public' : 'private') === value) return;
+      try {
+        if (value === 'public') {
+          await DocumentHubService.shareDocumentHub(record.id, 'public');
+        } else {
+          await DocumentHubService.revokeHubShare(record.id);
+        }
+        messageApi.success(`Hub is now ${value}`);
+        refetch();
+      } catch (error) {
+        console.error(error);
+        messageApi.error("Failed to update visibility");
+      }
+    };
+
+    const pill = (
+      <span
+        className={`dh-vis-pill ${isOwner ? 'is-clickable' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="dh-vis-dot" style={{ background: isPublic ? '#22c55e' : 'var(--text-slate-400)' }} />
+        <span className="dh-vis-label">{isPublic ? 'Public' : 'Private'}</span>
+        {isOwner && <DownOutlined className="dh-vis-chevron" style={{ fontSize: 9 }} />}
+      </span>
+    );
+
+    if (!isOwner) return pill;
+
+    return (
+      <Dropdown
+        trigger={['click']}
+        placement="bottomLeft"
+        menu={{
+          selectedKeys: [isPublic ? 'public' : 'private'],
+          items: [
+            {
+              key: 'public',
+              label: (
+                <span className="dh-vis-item">
+                  <span className="dh-vis-dot" style={{ background: '#22c55e' }} /> Public
+                </span>
+              ),
+              onClick: () => setVisibility('public'),
+            },
+            {
+              key: 'private',
+              label: (
+                <span className="dh-vis-item">
+                  <span className="dh-vis-dot" style={{ background: 'var(--text-slate-400)' }} /> Private
+                </span>
+              ),
+              onClick: () => setVisibility('private'),
+            },
+          ],
+        }}
+      >
+        {pill}
+      </Dropdown>
+    );
+  };
+
+  // === Primary "Cards" view: table-aligned row-cards (small height, all fields). ===
+  const ROWCARD_GRID =
+    '28px minmax(150px, 1.6fr) minmax(92px, 1fr) minmax(104px, 1.1fr) minmax(104px, 1.1fr) minmax(82px, 0.85fr) minmax(82px, 0.85fr) minmax(112px, 140px) 92px';
+
+  const renderRowCards = () => {
+    if (!filteredHubs.length) return renderEmpty();
+    const allSelected = filteredHubs.every((h) => selectedKeys.includes(h.id));
+    const someSelected = filteredHubs.some((h) => selectedKeys.includes(h.id));
+    // Page the list — paging controls live in the fixed footer below.
+    const pageCount = Math.max(1, Math.ceil(filteredHubs.length / tablePageSize));
+    const curPage = Math.min(tablePage, pageCount);
+    const pageStart = (curPage - 1) * tablePageSize;
+    const pageHubs = filteredHubs.slice(pageStart, pageStart + tablePageSize);
+
+    return (
+      <div className="dh-rowcards-wrap">
+        <div className="dh-rowcards-inner">
+          {/* Sticky column header — gives the card list a table-like spine */}
+          <div className="dh-rowcards-head" style={{ gridTemplateColumns: ROWCARD_GRID }}>
+            <div className="flex items-center justify-center">
+              <Checkbox
+                checked={allSelected}
+                indeterminate={!allSelected && someSelected}
+                onChange={(e) =>
+                  setSelectedKeys(e.target.checked ? filteredHubs.map((h) => h.id) : [])
+                }
+              />
+            </div>
+            <span style={{ paddingLeft: 36 }}>Name</span>
+            <span>Project</span>
+            <span>Ticket</span>
+            <span>Created by</span>
+            <span>Created</span>
+            <span>Updated</span>
+            <span>Visibility</span>
+            <span>Actions</span>
+          </div>
+
+          <div className="dh-rowcards-list">
+            {pageHubs.map((hub) => {
+              const docCount = (hub as any).treeNodes?.filter((n: any) => n.type === 'file').length || 0;
+              const updatedRel = formatDistanceToNow(new Date(hub.updatedAt), { addSuffix: true });
+              const isNew = Date.now() - new Date(hub.createdAt).getTime() < NEW_BADGE_MS;
+              const isEditingThis = editingNameId === hub.id;
+              const isOwner = user?.id === hub.createdById;
+              const starred = isHubStarred(hub);
+              const selected = selectedKeys.includes(hub.id);
+
+              return (
+                <div
+                  key={hub.id}
+                  role="button"
+                  onMouseEnter={() => setFocusedRowId(hub.id)}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest('.ant-checkbox-wrapper, .dh-row-actions, .dh-name-star, .dh-name-pencil, .dh-name-edit-btn, button, input, .ant-select, .dh-inline-cell, .dh-inline-add-btn')) {
+                      return;
+                    }
+                    openHub(hub.id);
+                  }}
+                  className={`dh-rowcard ${selected ? 'is-selected' : ''} ${focusedRowId === hub.id ? 'dh-rowcard-focused' : ''}`}
+                  style={{ gridTemplateColumns: ROWCARD_GRID }}
+                >
+                  <span className="dh-rowcard-accent" aria-hidden />
+
+                  {/* Select */}
+                  <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selected}
+                      onChange={(e) =>
+                        setSelectedKeys((prev) =>
+                          e.target.checked ? [...prev, hub.id] : prev.filter((k) => k !== hub.id),
+                        )
+                      }
+                    />
+                  </div>
+
+                  {/* Name */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Tooltip title={starred ? 'Remove from starred' : 'Add to starred'}>
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleStar(e, hub)}
+                        aria-label={starred ? 'Unstar' : 'Star'}
+                        aria-pressed={starred}
+                        className={`dh-name-star ${starred ? 'is-starred' : ''}`}
+                      >
+                        {starred ? <StarFilled style={{ fontSize: 14 }} /> : <StarOutlined style={{ fontSize: 14 }} />}
+                      </button>
+                    </Tooltip>
+                    <div
+                      className="flex items-center justify-center shrink-0 text-white"
+                      style={{
+                        width: 30, height: 30, borderRadius: 8,
+                        background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                        boxShadow: '0 2px 6px rgba(59, 130, 246, 0.25)',
+                      }}
+                    >
+                      <FolderOutlined style={{ fontSize: 13 }} />
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      {isEditingThis ? (
+                        <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
+                          <Input
+                            autoFocus
+                            size="small"
+                            value={editingNameValue}
+                            onChange={(e) => setEditingNameValue(e.target.value)}
+                            onPressEnter={() => saveNameEdit(hub)}
+                            onKeyDown={(e) => { if (e.key === 'Escape') cancelNameEdit(); }}
+                            onBlur={() => saveNameEdit(hub)}
+                            style={{ height: 26, fontSize: 13, fontWeight: 600, borderRadius: 6 }}
+                          />
+                          <button type="button" onClick={() => saveNameEdit(hub)} className="dh-name-edit-btn" aria-label="Save" style={{ color: '#10b981' }}>
+                            <CheckOutlined style={{ fontSize: 11 }} />
+                          </button>
+                          <button type="button" onClick={cancelNameEdit} className="dh-name-edit-btn" aria-label="Cancel">
+                            <CloseOutlined style={{ fontSize: 11 }} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 min-w-0 group/name">
+                          <span className="font-semibold text-[13px] truncate" style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
+                            {hub.name}
+                          </span>
+                          {isNew && (
+                            <Tooltip title="Created in the last few minutes">
+                              <span className="dh-new-badge" aria-label="New">NEW</span>
+                            </Tooltip>
+                          )}
+                          {isOwner && canUpdateDocument && (
+                            <Tooltip title="Rename">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); startNameEdit(hub); }}
+                                className="dh-name-pencil opacity-0 group-hover/name:opacity-100"
+                                aria-label="Rename"
+                              >
+                                <EditOutlined style={{ fontSize: 10 }} />
+                              </button>
+                            </Tooltip>
+                          )}
+                        </div>
+                      )}
+                      <span className="text-[10.5px] truncate" style={{ color: 'var(--text-slate-400)' }}>
+                        {docCount} {docCount === 1 ? 'doc' : 'docs'} · Updated {updatedRel}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Project */}
+                  <div className="min-w-0 dh-rowcard-cell">
+                    <InlineProjectSelector
+                      record={hub}
+                      projects={projects}
+                      projectsLoading={projectsLoading}
+                      updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
+                      user={user}
+                    />
+                  </div>
+
+                  {/* Ticket */}
+                  <div className="min-w-0 dh-rowcard-cell">
+                    <InlineTicketSelector
+                      record={hub}
+                      updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
+                      user={user}
+                    />
+                  </div>
+
+                  {/* Created by */}
+                  <div className="flex items-center gap-1.5 min-w-0 dh-rowcard-cell">
+                    <Avatar
+                      size={22}
+                      src={hub.createdBy?.avatarUrl}
+                      style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: 10 }}
+                    >
+                      {hub.createdBy?.name?.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <span className="text-[12px] truncate" style={{ color: 'var(--text-slate-700)' }}>
+                      {hub.createdBy?.name}
+                    </span>
+                  </div>
+
+                  {/* Created */}
+                  <div className="dh-rowcard-cell flex flex-col">
+                    <span className="text-[12px] font-medium" style={{ color: 'var(--text-slate-700)' }}>
+                      {format(new Date(hub.createdAt), "MMM d, yyyy")}
+                    </span>
+                    <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>
+                      {format(new Date(hub.createdAt), "h:mm a")}
+                    </span>
+                  </div>
+
+                  {/* Updated */}
+                  <div className="dh-rowcard-cell flex flex-col">
+                    <span className="text-[12px] font-medium" style={{ color: 'var(--text-slate-700)' }}>
+                      {format(new Date(hub.updatedAt), "MMM d, yyyy")}
+                    </span>
+                    <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>
+                      {format(new Date(hub.updatedAt), "h:mm a")}
+                    </span>
+                  </div>
+
+                  {/* Visibility */}
+                  <div className="dh-rowcard-cell">{renderVisibilityCell(hub)}</div>
+
+                  {/* Actions */}
+                  <div className="dh-row-actions" onClick={(e) => e.stopPropagation()}>
+                    <Tooltip title="Share">
+                      <button type="button" onClick={(e) => handleShareHub(e, hub)} className="dh-row-action-btn" aria-label="Share">
+                        <ShareAltOutlined style={{ fontSize: 13 }} />
+                      </button>
+                    </Tooltip>
+                    {canDeleteDocument && (
+                      <Tooltip title="Move to trash">
+                        <button type="button" onClick={(e) => handleDeleteHub(e, hub.id, hub.name)} className="dh-row-action-btn dh-row-action-danger" aria-label="Delete">
+                          <DeleteOutlined style={{ fontSize: 13 }} />
+                        </button>
+                      </Tooltip>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <MainLayout>
       {contextHolder}
       {modalContextHolder}
-      <div style={{
-        margin: "0 -16px",
-        padding: "0 24px 24px 24px",
-        background: "var(--bg-pure-white)",
-        minHeight: "calc(100vh - 64px)",
-        display: "flex",
-        flexDirection: "column"
-      }}>
-        {/* === #1 Hero Header (Team-View pattern + live pulse) === */}
+      <div className="dh-shell">
+        {/* Mobile drawer backdrop */}
         <div
-          className="dh-hero sticky top-0 flex flex-wrap justify-between items-center gap-y-3 gap-x-4 flex-shrink-0"
-          style={{
-            margin: '0 -24px 0 -24px',
-            padding: '8px 32px',
-            minHeight: 58,
-            background: 'var(--bg-pure-white) !important',
-            borderBottom: '1px solid var(--border-slate-200)',
-            zIndex: 110,
-          }}
-        >
-          {/* Row 1: Hub name and content */}
-          <div className="dh-hero-section-title flex items-center gap-3 min-w-0">
-            <div className="dh-hero-icon-box">
-              <FileZipOutlined style={{ fontSize: 18, color: '#3B82F6' }} />
+          className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden
+        />
+        {/* ===================== Left sidebar ===================== */}
+        <aside className={`dh-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
+          <div className="dh-sidebar-top">
+            <div className="dh-sidebar-brand">
+              <div className="dh-hero-icon-box">
+                <FileTextOutlined style={{ fontSize: 18, color: '#3B82F6' }} />
+              </div>
+              <div className="min-w-0">
+                <h1 className="dh-sidebar-title">Document Hub</h1>
+                <p className="dh-sidebar-subtitle">Wiki · specs · runbooks</p>
+              </div>
             </div>
-            <div className="dh-hero-title-content flex items-center gap-3 min-w-0">
-              <h1
-                className="text-[18px] font-extrabold m-0 tracking-tight leading-tight"
-                style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}
-              >
-                Document Hub
-              </h1>
-              <Divider type="vertical" className="dh-hero-divider hidden sm:block" style={{ height: 18, margin: 0, backgroundColor: 'var(--border-slate-200)' }} />
-              <p className="dh-hero-description m-0 text-[12.5px] hidden sm:block font-medium" style={{ color: 'var(--text-slate-600)' }}>
-                Wiki, specs, runbooks — all linked to the work they belong to
-              </p>
-            </div>
-          </div>
 
-          {/* Row 2: Stats */}
-          <div className="dh-hero-section-stats flex items-center gap-2 mt-1 text-[11px]">
-            <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-slate-500)' }}>
-              <span className="dh-pulse-dot" />
-              <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{documentHubs.length}</span> hubs
-            </span>
-            <span style={{ color: 'var(--text-slate-300)' }}>·</span>
-            <span style={{ color: 'var(--text-slate-500)' }}>
-              <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{totalDocCount}</span> docs
-            </span>
-            {lastUpdated && (
-              <>
-                <span style={{ color: 'var(--text-slate-300)' }}>·</span>
-                <span style={{ color: 'var(--text-slate-500)' }}>Updated {lastUpdated}</span>
-              </>
-            )}
-          </div>
-
-          {/* Row 3: Actions */}
-          <div className="dh-hero-section-actions flex flex-wrap items-center gap-2">
-            <Tooltip title="Refresh hubs">
-              <Button
-                icon={<ReloadOutlined spin={hubsFetching} />}
-                onClick={handleReload}
-                className="dh-header-icon-btn"
-                style={{
-                  height: 38, width: 38,
-                  borderRadius: 10,
-                  background: 'var(--bg-slate-50)',
-                  border: '1px solid var(--border-slate-200)',
-                  color: 'var(--text-slate-700)',
-                }}
-              />
-            </Tooltip>
-            <Popover
-              trigger={['click']}
-              placement="bottomRight"
-              classNames={{ root: 'dh-rails-popover' }}
-              content={
-                <div style={{ width: 268 }}>
-                  <div className="dh-popover-section-label">
-                    <AppstoreOutlined style={{ fontSize: 11 }} />
-                    <span>Show on this page</span>
-                  </div>
-                  <label className="dh-rail-toggle-row flex items-start gap-2.5">
-                    <span
-                      className="inline-flex items-center justify-center shrink-0"
-                      style={{
-                        width: 30, height: 30, borderRadius: 8,
-                        background: 'rgba(245, 158, 11, 0.10)',
-                        color: '#F59E0B',
-                      }}
-                    >
-                      <PushpinOutlined style={{ fontSize: 13 }} />
-                    </span>
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className="text-[12.5px] font-semibold"
-                          style={{ color: 'var(--text-slate-900)' }}
-                        >
-                          Pinned
-                        </span>
-                        <Switch
-                          size="small"
-                          checked={railVisibility.pinned}
-                          onChange={(checked) =>
-                            setRailVisibility((p) => ({ ...p, pinned: checked }))
-                          }
-                        />
-                      </div>
-                      <span
-                        className="text-[10.5px] leading-snug mt-0.5"
-                        style={{ color: 'var(--text-slate-500)' }}
-                      >
-                        {pinnedHubs.length
-                          ? `${pinnedHubs.length} starred ${pinnedHubs.length === 1 ? 'hub' : 'hubs'}`
-                          : 'Star a hub to pin it here'}
-                      </span>
-                    </div>
-                  </label>
-                  <label className="dh-rail-toggle-row flex items-start gap-2.5">
-                    <span
-                      className="inline-flex items-center justify-center shrink-0"
-                      style={{
-                        width: 30, height: 30, borderRadius: 8,
-                        background: 'rgba(59, 130, 246, 0.10)',
-                        color: '#3B82F6',
-                      }}
-                    >
-                      <ClockCircleOutlined style={{ fontSize: 13 }} />
-                    </span>
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className="text-[12.5px] font-semibold"
-                          style={{ color: 'var(--text-slate-900)' }}
-                        >
-                          Recently opened
-                        </span>
-                        <Switch
-                          size="small"
-                          checked={railVisibility.recent}
-                          onChange={(checked) =>
-                            setRailVisibility((p) => ({ ...p, recent: checked }))
-                          }
-                        />
-                      </div>
-                      <span
-                        className="text-[10.5px] leading-snug mt-0.5"
-                        style={{ color: 'var(--text-slate-500)' }}
-                      >
-                        Last hubs you visited!
-                      </span>
-                    </div>
-                  </label>
-                  <div
-                    className="flex items-center justify-between gap-2 mt-3 pt-3"
-                    style={{ borderTop: '1px solid var(--border-slate-200)' }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setRailVisibility(DEFAULT_RAILS)}
-                      className="text-[11.5px] font-semibold"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}
-                    >
-                      Reset to default
-                    </button>
-                    <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>
-                      Saved automatically
-                    </span>
-                  </div>
-                </div>
-              }
-            >
-              <Tooltip title="Page sections">
-                <Button
-                  icon={<MoreOutlined style={{ fontSize: 18 }} />}
-                  className="dh-header-icon-btn"
-                  aria-label="Page sections"
-                  style={{
-                    height: 38, width: 38,
-                    borderRadius: 10,
-                    background: 'var(--bg-slate-50)',
-                    border: '1px solid var(--border-slate-200)',
-                    color: 'var(--text-slate-700)',
-                  }}
-                />
-              </Tooltip>
-            </Popover>
-            {canDeleteDocument && (
-              <Tooltip title={isMobile ? 'Trash' : ''}>
-                <Button
-                  icon={<RestOutlined />}
-                  onClick={() => setTrashVisible(true)}
-                  className="trash-action-btn"
-                  aria-label="Trash"
-                  style={{
-                    height: 38,
-                    ...(isMobile ? { width: 38, padding: 0 } : {}),
-                    borderRadius: 10,
-                    fontWeight: 500,
-                    background: 'var(--bg-slate-50)',
-                    border: '1px solid var(--border-slate-200)',
-                    color: 'var(--text-slate-700)',
-                  }}
-                >
-                  {!isMobile && 'Trash'}
-                </Button>
-              </Tooltip>
-            )}
             {canCreateDocument && (
               <Dropdown
                 trigger={['hover', 'click']}
-                placement="bottomRight"
+                placement="bottomLeft"
                 overlayClassName="create-document-menu"
                 menu={{
                   items: [
@@ -2264,126 +2186,50 @@ const DocumentHubPage = () => {
                   ] as MenuProps['items'],
                 }}
               >
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  className="create-document-btn"
-                  style={{
-                    height: 38,
-                    borderRadius: 10,
-                    fontWeight: 600,
-                    paddingInline: isMobile ? 12 : 16,
-                    background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                    border: 'none',
-                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
-                  }}
-                >
-                  {isMobile ? 'Create' : 'Create Document'}
+                <Button type="primary" icon={<PlusOutlined />} className="dh-side-create" block>
+                  Create Document
                 </Button>
               </Dropdown>
             )}
           </div>
-        </div>
 
-        {/* Opaque sticky spacer to create visual gap while preventing content leakage */}
-        <div className="dh-sticky-gap sticky" style={{
-          top: 58,
-          height: 16,
-          background: 'var(--bg-pure-white) !important',
-          zIndex: 105,
-          margin: '0 -24px'
-        }} />
-
-        <div>
-          {/* === #2 Compact stats strip === */}
-          <DocumentHubDashboard
-            documentHubs={documentHubs}
-            isLoading={hubsLoading || hubsFetching}
-            onHubClick={openHub}
-            onShareHub={handleShareHub}
-          />
-
-          {/* === #3 Pinned & Recent rail === */}
-          {renderRail()}
-
-          {/* === #6 Saved-views pills === */}
-          {documentHubs.length > 0 && (
-            <div className="flex items-center gap-1.5 mb-3 overflow-x-auto dh-pills-row">
-              {savedViews.map((sv) => {
-                const active = savedView === sv.key;
-                return (
-                  <button
-                    key={sv.key}
-                    type="button"
-                    onClick={() => setSavedView(sv.key)}
-                    className="dh-pill flex items-center gap-1.5 transition-all shrink-0"
-                    style={{
-                      height: 32,
-                      padding: '0 12px',
-                      borderRadius: 10,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      background: active ? `${sv.color}15` : 'var(--bg-pure-white)',
-                      border: `1px solid ${active ? sv.color + '60' : 'var(--border-slate-200)'}`,
-                      color: active ? sv.color : 'var(--text-slate-600)',
-                    }}
-                  >
-                    <span style={{ fontSize: 11 }}>{sv.icon}</span>
-                    {sv.label}
-                    <span
-                      className="px-1.5 py-[1px] rounded-full text-[10px] font-bold"
-                      style={{
-                        background: active ? sv.color : 'var(--bg-slate-100)',
-                        color: active ? '#fff' : 'var(--text-slate-500)',
-                        marginLeft: 2,
-                      }}
-                    >
-                      {viewCounts[sv.key]}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* === #6 Filter bar — single row: search · filters · views · settings · refresh === */}
-          <div className="dh-toolbar-wrapper sticky" style={{
-            top: 74,
-            background: 'var(--bg-pure-white) !important',
-            zIndex: 100,
-            margin: '0 -24px',
-            padding: '0 24px',
-            height: 68,
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <div
-              className="dh-toolbar flex items-center gap-2 rounded-2xl w-full"
-              style={{
-                padding: '8px 12px',
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-slate-200)',
-                overflowX: 'auto',
-              }}
-            >
-              {/* Search */}
-              <div className="relative shrink-0" style={{ width: isMobile ? 180 : 240 }}>
-                <Input
-                  placeholder={isMobile ? 'Search...' : 'Search hubs by name…'}
-                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-                  className="premium-search-input rounded-lg transition-all"
-                  style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 36 }}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  allowClear
-                />
+          <div className="dh-sidebar-scroll">
+            {/* Saved views */}
+            {documentHubs.length > 0 && (
+              <div className="dh-side-group">
+                <div className="dh-side-label">Views</div>
+                <div className="flex flex-col gap-0.5">
+                  {savedViews.map((sv) => {
+                    const active = savedView === sv.key;
+                    return (
+                      <button
+                        key={sv.key}
+                        type="button"
+                        onClick={() => { setSavedView(sv.key); setMobileSidebarOpen(false); }}
+                        className={`dh-side-view ${active ? 'active' : ''}`}
+                        style={active ? ({ background: `${sv.color}14` } as any) : undefined}
+                      >
+                        <span className="dh-side-view-icon" style={{ color: active ? sv.color : 'var(--text-slate-400)' }}>
+                          {sv.icon}
+                        </span>
+                        <span className="dh-side-view-label">{sv.label}</span>
+                        <span
+                          className="dh-side-view-count"
+                          style={active ? { background: sv.color, color: '#fff' } : undefined}
+                        >
+                          {viewCounts[sv.key]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+            )}
 
-              <span className="dh-filter-divider" aria-hidden />
-
-              {/* Filter group */}
-              <div className="dh-filter-group flex items-center gap-1.5 shrink-0">
+            {/* Filters */}
+            <div className="dh-side-group">
+              <div className="dh-side-label">Filters</div>
+              <div className="dh-side-filters flex flex-col gap-2">
                 <SearchableDropdown
                   value={filterProjectId}
                   onChange={(v) => setFilterProjectId(v)}
@@ -2392,12 +2238,8 @@ const DocumentHubPage = () => {
                   itemNoun="projects"
                   loading={projectsLoading}
                   width={280}
-                  style={{ width: 150 }}
-                  options={projects.map((p: any) => ({
-                    value: p.value,
-                    label: p.label,
-                    description: p.code,
-                  }))}
+                  style={{ width: '100%' }}
+                  options={projects.map((p: any) => ({ value: p.value, label: p.label, description: p.code }))}
                 />
                 <SearchableDropdown
                   value={filterTicketId}
@@ -2407,7 +2249,7 @@ const DocumentHubPage = () => {
                   itemNoun="tickets"
                   loading={filterTicketsLoading}
                   width={300}
-                  style={{ width: 170 }}
+                  style={{ width: '100%' }}
                   options={(() => {
                     const source = filterProjectId
                       ? filterTickets
@@ -2418,11 +2260,7 @@ const DocumentHubPage = () => {
                               .map((hub) => [hub.ticket!.id, hub.ticket]),
                           ).values(),
                         );
-                    return (source as any[]).map((t: any) => ({
-                      value: t.id,
-                      label: t.ticketNumber,
-                      description: t.title,
-                    }));
+                    return (source as any[]).map((t: any) => ({ value: t.id, label: t.ticketNumber, description: t.title }));
                   })()}
                 />
                 <SearchableDropdown
@@ -2433,22 +2271,19 @@ const DocumentHubPage = () => {
                   itemNoun="people"
                   loading={membersLoading}
                   width={260}
-                  style={{ width: 150 }}
-                  options={members.map((m: any) => ({
-                    value: m.value,
-                    label: m.label,
-                  }))}
+                  style={{ width: '100%' }}
+                  options={members.map((m: any) => ({ value: m.value, label: m.label }))}
                 />
                 <RangePicker
-                  className="premium-range-picker rounded-lg shrink-0"
-                  style={{ width: 220, background: 'var(--bg-pure-white)', height: 36 }}
+                  className="premium-range-picker rounded-lg"
+                  style={{ width: '100%', background: 'var(--bg-pure-white)', height: 40 }}
                   value={dateRange}
                   onChange={(dates) => setDateRange(dates as any)}
                 />
                 {(filterProjectId || filterTicketId || selectedUser || (dateRange && (dateRange[0] || dateRange[1])) || searchText) && (
                   <button
                     type="button"
-                    className="dh-filter-clear"
+                    className="dh-side-clear"
                     onClick={() => {
                       setSearchText('');
                       setFilterProjectId(undefined);
@@ -2456,127 +2291,254 @@ const DocumentHubPage = () => {
                       setSelectedUser(undefined);
                       setDateRange(null);
                     }}
-                    aria-label="Clear filters"
                   >
                     <CloseOutlined style={{ fontSize: 10 }} />
-                    Clear
+                    Clear filters
                   </button>
                 )}
               </div>
-
-              {/* Spacer pushes the right-side controls to the end of the row. */}
-              <div className="flex-1 min-w-[8px]" aria-hidden />
-
-              <div className="flex items-center gap-2 shrink-0">
-                <Segmented
-                  value={viewMode}
-                  onChange={(v) => setViewMode(v as ViewMode)}
-                  size="middle"
-                  className="dh-view-segmented"
-                  options={[
-                    { label: <Tooltip title="Table"><UnorderedListOutlined /></Tooltip>, value: 'table' },
-                    { label: <Tooltip title="Grid"><AppstoreOutlined /></Tooltip>, value: 'grid' },
-                    { label: <Tooltip title="Kanban by project"><ProjectOutlined /></Tooltip>, value: 'kanban' },
-                  ]}
-                />
-                {viewMode === 'table' && (
-                  <Popover
-                    trigger={['click']}
-                    placement="bottomRight"
-                    classNames={{ root: 'dh-table-settings-popover' }}
-                    content={
-                      <div style={{ width: 240 }}>
-                        <div className="dh-popover-section-label">
-                          <ColumnHeightOutlined style={{ fontSize: 11 }} />
-                          <span>Density</span>
-                        </div>
-                        <Segmented
-                          block
-                          value={density}
-                          onChange={(v) => setDensity(v as Density)}
-                          options={[
-                            { label: 'Compact', value: 'compact' },
-                            { label: 'Cozy', value: 'comfortable' },
-                            { label: 'Roomy', value: 'spacious' },
-                          ]}
-                        />
-                        <div className="dh-popover-section-label" style={{ marginTop: 14 }}>
-                          <UnorderedListOutlined style={{ fontSize: 11 }} />
-                          <span>Columns</span>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          {TOGGLEABLE_COLUMNS.map((c) => (
-                            <label
-                              key={c.key}
-                              className="dh-col-toggle-row flex items-center justify-between gap-2"
-                            >
-                              <span className="text-[12.5px]" style={{ color: 'var(--text-slate-700)' }}>
-                                {c.label}
-                              </span>
-                              <Switch
-                                size="small"
-                                checked={!hiddenCols[c.key]}
-                                onChange={(checked) =>
-                                  setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))
-                                }
-                              />
-                            </label>
-                          ))}
-                        </div>
-                        <div
-                          className="flex items-center justify-between gap-2 mt-3 pt-3"
-                          style={{ borderTop: '1px solid var(--border-slate-200)' }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setColWidths(DEFAULT_COL_WIDTHS);
-                              setHiddenCols({});
-                              setDensity('comfortable');
-                            }}
-                            className="text-[11.5px] font-semibold"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}
-                          >
-                            Reset to defaults
-                          </button>
-                          <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>
-                            Saved automatically
-                          </span>
-                        </div>
-                      </div>
-                    }
-                  >
-                    <Tooltip title="Table settings">
-                      <Button
-                        icon={<SettingOutlined />}
-                        className="flex items-center justify-center rounded-xl border-slate-200 text-slate-500 hover:text-blue-500 hover:border-blue-200"
-                        style={{ height: 36, width: 36 }}
-                      />
-                    </Tooltip>
-                  </Popover>
-                )}
-                <Tooltip title="Reload Docs">
-                  <Button
-                    icon={<ReloadOutlined spin={hubsFetching} />}
-                    onClick={handleReload}
-                    className="flex items-center justify-center rounded-xl border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200"
-                    style={{ height: 36, width: 36 }}
-                  />
-                </Tooltip>
-              </div>
             </div>
-            <div style={{ height: 10, background: 'var(--bg-pure-white)' }} />
+
+            {/* Pinned */}
+            {pinnedHubs.length > 0 && (
+              <div className="dh-side-group">
+                <div className="dh-side-label">Pinned</div>
+                <div className="flex flex-col gap-0.5">
+                  {pinnedHubs.slice(0, 6).map((h) => {
+                    const ac = accentForId(h.id);
+                    return (
+                      <button key={h.id} type="button" className="dh-side-hub" onClick={() => openHub(h.id)} title={h.name}>
+                        <span className="dh-side-hub-dot" style={{ background: `linear-gradient(135deg, ${ac.from} 0%, ${ac.to} 100%)` }} />
+                        <span className="dh-side-hub-name truncate">{h.name}</span>
+                        <StarFilled style={{ fontSize: 10, color: '#f59e0b' }} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Recent */}
+            {recentHubs.length > 0 && (
+              <div className="dh-side-group">
+                <div className="dh-side-label">{recentIds.length ? 'Recently opened' : 'Recently updated'}</div>
+                <div className="flex flex-col gap-0.5">
+                  {recentHubs.slice(0, 5).map((h) => {
+                    const docCount = (h as any).treeNodes?.filter((n: any) => n.type === 'file').length || 0;
+                    const updatedRel = formatDistanceToNow(new Date(h.updatedAt), { addSuffix: true });
+                    return (
+                      <button key={h.id} type="button" className="dh-recent-item" onClick={() => openHub(h.id)} title={h.name}>
+                        <span className="dh-recent-icon">
+                          <FileTextOutlined style={{ fontSize: 12 }} />
+                        </span>
+                        <span className="dh-recent-body">
+                          <span className="dh-recent-name truncate">{h.name}</span>
+                          <span className="dh-recent-meta truncate">
+                            {docCount} {docCount === 1 ? 'doc' : 'docs'} · {updatedRel}
+                          </span>
+                        </span>
+                        {isHubStarred(h) && <StarFilled style={{ fontSize: 10, color: '#f59e0b' }} className="shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* === #5 View body === */}
-          {hubsLoading && !documentHubs.length ? (
-            <div className="flex items-center justify-center py-16">
-              <Spin />
+          {canDeleteDocument && (
+            <button type="button" className="dh-side-trash" onClick={() => setTrashVisible(true)}>
+              <RestOutlined />
+              <span>Trash</span>
+            </button>
+          )}
+        </aside>
+
+        {/* ===================== Main pane ===================== */}
+        <main className="dh-main">
+          {/* Top bar: search · live stats · view controls */}
+          <div className="dh-main-topbar">
+            <Tooltip title="Views & filters">
+              <Button
+                className="dh-mobile-menu-btn"
+                icon={<MenuOutlined />}
+                onClick={() => setMobileSidebarOpen((v) => !v)}
+                aria-label="Open views and filters"
+                style={{ height: 38, width: 38, borderRadius: 10 }}
+              />
+            </Tooltip>
+            <div className="dh-main-search">
+              <Input
+                placeholder="Search hubs, docs, tickets…"
+                prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                suffix={!searchText ? <span className="dh-search-kbd">⌘K</span> : undefined}
+                className="premium-search-input rounded-lg transition-all"
+                style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 38 }}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                allowClear
+              />
             </div>
-          ) : viewMode === 'table' ? renderTable()
-            : viewMode === 'grid' ? renderGrid()
-              : renderKanban()}
-        </div>
+
+            <div className="dh-main-stats">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="dh-pulse-dot" />
+                <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{documentHubs.length}</span> hubs
+              </span>
+              <span style={{ color: 'var(--text-slate-300)' }}>·</span>
+              <span><span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{totalDocCount}</span> docs</span>
+              {lastUpdated && (
+                <>
+                  <span style={{ color: 'var(--text-slate-300)' }} className="hidden sm:inline">·</span>
+                  <span className="hidden sm:inline">Updated {lastUpdated}</span>
+                </>
+              )}
+            </div>
+
+            <div className="dh-main-controls">
+              <Segmented
+                value={viewMode}
+                onChange={(v) => setViewMode(v as ViewMode)}
+                size="middle"
+                className="dh-view-segmented"
+                options={[
+                  { label: <Tooltip title="Cards"><AppstoreOutlined /></Tooltip>, value: 'cards' },
+                  { label: <Tooltip title="Table"><UnorderedListOutlined /></Tooltip>, value: 'table' },
+                ]}
+              />
+              {viewMode === 'table' && (
+                <Popover
+                  trigger={['click']}
+                  placement="bottomRight"
+                  classNames={{ root: 'dh-table-settings-popover' }}
+                  content={
+                    <div style={{ width: 240 }}>
+                      <div className="dh-popover-section-label">
+                        <ColumnHeightOutlined style={{ fontSize: 11 }} />
+                        <span>Density</span>
+                      </div>
+                      <Segmented
+                        block
+                        value={density}
+                        onChange={(v) => setDensity(v as Density)}
+                        options={[
+                          { label: 'Compact', value: 'compact' },
+                          { label: 'Cozy', value: 'comfortable' },
+                          { label: 'Roomy', value: 'spacious' },
+                        ]}
+                      />
+                      <div className="dh-popover-section-label" style={{ marginTop: 14 }}>
+                        <UnorderedListOutlined style={{ fontSize: 11 }} />
+                        <span>Columns</span>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        {TOGGLEABLE_COLUMNS.map((c) => (
+                          <label key={c.key} className="dh-col-toggle-row flex items-center justify-between gap-2">
+                            <span className="text-[12.5px]" style={{ color: 'var(--text-slate-700)' }}>{c.label}</span>
+                            <Switch
+                              size="small"
+                              checked={!hiddenCols[c.key]}
+                              onChange={(checked) => setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
+                        <button
+                          type="button"
+                          onClick={() => { setColWidths(DEFAULT_COL_WIDTHS); setHiddenCols({}); setDensity('comfortable'); }}
+                          className="text-[11.5px] font-semibold"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}
+                        >
+                          Reset to defaults
+                        </button>
+                        <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>Saved automatically</span>
+                      </div>
+                    </div>
+                  }
+                >
+                  <Tooltip title="Table settings">
+                    <Button
+                      icon={<SettingOutlined />}
+                      className="flex items-center justify-center rounded-xl border-slate-200 text-slate-500 hover:text-blue-500 hover:border-blue-200"
+                      style={{ height: 38, width: 38 }}
+                    />
+                  </Tooltip>
+                </Popover>
+              )}
+              <Tooltip title="Refresh hubs">
+                <Button
+                  icon={<ReloadOutlined spin={hubsFetching} />}
+                  onClick={handleReload}
+                  className="flex items-center justify-center rounded-xl border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200"
+                  style={{ height: 38, width: 38 }}
+                />
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className="dh-main-scroll">
+            {/* Compact stats strip */}
+            <div className="dh-stats-wrap">
+              <DocumentHubDashboard
+                documentHubs={documentHubs}
+                isLoading={hubsLoading || hubsFetching}
+                onHubClick={openHub}
+                onShareHub={handleShareHub}
+              />
+            </div>
+
+            {/* View body */}
+            <div className="dh-main-body">
+              {hubsLoading && !documentHubs.length ? (
+                <div className="flex items-center justify-center py-16">
+                  <Spin />
+                </div>
+              ) : viewMode === 'cards' ? renderRowCards()
+                : renderTable()}
+            </div>
+          </div>
+
+          {/* Fixed pagination footer (Cards & Table views) */}
+          {!(hubsLoading && !documentHubs.length) && filteredHubs.length > 0 && (() => {
+            const total = filteredHubs.length;
+            const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+            const curPage = Math.min(tablePage, pageCount);
+            const start = (curPage - 1) * tablePageSize + 1;
+            const end = Math.min(curPage * tablePageSize, total);
+            return (
+              <div className="dh-main-footer">
+                <div className="dh-footer-summary">
+                  Showing <span className="dh-footer-strong">{start}–{end}</span> of{' '}
+                  <span className="dh-footer-strong">{total}</span> hub{total === 1 ? '' : 's'}
+                  {starredVisibleCount > 0 && (
+                    <>
+                      {' · '}
+                      <span className="inline-flex items-center gap-1" style={{ color: '#b45309' }}>
+                        <StarFilled style={{ fontSize: 10 }} /> {starredVisibleCount} starred
+                      </span>
+                    </>
+                  )}
+                  {sharedWithMeCount > 0 && (
+                    <>
+                      {' · '}
+                      <span style={{ color: 'var(--text-slate-600)' }}>{sharedWithMeCount} shared with you</span>
+                    </>
+                  )}
+                </div>
+                <Pagination
+                  size="small"
+                  current={curPage}
+                  pageSize={tablePageSize}
+                  total={total}
+                  showSizeChanger
+                  pageSizeOptions={[10, 15, 25, 50, 100]}
+                  onChange={(p, size) => { setTablePage(p); setTablePageSize(size); }}
+                />
+              </div>
+            );
+          })()}
+        </main>
       </div>
 
       {/* === Modals (unchanged structure) === */}
@@ -3138,6 +3100,438 @@ const DocumentHubPage = () => {
       </Modal>
 
       <style jsx global>{`
+        /* ===================== Side-layout shell ===================== */
+        .dh-shell {
+          margin: 0 -16px;
+          display: flex;
+          align-items: stretch;
+          min-height: calc(100vh - 64px);
+          background: var(--bg-pure-white);
+        }
+
+        /* ----------------------- Sidebar ----------------------- */
+        .dh-sidebar {
+          position: sticky;
+          top: 0;
+          align-self: flex-start;
+          height: calc(100vh - 64px);
+          width: 272px;
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          background: var(--bg-secondary);
+          border-right: 1px solid var(--border-slate-200);
+        }
+        .dh-sidebar-top {
+          padding: 14px 14px 12px 14px;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        .dh-sidebar-brand {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+        .dh-sidebar-title {
+          margin: 0;
+          font-size: 15px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          line-height: 1.1;
+          color: var(--text-slate-900);
+        }
+        .dh-sidebar-subtitle {
+          margin: 2px 0 0 0;
+          font-size: 11px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+        }
+        .dh-side-create {
+          height: 40px !important;
+          border-radius: 11px !important;
+          font-weight: 600 !important;
+          background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%) !important;
+          border: none !important;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+        }
+        .dh-sidebar-scroll {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          padding: 10px 10px 6px 10px;
+          scrollbar-width: none;        /* Firefox */
+          -ms-overflow-style: none;     /* IE/Edge legacy */
+        }
+        .dh-sidebar-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+        /* Compact filters */
+        .dh-side-filters .sd-trigger {
+          height: 40px !important;
+          min-height: 40px !important;
+          font-size: 13px;
+        }
+        .dh-side-group { margin-bottom: 13px; }
+        .dh-side-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 0 8px;
+          margin-bottom: 8px;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--text-slate-400);
+        }
+        /* Saved-view rows */
+        .dh-side-view {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          width: 100%;
+          height: 32px;
+          padding: 0 10px;
+          border: none;
+          background: transparent;
+          border-radius: 9px;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-slate-600);
+          transition: background 0.15s, color 0.15s;
+        }
+        .dh-side-view:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .dh-side-view.active {
+          color: var(--text-slate-900);
+          font-weight: 600;
+        }
+        .dh-side-view-icon { display: inline-flex; font-size: 14px; width: 18px; justify-content: center; }
+        .dh-side-view-label { flex: 1; text-align: left; }
+        .dh-side-view-count {
+          font-size: 12px;
+          font-weight: 600;
+          padding: 1px 8px;
+          border-radius: 999px;
+          background: transparent;
+          color: var(--text-slate-400);
+        }
+        .dh-side-clear {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          align-self: flex-start;
+          margin-top: 2px;
+          padding: 5px 10px;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          background: var(--bg-pure-white);
+          color: var(--text-slate-500);
+          font-size: 11.5px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: color 0.15s, border-color 0.15s;
+        }
+        .dh-side-clear:hover { color: #ef4444; border-color: #fecaca; }
+        /* Pinned / recent hub items */
+        .dh-side-hub {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          width: 100%;
+          height: 29px;
+          padding: 0 10px;
+          border: none;
+          background: transparent;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+        .dh-side-hub:hover { background: var(--bg-slate-100); }
+        .dh-side-hub-dot { width: 8px; height: 8px; border-radius: 3px; flex-shrink: 0; }
+        .dh-side-hub-name {
+          flex: 1;
+          text-align: left;
+          font-size: 12.5px;
+          font-weight: 500;
+          color: var(--text-slate-700);
+        }
+        /* Recently-opened items (icon + name + meta) */
+        .dh-recent-item {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          width: 100%;
+          padding: 5px 8px;
+          border: none;
+          background: transparent;
+          border-radius: 9px;
+          cursor: pointer;
+          text-align: left;
+          transition: background 0.15s;
+        }
+        .dh-recent-item:hover { background: var(--bg-slate-100); }
+        .dh-recent-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 26px;
+          height: 26px;
+          border-radius: 7px;
+          background: rgba(59, 130, 246, 0.10);
+          color: #3B82F6;
+          flex-shrink: 0;
+        }
+        .dh-recent-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+        .dh-recent-name {
+          font-size: 12.5px;
+          font-weight: 600;
+          line-height: 1.25;
+          color: var(--text-slate-800, #1e293b);
+        }
+        .dh-recent-meta {
+          font-size: 10px;
+          line-height: 1.25;
+          color: var(--text-slate-400);
+        }
+        .dh-side-trash {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          margin: 0 12px 14px 12px;
+          padding: 0 12px;
+          height: 38px;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 10px;
+          background: var(--bg-pure-white);
+          color: var(--text-slate-600);
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: color 0.15s, border-color 0.15s;
+        }
+        .dh-side-trash:hover { color: #ef4444; border-color: #fecaca; }
+
+        /* ----------------------- Main pane ----------------------- */
+        .dh-main {
+          flex: 1;
+          min-width: 0;
+          height: calc(100vh - 64px);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          background: var(--bg-pure-white);
+        }
+        .dh-main-topbar {
+          flex-shrink: 0;
+          z-index: 60;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 8px 20px;
+          min-height: 50px;
+          background: var(--bg-pure-white);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        .dh-main-scroll {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+        }
+        .dh-main-footer {
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 10px 24px;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-200);
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
+        }
+        .dh-footer-summary {
+          font-size: 12px;
+          color: var(--text-slate-500);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .dh-footer-strong { font-weight: 600; color: var(--text-slate-700); }
+        .dh-main-search { width: 320px; max-width: 42%; flex-shrink: 0; }
+        .dh-search-kbd {
+          display: inline-flex;
+          align-items: center;
+          font-size: 11px;
+          font-weight: 600;
+          line-height: 1;
+          padding: 2px 6px;
+          border-radius: 6px;
+          color: var(--text-slate-400);
+          background: var(--bg-slate-100);
+          border: 1px solid var(--border-slate-200);
+        }
+        .dh-main-stats {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+          color: var(--text-slate-500);
+          white-space: nowrap;
+          overflow: hidden;
+        }
+        .dh-main-controls {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+        .dh-stats-wrap { padding: 12px 20px 0 20px; }
+        .dh-main-body { padding: 12px 20px 14px 20px; }
+
+        /* ----------------------- Row-cards view ----------------------- */
+        .dh-rowcards-wrap { width: 100%; overflow-x: auto; }
+        .dh-rowcards-inner { min-width: 900px; }
+        .dh-rowcards-head {
+          position: sticky;
+          top: 0;
+          z-index: 5;
+          display: grid;
+          align-items: center;
+          gap: 12px;
+          padding: 4px 12px 8px 12px;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: var(--text-slate-400);
+          background: var(--bg-pure-white);
+        }
+        .dh-rowcards-list { display: flex; flex-direction: column; gap: 6px; }
+        .dh-rowcard {
+          position: relative;
+          display: grid;
+          align-items: center;
+          gap: 12px;
+          padding: 6px 12px;
+          min-height: 50px;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 13px;
+          background: var(--bg-pure-white);
+          cursor: pointer;
+          transition: border-color 0.16s, box-shadow 0.16s, transform 0.16s;
+        }
+        .dh-rowcard:hover {
+          border-color: var(--border-slate-300, #cbd5e1);
+          box-shadow: 0 6px 20px rgba(15, 23, 42, 0.07);
+          transform: translateY(-1px);
+        }
+        .dh-rowcard.is-selected {
+          border-color: #93c5fd;
+          box-shadow: inset 0 0 0 1px #bfdbfe, 0 4px 14px rgba(59, 130, 246, 0.12);
+        }
+        .dh-rowcard-focused { border-color: #93c5fd; }
+        .dh-rowcard-accent {
+          position: absolute;
+          left: 0; top: 11px; bottom: 11px;
+          width: 3px;
+          border-radius: 0 3px 3px 0;
+          background: linear-gradient(180deg, #3B82F6 0%, #6366F1 100%);
+        }
+        .dh-rowcard-cell { font-size: 12px; }
+        .dh-rowcard .dh-row-actions { justify-content: flex-start; gap: 4px; }
+
+        /* Mobile drawer pieces (inert on desktop) */
+        .dh-mobile-menu-btn { display: none !important; }
+        .dh-sidebar-backdrop { display: none; }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width: 1280px) {
+          .dh-sidebar { width: 244px; }
+          .dh-main-search { width: 280px; }
+        }
+        @media (max-width: 1100px) {
+          .dh-sidebar { width: 228px; }
+          .dh-main-search { width: 230px; max-width: 40%; }
+          .dh-main-stats { display: none; }
+        }
+        @media (max-width: 860px) {
+          .dh-shell {
+            display: block;
+            margin: 0 -16px;
+            padding-left: 0;
+            gap: 0;
+          }
+          /* Sidebar becomes a slide-in drawer */
+          .dh-sidebar {
+            position: fixed;
+            top: 64px; left: 0; bottom: 0;
+            height: auto;
+            width: 286px;
+            max-width: 86vw;
+            margin: 0;
+            border-radius: 0 18px 18px 0;
+            border-left: none;
+            transform: translateX(-103%);
+            transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1200;
+          }
+          .dh-sidebar.is-mobile-open {
+            transform: translateX(0);
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+          }
+          .dh-sidebar-backdrop {
+            display: block;
+            position: fixed;
+            inset: 64px 0 0 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(2px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.26s ease;
+            z-index: 1150;
+          }
+          .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
+          .dh-main {
+            height: auto;
+            min-height: calc(100vh - 64px);
+            overflow: visible;
+          }
+          .dh-main-scroll { overflow: visible; }
+          .dh-main-topbar { flex-wrap: wrap; padding: 8px 14px; min-height: 0; }
+          .dh-mobile-menu-btn {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-slate-50);
+            border: 1px solid var(--border-slate-200);
+            color: var(--text-slate-700);
+            order: 0;
+          }
+          .dh-main-search { width: 100%; max-width: none; order: 5; flex: 1 1 100%; }
+          .dh-main-controls { order: 2; margin-left: auto; }
+        }
+        @media (max-width: 560px) {
+          .dh-main-body { padding: 8px 12px 14px 12px; }
+          .dh-stats-wrap { padding: 10px 12px 0 12px; }
+          .dh-main-footer { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 14px; }
+          .dh-footer-summary { text-align: center; white-space: normal; }
+          .dh-main-footer .ant-pagination { display: flex; justify-content: center; flex-wrap: wrap; }
+        }
+
+        /* Dark-mode surfaces */
+        [data-theme="dark"] .dh-shell,
+        [data-theme="dark"] .dh-main { background: var(--bg-pure-white); }
+        [data-theme="dark"] .dh-side-view.active { background: var(--bg-slate-100); }
+        [data-theme="dark"] .dh-recent-item:hover { background: rgba(255, 255, 255, 0.05); }
+        [data-theme="dark"] .dh-recent-icon { background: rgba(96, 165, 250, 0.18); color: #93C5FD; }
+        [data-theme="dark"] .dh-recent-name { color: rgba(255, 255, 255, 0.92); }
+        [data-theme="dark"] .dh-recent-meta { color: rgba(255, 255, 255, 0.5); }
+        [data-theme="dark"] .dh-side-hub:hover { background: rgba(255, 255, 255, 0.05); }
+        [data-theme="dark"] .dh-mobile-menu-btn {
+          background: var(--bg-slate-50) !important;
+          border-color: var(--border-slate-200) !important;
+          color: var(--text-slate-700) !important;
+        }
+
         .premium-table .ant-table-thead > tr > th {
           background: #f8fafc !important;
           color: #64748b !important;
@@ -3146,8 +3540,10 @@ const DocumentHubPage = () => {
           font-size: 11px;
           letter-spacing: 0.05em;
           border-bottom: 2px solid #f1f5f9 !important;
-          padding-top: 14px !important;
-          padding-bottom: 14px !important;
+          padding-top: 9px !important;
+          padding-bottom: 9px !important;
+          padding-left: 10px !important;
+          padding-right: 10px !important;
           line-height: 1.2 !important;
         }
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
@@ -3295,6 +3691,32 @@ const DocumentHubPage = () => {
         .dh-table-shell {
           border: none !important;
         }
+
+        /* Visibility status pill (table + row-card cells) */
+        .dh-vis-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 3px 9px;
+          border-radius: 8px;
+          border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          font-size: 12.5px;
+          line-height: 1.2;
+          color: var(--text-slate-700);
+          width: fit-content;
+          max-width: 100%;
+          transition: border-color .15s ease, background .15s ease;
+        }
+        .dh-vis-pill.is-clickable { cursor: pointer; }
+        .dh-vis-pill.is-clickable:hover {
+          border-color: var(--text-slate-400);
+          background: var(--bg-slate-50, #f8fafc);
+        }
+        .dh-vis-dot { width: 7px; height: 7px; border-radius: 999px; flex: none; }
+        .dh-vis-label { white-space: nowrap; }
+        .dh-vis-chevron { color: var(--text-slate-400); margin-left: 1px; }
+        .dh-vis-item { display: inline-flex; align-items: center; gap: 8px; }
         
         .premium-table {
           border-collapse: separate !important;
@@ -3592,9 +4014,9 @@ const DocumentHubPage = () => {
         }
 
         /* Density (#C) — tunes per-row vertical padding */
-        .dh-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 5px 12px !important; }
-        .dh-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 9px 16px !important; }
-        .dh-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 14px 20px !important; }
+        .dh-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 4px 10px !important; }
+        .dh-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 6px 10px !important; }
+        .dh-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 10px 14px !important; }
 
         /* Pinned row actions — always visible in the fixed Actions column (#D) */
         .dh-row-actions {

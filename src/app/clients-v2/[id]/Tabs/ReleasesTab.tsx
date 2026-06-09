@@ -244,29 +244,7 @@ export default function ReleasesTab({ clientId, projects = [] }: Props) {
             padding-right: 16px !important;
           }
         }
-        @media (max-width: 1200px) {
-          html body .releases-header-wrap .saas-header-container .saas-header-row {
-            flex-wrap: nowrap !important;
-          }
-          html body .releases-header-wrap .saas-header-container .saas-header-left-col {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-          }
-          html body .releases-header-wrap .saas-header-container .saas-header-extra-col {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            margin-top: 0 !important;
-          }
-          html body .releases-header-wrap .saas-header-container .saas-header-left-group {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 16px !important;
-          }
-          html body .releases-header-wrap .saas-header-container .bh-header-divider {
-            display: inline-block !important;
-          }
-        }
+
         .release-description-body img {
           max-width: 100%;
           height: auto;
@@ -791,128 +769,128 @@ function ReleaseModal({
           overflowY: "auto",
         }}
       >
-      <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
-        <ModalSection
-          c={c}
-          title="What ships"
-          description="Title and version, plus the milestone this release belongs to."
-          icon={<Rocket size={11} />}
-          plain
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1.6fr 1fr",
-              gap: 10,
-              marginBottom: 12,
-            }}
+        <Form form={form} layout="vertical" onFinish={submit} requiredMark={false}>
+          <ModalSection
+            c={c}
+            title="What ships"
+            description="Title and version, plus the milestone this release belongs to."
+            icon={<Rocket size={11} />}
+            plain
           >
-            <Form.Item
-              name="title"
-              label={<L c={c}>Title</L>}
-              rules={[{ required: true, message: "Required" }]}
-              style={{ marginBottom: 0 }}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1.6fr 1fr",
+                gap: 10,
+                marginBottom: 12,
+              }}
             >
-              <Input placeholder="e.g. Payments hardening" maxLength={200} />
-            </Form.Item>
-            <Form.Item
-              name="version"
-              label={<L c={c}>Version</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <Input placeholder="e.g. v1.2.0" maxLength={64} />
-            </Form.Item>
-          </div>
+              <Form.Item
+                name="title"
+                label={<L c={c}>Title</L>}
+                rules={[{ required: true, message: "Required" }]}
+                style={{ marginBottom: 0 }}
+              >
+                <Input placeholder="e.g. Payments hardening" maxLength={200} />
+              </Form.Item>
+              <Form.Item
+                name="version"
+                label={<L c={c}>Version</L>}
+                style={{ marginBottom: 0 }}
+              >
+                <Input placeholder="e.g. v1.2.0" maxLength={64} />
+              </Form.Item>
+            </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 10,
-              marginBottom: 12,
-            }}
-          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 10,
+                marginBottom: 12,
+              }}
+            >
+              <Form.Item
+                name="projectId"
+                label={<L c={c}>Project</L>}
+                style={{ marginBottom: 0 }}
+              >
+                <Select
+                  allowClear
+                  placeholder={
+                    projects.length === 0 ? "No projects linked" : "Select project"
+                  }
+                  disabled={projects.length === 0}
+                  showSearch
+                  optionFilterProp="label"
+                  onChange={(v) => onProjectChange(v)}
+                  onClear={() => onProjectChange(undefined)}
+                  options={projects.map((p) => ({
+                    value: p.id,
+                    label: p.code ? `${p.name} · ${p.code}` : p.name,
+                  }))}
+                />
+              </Form.Item>
+              <Form.Item
+                name="releaseDate"
+                label={<L c={c}>Release date</L>}
+                style={{ marginBottom: 0 }}
+              >
+                <DatePicker style={{ width: "100%" }} />
+              </Form.Item>
+            </div>
+
             <Form.Item
-              name="projectId"
-              label={<L c={c}>Project</L>}
-              style={{ marginBottom: 0 }}
+              name="milestoneId"
+              label={<L c={c}>Milestone</L>}
+              style={{ marginBottom: 4 }}
             >
               <Select
                 allowClear
                 placeholder={
-                  projects.length === 0 ? "No projects linked" : "Select project"
+                  loadingMilestones
+                    ? "Loading…"
+                    : selectedProjectId
+                      ? "Select milestone for this project"
+                      : "Select milestone"
                 }
-                disabled={projects.length === 0}
+                loading={loadingMilestones}
                 showSearch
                 optionFilterProp="label"
-                onChange={(v) => onProjectChange(v)}
-                onClear={() => onProjectChange(undefined)}
-                options={projects.map((p) => ({
-                  value: p.id,
-                  label: p.code ? `${p.name} · ${p.code}` : p.name,
+                options={filteredMilestones.map((m) => ({
+                  value: m.id,
+                  label: m.projectName ? `${m.name} · ${m.projectName}` : m.name,
                 }))}
+                notFoundContent={
+                  loadingMilestones
+                    ? "Loading…"
+                    : selectedProjectId
+                      ? "No active milestones for this project"
+                      : "No active milestones"
+                }
               />
             </Form.Item>
-            <Form.Item
-              name="releaseDate"
-              label={<L c={c}>Release date</L>}
-              style={{ marginBottom: 0 }}
-            >
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
-          </div>
+          </ModalSection>
 
-          <Form.Item
-            name="milestoneId"
-            label={<L c={c}>Milestone</L>}
-            style={{ marginBottom: 4 }}
+          <ModalSection
+            c={c}
+            title="Description"
+            description="Release notes — what changed, why, and anything the client should know."
+            icon={<Flag size={11} />}
           >
-            <Select
-              allowClear
-              placeholder={
-                loadingMilestones
-                  ? "Loading…"
-                  : selectedProjectId
-                    ? "Select milestone for this project"
-                    : "Select milestone"
-              }
-              loading={loadingMilestones}
-              showSearch
-              optionFilterProp="label"
-              options={filteredMilestones.map((m) => ({
-                value: m.id,
-                label: m.projectName ? `${m.name} · ${m.projectName}` : m.name,
-              }))}
-              notFoundContent={
-                loadingMilestones
-                  ? "Loading…"
-                  : selectedProjectId
-                    ? "No active milestones for this project"
-                    : "No active milestones"
-              }
-            />
-          </Form.Item>
-        </ModalSection>
-
-        <ModalSection
-          c={c}
-          title="Description"
-          description="Release notes — what changed, why, and anything the client should know."
-          icon={<Flag size={11} />}
-        >
-          <Form.Item name="description" style={{ marginBottom: 0 }}>
-            <TiptapEditor
-              content={descHtml}
-              onChange={(html) => {
-                setDescHtml(html);
-                form.setFieldValue("description", html);
-              }}
-              minHeight={220}
-              maxHeight={420}
-            />
-          </Form.Item>
-        </ModalSection>
-      </Form>
+            <Form.Item name="description" style={{ marginBottom: 0 }}>
+              <TiptapEditor
+                content={descHtml}
+                onChange={(html) => {
+                  setDescHtml(html);
+                  form.setFieldValue("description", html);
+                }}
+                minHeight={220}
+                maxHeight={420}
+              />
+            </Form.Item>
+          </ModalSection>
+        </Form>
       </div>
 
       {/* Sticky footer */}

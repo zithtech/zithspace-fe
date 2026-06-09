@@ -24,6 +24,9 @@ const PUBLIC_PATHS = [
   "/api/tenants/resolve",
   "/api/tenants/check-subdomain",
   "/api/public/",
+  "/notification.mp3",
+  "/smallLogo.png",
+  "/sw.js",
 ];
 
 // Client-portal paths use a completely separate auth identity (see
@@ -34,7 +37,7 @@ const PUBLIC_PATHS = [
 const PORTAL_PUBLIC = ["/portal"];
 
 function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p));
 }
 
 function isPortalPath(pathname: string): boolean {
@@ -85,8 +88,8 @@ export const config = {
      * - _next/static  (static files)
      * - _next/image   (image optimization)
      * - favicon.ico
-     * - public folder
+     * - static notification assets
      */
-    "/((?!_next/static|_next/image|favicon.ico|public).*)",
+    "/((?!_next/static|_next/image|favicon.ico|notification\\.mp3|smallLogo\\.png|sw\\.js).*)",
   ],
 };

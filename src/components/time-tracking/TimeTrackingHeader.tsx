@@ -158,7 +158,7 @@ export function TimeTrackingHeader({
         }
         .saas-header-container .ant-row {
           row-gap: 8px !important;
-          flex-wrap: nowrap !important;
+           flex-wrap: nowrap !important;
         }
         @media (max-width: 1250px) {
           .saas-header-container .ant-row {

@@ -132,6 +132,12 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
       streamClient.onNotification((data: any) => {
         if (pathname.includes(`/chat/${data.channelId}`)) return;
 
+        // Play custom notification sound in-tab
+        const audio = new Audio("/notification.mp3");
+        audio.play().catch((err) => {
+          console.warn("[MainLayout] Custom sound playback failed or blocked by browser autoplay policy:", err);
+        });
+
         const key = `notification-${Date.now()}`;
         notification.info({
           key,

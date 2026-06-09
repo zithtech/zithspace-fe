@@ -147,10 +147,12 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
                 ) : (
                   opt.badge && <span className="fp-option-badge">{opt.badge}</span>
                 )}
-                <span className="fp-option-label">{opt.label}</span>
-                {opt.description && (
-                  <span className="fp-option-desc">{opt.description}</span>
-                )}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: '1 1 auto', minWidth: 0, lineHeight: 1.2 }}>
+                  <span className="fp-option-label" style={{ flex: 'none', width: '100%', textAlign: 'left' }}>{opt.label}</span>
+                  {opt.description && (
+                    <span className="fp-option-desc" style={{ flex: 'none', width: '100%', textAlign: 'left', marginTop: 2 }}>{opt.description}</span>
+                  )}
+                </div>
                 {checked && <Check size={13} className="fp-option-check" />}
               </button>
             );
@@ -404,7 +406,7 @@ const TICKET_FILTER_PILL_CSS = `
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: 6px;
+  border-radius: 50%;
   flex-shrink: 0;
   font-size: 9.5px;
   font-weight: 800;

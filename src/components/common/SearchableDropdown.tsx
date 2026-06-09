@@ -489,7 +489,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
 .sd-option-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: 50%;
   background: var(--bg-slate-100, #f1f5f9);
   color: var(--text-slate-600, #475569);
   display: flex;
@@ -505,7 +505,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
 .sd-option-avatar > img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 .sd-option-avatar-add {
   background: rgba(124,58,237,0.08);

@@ -144,9 +144,9 @@ export default function HivebugSidebar({
       return folderMatch || sheetMatch;
     });
   }, [folders, projectSheets, collectionSearch]);
-  
-  const { data: trashedBugsRes } = useBugs({ 
-    scope: "trash", 
+
+  const { data: trashedBugsRes } = useBugs({
+    scope: "trash",
     projectId: selectedProjectId || undefined,
     limit: 1000 // Fetch up to 1000 trashed bugs to reconcile counts
   });

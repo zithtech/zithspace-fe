@@ -618,6 +618,7 @@ const Hero: React.FC<{
   const today = useMemo(() => new Date(), []);
   return (
     <div
+      className="portal-hero-container"
       style={{
         background: T.cardBg,
         border: `1px solid ${T.border}`,
@@ -627,7 +628,6 @@ const Hero: React.FC<{
         alignItems: "center",
         justifyContent: "space-between",
         gap: 20,
-        position: "relative",
         overflow: "hidden",
       }}
     >
@@ -674,7 +674,7 @@ const Hero: React.FC<{
           {formatLongDate(today)}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+      <div className="portal-hero-stats" style={{ display: "flex", gap: 6, flexShrink: 0 }}>
         {[
           { label: "Invoices", value: summary.invoicesOpen, accent: "#4338ca" },
           { label: "Sprints", value: summary.sprintsActive, accent: "#0d9488" },
@@ -1801,6 +1801,25 @@ export default function PortalDashboardPage() {
       </div>
 
       <style jsx global>{`
+        .portal-hero-container {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+        }
+        @media (max-width: 900px) {
+          .portal-hero-container {
+            flex-direction: column;
+            align-items: stretch !important;
+          }
+          .portal-hero-stats {
+            flex-wrap: wrap;
+            justify-content: flex-start;
+          }
+          .portal-hero-stats > div {
+            flex: 1;
+            min-width: calc(50% - 6px);
+          }
+        }
         @media (max-width: 1280px) {
           .portal-home-secondary-row {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;

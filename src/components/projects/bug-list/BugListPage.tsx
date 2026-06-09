@@ -770,7 +770,7 @@ export default function BugListPage() {
                 style={viewMode === "calendar" ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
               >
                 <SlidersHorizontal size={14} />
-                Filters
+                <span className="hb-btn-text">Filters</span>
                 {activeFilterCount > 0 && (
                   <span className="hb-filter-badge">{activeFilterCount}</span>
                 )}
@@ -786,6 +786,7 @@ export default function BugListPage() {
                   }}
                 >
                   <Trash2 size={14} />
+                  <span className="hb-btn-text">Trash</span>
                 </button>
               </Tooltip>
 
@@ -799,6 +800,8 @@ export default function BugListPage() {
                   }}
                 >
                   <Archive size={14} />
+                  <span className="hb-btn-text">Archive</span>
+
                 </button>
               </Tooltip>
 

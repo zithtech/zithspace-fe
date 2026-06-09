@@ -187,6 +187,58 @@ export interface Ticket {
   }>;
 }
 
+export interface RecentCommentRow {
+  id: string;
+  comment: string;
+  timestamp: string;
+  total: number;
+  user: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+  };
+  ticket: {
+    id: string;
+    ticketNumber: string;
+    title: string;
+  };
+}
+
+export interface RecentAttachmentRow {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  uploadedAt: string;
+  total: number;
+  uploadedBy: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+  };
+  ticket: {
+    id: string;
+    ticketNumber: string;
+    title: string;
+  };
+}
+
+export interface OverdueTicketRow {
+  id: string;
+  ticketNumber: string;
+  title: string;
+  endDate: string;
+  status: string;
+  priority: string;
+  daysOverdue: number;
+}
+
+export interface RecentActivityResponse {
+  comments: RecentCommentRow[];
+  attachments: RecentAttachmentRow[];
+  overdue: OverdueTicketRow[];
+}
+
 export interface TicketListResponse {
   success: boolean;
   data: Ticket[];
@@ -420,6 +472,7 @@ class TicketService {
     endDate?: string;
     includeArchived?: boolean;
     archivedOnly?: boolean;
+    ticketIds?: string;
   } = {}): Promise<TicketListResponse> {
     try {
       const queryParams = new URLSearchParams();
@@ -570,6 +623,34 @@ class TicketService {
     } catch (error: any) {
       console.error("Error fetching ticket tags:", error);
       return [];
+    }
+  }
+
+  /**
+   * Recent comments + attachments for a project — powers the Ticket page sidebar.
+   * When `userId` is provided, results are scoped to activity the user cares
+   * about (their own comments/uploads, or others' activity on tickets they own).
+   * Returns the latest activity per ticket (deduped).
+   */
+  static async getRecentActivity(params: {
+    projectId?: string;
+    userId?: string;
+    limit?: number;
+  } = {}): Promise<RecentActivityResponse> {
+    try {
+      const query = new URLSearchParams();
+      if (params.projectId) query.append("projectId", params.projectId);
+      if (params.userId) query.append("userId", params.userId);
+      if (params.limit) query.append("limit", String(params.limit));
+      const response = await apiClient.get(
+        `/api/tickets/recent-activity${query.toString() ? `?${query.toString()}` : ""}`,
+      );
+      return (
+        response.data?.data || { comments: [], attachments: [], overdue: [] }
+      );
+    } catch (error: any) {
+      console.error("Error fetching recent ticket activity:", error);
+      return { comments: [], attachments: [], overdue: [] };
     }
   }
 

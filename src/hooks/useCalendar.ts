@@ -240,12 +240,53 @@ const updateEvent = useCallback(async (id: string, data: UpdateEventData): Promi
             // If no provider passed, try to detect from current events
             const targetProvider = (typeof provider === 'string' ? provider : undefined) || (events.length > 0 ? events[0].provider : undefined);
 
+            if (!targetProvider) {
+                throw new Error("No connected calendar integration found to sync.");
+            }
+
             await CalendarService.syncAll(targetProvider);
-            setSuccessMessage(`${targetProvider || "All"} calendar synced successfully.`);
-            // Don't auto-fetch after sync - let user refresh manually if needed
+            setSuccessMessage(`${targetProvider} Calendar sync initiated...`);
+
+            let attempts = 0;
+            const maxAttempts = 15; // 30 seconds total
+            const interval = 2000; // 2 seconds
+
+            const poll = async () => {
+                try {
+                    const status = await CalendarService.getStatus(targetProvider);
+                    if (status.isSyncing) {
+                        attempts++;
+                        if (attempts < maxAttempts) {
+                            setTimeout(poll, interval);
+                        } else {
+                            setSyncing(false);
+                            setSuccessMessage(`${targetProvider} Calendar sync initiated in background, but taking longer than expected.`);
+                            await fetchEvents({
+                                ...lastFiltersRef.current,
+                                cacheBuster: Date.now()
+                            });
+                        }
+                    } else {
+                        setSyncing(false);
+                        setSuccessMessage(`${targetProvider} Calendar synced successfully.`);
+                        await fetchEvents({
+                            ...lastFiltersRef.current,
+                            cacheBuster: Date.now()
+                        });
+                    }
+                } catch (pollErr: any) {
+                    console.error("Failed to check sync status:", pollErr);
+                    setSyncing(false);
+                    await fetchEvents({
+                        ...lastFiltersRef.current,
+                        cacheBuster: Date.now()
+                    });
+                }
+            };
+
+            setTimeout(poll, interval);
         } catch (err: any) {
             setError(err.message || "Failed to sync events");
-        } finally {
             setSyncing(false);
         }
     }, [fetchEvents, events]);

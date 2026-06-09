@@ -52,6 +52,14 @@ export interface Lead {
   ai_summary?: string;
   last_mail_at?: string;
   is_mail_sent?: boolean;
+
+  // Lead source kind + shared company block
+  lead_source_kind?: 'platform' | 'website';
+  company?: string;
+  company_domain?: string;
+  company_size?: string;
+  inquiry_message?: string;
+  website_source?: string;
 }
 
 export interface LeadPayload {
@@ -95,6 +103,14 @@ export interface LeadPayload {
   skillAnalysis?: any;
   aiSummary?: string;
   ai_summary?: string;
+
+  // Lead source kind + shared company block
+  leadSourceKind?: 'platform' | 'website';
+  company?: string;
+  companyDomain?: string;
+  companySize?: string;
+  inquiryMessage?: string;
+  websiteSource?: string;
 }
 
 export class LeadService {

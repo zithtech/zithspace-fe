@@ -196,77 +196,44 @@ function DashboardContent() {
     fetchConnectedProvider();
   }, []);
 
-  // Filter today's meetings with recurring support
+  // Filter today's meetings (backend already expands recurring events)
   const todaysMeetings = calendarEvents.reduce((acc: any[], event: any) => {
-    // Filter: User must be an attendee or the creator
+    // Filter: User must be an attendee or the creator (case-insensitive)
     const isUserAttendee =
-      event.attendees?.includes(user?.email) || event.userId === user?.id;
+      (Array.isArray(event.attendees) && event.attendees.some((email: any) => typeof email === 'string' && email.toLowerCase() === user?.email?.toLowerCase())) ||
+      event.userId === user?.id;
     if (!isUserAttendee) return acc;
 
     const today = dayjs().startOf("day");
     const start = dayjs(event.startTime);
-    const end = dayjs(event.endTime);
     const exdates = Array.isArray(event.exdate)
       ? event.exdate
       : event.exdate
         ? [event.exdate]
         : [];
 
-    // 1. Direct match
+    // Direct match
     if (start.isSame(today, "day")) {
       const isExcluded = exdates.some((ex: string) =>
         dayjs(ex).isSame(today, "day"),
       );
-      if (!isExcluded) acc.push(event);
-      return acc;
-    }
-
-    // 2. Recurring match
-    if (
-      event.isRecurring &&
-      event.rrule &&
-      start.isBefore(today.endOf("day"))
-    ) {
-      const isExcluded = exdates.some((ex: string) =>
-        dayjs(ex).isSame(today, "day"),
-      );
-      if (isExcluded) return acc;
-
-      let isMatch = false;
-      if (event.rrule.includes("FREQ=DAILY")) {
-        isMatch = true;
-      } else if (event.rrule.includes("FREQ=WEEKLY")) {
-        const dayMap: Record<string, number> = {
-          SU: 0,
-          MO: 1,
-          TU: 2,
-          WE: 3,
-          TH: 4,
-          FR: 5,
-          SA: 6,
-        };
-        const match = event.rrule.match(/BYDAY=([^;]+)/);
-        if (match) {
-          const days = match[1].split(",");
-          isMatch = days.some((d: string) => dayMap[d] === today.day());
-        } else {
-          isMatch = start.day() === today.day();
-        }
-      }
-
-      if (isMatch) {
-        const duration = end.diff(start);
-        const occurrenceStart = today
-          .hour(start.hour())
-          .minute(start.minute())
-          .second(start.second());
-        const occurrenceEnd = occurrenceStart.add(duration, "ms");
-
-        acc.push({
-          ...event,
-          startTime: occurrenceStart.toISOString(),
-          endTime: occurrenceEnd.toISOString(),
+      if (!isExcluded) {
+        // Prevent duplicate entries for the same series or event ID
+        const isDuplicate = acc.some((m: any) => {
+          let mMasterId = null;
+          if (m.rrule) {
+            try {
+              const parsed = JSON.parse(m.rrule);
+              mMasterId = parsed.seriesMasterId;
+            } catch (e) {}
+          }
+          const mCleanExternalId = mMasterId || m.externalId?.split('_occ_')[0]?.split('_RID')[0];
+          const cleanExternalId = event.externalId?.split('_occ_')[0]?.split('_RID')[0];
+          return mCleanExternalId === cleanExternalId || m.id === event.id || m.externalId === event.externalId;
         });
+        if (!isDuplicate) {
+          acc.push(event);
+        }
       }
     }
     return acc;
@@ -2275,7 +2242,7 @@ function DashboardContent() {
                           style={{ ...cardBase, height: 340, overflow: "hidden" }}
                           styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
                           title={sectionTitle(<TrophyOutlined />, "My Tickets", "#7C3AED")}
-                          extra={<Button type="link" size="small" onClick={() => router.push("/projects/select")} style={{ fontSize: 11 }}>View all</Button>}
+                          extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11 }}>View all</Button>}
                         >
                           <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
                             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
@@ -2542,7 +2509,7 @@ function DashboardContent() {
                             <Button
                               type="link"
                               size="small"
-                              onClick={() => router.push("/projects/select")}
+                              onClick={() => router.push("/tickets/select")}
                               style={{ fontSize: 11, fontWeight: 600 }}
                             >
                               View all{" "}
@@ -2867,7 +2834,7 @@ function DashboardContent() {
                           title: "Create Ticket",
                           desc: "Log a new task or issue",
                           accent: "#7C3AED",
-                          onClick: () => router.push("/projects/create"),
+                          onClick: () => router.push("/tickets/create"),
                           shortcut: "T",
                         },
                         {
@@ -3424,7 +3391,7 @@ function DashboardContent() {
                           style={{ ...cardBase, height: 340, overflow: "hidden" }}
                           styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
                           title={sectionTitle(<TrophyOutlined />, "My Tickets", "#7C3AED")}
-                          extra={<Button type="link" size="small" onClick={() => router.push("/projects/select")} style={{ fontSize: 11 }}>View all</Button>}
+                          extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11 }}>View all</Button>}
                         >
                           <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
                             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
@@ -4167,7 +4134,7 @@ function DashboardContent() {
                             <Button
                               type="link"
                               size="small"
-                              onClick={() => router.push("/projects/select")}
+                              onClick={() => router.push("/tickets/select")}
                               style={{ fontSize: 11, fontWeight: 600 }}
                             >
                               View all <ArrowRightOutlined style={{ fontSize: 10 }} />

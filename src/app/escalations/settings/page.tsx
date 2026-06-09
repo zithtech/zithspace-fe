@@ -719,7 +719,7 @@ export default function EscalationSettingsPage() {
       ),
     },
     {
-      title: '',
+      title: 'Actions',
       key: 'actions',
       width: 100,
       align: 'right' as const,
@@ -794,7 +794,7 @@ export default function EscalationSettingsPage() {
       ),
     },
     {
-      title: '',
+      title: 'Actions',
       key: 'actions',
       width: 100,
       align: 'right' as const,
@@ -865,7 +865,7 @@ export default function EscalationSettingsPage() {
       ),
     },
     {
-      title: '',
+      title: 'Actions',
       key: 'actions',
       width: 100,
       align: 'right' as const,

@@ -510,29 +510,27 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         items={dropdownTypes.map(type => ({
           key: type.key,
           label: (
-            <div className="tab-label-container">
-              <Space size={12}>
-                <div className={`tab-icon-box ${activeTab === type.key ? 'active' : ''}`} style={{ color: type.color }}>
-                  {type.icon}
+            <div className="tab-label-container dm-tab-item">
+              <div className={`tab-icon-box ${activeTab === type.key ? 'active' : ''}`} style={{ color: type.color }}>
+                {type.icon}
+              </div>
+              <div className="tab-text-box">
+                <div className="tab-title">{type.label}</div>
+                <div className="tab-subtitle-count">
+                  <Badge
+                    count={dropdownOptions[type.key]?.length || 0}
+                    size="small"
+                    style={{
+                      backgroundColor: activeTab === type.key ? type.color : 'rgba(0,0,0,0.06)',
+                      color: activeTab === type.key ? '#fff' : 'var(--text-secondary)',
+                      fontSize: 10,
+                      boxShadow: 'none',
+                      border: 'none'
+                    }}
+                  />
+                  <span className="tab-subtitle-text" style={{ marginLeft: 6 }}>Definitions</span>
                 </div>
-                <div>
-                  <div className="tab-title">{type.label}</div>
-                  <div className="tab-subtitle-count">
-                    <Badge
-                      count={dropdownOptions[type.key]?.length || 0}
-                      size="small"
-                      style={{
-                        backgroundColor: activeTab === type.key ? type.color : 'rgba(0,0,0,0.06)',
-                        color: activeTab === type.key ? '#fff' : 'var(--text-secondary)',
-                        fontSize: 10,
-                        boxShadow: 'none',
-                        border: 'none'
-                      }}
-                    />
-                    <span style={{ marginLeft: 6 }}>Definitions</span>
-                  </div>
-                </div>
-              </Space>
+              </div>
             </div>
           ),
           children: (() => {
@@ -938,11 +936,12 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                   <span className="dm-form-section-num">03</span>
                   Appearance &amp; Visibility
                 </div>
-                <Row gutter={20} align="top">
-                  <Col span={12}>
+                <Row gutter={[20, 16]} align="top">
+                  <Col span={24}>
                     <Form.Item
                       name="color"
                       label={<span className="dm-form-label"><StarFilled style={{ color: '#a855f7' }} /> Visual Identity</span>}
+                      style={{ marginBottom: 12 }}
                     >
                       <div className="dm-color-picker-row">
                         <ColorPicker showText />
@@ -950,11 +949,12 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                       </div>
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col span={24}>
                     <Form.Item
                       name="isActive"
                       label={<span className="dm-form-label"><CheckCircleFilled style={{ color: '#10b981' }} /> Availability</span>}
                       valuePropName="checked"
+                      style={{ marginBottom: 0 }}
                     >
                       <div className="dm-availability-toggle">
                         <Space size={8}>
@@ -1029,8 +1029,26 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         .manager-tabs.ant-tabs-top .tab-label-container {
           width: auto;
         }
-        .manager-tabs.ant-tabs-top .tab-subtitle-count span:last-child {
-          display: none; /* Hide "Definitions" text to save space on mobile */
+        .manager-tabs.ant-tabs-top .tab-subtitle-count span:last-child,
+        .manager-tabs.ant-tabs-top .tab-subtitle-text {
+          display: none !important; /* Hide "Definitions" text to save space on mobile */
+        }
+        .manager-tabs.ant-tabs-top .dm-tab-item {
+          gap: 8px !important;
+        }
+        .manager-tabs.ant-tabs-top .tab-icon-box {
+          display: none !important;
+        }
+        .manager-tabs.ant-tabs-top .tab-text-box {
+          align-items: center;
+          text-align: center;
+        }
+        .manager-tabs.ant-tabs-top .tab-title {
+          font-size: 13px !important;
+        }
+        .manager-tabs.ant-tabs-top .ant-tabs-tab {
+          padding: 8px 10px !important;
+          margin: 0 4px !important;
         }
 
         .manager-tabs .ant-tabs-tab {
@@ -1082,6 +1100,15 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         .tab-label-container {
           width: 100%;
           text-align: left;
+        }
+        .dm-tab-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .tab-text-box {
+          display: flex;
+          flex-direction: column;
         }
         .tab-icon-box {
           width: 36px;
@@ -2092,6 +2119,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           border-radius: 10px;
           border: 1px solid var(--border-slate-100);
           box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+          width: fit-content;
         }
         [data-theme='dark'] .dm-preview-chip {
           background: #161b22 !important;
@@ -2129,6 +2157,13 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           background: rgba(148, 163, 184, 0.15) !important;
           color: #94a3b8 !important;
         }
+        .dm-drawer textarea.ant-input,
+        .dm-modal textarea.ant-input {
+          height: auto !important;
+          min-height: 80px !important;
+          resize: vertical;
+          padding: 10px 12px !important;
+        }
       `}</style>
     </div>
   );
@@ -2156,13 +2191,13 @@ function DefinitionPreview({
   const typeMeta = dropdownTypes.find((t) => t.key === type);
 
   return (
-    <div className="dm-preview-card">
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div className="dm-preview-eyebrow">
-          <span style={{ color: typeMeta?.color || '#3b82f6' }}>●</span>
-          LIVE PREVIEW · {typeMeta?.label || 'Definition'}
-        </div>
-        <div className="dm-preview-chip">
+    <div className="dm-preview-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+      <div className="dm-preview-eyebrow" style={{ marginBottom: 0 }}>
+        <span style={{ color: typeMeta?.color || '#3b82f6' }}>●</span>
+        LIVE PREVIEW · {typeMeta?.label || 'Definition'}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+        <div className="dm-preview-chip" style={{ margin: 0 }}>
           <span className="dm-preview-swatch" style={{ background: color }} />
           <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-slate-900)' }}>
             {label?.trim() || 'Untitled definition'}
@@ -2180,10 +2215,10 @@ function DefinitionPreview({
             {value?.trim() || 'system_key'}
           </span>
         </div>
-      </div>
-      <div className={`dm-preview-status ${isActive ? 'on' : 'off'}`}>
-        {isActive ? <CheckCircleFilled /> : <EyeInvisibleFilled />}
-        {isActive ? 'Visible to users' : 'Hidden / Archived'}
+        <div className={`dm-preview-status ${isActive ? 'on' : 'off'}`} style={{ margin: 0, flexShrink: 0 }}>
+          {isActive ? <CheckCircleFilled /> : <EyeInvisibleFilled />}
+          {isActive ? 'Visible to users' : 'Hidden / Archived'}
+        </div>
       </div>
     </div>
   );

@@ -285,7 +285,7 @@ export default function AllocationsTab({
       },
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       align: "right" as const,
       render: (_: any, record: any) =>

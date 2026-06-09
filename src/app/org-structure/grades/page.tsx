@@ -40,6 +40,8 @@ import { usePermission } from "@/hooks/usePermission";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { OrgStatCard, OrgMiniBar } from "@/components/org-structure/OrgPageWidgets";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { History } from "lucide-react";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
 const { Text } = Typography;
 
@@ -47,7 +49,7 @@ export default function GradesPage() {
   useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureGrades" });
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
-  const { canReadOrgGrade, canCreateOrgGrade, canUpdateOrgGrade, canDeleteOrgGrade } = usePermission();
+  const { canReadOrgGrade, canCreateOrgGrade, canUpdateOrgGrade, canDeleteOrgGrade, canReadActivityLog } = usePermission();
 
   useEffect(() => {
     if (!authLoading && !canReadOrgGrade) {
@@ -61,6 +63,7 @@ export default function GradesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
   const { message } = App.useApp();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const { dataSource, loading, addGrade, updateGrade, deleteGrade } = useGrades();
 
@@ -193,7 +196,7 @@ export default function GradesPage() {
     {
       title: "Grade",
       key: "identity",
-      width: "30%",
+      width: 250,
       render: (_: any, record: GradeViewData) => (
         <div className="orgx-row-name">
           <div className="orgx-row-name__avatar">{record.code}</div>
@@ -223,6 +226,7 @@ export default function GradesPage() {
       title: "Description",
       dataIndex: "description",
       key: "description",
+      width: 300,
       ellipsis: { showTitle: false },
       render: (description: string) => (
         <Tooltip placement="topLeft" title={description}>
@@ -284,20 +288,35 @@ export default function GradesPage() {
             description="Define and manage organization grade levels and reporting tiers."
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
-              padding: "8.5px 32px",
+              padding: "9.5px 32px",
               marginBottom: 20,
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
             }}
             extra={
-              canCreateOrgGrade && (
-                <Button
-                  type="primary"
-                  icon={<Plus size={15} />}
-                  onClick={handleAdd}
-                  className="orgx-primary-btn"
-                >
-                  New Grade
-                </Button>
-              )
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                {canReadActivityLog && (
+                  <Button
+                    icon={<History size={15} />}
+                    onClick={() => setHistoryOpen(true)}
+                    style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    History
+                  </Button>
+                )}
+                {canCreateOrgGrade && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={15} />}
+                    onClick={handleAdd}
+                    className="orgx-primary-btn"
+                    style={{ display: "flex", alignItems: "center" }}
+                  >
+                    New Grade
+                  </Button>
+                )}
+              </div>
             }
           />
 
@@ -375,6 +394,7 @@ export default function GradesPage() {
                 loading={loading}
                 size="middle"
                 pagination={{ pageSize: 12, position: ["bottomRight"] }}
+                scroll={{ x: "max-content" }}
               />
             </div>
           </div>
@@ -508,6 +528,11 @@ export default function GradesPage() {
             </div>
           </Drawer>
         </div>
+        <TransactionHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          module="OrgStructure"
+        />
       </MainLayout>
     </ProtectedRoute>
   );

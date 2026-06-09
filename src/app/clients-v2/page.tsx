@@ -417,7 +417,7 @@ export default function ClientsV2ListPage() {
     allClientsOpts.forEach(() => {}); // placeholder so order of hooks stays stable
     data.forEach((c) => c.clientType && set.add(c.clientType));
     // Common fallbacks if data is sparse
-    ["B2B", "B2C", "Enterprise", "SME", "Government", "Partner"].forEach((t) => set.add(t));
+    ["B2B", "B2C", "Direct", "Enterprise", "Government", "Partner", "Reseller", "SME", "Vendor"].forEach((t) => set.add(t));
     return Array.from(set).sort().map((t) => ({ value: t, label: t }));
   }, [data, allClientsOpts]);
 
@@ -587,10 +587,10 @@ export default function ClientsV2ListPage() {
       },
     },
     {
-      title: "",
+      title: "Actions",
       key: "actions",
       align: "right" as const,
-      width: 110,
+      width: 150,
       fixed: "right" as const,
       render: (_: any, record: any) => (
         <Space size={4} className="cm-actions">
@@ -635,26 +635,18 @@ export default function ClientsV2ListPage() {
               />
             </Tooltip>
           )}
-          <Dropdown
-            menu={{
-              items: [
-                { key: "view", label: "View overview", icon: <Eye size={14} />, onClick: () => router.push(`/clients-v2/${record.id}`) },
-                canUpdateClient ? { key: "edit", label: "Edit profile", icon: <Settings2 size={14} />, onClick: () => router.push(`/clients-v2/create?id=${record.id}`) } : null,
-                canDeleteClient ? { key: "delete", label: "Delete client", danger: true, icon: <Trash2 size={14} />, onClick: () => handleDeleteClient(record.id, record.companyName) } : null,
-                { type: "divider" },
-                { key: "projects", label: "View projects", icon: <FolderKanban size={14} /> },
-              ].filter(Boolean) as any,
-            }}
-            trigger={["click"]}
-          >
+          <Tooltip title="View projects">
             <Button
               type="text"
               size="small"
-              icon={<MoreHorizontal size={16} />}
+              icon={<FolderKanban size={16} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/clients-v2/${record.id}?tab=projects`);
+              }}
               className="cm-action-btn"
-              onClick={(e) => e.stopPropagation()}
             />
-          </Dropdown>
+          </Tooltip>
         </Space>
       ),
     },

@@ -43,6 +43,8 @@ import {
   EditOutlined,
   AppstoreOutlined,
   BarsOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   FilterOutlined,
   TagsOutlined,
   ExpandAltOutlined,
@@ -67,6 +69,14 @@ import {
   SettingOutlined,
   ColumnHeightOutlined,
   LineChartOutlined,
+  LeftOutlined,
+  RightOutlined,
+  CalendarOutlined,
+  FlagOutlined,
+  PlayCircleOutlined,
+  MessageOutlined,
+  PaperClipOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -99,12 +109,16 @@ import { SprintCreationForm, type SprintFormData } from "./sprint-completion/Spr
 import { ManualCreateTicketModal } from "./ManualCreateTicketModal";
 import { AiCreateTicketModal } from "./AiCreateTicketModal";
 import TicketSkeleton from "./TicketSkeleton";
+import TicketSidebar from "./TicketSidebar";
+import TicketFilterPill from "./TicketFilterPill";
 import { TablePreferenceService } from "@/services/tablePreferenceService";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const { Title, Text } = Typography;
 
 type TicketDensity = "compact" | "comfortable" | "spacious";
 const TICKETS_TABLE_KEY = "tickets_list_v1";
+const SIDEBAR_OPEN_STORAGE_KEY = "tl_sidebar_open_v1";
 const TICKETS_TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
   { key: "ticketNumber", label: "ID" },
   { key: "title", label: "Title" },
@@ -147,9 +161,11 @@ interface FilterState {
   status: string[];
   priority: string[];
   assignee: string[];
+  createdBy: string[];
   type: string[];
   tags: string[];
   search: string;
+  ticketIds: string[];
 }
 
 interface TicketListProps {
@@ -181,13 +197,33 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     status: [],
     priority: [],
     assignee: [],
+    createdBy: [],
     type: [],
     tags: [],
     search: "",
+    ticketIds: [],
   });
+  // Label that explains an active ticketIds filter ("commented tickets", "tickets with attachments")
+  // Quick-filter toggles for the sidebar's "Show commented tickets" and
+  // "Show tickets with attachments" CTAs. Each can be on independently; when
+  // either is on the right side switches to a unified "filtered view" that
+  // pulls matching tickets from across the project (no sprint/backlog scope).
+  const [activeQuickFilters, setActiveQuickFilters] = useState<{
+    commented: boolean;
+    attached: boolean;
+    overdue: boolean;
+  }>({ commented: false, attached: false, overdue: false });
+  // Remember which section the user came from so the filtered view can offer
+  // a "Back to Sprint / Backlog" button. Defaults to 'sprint' (the initial section).
+  const [previousSection, setPreviousSection] = useState<"sprint" | "backlog">("sprint");
 
-  const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'board' | 'calendar'>('list');
   const [kanbanScope, setKanbanScope] = useState<'active' | 'backlog'>('active');
+  // Calendar view state
+  const [calendarMonth, setCalendarMonth] = useState(() => dayjs());
+  const [calLegendExpanded, setCalLegendExpanded] = useState(false);
+  const CAL_LEGEND_LIMIT = 8;
+  const SPRINT_PALETTE = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#14b8a6', '#a855f7'];
 
   // Table settings — density + column visibility, persisted per-user in DB
   // via user_table_preferences (raw psql, no Prisma).
@@ -245,11 +281,40 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [manualModalOpen, setManualModalOpen] = useState(false);
+  /** Set when the manual modal is opened from a kanban column "+" button — the
+   * column's status is applied to the new ticket instead of the default. */
+  const [manualCreateDefaultStatus, setManualCreateDefaultStatus] = useState<string | undefined>(undefined);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+
+  // Sidebar visibility. Defaults to OPEN for every user; once the user
+  // toggles it (via the header show/hide button or the mobile drawer
+  // trigger), the choice is persisted in localStorage and restored on
+  // subsequent visits. No automatic resize/breakpoint override — the
+  // user's last explicit choice wins across viewport changes.
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const stored = window.localStorage.getItem(SIDEBAR_OPEN_STORAGE_KEY);
+      if (stored === "true") return true;
+      if (stored === "false") return false;
+    } catch {
+      // localStorage unavailable (private mode etc.) — fall through to default
+    }
+    return true;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(SIDEBAR_OPEN_STORAGE_KEY, String(isSidebarOpen));
+    } catch {
+      // ignore quota / privacy errors — UI still works without persistence
+    }
+  }, [isSidebarOpen]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [allTicketIds, setAllTicketIds] = useState<string[]>([]);
+  const [sidebarActiveSection, setSidebarActiveSection] = useState<"sprint" | "backlog" | "filtered" | null>("sprint");
 
   // Sprint Completion Modal state
   const [sprintCompletionModalOpen, setSprintCompletionModalOpen] = useState(false);
@@ -273,18 +338,78 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [backlogSelectedRowKeys, setBacklogSelectedRowKeys] = useState<React.Key[]>([]);
   const recentTicketCardRef = useRef<HTMLDivElement | null>(null);
 
-  // Measure active-sprint card head so the table column headers stick flush below it
-  const activeSprintCardRef = useRef<HTMLDivElement | null>(null);
-  const [activeSprintHeadOffset, setActiveSprintHeadOffset] = useState<number>(128);
+  // Measure the sticky top header so the sidebar and section anchors line up
+  // with its real rendered height (it can wrap on narrow screens). Cascades
+  // into a CSS variable used by the sidebar + scroll-margin computations.
+  const saasHeaderRef = useRef<HTMLDivElement | null>(null);
+  const [saasHeaderHeight, setSaasHeaderHeight] = useState<number>(56);
   useEffect(() => {
-    const el = activeSprintCardRef.current?.querySelector('.ant-card-head') as HTMLElement | null;
+    const el = saasHeaderRef.current;
     if (!el) return;
-    const update = () => setActiveSprintHeadOffset(56 + el.offsetHeight);
+    const update = () => setSaasHeaderHeight(el.offsetHeight || 56);
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [activeSprintCardRef.current]);
+  }, []);
+
+  // Measure active-sprint section head so the table column headers stick flush below it
+  const activeSprintCardRef = useRef<HTMLDivElement | null>(null);
+  const [activeSprintHeadOffset, setActiveSprintHeadOffset] = useState<number>(128);
+  useEffect(() => {
+    const el = activeSprintCardRef.current?.querySelector('.tl-section-head') as HTMLElement | null;
+    if (!el) return;
+    const update = () => setActiveSprintHeadOffset(saasHeaderHeight + el.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [activeSprintCardRef.current, saasHeaderHeight]);
+
+  // ── Sprint header: collapse Progress/Tickets/Timeline cluster to a compact
+  // popover button when the section-head wraps to a second row. Detection is
+  // JS-based (not CSS media/container queries) because the wrap depends on
+  // the actual rendered cluster widths — sprint-name length, sidebar state,
+  // etc. — not just viewport or container width.
+  //
+  // Hysteresis: once collapsed at width W, we only re-expand when the
+  // section-head grows past W + 100px. Prevents oscillation since the
+  // compact button is much narrower than inline stats and would otherwise
+  // re-fit immediately, triggering a re-wrap → re-collapse loop.
+  const [sprintHeadEl, setSprintHeadEl] = useState<HTMLDivElement | null>(null);
+  const [statsCollapsed, setStatsCollapsed] = useState(false);
+  const collapsedWidthRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!sprintHeadEl) return;
+    const measure = () => {
+      const w = sprintHeadEl.offsetWidth;
+      if (statsCollapsed) {
+        const expandAt = (collapsedWidthRef.current ?? 0) + 100;
+        if (w >= expandAt) {
+          collapsedWidthRef.current = null;
+          setStatsCollapsed(false);
+        }
+        return;
+      }
+      // Detect wrap: last direct child sits lower than first direct child.
+      const children = sprintHeadEl.children;
+      if (children.length < 2) return;
+      const first = children[0] as HTMLElement;
+      const last = children[children.length - 1] as HTMLElement;
+      if (last.offsetTop > first.offsetTop + 3) {
+        collapsedWidthRef.current = w;
+        setStatsCollapsed(true);
+      }
+    };
+    // Defer the first measurement a tick so antd's Space children settle.
+    const raf = requestAnimationFrame(measure);
+    const ro = new ResizeObserver(measure);
+    ro.observe(sprintHeadEl);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [sprintHeadEl, statsCollapsed]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -321,7 +446,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // Pagination state
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 20,
   });
 
 
@@ -426,16 +551,19 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   // --- React Query Hooks ---
 
-  // Base params (without pagination) for filters
+  // Base params (without pagination) for filters.
   const baseQueryParams = {
     projectId, // From props, mandatory project context
     status: filters.status.length > 0 ? filters.status.join(",") : undefined,
     priority: filters.priority.length > 0 ? filters.priority.join(",") : undefined,
     assigneeId:
       filters.assignee.length > 0 ? filters.assignee.join(",") : undefined,
+    createdById:
+      filters.createdBy.length > 0 ? filters.createdBy.join(",") : undefined,
     type: filters.type.length > 0 ? filters.type.join(",") : undefined,
     tags: filters.tags.length > 0 ? filters.tags.join(",") : undefined,
     search: filters.search || undefined,
+    ticketIds: filters.ticketIds.length > 0 ? filters.ticketIds.join(",") : undefined,
   };
 
   // Fetch Active Sprint to get ID for assignments (scoped to project)
@@ -446,6 +574,16 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     enabled: !!projectId && canReadTicketPlan,
   });
   const activeSprint = activeSprints && activeSprints.length > 0 ? activeSprints[0] : null;
+
+  // Recent comments + attachments for the sidebar (project-scoped, tenant-aware,
+  // and user-relevance filtered: items the current user authored OR items on
+  // tickets assigned to them).
+  const { data: recentActivity } = useQuery({
+    queryKey: ['ticketRecentActivity', projectId, user?.id],
+    queryFn: () => TicketService.getRecentActivity({ projectId, userId: user?.id, limit: 10 }),
+    enabled: !!projectId && !!user?.id && canReadTicket,
+    staleTime: 30 * 1000,
+  });
 
   // Persist current project as last visited
   useEffect(() => {
@@ -499,15 +637,332 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const backlogTickets = backlogData?.data || [];
   const totalBacklog = backlogData?.pagination?.total || 0;
 
-  // 3. Fetch ALL Active Sprint Tickets for progress calculation (UNFILTERED)
+  // 3. Fetch ALL Active Sprint Tickets for progress calculation (UNFILTERED).
+  // Intentionally NOT gated on `activeSprint` resolving — the backend
+  // already returns an empty set if there's no active sprint, and gating
+  // here causes the sidebar's "Your Sprint Contribution" stats to flash
+  // empty before the activeSprint query lands.
   const { data: overallSprintData } = useTickets({
     projectId,
     sprintId: 'active',
     limit: 9999
   }, {
-    enabled: !!activeSprint // Only fetch if we have an active sprint
+    enabled: !!projectId && canReadTicket,
   });
   const overallSprintTickets = overallSprintData?.data || [];
+
+  // Sidebar source-of-truth: union of the unfiltered "overall" sprint pool
+  // and the right-side `activeTickets`, deduped by id. The user already sees
+  // their tickets on the right, so this guarantees the sidebar sees them too
+  // even if the parallel `overallSprintData` query is delayed or empty.
+  const sidebarSprintPool = useMemo<Ticket[]>(() => {
+    const byId = new Map<string, Ticket>();
+    for (const t of overallSprintTickets) byId.set(t.id, t);
+    for (const t of activeTickets) if (!byId.has(t.id)) byId.set(t.id, t);
+    return Array.from(byId.values());
+  }, [overallSprintTickets, activeTickets]);
+
+  // Quick-filter derived state — drives the unified "filtered view" section.
+  const isFilteredView = activeQuickFilters.commented || activeQuickFilters.attached || activeQuickFilters.overdue;
+  const recentCommentedIds = useMemo(
+    () => Array.from(new Set((recentActivity?.comments || []).map((c) => c.ticket.id))),
+    [recentActivity]
+  );
+  const recentAttachedIds = useMemo(
+    () => Array.from(new Set((recentActivity?.attachments || []).map((a) => a.ticket.id))),
+    [recentActivity]
+  );
+  const overdueIds = useMemo(
+    () => Array.from(new Set((recentActivity?.overdue || []).map((o) => o.id))),
+    [recentActivity]
+  );
+  const quickFilterTicketIds = useMemo(() => {
+    const set = new Set<string>();
+    if (activeQuickFilters.commented) recentCommentedIds.forEach((id) => set.add(id));
+    if (activeQuickFilters.attached) recentAttachedIds.forEach((id) => set.add(id));
+    if (activeQuickFilters.overdue) overdueIds.forEach((id) => set.add(id));
+    return Array.from(set);
+  }, [activeQuickFilters, recentCommentedIds, recentAttachedIds, overdueIds]);
+
+  // Unified filtered-view query: project-wide tickets matching the active
+  // quick-filter set (no sprint/backlog scope restriction). Honors other
+  // filters (status/priority/etc) so the user can keep narrowing.
+  const filteredViewParams = {
+    ...baseQueryParams,
+    ticketIds: quickFilterTicketIds.length > 0 ? quickFilterTicketIds.join(",") : undefined,
+    page: pagination.current,
+    limit: pagination.pageSize,
+  };
+  const {
+    data: filteredViewData,
+    isFetching: filteredViewFetching,
+  } = useTickets(filteredViewParams, {
+    enabled: isFilteredView && quickFilterTicketIds.length > 0,
+  });
+  const filteredViewTickets = filteredViewData?.data || [];
+  const filteredViewTotal = filteredViewData?.pagination?.total || 0;
+
+  const filteredViewKindLabel = (() => {
+    const parts: string[] = [];
+    if (activeQuickFilters.commented) parts.push("Commented");
+    if (activeQuickFilters.attached) parts.push("Attached");
+    if (activeQuickFilters.overdue) parts.push("Overdue");
+    if (parts.length === 0) return "Filtered tickets";
+    return `${parts.join(" · ")} tickets`;
+  })();
+
+  const effectiveSection: "sprint" | "backlog" | "filtered" | null = isFilteredView ? "filtered" : sidebarActiveSection;
+
+  // ── Per-section filter scoping ───────────────────────────
+  // Filters are section-scoped (Sprint / Backlog / Filtered each keep their
+  // own status/priority/assignee/etc). Global `search` and `ticketIds` stay
+  // shared so the global search box behaves intuitively.
+  //
+  // On every scope change we (1) save the OUTGOING scope's section filters
+  // and (2) restore the INCOMING scope's snapshot into the live `filters`
+  // state. The backend queries already read off `filters`, so scoping is
+  // invisible to the rest of the component.
+  type SectionScope = "sprint" | "backlog" | "filtered";
+  type SectionScopedFilters = Pick<
+    FilterState,
+    "status" | "priority" | "assignee" | "createdBy" | "type" | "tags"
+  >;
+  const EMPTY_SECTION_SCOPED: SectionScopedFilters = {
+    status: [],
+    priority: [],
+    assignee: [],
+    createdBy: [],
+    type: [],
+    tags: [],
+  };
+  const currentScope: SectionScope = isFilteredView
+    ? "filtered"
+    : sidebarActiveSection === "backlog"
+    ? "backlog"
+    : "sprint";
+  const filterSnapshotsRef = useRef<Record<SectionScope, SectionScopedFilters>>({
+    sprint: { ...EMPTY_SECTION_SCOPED },
+    backlog: { ...EMPTY_SECTION_SCOPED },
+    filtered: { ...EMPTY_SECTION_SCOPED },
+  });
+  const prevScopeRef = useRef<SectionScope>(currentScope);
+  // Mirror `filters` into a ref so the scope-change effect can read the latest
+  // value without re-running on every keystroke.
+  const filtersRef = useRef(filters);
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
+  useEffect(() => {
+    if (prevScopeRef.current === currentScope) return;
+    const outgoingScope = prevScopeRef.current;
+    const f = filtersRef.current;
+    filterSnapshotsRef.current = {
+      ...filterSnapshotsRef.current,
+      [outgoingScope]: {
+        status: f.status,
+        priority: f.priority,
+        assignee: f.assignee,
+        createdBy: f.createdBy,
+        type: f.type,
+        tags: f.tags,
+      },
+    };
+    const incoming = filterSnapshotsRef.current[currentScope];
+    setFilters((prev) => ({
+      ...prev,
+      ...incoming,
+    }));
+    setPagination((prev) => ({ ...prev, current: 1 }));
+    prevScopeRef.current = currentScope;
+  }, [currentScope]);
+
+  // ── Calendar view data (only when viewMode === 'calendar') ──────
+  // Fetch ALL sprints for the project to get color/name mapping and date bounds
+  const { data: allProjectSprintsRaw, isLoading: allSprintsLoading } = useQuery({
+    queryKey: ['allProjectSprints', projectId],
+    queryFn: () => ReleasePlanService.getReleasePlans({ type: 'sprint_plan', projectId, limit: 100 }),
+    enabled: !!projectId && viewMode === 'calendar' && canReadTicketPlan,
+    staleTime: 60 * 1000,
+  });
+  const allProjectSprints = useMemo(() => allProjectSprintsRaw?.data || [], [allProjectSprintsRaw]);
+
+  // Fetch ALL tickets in any sprint for this project (no pagination)
+  const { data: calendarTicketsData, isLoading: calendarTicketsLoading } = useTickets(
+    { projectId, limit: 9999 },
+    { enabled: !!projectId && viewMode === 'calendar' }
+  );
+
+  // Helper: resolve a ticket's sprint ID across the field-name variants used by the backend
+  const getTicketSprintId = (t: Ticket): string | null => {
+    return (
+      (t as any).sprintPlanId ||
+      (t as any).releasePlanId ||
+      (t as any).metadata?.releasePlan ||
+      null
+    );
+  };
+
+  // Map sprint ID → { name, color, status, dates }
+  const sprintInfoMap = useMemo(() => {
+    const map = new Map<string, { name: string; color: string; status?: string; startDate?: string; endDate?: string }>();
+    allProjectSprints.forEach((s: any, i: number) => {
+      map.set(s.id, {
+        name: s.version || s.name || `Sprint ${i + 1}`,
+        color: SPRINT_PALETTE[i % SPRINT_PALETTE.length],
+        status: s.status,
+        startDate: s.startDate,
+        endDate: s.endDate,
+      });
+    });
+    return map;
+  }, [allProjectSprints]);
+
+  // Resolve calendar tickets: must have sprint id AND a date range (own or sprint's)
+  const calendarSprintTickets = useMemo(() => {
+    const all = calendarTicketsData?.data || [];
+    return all
+      .map((t: Ticket) => {
+        const sprintId = getTicketSprintId(t);
+        if (!sprintId) return null;
+        const sprintInfo = sprintInfoMap.get(sprintId);
+        const startDate = t.startDate || sprintInfo?.startDate;
+        const endDate = t.endDate || sprintInfo?.endDate;
+        if (!startDate || !endDate) return null;
+        return { ticket: t, sprintId, startDate, endDate, sprintInfo };
+      })
+      .filter(Boolean) as Array<{ ticket: Ticket; sprintId: string; startDate: string; endDate: string; sprintInfo?: { name: string; color: string; status?: string; startDate?: string; endDate?: string } }>;
+  }, [calendarTicketsData, sprintInfoMap]);
+
+  // Calendar navigation bounds — clamp to actual ticket date range
+  const calendarBounds = useMemo(() => {
+    const dates: dayjs.Dayjs[] = [];
+    calendarSprintTickets.forEach((r) => {
+      dates.push(dayjs(r.startDate));
+      dates.push(dayjs(r.endDate));
+    });
+    if (!dates.length) return null;
+    const earliest = dates.reduce((a, b) => (a.isBefore(b) ? a : b)).startOf('month');
+    const latest = dates.reduce((a, b) => (a.isAfter(b) ? a : b)).startOf('month');
+    return { earliest, latest };
+  }, [calendarSprintTickets]);
+
+  const canCalPrev = !calendarBounds || calendarMonth.isAfter(calendarBounds.earliest, 'month');
+  const canCalNext = !calendarBounds || calendarMonth.isBefore(calendarBounds.latest.add(3, 'month'), 'month');
+
+  // Snap calendarMonth into range when data loads
+  useEffect(() => {
+    if (!calendarBounds || viewMode !== 'calendar') return;
+    if (calendarMonth.isBefore(calendarBounds.earliest, 'month')) {
+      setCalendarMonth(calendarBounds.earliest);
+    } else if (calendarMonth.isAfter(calendarBounds.latest.add(3, 'month'), 'month')) {
+      setCalendarMonth(calendarBounds.latest);
+    }
+  }, [calendarBounds, viewMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Stats for header
+  const calendarMonthStats = useMemo(() => {
+    const monthStart = calendarMonth.startOf('month');
+    const monthEnd = calendarMonth.endOf('month');
+    const inMonth = calendarSprintTickets.filter((r) => {
+      const s = dayjs(r.startDate);
+      const e = dayjs(r.endDate);
+      return !(e.isBefore(monthStart) || s.isAfter(monthEnd));
+    });
+    const uniqueSprints = new Set<string>();
+    inMonth.forEach((r) => uniqueSprints.add(r.sprintId));
+    return { ticketCount: inMonth.length, sprintCount: uniqueSprints.size };
+  }, [calendarSprintTickets, calendarMonth]);
+
+  // Build week-grouped ribbons
+  const calendarData = useMemo(() => {
+    const startOfWeekMon = (d: dayjs.Dayjs) => {
+      const dow = d.day();
+      const offset = (dow + 6) % 7;
+      return d.subtract(offset, 'day').startOf('day');
+    };
+    const endOfWeekMon = (d: dayjs.Dayjs) => startOfWeekMon(d).add(6, 'day').endOf('day');
+
+    const calStart = startOfWeekMon(calendarMonth.startOf('month'));
+    const calEnd = endOfWeekMon(calendarMonth.endOf('month'));
+
+    const weeks: dayjs.Dayjs[][] = [];
+    let cursor = calStart;
+    while (cursor.isBefore(calEnd) || cursor.isSame(calEnd, 'day')) {
+      const days: dayjs.Dayjs[] = [];
+      for (let i = 0; i < 7; i++) {
+        days.push(cursor);
+        cursor = cursor.add(1, 'day');
+      }
+      weeks.push(days);
+      if (weeks.length > 8) break;
+    }
+
+    type Ribbon = {
+      ticket: Ticket;
+      startCol: number;
+      span: number;
+      continuesLeft: boolean;
+      continuesRight: boolean;
+      color: string;
+      sprintName?: string;
+      sprintId: string;
+      startDate: string;
+      endDate: string;
+      lane: number;
+    };
+
+    const weekRibbons: Ribbon[][] = weeks.map(week => {
+      const weekStart = week[0];
+      const weekEnd = week[6].endOf('day');
+
+      const overlapping = calendarSprintTickets
+        .filter((r) => {
+          const s = dayjs(r.startDate);
+          const e = dayjs(r.endDate);
+          return !(e.isBefore(weekStart) || s.isAfter(weekEnd));
+        })
+        .map((r): Ribbon => {
+          const s = dayjs(r.startDate);
+          const e = dayjs(r.endDate);
+          const clipStart = s.isBefore(weekStart) ? weekStart : s.startOf('day');
+          const clipEnd = e.isAfter(weekEnd) ? weekEnd : e.endOf('day');
+          const startCol = clipStart.diff(weekStart, 'day');
+          const span = Math.max(clipEnd.startOf('day').diff(clipStart.startOf('day'), 'day') + 1, 1);
+          return {
+            ticket: r.ticket,
+            startCol,
+            span,
+            continuesLeft: s.isBefore(weekStart),
+            continuesRight: e.isAfter(weekEnd),
+            color: r.sprintInfo?.color || '#94a3b8',
+            sprintName: r.sprintInfo?.name,
+            sprintId: r.sprintId,
+            startDate: r.startDate,
+            endDate: r.endDate,
+            lane: 0,
+          };
+        })
+        .sort((a: Ribbon, b: Ribbon) => a.startCol - b.startCol || b.span - a.span);
+
+      const lanes: number[] = [];
+      overlapping.forEach((r: Ribbon) => {
+        let li = lanes.findIndex(end => end <= r.startCol);
+        if (li === -1) {
+          li = lanes.length;
+          lanes.push(0);
+        }
+        lanes[li] = r.startCol + r.span;
+        r.lane = li;
+      });
+
+      return overlapping;
+    });
+
+    const maxLanesByWeek = weekRibbons.map(rs => rs.reduce((m, x) => Math.max(m, x.lane), -1) + 1);
+
+    return { weeks, weekRibbons, maxLanesByWeek };
+  }, [calendarSprintTickets, calendarMonth, sprintInfoMap]);
 
 
   // Sync all ticket IDs for navigation
@@ -709,9 +1164,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   useEffect(() => {
     if (viewMode === 'board') {
       // Board mode uses Kanban endpoint, no pagination needed
-      setPagination(prev => ({ ...prev, current: 1, pageSize: 10 }));
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 20 }));
     } else {
-      setPagination(prev => ({ ...prev, current: 1, pageSize: 10 }));
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 20 }));
     }
   }, [viewMode]);
 
@@ -1007,16 +1462,20 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         if (isEditing) {
           return (
-            <Select
+            <SearchableDropdown
               value={status}
-              style={{ width: "100%" }}
-              onChange={(value) =>
-                handleUpdateTicket(record.id, "status", value)
-              }
-              onBlur={() => setEditingField(null)}
-              autoFocus
+              defaultOpen
               loading={isUpdating}
               options={finalStatusOptions}
+              searchPlaceholder="Search status…"
+              itemNoun="statuses"
+              allowClear={false}
+              style={{ width: "100%", minWidth: 0, height: 32 }}
+              onChange={(value) => {
+                if (value !== undefined) handleUpdateTicket(record.id, "status", value);
+                setEditingField(null);
+              }}
+              onOpenChange={(open) => { if (!open) setEditingField(null); }}
             />
           );
         }
@@ -1055,29 +1514,24 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         if (isEditing) {
           return (
-            <Select
+            <SearchableDropdown
               value={assigneeId || undefined}
-              style={{ width: "100%" }}
-              onChange={(value) =>
-                handleUpdateTicket(record.id, "assignee", value)
-              }
-              onBlur={() => setEditingField(null)}
-              autoFocus
+              defaultOpen
               loading={isUpdating}
-              showSearch
-              allowClear
               placeholder="Select assignee"
-              filterOption={(input, option) => {
-                const member = members.find((m) => m.value === option?.value);
-                return member
-                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                  (member.position?.toLowerCase() ?? "").includes(input.toLowerCase())
-                  : false;
-              }}
+              searchPlaceholder="Search by name or role…"
+              itemNoun="members"
+              style={{ width: "100%", minWidth: 0, height: 32 }}
               options={members.map((member) => ({
-                label: `${member.label} - ${member.position}`,
                 value: member.value,
+                label: member.label,
+                description: member.position,
               }))}
+              onChange={(value) => {
+                handleUpdateTicket(record.id, "assignee", value ?? null);
+                setEditingField(null);
+              }}
+              onOpenChange={(open) => { if (!open) setEditingField(null); }}
             />
           );
         }
@@ -1121,20 +1575,24 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         if (isEditing) {
           return (
-            <Select
+            <SearchableDropdown
               value={priority}
-              style={{ width: "100%" }}
-              onChange={(value) =>
-                handleUpdateTicket(record.id, "priority", value)
-              }
-              onBlur={() => setEditingField(null)}
-              autoFocus
+              defaultOpen
               loading={isUpdating}
+              allowClear={false}
+              searchPlaceholder="Search priority…"
+              itemNoun="priorities"
+              style={{ width: "100%", minWidth: 0, height: 32 }}
               options={dbPriorityOptions.length > 0 ? dbPriorityOptions : [
                 { label: "High (P1)", value: "P1" },
                 { label: "Medium (P2)", value: "P2" },
                 { label: "Low (P3)", value: "P3" },
               ]}
+              onChange={(value) => {
+                if (value !== undefined) handleUpdateTicket(record.id, "priority", value);
+                setEditingField(null);
+              }}
+              onOpenChange={(open) => { if (!open) setEditingField(null); }}
             />
           );
         }
@@ -1164,21 +1622,25 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         if (isEditing) {
           return (
-            <Select
+            <SearchableDropdown
               value={type}
-              style={{ width: "100%" }}
-              onChange={(value) =>
-                handleUpdateTicket(record.id, "type", value)
-              }
-              onBlur={() => setEditingField(null)}
-              autoFocus
+              defaultOpen
               loading={isUpdating}
-              options={[
+              allowClear={false}
+              searchPlaceholder="Search type…"
+              itemNoun="types"
+              style={{ width: "100%", minWidth: 0, height: 32 }}
+              options={finalTypeOptions.length > 0 ? finalTypeOptions : [
                 { label: "Bug", value: "Bug" },
                 { label: "Task", value: "Task" },
                 { label: "Feature", value: "Feat" },
                 { label: "Overwrite", value: "Overwrite" },
               ]}
+              onChange={(value) => {
+                if (value !== undefined) handleUpdateTicket(record.id, "type", value);
+                setEditingField(null);
+              }}
+              onOpenChange={(open) => { if (!open) setEditingField(null); }}
             />
           );
         }
@@ -1392,7 +1854,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     {
       title: "Actions",
       key: "actions",
-      width: 180,
+      width: 116,
+      align: "right" as const,
       fixed: "right",
       render: (_: any, record: Ticket) => {
         const handleShare = () => {
@@ -1494,12 +1957,179 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   return allCols.filter(c => activeColumnsSet.has(c?.key as string));
 };
 
+  // Active-sprint header used at the top of List, Board, and Calendar views.
+  // `variant: 'list'` enables the bulk-action branch driven by activeSelectedRowKeys
+  // (the table row-selection state only exists in List view).
+  const renderActiveSprintHeader = (
+    variant: 'list' | 'compact' = 'compact',
+    sticky: boolean = true,
+  ) => {
+    if (!activeSprint) return null;
+    const showBulkActions = variant === 'list' && activeSelectedRowKeys.length > 0;
+
+    const completedCount = overallSprintTickets.filter((t) => ['completed'].includes(t.status?.toLowerCase() || '')).length;
+    const totalSprintTickets = overallSprintTickets.length;
+    const remainingCount = Math.max(0, totalSprintTickets - completedCount);
+    const progressPct = totalSprintTickets > 0 ? Math.round((completedCount / totalSprintTickets) * 100) : 0;
+    const start = activeSprint.startDate ? dayjs(activeSprint.startDate) : null;
+    const end = activeSprint.endDate ? dayjs(activeSprint.endDate) : null;
+    const now = dayjs();
+    const isDelayed = !!end && now.isAfter(end, 'day');
+    const isToday = !!end && now.isSame(end, 'day');
+    const daysFromEnd = end ? Math.abs(now.diff(end, 'day')) : 0;
+    const accent = isDelayed ? '#ef4444' : isToday ? '#f59e0b' : '#10b981';
+
+    return (
+      <div
+        ref={setSprintHeadEl}
+        className={`tl-section-head tl-sprint-head-v2${statsCollapsed ? ' is-stats-collapsed' : ''}${sticky ? '' : ' tl-section-head--static'}`}
+      >
+        {/* Row 1: dot + title + status tags + action buttons */}
+        <div className="tl-sprint-row1">
+          <div className="tl-sprint-title-block">
+            <span
+              className="tl-sprint-dot"
+              style={{ background: accent, boxShadow: `0 0 0 3px ${accent}33` }}
+            />
+            <Text
+              className="tl-sprint-title"
+              ellipsis={{ tooltip: `${projectName} — ${activeSprint?.version || 'Active Sprint'}` }}
+            >
+              {projectName} — {activeSprint?.version || 'Active Sprint'}
+            </Text>
+            {end && (
+              <span className="tl-sprint-tags">
+                {isDelayed && (
+                  <span className="tl-sprint-tag tl-sprint-tag-delayed">{daysFromEnd}D DELAYED</span>
+                )}
+                {isToday && (
+                  <span className="tl-sprint-tag tl-sprint-tag-today">ENDS TODAY</span>
+                )}
+                {!isDelayed && !isToday && (
+                  <span className="tl-sprint-tag tl-sprint-tag-active">{daysFromEnd}D LEFT</span>
+                )}
+                {isDelayed && (
+                  <span className="tl-sprint-tag tl-sprint-tag-overdue">OVERDUE</span>
+                )}
+              </span>
+            )}
+          </div>
+          <div className="tl-sprint-actions">
+            {showBulkActions ? (
+              <>
+                {canManageTickets && (
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
+                    onClick={() => bulkArchiveMutation.mutate(activeSelectedRowKeys as string[])}
+                    style={{
+                      background: 'var(--premium-blue)',
+                      borderColor: 'var(--premium-blue)',
+                      fontWeight: 800,
+                      borderRadius: 4,
+                      height: 28,
+                      fontSize: 11,
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    Move to Archive
+                  </Button>
+                )}
+                {canDeleteTicket && (
+                  <Button
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                    onClick={() => {
+                      modal.confirm({
+                        title: 'Move to Trash',
+                        content: `Are you sure you want to move ${activeSelectedRowKeys.length} selected tickets to trash?`,
+                        okText: 'Move to Trash',
+                        okType: 'danger',
+                        onOk: () => bulkDeleteMutation.mutate(activeSelectedRowKeys as string[])
+                      });
+                    }}
+                    style={{
+                      fontWeight: 800,
+                      borderRadius: 4,
+                      height: 28,
+                      fontSize: 11,
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    Delete
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                {activeSprint?.id && (
+                  <Button
+                    type="default"
+                    size="small"
+                    icon={<LineChartOutlined />}
+                    onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
+                    className="saas-button-item tl-sprint-burndown-btn"
+                  >
+                    Burndown
+                  </Button>
+                )}
+                {canUpdateTicketPlan && (
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<CheckCircleOutlined />}
+                    onClick={handleCompleteSprint}
+                    className="saas-button-item tl-sprint-complete-btn"
+                  >
+                    Complete Sprint
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Row 2: date range + ticket counts */}
+        <div className="tl-sprint-row2">
+          {start && end && (
+            <span className="tl-sprint-meta">
+              <CalendarOutlined style={{ fontSize: 11 }} />
+              <span>{start.format('MMM D')}</span>
+              <span className="tl-sprint-meta-arrow">→</span>
+              <span>{end.format('MMM D')}</span>
+            </span>
+          )}
+          <span className="tl-sprint-meta">
+            <b>{completedCount}</b>/{totalSprintTickets} tickets completed
+          </span>
+          <span className="tl-sprint-meta">
+            <b>{remainingCount}</b> remaining
+          </span>
+        </div>
+
+        {/* Row 3: wide ticket-completion progress bar + % */}
+        <div className="tl-sprint-row3">
+          <div className="tl-sprint-progress-bar">
+            <div
+              className="tl-sprint-progress-fill"
+              style={{ width: `${Math.min(100, progressPct)}%` }}
+            />
+          </div>
+          <span className="tl-sprint-progress-pct">{progressPct}%</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{
       backgroundColor: 'var(--bg-pure-white)',
       minHeight: 'calc(100vh - 64px)',
-      padding: '0 24px 24px 24px',
-      margin: '0 -24px'
+      padding: '0 24px 16px 24px',
+      margin: '0 -24px',
+      ['--tl-header-h' as any]: `${saasHeaderHeight}px`,
     }}>
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -1512,28 +2142,790 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         .ant-table-cell-fix-left-first::after, .ant-table-cell-fix-left-last::after,
         .ant-table-cell-fix-right-first::after, .ant-table-cell-fix-right-last::after {
           box-shadow: none !important;
-        }.tickets-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 5px 12px !important; }
-        .tickets-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 9px 16px !important; }
-        .tickets-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 14px 20px !important; }
+        }.tickets-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 4px 10px !important; }
+        .tickets-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 7px 14px !important; }
+        .tickets-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 11px 18px !important; }
         .tickets-table-settings-popover .ant-popover-inner { padding: 14px !important; border-radius: 12px !important; }
         .tickets-cols-scroll::-webkit-scrollbar { width: 6px; }
         .tickets-cols-scroll::-webkit-scrollbar-track { background: transparent; }
         .tickets-cols-scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 3px; }
         .tickets-cols-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-slate-400); }
+
+        /* ── Sprint stats: inline by default, compact popover button when the
+           sprint header container can't fit the row. Uses container queries so
+           the trigger follows actual available width (sidebars open/closed),
+           not viewport. ── */
+        .tl-sprint-stats-compact-btn:hover {
+          background: var(--bg-slate-100, #f1f5f9) !important;
+          border-color: var(--text-slate-300, #cbd5e1) !important;
+          color: var(--text-slate-900, #0f172a) !important;
+        }
+        .tl-sprint-stats-popover .ant-popover-inner {
+          border-radius: 12px !important;
+          padding: 14px 16px !important;
+          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 2px 4px rgba(15, 23, 42, 0.06) !important;
+          border: 1px solid var(--border-color, #e2e8f0) !important;
+        }
+        [data-theme='dark'] .tl-sprint-stats-popover .ant-popover-inner {
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+          border-color: #1f2937 !important;
+        }
+        /* Visibility toggled at runtime by JS — see "statsCollapsed" state.
+           Default rendering (no class on host) shows inline. When the section
+           head wraps to a second row, the host gets "is-stats-collapsed". */
+        .tl-section-head .tl-sprint-stats-compact-btn { display: none; }
+        .tl-section-head.is-stats-collapsed .tl-sprint-stats-inline { display: none !important; }
+        .tl-section-head.is-stats-collapsed .tl-sprint-stats-compact-btn { display: inline-flex !important; }
+
+        /* ── Two-column shell (sidebar + main) ───────────────
+           Left bleeds -24px so the sidebar background slips under the
+           global SideNav (cleaner edge). Right does NOT bleed because
+           the parent <Content> only has 8px padding — bleeding right
+           by -24px would push content 16px past the viewport-clipped
+           Content right edge, hiding the Complete-Sprint button / chart
+           icon / right-most table columns. */
+        /* Left bleed (-24px) tucks the sidebar bg under the global SideNav
+           so the seam disappears. When the sidebar is hidden the bleed is
+           removed so the main column doesn't slide under the SideNav.
+           Animate margin-left for a smooth shift. */
+        .tl-shell-wrap {
+          margin: 0 -8px 0 -24px;
+          transition: margin-left 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .tl-shell-wrap.is-sidebar-closed { margin-left: 0; }
+        .tl-shell {
+          display: grid;
+          grid-template-columns: 264px minmax(0, 1fr);
+          gap: 0;
+          align-items: stretch;
+          min-height: calc(100vh - 64px - 56px);
+          transition: grid-template-columns 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        /* Sidebar collapse animation — width via grid-template-columns,
+           contents fade + clip so they don't bleed during the transition. */
+        .tl-shell > aside.tl-sidebar {
+          transition: opacity 0.22s ease, padding 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+        .tl-main {
+          min-width: 0;
+          padding: 0 0 16px 0;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        /* ── Sidebar show/hide toggle (always visible in top header) ── */
+        .tl-sidebar-show-toggle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          background: var(--bg-slate-50, #f8fafc);
+          border: 1px solid var(--border-color, #e2e8f0);
+          border-radius: 8px;
+          color: var(--text-slate-600, #475569);
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .tl-sidebar-show-toggle:hover {
+          background: var(--bg-slate-100, #f1f5f9);
+          border-color: var(--text-slate-400, #94a3b8);
+          color: var(--text-slate-900, #0f172a);
+        }
+        .tl-sidebar-show-toggle[aria-pressed='true'] {
+          background: rgba(59, 130, 246, 0.10);
+          border-color: rgba(59, 130, 246, 0.32);
+          color: var(--premium-blue, #3b82f6);
+        }
+        [data-theme='dark'] .tl-sidebar-show-toggle {
+          background: #111720;
+          border-color: #2d3748;
+          color: #cbd5e1;
+        }
+        [data-theme='dark'] .tl-sidebar-show-toggle:hover {
+          background: #1c232e;
+          border-color: #475569;
+          color: #f1f5f9;
+        }
+        [data-theme='dark'] .tl-sidebar-show-toggle[aria-pressed='true'] {
+          background: rgba(59, 130, 246, 0.18);
+          border-color: rgba(59, 130, 246, 0.38);
+          color: #93c5fd;
+        }
+
+        /* ── Sidebar toggle button (mobile/tablet) ──────────── */
+        .tl-sidebar-toggle-btn {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          color: var(--text-slate-700);
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .tl-sidebar-toggle-btn:hover {
+          background: var(--bg-slate-50);
+          border-color: var(--text-slate-400);
+          color: var(--text-slate-900);
+        }
+        [data-theme='dark'] .tl-sidebar-toggle-btn {
+          background: #111720;
+          border-color: #2d3748;
+          color: #cbd5e1;
+        }
+        [data-theme='dark'] .tl-sidebar-toggle-btn:hover {
+          background: #1c232e;
+          border-color: #475569;
+          color: #f1f5f9;
+        }
+
+        /* ── Sidebar backdrop (only used as overlay on narrow widths) ── */
+        .tl-sidebar-backdrop { display: none; }
+
+        /* ── Desktop ≥1100px ────────────────────────────────── */
+        @media (min-width: 1100px) {
+          .tl-sidebar-toggle-btn { display: none !important; }
+          .tl-shell-wrap.is-sidebar-closed .tl-shell {
+            /* Animate the first track from 264px → 0 instead of removing
+               the column entirely; keeps grid-template-columns smoothly
+               interpolatable so the main column slides in. */
+            grid-template-columns: 0px minmax(0, 1fr);
+          }
+          .tl-shell-wrap.is-sidebar-closed > .tl-shell > aside.tl-sidebar {
+            opacity: 0;
+            padding-left: 0;
+            padding-right: 0;
+            pointer-events: none;
+            border-right-color: transparent;
+          }
+        }
+
+        /* ── Tablet / Mobile <1100px ──────────────────────────
+           Vertical stack: sidebar moves ABOVE the main content as a
+           horizontal pill bar (rather than overlapping it as a drawer).
+           Items scroll horizontally; show/hide collapses the bar to 0
+           height, animated via max-height. */
+        @media (max-width: 1099.98px) {
+          /* Hide the legacy hamburger button — the header toggle handles
+             open/close uniformly across viewports now. */
+          .tl-sidebar-toggle-btn { display: none !important; }
+          .tl-shell {
+            display: flex;
+            flex-direction: column;
+            grid-template-columns: none;
+            min-height: auto;
+            transition: none;
+          }
+          .tl-shell > aside.tl-sidebar {
+            position: static;
+            top: auto;
+            left: auto;
+            width: auto;
+            height: auto;
+            max-height: 220px;
+            transform: none;
+            transition: max-height 0.28s cubic-bezier(0.25, 1, 0.5, 1),
+                        opacity 0.22s ease,
+                        padding 0.22s ease;
+            box-shadow: none;
+            padding: 8px 10px;
+            border-right: 0;
+            border-top: 1px solid var(--border-slate-200);
+            border-bottom: 1px solid var(--border-slate-200);
+            overflow-x: auto;
+            overflow-y: hidden;
+          }
+          [data-theme='dark'] .tl-shell > aside.tl-sidebar {
+            border-top-color: #1f2937;
+            border-bottom-color: #1f2937;
+          }
+          /* Hidden state — collapse the horizontal bar to 0 height. */
+          .tl-shell-wrap.is-sidebar-closed > .tl-shell > aside.tl-sidebar {
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            border-top-width: 0;
+            border-bottom-width: 0;
+            opacity: 0;
+            pointer-events: none;
+          }
+          /* Drawer backdrop isn't used in horizontal mode. */
+          .tl-sidebar-backdrop { display: none !important; }
+          /* Main column reclaims full width below the sidebar bar. */
+          .tl-main { padding-left: 0; padding-right: 8px; }
+        }
+
+        /* ── Narrow phone <640px ────────────────────────────── */
+        @media (max-width: 639.98px) {
+          .tl-section-head {
+            padding: 8px 10px !important;
+            gap: 6px !important;
+          }
+          .tl-filter-row {
+            padding: 6px 10px;
+            gap: 6px;
+          }
+          .tl-filter-row-label { display: none; }
+          .tl-filter-row-pills { gap: 4px; }
+          .tl-shell > aside.tl-sidebar { width: 86vw; }
+        }
+
+        /* ── Flat section (no card, borders for separation) ─ */
+        .tl-section {
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-200);
+          border-bottom: 1px solid var(--border-slate-200);
+          margin-bottom: 0;
+        }
+        [data-theme='dark'] .tl-section {
+          background: transparent;
+          border-top-color: #1f2937;
+          border-bottom-color: #1f2937;
+        }
+        .tl-section-head {
+          padding: 6px 14px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+          /* Sticks below the page-level header so the sprint info / actions
+             stay reachable while the user scrolls long ticket lists. Used in
+             the List and Board views. The Calendar view opts out via the
+             tl-section-head--static modifier — calendar has its own sticky
+             chrome and the sprint banner doesn't need to follow the scroll. */
+          position: sticky;
+          top: var(--tl-header-h, 56px);
+          z-index: 4;
+        }
+        .tl-section-head.tl-section-head--static {
+          position: static;
+          top: auto;
+          z-index: auto;
+        }
+        [data-theme='dark'] .tl-section-head {
+          background: #0f1419;
+          border-bottom-color: #1f2937;
+        }
+        .tl-section-body { padding: 4px 0 0; }
+
+        /* ── Sprint head v2: vertical 3-row layout ──────────── */
+        .tl-sprint-head-v2 {
+          display: flex !important;
+          flex-direction: column;
+          gap: 6px;
+          padding: 10px 14px !important;
+        }
+        .tl-sprint-row1 {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .tl-sprint-title-block {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .tl-sprint-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .tl-sprint-title {
+          font-size: 14px !important;
+          font-weight: 800 !important;
+          color: var(--text-slate-900) !important;
+          letter-spacing: -0.01em;
+          max-width: 460px;
+        }
+        [data-theme='dark'] .tl-sprint-title { color: #f1f5f9 !important; }
+        .tl-sprint-tags {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .tl-sprint-tag {
+          display: inline-flex;
+          align-items: center;
+          height: 18px;
+          padding: 0 6px;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          border-radius: 4px;
+          border: 1px solid transparent;
+          text-transform: uppercase;
+          line-height: 1;
+        }
+        .tl-sprint-tag-delayed {
+          background: rgba(239, 68, 68, 0.18);
+          color: #fca5a5;
+          border-color: rgba(239, 68, 68, 0.32);
+        }
+        .tl-sprint-tag-overdue {
+          background: rgba(245, 158, 11, 0.15);
+          color: #fbbf24;
+          border-color: rgba(245, 158, 11, 0.32);
+        }
+        .tl-sprint-tag-today {
+          background: rgba(245, 158, 11, 0.15);
+          color: #fbbf24;
+          border-color: rgba(245, 158, 11, 0.32);
+        }
+        .tl-sprint-tag-active {
+          background: rgba(16, 185, 129, 0.15);
+          color: #34d399;
+          border-color: rgba(16, 185, 129, 0.32);
+        }
+        [data-theme='dark'] .tl-sprint-tag-delayed {
+          background: rgba(239, 68, 68, 0.22);
+          color: #fca5a5;
+        }
+        .tl-sprint-actions {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+        .tl-sprint-burndown-btn.ant-btn {
+          height: 28px;
+          font-size: 12px;
+          font-weight: 600;
+          border-radius: 6px;
+        }
+        .tl-sprint-complete-btn.ant-btn.ant-btn-primary {
+          height: 28px;
+          font-size: 12px;
+          font-weight: 700;
+          background: #10b981;
+          border-color: #10b981;
+          border-radius: 6px;
+        }
+        .tl-sprint-complete-btn.ant-btn.ant-btn-primary:hover {
+          background: #059669 !important;
+          border-color: #059669 !important;
+        }
+
+        .tl-sprint-row2 {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          flex-wrap: wrap;
+          padding-left: 15px;
+        }
+        .tl-sprint-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          letter-spacing: -0.005em;
+        }
+        .tl-sprint-meta b {
+          color: var(--text-slate-900);
+          font-weight: 800;
+        }
+        [data-theme='dark'] .tl-sprint-meta { color: #94a3b8 !important; }
+        [data-theme='dark'] .tl-sprint-meta b { color: #f1f5f9 !important; }
+        .tl-sprint-meta-arrow {
+          color: var(--text-slate-400);
+          font-weight: 600;
+        }
+        [data-theme='dark'] .tl-sprint-meta-arrow { color: #64748b !important; }
+
+        .tl-sprint-row3 {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding-left: 15px;
+        }
+        .tl-sprint-progress-bar {
+          flex: 1 1 auto;
+          position: relative;
+          height: 6px;
+          background: var(--bg-slate-100);
+          border-radius: 999px;
+          overflow: hidden;
+          min-width: 60px;
+        }
+        [data-theme='dark'] .tl-sprint-progress-bar { background: #1f2937 !important; }
+        .tl-sprint-progress-fill {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, #3b82f6, #6366f1);
+          border-radius: 999px;
+          transition: width 0.4s ease;
+        }
+        .tl-sprint-progress-pct {
+          flex-shrink: 0;
+          font-size: 12px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          font-variant-numeric: tabular-nums;
+          min-width: 36px;
+          text-align: right;
+        }
+        [data-theme='dark'] .tl-sprint-progress-pct { color: #f1f5f9 !important; }
+
+        /* Tight table rows — applies on top of size="small" */
+        .tl-table .ant-table-thead > tr > th {
+          padding: 5px 10px !important;
+          font-size: 10px !important;
+          font-weight: 800 !important;
+          background: var(--bg-slate-50) !important;
+          color: var(--text-slate-500) !important;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+        [data-theme='dark'] .tl-table .ant-table-thead > tr > th {
+          background: #0f1419 !important;
+          color: #94a3b8 !important;
+        }
+        .tl-table .ant-table-tbody > tr > td {
+          padding: 4px 10px !important;
+          font-size: 11.5px !important;
+        }
+        .tl-table .ant-table-cell {
+          line-height: 1.3 !important;
+        }
+
+        /* Sticky pagination — pins to viewport bottom (inside the scrolling
+           Content area) so the user always sees totals + page controls
+           even with hundreds of rows above. Selector matches both Ant v5
+           variants: the wrapper-element form (.ant-table-pagination) and
+           the merged-class form (.ant-pagination.ant-table-pagination). */
+        .tl-table-sticky-pagination .ant-table-pagination,
+        .tl-table-sticky-pagination > .ant-spin-nested-loading > .ant-spin-container > .ant-pagination,
+        .tl-table-sticky-pagination .ant-pagination.ant-table-pagination {
+          position: sticky !important;
+          bottom: 0 !important;
+          z-index: 5 !important;
+          margin: 0 !important;
+          padding: 6px 12px !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          display: flex !important;
+          flex-wrap: wrap !important;
+          align-items: center !important;
+          justify-content: flex-end !important;
+          gap: 4px !important;
+        }
+        [data-theme='dark'] .tl-table-sticky-pagination .ant-table-pagination,
+        [data-theme='dark'] .tl-table-sticky-pagination > .ant-spin-nested-loading > .ant-spin-container > .ant-pagination,
+        [data-theme='dark'] .tl-table-sticky-pagination .ant-pagination.ant-table-pagination {
+          background: #0f1419 !important;
+          border-top-color: #1f2937 !important;
+        }
+        /* Trim Ant's default pagination item heights to match small table size */
+        .tl-table-sticky-pagination .ant-pagination-item,
+        .tl-table-sticky-pagination .ant-pagination-prev,
+        .tl-table-sticky-pagination .ant-pagination-next,
+        .tl-table-sticky-pagination .ant-pagination-jump-prev,
+        .tl-table-sticky-pagination .ant-pagination-jump-next {
+          min-width: 24px !important;
+          height: 24px !important;
+          line-height: 22px !important;
+          font-size: 11px !important;
+        }
+        .tl-table-sticky-pagination .ant-pagination-options-size-changer .ant-select-selector {
+          height: 24px !important;
+          font-size: 11px !important;
+        }
+        .tl-table-sticky-pagination .ant-pagination-total-text {
+          margin-right: auto !important;
+        }
+
+        /* Ensure ancestor stacking contexts don't clip sticky pagination */
+        .tl-section, .tl-section-body, .tickets-table-shell { overflow: visible !important; }
+
+        /* ── Back-to button (filtered view section head) ─────── */
+        .tl-back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 28px;
+          padding: 0 12px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 999px;
+          font-family: inherit;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-slate-700);
+          letter-spacing: -0.005em;
+          cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .tl-back-btn:hover {
+          background: var(--bg-slate-50);
+          border-color: var(--text-slate-400);
+          color: var(--text-slate-900);
+        }
+        [data-theme='dark'] .tl-back-btn {
+          background: #111720;
+          border-color: #2d3748;
+          color: #cbd5e1;
+        }
+        [data-theme='dark'] .tl-back-btn:hover {
+          background: #1c232e;
+          border-color: #475569;
+          color: #f1f5f9;
+        }
+
+        /* ── Cross-section search banner ──────────────────────
+           Surfaces matches that live in the other section (Sprint ↔ Backlog)
+           so users don't think a ticket "doesn't exist" when it's just on
+           the section they aren't viewing. */
+        .tl-cross-banner {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin: 0 12px 10px;
+          padding: 8px 12px;
+          background: rgba(59,130,246,0.06);
+          border: 1px solid rgba(59,130,246,0.22);
+          border-radius: 8px;
+          color: var(--text-slate-700);
+        }
+        [data-theme='dark'] .tl-cross-banner {
+          background: rgba(59,130,246,0.14);
+          border-color: rgba(59,130,246,0.35);
+          color: #cbd5e1;
+        }
+        .tl-cross-banner-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          background: rgba(59,130,246,0.12);
+          color: #1d4ed8;
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-cross-banner-icon {
+          background: rgba(59,130,246,0.22);
+          color: #93c5fd;
+        }
+        .tl-cross-banner-text {
+          flex: 1 1 auto;
+          min-width: 0;
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: -0.005em;
+        }
+        .tl-cross-banner-text b {
+          font-weight: 800;
+          color: var(--text-slate-900);
+        }
+        [data-theme='dark'] .tl-cross-banner-text b { color: #f1f5f9; }
+        .tl-cross-banner-cta {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 28px;
+          padding: 0 12px;
+          background: #2563eb;
+          border: 1px solid #1d4ed8;
+          color: #fff;
+          border-radius: 999px;
+          font-family: inherit;
+          font-size: 11.5px;
+          font-weight: 800;
+          letter-spacing: -0.005em;
+          cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease;
+        }
+        .tl-cross-banner-cta:hover {
+          background: #1d4ed8;
+          border-color: #1e40af;
+        }
+
+        /* ── Inline filter row (compact pill strip) ────────── */
+        .tl-filter-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .tl-filter-row {
+          background: #0f1419;
+          border-bottom-color: #1f2937;
+        }
+        .tl-filter-row-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 10.5px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-filter-row-label { color: #94a3b8; }
+        .tl-filter-row-count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 6px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-500);
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0;
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tl-filter-row-count {
+          background: #111720;
+          border-color: #2d3748;
+          color: #cbd5e1;
+        }
+        .tl-filter-row-pills {
+          flex: 1 1 auto;
+          min-width: 0;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .tl-filter-row-actions {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .tl-filter-row-reset {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          height: 28px;
+          padding: 0 10px;
+          background: transparent;
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 999px;
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .tl-filter-row-reset:hover {
+          color: #1d4ed8;
+          border-color: rgba(59,130,246,0.45);
+          background: rgba(59,130,246,0.06);
+          border-style: solid;
+        }
+        .tl-filter-row-close {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          background: transparent;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 999px;
+          color: var(--text-slate-500);
+          cursor: pointer;
+          transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+        }
+        .tl-filter-row-close:hover {
+          color: var(--text-slate-900);
+          background: var(--bg-pure-white);
+          border-color: var(--text-slate-400);
+        }
+        [data-theme='dark'] .tl-filter-row-reset,
+        [data-theme='dark'] .tl-filter-row-close {
+          border-color: #2d3748;
+          color: #94a3b8;
+        }
+
+        /* ── Filter indicator chip (ticketIds filter) ──────── */
+        .tl-ticketids-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 10px 6px 12px;
+          background: rgba(59,130,246,0.08);
+          border: 1px solid rgba(59,130,246,0.22);
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 700;
+          color: #1d4ed8;
+          width: fit-content;
+          margin: 0 0 4px;
+          letter-spacing: -0.005em;
+        }
+        .tl-ticketids-chip b { font-weight: 800; }
+        [data-theme='dark'] .tl-ticketids-chip {
+          background: rgba(59,130,246,0.15) !important;
+          border-color: rgba(59,130,246,0.32) !important;
+          color: #93c5fd !important;
+        }
+        .tl-ticketids-clear {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: transparent;
+          border: 0;
+          padding: 2px 6px;
+          margin-left: 4px;
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 700;
+          color: currentColor;
+          cursor: pointer;
+          font-family: inherit;
+          opacity: 0.85;
+          transition: opacity 0.12s ease, background 0.12s ease;
+        }
+        .tl-ticketids-clear:hover {
+          opacity: 1;
+          background: rgba(59,130,246,0.10);
+        }
       `}} />
 
       {/* Premium Header Row - Sticky Glassmorphism */}
-      <div className="saas-header-container" style={{
+      <div ref={saasHeaderRef} className="saas-header-container" style={{
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        margin: '0 -24px 16px -24px',
-        padding: '8px 24px',
+        margin: '0 -24px 0 -24px',
+        padding: '9.7px 16px',
         display: 'flex',
         alignItems: 'center',
-        gap: '16px',
+        gap: '10px',
         flexWrap: 'wrap'
       }}>
+        {/* Sidebar toggle (only visible on narrow screens via CSS) */}
+        <button
+          type="button"
+          className="tl-sidebar-toggle-btn"
+          onClick={() => setIsSidebarOpen((v) => !v)}
+          aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+          title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+        >
+          <BarsOutlined style={{ fontSize: 14 }} />
+        </button>
         {/* Project Switcher */}
         <Dropdown
           menu={{
@@ -1581,39 +2973,59 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           }}
           trigger={['click']}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '4px 8px', borderRadius: 8 }} className="project-switch-trigger transition-colors">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '2px 6px', borderRadius: 8 }} className="project-switch-trigger transition-colors">
             <div style={{
-              padding: '0 8px',
-              height: 32,
+              padding: '0 6px',
+              height: 26,
               borderRadius: 6,
               background: 'var(--premium-gradient)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#fff',
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: 800,
               boxShadow: 'var(--premium-shadow-lg)',
-              minWidth: 36
+              minWidth: 30
             }}>
               {projectCode?.toUpperCase()}
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>{projectName}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-slate-500)', fontWeight: 600 }}>Switch Project <CaretRightOutlined style={{ fontSize: 8 }} /></div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>{projectName}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 600 }}>Switch Project <CaretRightOutlined style={{ fontSize: 7 }} /></div>
             </div>
           </div>
         </Dropdown>
 
-        <Divider type="vertical" style={{ height: 32, margin: 0, opacity: 0.5 }} />
+        <Divider type="vertical" style={{ height: 24, margin: 0, opacity: 0.5 }} />
+
+        {/* Sidebar show/hide toggle — sits between the Switch Project divider
+            and the quick search. Drives the same isSidebarOpen state the
+            mobile drawer uses, so the existing .is-sidebar-closed CSS
+            handles both desktop (single-column grid) and mobile cases. */}
+        <Tooltip title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'} placement="bottom">
+          <button
+            type="button"
+            className="tl-sidebar-show-toggle"
+            onClick={() => setIsSidebarOpen((v) => !v)}
+            aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+            aria-pressed={!isSidebarOpen}
+          >
+            {isSidebarOpen ? (
+              <MenuFoldOutlined style={{ fontSize: 14 }} />
+            ) : (
+              <MenuUnfoldOutlined style={{ fontSize: 14 }} />
+            )}
+          </button>
+        </Tooltip>
 
         {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
           <Input
             placeholder="Quick search tickets..."
-            prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+            prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
             className="saas-input"
-            style={{ maxWidth: 280, borderRadius: 8, height: 36, background: 'transparent' }}
+            style={{ maxWidth: 240, borderRadius: 8, height: 30, background: 'transparent', fontSize: 12 }}
             value={localSearchValue}
             onChange={(e) => setLocalSearchValue(e.target.value)}
             allowClear
@@ -1626,7 +3038,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   filters={filters}
                   onFilterChange={handleFilterChange}
                   members={members}
-                  onReset={() => setFilters({ status: [], priority: [], assignee: [], type: [], tags: [], search: filters.search })}
+                  onReset={() => { setFilters({ status: [], priority: [], assignee: [], createdBy: [], type: [], tags: [], search: filters.search, ticketIds: [] }); setActiveQuickFilters({ commented: false, attached: false, overdue: false }); }}
                   statusOptions={finalStatusOptions}
                   priorityOptions={finalPriorityOptions}
                   typeOptions={finalTypeOptions}
@@ -1634,18 +3046,20 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               }
               trigger="click"
               placement="bottomLeft"
+              overlayClassName="tf-popover-overlay"
+              styles={{ body: { padding: 0 } }}
             >
               <Button
                 icon={<FilterOutlined />}
                 className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
-                style={{ height: 36, fontWeight: 600 }}
+                style={{ height: 30, fontWeight: 600, fontSize: 12 }}
               >
                 Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
               </Button>
             </Popover>
             <Button
               icon={<ExpandAltOutlined />}
-              style={{ height: 36 }}
+              style={{ height: 30 }}
               aria-label="Expand filters"
               onClick={() => setIsFilterRowOpen(prev => !prev)}
             />
@@ -1653,10 +3067,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
           <Segmented
             value={viewMode}
-            onChange={(v) => setViewMode(v as 'list' | 'board')}
+            onChange={(v) => setViewMode(v as 'list' | 'board' | 'calendar')}
             options={[
               { label: 'List', value: 'list', icon: <UnorderedListOutlined style={{ fontSize: 13 }} /> },
               { label: 'Board', value: 'board', icon: <AppstoreOutlined style={{ fontSize: 13 }} /> },
+              { label: 'Calendar', value: 'calendar', icon: <CalendarOutlined style={{ fontSize: 13 }} /> },
             ]}
             className="saas-segmented-premium"
           />
@@ -1848,7 +3263,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               icon={<ReloadOutlined spin={isRefreshing} />}
               onClick={async () => {
                 setIsRefreshing(true);
-                await queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                // Tickets + sidebar (recent comments / attachments / overdue) in parallel.
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: ['tickets'] }),
+                  queryClient.invalidateQueries({ queryKey: ['ticketRecentActivity'] }),
+                ]);
                 setIsRefreshing(false);
                 message.success("View refreshed");
               }}
@@ -1908,142 +3327,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         </Space>
       </div>
 
-      {/* Inline Filter Row */}
-      {isFilterRowOpen && (
-        <div className="ticket-filter-row">
-          <div className="ticket-filter-row__header">
-            <span className="ticket-filter-row__badge">
-              <FilterOutlined />
-            </span>
-            <div className="ticket-filter-row__title">
-              <span className="ticket-filter-row__title-text">View Filters</span>
-              <span className="ticket-filter-row__title-sub">
-                {activeFilterCount > 0 ? `${activeFilterCount} active` : 'No filters applied'}
-              </span>
-            </div>
-          </div>
-
-          <div className="ticket-filter-row__fields">
-            <div className="ticket-filter-row__field">
-              <label className="ticket-filter-row__label">
-                <CheckCircleOutlined /> Status
-              </label>
-              <Select
-                mode="multiple"
-                placeholder="Any status"
-                value={filters.status}
-                onChange={(val) => handleFilterChange('status', val)}
-                options={finalStatusOptions}
-                allowClear
-                maxTagCount={1}
-                className="ticket-filter-row__select"
-              />
-            </div>
-
-            <div className="ticket-filter-row__field">
-              <label className="ticket-filter-row__label">
-                <ThunderboltOutlined /> Priority
-              </label>
-              <Select
-                mode="multiple"
-                placeholder="Any priority"
-                value={filters.priority}
-                onChange={(val) => handleFilterChange('priority', val)}
-                options={finalPriorityOptions}
-                allowClear
-                maxTagCount={1}
-                className="ticket-filter-row__select"
-              />
-            </div>
-
-            <div className="ticket-filter-row__field">
-              <label className="ticket-filter-row__label">
-                <AppstoreOutlined /> Type
-              </label>
-              <Select
-                mode="multiple"
-                placeholder="Any type"
-                value={filters.type}
-                onChange={(val) => handleFilterChange('type', val)}
-                options={finalTypeOptions}
-                allowClear
-                maxTagCount={1}
-                className="ticket-filter-row__select"
-              />
-            </div>
-
-            <div className="ticket-filter-row__field">
-              <label className="ticket-filter-row__label">
-                <UserOutlined /> Assignee
-              </label>
-              <Select
-                mode="multiple"
-                placeholder="All members"
-                value={filters.assignee}
-                onChange={(val) => handleFilterChange('assignee', val)}
-                options={members.map((m) => ({ label: m.label, value: m.value }))}
-                allowClear
-                showSearch
-                maxTagCount={1}
-                filterOption={(input, option) => {
-                  const member = members.find((m) => m.value === option?.value);
-                  return member
-                    ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                    (member.position || '').toLowerCase().includes(input.toLowerCase())
-                    : false;
-                }}
-                className="ticket-filter-row__select"
-              />
-            </div>
-
-            <div className="ticket-filter-row__field">
-              <label className="ticket-filter-row__label">
-                <TagsOutlined /> Tags
-              </label>
-              <Select
-                mode="multiple"
-                placeholder="Any tag"
-                value={filters.tags}
-                onChange={(val) => handleFilterChange('tags', val)}
-                options={tagSuggestions.map((t) => ({ label: t, value: t }))}
-                allowClear
-                showSearch
-                maxTagCount={1}
-                notFoundContent="No tags yet"
-                filterOption={(input, option) =>
-                  String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
-                }
-                className="ticket-filter-row__select"
-              />
-            </div>
-          </div>
-
-          <div className="ticket-filter-row__actions">
-            {activeFilterCount > 0 && (
-              <Button
-                type="text"
-                size="small"
-                icon={<ReloadOutlined />}
-                onClick={() => setFilters({ status: [], priority: [], assignee: [], type: [], tags: [], search: filters.search })}
-                className="ticket-filter-row__reset"
-              >
-                Reset
-              </Button>
-            )}
-
-            <Tooltip title="Close filters">
-              <Button
-                type="text"
-                shape="circle"
-                icon={<CloseOutlined />}
-                onClick={() => setIsFilterRowOpen(false)}
-                aria-label="Close filter row"
-                className="ticket-filter-row__close"
-              />
-            </Tooltip>
-          </div>
-        </div>
-      )}
+      {/* Inline Filter Row moved into tl-main (renders after the sprint details header) */}
 
       {/* Inline Creation */}
       <InlineCreateTicket
@@ -2056,280 +3340,488 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         onTicketCreated={handleTicketCreated}
       />
 
-      {/* Tickets View */}
-      {(isRefreshing || (viewMode === 'list' ? (activeSprintLoading || backlogLoading) : isKanbanLoading)) ? (
-        <TicketSkeleton viewMode={viewMode} />
-      ) : viewMode === 'list' ? (
-        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Active Sprint Section */}
-          {activeSprint && (
-            <div id="active-section" ref={activeSprintCardRef} style={{ scrollMarginTop: '100px' }}>
-              <Card
-                className="saas-card saas-card-sticky"
-                title={
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: '12px',
-                    padding: '8px 0'
-                  }}>
-                    <Space size={[12, 8]} wrap>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)' }} />
-                      <Text 
-                        style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)', maxWidth: 350 }}
-                        ellipsis={{ tooltip: true }}
-                      >
-                        {activeSprint?.version || 'Active Sprint'}
-                      </Text>
-                      <Space size={6}>
-                        <Tag className="saas-tag saas-tag-green" style={{
-                          margin: 0,
-                          height: 24,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: 70,
-                          fontSize: 10,
-                          fontWeight: 800,
-                          borderRadius: 4
-                        }}>
-                          Current
-                        </Tag>
-                        {activeSprint.endDate && (() => {
-                          const isDelayed = dayjs().isAfter(dayjs(activeSprint.endDate), 'day');
-                          const isToday = dayjs().isSame(dayjs(activeSprint.endDate), 'day');
-                          const days = Math.abs(dayjs().diff(dayjs(activeSprint.endDate), 'day'));
-                          return (
-                            <Tag bordered={false} style={{
-                              margin: 0,
-                              height: 24,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              minWidth: 90,
-                              fontSize: 10,
-                              fontWeight: 800,
-                              background: isDelayed ? 'rgba(239, 68, 68, 0.15)' : isToday ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                              color: isDelayed ? '#fb7185' : isToday ? '#fbbf24' : '#34d399',
-                              borderRadius: 4,
-                              border: `1px solid ${isDelayed ? 'rgba(239, 68, 68, 0.2)' : isToday ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`
-                            }}>
-                              {isDelayed ? `${days}d Delayed` : isToday ? 'Ends Today' : `${days}d Left`}
-                            </Tag>
-                          );
-                        })()}
-                        <Tag bordered={false} style={{
-                          margin: 0,
-                          height: 24,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: 90,
-                          background: '#f1f5f9',
-                          color: '#64748b',
-                          fontWeight: 800,
-                          fontSize: 10,
-                          borderRadius: 4,
-                          textTransform: 'uppercase'
-                        }}>
-                          {activeTickets.length} Tickets
-                        </Tag>
-                      </Space>
-                    </Space>
-                    <Space size={[16, 8]} wrap>
-                      {activeSelectedRowKeys.length > 0 ? (
-                        <>
-                          {canManageTickets && (
-                            <Button
-                              type="primary"
-                              size="small"
-                              icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
-                              onClick={() => bulkArchiveMutation.mutate(activeSelectedRowKeys as string[])}
-                              style={{ 
-                                background: 'var(--premium-blue)', 
-                                borderColor: 'var(--premium-blue)', 
-                                fontWeight: 800, 
-                                borderRadius: 4, 
-                                height: 24, 
-                                fontSize: 10,
-                                textTransform: 'uppercase'
-                              }}
-                            >
-                              Move to Archive
-                            </Button>
-                          )}
-                          {canDeleteTicket && (
-                            <Button
-                              danger
-                              size="small"
-                              icon={<DeleteOutlined style={{ fontSize: 11 }} />}
-                              onClick={() => {
-                                modal.confirm({
-                                  title: 'Move to Trash',
-                                  content: `Are you sure you want to move ${activeSelectedRowKeys.length} selected tickets to trash?`,
-                                  okText: 'Move to Trash',
-                                  okType: 'danger',
-                                  onOk: () => bulkDeleteMutation.mutate(activeSelectedRowKeys as string[])
-                                });
-                              }}
-                              style={{ 
-                                fontWeight: 800, 
-                                borderRadius: 4, 
-                                height: 24, 
-                                fontSize: 10,
-                                textTransform: 'uppercase'
-                              }}
-                            >
-                              Delete
-                            </Button>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Progress</div>
-                              <div style={{ fontSize: 13, fontWeight: 800, color: '#10b981' }}>
-                                {overallSprintTickets.length > 0 ? Math.round((overallSprintTickets.filter(t => ['completed'].includes(t.status?.toLowerCase() || '')).length / overallSprintTickets.length) * 100) : 0}%
-                              </div>
-                            </div>
-                            <Divider type="vertical" style={{ height: 28, margin: 0, borderColor: '#e2e8f0', opacity: 0.8 }} />
-                            <div style={{ textAlign: 'left' }}>
-                              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Tickets</div>
-                              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-slate-900)' }}>
-                                {overallSprintTickets.filter(t => ['completed'].includes(t.status?.toLowerCase() || '')).length}/{overallSprintTickets.length}
-                              </div>
-                            </div>
-                          </div>
-                          {(() => {
-                            const start = dayjs(activeSprint.startDate);
-                            const end = dayjs(activeSprint.endDate);
-                            const now = dayjs();
-                            const totalDays = Math.max(end.diff(start, 'day'), 1);
-                            const elapsedDays = Math.max(0, Math.min(totalDays, now.diff(start, 'day')));
-                            const pct = Math.round((elapsedDays / totalDays) * 100);
-                            const isOverdue = now.isAfter(end, 'day');
-                            const accent = isOverdue ? '#ef4444' : pct >= 75 ? '#f59e0b' : '#10b981';
-
-                            return (
-                              <div style={{ textAlign: 'left', minWidth: 180 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                                  <div style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    Sprint Timeline
-                                  </div>
-                                  <Text style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: '0.02em' }}>
-                                    {isOverdue ? 'OVERDUE' : `${Math.max(0, totalDays - elapsedDays)}d LEFT`}
-                                  </Text>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
-                                    {start.format('MMM D')}
-                                  </Text>
-                                  <div style={{ flex: 1, position: 'relative', height: 6, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', minWidth: 80 }}>
-                                    <div style={{
-                                      position: 'absolute',
-                                      inset: 0,
-                                      width: `${Math.min(100, pct)}%`,
-                                      background: accent,
-                                      opacity: 0.9,
-                                      borderRadius: 999,
-                                      transition: 'width 0.4s ease',
-                                    }} />
-                                  </div>
-                                  <Text style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
-                                    {end.format('MMM D')}
-                                  </Text>
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </>
-                      )}
-
-                      <Button
-                        type="default"
-                        size="middle"
-                        icon={<UnorderedListOutlined style={{ color: '#64748b' }} />}
-                        onClick={() => document.getElementById('backlog-section')?.scrollIntoView({ behavior: 'smooth' })}
-                        className="saas-button-item"
-                        style={{ height: 32, fontWeight: 600 }}
-                      >
-                        Go To Backlog
-                      </Button>
-                      {canUpdateTicketPlan && (
-                        <Button
-                          type="primary"
-                          size="middle"
-                          icon={<CheckCircleOutlined />}
-                          onClick={handleCompleteSprint}
-                          className="saas-button-item"
-                          style={{ height: 32, background: '#10b981', borderColor: '#10b981' }}
-                        >
-                          Complete Sprint
-                        </Button>
-                      )}
-                      {activeSprint?.id && (
-                        <Tooltip title="View Report">
-                          <Button
-                            type="default"
-                            size="middle"
-                            icon={<LineChartOutlined style={{ color: '#6366f1' }} />}
-                            onClick={() => router.push(`/tickets/reports/${activeSprint.id}`)}
-                            className="saas-button-item"
-                            style={{ height: 32, width: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          />
-                        </Tooltip>
-                      )}
-                    </Space>
-                  </div>
-                }
+      {/* Tickets View — wrapped in a 2-column shell (sidebar + main) */}
+      <div className={`tl-shell-wrap ${isSidebarOpen ? 'is-sidebar-open' : 'is-sidebar-closed'}`}>
+        {/* Mobile backdrop — closes the sidebar drawer when tapped */}
+        <div
+          className="tl-sidebar-backdrop"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden
+        />
+        <div className="tl-shell">
+          <TicketSidebar
+            activeSprint={activeSprint as any}
+            overallSprintTickets={sidebarSprintPool as any}
+            totalBacklog={totalBacklog}
+            currentUserId={user?.id}
+            currentUserName={user?.name}
+            typeOptions={finalTypeOptions as any}
+            recentComments={recentActivity?.comments || []}
+            recentAttachments={recentActivity?.attachments || []}
+            activeSection={effectiveSection}
+            isMySprintActive={!!user?.id && effectiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0] === user.id}
+            isMyBacklogActive={!!user?.id && effectiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0] === user.id}
+            commentedFilterActive={activeQuickFilters.commented}
+            attachedFilterActive={activeQuickFilters.attached}
+            overdueFilterActive={activeQuickFilters.overdue}
+            overdueTickets={recentActivity?.overdue || []}
+            onShowOverdueTickets={() => {
+              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                setPreviousSection(sidebarActiveSection);
+              }
+              setActiveQuickFilters((prev) => ({ ...prev, overdue: !prev.overdue }));
+              setPagination((prev) => ({ ...prev, current: 1 }));
+              if (viewMode !== 'list') setViewMode('list');
+            }}
+            onShowCommentedTickets={() => {
+              // Remember where the user was so the filtered view can go back.
+              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                setPreviousSection(sidebarActiveSection);
+              }
+              setActiveQuickFilters((prev) => ({ ...prev, commented: !prev.commented }));
+              setPagination((prev) => ({ ...prev, current: 1 }));
+              if (viewMode !== 'list') setViewMode('list');
+            }}
+            onShowAttachedTickets={() => {
+              if (!isFilteredView && (sidebarActiveSection === 'sprint' || sidebarActiveSection === 'backlog')) {
+                setPreviousSection(sidebarActiveSection);
+              }
+              setActiveQuickFilters((prev) => ({ ...prev, attached: !prev.attached }));
+              setPagination((prev) => ({ ...prev, current: 1 }));
+              if (viewMode !== 'list') setViewMode('list');
+            }}
+            onNavigate={(section) => {
+              // Leaving the filtered view should clear the quick filters too,
+              // so the user goes back to a clean Sprint/Backlog view.
+              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+              // If the user was in a "My Sprint/Backlog Tickets" view (assignee
+              // pinned to self), clicking the plain Sprint/Backlog row should
+              // drop that filter and show the full section.
+              if (user?.id && filters.assignee.length === 1 && filters.assignee[0] === user.id) {
+                setFilters(prev => ({ ...prev, assignee: [] }));
+              }
+              setSidebarActiveSection(section);
+              // In Board view, switch the kanban scope to match instead of
+              // dragging the user into List view. Calendar stays as-is.
+              if (viewMode === 'board') {
+                setKanbanScope(section === 'sprint' ? 'active' : 'backlog');
+              } else if (viewMode === 'calendar' && section === 'backlog') {
+                // Calendar has no backlog representation — fall back to List
+                // so the user actually sees the backlog table.
+                setViewMode('list');
+              }
+            }}
+            onShowMySprintTickets={() => {
+              if (!user?.id) return;
+              const isOn = sidebarActiveSection === 'sprint' && filters.assignee.length === 1 && filters.assignee[0] === user.id;
+              setFilters(prev => ({
+                ...prev,
+                assignee: isOn ? [] : [user.id],
+              }));
+              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+              setSidebarActiveSection('sprint');
+              if (viewMode === 'board') setKanbanScope('active');
+            }}
+            onShowMyBacklog={() => {
+              if (!user?.id) return;
+              const isOn = sidebarActiveSection === 'backlog' && filters.assignee.length === 1 && filters.assignee[0] === user.id;
+              setFilters(prev => ({
+                ...prev,
+                assignee: isOn ? [] : [user.id],
+              }));
+              if (isFilteredView) setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+              setSidebarActiveSection('backlog');
+              if (viewMode === 'board') setKanbanScope('backlog');
+              else if (viewMode === 'calendar') setViewMode('list');
+            }}
+            onTicketClick={(id) => setSelectedTicketId(id)}
+          />
+          <div className="tl-main">
+      {/* Inline Filter Row — compact pill row, sits at top of main column */}
+      {isFilterRowOpen && (
+        <div className="tl-filter-row">
+          <div className="tl-filter-row-label">
+            <FilterOutlined style={{ fontSize: 11 }} />
+            <span>Filters</span>
+            <span className="tl-filter-row-count">
+              {activeFilterCount > 0 ? activeFilterCount : '0'}
+            </span>
+          </div>
+          <div className="tl-filter-row-pills">
+            <TicketFilterPill
+              icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
+              label="Status"
+              values={filters.status}
+              options={finalStatusOptions}
+              onChange={(val) => handleFilterChange('status', val)}
+              itemNoun="statuses"
+            />
+            <TicketFilterPill
+              icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
+              label="Priority"
+              values={filters.priority}
+              options={finalPriorityOptions}
+              onChange={(val) => handleFilterChange('priority', val)}
+              itemNoun="priorities"
+            />
+            <TicketFilterPill
+              icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
+              label="Type"
+              values={filters.type}
+              options={finalTypeOptions}
+              onChange={(val) => handleFilterChange('type', val)}
+              itemNoun="types"
+            />
+            <TicketFilterPill
+              icon={<UserOutlined style={{ fontSize: 11 }} />}
+              label="Assignee"
+              values={filters.assignee}
+              options={members.map((m) => ({
+                label: m.label,
+                value: m.value,
+                description: m.position || undefined,
+              }))}
+              onChange={(val) => handleFilterChange('assignee', val)}
+              itemNoun="members"
+              width={290}
+            />
+            <TicketFilterPill
+              icon={<EditOutlined style={{ fontSize: 11 }} />}
+              label="Created By"
+              values={filters.createdBy}
+              options={members.map((m) => ({
+                label: m.label,
+                value: m.value,
+                description: m.position || undefined,
+              }))}
+              onChange={(val) => handleFilterChange('createdBy', val)}
+              itemNoun="members"
+              width={290}
+            />
+            <TicketFilterPill
+              icon={<TagsOutlined style={{ fontSize: 11 }} />}
+              label="Tags"
+              values={filters.tags}
+              options={tagSuggestions.map((t) => ({ label: t, value: t }))}
+              onChange={(val) => handleFilterChange('tags', val)}
+              itemNoun="tags"
+            />
+          </div>
+          <div className="tl-filter-row-actions">
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                className="tl-filter-row-reset"
+                onClick={() => {
+                  setFilters({ status: [], priority: [], assignee: [], createdBy: [], type: [], tags: [], search: filters.search, ticketIds: [] });
+                  setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+                }}
               >
+                <ReloadOutlined style={{ fontSize: 10 }} />
+                Reset
+              </button>
+            )}
+            <button
+              type="button"
+              className="tl-filter-row-close"
+              onClick={() => setIsFilterRowOpen(false)}
+              aria-label="Close filters"
+              title="Close filters"
+            >
+              <CloseOutlined style={{ fontSize: 10 }} />
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Legacy ticketIds chip replaced by the dedicated Filtered View section
+          driven by activeQuickFilters. Kept here only as a marker. */}
+      {(isRefreshing || (viewMode === 'list' ? (activeSprintLoading || backlogLoading) : viewMode === 'calendar' ? (allSprintsLoading || calendarTicketsLoading) : isKanbanLoading)) ? (
+        <TicketSkeleton viewMode={viewMode === 'calendar' ? 'list' : viewMode} />
+      ) : viewMode === 'calendar' ? (
+        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {activeSprint && !isFilteredView && (
+            <div className="tl-section">
+              {renderActiveSprintHeader('compact', false)}
+            </div>
+          )}
+        <div className="tcal-card">
+          {/* Sticky header */}
+          <div className="tcal-header">
+            <div className="tcal-title-block">
+              <Text className="tcal-title">{calendarMonth.format('MMMM YYYY')}</Text>
+              <div className="tcal-stat-row">
+                <span className="tcal-stat">
+                  <span className="tcal-stat-num">{calendarMonthStats.sprintCount}</span>
+                  <span className="tcal-stat-label">Sprint{calendarMonthStats.sprintCount !== 1 ? 's' : ''}</span>
+                </span>
+                <span className="tcal-stat-sep" />
+                <span className="tcal-stat">
+                  <span className="tcal-stat-num">{calendarMonthStats.ticketCount}</span>
+                  <span className="tcal-stat-label">Ticket{calendarMonthStats.ticketCount !== 1 ? 's' : ''}</span>
+                </span>
+              </div>
+            </div>
+            <div className="tcal-nav">
+              <Tooltip title={canCalPrev ? 'Previous month' : `No tickets before ${calendarBounds?.earliest.format('MMM YYYY')}`}>
+                <Button
+                  size="small"
+                  icon={<LeftOutlined />}
+                  onClick={() => canCalPrev && setCalendarMonth(m => m.subtract(1, 'month'))}
+                  disabled={!canCalPrev}
+                  className="tcal-nav-btn"
+                />
+              </Tooltip>
+              <Button
+                size="small"
+                onClick={() => {
+                  const today = dayjs();
+                  if (!calendarBounds) { setCalendarMonth(today); return; }
+                  if (today.isBefore(calendarBounds.earliest, 'month')) setCalendarMonth(calendarBounds.earliest);
+                  else if (today.isAfter(calendarBounds.latest.add(3, 'month'), 'month')) setCalendarMonth(calendarBounds.latest);
+                  else setCalendarMonth(today);
+                }}
+                className="tcal-nav-btn tcal-nav-today"
+              >
+                Current Month
+              </Button>
+              <Tooltip title={canCalNext ? 'Next month' : 'No tickets further ahead'}>
+                <Button
+                  size="small"
+                  icon={<RightOutlined />}
+                  onClick={() => canCalNext && setCalendarMonth(m => m.add(1, 'month'))}
+                  disabled={!canCalNext}
+                  className="tcal-nav-btn"
+                />
+              </Tooltip>
+            </div>
+          </div>
+
+          {/* Body — week sections */}
+          <div className="tcal-body">
+            {calendarSprintTickets.length === 0 ? (
+              <div className="tcal-empty">
+                <CalendarOutlined style={{ fontSize: 28, color: 'var(--text-slate-400)' }} />
+                <div className="tcal-empty-title">No scheduled sprint tickets</div>
+                <div className="tcal-empty-sub">Tickets need a sprint and date range to appear on the calendar.</div>
+              </div>
+            ) : (
+              calendarData.weeks.map((week, wi) => {
+                const lanes = calendarData.maxLanesByWeek[wi];
+                const ribbonHeight = lanes > 0 ? lanes * 24 + 14 : 0;
+                const ribbons = calendarData.weekRibbons[wi];
+                const weekStart = week[0];
+                const weekEnd = week[6];
+                const dayOfYear = weekStart.diff(weekStart.startOf('year'), 'day');
+                const weekNum = Math.floor(dayOfYear / 7) + 1;
+                const containsToday = week.some(d => d.isSame(dayjs(), 'day'));
+                return (
+                  <section className={`tcal-week ${containsToday ? 'has-today' : ''}`} key={wi}>
+                    <header className="tcal-week-label">
+                      <div className="tcal-week-label-left">
+                        <span className="tcal-week-num">Week {weekNum}</span>
+                        <span className="tcal-week-range">{weekStart.format('MMM D')} – {weekEnd.format(weekStart.month() === weekEnd.month() ? 'D, YYYY' : 'MMM D, YYYY')}</span>
+                      </div>
+                      <span className="tcal-week-count">
+                        {ribbons.length === 0 ? 'No tickets' : `${ribbons.length} ticket${ribbons.length !== 1 ? 's' : ''}`}
+                      </span>
+                    </header>
+                    <div className="tcal-week-grid">
+                      <div className="tcal-week-days">
+                        {week.map((day, di) => {
+                          const isOutside = day.month() !== calendarMonth.month();
+                          const isToday = day.isSame(dayjs(), 'day');
+                          const isWeekend = day.day() === 0 || day.day() === 6;
+                          return (
+                            <div key={di} className={`tcal-day ${isOutside ? 'outside' : ''} ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}`}>
+                              <span className="tcal-day-wd">{day.format('ddd')}</span>
+                              <span className={`tcal-day-num ${isToday ? 'today' : ''}`}>{day.format('D')}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {ribbonHeight > 0 ? (
+                        <div className="tcal-week-ribbons" style={{ height: ribbonHeight }}>
+                          {ribbons.map(r => {
+                            const left = (r.startCol / 7) * 100;
+                            const width = (r.span / 7) * 100;
+                            const t = r.ticket;
+                            const statusCfg = (() => {
+                              const k = (t.status || '').toLowerCase();
+                              if (k === 'completed' || k === 'done') return { dot: '#10b981', label: 'Done' };
+                              if (k === 'in_progress' || k === 'active') return { dot: '#3b82f6', label: 'In Progress' };
+                              if (k === 'review') return { dot: '#8b5cf6', label: 'Review' };
+                              if (k === 'open' || k === 'todo' || k === 'pending') return { dot: '#f59e0b', label: 'To Do' };
+                              return { dot: '#94a3b8', label: t.status || '—' };
+                            })();
+                            const prio = (t.priority || '').toLowerCase();
+                            return (
+                              <Tooltip
+                                key={`${t.id}-${wi}`}
+                                overlayClassName="tcal-tooltip-wrap"
+                                mouseEnterDelay={0.15}
+                                placement="top"
+                                title={
+                                  <div className="tcal-tooltip">
+                                    <span className="tcal-tooltip-accent" style={{ background: r.color }} />
+                                    <div className="tcal-tooltip-head">
+                                      <div className="tcal-tooltip-title-block">
+                                        <div className="tcal-tooltip-num">{t.ticketNumber}</div>
+                                        <div className="tcal-tooltip-name">{t.title}</div>
+                                        {r.sprintName && (
+                                          <div className="tcal-tooltip-sprint">
+                                            <span className="tcal-tooltip-sprint-dot" style={{ background: r.color }} />
+                                            {r.sprintName}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="tcal-tooltip-badges">
+                                        <span className="tcal-tooltip-status" style={{ color: statusCfg.dot, background: `${statusCfg.dot}1f`, borderColor: `${statusCfg.dot}40` }}>
+                                          <span className="tcal-tooltip-status-dot" style={{ background: statusCfg.dot }} />
+                                          {statusCfg.label}
+                                        </span>
+                                        {t.priority && (
+                                          <span className={`tcal-tooltip-prio tcal-tooltip-prio-${prio}`}>
+                                            <FlagOutlined style={{ fontSize: 9 }} />
+                                            {t.priority}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="tcal-tooltip-divider" />
+                                    <div className="tcal-tooltip-meta">
+                                      <span className="tcal-tooltip-meta-item">
+                                        <CalendarOutlined style={{ fontSize: 9 }} />
+                                        <b>{dayjs(r.startDate).format('MMM D')}</b>
+                                        <span className="tcal-tooltip-arrow">→</span>
+                                        <b>{dayjs(r.endDate).format('MMM D, YYYY')}</b>
+                                      </span>
+                                      {t.assignee && (
+                                        <span className="tcal-tooltip-meta-item">
+                                          <UserOutlined style={{ fontSize: 9 }} />
+                                          {t.assignee.name}
+                                        </span>
+                                      )}
+                                      {typeof t.storyPoint === 'number' && (
+                                        <span className="tcal-tooltip-meta-item">
+                                          <ThunderboltOutlined style={{ fontSize: 9 }} />
+                                          {t.storyPoint} pt{t.storyPoint !== 1 ? 's' : ''}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="tcal-tooltip-footer">
+                                      Click to view ticket
+                                    </div>
+                                  </div>
+                                }
+                              >
+                                <button
+                                  className={`tcal-ribbon ${r.continuesLeft ? 'cont-left' : ''} ${r.continuesRight ? 'cont-right' : ''}`}
+                                  style={{
+                                    left: `calc(${left}% + 4px)`,
+                                    width: `calc(${width}% - 8px)`,
+                                    top: 6 + r.lane * 24,
+                                    background: `linear-gradient(135deg, ${r.color}1f, ${r.color}40)`,
+                                    borderColor: `${r.color}66`,
+                                    color: r.color,
+                                  }}
+                                  onClick={() => setSelectedTicketId(t.id)}
+                                >
+                                  <span className="tcal-ribbon-dot" style={{ background: statusCfg.dot }} />
+                                  <span className="tcal-ribbon-num">{t.ticketNumber}</span>
+                                  {r.span > 1 && (
+                                    <span className="tcal-ribbon-title">{t.title}</span>
+                                  )}
+                                </button>
+                              </Tooltip>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="tcal-week-empty">No tickets scheduled this week</div>
+                      )}
+                    </div>
+                  </section>
+                );
+              })
+            )}
+          </div>
+
+        </div>
+        </div>
+      ) : viewMode === 'list' ? (
+        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Active Sprint Section (only when Sprint selected in left nav) */}
+          {activeSprint && !isFilteredView && sidebarActiveSection === 'sprint' && (
+            <div id="active-section" ref={activeSprintCardRef} style={{ scrollMarginTop: `calc(var(--tl-header-h, 56px) + 4px)` }} className="tl-section">
+              {renderActiveSprintHeader('list')}
+              <div className="tl-section-body">
+                {filters.search && !activeSprintFetching && activeTickets.length === 0 && totalBacklog > 0 && (
+                  <div className="tl-cross-banner">
+                    <span className="tl-cross-banner-icon">
+                      <SearchOutlined style={{ fontSize: 12 }} />
+                    </span>
+                    <span className="tl-cross-banner-text">
+                      No matches for <b>“{filters.search}”</b> in this sprint —{' '}
+                      <b>{totalBacklog}</b> match{totalBacklog === 1 ? '' : 'es'} in the backlog.
+                    </span>
+                    <button
+                      type="button"
+                      className="tl-cross-banner-cta"
+                      onClick={() => setSidebarActiveSection('backlog')}
+                    >
+                      View in Backlog
+                      <RightOutlined style={{ fontSize: 10 }} />
+                    </button>
+                  </div>
+                )}
                 <Table
                   rowSelection={activeRowSelection}
                   columns={(getColumns('active') || []).filter((c: any) => !hiddenCols[c.key as string])}
                   dataSource={activeTickets}
                   loading={activeSprintFetching}
                   rowKey="id"
-                  pagination={false}
+                  pagination={{
+                    pageSize: 20,
+                    showSizeChanger: true,
+                    pageSizeOptions: ['10', '20', '25', '50'],
+                    showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
+                  }}
                   scroll={{ x: 'max-content' }}
-                  sticky={{ offsetHeader: activeSprintHeadOffset }}
                   tableLayout="fixed"
-                  className="saas-table"
-                  size="middle"
+                  className="saas-table tl-table tl-table-sticky-pagination"
+                  size="small"
                 />
-              </Card>
+              </div>
             </div>
           )}
 
-          {/* Backlog Section */}
-          <div id="backlog-section" style={{ scrollMarginTop: '100px' }}>
-            <Card
-              className="saas-card saas-card-sticky"
-              title={
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '12px',
-                  padding: '8px 0'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px', flex: '1' }}>
-                    <ProjectOutlined style={{ color: 'var(--text-slate-500)', fontSize: 18 }} />
-                    <Text style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)' }}>Backlog</Text>
+          {/* Backlog Section (only when Backlog selected in left nav) */}
+          {!isFilteredView && sidebarActiveSection === 'backlog' && (
+          <div id="backlog-section" style={{ scrollMarginTop: `calc(var(--tl-header-h, 56px) + 4px)` }} className="tl-section">
+            <div
+              className="tl-section-head"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', flex: '1' }}>
+                    <ProjectOutlined style={{ color: 'var(--text-slate-500)', fontSize: 14 }} />
+                    <Text style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-slate-900)' }}>Backlog</Text>
                     <Tag bordered={false} style={{
                       margin: 0,
-                      height: 24,
+                      height: 20,
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      minWidth: 90,
+                      minWidth: 78,
                       background: 'var(--bg-slate-50)',
                       color: 'var(--text-slate-500)',
                       fontWeight: 800,
-                      fontSize: 10,
+                      fontSize: 9,
                       borderRadius: 4,
                       textTransform: 'uppercase',
                       border: '1px solid var(--border-color)'
@@ -2337,16 +3829,17 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       {totalBacklog} Tickets
                     </Tag>
                   </div>
-                  <Space size={12}>
+                  <Space size={8}>
                     <Select
                       mode="multiple"
                       placeholder="Filter Status"
-                      style={{ width: 160 }}
+                      style={{ width: 140 }}
                       value={backlogStatusFilter}
                       onChange={setBacklogStatusFilter}
                       options={finalStatusOptions}
                       allowClear
                       maxTagCount={1}
+                      size="small"
                       className="saas-select-minimal"
                     />
                     {backlogSelectedRowKeys.length > 0 && (
@@ -2399,21 +3892,22 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     )}
                     <Input
                       placeholder="Search backlog..."
-                      prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
+                      prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 11 }} />}
                       className="saas-input"
-                      style={{ width: 220, borderRadius: 6, height: 32, fontSize: 12, background: 'transparent' }}
+                      style={{ width: 180, borderRadius: 6, height: 28, fontSize: 11.5, background: 'transparent' }}
                       value={backlogSearchValue}
                       onChange={(e) => setBacklogSearchValue(e.target.value)}
                       allowClear
                     />
-                    <Divider type="vertical" style={{ height: 20, margin: 0 }} />
+                    <Divider type="vertical" style={{ height: 18, margin: 0 }} />
                     {activeSprint && (
                       <Button
                         type="default"
+                        size="small"
                         icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
-                        onClick={() => document.getElementById('active-section')?.scrollIntoView({ behavior: 'smooth' })}
+                        onClick={() => setSidebarActiveSection('sprint')}
                         className="saas-button-item"
-                        style={{ height: 32, fontWeight: 600 }}
+                        style={{ height: 28, fontWeight: 600, fontSize: 12 }}
                       >
                         Go To Sprint
                       </Button>
@@ -2421,10 +3915,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     {canCreateTicketPlan && (
                       <Button
                         type="default"
+                        size="small"
                         icon={<PlusOutlined />}
                         onClick={() => setCreateSprintModalOpen(true)}
                         className="saas-button-item"
-                        style={{ height: 32, fontWeight: 600 }}
+                        style={{ height: 28, fontWeight: 600, fontSize: 12 }}
                       >
                         New Sprint
                       </Button>
@@ -2433,34 +3928,145 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
 
                 </div>
-              }
-            >
-              <div className="tickets-table-shell" data-density="comfortable">
+            <div className="tl-section-body">
+              {filters.search && !backlogFetching && totalBacklog === 0 && activeTickets.length > 0 && (
+                <div className="tl-cross-banner">
+                  <span className="tl-cross-banner-icon">
+                    <SearchOutlined style={{ fontSize: 12 }} />
+                  </span>
+                  <span className="tl-cross-banner-text">
+                    No matches for <b>“{filters.search}”</b> in the backlog —{' '}
+                    <b>{activeTickets.length}</b> match{activeTickets.length === 1 ? '' : 'es'} in the active sprint.
+                  </span>
+                  <button
+                    type="button"
+                    className="tl-cross-banner-cta"
+                    onClick={() => setSidebarActiveSection('sprint')}
+                  >
+                    View in Sprint
+                    <RightOutlined style={{ fontSize: 10 }} />
+                  </button>
+                </div>
+              )}
+              <div className="tickets-table-shell" data-density="compact">
                 <Table
                   rowSelection={backlogRowSelection}
                   columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
                   loading={backlogFetching}
                   dataSource={backlogTickets}
                   rowKey="id"
-                  className="saas-table"
-                  size="middle"
+                  className="saas-table tl-table tl-table-sticky-pagination"
+                  size="small"
                   pagination={{
                     current: pagination.current,
                     pageSize: pagination.pageSize,
                     total: totalBacklog,
                     showSizeChanger: true,
-                    pageSizeOptions: ['10', '25', '50'],
+                    pageSizeOptions: ['10', '20', '25', '50'],
                     showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
-                    onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 10 })
+                    onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 20 })
                   }}
                   scroll={{ x: 'max-content' }}
                 />
               </div>
-            </Card>
+            </div>
           </div>
+          )}
+
+          {/* Filtered View — unified set of tickets matching the sidebar quick filters.
+              Pulls from across the project (no sprint/backlog scope) so commented +
+              attached tickets from either side land in one table. */}
+          {isFilteredView && (
+            <div id="filtered-section" className="tl-section">
+              <div className="tl-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', flex: '1', minWidth: 0 }}>
+                  <button
+                    type="button"
+                    className="tl-back-btn"
+                    onClick={() => {
+                      setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+                      setSidebarActiveSection(previousSection);
+                    }}
+                  >
+                    <ArrowLeftOutlined style={{ fontSize: 10 }} />
+                    Back to {previousSection === 'sprint' ? 'Sprint' : 'Backlog'}
+                  </button>
+                  <Text style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-slate-900)' }}>
+                    {filteredViewKindLabel}
+                  </Text>
+                  <Tag bordered={false} style={{
+                    margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--bg-slate-50)', color: 'var(--text-slate-500)',
+                    fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
+                    border: '1px solid var(--border-slate-200)', padding: '0 6px'
+                  }}>
+                    {filteredViewTotal || quickFilterTicketIds.length} Tickets
+                  </Tag>
+                  {activeQuickFilters.commented && (
+                    <Tag bordered={false} style={{
+                      margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(59,130,246,0.10)', color: '#1d4ed8',
+                      fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
+                      border: '1px solid rgba(59,130,246,0.25)', padding: '0 6px'
+                    }}>
+                      <MessageOutlined style={{ fontSize: 9, marginRight: 3 }} />
+                      Commented
+                    </Tag>
+                  )}
+                  {activeQuickFilters.attached && (
+                    <Tag bordered={false} style={{
+                      margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(99,102,241,0.10)', color: '#4338ca',
+                      fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
+                      border: '1px solid rgba(99,102,241,0.25)', padding: '0 6px'
+                    }}>
+                      <PaperClipOutlined style={{ fontSize: 9, marginRight: 3 }} />
+                      Attached
+                    </Tag>
+                  )}
+                  {activeQuickFilters.overdue && (
+                    <Tag bordered={false} style={{
+                      margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(239,68,68,0.10)', color: '#b91c1c',
+                      fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
+                      border: '1px solid rgba(239,68,68,0.28)', padding: '0 6px'
+                    }}>
+                      <WarningOutlined style={{ fontSize: 9, marginRight: 3 }} />
+                      Overdue
+                    </Tag>
+                  )}
+                </div>
+              </div>
+              <div className="tl-section-body">
+                <Table
+                  columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                  dataSource={filteredViewTickets}
+                  loading={filteredViewFetching}
+                  rowKey="id"
+                  className="saas-table tl-table tl-table-sticky-pagination"
+                  size="small"
+                  pagination={{
+                    current: pagination.current,
+                    pageSize: pagination.pageSize,
+                    total: filteredViewTotal,
+                    showSizeChanger: true,
+                    pageSizeOptions: ['10', '20', '25', '50'],
+                    showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
+                    onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 20 })
+                  }}
+                  scroll={{ x: 'max-content' }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="fadeIn">
+        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {activeSprint && !isFilteredView && kanbanScope === 'active' && (
+            <div className="tl-section">
+              {renderActiveSprintHeader('compact')}
+            </div>
+          )}
           {kanbanData ? (
             <TicketKanban
               tickets={kanbanData.columns ? Object.values(kanbanData.columns).flatMap((col: any) => col.tickets) : []}
@@ -2475,13 +4081,31 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               filters={filters}
               onFilterChange={handleFilterChange}
               onTicketClick={setSelectedTicketId}
+              hideSprintMeta={!!activeSprint && !isFilteredView && kanbanScope === 'active'}
               permissions={{ canUpdateTicket, canDeleteTicket, canAssignTicket, canManageTickets }}
+              onAddTicketToColumn={canCreateTicket ? (statusId: string) => {
+                setManualCreateDefaultStatus(statusId);
+                setManualModalOpen(true);
+              } : undefined}
+              onBulkArchive={(ids) => bulkArchiveMutation.mutate(ids)}
+              onBulkDelete={(ids) => {
+                modal.confirm({
+                  title: 'Move to Trash',
+                  content: `Move ${ids.length} ticket${ids.length === 1 ? '' : 's'} to trash?`,
+                  okText: 'Move to Trash',
+                  okType: 'danger',
+                  onOk: () => bulkDeleteMutation.mutate(ids),
+                });
+              }}
             />
           ) : (
             <Card className="saas-card"><Empty description="No tickets found" /></Card>
           )}
         </div>
       )}
+          </div>
+        </div>
+      </div>
 
       {/* Overlays */}
       <TicketDetailDrawer
@@ -2513,10 +4137,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           body: { padding: 0 },
           content: {
             padding: 0,
-            borderRadius: 18,
+            borderRadius: 14,
             overflow: "hidden",
-            border: "1px solid var(--border-color)",
-            boxShadow: "0 24px 60px -20px rgba(15, 23, 42, 0.45)",
+            border: "1px solid var(--border-slate-200)",
+            boxShadow: "none",
           },
         }}
       >
@@ -2530,9 +4154,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       </Modal>
       <ManualCreateTicketModal
         open={manualModalOpen}
-        onClose={() => setManualModalOpen(false)}
+        onClose={() => {
+          setManualModalOpen(false);
+          setManualCreateDefaultStatus(undefined);
+        }}
         projectId={projectId}
         onTicketCreated={handleTicketCreated}
+        defaultStatus={manualCreateDefaultStatus}
       />
 
       <AiCreateTicketModal
@@ -2541,6 +4169,596 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         projectId={projectId}
         onTicketCreated={handleTicketCreated}
       />
+
+      <style jsx global>{`
+        /* ── Ticket Calendar view ──────────────────────────────
+           The card sits flush against the sprint detail header above —
+           drop the top border + top-radius so the seam between them
+           disappears. Bottom + sides keep their card chrome. */
+        .tcal-card {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-top: 0;
+          border-radius: 0 0 12px 12px;
+          position: relative;
+        }
+        [data-theme='dark'] .tcal-card {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+        }
+        .tcal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 18px;
+          border-bottom: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white);
+          gap: 12px;
+          position: sticky;
+          top: 52px;
+          z-index: 5;
+          border-radius: 0;
+        }
+        [data-theme='dark'] .tcal-header {
+          background: #161b22 !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .tcal-title-block {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        .tcal-title {
+          font-size: 18px !important;
+          font-weight: 800 !important;
+          color: var(--text-slate-900) !important;
+          letter-spacing: -0.02em;
+          line-height: 1.1;
+        }
+        [data-theme='dark'] .tcal-title { color: #f1f5f9 !important; }
+        .tcal-stat-row {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 2px;
+        }
+        .tcal-stat {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 4px;
+        }
+        .tcal-stat-num {
+          font-size: 12.5px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.02em;
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tcal-stat-num { color: #f1f5f9 !important; }
+        .tcal-stat-label {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        [data-theme='dark'] .tcal-stat-label { color: #94a3b8 !important; }
+        .tcal-stat-sep {
+          width: 3px;
+          height: 3px;
+          border-radius: 50%;
+          background: var(--text-slate-300);
+        }
+        [data-theme='dark'] .tcal-stat-sep { background: #475569; }
+        .tcal-nav {
+          display: inline-flex;
+          gap: 4px;
+        }
+        .tcal-nav-btn {
+          border-radius: 8px !important;
+          height: 32px !important;
+          font-weight: 700 !important;
+        }
+        .tcal-nav-today {
+          padding: 0 12px !important;
+          font-size: 11.5px !important;
+        }
+
+        /* Body */
+        .tcal-body {
+          background: var(--bg-slate-50);
+        }
+        [data-theme='dark'] .tcal-body {
+          background: #0b0f1a !important;
+        }
+        .tcal-week {
+          background: var(--bg-pure-white);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .tcal-week {
+          background: #161b22 !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .tcal-week:last-child { border-bottom: none; }
+        .tcal-week.has-today {
+          background: linear-gradient(180deg, rgba(59,130,246,0.025), var(--bg-pure-white));
+        }
+        [data-theme='dark'] .tcal-week.has-today {
+          background: linear-gradient(180deg, rgba(59,130,246,0.06), #161b22) !important;
+        }
+        .tcal-week-label {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 8px 18px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+          gap: 12px;
+        }
+        [data-theme='dark'] .tcal-week-label {
+          background: #0f1419 !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .tcal-week.has-today .tcal-week-label {
+          background: rgba(59,130,246,0.06);
+          border-bottom-color: rgba(59,130,246,0.2);
+        }
+        [data-theme='dark'] .tcal-week.has-today .tcal-week-label {
+          background: rgba(59,130,246,0.12) !important;
+          border-bottom-color: rgba(59,130,246,0.3) !important;
+        }
+        .tcal-week-label-left {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 10px;
+          min-width: 0;
+        }
+        .tcal-week-num {
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--text-slate-700);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .tcal-week-num { color: #cbd5e1 !important; }
+        .tcal-week.has-today .tcal-week-num {
+          color: #1d4ed8;
+        }
+        [data-theme='dark'] .tcal-week.has-today .tcal-week-num {
+          color: #60a5fa !important;
+        }
+        .tcal-week-range {
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tcal-week-range { color: #94a3b8 !important; }
+        .tcal-week-count {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+        }
+        [data-theme='dark'] .tcal-week-count { color: #94a3b8 !important; }
+        .tcal-week-grid {
+          position: relative;
+        }
+        .tcal-week-days {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+        }
+        .tcal-day {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          padding: 8px 12px;
+          border-right: 1px solid var(--border-slate-100);
+        }
+        [data-theme='dark'] .tcal-day {
+          border-right-color: #1f2937 !important;
+        }
+        .tcal-day:last-child { border-right: none; }
+        .tcal-day.weekend:not(.outside) {
+          background: linear-gradient(180deg, rgba(148,163,184,0.04), transparent);
+        }
+        .tcal-day.today {
+          background: rgba(59,130,246,0.04);
+        }
+        [data-theme='dark'] .tcal-day.today {
+          background: rgba(59,130,246,0.1) !important;
+        }
+        .tcal-day.outside .tcal-day-wd,
+        .tcal-day.outside .tcal-day-num {
+          opacity: 0.45;
+        }
+        .tcal-day-wd {
+          font-size: 9.5px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .tcal-day-wd { color: #94a3b8 !important; }
+        .tcal-day.today .tcal-day-wd {
+          color: #1d4ed8;
+        }
+        [data-theme='dark'] .tcal-day.today .tcal-day-wd {
+          color: #60a5fa !important;
+        }
+        .tcal-day-num {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-slate-700);
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tcal-day-num { color: #cbd5e1 !important; }
+        .tcal-day-num.today {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 20px;
+          height: 20px;
+          padding: 0 6px;
+          background: #3b82f6;
+          color: #fff !important;
+          border-radius: 999px;
+          font-weight: 800;
+        }
+        .tcal-week-ribbons {
+          position: relative;
+          padding: 0 0 12px;
+        }
+        .tcal-week-empty {
+          padding: 14px 18px;
+          font-size: 11.5px;
+          font-weight: 500;
+          color: var(--text-slate-400);
+          font-style: italic;
+        }
+        [data-theme='dark'] .tcal-week-empty {
+          color: #64748b !important;
+        }
+
+        /* Ribbon */
+        .tcal-ribbon {
+          position: absolute;
+          height: 20px;
+          padding: 0 7px;
+          border-radius: 5px;
+          border: 1px solid;
+          font-family: inherit;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: -0.005em;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          overflow: hidden;
+          white-space: nowrap;
+          text-align: left;
+          transition: filter 0.15s ease, transform 0.15s ease;
+          pointer-events: auto;
+        }
+        .tcal-ribbon:hover {
+          filter: brightness(1.08);
+          transform: translateY(-1px);
+        }
+        .tcal-ribbon.cont-left {
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+          border-left: none;
+          padding-left: 5px;
+        }
+        .tcal-ribbon.cont-right {
+          border-top-right-radius: 0;
+          border-bottom-right-radius: 0;
+          border-right: none;
+          padding-right: 5px;
+        }
+        .tcal-ribbon-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .tcal-ribbon-num {
+          font-family: ui-monospace, monospace;
+          font-size: 9.5px;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+          opacity: 0.85;
+        }
+        .tcal-ribbon-title {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          flex-shrink: 1;
+        }
+
+        /* Empty state */
+        .tcal-empty {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 80px 24px;
+          gap: 8px;
+          background: var(--bg-pure-white);
+        }
+        [data-theme='dark'] .tcal-empty {
+          background: #161b22 !important;
+        }
+        .tcal-empty-title {
+          font-size: 14px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.015em;
+          margin-top: 8px;
+        }
+        [data-theme='dark'] .tcal-empty-title { color: #f1f5f9 !important; }
+        .tcal-empty-sub {
+          font-size: 12px;
+          color: var(--text-slate-500);
+          font-weight: 500;
+          max-width: 360px;
+          text-align: center;
+        }
+        [data-theme='dark'] .tcal-empty-sub { color: #94a3b8 !important; }
+
+        /* Legend (sticky footer) */
+        .tcal-legend {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 18px;
+          flex-wrap: wrap;
+          border-top: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50);
+          position: sticky;
+          bottom: 0;
+          z-index: 5;
+          border-radius: 0 0 12px 12px;
+        }
+        [data-theme='dark'] .tcal-legend {
+          background: #0f1419 !important;
+          border-top-color: #1f2937 !important;
+        }
+        .tcal-legend-label {
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin-right: 4px;
+        }
+        [data-theme='dark'] .tcal-legend-label { color: #94a3b8 !important; }
+        .tcal-legend-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 9px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-slate-700);
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme='dark'] .tcal-legend-chip {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+          color: #cbd5e1 !important;
+        }
+        .tcal-legend-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .tcal-legend-toggle {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 4px 10px;
+          background: transparent;
+          border: 1px dashed var(--border-slate-300, #cbd5e1);
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 700;
+          color: #3b82f6;
+          cursor: pointer;
+          font-family: inherit;
+        }
+        .tcal-legend-toggle:hover {
+          background: rgba(59,130,246,0.08);
+          border-color: rgba(59,130,246,0.4);
+          color: #1d4ed8;
+        }
+        [data-theme='dark'] .tcal-legend-toggle {
+          color: #60a5fa;
+          border-color: #2d3748;
+        }
+
+        /* Hover tooltip card */
+        .tcal-tooltip-wrap .ant-tooltip-arrow { display: none !important; }
+        .tcal-tooltip-wrap .ant-tooltip-inner {
+          background: transparent !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+          min-width: 300px !important;
+          max-width: 340px !important;
+        }
+        .tcal-tooltip {
+          width: 300px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 12px;
+          padding: 12px 14px 10px 16px;
+          position: relative;
+          overflow: hidden;
+          color: var(--text-slate-900);
+        }
+        [data-theme='dark'] .tcal-tooltip {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+          color: #f1f5f9 !important;
+        }
+        .tcal-tooltip-accent {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 3px;
+        }
+        .tcal-tooltip-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .tcal-tooltip-title-block {
+          min-width: 0;
+          flex: 1;
+        }
+        .tcal-tooltip-num {
+          font-family: ui-monospace, monospace;
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          letter-spacing: 0.04em;
+        }
+        [data-theme='dark'] .tcal-tooltip-num { color: #94a3b8 !important; }
+        .tcal-tooltip-name {
+          font-size: 13.5px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          line-height: 1.3;
+          margin-top: 2px;
+          color: var(--text-slate-900);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+        [data-theme='dark'] .tcal-tooltip-name { color: #f1f5f9 !important; }
+        .tcal-tooltip-sprint {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-slate-600);
+          margin-top: 4px;
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme='dark'] .tcal-tooltip-sprint { color: #cbd5e1 !important; }
+        .tcal-tooltip-sprint-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .tcal-tooltip-badges {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+          flex-shrink: 0;
+        }
+        .tcal-tooltip-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 2px 8px;
+          font-size: 9.5px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          border-radius: 999px;
+          border: 1px solid;
+        }
+        .tcal-tooltip-status-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+        }
+        .tcal-tooltip-prio {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 1px 6px;
+          font-size: 9px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          border-radius: 4px;
+        }
+        .tcal-tooltip-prio-high { color: #dc2626; background: rgba(239,68,68,0.1); }
+        .tcal-tooltip-prio-medium { color: #d97706; background: rgba(245,158,11,0.1); }
+        .tcal-tooltip-prio-low { color: #059669; background: rgba(16,185,129,0.1); }
+        [data-theme='dark'] .tcal-tooltip-prio-high { color: #f87171; background: rgba(239,68,68,0.15); }
+        [data-theme='dark'] .tcal-tooltip-prio-medium { color: #fbbf24; background: rgba(245,158,11,0.15); }
+        [data-theme='dark'] .tcal-tooltip-prio-low { color: #34d399; background: rgba(16,185,129,0.15); }
+        .tcal-tooltip-divider {
+          height: 1px;
+          background: var(--border-slate-100);
+          margin: 10px 0 8px;
+        }
+        [data-theme='dark'] .tcal-tooltip-divider { background: #1f2937 !important; }
+        .tcal-tooltip-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+        }
+        .tcal-tooltip-meta-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-slate-600);
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tcal-tooltip-meta-item { color: #cbd5e1 !important; }
+        .tcal-tooltip-meta-item b {
+          color: var(--text-slate-900);
+          font-weight: 700;
+        }
+        [data-theme='dark'] .tcal-tooltip-meta-item b { color: #f1f5f9 !important; }
+        .tcal-tooltip-arrow {
+          color: var(--text-slate-400);
+          font-weight: 600;
+        }
+        .tcal-tooltip-footer {
+          margin-top: 10px;
+          padding-top: 8px;
+          border-top: 1px dashed var(--border-slate-200);
+          font-size: 9.5px;
+          font-weight: 800;
+          color: var(--text-slate-400);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .tcal-tooltip-footer {
+          border-top-color: #2d3748 !important;
+          color: #64748b !important;
+        }
+
+        @media (max-width: 900px) {
+          .tcal-day { padding: 6px 8px; }
+          .tcal-ribbon { font-size: 9px; padding: 0 5px; height: 18px; }
+          .tcal-ribbon-title { display: none; }
+        }
+      `}</style>
     </div>
   );
 }

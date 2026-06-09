@@ -95,14 +95,14 @@ export default function ProjectsPage() {
       title: "View Tickets",
       description: "Manage all tickets with advanced grid filters",
       icon: <UnorderedListOutlined />,
-      path: "/projects/select",
+      path: "/tickets/select",
       color: "#faad14",
     },
     {
       title: "Create Ticket",
       description: "New ticket with detailed workflow setup",
       icon: <PlusCircleOutlined />,
-      path: "/projects/create",
+      path: "/tickets/create",
       color: "#52c41a",
     },
   ];
@@ -398,7 +398,7 @@ export default function ProjectsPage() {
                     <Button
                       ghost
                       style={{ borderRadius: 8, fontWeight: 600, border: '1px solid rgba(255,255,255,0.5)' }}
-                      onClick={() => router.push('/projects/plans')}
+                      onClick={() => router.push('/tickets/plans')}
                     >
                       Configure Plans
                     </Button>

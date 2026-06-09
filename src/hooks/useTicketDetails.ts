@@ -127,7 +127,7 @@ export const useUpdateTicket = () => {
 
 /**
  * Add comment mutation
- * Invalidates: comments cache only (NOT ticket details!)
+ * Invalidates: per-ticket comments + the project sidebar's recent-activity feed.
  */
 export const useAddComment = () => {
   const queryClient = useQueryClient();
@@ -136,15 +136,15 @@ export const useAddComment = () => {
     mutationFn: ({ ticketId, comment }: { ticketId: string; comment: string }) =>
       TicketService.addComment(ticketId, comment),
     onSuccess: (_, { ticketId }) => {
-      // Only invalidate comments, ticket details stay cached
       queryClient.invalidateQueries({ queryKey: ['ticket', ticketId, 'comments'] });
+      queryClient.invalidateQueries({ queryKey: ['ticketRecentActivity'] });
     },
   });
 };
 
 /**
  * Update comment mutation
- * Invalidates: comments cache only
+ * Invalidates: per-ticket comments + the project sidebar's recent-activity feed.
  */
 export const useUpdateComment = () => {
   const queryClient = useQueryClient();
@@ -161,13 +161,14 @@ export const useUpdateComment = () => {
     }) => TicketService.updateComment(ticketId, commentId, comment),
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['ticket', ticketId, 'comments'] });
+      queryClient.invalidateQueries({ queryKey: ['ticketRecentActivity'] });
     },
   });
 };
 
 /**
  * Delete comment mutation
- * Invalidates: comments cache only
+ * Invalidates: per-ticket comments + the project sidebar's recent-activity feed.
  */
 export const useDeleteComment = () => {
   const queryClient = useQueryClient();
@@ -177,6 +178,7 @@ export const useDeleteComment = () => {
       TicketService.deleteComment(ticketId, commentId),
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['ticket', ticketId, 'comments'] });
+      queryClient.invalidateQueries({ queryKey: ['ticketRecentActivity'] });
     },
   });
 };
@@ -243,7 +245,7 @@ export const useDeleteRelatedLink = () => {
 
 /**
  * Upload attachment mutation
- * Invalidates: attachments cache only
+ * Invalidates: per-ticket attachments + the project sidebar's recent-activity feed.
  */
 export const useUploadAttachment = () => {
   const queryClient = useQueryClient();
@@ -260,13 +262,14 @@ export const useUploadAttachment = () => {
     }) => TicketService.uploadAttachment(ticketId, file, fileName),
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['ticket', ticketId, 'attachments'] });
+      queryClient.invalidateQueries({ queryKey: ['ticketRecentActivity'] });
     },
   });
 };
 
 /**
  * Delete attachment mutation
- * Invalidates: attachments cache only
+ * Invalidates: per-ticket attachments + the project sidebar's recent-activity feed.
  */
 export const useDeleteAttachment = () => {
   const queryClient = useQueryClient();
@@ -276,13 +279,14 @@ export const useDeleteAttachment = () => {
       TicketService.deleteAttachment(ticketId, attachmentId),
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['ticket', ticketId, 'attachments'] });
+      queryClient.invalidateQueries({ queryKey: ['ticketRecentActivity'] });
     },
   });
 };
 
 /**
  * Rename attachment mutation
- * Invalidates: attachments cache only
+ * Invalidates: per-ticket attachments + the project sidebar's recent-activity feed.
  */
 export const useRenameAttachment = () => {
   const queryClient = useQueryClient();
@@ -299,6 +303,7 @@ export const useRenameAttachment = () => {
     }) => TicketService.renameAttachment(ticketId, attachmentId, newFileName),
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['ticket', ticketId, 'attachments'] });
+      queryClient.invalidateQueries({ queryKey: ['ticketRecentActivity'] });
     },
   });
 };

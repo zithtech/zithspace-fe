@@ -62,6 +62,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
   const [title, setTitle] = useState("");
   const [projectId, setProjectId] = useState<string | undefined>();
   const [assigneeId, setAssigneeId] = useState<string | undefined>();
+  const [isAssigneeManuallyChanged, setIsAssigneeManuallyChanged] = useState(false);
 
   const [createdCount, setCreatedCount] = useState(0);
 
@@ -81,11 +82,11 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
     setTitle("");
     setProjectId(prefilledProjectId);
 
-    // Pre-fill assignee if all bugs have the same assignee
-    const bugsWithAssignee = bugs.filter(bug => bug.assigneeId);
-    const allSameAssignee = bugsWithAssignee.length > 0 &&
-      bugsWithAssignee.every(bug => bug.assigneeId === bugsWithAssignee[0].assigneeId);
-    setAssigneeId(allSameAssignee ? (bugsWithAssignee[0].assigneeId || undefined) : undefined);
+    // Pre-fill assignee if all bugs have the same assignee (including unassigned state)
+    const allSameAssignee = bugs.length > 0 &&
+      bugs.every(bug => bug.assigneeId === bugs[0].assigneeId);
+    setAssigneeId(allSameAssignee ? (bugs[0].assigneeId || undefined) : undefined);
+    setIsAssigneeManuallyChanged(false);
 
     setCreatedCount(0);
   }, [open, prefilledProjectId]); // Remove 'bugs' to prevent mode reset during ticket creation
@@ -94,6 +95,29 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
     () => pool.filter((b) => staged.has(b.id)),
     [pool, staged],
   );
+
+  const handleAssigneeChange = (value: string | undefined) => {
+    setAssigneeId(value);
+    setIsAssigneeManuallyChanged(true);
+  };
+
+  useEffect(() => {
+    if (stagedBugs.length === 0) {
+      setIsAssigneeManuallyChanged(false);
+      setAssigneeId(undefined);
+      return;
+    }
+
+    if (!isAssigneeManuallyChanged) {
+      const firstAssignee = stagedBugs[0].assigneeId;
+      const allSame = stagedBugs.every((b) => b.assigneeId === firstAssignee);
+      if (allSame) {
+        setAssigneeId(firstAssignee || undefined);
+      } else {
+        setAssigneeId(undefined);
+      }
+    }
+  }, [stagedBugs, isAssigneeManuallyChanged]);
 
   const filteredPool = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -213,7 +237,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
         description: buildSingleBugDescription(b),
         bugIds: [b.id],
         projectId,
-        assigneeId,
+        assigneeId: assigneeId || b.assigneeId || undefined,
         attachments: b.attachments || [],
         externalLinks: b.externalLinks || [],
       }));
@@ -288,7 +312,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
               projectId={projectId}
               onProjectId={setProjectId}
               assigneeId={assigneeId}
-              onAssigneeId={setAssigneeId}
+              onAssigneeId={handleAssigneeChange}
               projects={projects || []}
               members={members}
               converting={convert.isPending}

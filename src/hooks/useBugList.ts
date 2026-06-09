@@ -330,6 +330,7 @@ export const useUpdateBug = () => {
       BugListService.updateBug(id, input),
     onSuccess: (updated) => {
       qc.invalidateQueries({ queryKey: bugKeys.all });
+      message.success("Bug updated");
     },
     onError: (err: Error) => message.error(err.message),
   });

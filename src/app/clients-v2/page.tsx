@@ -16,6 +16,7 @@ import {
   Dropdown,
   Modal,
   message,
+  Pagination,
 } from "antd";
 import type { ColumnType } from "antd/es/table";
 import {
@@ -118,37 +119,41 @@ const StatCard: React.FC<StatCardProps> = ({
   chart,
 }) => (
   <div className="cm-stat-card" style={{ ["--cm-accent" as any]: accent }}>
-    <div className="cm-stat-head">
-      <div
-        className="cm-stat-icon"
-        style={{
-          background: `${accent}12`,
-          color: accent,
-          boxShadow: `inset 0 0 0 1px ${accent}26`,
-        }}
-      >
-        <Icon size={16} color={accent} />
+    <div className="cm-stat-top">
+      <div className="cm-stat-left">
+        <div
+          className="cm-stat-icon"
+          style={{
+            background: `${accent}12`,
+            color: accent,
+            boxShadow: `inset 0 0 0 1px ${accent}26`,
+          }}
+        >
+          <Icon size={14} color={accent} />
+        </div>
+        <Text className="cm-stat-label">{label}</Text>
       </div>
-      <Text className="cm-stat-label">{label}</Text>
+      {trend && (
+        <span className={`cm-trend ${trend.positive ? "up" : "down"}`}>
+          {trend.positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+          <span className="cm-trend-value">
+            {trend.value > 0 ? "+" : ""}
+            {trend.value}%
+          </span>
+        </span>
+      )}
+    </div>
+    <div className="cm-stat-bottom">
       <div className="cm-stat-value-wrap">
         {loading ? (
           <Skeleton.Input active size="small" style={{ width: 64, height: 22 }} />
         ) : (
           <span className="cm-stat-value">{value}</span>
         )}
-        {trend && (
-          <span className={`cm-trend ${trend.positive ? "up" : "down"}`}>
-            {trend.positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-            <span className="cm-trend-value">
-              {trend.value > 0 ? "+" : ""}
-              {trend.value}%
-            </span>
-          </span>
-        )}
+        {subtle && <span className="cm-stat-period">{subtle}</span>}
       </div>
+      {chart && <div className="cm-stat-chart">{chart}</div>}
     </div>
-    {subtle && <Text className="cm-stat-subtle">{subtle}</Text>}
-    {chart && <div className="cm-stat-chart">{chart}</div>}
     <span
       className="cm-stat-accent"
       style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
@@ -197,7 +202,7 @@ export default function ClientsV2ListPage() {
   const { canCreateClient, canUpdateClient, canDeleteClient } = usePermission();
   const [modal, modalContextHolder] = Modal.useModal();
   const [messageApi, messageContextHolder] = message.useMessage();
-  
+
   // Delete modal state
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -370,7 +375,7 @@ export default function ClientsV2ListPage() {
 
       const res = await apiUtils.getPaginated("/api/clients-v2", params);
       const allData = res.data || [];
-      
+
       if (allData.length === 0) {
         messageApi.warning("No data to export");
         return;
@@ -414,7 +419,7 @@ export default function ClientsV2ListPage() {
   /* Distinct client types derived from the loaded option list */
   const typeOptions = useMemo(() => {
     const set = new Set<string>();
-    allClientsOpts.forEach(() => {}); // placeholder so order of hooks stays stable
+    allClientsOpts.forEach(() => { }); // placeholder so order of hooks stays stable
     data.forEach((c) => c.clientType && set.add(c.clientType));
     // Common fallbacks if data is sparse
     ["B2B", "B2C", "Direct", "Enterprise", "Government", "Partner", "Reseller", "SME", "Vendor"].forEach((t) => set.add(t));
@@ -732,7 +737,7 @@ export default function ClientsV2ListPage() {
 
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         {modalContextHolder}
         {messageContextHolder}
 
@@ -774,11 +779,11 @@ export default function ClientsV2ListPage() {
           }}
           footer={
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
-              <Button 
+              <Button
                 onClick={() => {
                   setIsDeleteModalVisible(false);
                   setClientToDelete(null);
-                }} 
+                }}
                 style={{ borderRadius: 8 }}
                 disabled={isDeleting}
               >
@@ -802,357 +807,1615 @@ export default function ClientsV2ListPage() {
             <Text style={{ color: "var(--text-slate-600)", fontSize: 13.5, lineHeight: 1.6 }}>
               Are you sure you want to delete{" "}
               <strong style={{ color: "var(--text-slate-900)" }}>{clientToDelete?.name}</strong>
-              ? This will permanently remove the client and all associated data, including contacts, 
+              ? This will permanently remove the client and all associated data, including contacts,
               allocations, and documents.
             </Text>
           </div>
         </Modal>
 
-        <div className="cm-page">
-          <TimeTrackingHeader
-            icon={<Building2 size={20} color="#8b5cf6" />}
-            title="Client Management"
-            description="Monitor, manage, and configure all client entity profiles."
-            style={{
-              position: "sticky",
-              top: 0,
-              zIndex: 100,
-              boxShadow: "none",
-              borderBottom: "1px solid var(--border-slate-200)",
-              padding: "9.5px 32px",
-            }}
-            extra={
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <Input
-                  placeholder="Search by name or code…"
-                  prefix={<Search size={15} style={{ color: "var(--text-slate-400)" }} />}
-                  className="cm-search-input"
-                  onChange={(e) => handleSearch(e.target.value)}
-                  allowClear
-                />
-                <Button 
-                  icon={<Download size={15} />} 
-                  className="cm-secondary-btn"
-                  onClick={handleExport}
-                  loading={loading}
-                >
-                  Export
-                </Button>
-                {canCreateClient && (
-                  <Button
-                    type="primary"
-                    icon={<Plus size={16} />}
-                    className="cm-primary-btn"
-                    onClick={() => router.push("/clients-v2/create")}
-                  >
-                    New Client
-                  </Button>
-                )}
-              </div>
-            }
-          />
-
-          <div className="cm-ambient" />
-
-          <div className="cm-body">
-            {/* Stat grid */}
-            <div className="cm-stat-grid">
-              <StatCard
-                label="Total Clients"
-                value={globalStats.totalClients}
-                icon={Users}
-                accent="#3b82f6"
-                subtle="Across all segments"
-                loading={globalStats.totalClients === 0 && loading}
-                chart={
-                  globalStats.totalClients > 0 ? (
-                    <MiniBar
-                      segments={[
-                        {
-                          value: globalStats.activeClients,
-                          color: "#10b981",
-                          label: `${globalStats.activeClients} active`,
-                        },
-                        {
-                          value: globalStats.inactiveClients,
-                          color: "#94a3b8",
-                          label: `${globalStats.inactiveClients} other`,
-                        },
-                      ]}
-                    />
-                  ) : null
-                }
-              />
-              <StatCard
-                label="Total Projects"
-                value={projectStats.total}
-                icon={FolderKanban}
-                accent="#0ea5e9"
-                subtle="Across all clients"
-                loading={projectStats.total === 0 && loading}
-                chart={
-                  projectStats.total > 0 ? (
-                    <MiniBar
-                      segments={[
-                        { value: projectStats.active, color: "#0ea5e9", label: `${projectStats.active} active` },
-                        {
-                          value: Math.max(0, projectStats.total - projectStats.active),
-                          color: "#94a3b8",
-                          label: `${Math.max(0, projectStats.total - projectStats.active)} other`,
-                        },
-                      ]}
-                    />
-                  ) : null
-                }
-              />
-              <StatCard
-                label="Active Projects"
-                value={projectStats.active}
-                icon={CheckCircle2}
-                accent="#10b981"
-                subtle={
-                  projectStats.total > 0
-                    ? `${Math.round((projectStats.active / projectStats.total) * 100)}% of total`
-                    : "No projects yet"
-                }
-                loading={projectStats.total === 0 && loading}
-                chart={
-                  projectStats.total > 0 ? (
-                    <div className="cm-progress-row">
-                      <div className="cm-progress-track">
-                        <span
-                          className="cm-progress-fill"
-                          style={{
-                            width: `${Math.round((projectStats.active / projectStats.total) * 100)}%`,
-                            background: "linear-gradient(90deg, #10b981, #34d399)",
-                          }}
-                        />
-                      </div>
-                      <span className="cm-progress-label">
-                        {Math.round((projectStats.active / projectStats.total) * 100)}%
-                      </span>
+        <div className="bh2-page">
+          <div className="bh2-shell-wrap">
+            <div className="bh2-shell">
+              {/* ── Sidebar ───────────────────────────────────────────── */}
+              <aside className="bh2-sidebar">
+                <div className="bh2-sidebar-top">
+                  <div className="bh2-sidebar-brand">
+                    <div className="bh2-hero-icon-box">
+                      <Building2 size={18} color="#8b5cf6" />
                     </div>
-                  ) : null
-                }
-              />
-              <StatCard
-                label="Contract Value"
-                value={formatCurrency(globalStats.totalContractValue)}
-                icon={Wallet}
-                accent="#8b5cf6"
-                subtle="Across all clients"
-                loading={globalStats.totalClients === 0 && loading}
-                chart={
-                  globalStats.totalClients > 0 ? (
-                    <div className="cm-cv-row">
-                      <Sparkles size={11} />
-                      <span>
-                        Avg{" "}
-                        <strong>
-                          {formatCurrency(globalStats.totalContractValue / globalStats.totalClients)}
-                        </strong>{" "}
-                        per client
-                      </span>
+                    <div className="min-w-0">
+                      <h1 className="bh2-sidebar-title">Client Management</h1>
+                      <p className="bh2-sidebar-subtitle">Monitor and configure profiles</p>
                     </div>
-                  ) : null
-                }
-              />
-            </div>
-
-            {/* Divider between stats and filters */}
-            <div className="cm-section-divider">
-              <span className="cm-section-divider-label">Filters &amp; quick navigation</span>
-            </div>
-
-            {/* Filter / toolbar row */}
-            <div className="cm-toolbar">
-              <Segmented
-                value={activeFilter}
-                onChange={(v) => handleFilter(v as any)}
-                options={[
-                  {
-                    label: (
-                      <span className="cm-seg-label">
-                        <ShieldCheck size={13} /> All
-                        <span className="cm-seg-count">{globalStats.totalClients}</span>
-                      </span>
-                    ),
-                    value: "all",
-                  },
-                  {
-                    label: (
-                      <span className="cm-seg-label">
-                        <CheckCircle2 size={13} /> Active
-                        <span className="cm-seg-count">{globalStats.activeClients}</span>
-                      </span>
-                    ),
-                    value: "active",
-                  },
-                  {
-                    label: (
-                      <span className="cm-seg-label">
-                        <AlertCircle size={13} /> High risk
-                        <span className="cm-seg-count">{highRiskCount}</span>
-                      </span>
-                    ),
-                    value: "highRisk",
-                  },
-                ]}
-                className="cm-segmented"
-              />
-
-              <div className="cm-toolbar-mid">
-                <Select
-                  showSearch
-                  allowClear
-                  placeholder="Jump to client…"
-                  className="cm-quick-select cm-quick-select-client"
-                  popupClassName="cm-quick-popup"
-                  suffixIcon={<Building2 size={13} />}
-                  options={allClientsOpts}
-                  onChange={(id?: string) => {
-                    if (id) router.push(`/clients-v2/${id}`);
-                  }}
-                  filterOption={(input, option) => {
-                    const q = (input || "").toLowerCase();
-                    const label = ((option?.label as string) || "").toLowerCase();
-                    const code = ((option as any)?.code || "").toLowerCase();
-                    return label.includes(q) || code.includes(q);
-                  }}
-                  optionRender={(opt) => (
-                    <div className="cm-quick-opt">
-                      <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
-                      {(opt.data as any)?.code && (
-                        <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
-                      )}
-                    </div>
-                  )}
-                />
-
-                <Select
-                  showSearch
-                  allowClear
-                  placeholder="Jump to project…"
-                  className="cm-quick-select cm-quick-select-project"
-                  popupClassName="cm-quick-popup"
-                  suffixIcon={<FolderKanban size={13} />}
-                  options={allProjectsOpts}
-                  onChange={(id?: string) => {
-                    if (id) router.push(`/projects/${id}/overview`);
-                  }}
-                  filterOption={(input, option) => {
-                    const q = (input || "").toLowerCase();
-                    const label = ((option?.label as string) || "").toLowerCase();
-                    const code = ((option as any)?.code || "").toLowerCase();
-                    return label.includes(q) || code.includes(q);
-                  }}
-                  optionRender={(opt) => (
-                    <div className="cm-quick-opt">
-                      <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
-                      {(opt.data as any)?.code && (
-                        <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
-                      )}
-                    </div>
-                  )}
-                />
-
-                <Select
-                  showSearch
-                  allowClear
-                  placeholder="Client type"
-                  className="cm-quick-select cm-quick-select-type"
-                  popupClassName="cm-quick-popup"
-                  suffixIcon={<Sparkles size={13} />}
-                  value={typeFilter}
-                  options={typeOptions}
-                  onChange={(v?: string) => handleTypeChange(v)}
-                  filterOption={(input, option) =>
-                    ((option?.label as string) || "")
-                      .toLowerCase()
-                      .includes((input || "").toLowerCase())
-                  }
-                />
-              </div>
-
-              <div className="cm-toolbar-right">
-                <span className="cm-result-count">
-                  {pagination.total
-                    ? `Showing ${(pagination.current - 1) * pagination.pageSize + 1}–${Math.min(pagination.current * pagination.pageSize, pagination.total)} of ${pagination.total}`
-                    : "No results"}
-                </span>
-              </div>
-            </div>
-
-            {/* Premium table card */}
-            <div className="cm-table-card">
-              <Table
-                columns={columns}
-                dataSource={data}
-                rowKey="id"
-                size="middle"
-                scroll={{ x: 1100 }}
-                pagination={{
-                  ...pagination,
-                  pageSizeOptions: ["10", "20", "50"],
-                  showSizeChanger: true,
-                  position: ["bottomRight"],
-                  showTotal: (total) => `${total} clients`,
-                }}
-                loading={loading}
-                onChange={handleTableChange}
-                onRow={(record) => ({
-                  onClick: () => router.push(`/clients-v2/${record.id}`),
-                  style: { cursor: "pointer" },
-                })}
-                locale={{
-                  emptyText: (
-                    <div className="cm-table-empty">
-                      <div className="cm-empty-icon">
-                        <Building2 size={28} />
-                      </div>
-                      <div className="cm-empty-title">No clients yet</div>
-                      <div className="cm-empty-desc">
-                        Add your first client to start tracking projects and contracts.
-                      </div>
-                      {canCreateClient && (
-                        <Button
-                          type="primary"
-                          icon={<Plus size={14} />}
-                          className="cm-primary-btn"
-                          style={{ marginTop: 16 }}
-                          onClick={() => router.push("/clients-v2/create")}
-                        >
-                          Create Client
-                        </Button>
-                      )}
-                    </div>
-                  ),
-                }}
-                expandable={{
-                  expandedRowRender,
-                  onExpand: (expanded, record) => {
-                    if (expanded) fetchClientProjects(record.id);
-                  },
-                  expandIcon: ({ expanded, onExpand, record }) => (
-                    <button
-                      type="button"
-                      className={`cm-expand-btn ${expanded ? "open" : ""}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onExpand(record, e as any);
-                      }}
+                  </div>
+                  {canCreateClient && (
+                    <Button
+                      type="primary"
+                      icon={<Plus size={16} />}
+                      className="bh2-side-create"
+                      block
+                      onClick={() => router.push("/clients-v2/create")}
                     >
-                      <ChevronRight size={14} />
-                    </button>
-                  ),
-                }}
-                rowClassName={() => "cm-row"}
-              />
+                      New Client
+                    </Button>
+                  )}
+                </div>
+
+                <div className="bh2-sidebar-scroll">
+                  {/* Views */}
+                  <div className="bh2-side-group">
+                    <div className="bh2-side-label">VIEWS</div>
+                    <div className="flex flex-col gap-0.5">
+                      {[
+                        { k: "all", label: "All clients", icon: <ShieldCheck size={14} />, count: globalStats.totalClients },
+                        { k: "active", label: "Active", icon: <CheckCircle2 size={14} />, count: globalStats.activeClients },
+                        { k: "highRisk", label: "High risk", icon: <AlertCircle size={14} />, count: highRiskCount },
+                      ].map((item) => {
+                        const active = activeFilter === item.k;
+                        return (
+                          <button
+                            key={item.k}
+                            className={`bh2-view-btn ${active ? "active" : ""}`}
+                            onClick={() => handleFilter(item.k as any)}
+                          >
+                            <span className="bh2-view-icon">{item.icon}</span>
+                            <span className="bh2-view-label">{item.label}</span>
+                            <span className="bh2-view-count">{item.count}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Filters */}
+                  <div className="bh2-side-group" style={{ marginTop: 22 }}>
+                    <div className="bh2-side-label">Filters</div>
+                    <div className="bh2-side-filters flex flex-col gap-2">
+                      <Select
+                        showSearch
+                        allowClear
+                        placeholder="Jump to client…"
+                        className="cm-quick-select cm-quick-select-client"
+                        popupClassName="cm-quick-popup"
+                        suffixIcon={<Building2 size={13} />}
+                        options={allClientsOpts}
+                        style={{ width: '100%' }}
+                        onChange={(id?: string) => {
+                          if (id) router.push(`/clients-v2/${id}`);
+                        }}
+                        filterOption={(input, option) => {
+                          const q = (input || "").toLowerCase();
+                          const label = ((option?.label as string) || "").toLowerCase();
+                          const code = ((option as any)?.code || "").toLowerCase();
+                          return label.includes(q) || code.includes(q);
+                        }}
+                        optionRender={(opt) => (
+                          <div className="cm-quick-opt">
+                            <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
+                            {(opt.data as any)?.code && (
+                              <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
+                            )}
+                          </div>
+                        )}
+                      />
+
+                      <Select
+                        showSearch
+                        allowClear
+                        placeholder="Jump to project…"
+                        className="cm-quick-select cm-quick-select-project"
+                        popupClassName="cm-quick-popup"
+                        suffixIcon={<FolderKanban size={13} />}
+                        options={allProjectsOpts}
+                        style={{ width: '100%' }}
+                        onChange={(id?: string) => {
+                          if (id) router.push(`/projects/${id}/overview`);
+                        }}
+                        filterOption={(input, option) => {
+                          const q = (input || "").toLowerCase();
+                          const label = ((option?.label as string) || "").toLowerCase();
+                          const code = ((option as any)?.code || "").toLowerCase();
+                          return label.includes(q) || code.includes(q);
+                        }}
+                        optionRender={(opt) => (
+                          <div className="cm-quick-opt">
+                            <span className="cm-quick-opt-main">{opt.label as React.ReactNode}</span>
+                            {(opt.data as any)?.code && (
+                              <span className="cm-quick-opt-code">{(opt.data as any).code}</span>
+                            )}
+                          </div>
+                        )}
+                      />
+
+                      <Select
+                        showSearch
+                        allowClear
+                        placeholder="Client type"
+                        className="cm-quick-select cm-quick-select-type"
+                        popupClassName="cm-quick-popup"
+                        suffixIcon={<Sparkles size={13} />}
+                        value={typeFilter}
+                        options={typeOptions}
+                        style={{ width: '100%' }}
+                        onChange={(v?: string) => handleTypeChange(v)}
+                        filterOption={(input, option) =>
+                          ((option?.label as string) || "")
+                            .toLowerCase()
+                            .includes((input || "").toLowerCase())
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </aside>
+
+              {/* ── Main ──────────────────────────────────────────────── */}
+              <main className="bh2-main">
+                {/* Toolbar */}
+                <div className="bh2-toolbar">
+                  <div className="bh2-main-search">
+                    <Input
+                      placeholder="Search by name or code…"
+                      prefix={<Search size={14} style={{ color: 'var(--text-slate-400)' }} />}
+                      className="premium-search-input rounded-lg transition-all"
+                      style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 38 }}
+                      value={searchText}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      allowClear
+                    />
+                  </div>
+
+                  <div className="bh2-main-stats">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="bh2-pulse-dot" />
+                      <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>
+                        {pagination.total}
+                      </span> {pagination.total === 1 ? "result" : "results"}
+                    </span>
+                  </div>
+
+                  <div className="bh2-main-controls">
+                    <Button
+                      icon={<Download size={14} />}
+                      onClick={handleExport}
+                      loading={loading}
+                      style={{ height: 38, borderRadius: 8, borderColor: 'var(--border-slate-200)' }}
+                    >
+                      Export
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="cm-ambient" style={{ position: 'absolute', top: 56, left: 0, right: 0, height: 320, zIndex: 0 }} />
+
+                <div className="cm-body" style={{ padding: '12px 20px 14px 20px', position: 'relative', zIndex: 1 }}>
+                  {/* Stat grid */}
+                  <div className="cm-stat-grid" style={{ marginBottom: 24 }}>
+                    <StatCard
+                      label="Total Clients"
+                      value={globalStats.totalClients}
+                      icon={Users}
+                      accent="#3b82f6"
+                      subtle="Across all segments"
+                      loading={globalStats.totalClients === 0 && loading}
+                      chart={
+                        globalStats.totalClients > 0 ? (
+                          <MiniBar
+                            segments={[
+                              {
+                                value: globalStats.activeClients,
+                                color: "#10b981",
+                                label: `${globalStats.activeClients} active`,
+                              },
+                              {
+                                value: globalStats.inactiveClients,
+                                color: "#94a3b8",
+                                label: `${globalStats.inactiveClients} other`,
+                              },
+                            ]}
+                          />
+                        ) : null
+                      }
+                    />
+                    <StatCard
+                      label="Total Projects"
+                      value={projectStats.total}
+                      icon={FolderKanban}
+                      accent="#0ea5e9"
+                      subtle="Across all clients"
+                      loading={projectStats.total === 0 && loading}
+                      chart={
+                        projectStats.total > 0 ? (
+                          <MiniBar
+                            segments={[
+                              { value: projectStats.active, color: "#0ea5e9", label: `${projectStats.active} active` },
+                              {
+                                value: Math.max(0, projectStats.total - projectStats.active),
+                                color: "#94a3b8",
+                                label: `${Math.max(0, projectStats.total - projectStats.active)} other`,
+                              },
+                            ]}
+                          />
+                        ) : null
+                      }
+                    />
+                    <StatCard
+                      label="Active Projects"
+                      value={projectStats.active}
+                      icon={CheckCircle2}
+                      accent="#10b981"
+                      subtle={
+                        projectStats.total > 0
+                          ? `${Math.round((projectStats.active / projectStats.total) * 100)}% of total`
+                          : "No projects yet"
+                      }
+                      loading={projectStats.total === 0 && loading}
+                      chart={
+                        projectStats.total > 0 ? (
+                          <div className="cm-progress-row">
+                            <div className="cm-progress-track">
+                              <span
+                                className="cm-progress-fill"
+                                style={{
+                                  width: `${Math.round((projectStats.active / projectStats.total) * 100)}%`,
+                                  background: "linear-gradient(90deg, #10b981, #34d399)",
+                                }}
+                              />
+                            </div>
+                            <span className="cm-progress-label">
+                              {Math.round((projectStats.active / projectStats.total) * 100)}%
+                            </span>
+                          </div>
+                        ) : null
+                      }
+                    />
+                    <StatCard
+                      label="Contract Value"
+                      value={formatCurrency(globalStats.totalContractValue)}
+                      icon={Wallet}
+                      accent="#8b5cf6"
+                      subtle="Across all clients"
+                      loading={globalStats.totalClients === 0 && loading}
+                      chart={
+                        globalStats.totalClients > 0 ? (
+                          <div className="cm-cv-row">
+                            <Sparkles size={11} />
+                            <span>
+                              Avg{" "}
+                              <strong>
+                                {formatCurrency(globalStats.totalContractValue / globalStats.totalClients)}
+                              </strong>{" "}
+                              per client
+                            </span>
+                          </div>
+                        ) : null
+                      }
+                    />
+                  </div>
+
+                  {/* Premium table card */}
+                  <div className="cm-table-card">
+                    <Table
+                      columns={columns}
+                      dataSource={data}
+                      rowKey="id"
+                      size="middle"
+                      scroll={{ x: 1100 }}
+                      pagination={false}
+                      loading={loading}
+                      onChange={handleTableChange}
+                      onRow={(record) => ({
+                        onClick: () => router.push(`/clients-v2/${record.id}`),
+                        style: { cursor: "pointer" },
+                      })}
+                      locale={{
+                        emptyText: (
+                          <div className="cm-table-empty">
+                            <div className="cm-empty-icon">
+                              <Building2 size={28} />
+                            </div>
+                            <div className="cm-empty-title">No clients yet</div>
+                            <div className="cm-empty-desc">
+                              Add your first client to start tracking projects and contracts.
+                            </div>
+                            {canCreateClient && (
+                              <Button
+                                type="primary"
+                                icon={<Plus size={14} />}
+                                className="cm-primary-btn"
+                                style={{ marginTop: 16 }}
+                                onClick={() => router.push("/clients-v2/create")}
+                              >
+                                Create Client
+                              </Button>
+                            )}
+                          </div>
+                        ),
+                      }}
+                      expandable={{
+                        expandedRowRender,
+                        onExpand: (expanded, record) => {
+                          if (expanded) fetchClientProjects(record.id);
+                        },
+                        expandIcon: ({ expanded, onExpand, record }) => (
+                          <button
+                            type="button"
+                            className={`cm-expand-btn ${expanded ? "open" : ""}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onExpand(record, e as any);
+                            }}
+                          >
+                            <ChevronRight size={14} />
+                          </button>
+                        ),
+                      }}
+                      rowClassName={() => "cm-row"}
+                    />
+                  </div>
+                </div>
+
+                {/* Fixed pagination footer */}
+                {!loading && data.length > 0 && pagination && (
+                  <div className="bh2-pagination">
+                    <Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
+                      Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>
+                        {(pagination.current! - 1) * pagination.pageSize! + 1}–{Math.min(pagination.current! * pagination.pageSize!, pagination.total!)}
+                      </span> of <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>{pagination.total}</span> client{pagination.total !== 1 ? 's' : ''}
+                    </Text>
+                    <Pagination
+                      current={pagination.current}
+                      pageSize={pagination.pageSize}
+                      total={pagination.total}
+                      onChange={(p, s) => {
+                        fetchClients(p, s, searchText, activeFilter, typeFilter);
+                      }}
+                      showSizeChanger
+                      pageSizeOptions={["10", "20", "50"]}
+                    />
+                  </div>
+                )}
+              </main>
             </div>
           </div>
 
           {/* ----------------------------- Styles ------------------------------ */}
           <style jsx global>{`
+
+/* === BH2 LAYOUT STYLES COPIED === */
+
+        /* ── Page shell ──────────────────────────────────────────── */
+        .bh2-page {
+          background: var(--bg-pure-white);
+          min-height: calc(100vh - 54px);
+          display: flex;
+          flex-direction: column;
+          margin: 0 ;
+        }
+        [data-theme="dark"] .bh2-page {
+          background: var(--bg-pure-white) !important;
+        }
+
+        .bh2-shell-wrap {
+          flex: 1;
+        }
+        .bh2-shell {
+          display: grid;
+          grid-template-columns: 252px minmax(0, 1fr);
+          gap: 0;
+          align-items: stretch;
+          min-height: calc(100vh - 54px);
+        }
+        .bh2-main {
+          min-width: 0;
+          padding: 14px 24px 32px;
+          background: var(--bg-pure-white);
+          display: flex;
+          flex-direction: column;
+        }
+        [data-theme="dark"] .bh2-main {
+          background: transparent !important;
+        }
+
+        /* ── Sidebar ─────────────────────────────────────────────── */
+        .bh2-sidebar {
+          width: 252px;
+          background: var(--bg-pure-white);
+          border-right: 1px solid var(--border-slate-200);
+          display: flex;
+          flex-direction: column;
+          flex-shrink: 0;
+          position: sticky;
+          top: 0;
+          height: calc(100vh - 54px);
+          overflow: hidden;
+          z-index: 10;
+        }
+        [data-theme="dark"] .bh2-sidebar {
+          background: #0f1419 !important;
+          border-right-color: #1f2937 !important;
+        }
+
+        .bh2-sidebar-top { padding: 14px 14px 12px 18px; }
+        .bh2-sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .bh2-hero-icon-box {
+          width: 38px; height: 38px; border-radius: 10px;
+          background: rgba(59, 130, 246, 0.08);
+          display: flex; align-items: center; justify-content: center;
+          border: 1px solid rgba(59, 130, 246, 0.18);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .bh2-hero-icon-box {
+          background: rgba(59, 130, 246, 0.16);
+          border-color: rgba(59, 130, 246, 0.28);
+        }
+        .bh2-sidebar-title { font-size: 14.5px; font-weight: 700; color: var(--text-slate-900); margin: 0 0 2px 0; letter-spacing: -0.01em; line-height: 1.2; }
+        [data-theme='dark'] .bh2-sidebar-title { color: #f1f5f9; }
+        .bh2-sidebar-subtitle { font-size: 11px; color: var(--text-slate-400); font-weight: 500; margin: 0; line-height: 1.2; }
+        .bh2-side-create {
+          height: 36px !important;
+          border-radius: 6px !important;
+          font-weight: 600 !important;
+          background: linear-gradient(135deg, #3980f2 0%, #3980f2 100%) !important;
+          border: none !important;
+        }
+
+        .bh2-sidebar-scroll {
+          flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 16px;
+        }
+
+        .bh2-side-group { margin-bottom: 22px; }
+        .bh2-side-label {
+          font-size: 10px; font-weight: 800; color: var(--text-slate-400);
+          text-transform: uppercase; letter-spacing: 0.08em;
+          padding: 0 10px; margin-bottom: 8px;
+        }
+
+        .bh2-view-btn {
+          display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+          border-radius: 8px; background: transparent; border: none; cursor: pointer;
+          width: 100%; text-align: left; font-family: inherit; font-size: 12.5px; font-weight: 500;
+          color: var(--text-slate-600); transition: all 0.15s ease;
+        }
+        .bh2-view-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
+        .bh2-view-btn.active { background: var(--bg-blue-50); color: var(--text-blue-700); }
+        [data-theme='dark'] .bh2-view-btn { color: #94a3b8; }
+        [data-theme='dark'] .bh2-view-btn:hover { background: rgba(255,255,255,0.03); color: #f1f5f9; }
+        [data-theme='dark'] .bh2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+
+        .bh2-view-icon { font-size: 14px; color: var(--text-slate-400); display: flex; align-items: center; }
+        .bh2-view-btn.active .bh2-view-icon { color: var(--text-blue-600); }
+        [data-theme='dark'] .bh2-view-icon { color: #64748b; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #60a5fa; }
+
+        .bh2-view-count {
+          margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+          background: var(--bg-slate-50); padding: 2px 6px; border-radius: 10px;
+        }
+        .bh2-view-btn.active .bh2-view-count {
+          background: rgba(59, 130, 246, 0.15); color: var(--text-blue-700);
+        }
+        [data-theme='dark'] .bh2-view-count { background: #1c232e; color: #64748b; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-count { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+
+        .bh2-view-label {
+          flex: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+          color: #cbd5e1 !important;
+        }
+        [data-theme="dark"] .bh2-sidebar-item:hover {
+          background: #1c232e !important;
+        }
+        .bh2-sidebar-item.active {
+          background: rgba(59, 130, 246, 0.08);
+          border-color: rgba(59, 130, 246, 0.2);
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .bh2-sidebar-item.active {
+          background: rgba(59, 130, 246, 0.18) !important;
+          border-color: rgba(59, 130, 246, 0.32) !important;
+          color: #60a5fa !important;
+        }
+        .bh2-sidebar-item-icon {
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          border: 1px solid;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 800;
+          flex-shrink: 0;
+          letter-spacing: -0.01em;
+        }
+        .bh2-icon-all {
+          background: var(--bg-slate-50);
+          border-color: var(--border-slate-200);
+          color: var(--text-slate-600);
+        }
+        [data-theme="dark"] .bh2-icon-all {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          color: #94a3b8 !important;
+        }
+        .bh2-sidebar-item-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+          margin: 0 6px 0 7px;
+        }
+        .bh2-sidebar-item-label {
+          flex: 1;
+          font-size: 12.5px;
+          font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          letter-spacing: -0.005em;
+        }
+        .bh2-sidebar-item-count {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          font-variant-numeric: tabular-nums;
+          background: var(--bg-slate-50);
+          border-radius: 999px;
+          padding: 0 6px;
+          line-height: 1.6;
+          border: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme="dark"] .bh2-sidebar-item-count {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          color: #94a3b8 !important;
+        }
+        .bh2-sidebar-item.active .bh2-sidebar-item-count {
+          background: rgba(59, 130, 246, 0.14);
+          border-color: rgba(59, 130, 246, 0.28);
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .bh2-sidebar-item.active .bh2-sidebar-item-count {
+          background: rgba(59, 130, 246, 0.22) !important;
+          border-color: rgba(59, 130, 246, 0.38) !important;
+          color: #60a5fa !important;
+        }
+
+        /* Project row with expandable toggle */
+        .bh2-sidebar-proj-row {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          padding: 0;
+          border-radius: 8px;
+          border: 1px solid transparent;
+          transition: background 0.12s ease, border-color 0.12s ease;
+        }
+        .bh2-sidebar-proj-row:hover {
+          background: var(--bg-slate-50);
+        }
+        [data-theme="dark"] .bh2-sidebar-proj-row:hover {
+          background: #1c232e !important;
+        }
+        .bh2-sidebar-proj-row.active {
+          background: rgba(59, 130, 246, 0.08);
+          border-color: rgba(59, 130, 246, 0.2);
+        }
+        [data-theme="dark"] .bh2-sidebar-proj-row.active {
+          background: rgba(59, 130, 246, 0.18) !important;
+          border-color: rgba(59, 130, 246, 0.32) !important;
+        }
+        .bh2-sidebar-proj-toggle {
+          flex-shrink: 0;
+          width: 18px;
+          height: 30px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: transparent;
+          border: none;
+          color: var(--text-slate-500);
+          cursor: pointer;
+          border-radius: 4px;
+          transition: color 0.12s ease;
+        }
+        .bh2-sidebar-proj-toggle:hover {
+          color: #1d4ed8;
+        }
+        .bh2-sidebar-proj-main {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 6px 10px 6px 4px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          font-family: inherit;
+          color: var(--text-slate-700);
+          text-align: left;
+          min-width: 0;
+        }
+        [data-theme="dark"] .bh2-sidebar-proj-main {
+          color: #cbd5e1 !important;
+        }
+        .bh2-sidebar-proj-row.active .bh2-sidebar-proj-main {
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .bh2-sidebar-proj-row.active .bh2-sidebar-proj-main {
+          color: #60a5fa !important;
+        }
+
+        /* Nested buckets under project */
+        .bh2-sidebar-children {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          margin: 2px 0 4px 22px;
+          padding-left: 8px;
+          border-left: 1px dashed var(--border-slate-200);
+        }
+        [data-theme="dark"] .bh2-sidebar-children {
+          border-left-color: #2d3748 !important;
+        }
+        .bh2-sidebar-bucket {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 5px 8px;
+          border-radius: 6px;
+          border: 1px solid transparent;
+          background: transparent;
+          cursor: pointer;
+          font-family: inherit;
+          color: var(--text-slate-600);
+          text-align: left;
+          width: 100%;
+          transition: background 0.12s ease, color 0.12s ease;
+          min-width: 0;
+        }
+        .bh2-sidebar-bucket:hover {
+          background: var(--bg-slate-50);
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .bh2-sidebar-bucket {
+          color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .bh2-sidebar-bucket:hover {
+          background: #1c232e !important;
+          color: #60a5fa !important;
+        }
+        .bh2-sidebar-bucket-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .bh2-sidebar-bucket-label {
+          flex: 1;
+          font-size: 11.5px;
+          font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .bh2-sidebar-bucket-count {
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--text-slate-400);
+          font-variant-numeric: tabular-nums;
+          flex-shrink: 0;
+        }
+        .bh2-sidebar-empty-mini {
+          padding: 6px 8px;
+          font-size: 11px;
+          color: var(--text-slate-400);
+          font-style: italic;
+        }
+        .bh2-sidebar-empty {
+          padding: 10px 8px;
+          font-size: 11px;
+          color: var(--text-slate-400);
+        }
+        .bh2-sidebar-divider {
+          height: 1px;
+          background: var(--border-slate-100);
+          margin: 6px 4px;
+        }
+        [data-theme="dark"] .bh2-sidebar-divider {
+          background: #1f2937 !important;
+        }
+        .bh2-sidebar-clear {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          width: 100%;
+          margin-top: 6px;
+          padding: 8px;
+          background: transparent;
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 8px;
+          color: var(--text-slate-500);
+          font-size: 11px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: color 0.12s ease, border-color 0.12s ease;
+        }
+        .bh2-sidebar-clear:hover {
+          color: #1d4ed8;
+          border-color: rgba(59, 130, 246, 0.4);
+        }
+        [data-theme="dark"] .bh2-sidebar-clear {
+          border-color: #2d3748 !important;
+          color: #94a3b8 !important;
+        }
+
+        /* ── Main toolbar ───────────────────────────────────────── */
+        .bh2-toolbar {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          position: sticky;
+          top: 0;
+          z-index: 10;
+          background: var(--bg-pure-white);
+          margin: -14px -24px 0;
+          padding: 6px 20px;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme="dark"] .bh2-toolbar {
+          background: #0d1117 !important;
+          border-bottom-color: #1f2937 !important;
+        }
+        .bh2-main-search {
+          flex: 1;
+          max-width: 320px;
+        }
+         .premium-search-input{
+          border-radius: 6px !important;
+          height: 32px !important;
+        }
+        .bh2-search-kbd {
+          display: inline-block;
+          font-family: ui-monospace, SFMono-Regular, monospace;
+          font-size: 10.5px;
+          font-weight: 700;
+          padding: 1px 6px;
+          margin: 0 2px;
+          border-radius: 5px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-700);
+          box-shadow: 0 1px 0 var(--border-slate-200);
+        }
+        .bh2-main-stats {
+          margin-left: 12px;
+          color: var(--text-slate-500);
+          font-size: 13px;
+        }
+        .bh2-pulse-dot {
+          display: inline-block;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+          animation: bh2-pulse 2s infinite;
+        }
+        @keyframes bh2-pulse {
+          0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+          70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .bh2-main-controls {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .bh2-vis-badge {
+          width: 22px;
+          height: 22px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid;
+        }
+        .bh2-vis-badge-public {
+          background: rgba(16, 185, 129, 0.1);
+          border-color: rgba(16, 185, 129, 0.25);
+          color: #047857;
+        }
+        .bh2-vis-badge-private {
+          background: rgba(245, 158, 11, 0.1);
+          border-color: rgba(245, 158, 11, 0.25);
+          color: #b45309;
+        }
+        /* RangePicker — match the SearchableDropdown trigger height/border */
+        .bh2-range-picker {
+          height: 32px !important;
+          border-radius: 8px !important;
+          font-size: 12px;
+        }
+        .bh2-range-picker.ant-picker {
+          border-color: var(--border-slate-200) !important;
+        }
+        [data-theme="dark"] .bh2-range-picker.ant-picker {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+        }
+        .bh2-toolbar-icon {
+          width: 26px;
+          height: 26px;
+          border-radius: 7px;
+          background: rgba(59, 130, 246, 0.1);
+          border: 1px solid rgba(59, 130, 246, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .bh2-toolbar-chip {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: var(--text-slate-600);
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-200);
+          padding: 2px 8px;
+          border-radius: 999px;
+          letter-spacing: 0.01em;
+        }
+        [data-theme="dark"] .bh2-toolbar-chip {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          color: #cbd5e1 !important;
+        }
+        .bh2-search-box {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 4px 12px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 10px;
+          width: 260px;
+          transition: border-color 0.15s ease;
+        }
+        .bh2-search-box.active {
+          border-color: rgba(59, 130, 246, 0.4);
+        }
+        [data-theme="dark"] .bh2-search-box {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+        }
+        [data-theme="dark"] .bh2-search-box.active {
+          border-color: rgba(59, 130, 246, 0.5) !important;
+        }
+
+        /* ── List cards ─────────────────────────────────────────── */
+        .bh2-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding-top: 10px;
+        }
+        
+        .bh2-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 16px;
+          padding-top: 10px;
+        }
+        
+        @media (max-width: 1200px) {
+          .bh2-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        /* ── Sticky pagination footer ──────────────────────────── */
+        .bh2-pagination {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 10px 24px;
+          margin: auto -24px -32px -24px;
+          flex-wrap: wrap;
+          position: sticky;
+          bottom: 0;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-200);
+          z-index: 10;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
+        }
+        [data-theme="dark"] .bh2-pagination {
+          background: #161b22 !important;
+          border-top-color: #1f2937 !important;
+        }
+
+        /* Custom Pagination Styles */
+        .bh2-pagination .ant-pagination-item,
+        .bh2-pagination .ant-pagination-prev .ant-pagination-item-link,
+        .bh2-pagination .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .bh2-pagination .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .bh2-pagination .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .bh2-pagination .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          color: var(--text-slate-500) !important;
+        }
+
+        .bh2-list-card {
+          position: relative;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 0px;
+          /* When we smooth-scroll a card into view on Manage-Tickets click,
+             land its top 120px below the viewport so it clears the sticky
+             page header (~52px) + sticky toolbar (~60px). */
+          scroll-margin-top: 120px;
+          padding: 10px 14px 10px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          overflow: hidden;
+          transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        [data-theme="dark"] .bh2-list-card {
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+        }
+        .bh2-list-card:hover {
+          border-color: var(--row-accent, #3b82f6);
+        }
+        [data-theme="dark"] .bh2-list-card:hover {
+          background: #1c232e !important;
+        }
+        .bh2-list-card-skel {
+          min-height: 96px;
+        }
+
+        .bh2-list-head {
+          display: flex;
+          align-items: center;
+        }
+        .bh2-list-row {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          flex: 1;
+          min-width: 0;
+          cursor: pointer;
+          background: transparent;
+          border: none;
+          padding: 0;
+          text-align: left;
+          font-family: inherit;
+          outline: none;
+        }
+        .bh2-list-row:focus-visible {
+          outline: 2px solid rgba(59, 130, 246, 0.3);
+          outline-offset: 4px;
+          border-radius: 8px;
+        }
+        .bh2-list-row-segments {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+          flex-wrap: wrap;
+        }
+        .bh2-list-row-div {
+          width: 1px;
+          height: 18px;
+          background: var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme="dark"] .bh2-list-row-div {
+          background: #2d3748 !important;
+        }
+        .bh2-list-seg {
+          display: inline-flex;
+          align-items: center;
+          min-width: 0;
+        }
+        .bh2-list-seg-project {
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .bh2-list-seg-bucket {
+          gap: 8px;
+          flex: 1;
+          min-width: 0;
+        }
+        .bh2-list-seg-label {
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme="dark"] .bh2-list-seg-label {
+          color: #94a3b8 !important;
+        }
+        .bh2-list-seg-value {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--text-slate-700);
+          letter-spacing: -0.005em;
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme="dark"] .bh2-list-seg-value {
+          color: #cbd5e1 !important;
+        }
+        .bh2-list-seg-value.muted {
+          color: var(--text-slate-400);
+          font-style: italic;
+          font-weight: 600;
+        }
+        .bh2-list-seg-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .bh2-list-seg-name {
+          flex: 1;
+          min-width: 0;
+          font-size: 13.5px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          letter-spacing: -0.025em;
+          line-height: 1.25;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme="dark"] .bh2-list-seg-name {
+          color: #f1f5f9 !important;
+        }
+        .bh2-list-row:hover .bh2-list-seg-name {
+          color: #1d4ed8;
+        }
+        [data-theme="dark"] .bh2-list-row:hover .bh2-list-seg-name {
+          color: #60a5fa !important;
+        }
+        .bh2-list-avatar {
+          width: 34px;
+          height: 34px;
+          border-radius: 9px;
+          border: 1px solid;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          font-weight: 800;
+          letter-spacing: -0.025em;
+          flex-shrink: 0;
+          position: relative;
+          overflow: hidden;
+        }
+        .bh2-list-avatar::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(circle at 75% 0%, rgba(255, 255, 255, 0.2), transparent 55%),
+            radial-gradient(circle at 0% 100%, rgba(0, 0, 0, 0.06), transparent 55%);
+          pointer-events: none;
+        }
+        .bh2-list-avatar-letter {
+          position: relative;
+          z-index: 1;
+          line-height: 1;
+        }
+        .bh2-list-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 2px 9px;
+          border-radius: 999px;
+          border: 1px solid;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+        }
+
+        .bh2-list-desc {
+          margin: 0;
+          padding: 4px 8px;
+          font-size: 11.5px;
+          font-weight: 500;
+          color: var(--text-slate-600);
+          background: var(--bg-slate-50);
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 6px;
+          align-self: flex-start;
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme="dark"] .bh2-list-desc {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+          color: #cbd5e1 !important;
+        }
+
+        /* Body */
+        .bh2-list-body {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 8px;
+        }
+        .bh2-list-block {
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-100);
+          border-radius: 8px;
+          padding: 6px 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        [data-theme="dark"] .bh2-list-block {
+          background: #1c232e !important;
+          border-color: #2d3748 !important;
+        }
+        .bh2-list-block-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .bh2-list-block-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 9px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme="dark"] .bh2-list-block-label {
+          color: #94a3b8 !important;
+        }
+        .bh2-list-stats {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .bh2-list-stat {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 5px;
+        }
+        .bh2-list-stat-value {
+          font-size: 15px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          font-variant-numeric: tabular-nums;
+          letter-spacing: -0.02em;
+        }
+        [data-theme="dark"] .bh2-list-stat-value {
+          color: #f1f5f9 !important;
+        }
+        .bh2-list-stat-label {
+          font-size: 10.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+        }
+        .bh2-list-stat-sep {
+          width: 1px;
+          height: 14px;
+          background: var(--border-slate-200);
+        }
+        [data-theme="dark"] .bh2-list-stat-sep {
+          background: #2d3748 !important;
+        }
+        .bh2-list-owner {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .bh2-list-owner-info {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          line-height: 1.25;
+        }
+        .bh2-list-owner-name {
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-slate-800);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        [data-theme="dark"] .bh2-list-owner-name {
+          color: #e2e8f0 !important;
+        }
+        .bh2-list-owner-email {
+          font-size: 10.5px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        /* Footer */
+        .bh2-list-foot {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding-top: 4px;
+          border-top: 1px solid var(--border-slate-100);
+        }
+        [data-theme="dark"] .bh2-list-foot {
+          border-top-color: #1f2937 !important;
+        }
+
+        /* Divider between footer and the inline Manage-Tickets panel */
+        .bh2-list-divider {
+          height: 1px;
+          background: var(--border-slate-100);
+          /* Extend to the card's edges, eating the parent padding (10 14 10 16) */
+          margin: 2px -14px 2px -16px;
+        }
+        [data-theme="dark"] .bh2-list-divider {
+          background: #1f2937 !important;
+        }
+        .bh2-list-foot-inline {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          min-width: 0;
+        }
+        .bh2-list-foot-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 11.5px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+        }
+        .bh2-list-foot-item b {
+          color: var(--text-slate-800);
+          font-weight: 700;
+        }
+        [data-theme="dark"] .bh2-list-foot-item b {
+          color: #e2e8f0 !important;
+        }
+        .bh2-list-foot-label {
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-slate-400);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        .bh2-list-foot-div {
+          width: 1px;
+          height: 12px;
+          background: var(--border-slate-200);
+        }
+        [data-theme="dark"] .bh2-list-foot-div {
+          background: #2d3748 !important;
+        }
+        .bh2-list-actions {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+          flex-shrink: 0;
+        }
+        .bh2-list-action-btn {
+          width: 28px;
+          height: 28px;
+          padding: 0 !important;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 7px !important;
+        }
+
+        /* Labeled footer button (e.g. Move to Sprint / Move to Backlog) */
+        .bh2-foot-btn {
+          display: inline-flex !important;
+          align-items: center;
+          gap: 6px;
+          height: 28px !important;
+          padding: 0 10px !important;
+          border-radius: 7px !important;
+          border: 1px solid var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important;
+          color: var(--text-slate-700) !important;
+          font-size: 11.5px !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.005em;
+          transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+        }
+        .bh2-foot-btn:hover:not(:disabled) {
+          border-color: var(--row-accent, #3b82f6) !important;
+          color: var(--row-accent, #3b82f6) !important;
+          background: var(--bg-slate-50) !important;
+        }
+        .bh2-foot-btn:disabled {
+          opacity: 0.5;
+        }
+        [data-theme="dark"] .bh2-foot-btn {
+          background: #161b22 !important;
+          border-color: #2d3748 !important;
+          color: #cbd5e1 !important;
+        }
+        [data-theme="dark"] .bh2-foot-btn:hover:not(:disabled) {
+          background: #1c232e !important;
+        }
+
+        /* Manage Tickets button */
+        .bh2-manage-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 11px;
+          background: transparent;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 999px;
+          color: var(--text-slate-600);
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+          cursor: pointer;
+          transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+        }
+        .bh2-manage-btn:hover {
+          color: var(--row-accent, #3b82f6);
+          border-color: var(--row-accent, #3b82f6);
+          background: var(--bg-slate-50);
+        }
+        .bh2-manage-btn.active {
+          color: var(--row-accent, #3b82f6);
+          border-color: var(--row-accent, #3b82f6);
+          background: rgba(59, 130, 246, 0.08);
+        }
+        [data-theme="dark"] .bh2-manage-btn {
+          border-color: #2d3748 !important;
+          color: #cbd5e1 !important;
+        }
+        [data-theme="dark"] .bh2-manage-btn:hover {
+          background: #1c232e !important;
+        }
+        [data-theme="dark"] .bh2-manage-btn.active {
+          background: rgba(59, 130, 246, 0.18) !important;
+        }
+
+        /* Empty */
+        .bh2-empty {
+          padding: 64px 32px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+        }
+        .bh2-empty-icon {
+          width: 64px;
+          height: 64px;
+          border-radius: 16px;
+          background: rgba(59, 130, 246, 0.08);
+          border: 1px solid rgba(59, 130, 246, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 18px;
+        }
+
+        /* ── Responsive ──────────────────────────────────────────── */
+
+        /* Slim sidebar + tighter toolbar on smaller desktop */
+        @media (max-width: 1200px) {
+          .bh2-shell {
+            grid-template-columns: 240px minmax(0, 1fr);
+          }
+          .bh2-sidebar {
+            padding: 12px 8px 14px 14px;
+          }
+          .bh2-search-box {
+            width: 220px;
+          }
+          .bh2-list-card {
+            padding: 16px 18px 14px 20px;
+          }
+        }
+
+        /* Tablet — toolbar filters wrap to their own row */
+        @media (max-width: 1024px) {
+          .bh2-toolbar-filters {
+            margin-left: 0;
+            width: 100%;
+            order: 3;
+          }
+          .bh2-search-box {
+            width: 200px;
+          }
+          .bh2-list-foot {
+            flex-wrap: wrap;
+            row-gap: 10px;
+          }
+        }
+
+        /* Sidebar collapses above content */
+        @media (max-width: 900px) {
+          .bh2-page {
+            margin: 0 -16px;
+          }
+          .bh2-shell {
+            grid-template-columns: 1fr;
+          }
+          .bh2-sidebar {
+            position: relative;
+            top: 0;
+            height: auto;
+            max-height: 320px;
+            padding: 10px 16px 12px;
+            border-right: none;
+            border-bottom: 1px solid var(--border-slate-200);
+          }
+          .bh2-main {
+            padding: 14px 16px 28px;
+          }
+          .bh2-list-body {
+            grid-template-columns: 1fr;
+          }
+          .bh2-toolbar {
+            margin: -14px -16px 0;
+            padding: 12px 16px;
+          }
+          .bh2-pagination {
+            margin: 14px -16px -28px;
+            padding: 10px 16px;
+          }
+          .bh2-list-card {
+            padding: 14px 16px 14px 18px;
+            gap: 12px;
+          }
+          .bh2-list-stripe {
+            top: 14px;
+            bottom: 14px;
+          }
+          /* When sidebar is above the main column, drop the desktop scroll-margin
+             since the user no longer has to clear a fixed left rail. */
+          .bh2-list-card {
+            scroll-margin-top: 88px;
+          }
+        }
+
+        /* Phone */
+        @media (max-width: 640px) {
+          .bh2-page {
+            margin: 0 -8px;
+          }
+          .bh2-main {
+            padding: 12px 12px 24px;
+          }
+          .bh2-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+            margin: -12px -12px 0;
+            padding: 10px 12px;
+          }
+          .bh2-toolbar-title {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .bh2-toolbar-filters {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            width: 100%;
+          }
+          .bh2-toolbar-filters > * {
+            width: 100% !important;
+            min-width: 0 !important;
+          }
+          .bh2-range-picker {
+            grid-column: 1 / -1;
+          }
+          .bh2-search-box {
+            width: 100%;
+          }
+          /* Bucket cards */
+          .bh2-list-card {
+            padding: 14px 14px 12px 16px;
+            scroll-margin-top: 76px;
+          }
+          .bh2-list-row {
+            gap: 10px;
+          }
+          .bh2-list-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            font-size: 15px;
+          }
+          .bh2-list-seg-name {
+            font-size: 14px;
+            white-space: normal;
+          }
+          .bh2-list-foot {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .bh2-list-actions {
+            flex-wrap: wrap;
+            row-gap: 6px;
+            justify-content: flex-start;
+          }
+          .bh2-foot-btn {
+            flex: 1;
+            justify-content: center;
+          }
+          /* Pagination */
+          .bh2-pagination {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+            margin: 12px -12px -24px;
+            padding: 10px 12px;
+          }
+          .bh2-pagination-meta {
+            text-align: center;
+          }
+          /* Sidebar items more compact */
+          .bh2-sidebar {
+            padding: 8px 14px 10px;
+            max-height: 280px;
+          }
+          .bh2-sidebar-section-head {
+            padding: 4px 6px 6px;
+          }
+        }
+
+        /* Very small phones */
+        @media (max-width: 400px) {
+          .bh2-list-stripe {
+            display: none;
+          }
+          .bh2-list-status {
+            font-size: 9.5px;
+          }
+          .bh2-list-seg-name {
+            font-size: 13px;
+          }
+        }
+      
+/* ================================ */
             .cm-page {
               position: relative;
               margin: 0 -24px;
@@ -1278,8 +2541,13 @@ export default function ClientsV2ListPage() {
               position: relative;
               background: var(--bg-pure-white);
               border: 1px solid var(--border-slate-100);
-              border-radius: 14px;
-              padding: 14px 16px 14px;
+              border-radius: 0;
+              padding: 12px 14px;
+              min-height: 92px;
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              gap: 10px;
               overflow: hidden;
               transition: transform .25s cubic-bezier(.2,.8,.2,1),
                           box-shadow .25s cubic-bezier(.2,.8,.2,1),
@@ -1300,45 +2568,57 @@ export default function ClientsV2ListPage() {
               transition: opacity .25s ease;
               pointer-events: none;
             }
-            /* Single-row head: icon | title | value */
-            .cm-stat-head {
+            
+            .cm-stat-top {
               display: flex;
               align-items: center;
-              gap: 10px;
-              min-width: 0;
+              justify-content: space-between;
+            }
+            .cm-stat-left {
+              display: flex;
+              align-items: center;
+              gap: 8px;
             }
             .cm-stat-icon {
-              width: 32px; height: 32px;
-              border-radius: 9px;
+              width: 26px; height: 26px;
+              border-radius: 8px;
               display: flex; align-items: center; justify-content: center;
               flex-shrink: 0;
             }
             .cm-stat-label {
-              flex: 1;
-              min-width: 0;
-              font-size: 13px;
+              font-size: 12px;
               font-weight: 600;
-              color: var(--text-slate-700);
-              letter-spacing: -0.005em;
-              text-transform: none;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
+              color: var(--text-slate-600);
+            }
+            
+            .cm-stat-bottom {
+              display: flex;
+              align-items: flex-end;
+              justify-content: space-between;
+              gap: 8px;
             }
             .cm-stat-value-wrap {
               display: flex;
-              align-items: center;
-              gap: 8px;
-              flex-shrink: 0;
+              align-items: baseline;
+              gap: 6px;
             }
             .cm-stat-value {
-              font-size: 22px;
+              font-size: 23px;
               font-weight: 800;
               color: var(--text-slate-900);
-              letter-spacing: -0.025em;
+              letter-spacing: -0.02em;
               line-height: 1;
               font-variant-numeric: tabular-nums;
             }
+            .cm-stat-period {
+              font-size: 11px;
+              color: var(--text-slate-400);
+              font-weight: 500;
+            }
+            .cm-stat-chart {
+              opacity: 0.95;
+            }
+            
             .cm-trend {
               display: inline-flex;
               align-items: center;
@@ -1353,21 +2633,6 @@ export default function ClientsV2ListPage() {
             .cm-trend.up { background: rgba(16,185,129,0.1); color: #047857; }
             .cm-trend.down { background: rgba(239,68,68,0.1); color: #b91c1c; }
             .cm-trend-value { letter-spacing: 0.01em; }
-            .cm-stat-subtle {
-              display: block;
-              font-size: 11.5px;
-              color: var(--text-slate-500);
-              margin-top: 8px;
-              padding-left: 42px;
-              font-weight: 500;
-              line-height: 1.4;
-            }
-            .cm-stat-chart {
-              margin-top: 10px;
-              padding-top: 10px;
-              padding-left: 42px;
-              border-top: 1px dashed var(--border-slate-100);
-            }
 
             /* MiniBar */
             .cm-minibar { display: flex; flex-direction: column; gap: 7px; }
@@ -1548,9 +2813,9 @@ export default function ClientsV2ListPage() {
             .cm-quick-select.ant-select:hover .ant-select-arrow {
               color: #8b5cf6 !important;
             }
-            .cm-quick-select-client.ant-select { min-width: 220px; flex: 1 1 220px; max-width: 280px; }
-            .cm-quick-select-project.ant-select { min-width: 220px; flex: 1 1 220px; max-width: 280px; }
-            .cm-quick-select-type.ant-select { min-width: 160px; max-width: 200px; }
+            .cm-quick-select-client.ant-select { width: 100%; }
+            .cm-quick-select-project.ant-select { width: 100%; }
+            .cm-quick-select-type.ant-select { width: 100%; }
 
             /* Dropdown popup */
             .cm-quick-popup .ant-select-item {
@@ -1738,7 +3003,7 @@ export default function ClientsV2ListPage() {
             /* ---------- Table card ---------- */
             .cm-table-card {
               background: var(--bg-pure-white);
-              border-radius: 16px;
+              border-radius: 0;
               border: 1px solid var(--border-slate-100);
               overflow: hidden;
               box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.06);

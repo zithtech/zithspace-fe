@@ -4567,11 +4567,13 @@ export default function SprintPlanComponent() {
           background: #1c232e !important;
         }
         .sp-sidebar-item.active {
-          color: var(--text-slate-900);
-          font-weight: 600;
+          background: rgba(59, 130, 246, 0.08);
+          color: #1d4ed8;
+          font-weight: 700;
         }
         [data-theme='dark'] .sp-sidebar-item.active {
-          color: #f8fafc !important;
+          background: rgba(59, 130, 246, 0.18) !important;
+          color: #60a5fa !important;
         }
         .sp-sidebar-status-chip {
           width: 22px;

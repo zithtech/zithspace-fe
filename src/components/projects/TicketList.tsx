@@ -3494,12 +3494,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               icon={<UserOutlined style={{ fontSize: 11 }} />}
               label="Assignee"
               values={filters.assignee}
-              options={members.map((m) => ({
-                label: m.label,
-                value: m.value,
-                description: m.position || undefined,
-                avatarUrl: m.avatarUrl || null,
-              }))}
+              options={[
+                { label: 'Unassigned', value: 'unassigned', description: 'No assignee', avatarUrl: null },
+                ...members.map((m) => ({
+                  label: m.label,
+                  value: m.value,
+                  description: m.position || undefined,
+                  avatarUrl: m.avatarUrl || null,
+                }))
+              ]}
               onChange={(val) => handleFilterChange('assignee', val)}
               itemNoun="members"
               width={290}

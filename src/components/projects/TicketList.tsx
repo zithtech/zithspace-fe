@@ -1027,8 +1027,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     } else if (kind === 'error') {
       message.error(`Sprint update failed`);
     } else if (kind === 'no-active-sprint') {
-      message.info(`First create a sprint, then move the ticket into the sprint.
-`);
+      modal.info({
+        title: 'Action Required',
+        content: 'First create a sprint, then move the ticket into the sprint.',
+        okText: 'Got it',
+        centered: true,
+      });
     }
   };
 

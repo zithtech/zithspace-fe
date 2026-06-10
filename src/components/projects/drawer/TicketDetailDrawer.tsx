@@ -20,6 +20,7 @@ import {
   Input,
   notification,
   App,
+  Modal,
 } from "antd";
 import {
   CloseOutlined,
@@ -173,7 +174,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const router = useRouter();
 
   // Data Hooks - Use currentTicketId instead of ticketId prop
-  const { message, notification: notifyApi } = App.useApp();
+  const { message, modal, notification: notifyApi } = App.useApp();
   const { data: ticket, isLoading: ticketLoading } = useTicket(currentTicketId || "");
   const { data: tagSuggestions = [] } = useAllTicketTags();
   const { activeEntry } = useTimeTrackerStore();
@@ -307,8 +308,12 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
     } else if (kind === "error") {
       message.error(`Sprint update failed`);
     } else if (kind === "no-active-sprint") {
-      message.info(`First create a sprint, then move the ticket into the sprint.
-`);
+      modal.info({
+        title: "Action Required",
+        content: "First create a sprint, then move the ticket into the sprint.",
+        okText: "Got it",
+        centered: true,
+      });
     }
   };
 

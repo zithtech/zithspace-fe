@@ -727,357 +727,351 @@ export default function SprintPlanComponent() {
   return (
     <div className="sp-page-root" style={{ minHeight: "100vh" }}>
       {/* {contextHolder} */}
-
-      {/* Workstation Header */}
-      <div className="saas-header-container" style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        backdropFilter: 'blur(12px)',
-        padding: '10px 48px 10px 48px',
-        margin: '0 -24px 0',
-        marginBottom: 0,
-        borderBottom: '1px solid var(--border-slate-200)'
-      }}>
-        <Row justify="space-between" align="middle" gutter={[16, 16]} className="sp-header-responsive-row">
-          <Col flex="1 1 auto" style={{ minWidth: 0 }} className="sp-header-left-col">
-            <div className="sp-header-main-flex">
-              <div className="sp-header-title-row">
-                <div className="sp-header-icon-box">
-                  <CalendarOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
+      <div className="sp-shell-wrap">
+        <div className="sp-shell">
+          {/* ── Sidebar ──────────────────────────────────────────── */}
+          <aside className="sp-sidebar">
+            <div className="sp-sidebar-top">
+              <div className="sp-sidebar-brand">
+                <div className="sp-hero-icon-box">
+                  <CalendarOutlined style={{ fontSize: 18, color: '#3B82F6' }} />
                 </div>
-                <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
-                  Sprint Cycles
-                </Title>
+                <div className="min-w-0">
+                  <h1 className="sp-sidebar-title">Sprint Plans</h1>
+                  <p className="sp-sidebar-subtitle">Milestone tracking</p>
+                </div>
               </div>
-
-              <Divider type="vertical" className="sp-header-divider" />
-
-              <div className="sp-header-description-box">
-                <Text style={{ fontSize: 12, color: 'var(--text-slate-600)', fontWeight: 600 }}>
-                  Engineered for continuous delivery and milestone tracking
-                </Text>
-              </div>
-            </div>
-          </Col>
-          <Col flex="0 0 auto" className="sp-header-extra-col">
-            <Space size={12} className="sp-header-extra-space">
-              <Button
-                icon={<ReloadOutlined spin={isRefreshing} />}
-                onClick={async () => {
-                  setIsRefreshing(true);
-                  await loadData();
-                  setIsRefreshing(false);
-                  message.success("Success, Sprint view refreshed");
-                  // api.success({
-                  //   message: "Success",
-                  //   description: "Sprint view refreshed",
-                  // });
-                }}
-                loading={loading && !isRefreshing}
-                className="saas-button-item"
-                style={{ height: 36, fontWeight: 600 }}
-              />
               {canCreateTicketPlan && (
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
                   onClick={() => setShowCreateModal(true)}
-                  className="saas-button-item"
-                  style={{
-                    height: 36,
-                    fontWeight: 700,
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                    border: 'none'
-                  }}
+                  className="sp-side-create"
+                  block
                 >
                   Plan New Sprint
                 </Button>
               )}
-            </Space>
-          </Col>
-        </Row>
-      </div>
-
-      <div className="sp-shell-wrap">
-        <div className="sp-shell">
-          {/* ── Sidebar ──────────────────────────────────────────── */}
-          <aside className="sp-sidebar">
-            {/* Projects */}
-            <div className="sp-sidebar-section">
-              <div className="sp-sidebar-section-head">
-                <span className="sp-sidebar-section-icon blue">
-                  <ProjectOutlined style={{ fontSize: 11 }} />
-                </span>
-                <span className="sp-sidebar-section-title">Projects</span>
-                <span className="sp-sidebar-section-count">{projects.length}</span>
-              </div>
-              <div className="sp-sidebar-list sp-sidebar-list-scroll">
-                <button
-                  className={`sp-sidebar-item ${!tableFilters.projectId ? 'active' : ''}`}
-                  onClick={() => setTableFilters(prev => ({ ...prev, projectId: "" }))}
-                >
-                  <span className="sp-sidebar-item-avatar sp-sidebar-item-avatar-all">
-                    <ProjectOutlined style={{ fontSize: 10 }} />
-                  </span>
-                  <span className="sp-sidebar-item-label">All projects</span>
-                  <span className="sp-sidebar-item-count">{projectCounts.total}</span>
-                </button>
-                {(showAllProjects ? projects : projects.slice(0, PROJECTS_COLLAPSED_LIMIT)).map((proj: any, i: number) => {
-                  const count = projectCounts.map.get(proj.value) || 0;
-                  const active = tableFilters.projectId === proj.value;
-                  const color = PROJECT_PALETTE[i % PROJECT_PALETTE.length];
-                  const initial = (proj.code || proj.label || '?').charAt(0).toUpperCase();
-                  return (
-                    <button
-                      key={proj.value}
-                      className={`sp-sidebar-item ${active ? 'active' : ''}`}
-                      onClick={() => setTableFilters(prev => ({ ...prev, projectId: prev.projectId === proj.value ? "" : proj.value }))}
-                      title={proj.label}
-                    >
-                      <span className="sp-sidebar-item-avatar" style={{ background: `${color}14`, color, borderColor: `${color}33` }}>
-                        {initial}
-                      </span>
-                      <span className="sp-sidebar-item-label">{proj.label}</span>
-                      <span className="sp-sidebar-item-count">{count}</span>
-                    </button>
-                  );
-                })}
-                {projects.length > PROJECTS_COLLAPSED_LIMIT && (
-                  <button
-                    className="sp-sidebar-toggle"
-                    onClick={() => setShowAllProjects(v => !v)}
-                  >
-                    {showAllProjects
-                      ? 'Show less'
-                      : `Show ${projects.length - PROJECTS_COLLAPSED_LIMIT} more`}
-                    <DownOutlined style={{ fontSize: 9, transform: showAllProjects ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
-                  </button>
-                )}
-                {projects.length === 0 && (
-                  <div className="sp-sidebar-empty">No projects yet</div>
-                )}
-              </div>
             </div>
 
-            {/* Status */}
-            <div className="sp-sidebar-divider" />
-            <div className="sp-sidebar-section">
-              <div className="sp-sidebar-section-head">
-                <span className="sp-sidebar-section-icon amber">
-                  <FlagOutlined style={{ fontSize: 11 }} />
-                </span>
-                <span className="sp-sidebar-section-title">Status</span>
-              </div>
-              <div className="sp-sidebar-list">
-                {([
-                  { k: 'all', label: 'All', n: statusCounts.all, color: '#64748b', pulse: false },
-                  { k: 'active', label: 'Active', n: statusCounts.active, color: '#10b981', pulse: true },
-                  { k: 'planning', label: 'Planning', n: statusCounts.planning, color: '#f59e0b', pulse: false },
-                  { k: 'completed', label: 'Completed', n: statusCounts.completed, color: '#3b82f6', pulse: false },
-                ] as const).map(seg => {
-                  const active = (tableFilters.status || 'all') === seg.k;
-                  return (
+            <div className="sp-sidebar-scroll">
+              {/* Projects */}
+              <div className="sp-sidebar-section">
+                <div className="dh-side-label">PROJECTS</div>
+                <div className="sp-sidebar-list sp-sidebar-list-scroll">
+                  <button
+                    className={`sp-sidebar-item ${!tableFilters.projectId ? 'active' : ''}`}
+                    onClick={() => setTableFilters(prev => ({ ...prev, projectId: "" }))}
+                  >
+                    <span className="sp-sidebar-item-avatar sp-sidebar-item-avatar-all">
+                      <ProjectOutlined style={{ fontSize: 10 }} />
+                    </span>
+                    <span className="sp-sidebar-item-label">All projects</span>
+                    <span className="sp-sidebar-item-count">{projectCounts.total}</span>
+                  </button>
+                  {(showAllProjects ? projects : projects.slice(0, PROJECTS_COLLAPSED_LIMIT)).map((proj: any, i: number) => {
+                    const count = projectCounts.map.get(proj.value) || 0;
+                    const active = tableFilters.projectId === proj.value;
+                    const color = PROJECT_PALETTE[i % PROJECT_PALETTE.length];
+                    const initial = (proj.code || proj.label || '?').charAt(0).toUpperCase();
+                    return (
+                      <button
+                        key={proj.value}
+                        className={`sp-sidebar-item ${active ? 'active' : ''}`}
+                        onClick={() => setTableFilters(prev => ({ ...prev, projectId: prev.projectId === proj.value ? "" : proj.value }))}
+                        title={proj.label}
+                      >
+                        <span className="sp-sidebar-item-avatar" style={{ background: `${color}14`, color, borderColor: `${color}33` }}>
+                          {initial}
+                        </span>
+                        <span className="sp-sidebar-item-label">{proj.label}</span>
+                        <span className="sp-sidebar-item-count">{count}</span>
+                      </button>
+                    );
+                  })}
+                  {projects.length > PROJECTS_COLLAPSED_LIMIT && (
                     <button
-                      key={seg.k}
-                      className={`sp-sidebar-item sp-sidebar-status-item ${active ? 'active' : ''}`}
-                      onClick={() => setTableFilters(prev => ({ ...prev, status: seg.k === 'all' ? '' : seg.k }))}
-                      style={active ? { ['--sp-accent' as any]: seg.color } : undefined}
+                      className="sp-sidebar-toggle"
+                      onClick={() => setShowAllProjects(v => !v)}
                     >
-                      <span
-                        className="sp-sidebar-status-chip"
-                        style={{ background: `${seg.color}14`, borderColor: `${seg.color}33` }}
+                      {showAllProjects
+                        ? 'Show less'
+                        : `Show ${projects.length - PROJECTS_COLLAPSED_LIMIT} more`}
+                      <DownOutlined style={{ fontSize: 9, transform: showAllProjects ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                    </button>
+                  )}
+                  {projects.length === 0 && (
+                    <div className="sp-sidebar-empty">No projects yet</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="sp-sidebar-divider" />
+              <div className="sp-sidebar-section">
+                <div className="dh-side-label">STATUS</div>
+                <div className="sp-sidebar-list">
+                  {([
+                    { k: 'all', label: 'All', n: statusCounts.all, color: '#64748b', pulse: false },
+                    { k: 'active', label: 'Active', n: statusCounts.active, color: '#10b981', pulse: true },
+                    { k: 'planning', label: 'Planning', n: statusCounts.planning, color: '#f59e0b', pulse: false },
+                    { k: 'completed', label: 'Completed', n: statusCounts.completed, color: '#3b82f6', pulse: false },
+                  ] as const).map(seg => {
+                    const active = (tableFilters.status || 'all') === seg.k;
+                    return (
+                      <button
+                        key={seg.k}
+                        className={`sp-sidebar-item sp-sidebar-status-item ${active ? 'active' : ''}`}
+                        onClick={() => setTableFilters(prev => ({ ...prev, status: seg.k === 'all' ? '' : seg.k }))}
+                        style={active ? { ['--sp-accent' as any]: seg.color } : undefined}
                       >
                         <span
-                          className={`sp-sidebar-status-dot ${seg.pulse ? 'pulse' : ''}`}
-                          style={{ background: seg.color, ['--sp-dot' as any]: seg.color }}
-                        />
-                      </span>
-                      <span className="sp-sidebar-item-label">{seg.label}</span>
-                      <span
-                        className="sp-sidebar-item-count"
-                        style={active ? { background: `${seg.color}1a`, borderColor: `${seg.color}40`, color: seg.color } : undefined}
-                      >
-                        {seg.n}
-                      </span>
-                    </button>
-                  );
-                })}
+                          className="sp-sidebar-status-chip"
+                          style={{ background: `${seg.color}14`, borderColor: `${seg.color}33` }}
+                        >
+                          <span
+                            className={`sp-sidebar-status-dot ${seg.pulse ? 'pulse' : ''}`}
+                            style={{ background: seg.color, ['--sp-dot' as any]: seg.color }}
+                          />
+                        </span>
+                        <span className="sp-sidebar-item-label">{seg.label}</span>
+                        <span
+                          className="sp-sidebar-item-count"
+                          style={active ? { background: `${seg.color}1a`, borderColor: `${seg.color}40`, color: seg.color } : undefined}
+                        >
+                          {seg.n}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+
+              {activeFilterCount > 0 && (
+                <>
+                  <div className="sp-sidebar-divider" />
+                  <button
+                    className="sp-sidebar-clear"
+                    onClick={() => {
+                      setTableFilters({ search: "", projectId: "", status: "" });
+                      loadData({ search: "", projectId: "", status: "" });
+                    }}
+                  >
+                    <ReloadOutlined style={{ fontSize: 10 }} />
+                    Clear filters · {activeFilterCount}
+                  </button>
+                </>
+              )}
             </div>
-
-            {activeFilterCount > 0 && (
-              <>
-                <div className="sp-sidebar-divider" />
-                <button
-                  className="sp-sidebar-clear"
-                  onClick={() => {
-                    setTableFilters({ search: "", projectId: "", status: "" });
-                    loadData({ search: "", projectId: "", status: "" });
-                  }}
-                >
-                  <ReloadOutlined style={{ fontSize: 10 }} />
-                  Clear filters · {activeFilterCount}
-                </button>
-              </>
-            )}
           </aside>
-
           {/* ── Main Content ─────────────────────────────────────── */}
           <main className="sp-main">
-            {/* Premium KPI Hero Row */}
-            <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-              <Col xs={24} sm={12} lg={6}>
-                <div className="sp-kpi-card sp-kpi-blue">
-                  <div className="sp-kpi-header">
-                    <div className="sp-kpi-icon blue">
-                      <RocketOutlined style={{ fontSize: 13 }} />
-                    </div>
-                    <span className="sp-kpi-label">Active Cycles</span>
-                    <span className="sp-kpi-pulse" />
-                  </div>
-                  <div className="sp-kpi-value-row">
-                    <span className="sp-kpi-value">{metrics.active}</span>
-                    <span className="sp-kpi-sub">in flight</span>
-                  </div>
-                  <div className="sp-kpi-bar">
-                    <div
-                      className="sp-kpi-bar-fill blue"
-                      style={{ width: `${allPlans.length ? (metrics.active / allPlans.length) * 100 : 0}%` }}
-                    />
-                  </div>
-                </div>
-              </Col>
-
-              <Col xs={24} sm={12} lg={6}>
-                <div className="sp-kpi-card sp-kpi-amber">
-                  <div className="sp-kpi-header">
-                    <div className="sp-kpi-icon amber">
-                      <PieChartOutlined style={{ fontSize: 13 }} />
-                    </div>
-                    <span className="sp-kpi-label">In Planning</span>
-                  </div>
-                  <div className="sp-kpi-value-row">
-                    <span className="sp-kpi-value">{metrics.planning}</span>
-                    <span className="sp-kpi-sub">queued</span>
-                  </div>
-                  <div className="sp-kpi-bar">
-                    <div
-                      className="sp-kpi-bar-fill amber"
-                      style={{ width: `${allPlans.length ? (metrics.planning / allPlans.length) * 100 : 0}%` }}
-                    />
-                  </div>
-                </div>
-              </Col>
-
-              <Col xs={24} sm={12} lg={6}>
-                <div className="sp-kpi-card sp-kpi-emerald">
-                  <div className="sp-kpi-header">
-                    <div className="sp-kpi-icon emerald">
-                      <CheckCircleOutlined style={{ fontSize: 13 }} />
-                    </div>
-                    <span className="sp-kpi-label">Shipped</span>
-                  </div>
-                  <div className="sp-kpi-value-row">
-                    <span className="sp-kpi-value">{metrics.completed}</span>
-                    <span className="sp-kpi-sub">delivered</span>
-                  </div>
-                  <div className="sp-kpi-bar">
-                    <div
-                      className="sp-kpi-bar-fill emerald"
-                      style={{ width: `${allPlans.length ? (metrics.completed / allPlans.length) * 100 : 0}%` }}
-                    />
-                  </div>
-                </div>
-              </Col>
-
-              <Col xs={24} sm={12} lg={6}>
-                <div className="sp-kpi-card sp-kpi-violet">
-                  <div className="sp-kpi-header">
-                    <div className="sp-kpi-icon violet">
-                      <LineChartOutlined style={{ fontSize: 13 }} />
-                    </div>
-                    <span className="sp-kpi-label">Avg. Progress</span>
-                  </div>
-                  <div className="sp-kpi-value-row">
-                    <span className="sp-kpi-value">{metrics.avgProgress}<span className="sp-kpi-unit">%</span></span>
-                    <span className="sp-kpi-sub">across cycles</span>
-                  </div>
-                  <div className="sp-kpi-bar">
-                    <div className="sp-kpi-bar-fill violet" style={{ width: `${metrics.avgProgress}%` }} />
-                  </div>
-                </div>
-              </Col>
-            </Row>
-
-            {/* Slim search + sort bar */}
-            <div className="sp-workbench-slim">
-              <div className="sp-view-toggle" role="tablist">
-                <button
-                  className={`sp-view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-                  onClick={() => setViewMode('list')}
-                  role="tab"
-                  aria-selected={viewMode === 'list'}
-                >
-                  <UnorderedListOutlined />
-                  <span>List</span>
-                </button>
-                <button
-                  className={`sp-view-toggle-btn ${viewMode === 'calendar' ? 'active' : ''}`}
-                  onClick={() => setViewMode('calendar')}
-                  role="tab"
-                  aria-selected={viewMode === 'calendar'}
-                >
-                  <AppstoreOutlined />
-                  <span>Calendar</span>
-                </button>
-              </div>
-              <div className={`sp-search-box ${tableFilters.search ? 'active' : ''}`}>
-                <SearchOutlined style={{ color: tableFilters.search ? '#3b82f6' : '#94a3b8', fontSize: 13 }} />
+            {/* Top bar: search · live stats · view controls */}
+            <div className="sp-main-topbar">
+              <div className="sp-main-search">
                 <Input
-                  placeholder="Search by name, goal, or description"
-                  variant="borderless"
-                  style={{ fontSize: 12.5, fontWeight: 500, padding: '4px 8px', flex: 1, background: 'transparent' }}
+                  placeholder="Search by name, goal, or description..."
+                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                  // suffix={!tableFilters.search ? <span className="sp-search-kbd">⌘K</span> : undefined}
+                  className="premium-search-input transition-all"
+                  style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 38, width: 340 }}
                   value={tableFilters.search}
                   onChange={(e) => setTableFilters(prev => ({ ...prev, search: e.target.value }))}
                   allowClear
                 />
               </div>
 
-              <Select
-                className="sp-filter-pill sp-sort-pill"
-                value={sortBy}
-                onChange={(v) => setSortBy(v as any)}
-                suffixIcon={<LineChartOutlined style={{ color: '#64748b', fontSize: 11 }} />}
-                popupMatchSelectWidth={false}
-                styles={{ popup: { root: { minWidth: 200, borderRadius: 10 } } }}
-              >
-                <Option value="recent">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <HistoryOutlined style={{ fontSize: 12, color: '#64748b' }} />
-                    <Text style={{ fontSize: 12, fontWeight: 500 }}>Recently updated</Text>
-                  </div>
-                </Option>
-                <Option value="endDate">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <CalendarOutlined style={{ fontSize: 12, color: '#64748b' }} />
-                    <Text style={{ fontSize: 12, fontWeight: 500 }}>End date · soonest</Text>
-                  </div>
-                </Option>
-                <Option value="progress">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <LineChartOutlined style={{ fontSize: 12, color: '#64748b' }} />
-                    <Text style={{ fontSize: 12, fontWeight: 500 }}>Progress · highest</Text>
-                  </div>
-                </Option>
-                <Option value="name">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <ProjectOutlined style={{ fontSize: 12, color: '#64748b' }} />
-                    <Text style={{ fontSize: 12, fontWeight: 500 }}>Name · A → Z</Text>
-                  </div>
-                </Option>
-              </Select>
+              <div className="sp-main-stats">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="sp-pulse-dot" />
+                  <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{metrics.active}</span> active cycles
+                </span>
+                <span style={{ color: 'var(--text-slate-300)', margin: '0 8px' }}>·</span>
+                <span><span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{metrics.planning}</span> in planning</span>
+              </div>
+
+              <div className="sp-main-controls">
+                <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
+                  <Tooltip title="List">
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                      style={{
+                        width: 30, height: 30,
+                        background: viewMode === 'list' ? 'var(--bg-blue-50)' : 'transparent',
+                        color: viewMode === 'list' ? 'var(--text-blue-500)' : 'var(--text-blue-400)',
+                        border: 'none', cursor: 'pointer'
+                      }}
+                    >
+                      <UnorderedListOutlined style={{ fontSize: 16, color: viewMode === 'list' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
+                    </button>
+                  </Tooltip>
+                  <Tooltip title="Calendar">
+                    <button
+                      onClick={() => setViewMode('calendar')}
+                      className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                      style={{
+                        width: 30, height: 30,
+                        background: viewMode === 'calendar' ? 'var(--bg-blue-50)' : 'transparent',
+                        color: viewMode === 'calendar' ? 'var(--text-blue-500)' : 'var(--text-blue-400)',
+                        border: 'none', cursor: 'pointer'
+                      }}
+                    >
+                      <AppstoreOutlined style={{ fontSize: 16, color: viewMode === 'calendar' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
+                    </button>
+                  </Tooltip>
+                </div>
+
+                <Tooltip title="Refresh">
+                  <Button
+                    icon={<ReloadOutlined spin={isRefreshing} />}
+                    onClick={async () => {
+                      setIsRefreshing(true);
+                      await loadData();
+                      setIsRefreshing(false);
+                      message.success("Success, Sprint view refreshed");
+                    }}
+                    loading={loading && !isRefreshing}
+                    style={{ height: 38, width: 38, borderRadius: 10, border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', color: 'var(--text-slate-500)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  />
+                </Tooltip>
+
+                <Select
+                  value={sortBy}
+                  onChange={(v) => setSortBy(v as any)}
+                  suffixIcon={<DownOutlined style={{ color: 'var(--text-slate-400)', fontSize: 10 }} />}
+                  popupMatchSelectWidth={false}
+                  styles={{ popup: { root: { minWidth: 200, borderRadius: 10 } } }}
+                  style={{ height: 38, width: 170 }}
+                  className="sp-premium-select"
+                >
+                  <Option value="recent">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <HistoryOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Recently updated</Text>
+                    </div>
+                  </Option>
+                  <Option value="endDate">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <CalendarOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>End date · soonest</Text>
+                    </div>
+                  </Option>
+                  <Option value="progress">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <LineChartOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Progress · highest</Text>
+                    </div>
+                  </Option>
+                  <Option value="name">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <ProjectOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Name · A → Z</Text>
+                    </div>
+                  </Option>
+                </Select>
+              </div>
             </div>
+
+            {/* Premium KPI Hero Row */}
+            <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
+              <Col xs={24} sm={12} lg={6}>
+                <div className="sp-stat-card">
+                  <div className="sp-stat-top">
+                    <div className="sp-stat-left">
+                      <span className="sp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+                        <RocketOutlined />
+                      </span>
+                      <span className="sp-stat-label">Active Cycles</span>
+                    </div>
+                    <span className="sp-stat-pulse" />
+                  </div>
+                  <div className="sp-stat-bottom">
+                    <div className="sp-stat-value-wrap">
+                      <span className="sp-stat-value">{metrics.active}</span>
+                      <span className="sp-stat-period">in flight</span>
+                    </div>
+                    <div className="sp-stat-spark">
+                      <div className="sp-stat-track">
+                        <div className="sp-stat-fill" style={{ width: `${allPlans.length ? (metrics.active / allPlans.length) * 100 : 0}%`, background: '#3b82f6' }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Col>
+
+              <Col xs={24} sm={12} lg={6}>
+                <div className="sp-stat-card">
+                  <div className="sp-stat-top">
+                    <div className="sp-stat-left">
+                      <span className="sp-stat-icon" style={{ background: 'rgba(100,116,139,0.10)', color: '#64748b' }}>
+                        <PieChartOutlined />
+                      </span>
+                      <span className="sp-stat-label">In Planning</span>
+                    </div>
+                  </div>
+                  <div className="sp-stat-bottom">
+                    <div className="sp-stat-value-wrap">
+                      <span className="sp-stat-value">{metrics.planning}</span>
+                      <span className="sp-stat-period">queued</span>
+                    </div>
+                    <div className="sp-stat-spark">
+                      <div className="sp-stat-track">
+                        <div className="sp-stat-fill" style={{ width: `${allPlans.length ? (metrics.planning / allPlans.length) * 100 : 0}%`, background: '#64748b' }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Col>
+
+              <Col xs={24} sm={12} lg={6}>
+                <div className="sp-stat-card">
+                  <div className="sp-stat-top">
+                    <div className="sp-stat-left">
+                      <span className="sp-stat-icon" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>
+                        <CheckCircleOutlined />
+                      </span>
+                      <span className="sp-stat-label">Shipped</span>
+                    </div>
+                  </div>
+                  <div className="sp-stat-bottom">
+                    <div className="sp-stat-value-wrap">
+                      <span className="sp-stat-value">{metrics.completed}</span>
+                      <span className="sp-stat-period">delivered</span>
+                    </div>
+                    <div className="sp-stat-spark">
+                      <div className="sp-stat-track">
+                        <div className="sp-stat-fill" style={{ width: `${allPlans.length ? (metrics.completed / allPlans.length) * 100 : 0}%`, background: '#10b981' }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Col>
+
+              <Col xs={24} sm={12} lg={6}>
+                <div className="sp-stat-card">
+                  <div className="sp-stat-top">
+                    <div className="sp-stat-left">
+                      <span className="sp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+                        <LineChartOutlined />
+                      </span>
+                      <span className="sp-stat-label">Avg. Progress</span>
+                    </div>
+                  </div>
+                  <div className="sp-stat-bottom">
+                    <div className="sp-stat-value-wrap">
+                      <span className="sp-stat-value">{metrics.avgProgress}<span style={{ fontSize: 18, color: 'var(--text-slate-400)', marginLeft: 2 }}>%</span></span>
+                      <span className="sp-stat-period">across cycles</span>
+                    </div>
+                    <div className="sp-stat-spark">
+                      <div className="sp-stat-track">
+                        <div className="sp-stat-fill" style={{ width: `${metrics.avgProgress}%`, background: '#3b82f6' }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Col>
+            </Row>
 
             {/* Main Content — List or Calendar */}
             {viewMode === 'calendar' && (
@@ -1502,8 +1496,6 @@ export default function SprintPlanComponent() {
                           className="sp-plist-card"
                           style={{ ['--row-accent' as any]: accent }}
                         >
-                          <span className="sp-plist-stripe" style={{ background: accent }} />
-
                           {/* Header — single row: avatar | project | sprint name | priority | status */}
                           <header className="sp-plist-head">
                             <div
@@ -1764,24 +1756,25 @@ export default function SprintPlanComponent() {
                   )}
                 </div>
 
-                {/* Pagination */}
-                {!loading && sortedSprintPlans.length > 0 && (
-                  <div className="sp-card-pagination">
-                    <Text style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>
-                      <span style={{ color: 'var(--text-slate-900)', fontWeight: 700 }}>
-                        {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, sortedSprintPlans.length)}
-                      </span> of <span style={{ color: 'var(--text-slate-900)', fontWeight: 700 }}>{sortedSprintPlans.length}</span> sprint{sortedSprintPlans.length !== 1 ? 's' : ''}
-                    </Text>
-                    <Pagination
-                      current={currentPage}
-                      pageSize={pageSize}
-                      total={sortedSprintPlans.length}
-                      onChange={(p, s) => { setCurrentPage(p); setPageSize(s); }}
-                      showSizeChanger
-                      size="small"
-                    />
-                  </div>
-                )}
+              </div>
+            )}
+
+            {/* Fixed pagination footer */}
+            {!loading && sortedSprintPlans.length > 0 && (
+              <div className="sp-card-pagination">
+                <Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
+                  Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>
+                    {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, sortedSprintPlans.length)}
+                  </span> of <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>{sortedSprintPlans.length}</span> sprint{sortedSprintPlans.length !== 1 ? 's' : ''}
+                </Text>
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={sortedSprintPlans.length}
+                  onChange={(p, s) => { setCurrentPage(p); setPageSize(s); }}
+                  showSizeChanger
+                  pageSizeOptions={[10, 15, 25, 50, 100]}
+                />
               </div>
             )}
           </main>
@@ -2670,111 +2663,104 @@ export default function SprintPlanComponent() {
           }
         }
 
-        /* ── KPI Cards ─────────────────────────────────────────── */
-        .sp-kpi-card {
+        /* ── Stat Cards (Proposals Style) ─────────────────────── */
+        .sp-stat-card {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
-          border-radius: 12px;
-          padding: 10px 14px 12px;
-          position: relative;
-          overflow: hidden;
-          transition: all 0.25s ease;
-          box-shadow: 0 1px 2px rgba(15,23,42,0.02);
+          border-radius: 0;
+          padding: 12px 14px;
+          min-height: 92px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+          transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
         }
-        .sp-kpi-card::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 3px;
-          opacity: 0.85;
-        }
-        .sp-kpi-blue::before { background: linear-gradient(90deg, #3b82f6, #6366f1); }
-        .sp-kpi-amber::before { background: linear-gradient(90deg, #f59e0b, #f97316); }
-        .sp-kpi-emerald::before { background: linear-gradient(90deg, #10b981, #059669); }
-        .sp-kpi-violet::before { background: linear-gradient(90deg, #8b5cf6, #6366f1); }
-        .sp-kpi-card:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 16px rgba(15,23,42,0.06);
+        .sp-stat-card:hover {
           border-color: var(--border-slate-300, #cbd5e1);
+          box-shadow: 0 6px 20px rgba(15, 23, 42, 0.07);
+          transform: translateY(-1px);
         }
-        [data-theme='dark'] .sp-kpi-card {
+        [data-theme='dark'] .sp-stat-card {
           background: #161b22 !important;
           border-color: #1f2937 !important;
         }
-        [data-theme='dark'] .sp-kpi-card:hover {
+        [data-theme='dark'] .sp-stat-card:hover {
           border-color: #374151 !important;
         }
-        .sp-kpi-header {
+        .sp-stat-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .sp-stat-left {
           display: flex;
           align-items: center;
           gap: 8px;
-          margin-bottom: 8px;
         }
-        .sp-kpi-icon {
-          width: 24px;
-          height: 24px;
-          border-radius: 6px;
-          display: flex;
+        .sp-stat-icon {
+          width: 26px;
+          height: 26px;
+          border-radius: 8px;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
+          font-size: 13px;
         }
-        .sp-kpi-icon.blue { background: rgba(59,130,246,0.1); color: #3b82f6; }
-        .sp-kpi-icon.amber { background: rgba(245,158,11,0.1); color: #f59e0b; }
-        .sp-kpi-icon.emerald { background: rgba(16,185,129,0.1); color: #10b981; }
-        .sp-kpi-icon.violet { background: rgba(139,92,246,0.1); color: #8b5cf6; }
-        .sp-kpi-label {
-          font-size: 11px;
+        .sp-stat-label {
+          font-size: 12px;
           font-weight: 600;
-          color: var(--text-slate-500);
-          letter-spacing: 0.01em;
-          flex: 1;
+          color: var(--text-slate-600);
         }
-        [data-theme='dark'] .sp-kpi-label { color: #94a3b8 !important; }
-        .sp-kpi-pulse {
-          width: 6px; height: 6px;
+        [data-theme='dark'] .sp-stat-label { color: #94a3b8 !important; }
+        .sp-stat-pulse {
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
           background: #10b981;
           box-shadow: 0 0 0 0 rgba(16,185,129,0.7);
           animation: sp-pulse 2s infinite;
         }
-        @keyframes sp-pulse {
-          0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.7); }
-          70% { box-shadow: 0 0 0 8px rgba(16,185,129,0); }
-          100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+        .sp-stat-bottom {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 8px;
         }
-        .sp-kpi-value-row {
+        .sp-stat-value-wrap {
           display: flex;
           align-items: baseline;
           gap: 6px;
-          margin-bottom: 8px;
         }
-        .sp-kpi-value {
-          font-size: 22px;
+        .sp-stat-value {
+          font-size: 23px;
           font-weight: 800;
           color: var(--text-slate-900);
-          letter-spacing: -0.025em;
+          letter-spacing: -0.02em;
           line-height: 1;
         }
-        [data-theme='dark'] .sp-kpi-value { color: #f1f5f9 !important; }
-        .sp-kpi-unit {
-          font-size: 14px;
-          font-weight: 700;
-          color: var(--text-slate-400);
-        }
-        .sp-kpi-sub {
+        [data-theme='dark'] .sp-stat-value { color: #f1f5f9 !important; }
+        .sp-stat-period {
           font-size: 11px;
-          color: var(--text-slate-500);
+          color: var(--text-slate-400);
           font-weight: 500;
         }
-        [data-theme='dark'] .sp-kpi-sub { color: #94a3b8 !important; }
-        .sp-kpi-bar {
-          height: 3px;
-          background: var(--bg-slate-50);
-          border-radius: 999px;
+        .sp-stat-spark {
+          display: flex;
+          align-items: center;
+          height: 34px;
+          width: 72px;
+        }
+        .sp-stat-track {
+          width: 100%;
+          height: 2px;
+          background: var(--border-slate-200);
+          border-radius: 2px;
           overflow: hidden;
         }
-        [data-theme='dark'] .sp-kpi-bar { background: #1f2937 !important; }
-        .sp-kpi-bar-fill {
+        [data-theme='dark'] .sp-stat-track { background: #374151 !important; }
+        .sp-stat-fill {
           height: 100%;
           border-radius: 999px;
           transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2908,6 +2894,10 @@ export default function SprintPlanComponent() {
           background: transparent !important;
           border-color: #3b82f6 !important;
           box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+        }
+        .premium-search-input{
+          border-radius: 6px !important;
+          height: 32px !important;
         }
         .sp-search-kbd {
           background: var(--bg-pure-white);
@@ -4442,7 +4432,6 @@ export default function SprintPlanComponent() {
           background: var(--bg-pure-white) !important;
         }
         .sp-shell-wrap {
-          margin: 0 -24px;
         }
         .sp-shell {
           display: grid;
@@ -4462,157 +4451,127 @@ export default function SprintPlanComponent() {
 
         /* ── Sidebar (full-height left rail) ──────────────────── */
         .sp-sidebar {
-          background: var(--bg-slate-50);
-          border-right: 1px solid var(--border-slate-200);
-          padding: 10px 12px 10px 20px;
+          background: var(--bg-secondary);
+          border-right: 1px solid var(--border-slate-200) !important;
           position: sticky;
-          top: 52px;
-          height: calc(100vh - 64px - 52px);
-          overflow-y: auto;
+          top: 0;
+          height: calc(100vh - 54px);
+          display: flex;
+          flex-direction: column;
+          flex-shrink: 0;
           align-self: start;
+          z-index: 10;
+        }
+        .sp-sidebar-top {
+          padding: 14px 14px 12px 18px;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        .sp-sidebar-brand {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+        .sp-sidebar-title {
+          margin: 0;
+          font-size: 15px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          line-height: 1.1;
+          color: var(--text-slate-900);
+        }
+        .sp-sidebar-subtitle {
+          margin: 2px 0 0 0;
+          font-size: 11px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+        }
+        .sp-hero-icon-box {
+          width: 38px; height: 38px;
+          background: rgba(59, 130, 246, 0.10);
+          border-radius: 10px;
+          display: flex; align-items: center; justify-content: center;
+          border: 1px solid rgba(59, 130, 246, 0.18);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .sp-hero-icon-box {
+          background: rgba(59, 130, 246, 0.16);
+          border-color: rgba(59, 130, 246, 0.28);
+        }
+        .sp-side-create {
+          height: 36px !important;
+          border-radius: 6px !important;
+          font-weight: 600 !important;
+          background: linear-gradient(135deg, #3980f2 0%, #3980f2 100%) !important;
+          border: none !important;
+          // box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+        }
+        .sp-sidebar-scroll {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          padding: 10px 10px 6px 16px;
         }
         [data-theme='dark'] .sp-sidebar {
           background: #0f1419 !important;
           border-right-color: #1f2937 !important;
         }
-        .sp-sidebar::-webkit-scrollbar { width: 6px; }
-        .sp-sidebar::-webkit-scrollbar-thumb {
-          background: var(--border-slate-200);
-          border-radius: 999px;
-        }
-        [data-theme='dark'] .sp-sidebar::-webkit-scrollbar-thumb {
-          background: #2d3748;
-        }
+        .sp-sidebar-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
         .sp-sidebar-section {
           padding: 4px 2px;
+          margin-bottom: 13px;
         }
-        .sp-sidebar-section-head {
+        .dh-side-label {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 4px 8px 10px;
+          gap: 6px;
+          padding: 0 8px;
+          margin-bottom: 8px;
           font-size: 10.5px;
-          font-weight: 800;
-          color: var(--text-slate-500);
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-        }
-        [data-theme='dark'] .sp-sidebar-section-head {
-          color: #94a3b8 !important;
-        }
-        .sp-sidebar-section-icon {
-          width: 22px;
-          height: 22px;
-          border-radius: 6px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        .sp-sidebar-section-icon.blue {
-          background: rgba(59,130,246,0.10);
-          color: #3b82f6;
-        }
-        .sp-sidebar-section-icon.amber {
-          background: rgba(245,158,11,0.10);
-          color: #f59e0b;
-        }
-        .sp-sidebar-section-title {
-          flex: 1;
-          color: var(--text-slate-700);
-          letter-spacing: 0.08em;
-        }
-        [data-theme='dark'] .sp-sidebar-section-title {
-          color: #cbd5e1 !important;
-        }
-        .sp-sidebar-section-count {
-          margin-left: auto;
-          background: var(--bg-slate-50);
-          border: 1px solid var(--border-slate-200);
-          border-radius: 999px;
-          padding: 1px 7px;
-          font-size: 10px;
           font-weight: 700;
-          color: var(--text-slate-500);
-          letter-spacing: 0;
-          text-transform: none;
-          font-variant-numeric: tabular-nums;
-        }
-        [data-theme='dark'] .sp-sidebar-section-count {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
-          color: #94a3b8 !important;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--text-slate-400);
         }
         .sp-sidebar-list {
           display: flex;
           flex-direction: column;
           gap: 2px;
         }
-        .sp-sidebar-list-scroll {
-          /* sidebar itself scrolls; no inner scroll cap */
-        }
         .sp-sidebar-item {
-          position: relative;
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 7px 10px 7px 12px;
-          background: transparent;
-          border: 1px solid transparent;
-          border-radius: 8px;
-          cursor: pointer;
-          font-family: inherit;
-          color: var(--text-slate-700);
-          text-align: left;
+          gap: 9px;
           width: 100%;
-          transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, padding 0.15s ease;
-          min-width: 0;
-        }
-        .sp-sidebar-item::before {
-          content: '';
-          position: absolute;
-          left: 3px;
-          top: 50%;
-          transform: translateY(-50%) scaleY(0);
-          width: 3px;
-          height: 18px;
-          border-radius: 0 3px 3px 0;
-          background: #3b82f6;
-          transition: transform 0.18s ease;
-          transform-origin: center;
+          height: 32px;
+          padding: 0 10px;
+          border: none;
+          background: transparent;
+          border-radius: 9px;
+          cursor: pointer;
+          font-size: 13px;
+          font-family: inherit;
+          font-weight: 600;
+          color: var(--text-slate-600);
+          text-align: left;
+          transition: background 0.15s, color 0.15s;
         }
         .sp-sidebar-item:hover {
-          background: var(--bg-slate-50);
-          border-color: var(--border-slate-100);
+          background: var(--bg-slate-100);
+          color: var(--text-slate-900);
         }
         [data-theme='dark'] .sp-sidebar-item {
           color: #cbd5e1 !important;
         }
         [data-theme='dark'] .sp-sidebar-item:hover {
           background: #1c232e !important;
-          border-color: #1f2937 !important;
         }
         .sp-sidebar-item.active {
-          background: linear-gradient(90deg, rgba(59,130,246,0.10) 0%, rgba(59,130,246,0.04) 100%);
-          border-color: rgba(59,130,246,0.20);
-          color: #1d4ed8;
-          padding-left: 14px;
-        }
-        .sp-sidebar-item.active::before {
-          transform: translateY(-50%) scaleY(1);
-        }
-        .sp-sidebar-status-item.active::before {
-          background: var(--sp-accent, #3b82f6);
-        }
-        .sp-sidebar-status-item.active {
-          background: color-mix(in srgb, var(--sp-accent, #3b82f6) 9%, transparent);
-          border-color: color-mix(in srgb, var(--sp-accent, #3b82f6) 22%, transparent);
-          color: var(--sp-accent, #1d4ed8);
+          color: var(--text-slate-900);
+          font-weight: 600;
         }
         [data-theme='dark'] .sp-sidebar-item.active {
-          background: linear-gradient(90deg, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0.06) 100%) !important;
-          border-color: rgba(59,130,246,0.32) !important;
-          color: #60a5fa !important;
+          color: #f8fafc !important;
         }
         .sp-sidebar-status-chip {
           width: 22px;
@@ -4858,50 +4817,75 @@ export default function SprintPlanComponent() {
         }
         [data-theme='dark'] .sp-metric-divider { background: #1f2937 !important; }
 
-        /* ── Slim workbench ───────────────────────────────────── */
-        .sp-workbench-slim {
+        /* ── Main Topbar ──────────────────────────────────────── */
+        .sp-main-topbar {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 8px 10px;
-          background: var(--bg-pure-white);
+          justify-content: space-between;
+          gap: 16px;
+          padding: 6px 20px;
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid var(--border-slate-200);
+          margin: -24px -24px 16px -21px;
+          border-left: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .sp-main-topbar {
+          background: rgba(15, 20, 25, 0.85);
+          border-bottom-color: #1f2937;
+        }
+        .sp-main-search {
+          flex: 0 0 auto;
+        }
+        .sp-main-stats {
+          flex: 1 1 auto;
+          display: flex;
+          align-items: center;
+          font-size: 13px;
+          color: var(--text-slate-500);
+        }
+        .sp-main-controls {
+          flex: 0 0 auto;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .sp-pulse-dot {
+          width: 6px; height: 6px; border-radius: 9999px;
+          background: #10b981;
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55);
+          animation: sp-pulse 2s infinite;
+        }
+        .sp-search-kbd {
+          display: inline-block;
+          font-size: 10px;
+          font-weight: 600;
+          padding: 1px 4px;
+          border-radius: 4px;
+          background: var(--bg-slate-100);
+          color: var(--text-slate-400);
           border: 1px solid var(--border-slate-200);
-          border-radius: 12px;
-          margin-bottom: 12px;
-          box-shadow: 0 1px 2px rgba(15,23,42,0.02);
+          font-family: inherit;
         }
-        [data-theme='dark'] .sp-workbench-slim {
+        [data-theme='dark'] .sp-search-kbd {
+          background: #1f2937;
+          border-color: #374151;
+        }
+        .sp-premium-select .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 10px !important;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+          padding-left: 12px !important;
+          font-weight: 500 !important;
+          background: var(--bg-pure-white) !important;
+        }
+        [data-theme='dark'] .sp-premium-select .ant-select-selector {
           background: #161b22 !important;
-          border-color: #1f2937 !important;
+          border-color: #2d3748 !important;
         }
-        .sp-workbench-slim .sp-search-box {
-          flex: 1;
-          min-width: 0;
-          max-width: none;
-          padding: 2px 12px;
-          border: none;
-          background: var(--bg-slate-50) !important;
-        }
-        .sp-workbench-slim .sp-search-box.active {
-          background: var(--bg-slate-50) !important;
-          box-shadow: 0 0 0 2px rgba(59,130,246,0.18);
-        }
-        [data-theme='dark'] .sp-workbench-slim .sp-search-box {
-          background: #1c232e !important;
-        }
-        [data-theme='dark'] .sp-workbench-slim .sp-search-box.active {
-          background: #1c232e !important;
-          box-shadow: 0 0 0 2px rgba(59,130,246,0.25);
-        }
-        .sp-workbench-slim .sp-filter-pill {
-          min-width: 170px;
-          height: 32px !important;
-        }
-        .sp-workbench-slim .sp-filter-pill .ant-select-selector {
-          height: 32px !important;
-          padding: 0 10px !important;
-        }
-
         /* ── Responsive ───────────────────────────────────────── */
         @media (max-width: 1024px) {
           .sp-shell {
@@ -4926,11 +4910,15 @@ export default function SprintPlanComponent() {
           }
         }
         @media (max-width: 640px) {
-          .sp-workbench-slim {
+          .sp-main-topbar {
             flex-wrap: wrap;
           }
-          .sp-workbench-slim .sp-filter-pill {
+          .sp-main-search {
             width: 100%;
+          }
+          .sp-main-controls {
+            width: 100%;
+            justify-content: space-between;
           }
         }
 
@@ -5150,18 +5138,41 @@ export default function SprintPlanComponent() {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          padding: 12px 20px;
-          margin: 12px -20px 0;
+          padding: 10px 24px;
+          margin: auto -20px -28px -20px;
           flex-wrap: wrap;
           position: sticky;
           bottom: 0;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-200);
           z-index: 10;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
         }
         [data-theme='dark'] .sp-card-pagination {
           background: #161b22 !important;
           border-top-color: #1f2937 !important;
+        }
+
+        /* Custom Pagination Styles */
+        .sp-card-pagination .ant-pagination-item,
+        .sp-card-pagination .ant-pagination-prev .ant-pagination-item-link,
+        .sp-card-pagination .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .sp-card-pagination .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .sp-card-pagination .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .sp-card-pagination .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          color: var(--text-slate-500) !important;
         }
 
         @media (max-width: 1100px) {
@@ -5385,8 +5396,8 @@ export default function SprintPlanComponent() {
         .sp-view-toggle {
           display: inline-flex;
           padding: 2px;
-          background: var(--bg-slate-50);
-          border: 1px solid var(--border-slate-200);
+          background: transparent;
+          border: none;
           border-radius: 8px;
           gap: 2px;
         }
@@ -5417,9 +5428,9 @@ export default function SprintPlanComponent() {
           color: #f1f5f9;
         }
         .sp-view-toggle-btn.active {
-          background: var(--bg-pure-white);
-          color: #1d4ed8;
-          border-color: var(--border-slate-200);
+          background: var(--bg-slate-100);
+          color: var(--text-slate-700);
+          border-color: transparent;
         }
         [data-theme='dark'] .sp-view-toggle-btn.active {
           background: #161b22 !important;
@@ -5431,7 +5442,7 @@ export default function SprintPlanComponent() {
         .sp-cal-card {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
-          border-radius: 12px;
+          border-radius: 0;
           position: relative;
         }
         [data-theme='dark'] .sp-cal-card {
@@ -5449,7 +5460,7 @@ export default function SprintPlanComponent() {
           position: sticky;
           top: 52px;
           z-index: 5;
-          border-radius: 12px 12px 0 0;
+          border-radius: 0;
         }
         [data-theme='dark'] .sp-cal-header {
           background: #161b22 !important;
@@ -6147,11 +6158,11 @@ export default function SprintPlanComponent() {
           position: relative;
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
-          border-radius: 14px;
-          padding: 18px 20px 16px 22px;
+          border-radius: 0px;
+          padding: 12px 16px 12px 16px;
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 10px;
           overflow: hidden;
           transition: border-color 0.2s ease, background 0.2s ease;
         }

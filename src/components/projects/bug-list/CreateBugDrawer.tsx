@@ -403,6 +403,14 @@ export default function CreateBugDrawer({
                 <div className="hb-cbd-headsub">
                   Describe what's broken — refinement happens later via AI.
                 </div>
+                {editingBug && (
+                  <div className="hb-cbd-headsub" style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ color: 'var(--hb-text-muted)' }}>Created By:</span>
+                    <strong style={{ color: 'var(--hb-text-soft)', fontWeight: 600 }}>
+                      {editingBug.createdBy?.name || "Unknown"}
+                    </strong>
+                  </div>
+                )}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {editingBug && canReadActivityLog && (

@@ -29,7 +29,7 @@ interface TicketFilterPillProps {
   showAvatar?: boolean;
 }
 
-const initialsFor = (s: string): string => {
+export const initialsFor = (s: string): string => {
   if (!s) return "?";
   const parts = s
     .replace(/[_\-]/g, " ")
@@ -39,7 +39,8 @@ const initialsFor = (s: string): string => {
   return s.slice(0, 2).toUpperCase();
 };
 
-const avatarColorFor = (str: string): string => {
+export const avatarColorFor = (str: string): string => {
+  if (str === 'unassigned' || str === 'Unassigned') return '#4f46e5';
   const COLORS = [
     '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
     '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
@@ -186,7 +187,7 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
       onOpenChange={(v) => !disabled && setOpen(v)}
       placement="bottomLeft"
       overlayClassName="fp-overlay-popover"
-      destroyTooltipOnHide
+      destroyOnHidden
     >
       <button
         type="button"

@@ -263,7 +263,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       }}
       placement="bottomLeft"
       overlayClassName="sd-overlay-popover"
-      destroyTooltipOnHide
+      destroyOnHidden
     >
       <div className={triggerClasses} style={style}>
         <div className="sd-trigger-content">

@@ -7,6 +7,7 @@ export interface MemberSelectOption {
   email: string;
   position: string;
   role: string;
+  avatarUrl?: string | null;
 }
 
 export function useMembersSelect() {

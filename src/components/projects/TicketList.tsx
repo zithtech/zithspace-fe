@@ -110,7 +110,7 @@ import { ManualCreateTicketModal } from "./ManualCreateTicketModal";
 import { AiCreateTicketModal } from "./AiCreateTicketModal";
 import TicketSkeleton from "./TicketSkeleton";
 import TicketSidebar from "./TicketSidebar";
-import TicketFilterPill from "./TicketFilterPill";
+import TicketFilterPill, { initialsFor, avatarColorFor } from "./TicketFilterPill";
 import { TablePreferenceService } from "@/services/tablePreferenceService";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
@@ -1543,6 +1543,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             );
           }
 
+          const isUnassigned = !assignee || (typeof assignee === "string" ? assignee === "unassigned" : !assignee.id);
+          const avatarBgColor = isUnassigned ? "#94a3b8" : avatarColorFor(name);
+          const initials = isUnassigned ? "UN" : initialsFor(name);
+
           return (
             <Space
               style={{ cursor: canUpdateTicket ? "pointer" : "default", transition: 'all 0.2s' }}
@@ -1559,10 +1563,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             >
               <Avatar
                 size="small"
-                style={{ backgroundColor: "#1677ff" }}
-                src={assignee?.avatarUrl}
+                style={{ backgroundColor: avatarBgColor }}
+                src={typeof assignee === "object" ? assignee?.avatarUrl || undefined : undefined}
               >
-                {!assignee?.avatarUrl && name?.charAt(0)}
+                {initials}
               </Avatar>
               <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-700)' }}>{name}</Text>
             </Space>
@@ -1807,8 +1811,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           }
           return (
             <Space size={6}>
-              <Avatar size="small" style={{ backgroundColor: '#8b5cf6' }} src={reportTo.avatarUrl || undefined}>
-                {!reportTo.avatarUrl && reportTo.name?.charAt(0)}
+              <Avatar size="small" style={{ backgroundColor: avatarColorFor(reportTo.name) }} src={reportTo.avatarUrl || undefined}>
+                {!reportTo.avatarUrl && initialsFor(reportTo.name)}
               </Avatar>
               <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{reportTo.name}</Text>
             </Space>
@@ -1824,8 +1828,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           if (!createdBy) return <Text type="secondary" style={{ fontSize: 12 }}>-</Text>;
           return (
             <Space size={6}>
-              <Avatar size="small" style={{ backgroundColor: '#10b981' }} src={createdBy.avatarUrl || undefined}>
-                {!createdBy.avatarUrl && createdBy.name?.charAt(0)}
+              <Avatar size="small" style={{ backgroundColor: avatarColorFor(createdBy.name) }} src={createdBy.avatarUrl || undefined}>
+                {!createdBy.avatarUrl && initialsFor(createdBy.name)}
               </Avatar>
               <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{createdBy.name}</Text>
             </Space>
@@ -3483,14 +3487,23 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     icon={<UserOutlined style={{ fontSize: 11 }} />}
                     label="Assignee"
                     values={filters.assignee}
-                    options={members.map((m) => ({
-                      label: m.label,
-                      value: m.value,
-                      description: m.position || undefined,
-                    }))}
+                    options={[
+                      {
+                        label: "Unassigned",
+                        value: "unassigned",
+                        description: "No assignee",
+                      },
+                      ...members.map((m) => ({
+                        label: m.label,
+                        value: m.value,
+                        description: m.position || undefined,
+                        avatarUrl: m.avatarUrl || undefined,
+                      })),
+                    ]}
                     onChange={(val) => handleFilterChange('assignee', val)}
                     itemNoun="members"
                     width={290}
+                    showAvatar={true}
                   />
                   <TicketFilterPill
                     icon={<EditOutlined style={{ fontSize: 11 }} />}
@@ -3500,10 +3513,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       label: m.label,
                       value: m.value,
                       description: m.position || undefined,
+                      avatarUrl: m.avatarUrl || undefined,
                     }))}
                     onChange={(val) => handleFilterChange('createdBy', val)}
                     itemNoun="members"
                     width={290}
+                    showAvatar={true}
                   />
                   <TicketFilterPill
                     icon={<TagsOutlined style={{ fontSize: 11 }} />}

@@ -35,11 +35,11 @@ const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
 };
 
 const MODULE_ACCENT: Record<string, string> = {
-  HOME: '#3250ce',     // indigo
-  WORK: '#3250ce',     // sky
-  ADMIN: '#3250ce',    // emerald
-  HRMS: '#3250ce',     // amber
-  FINANCE: '#3250ce',  // violet
+  HOME: '#3b82f6',     // indigo
+  WORK: '#3b82f6',     // sky
+  ADMIN: '#3b82f6',    // emerald
+  HRMS: '#3b82f6',     // amber
+  FINANCE: '#3b82f6',  // violet
 };
 
 interface ShortcutItem {

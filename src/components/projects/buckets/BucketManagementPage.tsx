@@ -13,6 +13,7 @@ import {
   Avatar,
   DatePicker,
   Pagination,
+  Dropdown,
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import { SearchableDropdown, SearchableDropdownOption } from "@/components/common/SearchableDropdown";
@@ -37,6 +38,9 @@ import {
   AppstoreOutlined,
   SettingOutlined,
   UpOutlined,
+  UnorderedListOutlined,
+  CloseOutlined,
+  EllipsisOutlined
 } from "@ant-design/icons";
 import {
   useBuckets,
@@ -112,6 +116,7 @@ export default function BucketManagementPage() {
   const [expandedBucketId, setExpandedBucketId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [viewMode, setViewMode] = useState<"list" | "cards">("list");
   const cardRefs = useRef<Record<string, HTMLElement | null>>({});
 
   // ── Data ─────────────────────────────────────────────────────────
@@ -299,6 +304,12 @@ export default function BucketManagementPage() {
     handleModalClose();
     refetch();
   };
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setTimeout(() => setIsRefreshing(false), 500);
+    message.success("Success, buckets refreshed");
+  };
   const resetFilters = () => {
     setVisibilityFilter("all");
     setSelectedProjectKey(null);
@@ -327,288 +338,293 @@ export default function BucketManagementPage() {
   // ── Render ───────────────────────────────────────────────────────
   return (
     <div className="bh2-page">
-      <TimeTrackingHeader
-        style={{
-          padding: "9.5px 32px",
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-          marginBottom: 0,
-          borderBottom: "1px solid var(--border-slate-200)",
-        }}
-        icon={<FolderOpenOutlined style={{ fontSize: 20, color: "#3b82f6" }} />}
-        title="Buckets Hub"
-        description="Strategic task organization and cross-project categorization"
-        extra={
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <Button
-              icon={<ReloadOutlined spin={isRefreshing} />}
-              onClick={async () => {
-                setIsRefreshing(true);
-                await queryClient.invalidateQueries({ queryKey: bucketKeys.all });
-                setIsRefreshing(false);
-                message.success("Buckets refreshed");
-              }}
-              loading={isLoading && !isRefreshing}
-              style={{ height: 36, fontWeight: 600 }}
-            />
-            {canCreateTicketBucket && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleCreate}
-                style={{
-                  height: 36,
-                  fontWeight: 700,
-                  background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                  border: "none",
-                }}
-              >
-                Create New Bucket
-              </Button>
-            )}
-          </div>
-        }
-      />
-
       <div className="bh2-shell-wrap">
         <div className="bh2-shell">
           {/* ── Sidebar ───────────────────────────────────────────── */}
           <aside className="bh2-sidebar">
-            {/* Visibility */}
-            <div className="bh2-sidebar-section">
-              <div className="bh2-sidebar-section-head">
-                <FilterOutlined style={{ fontSize: 10 }} />
-                <span>Visibility</span>
+            <div className="bh2-sidebar-top">
+              <div className="bh2-sidebar-brand">
+                <div className="bh2-hero-icon-box">
+                  <FolderOpenOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="bh2-sidebar-title">Buckets Hub</h1>
+                  <p className="bh2-sidebar-subtitle">Strategic task organization</p>
+                </div>
               </div>
-              <div className="bh2-sidebar-list">
-                {(
-                  [
-                    { k: "all", label: "All", icon: <AppstoreOutlined style={{ fontSize: 11 }} />, count: visibilityCounts.all, color: "#64748b" },
-                    { k: "public", label: "Public", icon: <GlobalOutlined style={{ fontSize: 11 }} />, count: visibilityCounts.public, color: "#10b981" },
-                    { k: "private", label: "Private", icon: <LockOutlined style={{ fontSize: 11 }} />, count: visibilityCounts.private, color: "#f59e0b" },
-                  ] as const
-                ).map((item) => {
-                  const active = visibilityFilter === item.k;
-                  return (
-                    <button
-                      key={item.k}
-                      className={`bh2-sidebar-item ${active ? "active" : ""}`}
-                      onClick={() => setVisibilityFilter(item.k as VisibilityKey)}
-                    >
-                      <span
-                        className="bh2-sidebar-item-icon"
-                        style={{ color: item.color, background: `${item.color}14`, borderColor: `${item.color}33` }}
-                      >
-                        {item.icon}
-                      </span>
-                      <span className="bh2-sidebar-item-label">{item.label}</span>
-                      <span className="bh2-sidebar-item-count">{item.count}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="bh2-sidebar-divider" />
-
-            {/* Projects + nested buckets */}
-            <div className="bh2-sidebar-section">
-              <div className="bh2-sidebar-section-head">
-                <ProjectOutlined style={{ fontSize: 10 }} />
-                <span>Projects</span>
-                <span className="bh2-sidebar-section-count">{projectOrder.length}</span>
-              </div>
-              <div className="bh2-sidebar-list">
-                <button
-                  className={`bh2-sidebar-item ${!selectedProjectKey ? "active" : ""}`}
-                  onClick={() => setSelectedProjectKey(null)}
+              {canCreateTicketBucket && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  className="bh2-side-create"
+                  block
+                  onClick={handleCreate}
                 >
-                  <span className="bh2-sidebar-item-icon bh2-icon-all">
-                    <AppstoreOutlined style={{ fontSize: 11 }} />
-                  </span>
-                  <span className="bh2-sidebar-item-label">All projects</span>
-                  <span className="bh2-sidebar-item-count">{allBuckets.length}</span>
-                </button>
-
-                {projectOrder.map((proj, i) => {
-                  const group = bucketsByProject.get(proj.key);
-                  const buckets = group?.buckets || [];
-                  const isExpanded = expandedProjects.has(proj.key);
-                  const isActive = selectedProjectKey === proj.key;
-                  const color = PROJECT_PALETTE[i % PROJECT_PALETTE.length];
-                  const initial = proj.name.charAt(0).toUpperCase();
-                  return (
-                    <React.Fragment key={proj.key}>
-                      <div className={`bh2-sidebar-proj-row ${isActive ? "active" : ""}`}>
-                        <button
-                          className="bh2-sidebar-proj-toggle"
-                          onClick={() => toggleProject(proj.key)}
-                          aria-label={isExpanded ? "Collapse" : "Expand"}
-                        >
-                          {isExpanded ? (
-                            <DownOutlined style={{ fontSize: 8 }} />
-                          ) : (
-                            <RightOutlined style={{ fontSize: 8 }} />
-                          )}
-                        </button>
-                        <button
-                          className="bh2-sidebar-proj-main"
-                          onClick={() =>
-                            setSelectedProjectKey((prev) => (prev === proj.key ? null : proj.key))
-                          }
-                          title={proj.name}
-                        >
-                          <span
-                            className="bh2-sidebar-item-icon"
-                            style={{ background: `${color}14`, color, borderColor: `${color}33` }}
-                          >
-                            {initial}
-                          </span>
-                          <span className="bh2-sidebar-item-label">{proj.name}</span>
-                          <span className="bh2-sidebar-item-count">{buckets.length}</span>
-                        </button>
-                      </div>
-                      {isExpanded && (
-                        <div className="bh2-sidebar-children">
-                          {buckets.length === 0 ? (
-                            <div className="bh2-sidebar-empty-mini">No buckets</div>
-                          ) : (
-                            buckets.map((b) => (
-                              <button
-                                key={b.id}
-                                className="bh2-sidebar-bucket"
-                                onClick={() => handleView(b.id)}
-                                title={b.name}
-                              >
-                                <span
-                                  className="bh2-sidebar-bucket-dot"
-                                  style={{ background: b.color || PALETTE_FALLBACK }}
-                                />
-                                <span className="bh2-sidebar-bucket-label">{b.name}</span>
-                                <span className="bh2-sidebar-bucket-count">{b._count?.tickets || 0}</span>
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-
-                {projectOrder.length === 0 && !isLoading && (
-                  <div className="bh2-sidebar-empty">No projects yet</div>
-                )}
-              </div>
+                  Create Bucket
+                </Button>
+              )}
             </div>
 
-            <div className="bh2-sidebar-divider" />
-
-            {/* Bucket Size */}
-            <div className="bh2-sidebar-section">
-              <div className="bh2-sidebar-section-head">
-                <FileTextOutlined style={{ fontSize: 10 }} />
-                <span>Bucket Size</span>
+            <div className="bh2-sidebar-scroll">
+              {/* Visibility */}
+              <div className="bh2-side-group">
+                <div className="bh2-side-label">VIEWS</div>
+                <div className="flex flex-col gap-0.5">
+                  {(
+                    [
+                      { k: "all", label: "All hubs", icon: <AppstoreOutlined /> },
+                      { k: "public", label: "Public", icon: <GlobalOutlined /> },
+                      { k: "private", label: "Private", icon: <LockOutlined /> },
+                    ] as const
+                  ).map((item) => {
+                    const active = visibilityFilter === item.k;
+                    return (
+                      <button
+                        key={item.k}
+                        className={`bh2-view-btn ${active ? "active" : ""}`}
+                        onClick={() => setVisibilityFilter(item.k as VisibilityKey)}
+                      >
+                        <span className="bh2-view-icon">{item.icon}</span>
+                        <span className="bh2-view-label">{item.label}</span>
+                        <span className="bh2-view-count">{visibilityCounts[item.k]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="bh2-sidebar-list">
-                {SIZE_BUCKETS.map((seg) => {
-                  const active = sizeFilter === seg.key;
-                  return (
+
+              {/* Filters */}
+              <div className="bh2-side-group" style={{ marginTop: 22 }}>
+                <div className="bh2-side-label">Filters</div>
+                <div className="bh2-side-filters flex flex-col gap-2">
+                  <SearchableDropdown
+                    placeholder="Visibility"
+                    options={visibilityOptions}
+                    value={visibilityFilter === "all" ? undefined : visibilityFilter}
+                    onChange={(v) =>
+                      setVisibilityFilter((v as VisibilityKey) || "all")
+                    }
+                    itemNoun="options"
+                    width={220}
+                    style={{ width: '100%' }}
+                  />
+                  <SearchableDropdown
+                    placeholder="Owner"
+                    options={ownerOptions}
+                    value={ownerFilter || undefined}
+                    onChange={(v) => setOwnerFilter(v || null)}
+                    itemNoun="owners"
+                    width={260}
+                    style={{ width: '100%' }}
+                  />
+                  <DatePicker.RangePicker
+                    className="premium-range-picker rounded-sm"
+                    style={{ width: '100%', background: 'var(--bg-pure-white)', height: 35 }}
+                    value={dateRange as any}
+                    onChange={(v) => setDateRange(v as any)}
+                    format="MMM D, YYYY"
+                    allowEmpty={[true, true]}
+                  />
+                  {(visibilityFilter !== "all" || ownerFilter || (dateRange && (dateRange[0] || dateRange[1]))) && (
                     <button
-                      key={seg.key}
-                      className={`bh2-sidebar-item ${active ? "active" : ""}`}
-                      onClick={() => setSizeFilter(seg.key)}
+                      type="button"
+                      className="bh2-side-clear"
+                      onClick={() => {
+                        setVisibilityFilter("all");
+                        setOwnerFilter(null);
+                        setDateRange(null);
+                      }}
                     >
-                      <span className="bh2-sidebar-item-dot" style={{ background: seg.color }} />
-                      <span className="bh2-sidebar-item-label">{seg.label}</span>
-                      <span className="bh2-sidebar-item-count">{sizeCounts[seg.key] || 0}</span>
+                      <CloseOutlined style={{ fontSize: 10 }} />
+                      Clear filters
                     </button>
-                  );
-                })}
+                  )}
+                </div>
               </div>
-            </div>
 
-            {activeFilterCount > 0 && (
-              <>
-                <div className="bh2-sidebar-divider" />
+              {/* Projects + nested buckets */}
+              <div className="bh2-side-group">
+                <div className="bh2-side-label">Projects</div>
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    className={`bh2-view-btn ${!selectedProjectKey ? "active" : ""}`}
+                    onClick={() => setSelectedProjectKey(null)}
+                  >
+                    <span className="bh2-view-icon">
+                      <ProjectOutlined />
+                    </span>
+                    <span className="bh2-view-label">All projects</span>
+                    <span className="bh2-view-count">{allBuckets.length}</span>
+                  </button>
+
+                  {projectOrder.map((proj, i) => {
+                    const group = bucketsByProject.get(proj.key);
+                    const buckets = group?.buckets || [];
+                    const isExpanded = expandedProjects.has(proj.key);
+                    const isActive = selectedProjectKey === proj.key;
+                    const color = PROJECT_PALETTE[i % PROJECT_PALETTE.length];
+                    const initial = proj.name.charAt(0).toUpperCase();
+                    return (
+                      <React.Fragment key={proj.key}>
+                        <div className={`bh2-sidebar-proj-row ${isActive ? "active" : ""}`}>
+                          <button
+                            className="bh2-sidebar-proj-toggle"
+                            onClick={() => toggleProject(proj.key)}
+                            aria-label={isExpanded ? "Collapse" : "Expand"}
+                          >
+                            {isExpanded ? (
+                              <DownOutlined style={{ fontSize: 8 }} />
+                            ) : (
+                              <RightOutlined style={{ fontSize: 8 }} />
+                            )}
+                          </button>
+                          <button
+                            className="bh2-sidebar-proj-main"
+                            onClick={() =>
+                              setSelectedProjectKey((prev) => (prev === proj.key ? null : proj.key))
+                            }
+                            title={proj.name}
+                          >
+                            <span className="bh2-view-icon" style={{ color }}>
+                              <ProjectOutlined />
+                            </span>
+                            <span className="bh2-view-label">{proj.name}</span>
+                            <span className="bh2-view-count">{buckets.length}</span>
+                          </button>
+                        </div>
+                        {isExpanded && (
+                          <div className="bh2-sidebar-children">
+                            {buckets.length === 0 ? (
+                              <div className="bh2-sidebar-empty-mini">No buckets</div>
+                            ) : (
+                              buckets.map((b) => (
+                                <button
+                                  key={b.id}
+                                  className="bh2-sidebar-bucket"
+                                  onClick={() => handleView(b.id)}
+                                  title={b.name}
+                                >
+                                  <span
+                                    className="bh2-sidebar-bucket-dot"
+                                    style={{ background: b.color || PALETTE_FALLBACK }}
+                                  />
+                                  <span className="bh2-sidebar-bucket-label">{b.name}</span>
+                                  <span className="bh2-sidebar-bucket-count">{b._count?.tickets || 0}</span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+
+                  {projectOrder.length === 0 && !isLoading && (
+                    <div className="bh2-sidebar-empty">No projects yet</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bucket Size */}
+              <div className="bh2-side-group" style={{ marginTop: 22 }}>
+                <div className="bh2-side-label">Bucket Size</div>
+                <div className="flex flex-col gap-0.5">
+                  {SIZE_BUCKETS.map((seg) => {
+                    const active = sizeFilter === seg.key;
+                    return (
+                      <button
+                        key={seg.key}
+                        className={`bh2-view-btn ${active ? "active" : ""}`}
+                        onClick={() => setSizeFilter(seg.key)}
+                      >
+                        <span className="bh2-view-icon">
+                          <span className="bh2-sidebar-item-dot" style={{ background: seg.color }} />
+                        </span>
+                        <span className="bh2-view-label">{seg.label}</span>
+                        <span className="bh2-view-count">{sizeCounts[seg.key] || 0}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+
+              {activeFilterCount > 0 && (
                 <button className="bh2-sidebar-clear" onClick={resetFilters}>
                   <ReloadOutlined style={{ fontSize: 10 }} />
                   Clear filters · {activeFilterCount}
                 </button>
-              </>
-            )}
+              )}
+            </div>
           </aside>
 
           {/* ── Main ──────────────────────────────────────────────── */}
           <main className="bh2-main">
             {/* Toolbar */}
             <div className="bh2-toolbar">
-              <div className="bh2-toolbar-title">
-                <span className="bh2-toolbar-icon">
-                  <FolderOpenOutlined style={{ fontSize: 13, color: "#3b82f6" }} />
-                </span>
-                <Text style={{ fontSize: 13, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                  Buckets
-                </Text>
-                <span className="bh2-toolbar-chip">
-                  {filteredBuckets.length} {filteredBuckets.length === 1 ? "result" : "results"}
-                </span>
-              </div>
-
-              <div className="bh2-toolbar-filters">
-                <SearchableDropdown
-                  placeholder="Visibility"
-                  options={visibilityOptions}
-                  value={visibilityFilter === "all" ? undefined : visibilityFilter}
-                  onChange={(v) =>
-                    setVisibilityFilter((v as VisibilityKey) || "all")
-                  }
-                  itemNoun="options"
-                  style={{ height: 32, minWidth: 140, borderRadius: 8 }}
-                  width={220}
-                />
-                <SearchableDropdown
-                  placeholder="Owner"
-                  options={ownerOptions}
-                  value={ownerFilter || undefined}
-                  onChange={(v) => setOwnerFilter(v || null)}
-                  itemNoun="owners"
-                  style={{ height: 32, minWidth: 160, borderRadius: 8 }}
-                  width={260}
-                />
-                <DatePicker.RangePicker
-                  size="small"
-                  value={dateRange as any}
-                  onChange={(v) => setDateRange(v as any)}
-                  format="MMM D, YYYY"
-                  allowEmpty={[true, true]}
-                  className="bh2-range-picker"
-                />
-              </div>
-
-              <div className={`bh2-search-box ${searchQuery ? "active" : ""}`}>
-                <SearchOutlined
-                  style={{ color: searchQuery ? "#3b82f6" : "#94a3b8", fontSize: 13 }}
-                />
+              <div className="bh2-main-search">
                 <Input
                   placeholder="Search bucket name or description"
-                  variant="borderless"
-                  style={{
-                    fontSize: 12.5,
-                    fontWeight: 500,
-                    padding: "4px 0",
-                    flex: 1,
-                    background: "transparent",
-                  }}
+                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                  // suffix={!searchQuery ? <span className="bh2-search-kbd">⌘K</span> : undefined}
+                  className="premium-search-input rounded-lg transition-all"
+                  style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 38 }}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   allowClear
                 />
               </div>
+
+              <div className="bh2-main-stats">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="bh2-pulse-dot" />
+                  <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{filteredBuckets.length}</span> {filteredBuckets.length === 1 ? "result" : "results"}
+                </span>
+              </div>
+
+              <div className="bh2-main-controls">
+                <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
+                  <Tooltip title="List">
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                      style={{
+                        width: 30, height: 30,
+                        background: viewMode === 'list' ? 'var(--bg-blue-50)' : 'transparent',
+                        color: viewMode === 'list' ? 'var(--bg-blue-500)' : 'var(--text-blue-400)'
+                      }}
+                    >
+                      <UnorderedListOutlined style={{ fontSize: 16, color: viewMode === 'list' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
+                    </button>
+                  </Tooltip>
+                  <Tooltip title="Cards">
+                    <button
+                      onClick={() => setViewMode('cards')}
+                      className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                      style={{
+                        width: 30, height: 30,
+                        background: viewMode === 'cards' ? 'var(--bg-blue-50)' : 'transparent',
+                        color: viewMode === 'cards' ? 'var(--bg-blue-500)' : 'var(--text-blue-400)'
+                      }}
+                    >
+                      <AppstoreOutlined style={{ fontSize: 16, color: viewMode === 'cards' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
+                    </button>
+                  </Tooltip>
+                </div>
+                <Tooltip title="Refresh buckets">
+                  <Button
+                    icon={<ReloadOutlined spin={isRefreshing} />}
+                    onClick={handleRefresh}
+                    className="flex items-center justify-center rounded-xl border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200"
+                    style={{ height: 38, width: 38 }}
+                    loading={isLoading && !isRefreshing}
+                  />
+                </Tooltip>
+              </div>
             </div>
 
             {/* List */}
-            <div className="bh2-list">
+            <div className={viewMode === "cards" ? "bh2-grid" : "bh2-list"}>
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="bh2-list-card bh2-list-card-skel">
@@ -674,7 +690,6 @@ export default function BucketManagementPage() {
                       className="bh2-list-card"
                       style={{ ["--row-accent" as any]: accent }}
                     >
-                      <span className="bh2-list-stripe" style={{ background: accent }} />
 
                       <header className="bh2-list-head">
                         <div
@@ -694,9 +709,9 @@ export default function BucketManagementPage() {
                           <div
                             className="bh2-list-avatar"
                             style={{
-                              background: `linear-gradient(135deg, ${accent}22 0%, ${accent}3a 100%)`,
-                              color: accent,
-                              borderColor: `${accent}66`,
+                              background: `linear-gradient(135deg, #3b82f622 0%, #3b82f63a 100%)`,
+                              color: "#3b82f6",
+                              borderColor: `#3b82f666`,
                             }}
                           >
                             <span className="bh2-list-avatar-letter">{initial}</span>
@@ -804,7 +819,7 @@ export default function BucketManagementPage() {
                             <Avatar
                               size={26}
                               style={{
-                                background: `linear-gradient(135deg, ${accent} 0%, ${accent}cc 100%)`,
+                                background: `linear-gradient(135deg, #3b82f6 0%, #3b82f6cc 100%)`,
                                 fontSize: 11,
                                 fontWeight: 800,
                               }}
@@ -1003,11 +1018,10 @@ export default function BucketManagementPage() {
 
             {!isLoading && filteredBuckets.length > 0 && (
               <div className="bh2-pagination">
-                <Text className="bh2-pagination-meta">
-                  <b>{(currentPage - 1) * pageSize + 1}</b>–
-                  <b>{Math.min(currentPage * pageSize, filteredBuckets.length)}</b>{" "}
-                  of <b>{filteredBuckets.length}</b>{" "}
-                  {filteredBuckets.length === 1 ? "bucket" : "buckets"}
+                <Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
+                  Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>
+                    {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredBuckets.length)}
+                  </span> of <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>{filteredBuckets.length}</span> bucket{filteredBuckets.length !== 1 ? 's' : ''}
                 </Text>
                 <Pagination
                   current={currentPage}
@@ -1018,7 +1032,7 @@ export default function BucketManagementPage() {
                     setPageSize(s);
                   }}
                   showSizeChanger
-                  size="small"
+                  pageSizeOptions={[10, 15, 25, 50, 100]}
                 />
               </div>
             )}
@@ -1036,9 +1050,8 @@ export default function BucketManagementPage() {
       <style jsx global>{`
         /* ── Page shell ──────────────────────────────────────────── */
         .bh2-page {
-          margin: 0 -24px;
-          background: #f8fafc;
-          min-height: calc(100vh - 64px);
+          background: var(--bg-pure-white);
+          min-height: calc(100vh - 54px);
           display: flex;
           flex-direction: column;
         }
@@ -1051,15 +1064,15 @@ export default function BucketManagementPage() {
         }
         .bh2-shell {
           display: grid;
-          grid-template-columns: 268px minmax(0, 1fr);
+          grid-template-columns: 252px minmax(0, 1fr);
           gap: 0;
           align-items: stretch;
-          min-height: calc(100vh - 64px - 52px);
+          min-height: calc(100vh - 54px);
         }
         .bh2-main {
           min-width: 0;
           padding: 14px 24px 32px;
-          background: #f8fafc;
+          background: var(--bg-pure-white);
         }
         [data-theme="dark"] .bh2-main {
           background: transparent !important;
@@ -1067,87 +1080,91 @@ export default function BucketManagementPage() {
 
         /* ── Sidebar ─────────────────────────────────────────────── */
         .bh2-sidebar {
-          background: var(--bg-slate-50);
+          width: 252px;
+          background: var(--bg-pure-white);
           border-right: 1px solid var(--border-slate-200);
-          padding: 12px 12px 14px 20px;
+          display: flex;
+          flex-direction: column;
+          flex-shrink: 0;
           position: sticky;
-          top: 52px;
-          height: calc(100vh - 64px - 52px);
-          overflow-y: auto;
-          align-self: start;
-          /* Hide the scrollbar UI but keep scrolling */
-          scrollbar-width: none;
-          -ms-overflow-style: none;
+          top: 0;
+          height: calc(100vh - 54px);
+          overflow: hidden;
+          z-index: 10;
         }
         [data-theme="dark"] .bh2-sidebar {
           background: #0f1419 !important;
           border-right-color: #1f2937 !important;
         }
-        .bh2-sidebar::-webkit-scrollbar {
-          width: 0;
-          height: 0;
-          display: none;
+
+        .bh2-sidebar-top { padding: 14px 14px 12px 18px; }
+        .bh2-sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .bh2-hero-icon-box {
+          width: 38px; height: 38px; border-radius: 10px;
+          background: rgba(59, 130, 246, 0.08);
+          display: flex; align-items: center; justify-content: center;
+          border: 1px solid rgba(59, 130, 246, 0.18);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .bh2-hero-icon-box {
+          background: rgba(59, 130, 246, 0.16);
+          border-color: rgba(59, 130, 246, 0.28);
+        }
+        .bh2-sidebar-title { font-size: 14.5px; font-weight: 700; color: var(--text-slate-900); margin: 0 0 2px 0; letter-spacing: -0.01em; line-height: 1.2; }
+        [data-theme='dark'] .bh2-sidebar-title { color: #f1f5f9; }
+        .bh2-sidebar-subtitle { font-size: 11px; color: var(--text-slate-400); font-weight: 500; margin: 0; line-height: 1.2; }
+        .bh2-side-create {
+          height: 36px !important;
+          border-radius: 6px !important;
+          font-weight: 600 !important;
+          background: linear-gradient(135deg, #3980f2 0%, #3980f2 100%) !important;
+          border: none !important;
         }
 
-        .bh2-sidebar-section {
-          padding: 4px 2px;
-        }
-        .bh2-sidebar-section-head {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 10px 8px;
-          font-size: 10px;
-          font-weight: 800;
-          color: var(--text-slate-500);
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-        }
-        [data-theme="dark"] .bh2-sidebar-section-head {
-          color: #94a3b8 !important;
-        }
-        .bh2-sidebar-section-count {
-          margin-left: auto;
-          background: var(--bg-slate-50);
-          border: 1px solid var(--border-slate-200);
-          border-radius: 999px;
-          padding: 0 6px;
-          font-size: 9.5px;
-          color: var(--text-slate-500);
-          letter-spacing: 0;
-          text-transform: none;
-        }
-        [data-theme="dark"] .bh2-sidebar-section-count {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
-          color: #94a3b8 !important;
+        .bh2-sidebar-scroll {
+          flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 16px;
         }
 
-        .bh2-sidebar-list {
-          display: flex;
-          flex-direction: column;
-          gap: 1px;
+        .bh2-side-group { margin-bottom: 22px; }
+        .bh2-side-label {
+          font-size: 10px; font-weight: 800; color: var(--text-slate-400);
+          text-transform: uppercase; letter-spacing: 0.08em;
+          padding: 0 10px; margin-bottom: 8px;
         }
-        .bh2-sidebar-item {
-          display: flex;
-          align-items: center;
-          gap: 9px;
-          padding: 7px 10px;
-          background: transparent;
-          border: 1px solid transparent;
-          border-radius: 8px;
-          cursor: pointer;
-          font-family: inherit;
-          color: var(--text-slate-700);
-          text-align: left;
-          width: 100%;
-          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
-          min-width: 0;
+
+        .bh2-view-btn {
+          display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+          border-radius: 8px; background: transparent; border: none; cursor: pointer;
+          width: 100%; text-align: left; font-family: inherit; font-size: 12.5px; font-weight: 500;
+          color: var(--text-slate-600); transition: all 0.15s ease;
         }
-        .bh2-sidebar-item:hover {
-          background: var(--bg-slate-50);
+        .bh2-view-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
+        .bh2-view-btn.active { background: var(--bg-blue-50); color: var(--text-blue-700); }
+        [data-theme='dark'] .bh2-view-btn { color: #94a3b8; }
+        [data-theme='dark'] .bh2-view-btn:hover { background: rgba(255,255,255,0.03); color: #f1f5f9; }
+        [data-theme='dark'] .bh2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+
+        .bh2-view-icon { font-size: 14px; color: var(--text-slate-400); display: flex; align-items: center; }
+        .bh2-view-btn.active .bh2-view-icon { color: var(--text-blue-600); }
+        [data-theme='dark'] .bh2-view-icon { color: #64748b; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #60a5fa; }
+
+        .bh2-view-count {
+          margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+          background: var(--bg-slate-50); padding: 2px 6px; border-radius: 10px;
         }
-        [data-theme="dark"] .bh2-sidebar-item {
+        .bh2-view-btn.active .bh2-view-count {
+          background: rgba(59, 130, 246, 0.15); color: var(--text-blue-700);
+        }
+        [data-theme='dark'] .bh2-view-count { background: #1c232e; color: #64748b; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-count { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+
+        .bh2-view-label {
+          flex: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
           color: #cbd5e1 !important;
         }
         [data-theme="dark"] .bh2-sidebar-item:hover {
@@ -1407,28 +1424,58 @@ export default function BucketManagementPage() {
           gap: 10px;
           flex-wrap: wrap;
           position: sticky;
-          top: 52px;
+          top: 0;
           z-index: 10;
           background: var(--bg-pure-white);
           margin: -14px -24px 0;
           padding: 12px 24px;
-          border-bottom: 1px solid var(--border-slate-100);
+          border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme="dark"] .bh2-toolbar {
           background: #0d1117 !important;
           border-bottom-color: #1f2937 !important;
         }
-        .bh2-toolbar-title {
-          display: flex;
-          align-items: center;
-          gap: 10px;
+        .bh2-main-search {
+          flex: 1;
+          max-width: 320px;
         }
-        .bh2-toolbar-filters {
+        .bh2-search-kbd {
+          display: inline-block;
+          font-family: ui-monospace, SFMono-Regular, monospace;
+          font-size: 10.5px;
+          font-weight: 700;
+          padding: 1px 6px;
+          margin: 0 2px;
+          border-radius: 5px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-700);
+          box-shadow: 0 1px 0 var(--border-slate-200);
+        }
+        .bh2-main-stats {
+          margin-left: 12px;
+          color: var(--text-slate-500);
+          font-size: 13px;
+        }
+        .bh2-pulse-dot {
+          display: inline-block;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+          animation: bh2-pulse 2s infinite;
+        }
+        @keyframes bh2-pulse {
+          0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+          70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .bh2-main-controls {
+          margin-left: auto;
           display: flex;
           align-items: center;
           gap: 8px;
-          flex-wrap: wrap;
-          margin-left: auto;
         }
         .bh2-vis-badge {
           width: 22px;
@@ -1516,6 +1563,19 @@ export default function BucketManagementPage() {
           gap: 8px;
           padding-top: 10px;
         }
+        
+        .bh2-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 16px;
+          padding-top: 10px;
+        }
+        
+        @media (max-width: 1200px) {
+          .bh2-grid {
+            grid-template-columns: 1fr;
+          }
+        }
 
         /* ── Sticky pagination footer ──────────────────────────── */
         .bh2-pagination {
@@ -1523,36 +1583,48 @@ export default function BucketManagementPage() {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
+          padding: 10px 24px;
+          margin: auto -24px -32px -24px;
+          flex-wrap: wrap;
           position: sticky;
           bottom: 0;
-          z-index: 10;
           background: var(--bg-pure-white);
-          margin: 14px -24px -32px;
-          padding: 12px 24px;
-          border-top: 1px solid var(--border-slate-100);
+          border-top: 1px solid var(--border-slate-200);
+          z-index: 10;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
         }
         [data-theme="dark"] .bh2-pagination {
-          background: #0d1117 !important;
+          background: #161b22 !important;
           border-top-color: #1f2937 !important;
         }
-        .bh2-pagination-meta {
-          font-size: 11.5px;
-          font-weight: 500;
-          color: var(--text-slate-500);
-          letter-spacing: -0.005em;
+
+        /* Custom Pagination Styles */
+        .bh2-pagination .ant-pagination-item,
+        .bh2-pagination .ant-pagination-prev .ant-pagination-item-link,
+        .bh2-pagination .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
         }
-        .bh2-pagination-meta b {
-          color: var(--text-slate-900);
-          font-weight: 800;
+        .bh2-pagination .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
         }
-        [data-theme="dark"] .bh2-pagination-meta b {
-          color: #f1f5f9 !important;
+        .bh2-pagination .ant-pagination-item-active a {
+          color: #fff !important;
         }
+        .bh2-pagination .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          color: var(--text-slate-500) !important;
+        }
+
         .bh2-list-card {
           position: relative;
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
-          border-radius: 12px;
+          border-radius: 0px;
           /* When we smooth-scroll a card into view on Manage-Tickets click,
              land its top 120px below the viewport so it clears the sticky
              page header (~52px) + sticky toolbar (~60px). */
@@ -1576,15 +1648,6 @@ export default function BucketManagementPage() {
         }
         .bh2-list-card-skel {
           min-height: 96px;
-        }
-        .bh2-list-stripe {
-          position: absolute;
-          left: 0;
-          top: 10px;
-          bottom: 10px;
-          width: 3px;
-          border-radius: 0 999px 999px 0;
-          opacity: 0.85;
         }
 
         .bh2-list-head {

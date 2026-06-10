@@ -1319,7 +1319,7 @@ export default function LeadsPage() {
             <Button
               type="link"
               icon={<FileText size={16} />}
-              onClick={(e) => { e.stopPropagation(); router.push(`/proposals/${record.proposal_id}`); }}
+              onClick={(e) => { e.stopPropagation(); router.push(`/proposals/builder?id=${record.proposal_id}`); }}
               onMouseDown={(e) => e.stopPropagation()}
               style={{
                 display: "flex",

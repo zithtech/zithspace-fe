@@ -3,11 +3,22 @@ import { useProposalStore } from '@/store/proposalStore';
 import { BlockSettingsRenderer } from './blocks';
 import { Empty, Upload, Input } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
-import { Sparkles, Building2, Layers, Palette, History } from 'lucide-react';
+import { Building2, Layers, Palette, History, LayoutTemplate, Type as TypeIcon, DollarSign, PenLine, ListChecks, CalendarRange } from 'lucide-react';
 import { AIEnhanceButton } from './AIEnhanceButton';
 import { THEME_PRESETS, FONT_PRESETS } from './themePresets';
 
 type PanelTab = 'content' | 'style' | 'ai';
+
+const BLOCK_META: Record<string, { label: string; icon: React.ReactNode }> = {
+  cover:     { label: 'Cover',     icon: <LayoutTemplate size={14} /> },
+  text:      { label: 'Text',      icon: <TypeIcon size={14} /> },
+  pricing:   { label: 'Pricing',   icon: <DollarSign size={14} /> },
+  signature: { label: 'Signature', icon: <PenLine size={14} /> },
+  scope:     { label: 'Scope',     icon: <ListChecks size={14} /> },
+  timeline:  { label: 'Timeline',  icon: <CalendarRange size={14} /> },
+  section:   { label: 'Section',   icon: <Layers size={14} /> },
+};
+const blockMeta = (t: string) => BLOCK_META[t] || { label: t, icon: <Layers size={14} /> };
 
 const SectionLabel: React.FC<{ children: React.ReactNode; accent?: boolean }> = ({ children, accent }) => (
   <span className="pb-section-label">
@@ -50,9 +61,9 @@ export const BlockProperties = () => {
           <div key={selectedBlock.id} ref={activeRef} className="active-block-properties">
             <div className="pb-props__active-head">
               <div className="pb-props__active-title">
-                <Sparkles size={14} className="pb-props__active-icon" />
+                <span className="pb-props__active-ic">{blockMeta(selectedBlock.type).icon}</span>
                 <span>
-                  <span className="pb-props__active-type">{selectedBlock.type}</span>
+                  <span className="pb-props__active-type">{blockMeta(selectedBlock.type).label}</span>
                   <span className="pb-props__active-suffix">settings</span>
                 </span>
               </div>
@@ -212,6 +223,7 @@ export const BlockProperties = () => {
           <div className="pb-props__others-head">
             <Layers size={12} />
             <SectionLabel>Other Sections</SectionLabel>
+            <span className="pb-props__others-count">{otherBlocks.length}</span>
           </div>
           {otherBlocks.map((block) => (
             <button
@@ -220,7 +232,8 @@ export const BlockProperties = () => {
               className="pb-props__other-row"
               onClick={() => setSelectedBlockId(block.id)}
             >
-              <span className="pb-props__other-type">{block.type}</span>
+              <span className="pb-props__other-ic">{blockMeta(block.type).icon}</span>
+              <span className="pb-props__other-type">{blockMeta(block.type).label}</span>
               <span className="pb-props__other-cta">Edit →</span>
             </button>
           ))}

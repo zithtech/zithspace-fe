@@ -1519,13 +1519,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               defaultOpen
               loading={isUpdating}
               placeholder="Select assignee"
-              searchPlaceholder="Search by name or role…"
+              searchPlaceholder="Search people…"
               itemNoun="members"
               style={{ width: "100%", minWidth: 0, height: 32 }}
               options={members.map((member) => ({
                 value: member.value,
                 label: member.label,
                 description: member.position,
+                avatarUrl: member.avatarUrl || null,
               }))}
               onChange={(value) => {
                 handleUpdateTicket(record.id, "assignee", value ?? null);
@@ -1538,6 +1539,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         return (
           <Space
+            align="start"
             style={{ cursor: canUpdateTicket ? "pointer" : "default", transition: 'all 0.2s' }}
             className={canUpdateTicket ? "hover:translate-x-1" : ""}
             onClick={() => {
@@ -1551,13 +1553,19 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             }}
           >
             <Avatar
-              size="small"
-              style={{ backgroundColor: "#1677ff" }}
+              shape="circle"
+              size="large"
+              style={{ backgroundColor: "#1677ff", flexShrink: 0 }}
               src={assignee?.avatarUrl}
             >
               {!assignee?.avatarUrl && name?.charAt(0)}
             </Avatar>
-            <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-700)' }}>{name}</Text>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2', marginTop: '2px' }}>
+              <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-700)' }}>{name}</Text>
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {(typeof assignee === 'object' && assignee?.position) ? assignee.position : "Member"}
+              </Text>
+            </div>
           </Space>
         );
       },
@@ -1816,11 +1824,21 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       render: (createdBy: Ticket["createdBy"]) => {
         if (!createdBy) return <Text type="secondary" style={{ fontSize: 12 }}>-</Text>;
         return (
-          <Space size={6}>
-            <Avatar size="small" style={{ backgroundColor: '#10b981' }} src={createdBy.avatarUrl || undefined}>
+          <Space size={8} align="start">
+            <Avatar 
+              shape="circle"
+              size="large" 
+              style={{ backgroundColor: '#10b981', flexShrink: 0 }} 
+              src={createdBy.avatarUrl || undefined}
+            >
               {!createdBy.avatarUrl && createdBy.name?.charAt(0)}
             </Avatar>
-            <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{createdBy.name}</Text>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2', marginTop: '2px' }}>
+              <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-700)' }}>{createdBy.name}</Text>
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {(createdBy as any).position || "Member"}
+              </Text>
+            </div>
           </Space>
         );
       },
@@ -3476,14 +3494,20 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               icon={<UserOutlined style={{ fontSize: 11 }} />}
               label="Assignee"
               values={filters.assignee}
-              options={members.map((m) => ({
-                label: m.label,
-                value: m.value,
-                description: m.position || undefined,
-              }))}
+              options={[
+                { label: 'Unassigned', value: 'unassigned', description: 'No assignee', avatarUrl: null },
+                ...members.map((m) => ({
+                  label: m.label,
+                  value: m.value,
+                  description: m.position || undefined,
+                  avatarUrl: m.avatarUrl || null,
+                }))
+              ]}
               onChange={(val) => handleFilterChange('assignee', val)}
               itemNoun="members"
               width={290}
+              showAvatar
+              searchPlaceholder="Search people..."
             />
             <TicketFilterPill
               icon={<EditOutlined style={{ fontSize: 11 }} />}
@@ -3493,10 +3517,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 label: m.label,
                 value: m.value,
                 description: m.position || undefined,
+                avatarUrl: m.avatarUrl || null,
               }))}
               onChange={(val) => handleFilterChange('createdBy', val)}
               itemNoun="members"
               width={290}
+              showAvatar
+              searchPlaceholder="Search people..."
             />
             <TicketFilterPill
               icon={<TagsOutlined style={{ fontSize: 11 }} />}

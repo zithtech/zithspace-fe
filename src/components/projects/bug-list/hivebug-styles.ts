@@ -554,8 +554,7 @@ export const hivebugStyles = `
 .hb-main {
   flex: 1;
   display: flex; flex-direction: column;
-  overflow: hidden;
-  overflow-x: hidden;
+  overflow: visible;
   min-width: 0;
   max-width: 100%;
   background: var(--hb-bg);
@@ -567,7 +566,10 @@ export const hivebugStyles = `
   border-bottom: 1px solid var(--hb-border);
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--hb-bg);
 }
 .hb-breadcrumb { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
 .hb-bc-strong { font-size: 18px; font-weight: 600; }
@@ -1067,7 +1069,7 @@ export const hivebugStyles = `
   border: 1px solid var(--hb-border);
   border-radius: 12px;
   overflow: hidden;
-  overflow-x: hidden;
+  overflow-x: auto;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -1147,7 +1149,7 @@ export const hivebugStyles = `
   padding: 0 4px;
 }
 .hb-pagination-page strong { color: var(--hb-text); font-weight: 600; }
-.hb-table { width: 100%; max-width: 100%; min-width: 0; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+.hb-table { width: 100%; max-width: 100%; min-width: 900px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
 .hb-table thead th {
   position: sticky; top: 0; z-index: 1;
   background: var(--hb-bg-elev);
@@ -4020,6 +4022,20 @@ export const hivebugStyles = `
    ============================================================ */
 
 /* Compact laptops — tighten chrome but keep the desktop layout */
+@media (max-width: 1440px) {
+  .hb-root { padding-left: 8px; gap: 8px; }
+  .hb-sidebar { width: 220px; }
+  .hb-search { width: 240px; }
+  .hb-header { padding: 12px 12px 10px; gap: 12px; }
+  .hb-header-tools .hb-btn-text { display: none; }  
+  .hb-stats-row,
+  .hb-filterbar,
+  .hb-quickadd,
+  .hb-bulkbar { margin-left: 12px; margin-right: 12px; }
+  .hb-content { padding: 10px 12px 12px; }
+}
+
+/* Compact laptops — tighten chrome but keep the desktop layout */
 @media (max-width: 1280px) {
   .hb-root { padding-left: 8px; gap: 8px; }
   .hb-sidebar { width: 220px; }
@@ -4040,11 +4056,18 @@ export const hivebugStyles = `
     align-items: flex-start;
   }
   .hb-header-tools {
+    display: flex;
     flex-wrap: wrap;
+    flex: 1 1 100%;
     width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+    padding-top: 4px;
   }
-  .hb-search { flex: 1 1 220px; width: auto; min-width: 0; }
-  .hb-stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hb-search { flex: 1 1 200px; width: auto; max-width: 100%; min-width: 0; }
+  .hb-search input { min-width: 0; text-overflow: ellipsis; }
+  .hb-viewmode-toggle { margin-left: auto; }
+  .hb-header-tools .hb-btn-text { display: none; }
   .hb-filterbar :where(.ant-select) {
     flex: 0 1 160px;
     width: auto !important;
@@ -4057,8 +4080,8 @@ export const hivebugStyles = `
   .hb-cbd-attachments { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* Tablet portrait — stack sidebar above content; selects fluid */
-@media (max-width: 768px) {
+/* Tablet portrait and mobile — stacked dense layout */
+@media (max-width: 1024px) {
   .hb-root {
     flex-direction: column;
     height: auto;
@@ -4067,16 +4090,7 @@ export const hivebugStyles = `
     padding: 8px;
     gap: 8px;
   }
-  .hb-sidebar {
-    width: 100%;
-    max-height: 240px;
-    border-right: none;
-    border-bottom: 1px solid var(--hb-border);
-    border-radius: 10px;
-  }
-  .hb-section-grow { max-height: 160px; }
-  .hb-pulse { display: none; }
-  .hb-main { flex: 1 1 auto; overflow: hidden; }
+  .hb-main { flex: 1 1 auto; overflow: visible; }
   .hb-content { overflow: hidden; padding: 8px 10px 12px; }
   .hb-header {
     padding: 10px 12px;
@@ -4084,26 +4098,30 @@ export const hivebugStyles = `
   }
   .hb-bc-strong { font-size: 16px; }
   .hb-bc-soft { font-size: 13px; }
-  .hb-bc-count {
-    margin-left: 0;
-    padding-left: 0;
-    border-left: none;
-    width: 100%;
-  }
   .hb-search .hb-kbd { display: none; }
   .hb-stats-row,
   .hb-filterbar,
   .hb-quickadd,
   .hb-bulkbar,
   .hb-pagination { margin-left: 10px; margin-right: 10px; }
-  .hb-stats-row { gap: 8px; }
-  .hb-stat-card { padding: 8px 10px; min-height: 48px; }
-  .hb-stat-value { font-size: 16px; }
-  .hb-filterbar { padding: 8px; gap: 6px; }
+  .hb-stats-row { gap: 6px; }
+  .hb-stat-card { padding: 6px 8px; min-height: 44px; gap: 6px; }
+  .hb-stat-value { font-size: 14px; }
+  .hb-stat-label { font-size: 9px; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .hb-stat-icon { width: 24px; height: 24px; }
+  .hb-stat-icon svg { width: 14px; height: 14px; }
+  .hb-filterbar { padding: 8px 36px 8px 8px; gap: 8px; }
   .hb-filterbar-divider { display: none; }
-  .hb-filterbar :where(.ant-select) {
-    flex: 1 1 calc(50% - 6px);
-    width: auto !important;
+  .hb-filter-group {
+    flex: 1 1 140px;
+  }
+  .hb-filter-group.hb-filter-date {
+    flex: 1 1 220px;
+  }
+  .hb-filterbar :where(.ant-select),
+  .hb-filterbar :where(.ant-picker) {
+    flex: 1;
+    width: 100% !important;
     min-width: 0;
   }
   .hb-filter-reset { flex: 1 1 100%; justify-content: center; }
@@ -4111,9 +4129,9 @@ export const hivebugStyles = `
   .hb-filterbar-close { position: absolute; top: 6px; right: 6px; }
   .hb-bulkbar { flex-direction: column; align-items: stretch; gap: 8px; }
   .hb-bulkbar-actions { flex-wrap: wrap; }
-  /* Prevent horizontal scroll - make table responsive */
-  .hb-table-wrapper { overflow-x: hidden; }
-  .hb-table { width: 100%; min-width: 0; }
+  /* Allow horizontal scroll - make table responsive */
+  .hb-table-wrapper { overflow-x: auto; }
+  .hb-table { width: 100%; min-width: 900px; }
   .hb-table thead th { padding: 8px 6px; font-size: 11px; }
   .hb-table tbody td { padding: 10px 6px; font-size: 12px; }
   .hb-pagination {
@@ -4152,22 +4170,35 @@ export const hivebugStyles = `
 /* Mobile — single column, dense */
 @media (max-width: 480px) {
   .hb-root { padding: 6px; gap: 6px; }
-  .hb-sidebar { max-height: 200px; }
   .hb-brand { padding: 10px 12px; }
-  .hb-header { padding: 8px 10px; gap: 8px; }
+  .hb-header { padding: 8px 10px; gap: 8px; flex-wrap: wrap; }
+  .hb-header-tools { width: 100%; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }
+  .hb-search { flex: 1 1 100%; width: 100%; }
   .hb-bc-strong { font-size: 15px; }
   .hb-header-tools .hb-segmented button span,
   .hb-segmented button { padding: 4px 8px; font-size: 11px; }
   .hb-filter-toggle span:not(.hb-filter-badge) { display: none; }
   .hb-stats-row {
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     margin: 8px;
+    gap: 8px;
   }
+  .hb-stat-card {
+    flex-direction: column;
+    justify-content: center;
+    padding: 6px 4px;
+    gap: 4px;
+    text-align: center;
+  }
+  .hb-stat-icon { display: none; }
+  .hb-stat-label { font-size: 8px; white-space: normal; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-overflow: clip; }
+  .hb-stat-value { font-size: 13px; }
   .hb-filterbar,
   .hb-quickadd,
   .hb-bulkbar,
   .hb-pagination { margin-left: 8px; margin-right: 8px; }
-  .hb-filterbar :where(.ant-select) { flex: 1 1 100%; }
+  .hb-filter-group, .hb-filter-group.hb-filter-date { flex: 1 1 calc(50% - 8px); }
   .hb-content { padding: 6px 8px 10px; }
   .hb-bug-title { max-width: 220px; }
   .hb-meta-name { max-width: 100px; }

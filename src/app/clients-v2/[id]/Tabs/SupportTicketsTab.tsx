@@ -632,31 +632,6 @@ export default function SupportTicketsTab({ clientId, projects = [] }: Props) {
             padding-right: 16px !important;
           }
         }
-
-        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
-        @media (max-width: 1200px) {
-          html body .support-header-wrap .saas-header-container .saas-header-row {
-            flex-wrap: nowrap !important;
-          }
-          html body .support-header-wrap .saas-header-container .saas-header-left-col {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-          }
-          html body .support-header-wrap .saas-header-container .saas-header-extra-col {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            margin-top: 0 !important;
-          }
-          html body .support-header-wrap .saas-header-container .saas-header-left-group {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 16px !important;
-          }
-          html body .support-header-wrap .saas-header-container .bh-header-divider {
-            display: inline-block !important;
-          }
-        }
       `}} />
     </div>
   );
@@ -1283,6 +1258,7 @@ function CreateTicketModal({
               placeholder="Steps, context, anything the client needs to know…"
               maxLength={4000}
               showCount
+              style={{ padding: "10px 12px" }}
             />
           </Form.Item>
         </ModalSection>
@@ -1690,6 +1666,7 @@ function TicketDetailDrawer({
               onChange={(e) => setReply(e.target.value)}
               placeholder="Reply to the client…"
               autoSize={{ minRows: 2, maxRows: 6 }}
+              style={{ padding: "10px 12px" }}
               onPressEnter={(e) => {
                 if (e.metaKey || e.ctrlKey) {
                   e.preventDefault();

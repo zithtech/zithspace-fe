@@ -974,6 +974,9 @@ function TeamMemberModal({
             <Form.Item
               name="contactEmail"
               label={<L c={c} >Email</L>}
+              rules={[
+                { type: "email", message: "Please enter a valid email address" },
+              ]}
               style={{ marginBottom: 0 }}
             >
               <Input
@@ -1068,6 +1071,7 @@ function TeamMemberModal({
               placeholder="What they specialise in, years at the company, etc."
               maxLength={500}
               showCount
+              style={{ padding: "10px 12px" }}
             />
           </Form.Item>
         </ModalSection>

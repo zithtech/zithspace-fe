@@ -390,10 +390,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       name="code"
                       label={
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
-                          Project Code{" "}
-                          <span style={{ fontWeight: 500, color: "var(--text-slate-400)" }}>
-                            (optional)
-                          </span>
+                          Project Code
                         </span>
                       }
                     >
@@ -689,10 +686,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
                       name="repositories"
                       label={
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-700)" }}>
-                          Repository URL{" "}
-                          <span style={{ fontWeight: 500, color: "var(--text-slate-400)" }}>
-                            (optional)
-                          </span>
+                          Repository URL
                         </span>
                       }
                     >

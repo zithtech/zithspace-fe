@@ -335,7 +335,7 @@ function CustomFilterDropdown({
       onOpenChange={setOpen}
       placement="bottomLeft"
       overlayClassName="cf-overlay-popover"
-      destroyTooltipOnHide
+      destroyOnHidden
     >
       <div
         className={`cf-trigger ${value ? "cf-trigger-active" : ""} ${

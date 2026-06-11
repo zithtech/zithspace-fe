@@ -1258,6 +1258,7 @@ function CreateTicketModal({
               placeholder="Steps, context, anything the client needs to know…"
               maxLength={4000}
               showCount
+              style={{ padding: "10px 12px" }}
             />
           </Form.Item>
         </ModalSection>
@@ -1665,6 +1666,7 @@ function TicketDetailDrawer({
               onChange={(e) => setReply(e.target.value)}
               placeholder="Reply to the client…"
               autoSize={{ minRows: 2, maxRows: 6 }}
+              style={{ padding: "10px 12px" }}
               onPressEnter={(e) => {
                 if (e.metaKey || e.ctrlKey) {
                   e.preventDefault();

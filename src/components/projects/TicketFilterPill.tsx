@@ -9,6 +9,8 @@ export interface FilterPillOption {
   label: string;
   description?: string;
   badge?: React.ReactNode;
+  /** Avatar image URL — used when showAvatar=true on the pill */
+  avatarUrl?: string | null;
 }
 
 interface TicketFilterPillProps {
@@ -23,7 +25,30 @@ interface TicketFilterPillProps {
   itemNoun?: string;
   width?: number;
   disabled?: boolean;
+  /** Show a colored avatar circle next to each option label */
+  showAvatar?: boolean;
 }
+
+export const initialsFor = (s: string): string => {
+  if (!s) return "?";
+  const parts = s
+    .replace(/[_\-]/g, " ")
+    .split(/(?=[A-Z])|\s+/)
+    .filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return s.slice(0, 2).toUpperCase();
+};
+
+export const avatarColorFor = (str: string): string => {
+  if (str === 'unassigned' || str === 'Unassigned') return '#4f46e5';
+  const COLORS = [
+    '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
+    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
+  ];
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return COLORS[Math.abs(h) % COLORS.length];
+};
 
 export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
   icon,
@@ -36,6 +61,7 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
   itemNoun = "items",
   width = 260,
   disabled = false,
+  showAvatar = false,
 }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -103,11 +129,31 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
                 onClick={() => toggle(opt.value)}
               >
                 <Checkbox checked={checked} onChange={() => toggle(opt.value)} onClick={(e) => e.stopPropagation()} />
-                {opt.badge && <span className="fp-option-badge">{opt.badge}</span>}
-                <span className="fp-option-label">{opt.label}</span>
-                {opt.description && (
-                  <span className="fp-option-desc">{opt.description}</span>
+                {showAvatar ? (
+                  <div
+                    className="fp-option-avatar"
+                    style={opt.badge ? undefined : {
+                      backgroundColor: opt.avatarUrl ? 'transparent' : avatarColorFor(opt.value || opt.label),
+                      color: opt.avatarUrl ? undefined : '#fff',
+                      borderColor: opt.avatarUrl ? undefined : 'transparent',
+                    }}
+                  >
+                    {opt.badge
+                      ? opt.badge
+                      : opt.avatarUrl
+                        ? <img src={opt.avatarUrl} alt={initialsFor(opt.label)} className="fp-option-avatar-img" />
+                        : initialsFor(opt.label)
+                    }
+                  </div>
+                ) : (
+                  opt.badge && <span className="fp-option-badge">{opt.badge}</span>
                 )}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: '1 1 auto', minWidth: 0, lineHeight: 1.2 }}>
+                  <span className="fp-option-label" style={{ flex: 'none', width: '100%', textAlign: 'left' }}>{opt.label}</span>
+                  {opt.description && (
+                    <span className="fp-option-desc" style={{ flex: 'none', width: '100%', textAlign: 'left', marginTop: 2 }}>{opt.description}</span>
+                  )}
+                </div>
                 {checked && <Check size={13} className="fp-option-check" />}
               </button>
             );
@@ -141,7 +187,7 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
       onOpenChange={(v) => !disabled && setOpen(v)}
       placement="bottomLeft"
       overlayClassName="fp-overlay-popover"
-      destroyTooltipOnHide
+      destroyOnHidden
     >
       <button
         type="button"
@@ -354,6 +400,32 @@ const TICKET_FILTER_PILL_CSS = `
   font-size: 10px;
   font-weight: 800;
   flex-shrink: 0;
+}
+.fp-option-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--border-slate-200);
+  overflow: hidden;
+  user-select: none;
+}
+.fp-option-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+[data-theme='dark'] .fp-option-avatar {
+  background: #2e354f;
+  border-color: #27273a;
+  color: #94a3b8;
 }
 .fp-option-label {
   flex: 1 1 auto;

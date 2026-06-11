@@ -216,7 +216,7 @@ export default function PortalTicketsPage() {
 
       {/* Header */}
       <div
-        className="saas-header-container portal-mom-header-container"
+        className="saas-header-container portal-tickets-header-container"
         style={{
           position: "sticky",
           top: 0,
@@ -318,7 +318,10 @@ export default function PortalTicketsPage() {
         </AntRow>
       </div>
 
-      <div style={{ padding: "20px 40px 56px", maxWidth: 1280 }}>
+      <div
+        className="portal-tickets-content-container"
+        style={{ padding: "20px 40px 56px", maxWidth: 1280 }}
+      >
         {/* Tabs + view toggle */}
         <div
           style={{
@@ -759,6 +762,27 @@ export default function PortalTicketsPage() {
           .premium-view-toggle button[data-active='true'] {
             background: #eef2ff;
             color: #4338ca;
+          }
+
+          @media (max-width: 640px) {
+            .portal-tickets-header-container,
+            .saas-header-container.portal-tickets-header-container {
+              padding: 12px 16px !important;
+            }
+            .portal-tickets-content-container {
+              padding: 16px 16px 40px !important;
+            }
+          }
+
+          .portal-tickets-modal-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+          }
+          @media (max-width: 600px) {
+            .portal-tickets-modal-grid {
+              grid-template-columns: 1fr !important;
+            }
           }
         `}</style>
       </div>
@@ -1833,7 +1857,7 @@ function TicketList({ items }: { items: PortalTicketListItem[] }) {
         background: p.surface,
         border: `1px solid ${p.border}`,
         borderRadius: 10,
-        overflow: "hidden",
+        overflowX: "auto",
       }}
     >
       <div
@@ -1841,6 +1865,7 @@ function TicketList({ items }: { items: PortalTicketListItem[] }) {
           display: "grid",
           gridTemplateColumns:
             "100px minmax(200px, 1.8fr) 110px 90px 100px 80px 16px",
+          minWidth: 700,
           gap: 10,
           padding: "8px 16px",
           background: p.surfaceMuted,
@@ -1884,6 +1909,7 @@ function TicketRow({
         display: "grid",
         gridTemplateColumns:
           "100px minmax(200px, 1.8fr) 110px 90px 100px 80px 16px",
+        minWidth: 700,
         gap: 10,
         padding: "11px 16px",
         alignItems: "center",
@@ -2150,11 +2176,7 @@ function RaiseTicketModal({
           </Form.Item>
 
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: 10,
-            }}
+            className="portal-tickets-modal-grid"
           >
             <Form.Item
               name="category"

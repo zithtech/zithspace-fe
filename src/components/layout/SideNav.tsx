@@ -220,6 +220,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
             <div className="sidebar-scroll-container">
                 <Menu
                     mode="inline"
+                    inlineIndent={14}
                     inlineCollapsed={collapsed} // This controls icon-only mode
                     selectedKeys={getSelectedKey()}
                     openKeys={openKeys}

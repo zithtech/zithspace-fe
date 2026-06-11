@@ -2029,18 +2029,18 @@ const DocumentHubPage = () => {
                 {/* Middle Section */}
                 <div style={{
                   padding: '8px 16px',
-                  backgroundColor: 'var(--bg-slate-50)',
-                  borderTop: '1px solid var(--border-slate-100)',
-                  borderBottom: '1px solid var(--border-slate-100)',
+                  backgroundColor: isDark ? '#1C232E' : 'var(--bg-slate-50)',
+                  borderTop: `1px solid ${isDark ? '#1f2937' : 'var(--border-slate-100)'}`,
+                  borderBottom: `1px solid ${isDark ? '#1f2937' : 'var(--border-slate-100)'}`,
                   display: 'flex', alignItems: 'center', gap: '16px',
-                  fontSize: 12, color: 'var(--text-slate-500)'
+                  fontSize: 12, color: isDark ? '#94a3b8' : 'var(--text-slate-500)'
                 }}>
                   <span className="flex items-center gap-2">
                     Created by
                     <Avatar size={18} src={hub.createdBy?.avatarUrl} style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: 10 }}>
                       {hub.createdBy?.name?.charAt(0).toUpperCase()}
                     </Avatar>
-                    <span style={{ color: 'var(--text-slate-700)', fontWeight: 500 }}>{hub.createdBy?.name || 'Unknown'}</span>
+                    <span style={{ color: isDark ? '#e2e8f0' : 'var(--text-slate-700)', fontWeight: 500 }}>{hub.createdBy?.name || 'Unknown'}</span>
                   </span>
                   <Divider type="vertical" style={{ margin: 0, borderColor: 'var(--border-slate-200)' }} />
                   <span>Created {format(new Date(hub.createdAt), "MMM d, yyyy - h:mm a")}</span>
@@ -2051,9 +2051,9 @@ const DocumentHubPage = () => {
                 {/* Bottom Section */}
                 <div style={{
                   padding: '8px 16px',
-                  backgroundColor: 'var(--bg-slate-50)',
+                  backgroundColor: isDark ? '#1C232E' : 'var(--bg-slate-50)',
                   display: 'flex', alignItems: 'center', gap: '16px',
-                  fontSize: 12, color: 'var(--text-slate-500)'
+                  fontSize: 12, color: isDark ? '#94a3b8' : 'var(--text-slate-500)'
                 }}>
                   <span className="flex items-center gap-2">
                     Project:

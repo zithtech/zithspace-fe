@@ -131,6 +131,8 @@ const FILTER_TABS: { key: string; label: string }[] = [
   { key: "in_progress", label: "In progress" },
   { key: "not_started", label: "Not started" },
   { key: "completed", label: "Completed" },
+  { key: "on_hold", label: "On hold" },
+  { key: "cancelled", label: "Cancelled" },
 ];
 
 function fmtDateShort(iso: string | null | undefined): string {
@@ -421,10 +423,16 @@ export default function PortalMilestonesPage() {
   }, [filteredAll, currentMilestones]);
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}>
+    <div
+      style={{
+        height: "100vh",
+        overflowY: "auto",
+        backgroundColor: "#ffffff",
+      }}
+    >
       {/* Workstation Header */}
       <div
-        className="saas-header-container portal-mom-header-container"
+        className="saas-header-container portal-milestones-header-container"
         style={{
           position: "sticky",
           top: 0,
@@ -464,7 +472,7 @@ export default function PortalMilestonesPage() {
                 </div>
                 <Title
                   level={4}
-                  className="portal-mom-header-title"
+                  className="portal-milestones-header-title"
                   style={{
                     margin: 0,
                     fontWeight: 800,
@@ -487,7 +495,7 @@ export default function PortalMilestonesPage() {
 
               <div>
                 <Text
-                  className="portal-mom-header-desc"
+                  className="portal-milestones-header-desc"
                   style={{
                     fontSize: 12,
                     color: "var(--text-slate-600)",
@@ -502,7 +510,10 @@ export default function PortalMilestonesPage() {
         </Row>
       </div>
 
-      <div style={{ padding: "20px 40px 56px", maxWidth: 1280 }}>
+      <div
+        className="portal-milestones-content-container"
+        style={{ padding: "20px 40px 56px", maxWidth: 1280 }}
+      >
         {/* Tabs + view toggle */}
         <div
           style={{
@@ -670,17 +681,17 @@ export default function PortalMilestonesPage() {
         )}
 
         <style jsx global>{`
-          .portal-mom-header-container,
-          [data-theme='dark'] .portal-mom-header-container,
-          [data-theme='dark'] .saas-header-container.portal-mom-header-container,
-          .saas-header-container.portal-mom-header-container {
+          .portal-milestones-header-container,
+          [data-theme='dark'] .portal-milestones-header-container,
+          [data-theme='dark'] .saas-header-container.portal-milestones-header-container,
+          .saas-header-container.portal-milestones-header-container {
             background: #ffffff !important;
             border-bottom: 1px solid #e2e8f0 !important;
           }
-          .portal-mom-header-title {
+          .portal-milestones-header-title {
             color: #0f172a !important;
           }
-          .portal-mom-header-desc {
+          .portal-milestones-header-desc {
             color: #475569 !important;
           }
 
@@ -880,6 +891,19 @@ export default function PortalMilestonesPage() {
           .premium-view-toggle button[data-active='true'] {
             background: #eef2ff;
             color: #4338ca;
+          }
+
+          @media (max-width: 640px) {
+            .portal-milestones-header-container,
+            .saas-header-container.portal-milestones-header-container {
+              padding: 12px 16px !important;
+            }
+            .portal-milestones-content-container {
+              padding: 16px 16px 40px !important;
+            }
+            .portal-milestones-current-stats {
+              grid-template-columns: repeat(2, 1fr) !important;
+            }
           }
         `}</style>
       </div>
@@ -1533,6 +1557,7 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
 
       {/* Stats strip */}
       <div
+        className="portal-milestones-current-stats"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, 1fr)",
@@ -1988,7 +2013,7 @@ function MilestoneList({ items }: { items: PortalMilestone[] }) {
         background: p.surface,
         border: `1px solid ${p.border}`,
         borderRadius: 10,
-        overflow: "hidden",
+        overflowX: "auto",
       }}
     >
       <div
@@ -1996,6 +2021,7 @@ function MilestoneList({ items }: { items: PortalMilestone[] }) {
           display: "grid",
           gridTemplateColumns:
             "minmax(220px, 1.8fr) minmax(140px, 1fr) 110px minmax(180px, 1.4fr) 90px 130px 16px",
+          minWidth: 860,
           gap: 12,
           padding: "8px 16px",
           background: p.surfaceMuted,
@@ -2047,6 +2073,7 @@ function MilestoneRow({
           display: "grid",
           gridTemplateColumns:
             "minmax(220px, 1.8fr) minmax(140px, 1fr) 110px minmax(180px, 1.4fr) 90px 130px 16px",
+          minWidth: 860,
           gap: 12,
           padding: "11px 16px",
           alignItems: "center",

@@ -1961,7 +1961,7 @@ const DocumentHubPage = () => {
                     <div
                       style={{
                         width: 40, height: 40, borderRadius: 6,
-                        background: accent.from, color: '#fff',
+                        background: isDark ? 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)' : accent.from, color: '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontWeight: 600, fontSize: 16
                       }}
@@ -2029,7 +2029,7 @@ const DocumentHubPage = () => {
                 {/* Middle Section */}
                 <div style={{
                   padding: '8px 16px',
-                  backgroundColor: 'var(--bg-slate-100)',
+                  backgroundColor: 'var(--bg-slate-50)',
                   borderTop: '1px solid var(--border-slate-100)',
                   borderBottom: '1px solid var(--border-slate-100)',
                   display: 'flex', alignItems: 'center', gap: '16px',
@@ -2051,7 +2051,7 @@ const DocumentHubPage = () => {
                 {/* Bottom Section */}
                 <div style={{
                   padding: '8px 16px',
-                  backgroundColor: 'var(--bg-slate-100)',
+                  backgroundColor: 'var(--bg-slate-50)',
                   display: 'flex', alignItems: 'center', gap: '16px',
                   fontSize: 12, color: 'var(--text-slate-500)'
                 }}>
@@ -3172,6 +3172,9 @@ const DocumentHubPage = () => {
           background: linear-gradient(135deg, #3B82F6 0%, #3B82F6 100%) !important;
           border: none !important;
           // box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+        }
+        [data-theme='dark'] .dh-side-create {
+          background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%) !important;
         }
         .dh-sidebar-scroll {
           flex: 1;

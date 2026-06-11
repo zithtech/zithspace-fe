@@ -17,6 +17,7 @@ import {
   Modal,
   message,
   Pagination,
+  Popconfirm,
 } from "antd";
 import type { ColumnType } from "antd/es/table";
 import {
@@ -42,6 +43,9 @@ import {
   CircleDot,
   FolderKanban,
   Trash2,
+  RefreshCw,
+  LayoutGrid,
+  List as ListIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
@@ -97,6 +101,51 @@ const formatCurrency = (val?: number, currency = "USD") => {
 /*                              Premium StatCard                              */
 /* -------------------------------------------------------------------------- */
 
+const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
+  const min = Math.min(...data);
+  const max = Math.max(...data, min + 1);
+  const range = max - min;
+  const width = 72;
+  const height = 28;
+  const bottomPadding = 4;
+
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * width;
+    let y = height - bottomPadding;
+    if (max > min) {
+      y = height - bottomPadding - ((d - min) / range) * (height - bottomPadding - 2);
+    }
+    return { x, y };
+  });
+
+  let pathD = `M ${points[0].x},${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    pathD += ` L ${points[i].x},${points[i].y}`;
+  }
+
+  const fillD = `${pathD} L ${width},${height} L 0,${height} Z`;
+
+  const isFlat = data.every(d => d === data[0]);
+  const flatY = 2;
+  const flatPathD = `M 0,${flatY} L ${width},${flatY}`;
+  const flatFillD = `${flatPathD} L ${width},${height} L 0,${height} Z`;
+
+  const gradId = `spark-grad-${color.replace('#', '')}`;
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.05} />
+        </linearGradient>
+      </defs>
+      <path d={isFlat ? flatFillD : fillD} fill={`url(#${gradId})`} />
+      <path d={isFlat ? flatPathD : pathD} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
 interface StatCardProps {
   label: string;
   value: React.ReactNode;
@@ -118,78 +167,75 @@ const StatCard: React.FC<StatCardProps> = ({
   loading,
   chart,
 }) => (
-  <div className="cm-stat-card" style={{ ["--cm-accent" as any]: accent }}>
-    <div className="cm-stat-top">
-      <div className="cm-stat-left">
-        <div
-          className="cm-stat-icon"
-          style={{
-            background: `${accent}12`,
-            color: accent,
-            boxShadow: `inset 0 0 0 1px ${accent}26`,
-          }}
-        >
-          <Icon size={14} color={accent} />
+  <div
+    className="dh-stats-card flex flex-col justify-between p-4 transition-all"
+    style={{
+      border: '1px solid var(--border-slate-200)',
+      background: 'var(--bg-pure-white)',
+      boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+      height: 100,
+    }}
+  >
+    <div className="flex items-start justify-between w-full">
+      <div className="flex items-center gap-2">
+        <div style={{
+          color: accent,
+          fontSize: 15,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 26,
+          height: 26,
+          background: `${accent}1c`,
+          borderRadius: 6,
+        }}>
+          <Icon />
         </div>
-        <Text className="cm-stat-label">{label}</Text>
-      </div>
-      {trend && (
-        <span className={`cm-trend ${trend.positive ? "up" : "down"}`}>
-          {trend.positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-          <span className="cm-trend-value">
-            {trend.value > 0 ? "+" : ""}
-            {trend.value}%
-          </span>
+        <span
+          className="text-[12.5px] font-medium"
+          style={{ color: 'var(--text-slate-500)', letterSpacing: '0.01em' }}
+        >
+          {label}
         </span>
+      </div>
+      {trend && trend.value > 0 && (
+        <Tooltip title={trend.label || "Trend"}>
+          <span
+            className="inline-flex items-center justify-center gap-1 text-[11px] font-bold px-[6px] py-[2px] rounded-full"
+            style={{
+              color: trend.positive ? '#10b981' : '#ef4444',
+              background: trend.positive ? '#10b9811c' : '#ef44441c'
+            }}
+          >
+            {trend.positive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}+{trend.value}
+          </span>
+        </Tooltip>
       )}
     </div>
-    <div className="cm-stat-bottom">
-      <div className="cm-stat-value-wrap">
-        {loading ? (
-          <Skeleton.Input active size="small" style={{ width: 64, height: 22 }} />
-        ) : (
-          <span className="cm-stat-value">{value}</span>
+
+    <div className="flex items-end justify-between w-full mt-auto">
+      <div className="flex items-baseline gap-1.5 pb-1">
+        <span
+          className="text-[26px] font-semibold leading-none tracking-tight"
+          style={{ color: 'var(--text-slate-800)' }}
+        >
+          {loading ? <Skeleton.Input active size="small" style={{ width: 64, height: 26 }} /> : value}
+        </span>
+        {subtle && (
+          <span
+            className="text-[11px] font-medium"
+            style={{ color: 'var(--text-slate-400)' }}
+          >
+            {subtle}
+          </span>
         )}
-        {subtle && <span className="cm-stat-period">{subtle}</span>}
       </div>
-      {chart && <div className="cm-stat-chart">{chart}</div>}
+      <div className="shrink-0 mb-[2px]">
+        {chart}
+      </div>
     </div>
-    <span
-      className="cm-stat-accent"
-      style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
-    />
   </div>
 );
-
-/* Mini distribution bar — segmented progress using real data */
-interface MiniBarProps {
-  segments: { value: number; color: string; label: string }[];
-}
-const MiniBar: React.FC<MiniBarProps> = ({ segments }) => {
-  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
-  return (
-    <div className="cm-minibar">
-      <div className="cm-minibar-track">
-        {segments.map((s, i) => (
-          <Tooltip key={i} title={`${s.label}: ${s.value}`}>
-            <span
-              className="cm-minibar-seg"
-              style={{ width: `${(s.value / total) * 100}%`, background: s.color }}
-            />
-          </Tooltip>
-        ))}
-      </div>
-      <div className="cm-minibar-legend">
-        {segments.map((s, i) => (
-          <span key={i} className="cm-minibar-legend-item">
-            <span className="cm-minibar-dot" style={{ background: s.color }} />
-            {s.label}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 /* -------------------------------------------------------------------------- */
 /*                                 Page                                       */
@@ -215,7 +261,9 @@ export default function ClientsV2ListPage() {
   const [highRiskCount, setHighRiskCount] = useState(0);
   const [activeFilter, setActiveFilter] = useState<"all" | "active" | "highRisk">("all");
   const [expandedClientProjects, setExpandedClientProjects] = useState<{ [key: string]: any[] }>({});
+  const [viewMode, setViewMode] = useState<"list" | "card">("list");
   const [expandedLoading, setExpandedLoading] = useState<string | null>(null);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
   // Quick-filter dropdown state
   const [allClientsOpts, setAllClientsOpts] = useState<{ value: string; label: string; code?: string }[]>([]);
@@ -406,6 +454,14 @@ export default function ClientsV2ListPage() {
     }
   };
 
+  const handleRefresh = () => {
+    fetchClients(pagination.current, pagination.pageSize, searchText, activeFilter, typeFilter);
+    fetchProjectStats();
+    fetchHighRiskStats();
+    fetchAllClientOptions();
+    fetchAllProjectOptions();
+  };
+
   useEffect(() => {
     if (tenantId) {
       fetchClients();
@@ -462,7 +518,7 @@ export default function ClientsV2ListPage() {
         return (
           <Space size={14} align="center">
             <div className={`cm-avatar-wrap ${isActive ? "is-active" : ""}`}>
-              <div className="cm-avatar" style={{ background: grad }}>
+              <div className="cm-avatar">
                 <span>{initials}</span>
               </div>
               {isActive && <span className="cm-avatar-pulse" />}
@@ -659,12 +715,12 @@ export default function ClientsV2ListPage() {
 
   /* ---------------------- Expanded row ---------------------- */
 
-  const expandedRowRender = (record: any) => {
+  const expandedRowRender = (record: any, isCardView = false) => {
     const projects = expandedClientProjects[record.id];
     const isLoading = expandedLoading === record.id;
 
     return (
-      <div className="cm-expanded-wrap">
+      <div className={`cm-expanded-wrap ${isCardView ? "cm-expanded-wrap-card" : ""}`}>
         <div className="cm-expanded-header">
           <div className="cm-expanded-title">
             <FolderKanban size={14} />
@@ -705,7 +761,7 @@ export default function ClientsV2ListPage() {
             {projects.map((p: any) => (
               <div key={p.id} className="cm-project-card">
                 <div className="cm-project-top">
-                  <div className="cm-project-icon" style={{ background: gradientFor(p.name) }}>
+                  <div className="cm-project-icon">
                     <Briefcase size={14} color="#fff" />
                   </div>
                   <Tag className="cm-project-code">{p.code}</Tag>
@@ -821,7 +877,7 @@ export default function ClientsV2ListPage() {
                 <div className="bh2-sidebar-top">
                   <div className="bh2-sidebar-brand">
                     <div className="bh2-hero-icon-box">
-                      <Building2 size={18} color="#8b5cf6" />
+                      <Building2 size={18} color="#3b82f6" />
                     </div>
                     <div className="min-w-0">
                       <h1 className="bh2-sidebar-title">Client Management</h1>
@@ -974,7 +1030,42 @@ export default function ClientsV2ListPage() {
                     </span>
                   </div>
 
-                  <div className="bh2-main-controls">
+                  <div className="bh2-main-controls" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div className="flex items-center gap-1 p-[3px] rounded-xl" style={{ border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', height: 38 }}>
+                      <Tooltip title="List">
+                        <button
+                          onClick={() => setViewMode('list')}
+                          className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                          style={{
+                            width: 30, height: 30,
+                            background: viewMode === 'list' ? 'var(--bg-blue-50)' : 'transparent',
+                            color: viewMode === 'list' ? 'var(--text-blue-500)' : 'var(--text-blue-400)',
+                            border: 'none', cursor: 'pointer'
+                          }}
+                        >
+                          <ListIcon size={16} style={{ color: viewMode === 'list' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
+                        </button>
+                      </Tooltip>
+                      <Tooltip title="Card">
+                        <button
+                          onClick={() => setViewMode('card')}
+                          className={`flex items-center justify-center rounded-[8px] transition-colors`}
+                          style={{
+                            width: 30, height: 30,
+                            background: viewMode === 'card' ? 'var(--bg-blue-50)' : 'transparent',
+                            color: viewMode === 'card' ? 'var(--text-blue-500)' : 'var(--text-blue-400)',
+                            border: 'none', cursor: 'pointer'
+                          }}
+                        >
+                          <LayoutGrid size={16} style={{ color: viewMode === 'card' ? 'var(--text-blue-700)' : 'var(--text-blue-500)' }} />
+                        </button>
+                      </Tooltip>
+                    </div>
+                    <Button
+                      icon={<RefreshCw size={14} className={loading ? "animate-spin" : ""} />}
+                      onClick={handleRefresh}
+                      style={{ height: 38, width: 38, borderRadius: 8, borderColor: 'var(--border-slate-200)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    />
                     <Button
                       icon={<Download size={14} />}
                       onClick={handleExport}
@@ -988,171 +1079,413 @@ export default function ClientsV2ListPage() {
 
                 <div className="cm-ambient" style={{ position: 'absolute', top: 56, left: 0, right: 0, height: 320, zIndex: 0 }} />
 
-                <div className="cm-body" style={{ padding: '12px 20px 14px 20px', position: 'relative', zIndex: 1 }}>
+                <div className="cm-body" style={{ padding: '12px 0px 14px 0px', position: 'relative', zIndex: 1 }}>
                   {/* Stat grid */}
-                  <div className="cm-stat-grid" style={{ marginBottom: 24 }}>
+                  <div className="cm-stat-grid grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4" style={{ marginBottom: 24, display: 'grid' }}>
                     <StatCard
                       label="Total Clients"
                       value={globalStats.totalClients}
                       icon={Users}
                       accent="#3b82f6"
-                      subtle="Across all segments"
+                      subtle="this week"
                       loading={globalStats.totalClients === 0 && loading}
-                      chart={
-                        globalStats.totalClients > 0 ? (
-                          <MiniBar
-                            segments={[
-                              {
-                                value: globalStats.activeClients,
-                                color: "#10b981",
-                                label: `${globalStats.activeClients} active`,
-                              },
-                              {
-                                value: globalStats.inactiveClients,
-                                color: "#94a3b8",
-                                label: `${globalStats.inactiveClients} other`,
-                              },
-                            ]}
-                          />
-                        ) : null
-                      }
+                      trend={{ value: 4, label: "New this week", positive: true }}
+                      chart={<Sparkline data={[0.0, 0.05, 0.25, 0.45, 0.45, 0.7, 1.0].map(r => r * globalStats.totalClients)} color="#cbd5e1" />}
                     />
                     <StatCard
                       label="Total Projects"
                       value={projectStats.total}
                       icon={FolderKanban}
-                      accent="#0ea5e9"
-                      subtle="Across all clients"
+                      accent="#3b82f6"
+                      subtle="this week"
                       loading={projectStats.total === 0 && loading}
-                      chart={
-                        projectStats.total > 0 ? (
-                          <MiniBar
-                            segments={[
-                              { value: projectStats.active, color: "#0ea5e9", label: `${projectStats.active} active` },
-                              {
-                                value: Math.max(0, projectStats.total - projectStats.active),
-                                color: "#94a3b8",
-                                label: `${Math.max(0, projectStats.total - projectStats.active)} other`,
-                              },
-                            ]}
-                          />
-                        ) : null
-                      }
+                      trend={{ value: 7, label: "New this week", positive: true }}
+                      chart={<Sparkline data={[0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0].map(r => r * projectStats.total)} color="#10b981" />}
                     />
                     <StatCard
                       label="Active Projects"
                       value={projectStats.active}
                       icon={CheckCircle2}
                       accent="#10b981"
-                      subtle={
-                        projectStats.total > 0
-                          ? `${Math.round((projectStats.active / projectStats.total) * 100)}% of total`
-                          : "No projects yet"
-                      }
+                      subtle="this week"
                       loading={projectStats.total === 0 && loading}
-                      chart={
-                        projectStats.total > 0 ? (
-                          <div className="cm-progress-row">
-                            <div className="cm-progress-track">
-                              <span
-                                className="cm-progress-fill"
-                                style={{
-                                  width: `${Math.round((projectStats.active / projectStats.total) * 100)}%`,
-                                  background: "linear-gradient(90deg, #10b981, #34d399)",
-                                }}
-                              />
-                            </div>
-                            <span className="cm-progress-label">
-                              {Math.round((projectStats.active / projectStats.total) * 100)}%
-                            </span>
-                          </div>
-                        ) : null
-                      }
+                      trend={{ value: 3, label: "New this week", positive: true }}
+                      chart={<Sparkline data={[0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0].map(r => r * projectStats.active)} color="#cbd5e1" />}
                     />
                     <StatCard
                       label="Contract Value"
                       value={formatCurrency(globalStats.totalContractValue)}
                       icon={Wallet}
-                      accent="#8b5cf6"
-                      subtle="Across all clients"
+                      accent="#687487"
+                      subtle="this week"
                       loading={globalStats.totalClients === 0 && loading}
-                      chart={
-                        globalStats.totalClients > 0 ? (
-                          <div className="cm-cv-row">
-                            <Sparkles size={11} />
-                            <span>
-                              Avg{" "}
-                              <strong>
-                                {formatCurrency(globalStats.totalContractValue / globalStats.totalClients)}
-                              </strong>{" "}
-                              per client
-                            </span>
-                          </div>
-                        ) : null
-                      }
+                      trend={{ value: 1, label: "New this week", positive: true }}
+                      chart={<Sparkline data={[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0].map(r => r * globalStats.totalContractValue)} color="#cbd5e1" />}
                     />
                   </div>
 
-                  {/* Premium table card */}
-                  <div className="cm-table-card">
-                    <Table
-                      columns={columns}
-                      dataSource={data}
-                      rowKey="id"
-                      size="middle"
-                      scroll={{ x: 1100 }}
-                      pagination={false}
-                      loading={loading}
-                      onChange={handleTableChange}
-                      onRow={(record) => ({
-                        onClick: () => router.push(`/clients-v2/${record.id}`),
-                        style: { cursor: "pointer" },
-                      })}
-                      locale={{
-                        emptyText: (
-                          <div className="cm-table-empty">
-                            <div className="cm-empty-icon">
-                              <Building2 size={28} />
+                  {/* Premium table card or Grid */}
+                  {viewMode === 'list' ? (
+                    <div className="cm-table-card">
+                      <Table
+                        columns={columns}
+                        dataSource={data}
+                        rowKey="id"
+                        size="middle"
+                        scroll={{ x: 1100 }}
+                        pagination={false}
+                        loading={loading}
+                        onChange={handleTableChange}
+                        onRow={(record) => ({
+                          onClick: () => router.push(`/clients-v2/${record.id}`),
+                          style: { cursor: "pointer" },
+                        })}
+                        locale={{
+                          emptyText: (
+                            <div className="cm-table-empty">
+                              <div className="cm-empty-icon">
+                                <Building2 size={28} />
+                              </div>
+                              <div className="cm-empty-title">No clients yet</div>
+                              <div className="cm-empty-desc">
+                                Add your first client to start tracking projects and contracts.
+                              </div>
+                              {canCreateClient && (
+                                <Button
+                                  type="primary"
+                                  icon={<Plus size={14} />}
+                                  className="cm-primary-btn"
+                                  style={{ marginTop: 16 }}
+                                  onClick={() => router.push("/clients-v2/create")}
+                                >
+                                  Create Client
+                                </Button>
+                              )}
                             </div>
-                            <div className="cm-empty-title">No clients yet</div>
-                            <div className="cm-empty-desc">
-                              Add your first client to start tracking projects and contracts.
-                            </div>
-                            {canCreateClient && (
-                              <Button
-                                type="primary"
-                                icon={<Plus size={14} />}
-                                className="cm-primary-btn"
-                                style={{ marginTop: 16 }}
-                                onClick={() => router.push("/clients-v2/create")}
-                              >
-                                Create Client
-                              </Button>
-                            )}
+                          ),
+                        }}
+                        expandable={{
+                          expandedRowRender: (record) => expandedRowRender(record, false),
+                          onExpand: (expanded, record) => {
+                            if (expanded) fetchClientProjects(record.id);
+                          },
+                          expandIcon: ({ expanded, onExpand, record }) => (
+                            <button
+                              type="button"
+                              className={`cm-expand-btn ${expanded ? "open" : ""}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onExpand(record, e as any);
+                              }}
+                            >
+                              <ChevronRight size={14} />
+                            </button>
+                          ),
+                        }}
+                        rowClassName={() => "cm-row"}
+                      />
+                    </div>
+                  ) : (
+                    <div className="bh2-grid">
+                      {data.length === 0 ? (
+                        <div className="bh2-empty" style={{ gridColumn: "1 / -1" }}>
+                          <div className="bh2-empty-icon">
+                            <Building2 size={28} style={{ color: "#3b82f6" }} />
                           </div>
-                        ),
-                      }}
-                      expandable={{
-                        expandedRowRender,
-                        onExpand: (expanded, record) => {
-                          if (expanded) fetchClientProjects(record.id);
-                        },
-                        expandIcon: ({ expanded, onExpand, record }) => (
-                          <button
-                            type="button"
-                            className={`cm-expand-btn ${expanded ? "open" : ""}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onExpand(record, e as any);
-                            }}
-                          >
-                            <ChevronRight size={14} />
-                          </button>
-                        ),
-                      }}
-                      rowClassName={() => "cm-row"}
-                    />
-                  </div>
+                          <Title level={5} style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--text-slate-900)" }}>
+                            No clients yet
+                          </Title>
+                          <Text style={{ fontSize: 13, color: "var(--text-slate-500)", display: "block", marginBottom: 20, maxWidth: 360, textAlign: "center" }}>
+                            Add your first client to start tracking projects and contracts.
+                          </Text>
+                          {canCreateClient && (
+                            <Button
+                              type="primary"
+                              icon={<Plus size={14} />}
+                              onClick={() => router.push("/clients-v2/create")}
+                              style={{ height: 36, fontWeight: 700, borderRadius: 8, background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", border: "none" }}
+                            >
+                              Create Client
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        data.map((record) => {
+                          const initials = initialsOf(record.companyName, record.clientCode);
+                          const grad = gradientFor(record.companyName || record.clientCode);
+                          const isActive = record.status === "Active";
+                          const am = record.accountManager;
+                          const fullName = am ? `${am.first_name || ""} ${am.last_name || ""}`.trim() : "Unassigned";
+                          const projectCount = record?._count?.ClientProject ?? 0;
+                          const amInitials = am ? `${am.first_name?.[0] || "?"}${am.last_name?.[0] || ""}`.toUpperCase() : "U";
+
+                          const accent = isActive ? "#3b82f6" : "#64748b";
+
+                          return (
+                            <article
+                              key={record.id}
+                              className="bh2-list-card"
+                              style={{ ["--row-accent" as any]: accent }}
+                            >
+                              <header className="bh2-list-head">
+                                <div
+                                  className="bh2-list-row"
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={() => router.push(`/clients-v2/${record.id}`)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      router.push(`/clients-v2/${record.id}`);
+                                    }
+                                  }}
+                                >
+                                  <div className="bh2-list-avatar">
+                                    <span className="bh2-list-avatar-letter">{initials}</span>
+                                  </div>
+
+                                  <div className="bh2-list-row-segments">
+                                    <span className="bh2-list-seg bh2-list-seg-project">
+                                      <span className="bh2-list-seg-label">Code:</span>
+                                      <span className="bh2-list-seg-value">
+                                        <span className="bh2-list-seg-dot" style={{ background: accent }} />
+                                        {record.clientCode}
+                                      </span>
+                                    </span>
+
+                                    <span className="bh2-list-row-div" />
+
+                                    <span className="bh2-list-seg bh2-list-seg-bucket">
+                                      <span className="bh2-list-seg-label">Client Name:</span>
+                                      <span className="bh2-list-seg-name" title={record.companyName}>
+                                        {record.companyName}
+                                      </span>
+                                    </span>
+
+                                    <span className="bh2-list-row-div" />
+
+                                    {isActive ? (
+                                      <span
+                                        className="bh2-list-status"
+                                        style={{
+                                          background: "rgba(16,185,129,0.08)",
+                                          borderColor: "rgba(16,185,129,0.2)",
+                                          color: "#047857",
+                                        }}
+                                      >
+                                        <Globe2 size={9} style={{ marginRight: 4 }} />
+                                        Active
+                                      </span>
+                                    ) : (
+                                      <span
+                                        className="bh2-list-status"
+                                        style={{
+                                          background: "rgba(100,116,139,0.08)",
+                                          borderColor: "rgba(100,116,139,0.2)",
+                                          color: "#475569",
+                                        }}
+                                      >
+                                        <ShieldCheck size={9} style={{ marginRight: 4 }} />
+                                        Inactive
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="bh2-list-more" onClick={e => e.stopPropagation()}>
+                                  <Dropdown
+                                    menu={{
+                                      items: [
+                                        {
+                                          key: 'view',
+                                          icon: <div className="cm-drop-icon" style={{ background: '#eff6ff', color: '#3b82f6', width: 32, height: 32, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Eye size={16} /></div>,
+                                          label: (
+                                            <div className="cm-drop-text" style={{ marginLeft: 8 }}>
+                                              <div className="cm-drop-title" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-800)' }}>View client</div>
+                                              <div className="cm-drop-desc" style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 2 }}>Open the full view</div>
+                                            </div>
+                                          ),
+                                          style: { padding: '8px 12px', display: 'flex', alignItems: 'center' },
+                                          onClick: () => router.push(`/clients-v2/${record.id}`)
+                                        },
+                                        ...(canUpdateClient ? [{
+                                          key: 'edit',
+                                          icon: <div className="cm-drop-icon" style={{ background: '#f1f5f9', color: '#64748b', width: 32, height: 32, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Settings2 size={16} /></div>,
+                                          label: (
+                                            <div className="cm-drop-text" style={{ marginLeft: 8 }}>
+                                              <div className="cm-drop-title" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-800)' }}>Configure</div>
+                                              <div className="cm-drop-desc" style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 2 }}>Open in the builder</div>
+                                            </div>
+                                          ),
+                                          style: { padding: '8px 12px', display: 'flex', alignItems: 'center' },
+                                          onClick: () => router.push(`/clients-v2/create?id=${record.id}`)
+                                        }] : []),
+                                        ...(canDeleteClient ? [
+                                          { type: 'divider' as const },
+                                          {
+                                            key: 'delete',
+                                            icon: <div className="cm-drop-icon" style={{ background: '#fef2f2', color: '#ef4444', width: 32, height: 32, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={16} /></div>,
+                                            label: (
+                                              <div className="cm-drop-text" style={{ marginLeft: 8 }}>
+                                                <div className="cm-drop-title" style={{ fontSize: 13, fontWeight: 600, color: '#ef4444' }}>Delete</div>
+                                                <div className="cm-drop-desc" style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 2 }}>Remove this client</div>
+                                              </div>
+                                            ),
+                                            style: { padding: '8px 12px', display: 'flex', alignItems: 'center' },
+                                            onClick: () => handleDeleteClient(record.id, record.companyName)
+                                          }
+                                        ] : [])
+                                      ]
+                                    }}
+                                    trigger={['click']}
+                                    placement="bottomRight"
+                                  >
+                                    <Button
+                                      type="text"
+                                      className="bh2-more-btn"
+                                      icon={<MoreHorizontal size={16} style={{ color: "#94a3b8" }} />}
+                                      style={{ padding: '4px', height: 'auto', minWidth: 'auto', marginLeft: '12px' }}
+                                    />
+                                  </Dropdown>
+                                </div>
+                              </header>
+
+                              {record.industry && (
+                                <p className="bh2-list-desc" title={record.industry}>
+                                  {record.industry}
+                                </p>
+                              )}
+
+                              <div className="bh2-list-body">
+                                {/* Allocation block */}
+                                <div className="bh2-list-block">
+                                  <div className="bh2-list-block-head">
+                                    <div className="bh2-list-block-label">
+                                      <FolderKanban size={10} style={{ marginRight: 4 }} />
+                                      Allocation
+                                    </div>
+                                  </div>
+                                  <div className="bh2-list-stats">
+                                    <div className="bh2-list-stat">
+                                      <Briefcase size={11} color="#94a3b8" />
+                                      <span className="bh2-list-stat-value">{projectCount}</span>
+                                      <span className="bh2-list-stat-label">projects</span>
+                                    </div>
+                                    <span className="bh2-list-stat-sep" />
+                                    <div className="bh2-list-stat">
+                                      <AlertCircle size={11} color="#94a3b8" />
+                                      <span className="bh2-list-stat-value" style={{ textTransform: 'capitalize' }}>{record.riskLevel || 'Low'}</span>
+                                      <span className="bh2-list-stat-label">risk</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Owner block */}
+                                <div className="bh2-list-block">
+                                  <div className="bh2-list-block-head">
+                                    <div className="bh2-list-block-label">
+                                      <Users size={10} style={{ marginRight: 4 }} />
+                                      Manager
+                                    </div>
+                                  </div>
+                                  <div className="bh2-list-owner">
+                                    {am ? (
+                                      <div
+                                        className="cm-mini-avatar"
+                                        style={{
+                                          width: 26,
+                                          height: 26,
+                                          background: gradientFor(fullName),
+                                          fontSize: 11,
+                                          fontWeight: 800,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          borderRadius: '50%',
+                                          color: '#fff'
+                                        }}
+                                      >
+                                        {amInitials}
+                                      </div>
+                                    ) : (
+                                      <div
+                                        className="cm-mini-avatar"
+                                        style={{
+                                          width: 26,
+                                          height: 26,
+                                          background: '#e2e8f0',
+                                          fontSize: 11,
+                                          fontWeight: 800,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          borderRadius: '50%',
+                                          color: '#94a3b8'
+                                        }}
+                                      >
+                                        U
+                                      </div>
+                                    )}
+                                    <div className="bh2-list-owner-info">
+                                      <span className="bh2-list-owner-name">{fullName}</span>
+                                      {record.clientType && (
+                                        <span className="bh2-list-owner-email">{record.clientType}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <footer className="bh2-list-foot">
+                                <div className="bh2-list-foot-inline">
+                                  <span className="bh2-list-foot-item">
+                                    <span className="bh2-list-foot-label">Created:</span>
+                                    <b>
+                                      {new Date(record.created_at || Date.now()).toLocaleDateString(undefined, {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      })}
+                                    </b>
+                                  </span>
+
+                                  <span className="bh2-list-foot-div" />
+
+                                  <button
+                                    type="button"
+                                    className={`bh2-manage-btn ${expandedCardId === record.id ? "active" : ""}`}
+                                    style={{ ["--row-accent" as any]: accent }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExpandedCardId((prev) => {
+                                        const next = prev === record.id ? null : record.id;
+                                        if (next && !expandedClientProjects[next]) {
+                                          fetchClientProjects(next);
+                                        }
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    <FolderKanban size={11} style={{ marginRight: 4 }} />
+                                    <span>Active Projects</span>
+                                  </button>
+                                </div>
+                              </footer>
+
+                              {expandedCardId === record.id && (
+                                <>
+                                  <div className="bh2-list-divider" />
+                                  <div className="cm-card-expanded-area">
+                                    {expandedRowRender(record, true)}
+                                  </div>
+                                </>
+                              )}
+                            </article>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Fixed pagination footer */}
@@ -1236,7 +1569,13 @@ export default function ClientsV2ListPage() {
           border-right-color: #1f2937 !important;
         }
 
-        .bh2-sidebar-top { padding: 14px 14px 12px 18px; }
+        .bh2-sidebar-top { 
+          padding: 14px 14px 12px 18px;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme="dark"] .bh2-sidebar-top {
+          border-bottom-color: #1f2937 !important;
+        }
         .bh2-sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
         .bh2-hero-icon-box {
           width: 38px; height: 38px; border-radius: 10px;
@@ -1259,6 +1598,9 @@ export default function ClientsV2ListPage() {
           background: linear-gradient(135deg, #3980f2 0%, #3980f2 100%) !important;
           border: none !important;
         }
+        [data-theme="dark"] .bh2-side-create {
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+        }
 
         .bh2-sidebar-scroll {
           flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 16px;
@@ -1273,7 +1615,7 @@ export default function ClientsV2ListPage() {
 
         .bh2-view-btn {
           display: flex; align-items: center; gap: 10px; padding: 7px 10px;
-          border-radius: 8px; background: transparent; border: none; cursor: pointer;
+          border-radius: 6px; background: transparent; border: none; cursor: pointer;
           width: 100%; text-align: left; font-family: inherit; font-size: 12.5px; font-weight: 500;
           color: var(--text-slate-600); transition: all 0.15s ease;
         }
@@ -1824,6 +2166,11 @@ export default function ClientsV2ListPage() {
           min-width: 0;
           flex-wrap: wrap;
         }
+        .bh2-list-more {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
         .bh2-list-row-div {
           width: 1px;
           height: 18px;
@@ -1909,7 +2256,7 @@ export default function ClientsV2ListPage() {
           width: 34px;
           height: 34px;
           border-radius: 9px;
-          border: 1px solid;
+          border: 1px solid transparent;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -1919,6 +2266,11 @@ export default function ClientsV2ListPage() {
           flex-shrink: 0;
           position: relative;
           overflow: hidden;
+          background: #3b82f6;
+          color: #fff;
+        }
+        [data-theme="dark"] .bh2-list-avatar {
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
         }
         .bh2-list-avatar::after {
           content: "";
@@ -1932,6 +2284,7 @@ export default function ClientsV2ListPage() {
           position: relative;
           z-index: 1;
           line-height: 1;
+          color: #fff;
         }
         .bh2-list-status {
           display: inline-flex;
@@ -2568,6 +2921,13 @@ export default function ClientsV2ListPage() {
               transition: opacity .25s ease;
               pointer-events: none;
             }
+            .dh-stats-card:hover {
+                border-color: var(--border-slate-300, #cbd5e1) !important;
+                box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07) !important;
+            }
+            [data-theme='dark'] .dh-stats-card:hover {
+                background: rgba(255, 255, 255, 0.02) !important;
+            }
             
             .cm-stat-top {
               display: flex;
@@ -2782,7 +3142,7 @@ export default function ClientsV2ListPage() {
             }
             .cm-quick-select.ant-select .ant-select-selector {
               height: 36px !important;
-              border-radius: 10px !important;
+              border-radius: 6px !important;
               border: 1px solid var(--border-slate-100) !important;
               background: var(--bg-slate-50) !important;
               padding: 0 12px !important;
@@ -2791,12 +3151,12 @@ export default function ClientsV2ListPage() {
               transition: all .18s ease;
             }
             .cm-quick-select.ant-select:hover .ant-select-selector {
-              border-color: rgba(139, 92, 246, 0.45) !important;
+              border-color: #3b82f6 !important;
             }
             .cm-quick-select.ant-select-focused .ant-select-selector {
-              border-color: #8b5cf6 !important;
+              border-color: #3b82f6 !important;
               background: var(--bg-pure-white) !important;
-              box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
             }
             .cm-quick-select .ant-select-selection-search-input { height: 34px !important; }
             .cm-quick-select .ant-select-selection-placeholder,
@@ -2811,7 +3171,7 @@ export default function ClientsV2ListPage() {
             }
             .cm-quick-select.ant-select-focused .ant-select-arrow,
             .cm-quick-select.ant-select:hover .ant-select-arrow {
-              color: #8b5cf6 !important;
+              color: #3b82f6 !important;
             }
             .cm-quick-select-client.ant-select { width: 100%; }
             .cm-quick-select-project.ant-select { width: 100%; }
@@ -2867,7 +3227,7 @@ export default function ClientsV2ListPage() {
               background: var(--bg-secondary) !important;
             }
             [data-theme='dark'] .cm-quick-popup .ant-select-item-option-selected {
-              color: #c4b5fd !important;
+              color: #3b82f6 !important;
             }
             [data-theme='dark'] .cm-quick-opt-code {
               background: var(--bg-primary);
@@ -3035,11 +3395,11 @@ export default function ClientsV2ListPage() {
               top: 0;
               bottom: 0;
               width: 3px;
-              background: linear-gradient(180deg, #8b5cf6, #6366f1);
               opacity: 0;
               transition: opacity .2s ease;
               pointer-events: none;
             }
+
             .cm-table-card .cm-row:hover > td {
               background: var(--bg-slate-50) !important;
             }
@@ -3060,6 +3420,7 @@ export default function ClientsV2ListPage() {
               width: 42px; height: 42px;
               border-radius: 12px;
               display: flex; align-items: center; justify-content: center;
+              background: #3b82f6;
               color: #fff;
               font-weight: 700;
               font-size: 13px;
@@ -3067,6 +3428,9 @@ export default function ClientsV2ListPage() {
               box-shadow: 0 6px 14px -6px rgba(15,23,42,0.3),
                           inset 0 1px 0 rgba(255,255,255,0.18);
               flex-shrink: 0;
+            }
+            [data-theme="dark"] .cm-avatar {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
             }
             .cm-avatar-wrap.is-active .cm-avatar-pulse {
               position: absolute;
@@ -3156,9 +3520,9 @@ export default function ClientsV2ListPage() {
               transition: all .2s ease;
             }
             .cm-projects-pill.has {
-              background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(99,102,241,0.06));
-              border-color: rgba(139,92,246,0.25);
-              color: #6d28d9;
+              background: rgba(59, 130, 246, 0.08);
+              border-color: rgba(59, 130, 246, 0.25);
+              color: #2563eb;
             }
             .cm-projects-pill.empty { color: var(--text-slate-500); }
             .cm-projects-ico {
@@ -3170,9 +3534,9 @@ export default function ClientsV2ListPage() {
               flex-shrink: 0;
             }
             .cm-projects-pill.has .cm-projects-ico {
-              background: linear-gradient(135deg, #8b5cf6, #6366f1);
+              background: #3b82f6;
               color: #fff;
-              box-shadow: 0 4px 10px -4px rgba(139,92,246,0.45);
+              box-shadow: 0 4px 10px -4px rgba(59, 130, 246, 0.45);
             }
             .cm-projects-count {
               font-weight: 800;
@@ -3186,8 +3550,12 @@ export default function ClientsV2ListPage() {
             }
             [data-theme='dark'] .cm-projects-pill { background: var(--bg-secondary); }
             [data-theme='dark'] .cm-projects-pill.has {
-              background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(99,102,241,0.12));
+              background: rgba(139, 92, 246, 0.12);
               color: #a78bfa;
+            }
+            [data-theme='dark'] .cm-projects-pill.has .cm-projects-ico {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+              box-shadow: 0 4px 10px -4px rgba(139,92,246,0.45) !important;
             }
             [data-theme='dark'] .cm-projects-ico { background: var(--bg-slate-50); }
 
@@ -3270,9 +3638,15 @@ export default function ClientsV2ListPage() {
               color: var(--text-blue-700);
               border-color: var(--border-blue-200);
             }
-            .cm-expand-btn.open { transform: rotate(90deg); background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff; border-color: transparent; }
+            .cm-expand-btn.open { transform: rotate(90deg); background: #3b82f6; color: #fff; border-color: transparent; }
+            [data-theme='dark'] .cm-expand-btn.open { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important; }
 
             /* expanded row */
+            .cm-expanded-wrap-card {
+              padding: 12px 0 0 0 !important;
+              background: transparent !important;
+              border-bottom: none !important;
+            }
             .cm-expanded-wrap {
               padding: 18px 24px 22px 64px;
               background:
@@ -3293,9 +3667,12 @@ export default function ClientsV2ListPage() {
               letter-spacing: 0.06em;
             }
             .cm-expanded-add {
-              color: #8b5cf6 !important;
+              color: #3b82f6 !important;
               font-weight: 600 !important;
               font-size: 12.5px !important;
+            }
+            [data-theme='dark'] .cm-expanded-add {
+              color: #a78bfa !important;
             }
             .cm-project-grid {
               display: grid;
@@ -3310,9 +3687,13 @@ export default function ClientsV2ListPage() {
               transition: all .2s ease;
             }
             .cm-project-card:hover {
-              border-color: #8b5cf6;
-              box-shadow: 0 8px 18px -10px rgba(139,92,246,0.4);
+              border-color: #3b82f6;
+              box-shadow: 0 8px 18px -10px rgba(59, 130, 246, 0.4);
               transform: translateY(-1px);
+            }
+            [data-theme='dark'] .cm-project-card:hover {
+              border-color: #8b5cf6 !important;
+              box-shadow: 0 8px 18px -10px rgba(139, 92, 246, 0.4) !important;
             }
             .cm-project-skeleton:hover { transform: none; box-shadow: none; border-color: var(--border-slate-100); }
             .cm-project-top {
@@ -3323,6 +3704,10 @@ export default function ClientsV2ListPage() {
               width: 28px; height: 28px;
               border-radius: 8px;
               display: flex; align-items: center; justify-content: center;
+              background: #3b82f6;
+            }
+            [data-theme='dark'] .cm-project-icon {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
             }
             .cm-project-code {
               border: 0 !important;

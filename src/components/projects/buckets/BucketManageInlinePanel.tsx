@@ -414,43 +414,7 @@ export function BucketManageInlinePanel({
           </>
         )}
 
-        {/* Tabs row with close */}
-        <div className="bmp-tabs-row">
-          <div className="bmp-tabs" role="tablist">
-            {(
-              [
-                { k: "tickets", label: "Tickets", icon: <FileTextOutlined />, count: ticketTotal },
-                { k: "members", label: "Members", icon: <TeamOutlined />, count: memberCount },
-                { k: "overview", label: "Overview", icon: <CalendarOutlined />, count: null as number | null },
-              ] as const
-            ).map((t) => {
-              const active = activeTab === t.k;
-              return (
-                <button
-                  key={t.k}
-                  className={`bmp-tab ${active ? "active" : ""}`}
-                  onClick={() => setActiveTab(t.k as TabKey)}
-                  role="tab"
-                  aria-selected={active}
-                >
-                  <span className="bmp-tab-icon">{t.icon}</span>
-                  <span className="bmp-tab-label">{t.label}</span>
-                  {t.count !== null && <span className="bmp-tab-count">{t.count}</span>}
-                </button>
-              );
-            })}
-          </div>
-          <Tooltip title="Close">
-            <Button
-              type="text"
-              icon={<CloseOutlined style={{ fontSize: 13 }} />}
-              onClick={onClose}
-              className="bmp-panel-close"
-            />
-          </Tooltip>
-        </div>
-
-        {/* Body */}
+        {/* Tabs row removed per user request */}        {/* Body */}
         <div className="bmp-body">
           {activeTab === "tickets" && (
             <div className="bmp-tickets">
@@ -514,6 +478,15 @@ export function BucketManageInlinePanel({
                       Move to Trash
                     </Button>
                   </div>
+                  <Tooltip title="Close">
+                    <Button
+                      type="text"
+                      icon={<CloseOutlined style={{ fontSize: 13, color: "var(--text-slate-500)" }} />}
+                      onClick={onClose}
+                      className="bmp-panel-close-toolbar"
+                      style={{ marginLeft: 8 }}
+                    />
+                  </Tooltip>
                 </div>
               ) : (
                 <div className="bmp-tickets-toolbar">
@@ -554,6 +527,15 @@ export function BucketManageInlinePanel({
                       allowClear
                     />
                   </div>
+                  <Tooltip title="Close">
+                    <Button
+                      type="text"
+                      icon={<CloseOutlined style={{ fontSize: 13, color: "var(--text-slate-500)" }} />}
+                      onClick={onClose}
+                      className="bmp-panel-close-toolbar"
+                      style={{ marginLeft: 8 }}
+                    />
+                  </Tooltip>
                 </div>
               )}
 
@@ -586,7 +568,7 @@ export function BucketManageInlinePanel({
                       <div
                         key={t.id}
                         className={`bmp-ticket-row ${isSelected ? "selected" : ""}`}
-                        style={isSelected ? { borderColor: accent, background: `${accent}0d` } : undefined}
+                        style={isSelected ? { borderColor: "#3b82f6", background: `rgba(59, 130, 246, 0.08)` } : undefined}
                       >
                         <span
                           className="bmp-ticket-check"
@@ -631,12 +613,8 @@ export function BucketManageInlinePanel({
                               <Tooltip title={t.assignee.workEmail || t.assignee.name}>
                                 <span className="bmp-ticket-assignee">
                                   <Avatar
-                                    size={20}
-                                    style={{
-                                      background: `linear-gradient(135deg, ${accent} 0%, ${accent}cc 100%)`,
-                                      fontSize: 9,
-                                      fontWeight: 800,
-                                    }}
+                                    size={26}
+                                    className="bmp-assignee-avatar"
                                   >
                                     {initialsOf(t.assignee.name)}
                                   </Avatar>
@@ -1120,14 +1098,14 @@ export function BucketManageInlinePanel({
           padding: 6px 12px 6px 10px;
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
-          border-radius: 10px;
+          border-radius: 0px;
           font-family: inherit;
           text-align: left;
           transition: border-color 0.12s ease, background 0.12s ease;
         }
         .bmp-ticket-row:hover {
-          border-color: var(--accent, #3b82f6);
-          background: var(--bg-pure-white);
+          border-color: #3b82f6;
+          background: rgba(59, 130, 246, 0.04);
         }
         [data-theme="dark"] .bmp-ticket-row {
           background: #1c232e !important;
@@ -1135,6 +1113,7 @@ export function BucketManageInlinePanel({
         }
         [data-theme="dark"] .bmp-ticket-row:hover {
           background: #0f1419 !important;
+          border-color: #1d4ed8 !important;
         }
         .bmp-ticket-row.selected {
           border-width: 1.5px;
@@ -1701,6 +1680,18 @@ export function BucketManageInlinePanel({
             flex-wrap: wrap;
             row-gap: 6px;
           }
+        }
+        .bmp-assignee-avatar {
+          background: #3b82f6 !important;
+          color: #ffffff !important;
+          font-weight: 800;
+        }
+        .bmp-assignee-avatar .ant-avatar-string {
+          font-size: 11px !important;
+        }
+        [data-theme='dark'] .bmp-assignee-avatar {
+          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+          border: none;
         }
       `}</style>
     </>

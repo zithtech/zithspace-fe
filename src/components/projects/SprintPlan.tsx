@@ -83,6 +83,51 @@ const BulbDot = () => (
   </svg>
 );
 
+const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
+  const min = Math.min(...data);
+  const max = Math.max(...data, min + 1);
+  const range = max - min;
+  const width = 72;
+  const height = 28;
+  const bottomPadding = 4;
+
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * width;
+    let y = height - bottomPadding;
+    if (max > min) {
+      y = height - bottomPadding - ((d - min) / range) * (height - bottomPadding - 2);
+    }
+    return { x, y };
+  });
+
+  let pathD = `M ${points[0].x},${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    pathD += ` L ${points[i].x},${points[i].y}`;
+  }
+
+  const fillD = `${pathD} L ${width},${height} L 0,${height} Z`;
+
+  const isFlat = data.every(d => d === data[0]);
+  const flatY = 2;
+  const flatPathD = `M 0,${flatY} L ${width},${flatY}`;
+  const flatFillD = `${flatPathD} L ${width},${height} L 0,${height} Z`;
+
+  const gradId = `spark-grad-${color.replace('#', '')}`;
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.05} />
+        </linearGradient>
+      </defs>
+      <path d={isFlat ? flatFillD : fillD} fill={`url(#${gradId})`} />
+      <path d={isFlat ? flatPathD : pathD} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
 export default function SprintPlanComponent() {
   const { theme } = useTheme();
   const router = useRouter();
@@ -516,7 +561,7 @@ export default function SprintPlanComponent() {
     return { map, total: base.length };
   }, [allPlans, tableFilters.status, tableFilters.search]);
 
-  const PROJECT_PALETTE = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#84cc16', '#f97316'];
+  const PROJECT_PALETTE = ['#3b82f6'];
 
   // Status counts for the segmented filter (respects search + project filters)
   const statusCounts = useMemo(() => {
@@ -773,7 +818,6 @@ export default function SprintPlanComponent() {
                     const count = projectCounts.map.get(proj.value) || 0;
                     const active = tableFilters.projectId === proj.value;
                     const color = PROJECT_PALETTE[i % PROJECT_PALETTE.length];
-                    const initial = (proj.code || proj.label || '?').charAt(0).toUpperCase();
                     return (
                       <button
                         key={proj.value}
@@ -782,7 +826,7 @@ export default function SprintPlanComponent() {
                         title={proj.label}
                       >
                         <span className="sp-sidebar-item-avatar" style={{ background: `${color}14`, color, borderColor: `${color}33` }}>
-                          {initial}
+                          <ProjectOutlined style={{ fontSize: 11 }} />
                         </span>
                         <span className="sp-sidebar-item-label">{proj.label}</span>
                         <span className="sp-sidebar-item-count">{count}</span>
@@ -812,10 +856,10 @@ export default function SprintPlanComponent() {
                 <div className="dh-side-label">STATUS</div>
                 <div className="sp-sidebar-list">
                   {([
-                    { k: 'all', label: 'All', n: statusCounts.all, color: '#64748b', pulse: false },
-                    { k: 'active', label: 'Active', n: statusCounts.active, color: '#10b981', pulse: true },
-                    { k: 'planning', label: 'Planning', n: statusCounts.planning, color: '#f59e0b', pulse: false },
-                    { k: 'completed', label: 'Completed', n: statusCounts.completed, color: '#3b82f6', pulse: false },
+                    { k: 'all', label: 'All', n: statusCounts.all, color: '#64748b', pulse: false, icon: <AppstoreOutlined /> },
+                    { k: 'active', label: 'Active', n: statusCounts.active, color: '#10b981', pulse: true, icon: <PlayCircleOutlined /> },
+                    { k: 'planning', label: 'Planning', n: statusCounts.planning, color: '#f59e0b', pulse: false, icon: <ClockCircleOutlined /> },
+                    { k: 'completed', label: 'Completed', n: statusCounts.completed, color: '#3b82f6', pulse: false, icon: <CheckCircleOutlined /> },
                   ] as const).map(seg => {
                     const active = (tableFilters.status || 'all') === seg.k;
                     return (
@@ -829,10 +873,14 @@ export default function SprintPlanComponent() {
                           className="sp-sidebar-status-chip"
                           style={{ background: `${seg.color}14`, borderColor: `${seg.color}33` }}
                         >
-                          <span
-                            className={`sp-sidebar-status-dot ${seg.pulse ? 'pulse' : ''}`}
-                            style={{ background: seg.color, ['--sp-dot' as any]: seg.color }}
-                          />
+                          {seg.k === 'all' ? (
+                            <span
+                              className={`sp-sidebar-status-dot ${seg.pulse ? 'pulse' : ''}`}
+                              style={{ background: seg.color, ['--sp-dot' as any]: seg.color }}
+                            />
+                          ) : (
+                            <span style={{ color: seg.color, fontSize: 11, display: 'flex' }}>{seg.icon}</span>
+                          )}
                         </span>
                         <span className="sp-sidebar-item-label">{seg.label}</span>
                         <span
@@ -991,10 +1039,8 @@ export default function SprintPlanComponent() {
                       <span className="sp-stat-value">{metrics.active}</span>
                       <span className="sp-stat-period">in flight</span>
                     </div>
-                    <div className="sp-stat-spark">
-                      <div className="sp-stat-track">
-                        <div className="sp-stat-fill" style={{ width: `${allPlans.length ? (metrics.active / allPlans.length) * 100 : 0}%`, background: '#3b82f6' }} />
-                      </div>
+                    <div className="shrink-0 mb-[2px] ml-auto">
+                      <Sparkline data={[0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0].map(r => r * metrics.active)} color="#3b82f6" />
                     </div>
                   </div>
                 </div>
@@ -1015,10 +1061,8 @@ export default function SprintPlanComponent() {
                       <span className="sp-stat-value">{metrics.planning}</span>
                       <span className="sp-stat-period">queued</span>
                     </div>
-                    <div className="sp-stat-spark">
-                      <div className="sp-stat-track">
-                        <div className="sp-stat-fill" style={{ width: `${allPlans.length ? (metrics.planning / allPlans.length) * 100 : 0}%`, background: '#64748b' }} />
-                      </div>
+                    <div className="shrink-0 mb-[2px] ml-auto">
+                      <Sparkline data={[0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0].map(r => r * metrics.planning)} color="#64748b" />
                     </div>
                   </div>
                 </div>
@@ -1039,10 +1083,8 @@ export default function SprintPlanComponent() {
                       <span className="sp-stat-value">{metrics.completed}</span>
                       <span className="sp-stat-period">delivered</span>
                     </div>
-                    <div className="sp-stat-spark">
-                      <div className="sp-stat-track">
-                        <div className="sp-stat-fill" style={{ width: `${allPlans.length ? (metrics.completed / allPlans.length) * 100 : 0}%`, background: '#10b981' }} />
-                      </div>
+                    <div className="shrink-0 mb-[2px] ml-auto">
+                      <Sparkline data={[0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0].map(r => r * metrics.completed)} color="#10b981" />
                     </div>
                   </div>
                 </div>
@@ -1063,10 +1105,8 @@ export default function SprintPlanComponent() {
                       <span className="sp-stat-value">{metrics.avgProgress}<span style={{ fontSize: 18, color: 'var(--text-slate-400)', marginLeft: 2 }}>%</span></span>
                       <span className="sp-stat-period">across cycles</span>
                     </div>
-                    <div className="sp-stat-spark">
-                      <div className="sp-stat-track">
-                        <div className="sp-stat-fill" style={{ width: `${metrics.avgProgress}%`, background: '#3b82f6' }} />
-                      </div>
+                    <div className="shrink-0 mb-[2px] ml-auto">
+                      <Sparkline data={[0.0, 0.2, 0.3, 0.45, 0.6, 0.8, 1.0].map(r => r * metrics.avgProgress)} color="#3b82f6" />
                     </div>
                   </div>
                 </div>
@@ -1506,12 +1546,7 @@ export default function SprintPlanComponent() {
                               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleViewTickets(record); } }}
                             >
                               <div
-                                className="sp-plist-avatar"
-                                style={{
-                                  background: `linear-gradient(135deg, ${accent}22 0%, ${accent}3a 100%)`,
-                                  color: accent,
-                                  borderColor: `${accent}66`,
-                                }}
+                                className="sp-plist-avatar sp-custom-avatar"
                               >
                                 <span className="sp-plist-avatar-letter">{initial}</span>
                               </div>
@@ -1653,8 +1688,8 @@ export default function SprintPlanComponent() {
                                 <span className="sp-plist-foot-label">Created by:</span>
                                 {record.createdBy ? (
                                   <span className="sp-plist-creator-mini">
-                                    <span className="sp-plist-creator-avatar-sm">
-                                      {(record.createdBy.name || '?').charAt(0).toUpperCase()}
+                                    <span className="sp-plist-creator-avatar-sm sp-custom-avatar">
+                                      <span className="sp-plist-avatar-letter">{(record.createdBy.name || '?').charAt(0).toUpperCase()}</span>
                                     </span>
                                     <b>{record.createdBy.name || record.createdBy.email}</b>
                                   </span>
@@ -2746,25 +2781,7 @@ export default function SprintPlanComponent() {
           color: var(--text-slate-400);
           font-weight: 500;
         }
-        .sp-stat-spark {
-          display: flex;
-          align-items: center;
-          height: 34px;
-          width: 72px;
-        }
-        .sp-stat-track {
-          width: 100%;
-          height: 2px;
-          background: var(--border-slate-200);
-          border-radius: 2px;
-          overflow: hidden;
-        }
-        [data-theme='dark'] .sp-stat-track { background: #374151 !important; }
-        .sp-stat-fill {
-          height: 100%;
-          border-radius: 999px;
-          transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+
         .sp-kpi-bar-fill.blue { background: linear-gradient(90deg, #3b82f6, #6366f1); }
         .sp-kpi-bar-fill.amber { background: linear-gradient(90deg, #f59e0b, #f97316); }
         .sp-kpi-bar-fill.emerald { background: linear-gradient(90deg, #10b981, #059669); }
@@ -3318,6 +3335,9 @@ export default function SprintPlanComponent() {
           background: #1f2937 !important;
         }
 
+        .sp-custom-avatar{
+          background: #3b82f6 !important;
+        }
         /* ── Empty state ───────────────────────────────────────── */
         .sp-empty-state {
           display: flex;
@@ -3552,7 +3572,7 @@ export default function SprintPlanComponent() {
         .sp-form-section {
           background: var(--bg-pure-white);
           padding: 20px;
-          border-radius: 12px;
+          border-radius: 0px;
           border: 1px solid var(--border-slate-200);
           box-shadow: 0 1px 3px rgba(0,0,0,0.02);
           margin-bottom: 16px;
@@ -3778,7 +3798,7 @@ export default function SprintPlanComponent() {
         .sp-detail-card {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
-          border-radius: 12px;
+          border-radius: 0px;
           padding: 14px 16px;
           box-shadow: 0 1px 2px rgba(15,23,42,0.02);
         }
@@ -3804,7 +3824,7 @@ export default function SprintPlanComponent() {
         /* Banner */
         .sp-detail-banner {
           padding: 10px 14px;
-          border-radius: 12px;
+          border-radius: 0px;
           border: 1px solid;
           display: flex;
           align-items: center;
@@ -3818,7 +3838,7 @@ export default function SprintPlanComponent() {
           gap: 10px;
           padding: 6px 12px;
           background: var(--bg-pure-white);
-          border-radius: 10px;
+          border-radius: 0px;
           font-size: 14px;
         }
         [data-theme='dark'] .sp-delivery-note {
@@ -3876,7 +3896,7 @@ export default function SprintPlanComponent() {
           gap: 8px;
           padding: 7px 10px;
           background: var(--bg-slate-50);
-          border-radius: 9px;
+          border-radius: 0px;
           border: 1px solid var(--border-slate-200);
           min-width: 0;
         }
@@ -3935,7 +3955,7 @@ export default function SprintPlanComponent() {
           gap: 8px;
           padding: 7px 10px;
           background: var(--bg-slate-50);
-          border-radius: 8px;
+          border-radius: 0px;
           border: 1px dashed var(--border-slate-200);
         }
         [data-theme='dark'] .sp-pace-row {
@@ -3952,7 +3972,7 @@ export default function SprintPlanComponent() {
         .sp-tl-stat {
           padding: 9px 10px;
           background: var(--bg-slate-50);
-          border-radius: 9px;
+          border-radius: 0px;
           border: 1px solid var(--border-slate-200);
         }
         [data-theme='dark'] .sp-tl-stat {
@@ -4547,7 +4567,7 @@ export default function SprintPlanComponent() {
           padding: 0 10px;
           border: none;
           background: transparent;
-          border-radius: 9px;
+          border-radius: 6px;
           cursor: pointer;
           font-size: 13px;
           font-family: inherit;
@@ -6173,10 +6193,17 @@ export default function SprintPlanComponent() {
           border-color: #1f2937 !important;
         }
         .sp-plist-card:hover {
-          border-color: var(--row-accent, #3b82f6);
+          background: #f8fafc !important;
+          border-color: #cbd5e1 !important;
+        }
+          .sp-plist-card:hover .sp-plist-block{
+          background: #ffffff !important;
         }
         [data-theme='dark'] .sp-plist-card:hover {
           background: #1c232e !important;
+        }
+            [data-theme='dark'] .sp-plist-card:hover .sp-plist-block{
+          background: #1f2937 !important;
         }
         .sp-plist-stripe {
           position: absolute;
@@ -6265,6 +6292,28 @@ export default function SprintPlanComponent() {
           font-style: italic;
           font-weight: 600;
         }
+        .sp-plist-creator-avatar-sm {
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          border: 0.5px solid transparent;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: 800;
+          position: relative;
+          overflow: hidden;
+        }
+        .sp-plist-creator-avatar-sm::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at 75% 0%, rgba(255,255,255,0.2), transparent 55%),
+            radial-gradient(circle at 0% 100%, rgba(0,0,0,0.06), transparent 55%);
+          pointer-events: none;
+        }
         .sp-plist-seg-dot {
           width: 6px;
           height: 6px;
@@ -6321,7 +6370,7 @@ export default function SprintPlanComponent() {
           width: 44px;
           height: 44px;
           border-radius: 11px;
-          border: 1px solid;
+          border: 1px solid transparent;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -6331,6 +6380,7 @@ export default function SprintPlanComponent() {
           flex-shrink: 0;
           position: relative;
           overflow: hidden;
+          background: #3b82f6 !important;
         }
         .sp-plist-avatar::after {
           content: '';
@@ -6345,6 +6395,7 @@ export default function SprintPlanComponent() {
           position: relative;
           z-index: 1;
           line-height: 1;
+          color: #fff !important;
         }
         .sp-plist-identity-text {
           min-width: 0;
@@ -6475,10 +6526,13 @@ export default function SprintPlanComponent() {
           gap: 12px;
         }
         .sp-plist-block {
-          padding: 9px 12px 10px;
+          padding: 7px 12px 7px;
           background: var(--bg-slate-50);
           border: 1px solid var(--border-slate-100);
           border-radius: 10px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
         }
         [data-theme='dark'] .sp-plist-block {
           background: #1c232e !important;
@@ -6564,11 +6618,11 @@ export default function SprintPlanComponent() {
         .sp-plist-chip {
           display: inline-flex;
           align-items: center;
-          gap: 5px;
-          padding: 2px 8px;
-          font-size: 10.5px;
+          gap: 6px;
+          padding: 4px 10px;
+          font-size: 12px;
           font-weight: 600;
-          border-radius: 5px;
+          border-radius: 6px;
           border: 1px solid;
           letter-spacing: -0.005em;
           line-height: 1.6;
@@ -6576,8 +6630,8 @@ export default function SprintPlanComponent() {
         }
         .sp-plist-chip b { font-weight: 800; }
         .sp-plist-chip-dot {
-          width: 5px;
-          height: 5px;
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
           background: currentColor;
         }

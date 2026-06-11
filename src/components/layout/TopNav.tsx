@@ -750,7 +750,7 @@ export default function TopNav({
                 />
               </Tooltip>
             )}
-            {canReadNotification && (
+            {/* {canReadNotification && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -772,7 +772,7 @@ export default function TopNav({
                   />
                 </div>
               </Tooltip>
-            )}
+            )} */}
             {canReadBookmark && (
               <Tooltip
                 title={

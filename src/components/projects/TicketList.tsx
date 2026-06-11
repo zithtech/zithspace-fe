@@ -110,7 +110,7 @@ import { ManualCreateTicketModal } from "./ManualCreateTicketModal";
 import { AiCreateTicketModal } from "./AiCreateTicketModal";
 import TicketSkeleton from "./TicketSkeleton";
 import TicketSidebar from "./TicketSidebar";
-import TicketFilterPill from "./TicketFilterPill";
+import TicketFilterPill, { initialsFor, avatarColorFor } from "./TicketFilterPill";
 import { TablePreferenceService } from "@/services/tablePreferenceService";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
@@ -176,11 +176,11 @@ interface TicketListProps {
 
 export default function TicketList({ projectId, projectName, projectCode }: TicketListProps) {
   const { user } = useAuth();
-  const { 
-    canCreateTicket, 
-    canReadTicket, 
-    canUpdateTicket, 
-    canDeleteTicket, 
+  const {
+    canCreateTicket,
+    canReadTicket,
+    canUpdateTicket,
+    canDeleteTicket,
     canAssignTicket,
     canManageTickets,
     canCreateTicketPlan,
@@ -738,8 +738,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const currentScope: SectionScope = isFilteredView
     ? "filtered"
     : sidebarActiveSection === "backlog"
-    ? "backlog"
-    : "sprint";
+      ? "backlog"
+      : "sprint";
   const filterSnapshotsRef = useRef<Record<SectionScope, SectionScopedFilters>>({
     sprint: { ...EMPTY_SECTION_SCOPED },
     backlog: { ...EMPTY_SECTION_SCOPED },
@@ -1017,7 +1017,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // Handle Add/Remove from Sprint
   // Handle Add/Remove from Sprint
   const showSprintTinyToast = (
-    kind: 'added' | 'removed' | 'error',
+    kind: 'added' | 'removed' | 'error' | 'no-active-sprint',
     label?: string
   ) => {
     if (kind === 'added') {
@@ -1026,12 +1026,19 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       message.success(`Ticket removed from sprint successfully`);
     } else if (kind === 'error') {
       message.error(`Sprint update failed`);
+    } else if (kind === 'no-active-sprint') {
+      modal.info({
+        title: 'Action Required',
+        content: 'First create a sprint, then move the ticket into the sprint.',
+        okText: 'Got it',
+        centered: true,
+      });
     }
   };
 
   const handleSprintAssignment = (ticketId: string, action: 'add' | 'remove') => {
     if (action === 'add' && !activeSprint) {
-      showSprintTinyToast('error');
+      showSprintTinyToast('no-active-sprint');
       return;
     }
 
@@ -1367,595 +1374,599 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // Table columns generator
   const getColumns = (context: 'active' | 'backlog'): TableProps<Ticket>['columns'] => {
     const allCols: TableProps<Ticket>['columns'] = [
-    {
-      title: "ID",
-      dataIndex: "ticketNumber",
-      key: "ticketNumber",
-      width: 180,
-      render: (text: string, record: Ticket) => (
-        <span
-          onClick={() => handleViewTicket(record)}
-          style={{
-            cursor: 'pointer',
-            color: 'var(--premium-blue)',
-            fontWeight: 700,
-            fontSize: '12px',
-            fontFamily: 'JetBrains Mono, monospace',
-            letterSpacing: '-0.02em',
-            padding: '2px 6px',
-            background: 'var(--bg-blue-50)',
-            borderRadius: '4px',
-            border: '1px solid var(--border-blue-200)',
-            whiteSpace: 'nowrap'
-          }}
-          className="hover:opacity-80 transition-opacity"
-        >
-          {text}
-        </span>
-      ),
-    },
-    {
-      title: "Title",
-      dataIndex: "title",
-      key: "title",
-      width: 350,
-      render: (text: string, record: Ticket) => {
-        const isEditing =
-          editingField?.ticketId === record.id &&
-          editingField?.field === "title";
-
-        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
-
-        if (isEditing) {
-          return (
-            <Input
-              defaultValue={text}
-              autoFocus
-              onBlur={(e) => handleUpdateTicket(record.id, "title", e.target.value)}
-              onPressEnter={(e) => handleUpdateTicket(record.id, "title", e.currentTarget.value)}
-              disabled={isUpdating}
-              className="premium-input-field"
-            />
-          );
-        }
-
-        return (
-          <div
-            className="group"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: canUpdateTicket ? 'pointer' : 'default', minHeight: 24 }}
-            onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "title" })}
-            title={text}
-          >
-            <Text
-              strong
-              style={{
-                flex: 1,
-                fontSize: 14,
-                color: 'var(--text-slate-900)',
-                letterSpacing: '-0.01em'
-              }}
-              ellipsis={{ tooltip: true }}
-            >
-              {text}
-            </Text>
-            {canUpdateTicket && (
-              <EditOutlined
-                className="opacity-0 group-hover:opacity-40 transition-opacity"
-                style={{ color: 'var(--premium-blue)', fontSize: 12 }}
-              />
-            )}
-          </div>
-        );
-
-      },
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 140,
-      render: (status: string, record: Ticket) => {
-        const isEditing =
-          editingField?.ticketId === record.id &&
-          editingField?.field === "status";
-        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
-
-        if (isEditing) {
-          return (
-            <SearchableDropdown
-              value={status}
-              defaultOpen
-              loading={isUpdating}
-              options={finalStatusOptions}
-              searchPlaceholder="Search status…"
-              itemNoun="statuses"
-              allowClear={false}
-              style={{ width: "100%", minWidth: 0, height: 32 }}
-              onChange={(value) => {
-                if (value !== undefined) handleUpdateTicket(record.id, "status", value);
-                setEditingField(null);
-              }}
-              onOpenChange={(open) => { if (!open) setEditingField(null); }}
-            />
-          );
-        }
-
-        return (
-          <Tag
-            className={`saas-tag ${getStatusColorClass(status)}`}
-            style={{ cursor: canUpdateTicket ? "pointer" : "default", display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 80 }}
-            onClick={() =>
-              canUpdateTicket && setEditingField({ ticketId: record.id, field: "status" })
-            }
-          >
-            {getStatusLabel(status, finalStatusOptions)}
-          </Tag>
-        );
-      },
-    },
-    {
-      title: "Assignee",
-      dataIndex: "assignee",
-      key: "assignee",
-      width: 180,
-      render: (assignee: any, record: Ticket) => {
-        const isEditing =
-          editingField?.ticketId === record.id &&
-          editingField?.field === "assignee";
-        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
-        const assigneeId =
-          typeof assignee === "string" ? assignee : assignee?.id || "";
-        const name =
-          assignee && typeof assignee === "string"
-            ? assignee
-            : assignee
-              ? assignee?.name
-              : "Unassigned";
-
-        if (isEditing) {
-          return (
-            <SearchableDropdown
-              value={assigneeId || undefined}
-              defaultOpen
-              loading={isUpdating}
-              placeholder="Select assignee"
-              searchPlaceholder="Search by name or role…"
-              itemNoun="members"
-              style={{ width: "100%", minWidth: 0, height: 32 }}
-              options={members.map((member) => ({
-                value: member.value,
-                label: member.label,
-                description: member.position,
-              }))}
-              onChange={(value) => {
-                handleUpdateTicket(record.id, "assignee", value ?? null);
-                setEditingField(null);
-              }}
-              onOpenChange={(open) => { if (!open) setEditingField(null); }}
-            />
-          );
-        }
-
-        return (
-          <Space
-            style={{ cursor: canUpdateTicket ? "pointer" : "default", transition: 'all 0.2s' }}
-            className={canUpdateTicket ? "hover:translate-x-1" : ""}
-            onClick={() => {
-              if (canUpdateTicket) {
-                if (!canAssignTicket) {
-                  message.error("Access Denied: You do not have permission to assign tickets.");
-                  return;
-                }
-                setEditingField({ ticketId: record.id, field: "assignee" });
-              }
-            }}
-          >
-            <Avatar
-              size="small"
-              style={{ backgroundColor: "#1677ff" }}
-              src={assignee?.avatarUrl}
-            >
-              {!assignee?.avatarUrl && name?.charAt(0)}
-            </Avatar>
-            <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-700)' }}>{name}</Text>
-          </Space>
-        );
-      },
-    },
-    {
-      title: "Priority",
-      dataIndex: "priority",
-      key: "priority",
-      width: 100,
-      render: (priority: string, record: Ticket) => {
-        const isEditing =
-          editingField?.ticketId === record.id &&
-          editingField?.field === "priority";
-        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
-
-        if (isEditing) {
-          return (
-            <SearchableDropdown
-              value={priority}
-              defaultOpen
-              loading={isUpdating}
-              allowClear={false}
-              searchPlaceholder="Search priority…"
-              itemNoun="priorities"
-              style={{ width: "100%", minWidth: 0, height: 32 }}
-              options={dbPriorityOptions.length > 0 ? dbPriorityOptions : [
-                { label: "High (P1)", value: "P1" },
-                { label: "Medium (P2)", value: "P2" },
-                { label: "Low (P3)", value: "P3" },
-              ]}
-              onChange={(value) => {
-                if (value !== undefined) handleUpdateTicket(record.id, "priority", value);
-                setEditingField(null);
-              }}
-              onOpenChange={(open) => { if (!open) setEditingField(null); }}
-            />
-          );
-        }
-
-        return (
-          <Tag
-            className={`saas-tag ${getPriorityColorClass(priority)}`}
-            style={{ cursor: canUpdateTicket ? 'pointer' : 'default', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-            onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "priority" })}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'currentColor' }} />
-            {priority}
-          </Tag>
-        );
-      },
-    },
-    {
-      title: "Type",
-      key: "type",
-      width: 100,
-      render: (_: any, record: Ticket) => {
-        const type = record?.type || "";
-        const isEditing =
-          editingField?.ticketId === record.id &&
-          editingField?.field === "type";
-        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
-
-        if (isEditing) {
-          return (
-            <SearchableDropdown
-              value={type}
-              defaultOpen
-              loading={isUpdating}
-              allowClear={false}
-              searchPlaceholder="Search type…"
-              itemNoun="types"
-              style={{ width: "100%", minWidth: 0, height: 32 }}
-              options={finalTypeOptions.length > 0 ? finalTypeOptions : [
-                { label: "Bug", value: "Bug" },
-                { label: "Task", value: "Task" },
-                { label: "Feature", value: "Feat" },
-                { label: "Overwrite", value: "Overwrite" },
-              ]}
-              onChange={(value) => {
-                if (value !== undefined) handleUpdateTicket(record.id, "type", value);
-                setEditingField(null);
-              }}
-              onOpenChange={(open) => { if (!open) setEditingField(null); }}
-            />
-          );
-        }
-
-        if (!type) {
-          return <Text type="secondary" style={{ cursor: canUpdateTicket ? 'pointer' : 'default', fontSize: 13 }} onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "type" })}>-</Text>;
-        }
-        return (
-          <Tag
-            className={`saas-tag ${getTypeColorClass(type)}`}
-            style={{ cursor: canUpdateTicket ? 'pointer' : 'default' }}
-            onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "type" })}
-          >
-            {type}
-          </Tag>
-        );
-      },
-    },
-    {
-      title: "SP",
-      dataIndex: "storyPoint",
-      key: "storyPoint",
-      width: 70,
-      render: (storyPoint: number | undefined, record: Ticket) => {
-        const isEditing =
-          editingField?.ticketId === record.id &&
-          editingField?.field === "storyPoint";
-        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
-
-        if (isEditing) {
-          return (
-            <InputNumber
-              defaultValue={storyPoint}
-              autoFocus
-              onBlur={(e) => {
-                const val = parseFloat(e.target.value);
-                handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? 0 : val);
-              }}
-              onPressEnter={(e) => handleUpdateTicket(record.id, "storyPoint", parseFloat(e.currentTarget.value))}
-              style={{ width: '100%' }}
-              disabled={isUpdating}
-            />
-          );
-        }
-
-        return (
-          <div
+      {
+        title: "ID",
+        dataIndex: "ticketNumber",
+        key: "ticketNumber",
+        width: 180,
+        render: (text: string, record: Ticket) => (
+          <span
+            onClick={() => handleViewTicket(record)}
             style={{
               cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 24,
-              height: 24,
-              borderRadius: 6,
-              background: 'var(--bg-slate-100)',
-              fontSize: 12,
+              color: 'var(--premium-blue)',
               fontWeight: 700,
-              color: 'var(--text-slate-500)'
+              fontSize: '12px',
+              fontFamily: 'JetBrains Mono, monospace',
+              letterSpacing: '-0.02em',
+              padding: '2px 6px',
+              background: 'var(--bg-blue-50)',
+              borderRadius: '4px',
+              border: '1px solid var(--border-blue-200)',
+              whiteSpace: 'nowrap'
             }}
-            onClick={() => setEditingField({ ticketId: record.id, field: "storyPoint" })}
+            className="hover:opacity-80 transition-opacity"
           >
-            {storyPoint || 0}
-          </div>
-        );
-      }
-    },
-    {
-      title: "Platform",
-      dataIndex: "platform",
-      key: "platform",
-      width: 120,
-      render: (platform: string) => platform
-        ? <Tag className="saas-tag" bordered={false} style={{ fontSize: 11 }}>{platform}</Tag>
-        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
-    },
-    {
-      title: "Stack",
-      dataIndex: "stack",
-      key: "stack",
-      width: 120,
-      render: (stack: string) => stack
-        ? <Tag className="saas-tag" bordered={false} style={{ fontSize: 11 }}>{stack}</Tag>
-        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
-    },
-    {
-      title: "Task Level",
-      dataIndex: "taskLevel",
-      key: "taskLevel",
-      width: 120,
-      render: (level: string) => level
-        ? <Tag className="saas-tag" bordered={false} style={{ fontSize: 11 }}>{level}</Tag>
-        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
-    },
-    {
-      title: "Tags",
-      dataIndex: "tags",
-      key: "tags",
-      width: 180,
-      render: (tags: string[] | undefined) => {
-        if (!tags || tags.length === 0) {
-          return <Text type="secondary" style={{ fontSize: 12 }}>-</Text>;
-        }
-        const visible = tags.slice(0, 3);
-        const extra = tags.length - visible.length;
-        return (
-          <Space size={4} wrap>
-            {visible.map((t) => (
-              <Tag key={t} bordered={false} style={{ fontSize: 10.5, margin: 0 }}>{t}</Tag>
-            ))}
-            {extra > 0 && (
-              <Tooltip title={tags.slice(3).join(', ')}>
-                <Tag bordered={false} style={{ fontSize: 10.5, margin: 0 }}>+{extra}</Tag>
-              </Tooltip>
-            )}
-          </Space>
-        );
+            {text}
+          </span>
+        ),
       },
-    },
-    {
-      title: "Estimate (h)",
-      dataIndex: "estimateHours",
-      key: "estimateHours",
-      width: 110,
-      render: (hours: number | undefined) => (
-        <Text style={{ fontSize: 12, color: 'var(--text-slate-700)' }}>
-          {hours != null ? hours : <span style={{ color: 'var(--text-slate-400)' }}>-</span>}
-        </Text>
-      ),
-    },
-    {
-      title: "Start Date",
-      dataIndex: "startDate",
-      key: "startDate",
-      width: 130,
-      render: (date: string | undefined) => date
-        ? <Text style={{ fontSize: 12 }}>{dayjs(date).format('DD MMM YYYY')}</Text>
-        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
-    },
-    {
-      title: "End Date",
-      dataIndex: "endDate",
-      key: "endDate",
-      width: 130,
-      render: (date: string | undefined) => date
-        ? <Text style={{ fontSize: 12 }}>{dayjs(date).format('DD MMM YYYY')}</Text>
-        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
-    },
-    {
-      title: "Report To",
-      dataIndex: "reportTo",
-      key: "reportTo",
-      width: 170,
-      render: (reportTo: Ticket["reportTo"]) => {
-        if (!reportTo || typeof reportTo === 'string') {
-          return <Text type="secondary" style={{ fontSize: 12 }}>{typeof reportTo === 'string' ? reportTo : '-'}</Text>;
-        }
-        return (
-          <Space size={6}>
-            <Avatar size="small" style={{ backgroundColor: '#8b5cf6' }} src={reportTo.avatarUrl || undefined}>
-              {!reportTo.avatarUrl && reportTo.name?.charAt(0)}
-            </Avatar>
-            <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{reportTo.name}</Text>
-          </Space>
-        );
-      },
-    },
-    {
-      title: "Created By",
-      dataIndex: "createdBy",
-      key: "createdBy",
-      width: 170,
-      render: (createdBy: Ticket["createdBy"]) => {
-        if (!createdBy) return <Text type="secondary" style={{ fontSize: 12 }}>-</Text>;
-        return (
-          <Space size={6}>
-            <Avatar size="small" style={{ backgroundColor: '#10b981' }} src={createdBy.avatarUrl || undefined}>
-              {!createdBy.avatarUrl && createdBy.name?.charAt(0)}
-            </Avatar>
-            <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{createdBy.name}</Text>
-          </Space>
-        );
-      },
-    },
-    {
-      title: "Created",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      width: 140,
-      render: (date: string | undefined) => date
-        ? (
-          <Tooltip title={dayjs(date).format('DD MMM YYYY, HH:mm')}>
-            <Text style={{ fontSize: 12 }}>{dayjs(date).format('DD MMM YYYY')}</Text>
-          </Tooltip>
-        )
-        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
-    },
-    {
-      title: "Updated",
-      dataIndex: "updatedAt",
-      key: "updatedAt",
-      width: 140,
-      render: (date: string | undefined) => date
-        ? (
-          <Tooltip title={dayjs(date).format('DD MMM YYYY, HH:mm')}>
-            <Text style={{ fontSize: 12 }}>{dayjs(date).format('DD MMM YYYY')}</Text>
-          </Tooltip>
-        )
-        : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 116,
-      align: "right" as const,
-      fixed: "right",
-      render: (_: any, record: Ticket) => {
-        const handleShare = () => {
-          const url = `${window.location.origin}/public/tickets/${record.id}`;
-          navigator.clipboard.writeText(url);
-        };
+      {
+        title: "Title",
+        dataIndex: "title",
+        key: "title",
+        width: 350,
+        render: (text: string, record: Ticket) => {
+          const isEditing =
+            editingField?.ticketId === record.id &&
+            editingField?.field === "title";
 
-        return (
-          <Space size={4}>
-            {/* Context based actions */}
-            {context === 'backlog' && canUpdateTicket && (
-              <Tooltip title="Add to Sprint">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<PlusCircleOutlined style={{ color: '#52c41a' }} />}
-                  onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'add'); }}
-                  className="saas-button-item"
-                />
-              </Tooltip>
-            )}
-            {context === 'active' && canUpdateTicket && (
-              <Tooltip title="Remove from Sprint">
-                <Button
-                  type="text"
-                  size="small"
-                  danger
-                  icon={<MinusCircleOutlined />}
-                  onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'remove'); }}
-                  className="saas-button-item"
-                />
-              </Tooltip>
-            )}
+          const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
 
-            <Divider type="vertical" style={{ margin: '0 4px' }} />
-
-            <Tooltip title="View Details">
-              <Button
-                type="text"
-                size="small"
-                icon={<EyeOutlined style={{ color: 'var(--premium-blue)' }} />}
-                onClick={(e) => { e.stopPropagation(); handleViewTicket(record); }}
-                className="saas-button-item"
+          if (isEditing) {
+            return (
+              <Input
+                defaultValue={text}
+                autoFocus
+                onBlur={(e) => handleUpdateTicket(record.id, "title", e.target.value)}
+                onPressEnter={(e) => handleUpdateTicket(record.id, "title", e.currentTarget.value)}
+                disabled={isUpdating}
+                className="premium-input-field"
               />
-            </Tooltip>
+            );
+          }
 
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: 'share',
-                    label: 'Copy Public Link',
-                    icon: <ShareAltOutlined />,
-                    onClick: handleShare
-                  },
-                  canDeleteTicket && {
-                    key: 'delete',
-                    label: 'Delete Ticket',
-                    icon: <DeleteOutlined />,
-                    danger: true,
-                    onClick: (info: any) => {
-                      if (info.domEvent) info.domEvent.stopPropagation();
-                      modal.confirm({
-                        title: 'Confirm Deletion',
-                        content: (
-                          <div style={{ marginTop: 8 }}>
-                            <Text>Are you sure you want to move <b>{record.ticketNumber}</b> to trash?</Text>
-                            <Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 4 }}>
-                              You can restore it for up to 7 days from the Trash Repository.
-                            </Text>
-                          </div>
-                        ),
-                        okText: 'Move to Trash',
-                        okType: 'danger',
-                        centered: true,
-                        okButtonProps: { style: { fontWeight: 700 } },
-                        onOk: () => handleDeleteTicket(record.id)
-                      });
-                    }
-                  }
-                ].filter(Boolean) as any
-              }}
-              trigger={['click']}
+          return (
+            <div
+              className="group"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: canUpdateTicket ? 'pointer' : 'default', minHeight: 24 }}
+              onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "title" })}
+              title={text}
             >
-              <Button
-                type="text"
-                size="small"
-                icon={<MoreOutlined />}
-                onClick={(e) => e.stopPropagation()}
-                className="saas-button-item"
-              />
-            </Dropdown>
-          </Space>
-        );
-      },
-    },
-  ];
+              <Text
+                strong
+                style={{
+                  flex: 1,
+                  fontSize: 14,
+                  color: 'var(--text-slate-900)',
+                  letterSpacing: '-0.01em'
+                }}
+                ellipsis={{ tooltip: true }}
+              >
+                {text}
+              </Text>
+              {canUpdateTicket && (
+                <EditOutlined
+                  className="opacity-0 group-hover:opacity-40 transition-opacity"
+                  style={{ color: 'var(--premium-blue)', fontSize: 12 }}
+                />
+              )}
+            </div>
+          );
 
-  return allCols.filter(c => activeColumnsSet.has(c?.key as string));
-};
+        },
+      },
+      {
+        title: "Status",
+        dataIndex: "status",
+        key: "status",
+        width: 140,
+        render: (status: string, record: Ticket) => {
+          const isEditing =
+            editingField?.ticketId === record.id &&
+            editingField?.field === "status";
+          const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+
+          if (isEditing) {
+            return (
+              <SearchableDropdown
+                value={status}
+                defaultOpen
+                loading={isUpdating}
+                options={finalStatusOptions}
+                searchPlaceholder="Search status…"
+                itemNoun="statuses"
+                allowClear={false}
+                style={{ width: "100%", minWidth: 0, height: 32 }}
+                onChange={(value) => {
+                  if (value !== undefined) handleUpdateTicket(record.id, "status", value);
+                  setEditingField(null);
+                }}
+                onOpenChange={(open) => { if (!open) setEditingField(null); }}
+              />
+            );
+          }
+
+          return (
+            <Tag
+              className={`saas-tag ${getStatusColorClass(status)}`}
+              style={{ cursor: canUpdateTicket ? "pointer" : "default", display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 80 }}
+              onClick={() =>
+                canUpdateTicket && setEditingField({ ticketId: record.id, field: "status" })
+              }
+            >
+              {getStatusLabel(status, finalStatusOptions)}
+            </Tag>
+          );
+        },
+      },
+      {
+        title: "Assignee",
+        dataIndex: "assignee",
+        key: "assignee",
+        width: 180,
+        render: (assignee: any, record: Ticket) => {
+          const isEditing =
+            editingField?.ticketId === record.id &&
+            editingField?.field === "assignee";
+          const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+          const assigneeId =
+            typeof assignee === "string" ? assignee : assignee?.id || "";
+          const name =
+            assignee && typeof assignee === "string"
+              ? assignee
+              : assignee
+                ? assignee?.name
+                : "Unassigned";
+
+          if (isEditing) {
+            return (
+              <SearchableDropdown
+                value={assigneeId || undefined}
+                defaultOpen
+                loading={isUpdating}
+                placeholder="Select assignee"
+                searchPlaceholder="Search by name or role…"
+                itemNoun="members"
+                style={{ width: "100%", minWidth: 0, height: 32 }}
+                options={members.map((member) => ({
+                  value: member.value,
+                  label: member.label,
+                  description: member.position,
+                }))}
+                onChange={(value) => {
+                  handleUpdateTicket(record.id, "assignee", value ?? null);
+                  setEditingField(null);
+                }}
+                onOpenChange={(open) => { if (!open) setEditingField(null); }}
+              />
+            );
+          }
+
+          const isUnassigned = !assignee || (typeof assignee === "string" ? assignee === "unassigned" : !assignee.id);
+          const avatarBgColor = isUnassigned ? "#94a3b8" : avatarColorFor(name);
+          const initials = isUnassigned ? "UN" : initialsFor(name);
+
+          return (
+            <Space
+              style={{ cursor: canUpdateTicket ? "pointer" : "default", transition: 'all 0.2s' }}
+              className={canUpdateTicket ? "hover:translate-x-1" : ""}
+              onClick={() => {
+                if (canUpdateTicket) {
+                  if (!canAssignTicket) {
+                    message.error("Access Denied: You do not have permission to assign tickets.");
+                    return;
+                  }
+                  setEditingField({ ticketId: record.id, field: "assignee" });
+                }
+              }}
+            >
+              <Avatar
+                size="small"
+                style={{ backgroundColor: avatarBgColor }}
+                src={typeof assignee === "object" ? assignee?.avatarUrl || undefined : undefined}
+              >
+                {initials}
+              </Avatar>
+              <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-700)' }}>{name}</Text>
+            </Space>
+          );
+        },
+      },
+      {
+        title: "Priority",
+        dataIndex: "priority",
+        key: "priority",
+        width: 100,
+        render: (priority: string, record: Ticket) => {
+          const isEditing =
+            editingField?.ticketId === record.id &&
+            editingField?.field === "priority";
+          const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+
+          if (isEditing) {
+            return (
+              <SearchableDropdown
+                value={priority}
+                defaultOpen
+                loading={isUpdating}
+                allowClear={false}
+                searchPlaceholder="Search priority…"
+                itemNoun="priorities"
+                style={{ width: "100%", minWidth: 0, height: 32 }}
+                options={dbPriorityOptions.length > 0 ? dbPriorityOptions : [
+                  { label: "High (P1)", value: "P1" },
+                  { label: "Medium (P2)", value: "P2" },
+                  { label: "Low (P3)", value: "P3" },
+                ]}
+                onChange={(value) => {
+                  if (value !== undefined) handleUpdateTicket(record.id, "priority", value);
+                  setEditingField(null);
+                }}
+                onOpenChange={(open) => { if (!open) setEditingField(null); }}
+              />
+            );
+          }
+
+          return (
+            <Tag
+              className={`saas-tag ${getPriorityColorClass(priority)}`}
+              style={{ cursor: canUpdateTicket ? 'pointer' : 'default', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "priority" })}
+            >
+              <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'currentColor' }} />
+              {priority}
+            </Tag>
+          );
+        },
+      },
+      {
+        title: "Type",
+        key: "type",
+        width: 100,
+        render: (_: any, record: Ticket) => {
+          const type = record?.type || "";
+          const isEditing =
+            editingField?.ticketId === record.id &&
+            editingField?.field === "type";
+          const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+
+          if (isEditing) {
+            return (
+              <SearchableDropdown
+                value={type}
+                defaultOpen
+                loading={isUpdating}
+                allowClear={false}
+                searchPlaceholder="Search type…"
+                itemNoun="types"
+                style={{ width: "100%", minWidth: 0, height: 32 }}
+                options={finalTypeOptions.length > 0 ? finalTypeOptions : [
+                  { label: "Bug", value: "Bug" },
+                  { label: "Task", value: "Task" },
+                  { label: "Feature", value: "Feat" },
+                  { label: "Overwrite", value: "Overwrite" },
+                ]}
+                onChange={(value) => {
+                  if (value !== undefined) handleUpdateTicket(record.id, "type", value);
+                  setEditingField(null);
+                }}
+                onOpenChange={(open) => { if (!open) setEditingField(null); }}
+              />
+            );
+          }
+
+          if (!type) {
+            return <Text type="secondary" style={{ cursor: canUpdateTicket ? 'pointer' : 'default', fontSize: 13 }} onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "type" })}>-</Text>;
+          }
+          return (
+            <Tag
+              className={`saas-tag ${getTypeColorClass(type)}`}
+              style={{ cursor: canUpdateTicket ? 'pointer' : 'default' }}
+              onClick={() => canUpdateTicket && setEditingField({ ticketId: record.id, field: "type" })}
+            >
+              {type}
+            </Tag>
+          );
+        },
+      },
+      {
+        title: "SP",
+        dataIndex: "storyPoint",
+        key: "storyPoint",
+        width: 70,
+        render: (storyPoint: number | undefined, record: Ticket) => {
+          const isEditing =
+            editingField?.ticketId === record.id &&
+            editingField?.field === "storyPoint";
+          const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+
+          if (isEditing) {
+            return (
+              <InputNumber
+                defaultValue={storyPoint}
+                autoFocus
+                onBlur={(e) => {
+                  const val = parseFloat(e.target.value);
+                  handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? 0 : val);
+                }}
+                onPressEnter={(e) => handleUpdateTicket(record.id, "storyPoint", parseFloat(e.currentTarget.value))}
+                style={{ width: '100%' }}
+                disabled={isUpdating}
+              />
+            );
+          }
+
+          return (
+            <div
+              style={{
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 24,
+                height: 24,
+                borderRadius: 6,
+                background: 'var(--bg-slate-100)',
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--text-slate-500)'
+              }}
+              onClick={() => setEditingField({ ticketId: record.id, field: "storyPoint" })}
+            >
+              {storyPoint || 0}
+            </div>
+          );
+        }
+      },
+      {
+        title: "Platform",
+        dataIndex: "platform",
+        key: "platform",
+        width: 120,
+        render: (platform: string) => platform
+          ? <Tag className="saas-tag" bordered={false} style={{ fontSize: 11 }}>{platform}</Tag>
+          : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+      },
+      {
+        title: "Stack",
+        dataIndex: "stack",
+        key: "stack",
+        width: 120,
+        render: (stack: string) => stack
+          ? <Tag className="saas-tag" bordered={false} style={{ fontSize: 11 }}>{stack}</Tag>
+          : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+      },
+      {
+        title: "Task Level",
+        dataIndex: "taskLevel",
+        key: "taskLevel",
+        width: 120,
+        render: (level: string) => level
+          ? <Tag className="saas-tag" bordered={false} style={{ fontSize: 11 }}>{level}</Tag>
+          : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+      },
+      {
+        title: "Tags",
+        dataIndex: "tags",
+        key: "tags",
+        width: 180,
+        render: (tags: string[] | undefined) => {
+          if (!tags || tags.length === 0) {
+            return <Text type="secondary" style={{ fontSize: 12 }}>-</Text>;
+          }
+          const visible = tags.slice(0, 3);
+          const extra = tags.length - visible.length;
+          return (
+            <Space size={4} wrap>
+              {visible.map((t) => (
+                <Tag key={t} bordered={false} style={{ fontSize: 10.5, margin: 0 }}>{t}</Tag>
+              ))}
+              {extra > 0 && (
+                <Tooltip title={tags.slice(3).join(', ')}>
+                  <Tag bordered={false} style={{ fontSize: 10.5, margin: 0 }}>+{extra}</Tag>
+                </Tooltip>
+              )}
+            </Space>
+          );
+        },
+      },
+      {
+        title: "Estimate (h)",
+        dataIndex: "estimateHours",
+        key: "estimateHours",
+        width: 110,
+        render: (hours: number | undefined) => (
+          <Text style={{ fontSize: 12, color: 'var(--text-slate-700)' }}>
+            {hours != null ? hours : <span style={{ color: 'var(--text-slate-400)' }}>-</span>}
+          </Text>
+        ),
+      },
+      {
+        title: "Start Date",
+        dataIndex: "startDate",
+        key: "startDate",
+        width: 130,
+        render: (date: string | undefined) => date
+          ? <Text style={{ fontSize: 12 }}>{dayjs(date).format('DD MMM YYYY')}</Text>
+          : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+      },
+      {
+        title: "End Date",
+        dataIndex: "endDate",
+        key: "endDate",
+        width: 130,
+        render: (date: string | undefined) => date
+          ? <Text style={{ fontSize: 12 }}>{dayjs(date).format('DD MMM YYYY')}</Text>
+          : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+      },
+      {
+        title: "Report To",
+        dataIndex: "reportTo",
+        key: "reportTo",
+        width: 170,
+        render: (reportTo: Ticket["reportTo"]) => {
+          if (!reportTo || typeof reportTo === 'string') {
+            return <Text type="secondary" style={{ fontSize: 12 }}>{typeof reportTo === 'string' ? reportTo : '-'}</Text>;
+          }
+          return (
+            <Space size={6}>
+              <Avatar size="small" style={{ backgroundColor: avatarColorFor(reportTo.name) }} src={reportTo.avatarUrl || undefined}>
+                {!reportTo.avatarUrl && initialsFor(reportTo.name)}
+              </Avatar>
+              <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{reportTo.name}</Text>
+            </Space>
+          );
+        },
+      },
+      {
+        title: "Created By",
+        dataIndex: "createdBy",
+        key: "createdBy",
+        width: 170,
+        render: (createdBy: Ticket["createdBy"]) => {
+          if (!createdBy) return <Text type="secondary" style={{ fontSize: 12 }}>-</Text>;
+          return (
+            <Space size={6}>
+              <Avatar size="small" style={{ backgroundColor: avatarColorFor(createdBy.name) }} src={createdBy.avatarUrl || undefined}>
+                {!createdBy.avatarUrl && initialsFor(createdBy.name)}
+              </Avatar>
+              <Text style={{ fontSize: 12.5, fontWeight: 500 }}>{createdBy.name}</Text>
+            </Space>
+          );
+        },
+      },
+      {
+        title: "Created",
+        dataIndex: "createdAt",
+        key: "createdAt",
+        width: 140,
+        render: (date: string | undefined) => date
+          ? (
+            <Tooltip title={dayjs(date).format('DD MMM YYYY, HH:mm')}>
+              <Text style={{ fontSize: 12 }}>{dayjs(date).format('DD MMM YYYY')}</Text>
+            </Tooltip>
+          )
+          : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+      },
+      {
+        title: "Updated",
+        dataIndex: "updatedAt",
+        key: "updatedAt",
+        width: 140,
+        render: (date: string | undefined) => date
+          ? (
+            <Tooltip title={dayjs(date).format('DD MMM YYYY, HH:mm')}>
+              <Text style={{ fontSize: 12 }}>{dayjs(date).format('DD MMM YYYY')}</Text>
+            </Tooltip>
+          )
+          : <Text type="secondary" style={{ fontSize: 12 }}>-</Text>,
+      },
+      {
+        title: "Actions",
+        key: "actions",
+        width: 116,
+        align: "right" as const,
+        fixed: "right",
+        render: (_: any, record: Ticket) => {
+          const handleShare = () => {
+            const url = `${window.location.origin}/public/tickets/${record.id}`;
+            navigator.clipboard.writeText(url);
+          };
+
+          return (
+            <Space size={4}>
+              {/* Context based actions */}
+              {context === 'backlog' && canUpdateTicket && (
+                <Tooltip title="Add to Sprint">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<PlusCircleOutlined style={{ color: '#52c41a' }} />}
+                    onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'add'); }}
+                    className="saas-button-item"
+                  />
+                </Tooltip>
+              )}
+              {context === 'active' && canUpdateTicket && (
+                <Tooltip title="Remove from Sprint">
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    icon={<MinusCircleOutlined />}
+                    onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'remove'); }}
+                    className="saas-button-item"
+                  />
+                </Tooltip>
+              )}
+
+              <Divider type="vertical" style={{ margin: '0 4px' }} />
+
+              <Tooltip title="View Details">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EyeOutlined style={{ color: 'var(--premium-blue)' }} />}
+                  onClick={(e) => { e.stopPropagation(); handleViewTicket(record); }}
+                  className="saas-button-item"
+                />
+              </Tooltip>
+
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: 'share',
+                      label: 'Copy Public Link',
+                      icon: <ShareAltOutlined />,
+                      onClick: handleShare
+                    },
+                    canDeleteTicket && {
+                      key: 'delete',
+                      label: 'Delete Ticket',
+                      icon: <DeleteOutlined />,
+                      danger: true,
+                      onClick: (info: any) => {
+                        if (info.domEvent) info.domEvent.stopPropagation();
+                        modal.confirm({
+                          title: 'Confirm Deletion',
+                          content: (
+                            <div style={{ marginTop: 8 }}>
+                              <Text>Are you sure you want to move <b>{record.ticketNumber}</b> to trash?</Text>
+                              <Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 4 }}>
+                                You can restore it for up to 7 days from the Trash Repository.
+                              </Text>
+                            </div>
+                          ),
+                          okText: 'Move to Trash',
+                          okType: 'danger',
+                          centered: true,
+                          okButtonProps: { style: { fontWeight: 700 } },
+                          onOk: () => handleDeleteTicket(record.id)
+                        });
+                      }
+                    }
+                  ].filter(Boolean) as any
+                }}
+                trigger={['click']}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<MoreOutlined />}
+                  onClick={(e) => e.stopPropagation()}
+                  className="saas-button-item"
+                />
+              </Dropdown>
+            </Space>
+          );
+        },
+      },
+    ];
+
+    return allCols.filter(c => activeColumnsSet.has(c?.key as string));
+  };
 
   // Active-sprint header used at the top of List, Board, and Calendar views.
   // `variant: 'list'` enables the bulk-action branch driven by activeSelectedRowKeys
@@ -3437,672 +3448,683 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             onTicketClick={(id) => setSelectedTicketId(id)}
           />
           <div className="tl-main">
-      {/* Inline Filter Row — compact pill row, sits at top of main column */}
-      {isFilterRowOpen && (
-        <div className="tl-filter-row">
-          <div className="tl-filter-row-label">
-            <FilterOutlined style={{ fontSize: 11 }} />
-            <span>Filters</span>
-            <span className="tl-filter-row-count">
-              {activeFilterCount > 0 ? activeFilterCount : '0'}
-            </span>
-          </div>
-          <div className="tl-filter-row-pills">
-            <TicketFilterPill
-              icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
-              label="Status"
-              values={filters.status}
-              options={finalStatusOptions}
-              onChange={(val) => handleFilterChange('status', val)}
-              itemNoun="statuses"
-            />
-            <TicketFilterPill
-              icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
-              label="Priority"
-              values={filters.priority}
-              options={finalPriorityOptions}
-              onChange={(val) => handleFilterChange('priority', val)}
-              itemNoun="priorities"
-            />
-            <TicketFilterPill
-              icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
-              label="Type"
-              values={filters.type}
-              options={finalTypeOptions}
-              onChange={(val) => handleFilterChange('type', val)}
-              itemNoun="types"
-            />
-            <TicketFilterPill
-              icon={<UserOutlined style={{ fontSize: 11 }} />}
-              label="Assignee"
-              values={filters.assignee}
-              options={members.map((m) => ({
-                label: m.label,
-                value: m.value,
-                description: m.position || undefined,
-              }))}
-              onChange={(val) => handleFilterChange('assignee', val)}
-              itemNoun="members"
-              width={290}
-            />
-            <TicketFilterPill
-              icon={<EditOutlined style={{ fontSize: 11 }} />}
-              label="Created By"
-              values={filters.createdBy}
-              options={members.map((m) => ({
-                label: m.label,
-                value: m.value,
-                description: m.position || undefined,
-              }))}
-              onChange={(val) => handleFilterChange('createdBy', val)}
-              itemNoun="members"
-              width={290}
-            />
-            <TicketFilterPill
-              icon={<TagsOutlined style={{ fontSize: 11 }} />}
-              label="Tags"
-              values={filters.tags}
-              options={tagSuggestions.map((t) => ({ label: t, value: t }))}
-              onChange={(val) => handleFilterChange('tags', val)}
-              itemNoun="tags"
-            />
-          </div>
-          <div className="tl-filter-row-actions">
-            {activeFilterCount > 0 && (
-              <button
-                type="button"
-                className="tl-filter-row-reset"
-                onClick={() => {
-                  setFilters({ status: [], priority: [], assignee: [], createdBy: [], type: [], tags: [], search: filters.search, ticketIds: [] });
-                  setActiveQuickFilters({ commented: false, attached: false, overdue: false });
-                }}
-              >
-                <ReloadOutlined style={{ fontSize: 10 }} />
-                Reset
-              </button>
-            )}
-            <button
-              type="button"
-              className="tl-filter-row-close"
-              onClick={() => setIsFilterRowOpen(false)}
-              aria-label="Close filters"
-              title="Close filters"
-            >
-              <CloseOutlined style={{ fontSize: 10 }} />
-            </button>
-          </div>
-        </div>
-      )}
-      {/* Legacy ticketIds chip replaced by the dedicated Filtered View section
-          driven by activeQuickFilters. Kept here only as a marker. */}
-      {(isRefreshing || (viewMode === 'list' ? (activeSprintLoading || backlogLoading) : viewMode === 'calendar' ? (allSprintsLoading || calendarTicketsLoading) : isKanbanLoading)) ? (
-        <TicketSkeleton viewMode={viewMode === 'calendar' ? 'list' : viewMode} />
-      ) : viewMode === 'calendar' ? (
-        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-          {activeSprint && !isFilteredView && (
-            <div className="tl-section">
-              {renderActiveSprintHeader('compact', false)}
-            </div>
-          )}
-        <div className="tcal-card">
-          {/* Sticky header */}
-          <div className="tcal-header">
-            <div className="tcal-title-block">
-              <Text className="tcal-title">{calendarMonth.format('MMMM YYYY')}</Text>
-              <div className="tcal-stat-row">
-                <span className="tcal-stat">
-                  <span className="tcal-stat-num">{calendarMonthStats.sprintCount}</span>
-                  <span className="tcal-stat-label">Sprint{calendarMonthStats.sprintCount !== 1 ? 's' : ''}</span>
-                </span>
-                <span className="tcal-stat-sep" />
-                <span className="tcal-stat">
-                  <span className="tcal-stat-num">{calendarMonthStats.ticketCount}</span>
-                  <span className="tcal-stat-label">Ticket{calendarMonthStats.ticketCount !== 1 ? 's' : ''}</span>
-                </span>
-              </div>
-            </div>
-            <div className="tcal-nav">
-              <Tooltip title={canCalPrev ? 'Previous month' : `No tickets before ${calendarBounds?.earliest.format('MMM YYYY')}`}>
-                <Button
-                  size="small"
-                  icon={<LeftOutlined />}
-                  onClick={() => canCalPrev && setCalendarMonth(m => m.subtract(1, 'month'))}
-                  disabled={!canCalPrev}
-                  className="tcal-nav-btn"
-                />
-              </Tooltip>
-              <Button
-                size="small"
-                onClick={() => {
-                  const today = dayjs();
-                  if (!calendarBounds) { setCalendarMonth(today); return; }
-                  if (today.isBefore(calendarBounds.earliest, 'month')) setCalendarMonth(calendarBounds.earliest);
-                  else if (today.isAfter(calendarBounds.latest.add(3, 'month'), 'month')) setCalendarMonth(calendarBounds.latest);
-                  else setCalendarMonth(today);
-                }}
-                className="tcal-nav-btn tcal-nav-today"
-              >
-                Current Month
-              </Button>
-              <Tooltip title={canCalNext ? 'Next month' : 'No tickets further ahead'}>
-                <Button
-                  size="small"
-                  icon={<RightOutlined />}
-                  onClick={() => canCalNext && setCalendarMonth(m => m.add(1, 'month'))}
-                  disabled={!canCalNext}
-                  className="tcal-nav-btn"
-                />
-              </Tooltip>
-            </div>
-          </div>
-
-          {/* Body — week sections */}
-          <div className="tcal-body">
-            {calendarSprintTickets.length === 0 ? (
-              <div className="tcal-empty">
-                <CalendarOutlined style={{ fontSize: 28, color: 'var(--text-slate-400)' }} />
-                <div className="tcal-empty-title">No scheduled sprint tickets</div>
-                <div className="tcal-empty-sub">Tickets need a sprint and date range to appear on the calendar.</div>
-              </div>
-            ) : (
-              calendarData.weeks.map((week, wi) => {
-                const lanes = calendarData.maxLanesByWeek[wi];
-                const ribbonHeight = lanes > 0 ? lanes * 24 + 14 : 0;
-                const ribbons = calendarData.weekRibbons[wi];
-                const weekStart = week[0];
-                const weekEnd = week[6];
-                const dayOfYear = weekStart.diff(weekStart.startOf('year'), 'day');
-                const weekNum = Math.floor(dayOfYear / 7) + 1;
-                const containsToday = week.some(d => d.isSame(dayjs(), 'day'));
-                return (
-                  <section className={`tcal-week ${containsToday ? 'has-today' : ''}`} key={wi}>
-                    <header className="tcal-week-label">
-                      <div className="tcal-week-label-left">
-                        <span className="tcal-week-num">Week {weekNum}</span>
-                        <span className="tcal-week-range">{weekStart.format('MMM D')} – {weekEnd.format(weekStart.month() === weekEnd.month() ? 'D, YYYY' : 'MMM D, YYYY')}</span>
-                      </div>
-                      <span className="tcal-week-count">
-                        {ribbons.length === 0 ? 'No tickets' : `${ribbons.length} ticket${ribbons.length !== 1 ? 's' : ''}`}
-                      </span>
-                    </header>
-                    <div className="tcal-week-grid">
-                      <div className="tcal-week-days">
-                        {week.map((day, di) => {
-                          const isOutside = day.month() !== calendarMonth.month();
-                          const isToday = day.isSame(dayjs(), 'day');
-                          const isWeekend = day.day() === 0 || day.day() === 6;
-                          return (
-                            <div key={di} className={`tcal-day ${isOutside ? 'outside' : ''} ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}`}>
-                              <span className="tcal-day-wd">{day.format('ddd')}</span>
-                              <span className={`tcal-day-num ${isToday ? 'today' : ''}`}>{day.format('D')}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {ribbonHeight > 0 ? (
-                        <div className="tcal-week-ribbons" style={{ height: ribbonHeight }}>
-                          {ribbons.map(r => {
-                            const left = (r.startCol / 7) * 100;
-                            const width = (r.span / 7) * 100;
-                            const t = r.ticket;
-                            const statusCfg = (() => {
-                              const k = (t.status || '').toLowerCase();
-                              if (k === 'completed' || k === 'done') return { dot: '#10b981', label: 'Done' };
-                              if (k === 'in_progress' || k === 'active') return { dot: '#3b82f6', label: 'In Progress' };
-                              if (k === 'review') return { dot: '#8b5cf6', label: 'Review' };
-                              if (k === 'open' || k === 'todo' || k === 'pending') return { dot: '#f59e0b', label: 'To Do' };
-                              return { dot: '#94a3b8', label: t.status || '—' };
-                            })();
-                            const prio = (t.priority || '').toLowerCase();
-                            return (
-                              <Tooltip
-                                key={`${t.id}-${wi}`}
-                                overlayClassName="tcal-tooltip-wrap"
-                                mouseEnterDelay={0.15}
-                                placement="top"
-                                title={
-                                  <div className="tcal-tooltip">
-                                    <span className="tcal-tooltip-accent" style={{ background: r.color }} />
-                                    <div className="tcal-tooltip-head">
-                                      <div className="tcal-tooltip-title-block">
-                                        <div className="tcal-tooltip-num">{t.ticketNumber}</div>
-                                        <div className="tcal-tooltip-name">{t.title}</div>
-                                        {r.sprintName && (
-                                          <div className="tcal-tooltip-sprint">
-                                            <span className="tcal-tooltip-sprint-dot" style={{ background: r.color }} />
-                                            {r.sprintName}
-                                          </div>
-                                        )}
-                                      </div>
-                                      <div className="tcal-tooltip-badges">
-                                        <span className="tcal-tooltip-status" style={{ color: statusCfg.dot, background: `${statusCfg.dot}1f`, borderColor: `${statusCfg.dot}40` }}>
-                                          <span className="tcal-tooltip-status-dot" style={{ background: statusCfg.dot }} />
-                                          {statusCfg.label}
-                                        </span>
-                                        {t.priority && (
-                                          <span className={`tcal-tooltip-prio tcal-tooltip-prio-${prio}`}>
-                                            <FlagOutlined style={{ fontSize: 9 }} />
-                                            {t.priority}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="tcal-tooltip-divider" />
-                                    <div className="tcal-tooltip-meta">
-                                      <span className="tcal-tooltip-meta-item">
-                                        <CalendarOutlined style={{ fontSize: 9 }} />
-                                        <b>{dayjs(r.startDate).format('MMM D')}</b>
-                                        <span className="tcal-tooltip-arrow">→</span>
-                                        <b>{dayjs(r.endDate).format('MMM D, YYYY')}</b>
-                                      </span>
-                                      {t.assignee && (
-                                        <span className="tcal-tooltip-meta-item">
-                                          <UserOutlined style={{ fontSize: 9 }} />
-                                          {t.assignee.name}
-                                        </span>
-                                      )}
-                                      {typeof t.storyPoint === 'number' && (
-                                        <span className="tcal-tooltip-meta-item">
-                                          <ThunderboltOutlined style={{ fontSize: 9 }} />
-                                          {t.storyPoint} pt{t.storyPoint !== 1 ? 's' : ''}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="tcal-tooltip-footer">
-                                      Click to view ticket
-                                    </div>
-                                  </div>
-                                }
-                              >
-                                <button
-                                  className={`tcal-ribbon ${r.continuesLeft ? 'cont-left' : ''} ${r.continuesRight ? 'cont-right' : ''}`}
-                                  style={{
-                                    left: `calc(${left}% + 4px)`,
-                                    width: `calc(${width}% - 8px)`,
-                                    top: 6 + r.lane * 24,
-                                    background: `linear-gradient(135deg, ${r.color}1f, ${r.color}40)`,
-                                    borderColor: `${r.color}66`,
-                                    color: r.color,
-                                  }}
-                                  onClick={() => setSelectedTicketId(t.id)}
-                                >
-                                  <span className="tcal-ribbon-dot" style={{ background: statusCfg.dot }} />
-                                  <span className="tcal-ribbon-num">{t.ticketNumber}</span>
-                                  {r.span > 1 && (
-                                    <span className="tcal-ribbon-title">{t.title}</span>
-                                  )}
-                                </button>
-                              </Tooltip>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="tcal-week-empty">No tickets scheduled this week</div>
-                      )}
-                    </div>
-                  </section>
-                );
-              })
-            )}
-          </div>
-
-        </div>
-        </div>
-      ) : viewMode === 'list' ? (
-        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* Active Sprint Section (only when Sprint selected in left nav) */}
-          {activeSprint && !isFilteredView && sidebarActiveSection === 'sprint' && (
-            <div id="active-section" ref={activeSprintCardRef} style={{ scrollMarginTop: `calc(var(--tl-header-h, 56px) + 4px)` }} className="tl-section">
-              {renderActiveSprintHeader('list')}
-              <div className="tl-section-body">
-                {filters.search && !activeSprintFetching && activeTickets.length === 0 && totalBacklog > 0 && (
-                  <div className="tl-cross-banner">
-                    <span className="tl-cross-banner-icon">
-                      <SearchOutlined style={{ fontSize: 12 }} />
-                    </span>
-                    <span className="tl-cross-banner-text">
-                      No matches for <b>“{filters.search}”</b> in this sprint —{' '}
-                      <b>{totalBacklog}</b> match{totalBacklog === 1 ? '' : 'es'} in the backlog.
-                    </span>
+            {/* Inline Filter Row — compact pill row, sits at top of main column */}
+            {isFilterRowOpen && (
+              <div className="tl-filter-row">
+                <div className="tl-filter-row-label">
+                  <FilterOutlined style={{ fontSize: 11 }} />
+                  <span>Filters</span>
+                  <span className="tl-filter-row-count">
+                    {activeFilterCount > 0 ? activeFilterCount : '0'}
+                  </span>
+                </div>
+                <div className="tl-filter-row-pills">
+                  <TicketFilterPill
+                    icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
+                    label="Status"
+                    values={filters.status}
+                    options={finalStatusOptions}
+                    onChange={(val) => handleFilterChange('status', val)}
+                    itemNoun="statuses"
+                  />
+                  <TicketFilterPill
+                    icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
+                    label="Priority"
+                    values={filters.priority}
+                    options={finalPriorityOptions}
+                    onChange={(val) => handleFilterChange('priority', val)}
+                    itemNoun="priorities"
+                  />
+                  <TicketFilterPill
+                    icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
+                    label="Type"
+                    values={filters.type}
+                    options={finalTypeOptions}
+                    onChange={(val) => handleFilterChange('type', val)}
+                    itemNoun="types"
+                  />
+                  <TicketFilterPill
+                    icon={<UserOutlined style={{ fontSize: 11 }} />}
+                    label="Assignee"
+                    values={filters.assignee}
+                    options={[
+                      {
+                        label: "Unassigned",
+                        value: "unassigned",
+                        description: "No assignee",
+                      },
+                      ...members.map((m) => ({
+                        label: m.label,
+                        value: m.value,
+                        description: m.position || undefined,
+                        avatarUrl: m.avatarUrl || undefined,
+                      })),
+                    ]}
+                    onChange={(val) => handleFilterChange('assignee', val)}
+                    itemNoun="members"
+                    width={290}
+                    showAvatar={true}
+                  />
+                  <TicketFilterPill
+                    icon={<EditOutlined style={{ fontSize: 11 }} />}
+                    label="Created By"
+                    values={filters.createdBy}
+                    options={members.map((m) => ({
+                      label: m.label,
+                      value: m.value,
+                      description: m.position || undefined,
+                      avatarUrl: m.avatarUrl || undefined,
+                    }))}
+                    onChange={(val) => handleFilterChange('createdBy', val)}
+                    itemNoun="members"
+                    width={290}
+                    showAvatar={true}
+                  />
+                  <TicketFilterPill
+                    icon={<TagsOutlined style={{ fontSize: 11 }} />}
+                    label="Tags"
+                    values={filters.tags}
+                    options={tagSuggestions.map((t) => ({ label: t, value: t }))}
+                    onChange={(val) => handleFilterChange('tags', val)}
+                    itemNoun="tags"
+                  />
+                </div>
+                <div className="tl-filter-row-actions">
+                  {activeFilterCount > 0 && (
                     <button
                       type="button"
-                      className="tl-cross-banner-cta"
-                      onClick={() => setSidebarActiveSection('backlog')}
+                      className="tl-filter-row-reset"
+                      onClick={() => {
+                        setFilters({ status: [], priority: [], assignee: [], createdBy: [], type: [], tags: [], search: filters.search, ticketIds: [] });
+                        setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+                      }}
                     >
-                      View in Backlog
-                      <RightOutlined style={{ fontSize: 10 }} />
+                      <ReloadOutlined style={{ fontSize: 10 }} />
+                      Reset
                     </button>
+                  )}
+                  <button
+                    type="button"
+                    className="tl-filter-row-close"
+                    onClick={() => setIsFilterRowOpen(false)}
+                    aria-label="Close filters"
+                    title="Close filters"
+                  >
+                    <CloseOutlined style={{ fontSize: 10 }} />
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* Legacy ticketIds chip replaced by the dedicated Filtered View section
+          driven by activeQuickFilters. Kept here only as a marker. */}
+            {(isRefreshing || (viewMode === 'list' ? (activeSprintLoading || backlogLoading) : viewMode === 'calendar' ? (allSprintsLoading || calendarTicketsLoading) : isKanbanLoading)) ? (
+              <TicketSkeleton viewMode={viewMode === 'calendar' ? 'list' : viewMode} />
+            ) : viewMode === 'calendar' ? (
+              <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {activeSprint && !isFilteredView && (
+                  <div className="tl-section">
+                    {renderActiveSprintHeader('compact', false)}
                   </div>
                 )}
-                <Table
-                  rowSelection={activeRowSelection}
-                  columns={(getColumns('active') || []).filter((c: any) => !hiddenCols[c.key as string])}
-                  dataSource={activeTickets}
-                  loading={activeSprintFetching}
-                  rowKey="id"
-                  pagination={{
-                    pageSize: 20,
-                    showSizeChanger: true,
-                    pageSizeOptions: ['10', '20', '25', '50'],
-                    showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
-                  }}
-                  scroll={{ x: 'max-content' }}
-                  tableLayout="fixed"
-                  className="saas-table tl-table tl-table-sticky-pagination"
-                  size="small"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Backlog Section (only when Backlog selected in left nav) */}
-          {!isFilteredView && sidebarActiveSection === 'backlog' && (
-          <div id="backlog-section" style={{ scrollMarginTop: `calc(var(--tl-header-h, 56px) + 4px)` }} className="tl-section">
-            <div
-              className="tl-section-head"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px',
-              }}
-            >
-                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', flex: '1' }}>
-                    <ProjectOutlined style={{ color: 'var(--text-slate-500)', fontSize: 14 }} />
-                    <Text style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-slate-900)' }}>Backlog</Text>
-                    <Tag bordered={false} style={{
-                      margin: 0,
-                      height: 20,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minWidth: 78,
-                      background: 'var(--bg-slate-50)',
-                      color: 'var(--text-slate-500)',
-                      fontWeight: 800,
-                      fontSize: 9,
-                      borderRadius: 4,
-                      textTransform: 'uppercase',
-                      border: '1px solid var(--border-color)'
-                    }}>
-                      {totalBacklog} Tickets
-                    </Tag>
+                <div className="tcal-card">
+                  {/* Sticky header */}
+                  <div className="tcal-header">
+                    <div className="tcal-title-block">
+                      <Text className="tcal-title">{calendarMonth.format('MMMM YYYY')}</Text>
+                      <div className="tcal-stat-row">
+                        <span className="tcal-stat">
+                          <span className="tcal-stat-num">{calendarMonthStats.sprintCount}</span>
+                          <span className="tcal-stat-label">Sprint{calendarMonthStats.sprintCount !== 1 ? 's' : ''}</span>
+                        </span>
+                        <span className="tcal-stat-sep" />
+                        <span className="tcal-stat">
+                          <span className="tcal-stat-num">{calendarMonthStats.ticketCount}</span>
+                          <span className="tcal-stat-label">Ticket{calendarMonthStats.ticketCount !== 1 ? 's' : ''}</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="tcal-nav">
+                      <Tooltip title={canCalPrev ? 'Previous month' : `No tickets before ${calendarBounds?.earliest.format('MMM YYYY')}`}>
+                        <Button
+                          size="small"
+                          icon={<LeftOutlined />}
+                          onClick={() => canCalPrev && setCalendarMonth(m => m.subtract(1, 'month'))}
+                          disabled={!canCalPrev}
+                          className="tcal-nav-btn"
+                        />
+                      </Tooltip>
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          const today = dayjs();
+                          if (!calendarBounds) { setCalendarMonth(today); return; }
+                          if (today.isBefore(calendarBounds.earliest, 'month')) setCalendarMonth(calendarBounds.earliest);
+                          else if (today.isAfter(calendarBounds.latest.add(3, 'month'), 'month')) setCalendarMonth(calendarBounds.latest);
+                          else setCalendarMonth(today);
+                        }}
+                        className="tcal-nav-btn tcal-nav-today"
+                      >
+                        Current Month
+                      </Button>
+                      <Tooltip title={canCalNext ? 'Next month' : 'No tickets further ahead'}>
+                        <Button
+                          size="small"
+                          icon={<RightOutlined />}
+                          onClick={() => canCalNext && setCalendarMonth(m => m.add(1, 'month'))}
+                          disabled={!canCalNext}
+                          className="tcal-nav-btn"
+                        />
+                      </Tooltip>
+                    </div>
                   </div>
-                  <Space size={8}>
-                    <Select
-                      mode="multiple"
-                      placeholder="Filter Status"
-                      style={{ width: 140 }}
-                      value={backlogStatusFilter}
-                      onChange={setBacklogStatusFilter}
-                      options={finalStatusOptions}
-                      allowClear
-                      maxTagCount={1}
-                      size="small"
-                      className="saas-select-minimal"
-                    />
-                    {backlogSelectedRowKeys.length > 0 && (
-                      <Space size={8}>
-                        {canManageTickets && (
-                          <Button
-                            type="primary"
-                            size="small"
-                            icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
-                            onClick={() => bulkArchiveMutation.mutate(backlogSelectedRowKeys as string[])}
-                            style={{ 
-                              background: 'var(--premium-blue)', 
-                              borderColor: 'var(--premium-blue)', 
-                              fontWeight: 800, 
-                              height: 24, 
-                              fontSize: 10, 
-                              borderRadius: 4,
-                              textTransform: 'uppercase'
-                            }}
+
+                  {/* Body — week sections */}
+                  <div className="tcal-body">
+                    {calendarSprintTickets.length === 0 ? (
+                      <div className="tcal-empty">
+                        <CalendarOutlined style={{ fontSize: 28, color: 'var(--text-slate-400)' }} />
+                        <div className="tcal-empty-title">No scheduled sprint tickets</div>
+                        <div className="tcal-empty-sub">Tickets need a sprint and date range to appear on the calendar.</div>
+                      </div>
+                    ) : (
+                      calendarData.weeks.map((week, wi) => {
+                        const lanes = calendarData.maxLanesByWeek[wi];
+                        const ribbonHeight = lanes > 0 ? lanes * 24 + 14 : 0;
+                        const ribbons = calendarData.weekRibbons[wi];
+                        const weekStart = week[0];
+                        const weekEnd = week[6];
+                        const dayOfYear = weekStart.diff(weekStart.startOf('year'), 'day');
+                        const weekNum = Math.floor(dayOfYear / 7) + 1;
+                        const containsToday = week.some(d => d.isSame(dayjs(), 'day'));
+                        return (
+                          <section className={`tcal-week ${containsToday ? 'has-today' : ''}`} key={wi}>
+                            <header className="tcal-week-label">
+                              <div className="tcal-week-label-left">
+                                <span className="tcal-week-num">Week {weekNum}</span>
+                                <span className="tcal-week-range">{weekStart.format('MMM D')} – {weekEnd.format(weekStart.month() === weekEnd.month() ? 'D, YYYY' : 'MMM D, YYYY')}</span>
+                              </div>
+                              <span className="tcal-week-count">
+                                {ribbons.length === 0 ? 'No tickets' : `${ribbons.length} ticket${ribbons.length !== 1 ? 's' : ''}`}
+                              </span>
+                            </header>
+                            <div className="tcal-week-grid">
+                              <div className="tcal-week-days">
+                                {week.map((day, di) => {
+                                  const isOutside = day.month() !== calendarMonth.month();
+                                  const isToday = day.isSame(dayjs(), 'day');
+                                  const isWeekend = day.day() === 0 || day.day() === 6;
+                                  return (
+                                    <div key={di} className={`tcal-day ${isOutside ? 'outside' : ''} ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}`}>
+                                      <span className="tcal-day-wd">{day.format('ddd')}</span>
+                                      <span className={`tcal-day-num ${isToday ? 'today' : ''}`}>{day.format('D')}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {ribbonHeight > 0 ? (
+                                <div className="tcal-week-ribbons" style={{ height: ribbonHeight }}>
+                                  {ribbons.map(r => {
+                                    const left = (r.startCol / 7) * 100;
+                                    const width = (r.span / 7) * 100;
+                                    const t = r.ticket;
+                                    const statusCfg = (() => {
+                                      const k = (t.status || '').toLowerCase();
+                                      if (k === 'completed' || k === 'done') return { dot: '#10b981', label: 'Done' };
+                                      if (k === 'in_progress' || k === 'active') return { dot: '#3b82f6', label: 'In Progress' };
+                                      if (k === 'review') return { dot: '#8b5cf6', label: 'Review' };
+                                      if (k === 'open' || k === 'todo' || k === 'pending') return { dot: '#f59e0b', label: 'To Do' };
+                                      return { dot: '#94a3b8', label: t.status || '—' };
+                                    })();
+                                    const prio = (t.priority || '').toLowerCase();
+                                    return (
+                                      <Tooltip
+                                        key={`${t.id}-${wi}`}
+                                        overlayClassName="tcal-tooltip-wrap"
+                                        mouseEnterDelay={0.15}
+                                        placement="top"
+                                        title={
+                                          <div className="tcal-tooltip">
+                                            <span className="tcal-tooltip-accent" style={{ background: r.color }} />
+                                            <div className="tcal-tooltip-head">
+                                              <div className="tcal-tooltip-title-block">
+                                                <div className="tcal-tooltip-num">{t.ticketNumber}</div>
+                                                <div className="tcal-tooltip-name">{t.title}</div>
+                                                {r.sprintName && (
+                                                  <div className="tcal-tooltip-sprint">
+                                                    <span className="tcal-tooltip-sprint-dot" style={{ background: r.color }} />
+                                                    {r.sprintName}
+                                                  </div>
+                                                )}
+                                              </div>
+                                              <div className="tcal-tooltip-badges">
+                                                <span className="tcal-tooltip-status" style={{ color: statusCfg.dot, background: `${statusCfg.dot}1f`, borderColor: `${statusCfg.dot}40` }}>
+                                                  <span className="tcal-tooltip-status-dot" style={{ background: statusCfg.dot }} />
+                                                  {statusCfg.label}
+                                                </span>
+                                                {t.priority && (
+                                                  <span className={`tcal-tooltip-prio tcal-tooltip-prio-${prio}`}>
+                                                    <FlagOutlined style={{ fontSize: 9 }} />
+                                                    {t.priority}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                            <div className="tcal-tooltip-divider" />
+                                            <div className="tcal-tooltip-meta">
+                                              <span className="tcal-tooltip-meta-item">
+                                                <CalendarOutlined style={{ fontSize: 9 }} />
+                                                <b>{dayjs(r.startDate).format('MMM D')}</b>
+                                                <span className="tcal-tooltip-arrow">→</span>
+                                                <b>{dayjs(r.endDate).format('MMM D, YYYY')}</b>
+                                              </span>
+                                              {t.assignee && (
+                                                <span className="tcal-tooltip-meta-item">
+                                                  <UserOutlined style={{ fontSize: 9 }} />
+                                                  {t.assignee.name}
+                                                </span>
+                                              )}
+                                              {typeof t.storyPoint === 'number' && (
+                                                <span className="tcal-tooltip-meta-item">
+                                                  <ThunderboltOutlined style={{ fontSize: 9 }} />
+                                                  {t.storyPoint} pt{t.storyPoint !== 1 ? 's' : ''}
+                                                </span>
+                                              )}
+                                            </div>
+                                            <div className="tcal-tooltip-footer">
+                                              Click to view ticket
+                                            </div>
+                                          </div>
+                                        }
+                                      >
+                                        <button
+                                          className={`tcal-ribbon ${r.continuesLeft ? 'cont-left' : ''} ${r.continuesRight ? 'cont-right' : ''}`}
+                                          style={{
+                                            left: `calc(${left}% + 4px)`,
+                                            width: `calc(${width}% - 8px)`,
+                                            top: 6 + r.lane * 24,
+                                            background: `linear-gradient(135deg, ${r.color}1f, ${r.color}40)`,
+                                            borderColor: `${r.color}66`,
+                                            color: r.color,
+                                          }}
+                                          onClick={() => setSelectedTicketId(t.id)}
+                                        >
+                                          <span className="tcal-ribbon-dot" style={{ background: statusCfg.dot }} />
+                                          <span className="tcal-ribbon-num">{t.ticketNumber}</span>
+                                          {r.span > 1 && (
+                                            <span className="tcal-ribbon-title">{t.title}</span>
+                                          )}
+                                        </button>
+                                      </Tooltip>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div className="tcal-week-empty">No tickets scheduled this week</div>
+                              )}
+                            </div>
+                          </section>
+                        );
+                      })
+                    )}
+                  </div>
+
+                </div>
+              </div>
+            ) : viewMode === 'list' ? (
+              <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Active Sprint Section (only when Sprint selected in left nav) */}
+                {activeSprint && !isFilteredView && sidebarActiveSection === 'sprint' && (
+                  <div id="active-section" ref={activeSprintCardRef} style={{ scrollMarginTop: `calc(var(--tl-header-h, 56px) + 4px)` }} className="tl-section">
+                    {renderActiveSprintHeader('list')}
+                    <div className="tl-section-body">
+                      {filters.search && !activeSprintFetching && activeTickets.length === 0 && totalBacklog > 0 && (
+                        <div className="tl-cross-banner">
+                          <span className="tl-cross-banner-icon">
+                            <SearchOutlined style={{ fontSize: 12 }} />
+                          </span>
+                          <span className="tl-cross-banner-text">
+                            No matches for <b>“{filters.search}”</b> in this sprint —{' '}
+                            <b>{totalBacklog}</b> match{totalBacklog === 1 ? '' : 'es'} in the backlog.
+                          </span>
+                          <button
+                            type="button"
+                            className="tl-cross-banner-cta"
+                            onClick={() => setSidebarActiveSection('backlog')}
                           >
-                            Move to Archive
+                            View in Backlog
+                            <RightOutlined style={{ fontSize: 10 }} />
+                          </button>
+                        </div>
+                      )}
+                      <Table
+                        rowSelection={activeRowSelection}
+                        columns={(getColumns('active') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                        dataSource={activeTickets}
+                        loading={activeSprintFetching}
+                        rowKey="id"
+                        pagination={{
+                          pageSize: 20,
+                          showSizeChanger: true,
+                          pageSizeOptions: ['10', '20', '25', '50'],
+                          showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
+                        }}
+                        scroll={{ x: 'max-content' }}
+                        tableLayout="fixed"
+                        className="saas-table tl-table tl-table-sticky-pagination"
+                        size="small"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Backlog Section (only when Backlog selected in left nav) */}
+                {!isFilteredView && sidebarActiveSection === 'backlog' && (
+                  <div id="backlog-section" style={{ scrollMarginTop: `calc(var(--tl-header-h, 56px) + 4px)` }} className="tl-section">
+                    <div
+                      className="tl-section-head"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '12px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', flex: '1' }}>
+                        <ProjectOutlined style={{ color: 'var(--text-slate-500)', fontSize: 14 }} />
+                        <Text style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-slate-900)' }}>Backlog</Text>
+                        <Tag bordered={false} style={{
+                          margin: 0,
+                          height: 20,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: 78,
+                          background: 'var(--bg-slate-50)',
+                          color: 'var(--text-slate-500)',
+                          fontWeight: 800,
+                          fontSize: 9,
+                          borderRadius: 4,
+                          textTransform: 'uppercase',
+                          border: '1px solid var(--border-color)'
+                        }}>
+                          {totalBacklog} Tickets
+                        </Tag>
+                      </div>
+                      <Space size={8}>
+                        <Select
+                          mode="multiple"
+                          placeholder="Filter Status"
+                          style={{ width: 140 }}
+                          value={backlogStatusFilter}
+                          onChange={setBacklogStatusFilter}
+                          options={finalStatusOptions}
+                          allowClear
+                          maxTagCount={1}
+                          size="small"
+                          className="saas-select-minimal"
+                        />
+                        {backlogSelectedRowKeys.length > 0 && (
+                          <Space size={8}>
+                            {canManageTickets && (
+                              <Button
+                                type="primary"
+                                size="small"
+                                icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
+                                onClick={() => bulkArchiveMutation.mutate(backlogSelectedRowKeys as string[])}
+                                style={{
+                                  background: 'var(--premium-blue)',
+                                  borderColor: 'var(--premium-blue)',
+                                  fontWeight: 800,
+                                  height: 24,
+                                  fontSize: 10,
+                                  borderRadius: 4,
+                                  textTransform: 'uppercase'
+                                }}
+                              >
+                                Move to Archive
+                              </Button>
+                            )}
+                            {canDeleteTicket && (
+                              <Button
+                                danger
+                                size="small"
+                                icon={<DeleteOutlined style={{ fontSize: 11 }} />}
+                                onClick={() => {
+                                  modal.confirm({
+                                    title: 'Move to Trash',
+                                    content: `Are you sure you want to move ${backlogSelectedRowKeys.length} selected tickets to trash?`,
+                                    okText: 'Move to Trash',
+                                    okType: 'danger',
+                                    onOk: () => bulkDeleteMutation.mutate(backlogSelectedRowKeys as string[])
+                                  });
+                                }}
+                                style={{
+                                  fontWeight: 800,
+                                  height: 24,
+                                  fontSize: 10,
+                                  borderRadius: 4,
+                                  textTransform: 'uppercase'
+                                }}
+                              >
+                                Delete
+                              </Button>
+                            )}
+                          </Space>
+                        )}
+                        <Input
+                          placeholder="Search backlog..."
+                          prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 11 }} />}
+                          className="saas-input"
+                          style={{ width: 180, borderRadius: 6, height: 28, fontSize: 11.5, background: 'transparent' }}
+                          value={backlogSearchValue}
+                          onChange={(e) => setBacklogSearchValue(e.target.value)}
+                          allowClear
+                        />
+                        <Divider type="vertical" style={{ height: 18, margin: 0 }} />
+                        {activeSprint && (
+                          <Button
+                            type="default"
+                            size="small"
+                            icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
+                            onClick={() => setSidebarActiveSection('sprint')}
+                            className="saas-button-item"
+                            style={{ height: 28, fontWeight: 600, fontSize: 12 }}
+                          >
+                            Go To Sprint
                           </Button>
                         )}
-                        {canDeleteTicket && (
+                        {canCreateTicketPlan && (
                           <Button
-                            danger
+                            type="default"
                             size="small"
-                            icon={<DeleteOutlined style={{ fontSize: 11 }} />}
-                            onClick={() => {
-                              modal.confirm({
-                                title: 'Move to Trash',
-                                content: `Are you sure you want to move ${backlogSelectedRowKeys.length} selected tickets to trash?`,
-                                okText: 'Move to Trash',
-                                okType: 'danger',
-                                onOk: () => bulkDeleteMutation.mutate(backlogSelectedRowKeys as string[])
-                              });
-                            }}
-                            style={{ 
-                              fontWeight: 800, 
-                              height: 24, 
-                              fontSize: 10, 
-                              borderRadius: 4,
-                              textTransform: 'uppercase'
-                            }}
+                            icon={<PlusOutlined />}
+                            onClick={() => setCreateSprintModalOpen(true)}
+                            className="saas-button-item"
+                            style={{ height: 28, fontWeight: 600, fontSize: 12 }}
                           >
-                            Delete
+                            New Sprint
                           </Button>
                         )}
                       </Space>
-                    )}
-                    <Input
-                      placeholder="Search backlog..."
-                      prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 11 }} />}
-                      className="saas-input"
-                      style={{ width: 180, borderRadius: 6, height: 28, fontSize: 11.5, background: 'transparent' }}
-                      value={backlogSearchValue}
-                      onChange={(e) => setBacklogSearchValue(e.target.value)}
-                      allowClear
-                    />
-                    <Divider type="vertical" style={{ height: 18, margin: 0 }} />
-                    {activeSprint && (
-                      <Button
-                        type="default"
-                        size="small"
-                        icon={<ThunderboltOutlined style={{ color: '#1677ff' }} />}
-                        onClick={() => setSidebarActiveSection('sprint')}
-                        className="saas-button-item"
-                        style={{ height: 28, fontWeight: 600, fontSize: 12 }}
-                      >
-                        Go To Sprint
-                      </Button>
-                    )}
-                    {canCreateTicketPlan && (
-                      <Button
-                        type="default"
-                        size="small"
-                        icon={<PlusOutlined />}
-                        onClick={() => setCreateSprintModalOpen(true)}
-                        className="saas-button-item"
-                        style={{ height: 28, fontWeight: 600, fontSize: 12 }}
-                      >
-                        New Sprint
-                      </Button>
-                    )}
-                  </Space>
 
 
-                </div>
-            <div className="tl-section-body">
-              {filters.search && !backlogFetching && totalBacklog === 0 && activeTickets.length > 0 && (
-                <div className="tl-cross-banner">
-                  <span className="tl-cross-banner-icon">
-                    <SearchOutlined style={{ fontSize: 12 }} />
-                  </span>
-                  <span className="tl-cross-banner-text">
-                    No matches for <b>“{filters.search}”</b> in the backlog —{' '}
-                    <b>{activeTickets.length}</b> match{activeTickets.length === 1 ? '' : 'es'} in the active sprint.
-                  </span>
-                  <button
-                    type="button"
-                    className="tl-cross-banner-cta"
-                    onClick={() => setSidebarActiveSection('sprint')}
-                  >
-                    View in Sprint
-                    <RightOutlined style={{ fontSize: 10 }} />
-                  </button>
-                </div>
-              )}
-              <div className="tickets-table-shell" data-density="compact">
-                <Table
-                  rowSelection={backlogRowSelection}
-                  columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
-                  loading={backlogFetching}
-                  dataSource={backlogTickets}
-                  rowKey="id"
-                  className="saas-table tl-table tl-table-sticky-pagination"
-                  size="small"
-                  pagination={{
-                    current: pagination.current,
-                    pageSize: pagination.pageSize,
-                    total: totalBacklog,
-                    showSizeChanger: true,
-                    pageSizeOptions: ['10', '20', '25', '50'],
-                    showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
-                    onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 20 })
-                  }}
-                  scroll={{ x: 'max-content' }}
-                />
-              </div>
-            </div>
-          </div>
-          )}
+                    </div>
+                    <div className="tl-section-body">
+                      {filters.search && !backlogFetching && totalBacklog === 0 && activeTickets.length > 0 && (
+                        <div className="tl-cross-banner">
+                          <span className="tl-cross-banner-icon">
+                            <SearchOutlined style={{ fontSize: 12 }} />
+                          </span>
+                          <span className="tl-cross-banner-text">
+                            No matches for <b>“{filters.search}”</b> in the backlog —{' '}
+                            <b>{activeTickets.length}</b> match{activeTickets.length === 1 ? '' : 'es'} in the active sprint.
+                          </span>
+                          <button
+                            type="button"
+                            className="tl-cross-banner-cta"
+                            onClick={() => setSidebarActiveSection('sprint')}
+                          >
+                            View in Sprint
+                            <RightOutlined style={{ fontSize: 10 }} />
+                          </button>
+                        </div>
+                      )}
+                      <div className="tickets-table-shell" data-density="compact">
+                        <Table
+                          rowSelection={backlogRowSelection}
+                          columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                          loading={backlogFetching}
+                          dataSource={backlogTickets}
+                          rowKey="id"
+                          className="saas-table tl-table tl-table-sticky-pagination"
+                          size="small"
+                          pagination={{
+                            current: pagination.current,
+                            pageSize: pagination.pageSize,
+                            total: totalBacklog,
+                            showSizeChanger: true,
+                            pageSizeOptions: ['10', '20', '25', '50'],
+                            showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
+                            onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 20 })
+                          }}
+                          scroll={{ x: 'max-content' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-          {/* Filtered View — unified set of tickets matching the sidebar quick filters.
+                {/* Filtered View — unified set of tickets matching the sidebar quick filters.
               Pulls from across the project (no sprint/backlog scope) so commented +
               attached tickets from either side land in one table. */}
-          {isFilteredView && (
-            <div id="filtered-section" className="tl-section">
-              <div className="tl-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', flex: '1', minWidth: 0 }}>
-                  <button
-                    type="button"
-                    className="tl-back-btn"
-                    onClick={() => {
-                      setActiveQuickFilters({ commented: false, attached: false, overdue: false });
-                      setSidebarActiveSection(previousSection);
+                {isFilteredView && (
+                  <div id="filtered-section" className="tl-section">
+                    <div className="tl-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', flex: '1', minWidth: 0 }}>
+                        <button
+                          type="button"
+                          className="tl-back-btn"
+                          onClick={() => {
+                            setActiveQuickFilters({ commented: false, attached: false, overdue: false });
+                            setSidebarActiveSection(previousSection);
+                          }}
+                        >
+                          <ArrowLeftOutlined style={{ fontSize: 10 }} />
+                          Back to {previousSection === 'sprint' ? 'Sprint' : 'Backlog'}
+                        </button>
+                        <Text style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-slate-900)' }}>
+                          {filteredViewKindLabel}
+                        </Text>
+                        <Tag bordered={false} style={{
+                          margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          background: 'var(--bg-slate-50)', color: 'var(--text-slate-500)',
+                          fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
+                          border: '1px solid var(--border-slate-200)', padding: '0 6px'
+                        }}>
+                          {filteredViewTotal || quickFilterTicketIds.length} Tickets
+                        </Tag>
+                        {activeQuickFilters.commented && (
+                          <Tag bordered={false} style={{
+                            margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            background: 'rgba(59,130,246,0.10)', color: '#1d4ed8',
+                            fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
+                            border: '1px solid rgba(59,130,246,0.25)', padding: '0 6px'
+                          }}>
+                            <MessageOutlined style={{ fontSize: 9, marginRight: 3 }} />
+                            Commented
+                          </Tag>
+                        )}
+                        {activeQuickFilters.attached && (
+                          <Tag bordered={false} style={{
+                            margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            background: 'rgba(99,102,241,0.10)', color: '#4338ca',
+                            fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
+                            border: '1px solid rgba(99,102,241,0.25)', padding: '0 6px'
+                          }}>
+                            <PaperClipOutlined style={{ fontSize: 9, marginRight: 3 }} />
+                            Attached
+                          </Tag>
+                        )}
+                        {activeQuickFilters.overdue && (
+                          <Tag bordered={false} style={{
+                            margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            background: 'rgba(239,68,68,0.10)', color: '#b91c1c',
+                            fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
+                            border: '1px solid rgba(239,68,68,0.28)', padding: '0 6px'
+                          }}>
+                            <WarningOutlined style={{ fontSize: 9, marginRight: 3 }} />
+                            Overdue
+                          </Tag>
+                        )}
+                      </div>
+                    </div>
+                    <div className="tl-section-body">
+                      <Table
+                        columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                        dataSource={filteredViewTickets}
+                        loading={filteredViewFetching}
+                        rowKey="id"
+                        className="saas-table tl-table tl-table-sticky-pagination"
+                        size="small"
+                        pagination={{
+                          current: pagination.current,
+                          pageSize: pagination.pageSize,
+                          total: filteredViewTotal,
+                          showSizeChanger: true,
+                          pageSizeOptions: ['10', '20', '25', '50'],
+                          showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
+                          onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 20 })
+                        }}
+                        scroll={{ x: 'max-content' }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {activeSprint && !isFilteredView && kanbanScope === 'active' && (
+                  <div className="tl-section">
+                    {renderActiveSprintHeader('compact')}
+                  </div>
+                )}
+                {kanbanData ? (
+                  <TicketKanban
+                    tickets={kanbanData.columns ? Object.values(kanbanData.columns).flatMap((col: any) => col.tickets) : []}
+                    projects={projects}
+                    members={members}
+                    onTicketUpdate={handleKanbanUpdate}
+                    activeSprint={activeSprint}
+                    kanbanScope={kanbanScope}
+                    onScopeChange={setKanbanScope}
+                    onSprintAssignment={handleSprintAssignment}
+                    onCompleteSprint={handleCompleteSprint}
+                    filters={filters}
+                    onFilterChange={handleFilterChange}
+                    onTicketClick={setSelectedTicketId}
+                    hideSprintMeta={!!activeSprint && !isFilteredView && kanbanScope === 'active'}
+                    permissions={{ canUpdateTicket, canDeleteTicket, canAssignTicket, canManageTickets }}
+                    onAddTicketToColumn={canCreateTicket ? (statusId: string) => {
+                      setManualCreateDefaultStatus(statusId);
+                      setManualModalOpen(true);
+                    } : undefined}
+                    onBulkArchive={(ids) => bulkArchiveMutation.mutate(ids)}
+                    onBulkDelete={(ids) => {
+                      modal.confirm({
+                        title: 'Move to Trash',
+                        content: `Move ${ids.length} ticket${ids.length === 1 ? '' : 's'} to trash?`,
+                        okText: 'Move to Trash',
+                        okType: 'danger',
+                        onOk: () => bulkDeleteMutation.mutate(ids),
+                      });
                     }}
-                  >
-                    <ArrowLeftOutlined style={{ fontSize: 10 }} />
-                    Back to {previousSection === 'sprint' ? 'Sprint' : 'Backlog'}
-                  </button>
-                  <Text style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-slate-900)' }}>
-                    {filteredViewKindLabel}
-                  </Text>
-                  <Tag bordered={false} style={{
-                    margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'var(--bg-slate-50)', color: 'var(--text-slate-500)',
-                    fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
-                    border: '1px solid var(--border-slate-200)', padding: '0 6px'
-                  }}>
-                    {filteredViewTotal || quickFilterTicketIds.length} Tickets
-                  </Tag>
-                  {activeQuickFilters.commented && (
-                    <Tag bordered={false} style={{
-                      margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      background: 'rgba(59,130,246,0.10)', color: '#1d4ed8',
-                      fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
-                      border: '1px solid rgba(59,130,246,0.25)', padding: '0 6px'
-                    }}>
-                      <MessageOutlined style={{ fontSize: 9, marginRight: 3 }} />
-                      Commented
-                    </Tag>
-                  )}
-                  {activeQuickFilters.attached && (
-                    <Tag bordered={false} style={{
-                      margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      background: 'rgba(99,102,241,0.10)', color: '#4338ca',
-                      fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
-                      border: '1px solid rgba(99,102,241,0.25)', padding: '0 6px'
-                    }}>
-                      <PaperClipOutlined style={{ fontSize: 9, marginRight: 3 }} />
-                      Attached
-                    </Tag>
-                  )}
-                  {activeQuickFilters.overdue && (
-                    <Tag bordered={false} style={{
-                      margin: 0, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      background: 'rgba(239,68,68,0.10)', color: '#b91c1c',
-                      fontWeight: 800, fontSize: 9, borderRadius: 4, textTransform: 'uppercase',
-                      border: '1px solid rgba(239,68,68,0.28)', padding: '0 6px'
-                    }}>
-                      <WarningOutlined style={{ fontSize: 9, marginRight: 3 }} />
-                      Overdue
-                    </Tag>
-                  )}
-                </div>
+                  />
+                ) : (
+                  <Card className="saas-card"><Empty description="No tickets found" /></Card>
+                )}
               </div>
-              <div className="tl-section-body">
-                <Table
-                  columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
-                  dataSource={filteredViewTickets}
-                  loading={filteredViewFetching}
-                  rowKey="id"
-                  className="saas-table tl-table tl-table-sticky-pagination"
-                  size="small"
-                  pagination={{
-                    current: pagination.current,
-                    pageSize: pagination.pageSize,
-                    total: filteredViewTotal,
-                    showSizeChanger: true,
-                    pageSizeOptions: ['10', '20', '25', '50'],
-                    showTotal: (total) => <Text type="secondary" style={{ fontSize: 12 }}>Total <b>{total}</b> tickets</Text>,
-                    onChange: (page, pageSize) => setPagination({ current: page, pageSize: pageSize || 20 })
-                  }}
-                  scroll={{ x: 'max-content' }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {activeSprint && !isFilteredView && kanbanScope === 'active' && (
-            <div className="tl-section">
-              {renderActiveSprintHeader('compact')}
-            </div>
-          )}
-          {kanbanData ? (
-            <TicketKanban
-              tickets={kanbanData.columns ? Object.values(kanbanData.columns).flatMap((col: any) => col.tickets) : []}
-              projects={projects}
-              members={members}
-              onTicketUpdate={handleKanbanUpdate}
-              activeSprint={activeSprint}
-              kanbanScope={kanbanScope}
-              onScopeChange={setKanbanScope}
-              onSprintAssignment={handleSprintAssignment}
-              onCompleteSprint={handleCompleteSprint}
-              filters={filters}
-              onFilterChange={handleFilterChange}
-              onTicketClick={setSelectedTicketId}
-              hideSprintMeta={!!activeSprint && !isFilteredView && kanbanScope === 'active'}
-              permissions={{ canUpdateTicket, canDeleteTicket, canAssignTicket, canManageTickets }}
-              onAddTicketToColumn={canCreateTicket ? (statusId: string) => {
-                setManualCreateDefaultStatus(statusId);
-                setManualModalOpen(true);
-              } : undefined}
-              onBulkArchive={(ids) => bulkArchiveMutation.mutate(ids)}
-              onBulkDelete={(ids) => {
-                modal.confirm({
-                  title: 'Move to Trash',
-                  content: `Move ${ids.length} ticket${ids.length === 1 ? '' : 's'} to trash?`,
-                  okText: 'Move to Trash',
-                  okType: 'danger',
-                  onOk: () => bulkDeleteMutation.mutate(ids),
-                });
-              }}
-            />
-          ) : (
-            <Card className="saas-card"><Empty description="No tickets found" /></Card>
-          )}
-        </div>
-      )}
+            )}
           </div>
         </div>
       </div>

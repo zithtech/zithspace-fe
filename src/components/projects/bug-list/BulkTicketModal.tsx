@@ -928,39 +928,48 @@ function groupBugs(bugs: BugListItem[], key: GroupKey) {
   return out;
 }
 
+/**
+ * Converts plain-text content (which may contain newlines) into an HTML
+ * paragraph block suitable for the Tiptap / dangerouslySetInnerHTML viewer.
+ */
+function plainTextToHtml(text: string): string {
+  if (!text || !text.trim()) return "";
+  // Escape basic HTML special chars to avoid XSS / rendering glitches.
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  // Preserve paragraph breaks (double newlines) and single line breaks.
+  const paragraphs = escaped.split(/\n{2,}/);
+  return paragraphs
+    .map((para) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
+
 function buildSingleBugDescription(b: BugListItem): string {
-  return b.description || "";
+  // Single-bug split ticket: render the bug's plain-text description as HTML.
+  return plainTextToHtml(b.description || "");
 }
 
 function buildDescription(bugs: BugListItem[]): string {
-  const hasMeaningfulDesc = (desc: string) => desc && desc.trim() !== "" && desc.trim() !== "<p></p>" && desc.trim() !== "<p><br></p>";
-
-  const parts = bugs
-    .map((b, i) => {
-      const bugLabel = b.bugNumber ? `Bug #${b.bugNumber}` : `Bug ${i + 1}`;
-      const bugTitle = b.title ? ` — ${b.title}` : "";
-      const desc = hasMeaningfulDesc(b.description) ? b.description : "<p><em>No description provided.</em></p>";
-      const separator = i < bugs.length - 1
-        ? `<hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;" />`
+  // Multi-bug single ticket: each bug gets its own labelled section with an
+  // <hr> separator so the reader can identify which content came from which bug.
+  const sections = bugs
+    .filter((b) => (b.description || "").trim().length > 0)
+    .map((b, index) => {
+      const label = b.bugNumber
+        ? b.bugNumber
+        : `Bug ${index + 1}`;
+      const titleLine = b.title ? ` — ${b.title}` : "";
+      const headerHtml = bugs.length > 1
+        ? `<p><strong>${label}${titleLine}</strong></p>`
         : "";
-      return (
-        `<div style="margin-bottom:8px;">` +
-        `<p style="font-weight:600;color:#1e293b;font-size:13px;margin:0 0 8px 0;">` +
-        `${bugLabel}${bugTitle}` +
-        `</p>` +
-        desc +
-        `</div>` +
-        separator
-      );
-    })
-    .filter(Boolean);
+      return `${headerHtml}${plainTextToHtml(b.description || "")}`;
+    });
 
-  if (parts.length === 0) return "";
-  if (parts.length === 1) {
-    // Single bug: just return the raw description without extra wrapper
-    return bugs[0].description || "";
-  }
-  return parts.join("\n");
+  if (sections.length === 0) return "";
+  // Join sections with a visible horizontal rule.
+  return sections.join("<hr>");
 }
 
 function cap(s: string) {

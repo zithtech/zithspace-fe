@@ -280,6 +280,7 @@ export default function PortalDocumentsPage() {
       }}
     >
       <div
+        className="portal-docs-inner"
         style={{
           padding: `${PAGE_PAD_Y}px ${PAGE_PAD_X}px ${PAGE_PAD_Y + 8}px`,
           maxWidth: 1480,
@@ -289,6 +290,14 @@ export default function PortalDocumentsPage() {
           gap: GAP,
         }}
       >
+        <style>{`
+          @media (max-width: 768px) {
+            .portal-docs-inner { padding: 16px 16px 24px !important; }
+          }
+          @media (max-width: 480px) {
+            .portal-docs-inner { padding: 12px 12px 20px !important; }
+          }
+        `}</style>
         {/* Hero with stats + actions */}
         <Hero
           stats={stats}
@@ -530,7 +539,7 @@ const Hero: React.FC<{
   onUpload: () => void;
 }> = ({ stats, loading, onReload, onUpload }) => (
   <div
-    className="portal-docs-page"
+    className="portal-docs-page portal-docs-hero"
     style={{
       background: T.cardBg,
       border: `1px solid ${T.border}`,
@@ -539,9 +548,10 @@ const Hero: React.FC<{
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      gap: 20,
+      gap: 16,
       position: "relative",
       overflow: "hidden",
+      flexWrap: "wrap",
     }}
   >
     <div
@@ -554,10 +564,12 @@ const Hero: React.FC<{
         background: "linear-gradient(180deg, #4338ca 0%, #0d9488 100%)",
       }}
     />
+    {/* Title + description */}
     <div
+      className="portal-docs-hero-title-row"
       style={{
         minWidth: 0,
-        flex: 1,
+        flex: "1 1 200px",
         display: "flex",
         alignItems: "center",
         gap: 14,
@@ -592,6 +604,7 @@ const Hero: React.FC<{
           Documents
         </div>
         <div
+          className="portal-docs-hero-desc"
           style={{
             fontSize: 12,
             color: T.textSubtle,
@@ -604,111 +617,183 @@ const Hero: React.FC<{
       </div>
     </div>
 
+    {/* Stats + actions */}
     <div
+      className="portal-docs-hero-right"
       style={{
         display: "flex",
         gap: 6,
         flexShrink: 0,
         alignItems: "stretch",
+        flexWrap: "wrap",
       }}
     >
-      {[
-        { label: "Total", value: stats.total, accent: "#4338ca" },
-        { label: "Categories", value: stats.categories, accent: "#0d9488" },
-        { label: "This month", value: stats.thisMonth, accent: "#7c3aed" },
-      ].map((s) => (
-        <div
-          key={s.label}
+      {/* Stat cards */}
+      <div
+        className="portal-docs-stat-cards"
+        style={{
+          display: "flex",
+          gap: 6,
+          alignItems: "stretch",
+          flexWrap: "wrap",
+        }}
+      >
+        {[
+          { label: "Total", value: stats.total, accent: "#4338ca" },
+          { label: "Categories", value: stats.categories, accent: "#0d9488" },
+          { label: "This month", value: stats.thisMonth, accent: "#7c3aed" },
+        ].map((s) => (
+          <div
+            key={s.label}
+            style={{
+              padding: "8px 12px",
+              border: `1px solid ${T.border}`,
+              borderRadius: 8,
+              background: "#fafbfc",
+              minWidth: 72,
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 9.5,
+                fontWeight: 600,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: T.textSubtle,
+              }}
+            >
+              {s.label}
+            </div>
+            <div
+              style={{
+                fontSize: 17,
+                fontWeight: 700,
+                color: s.accent,
+                marginTop: 2,
+                letterSpacing: "-0.02em",
+                lineHeight: 1.1,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {s.value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Action buttons */}
+      <div
+        className="portal-docs-hero-actions"
+        style={{ display: "flex", gap: 6, alignItems: "stretch" }}
+      >
+        <button
+          type="button"
+          onClick={onUpload}
           style={{
-            padding: "8px 12px",
-            border: `1px solid ${T.border}`,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "0 14px",
+            height: 38,
+            background: "linear-gradient(135deg, #4338ca 0%, #6366f1 100%)",
+            color: "#ffffff",
+            border: "1px solid #3730a3",
             borderRadius: 8,
-            background: "#fafbfc",
-            minWidth: 78,
-            textAlign: "center",
+            fontSize: 12.5,
+            fontWeight: 600,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
           }}
         >
-          <div
-            style={{
-              fontSize: 9.5,
-              fontWeight: 600,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: T.textSubtle,
-            }}
-          >
-            {s.label}
-          </div>
-          <div
-            style={{
-              fontSize: 17,
-              fontWeight: 700,
-              color: s.accent,
-              marginTop: 2,
-              letterSpacing: "-0.02em",
-              lineHeight: 1.1,
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            {s.value}
-          </div>
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={onUpload}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "0 14px",
-          height: "auto",
-          alignSelf: "stretch",
-          background: "linear-gradient(135deg, #4338ca 0%, #6366f1 100%)",
-          color: "#ffffff",
-          border: "1px solid #3730a3",
-          borderRadius: 8,
-          fontSize: 12.5,
-          fontWeight: 600,
-          cursor: "pointer",
-          whiteSpace: "nowrap",
-        }}
-      >
-        <Plus size={14} strokeWidth={2.5} />
-        Add document
-      </button>
-      <button
-        type="button"
-        onClick={onReload}
-        aria-label="Reload"
-        style={{
-          alignSelf: "stretch",
-          minWidth: 38,
-          background: T.cardBg,
-          border: `1px solid ${T.border}`,
-          color: T.textMuted,
-          borderRadius: 8,
-          cursor: "pointer",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <RefreshCw
-          size={14}
+          <Plus size={14} strokeWidth={2.5} />
+          Add document
+        </button>
+        <button
+          type="button"
+          onClick={onReload}
+          aria-label="Reload"
           style={{
-            animation: loading ? "portal-docs-spin 1s linear infinite" : undefined,
+            height: 38,
+            minWidth: 38,
+            background: T.cardBg,
+            border: `1px solid ${T.border}`,
+            color: T.textMuted,
+            borderRadius: 8,
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-        />
-      </button>
+        >
+          <RefreshCw
+            size={14}
+            style={{
+              animation: loading ? "portal-docs-spin 1s linear infinite" : undefined,
+            }}
+          />
+        </button>
+      </div>
     </div>
     <style>{`
       @keyframes portal-docs-spin {
-        from {
-          transform: rotate(0);
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+      /* ── Responsive: tablet (≤ 768px) ── */
+      @media (max-width: 768px) {
+        .portal-docs-hero {
+          flex-direction: column !important;
+          align-items: stretch !important;
+          gap: 12px !important;
+          padding: 14px 16px !important;
         }
-        to {
-          transform: rotate(360deg);
+        .portal-docs-hero-title-row {
+          flex: 1 1 auto !important;
+        }
+        .portal-docs-hero-desc {
+          white-space: normal !important;
+        }
+        .portal-docs-hero-right {
+          flex-wrap: wrap !important;
+          width: 100% !important;
+          justify-content: space-between !important;
+        }
+        .portal-docs-stat-cards {
+          flex: 1 1 auto !important;
+          justify-content: flex-start !important;
+        }
+        .portal-docs-hero-actions {
+          flex-shrink: 0 !important;
+          align-self: flex-end !important;
+        }
+      }
+      /* ── Responsive: mobile (≤ 480px) ── */
+      @media (max-width: 480px) {
+        .portal-docs-hero {
+          padding: 12px 14px !important;
+          gap: 10px !important;
+        }
+        .portal-docs-hero-right {
+          flex-direction: column !important;
+          align-items: stretch !important;
+          gap: 8px !important;
+        }
+        .portal-docs-stat-cards {
+          width: 100% !important;
+          display: grid !important;
+          grid-template-columns: repeat(3, 1fr) !important;
+          gap: 6px !important;
+        }
+        .portal-docs-hero-actions {
+          width: 100% !important;
+          display: flex !important;
+          gap: 6px !important;
+          align-self: auto !important;
+        }
+        .portal-docs-hero-actions button:first-child {
+          flex: 1 !important;
+          justify-content: center !important;
         }
       }
     `}</style>
@@ -766,97 +851,118 @@ const SourceTabs: React.FC<{
   ];
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        gap: GAP,
-      }}
-    >
-      {tabs.map((tab) => {
-        const active = source === tab.key;
-        const Icon = tab.icon;
-        return (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setSource(tab.key)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "12px 16px",
-              background: active ? tab.accentBg : T.cardBg,
-              border: `1px solid ${active ? tab.accent : T.border}`,
-              borderRadius: 12,
-              cursor: "pointer",
-              textAlign: "left",
-              transition: "all 150ms ease",
-              minHeight: 64,
-            }}
-          >
-            <div
+    <>
+      <div
+        className="portal-docs-source-tabs"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gap: GAP,
+        }}
+      >
+        {tabs.map((tab) => {
+          const active = source === tab.key;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setSource(tab.key)}
               style={{
-                width: 34,
-                height: 34,
-                borderRadius: 9,
-                background: tab.accentBg,
-                border: `1px solid ${tab.accentBorder}`,
-                color: tab.accent,
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
+                gap: 12,
+                padding: "12px 16px",
+                background: active ? tab.accentBg : T.cardBg,
+                border: `1px solid ${active ? tab.accent : T.border}`,
+                borderRadius: 12,
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "all 150ms ease",
+                minHeight: 64,
               }}
             >
-              <Icon size={16} strokeWidth={2.3} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
               <div
                 style={{
-                  fontSize: 13,
+                  width: 34,
+                  height: 34,
+                  borderRadius: 9,
+                  background: tab.accentBg,
+                  border: `1px solid ${tab.accentBorder}`,
+                  color: tab.accent,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Icon size={16} strokeWidth={2.3} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: active ? tab.accent : T.text,
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  {tab.label}
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: T.textSubtle,
+                    marginTop: 1,
+                    fontWeight: 500,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {tab.sub}
+                </div>
+              </div>
+              <div
+                style={{
+                  fontSize: 19,
                   fontWeight: 700,
                   color: active ? tab.accent : T.text,
-                  letterSpacing: "-0.01em",
+                  fontVariantNumeric: "tabular-nums",
+                  letterSpacing: "-0.02em",
+                  flexShrink: 0,
                 }}
               >
-                {tab.label}
+                {tab.count}
               </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: T.textSubtle,
-                  marginTop: 1,
-                  fontWeight: 500,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {tab.sub}
-              </div>
-            </div>
-            <div
-              style={{
-                fontSize: 19,
-                fontWeight: 700,
-                color: active ? tab.accent : T.text,
-                fontVariantNumeric: "tabular-nums",
-                letterSpacing: "-0.02em",
-                flexShrink: 0,
-              }}
-            >
-              {tab.count}
-            </div>
-          </button>
-        );
-      })}
-    </div>
+            </button>
+          );
+        })}
+      </div>
+      <style>{`
+        @media (max-width: 640px) {
+          .portal-docs-source-tabs {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+          }
+          .portal-docs-source-tabs button {
+            min-height: 52px !important;
+            padding: 10px 14px !important;
+          }
+        }
+        @media (min-width: 641px) and (max-width: 900px) {
+          .portal-docs-source-tabs {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+      `}</style>
+    </>
   );
 };
 
 /* ─────────────────────────────────────────────────────────
  * Filter bar
+
  * ─────────────────────────────────────────────────────── */
 const FilterBar: React.FC<{
   search: string;
@@ -882,7 +988,7 @@ const FilterBar: React.FC<{
   setViewMode,
 }) => (
   <div
-    className="portal-docs-page"
+    className="portal-docs-page portal-docs-filterbar"
     style={{
       background: T.cardBg,
       border: `1px solid ${T.border}`,
@@ -894,6 +1000,14 @@ const FilterBar: React.FC<{
       alignItems: "center",
     }}
   >
+    <style>{`
+      @media (max-width: 640px) {
+        .portal-docs-filterbar { padding: 10px !important; gap: 8px !important; }
+        .portal-docs-filterbar .ant-select { width: 100% !important; }
+        .portal-docs-filterbar .ant-input-affix-wrapper { min-width: 0 !important; width: 100% !important; }
+        .portal-docs-filterbar > div:last-child { margin-left: auto; }
+      }
+    `}</style>
     {/* Project filter */}
     <Select
       className={`portal-docs-project-select${projectId ? " is-active" : ""}`}

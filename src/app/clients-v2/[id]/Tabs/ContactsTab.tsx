@@ -148,6 +148,17 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
     }
   };
 
+  const handleDelete = async (contactId: string) => {
+    try {
+      await api.delete(`/api/clients-v2/contacts/${contactId}`);
+      messageApi.success("Contact deleted successfully");
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+      messageApi.error("Failed to delete contact");
+    }
+  };
+
   const columns = [
     {
       title: "Contact Person",
@@ -245,6 +256,23 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
               onClick={() => openEditModal(record)}
               style={{ color: "var(--text-slate-500)" }}
             />
+          )}
+          {canUpdateClient && (
+            <Popconfirm
+              title="Delete contact"
+              description={`Are you sure you want to delete ${record.firstName} ${record.lastName}? This action cannot be undone.`}
+              onConfirm={() => handleDelete(record.id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                type="text"
+                className="premium-action-btn"
+                icon={<Trash2 size={16} />}
+                style={{ color: "var(--text-slate-400)" }}
+              />
+            </Popconfirm>
           )}
         </Space>
       ),
@@ -1004,32 +1032,6 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         [data-theme="dark"] .pmodal .ant-modal-close:hover {
           background: rgba(255, 255, 255, 0.16) !important;
           color: #fff !important;
-        }
-
-
-        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
-        @media (max-width: 1200px) {
-          html body .contacts-header-wrap .saas-header-container .saas-header-row {
-            flex-wrap: nowrap !important;
-          }
-          html body .contacts-header-wrap .saas-header-container .saas-header-left-col {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-          }
-          html body .contacts-header-wrap .saas-header-container .saas-header-extra-col {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            margin-top: 0 !important;
-          }
-          html body .contacts-header-wrap .saas-header-container .saas-header-left-group {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 16px !important;
-          }
-          html body .contacts-header-wrap .saas-header-container .bh-header-divider {
-            display: inline-block !important;
-          }
         }
 
         /* Prevent horizontal overflow from edge-to-edge header bleed */

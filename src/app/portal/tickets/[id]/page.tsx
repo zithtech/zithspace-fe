@@ -137,7 +137,10 @@ export default function PortalTicketDetailPage() {
         onBack={() => router.push("/portal/tickets")}
       />
 
-      <div style={{ padding: "20px 40px 64px", maxWidth: 1200 }}>
+      <div
+        className="portal-ticket-details-content"
+        style={{ padding: "20px 40px 64px", maxWidth: 1200 }}
+      >
         {/* Hero band */}
         <HeroBand ticket={ticket} />
 
@@ -195,6 +198,20 @@ export default function PortalTicketDetailPage() {
           border-color: #a5b4fc !important;
           color: #4338ca !important;
         }
+
+        @media (max-width: 640px) {
+          .portal-ticket-details-header {
+            padding: 12px 16px !important;
+          }
+          .portal-ticket-details-content {
+            padding: 16px 16px 40px !important;
+          }
+          .portal-sla-banner {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 8px !important;
+          }
+        }
       `}</style>
     </div>
   );
@@ -214,6 +231,7 @@ function StickyHeader({
   const tone = TONE[st.tone];
   return (
     <div
+      className="portal-ticket-details-header"
       style={{
         position: "sticky",
         top: 0,
@@ -608,6 +626,7 @@ function SlaBanner({
   const accent = breached ? p.danger : INDIGO;
   return (
     <div
+      className="portal-sla-banner"
       style={{
         position: "relative",
         marginBottom: 14,
@@ -919,6 +938,7 @@ function ConversationCard({
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
+                  flexWrap: "wrap",
                   gap: 8,
                 }}
               >

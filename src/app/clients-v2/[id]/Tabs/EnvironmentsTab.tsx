@@ -247,40 +247,40 @@ export default function EnvironmentsTab({ clientId, projects = [] }: Props) {
       </div>
 
       <div style={{ marginTop: 20 }}>
-      {loading ? (
-        <div
-          style={{
-            padding: 48,
-            textAlign: "center",
-            border: `1px solid ${c.border}`,
-            borderRadius: 12,
-            background: c.surfaceElevated,
-            color: c.textSubtle,
-          }}
-        >
-          Loading…
-        </div>
-      ) : items.length === 0 ? (
-        <EmptyState c={c} onCreate={() => setCreateOpen(true)} />
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {items.map((env) => (
-            <EnvCard
-              key={env.id}
-              env={env}
-              c={c}
-              tones={tones}
-              onOpen={() => setOpenId(env.id)}
-            />
-          ))}
-        </div>
-      )}
+        {loading ? (
+          <div
+            style={{
+              padding: 48,
+              textAlign: "center",
+              border: `1px solid ${c.border}`,
+              borderRadius: 12,
+              background: c.surfaceElevated,
+              color: c.textSubtle,
+            }}
+          >
+            Loading…
+          </div>
+        ) : items.length === 0 ? (
+          <EmptyState c={c} onCreate={() => setCreateOpen(true)} />
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {items.map((env) => (
+              <EnvCard
+                key={env.id}
+                env={env}
+                c={c}
+                tones={tones}
+                onOpen={() => setOpenId(env.id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <CreateEnvModal
@@ -839,7 +839,7 @@ function CreateEnvModal({
             <Form.Item
               name="kind"
               label={<L c={c}>Type</L>}
-              rules={[{ required: true }]}
+              rules={[{ required: true, message: "Type is required" }]}
               style={{ marginBottom: 12 }}
             >
               <Select
@@ -852,6 +852,7 @@ function CreateEnvModal({
             <Form.Item
               name="status"
               label={<L c={c}>Status</L>}
+              rules={[{ required: true, message: "Status is required" }]}
               style={{ marginBottom: 12 }}
             >
               <Select
@@ -864,6 +865,7 @@ function CreateEnvModal({
             <Form.Item
               name="visibility"
               label={<L c={c}>Visibility</L>}
+              rules={[{ required: true, message: "Visibility is required" }]}
               style={{ marginBottom: 12 }}
             >
               <Select
@@ -878,6 +880,13 @@ function CreateEnvModal({
           <Form.Item
             name="url"
             label={<L c={c}>URL</L>}
+            rules={[
+              { required: true, message: "URL is required" },
+              {
+                type: "url",
+                message: "Please enter a valid URL (e.g., https://example.com)",
+              },
+            ]}
             style={{ marginBottom: 0 }}
           >
             <Input
@@ -903,6 +912,7 @@ function CreateEnvModal({
             <Form.Item
               name="currentVersion"
               label={<L c={c}>Current version</L>}
+              rules={[{ required: true, message: "Current version is required" }]}
               style={{ marginBottom: 12 }}
             >
               <Input placeholder="e.g. v2.4.1" maxLength={60} />
@@ -910,6 +920,7 @@ function CreateEnvModal({
             <Form.Item
               name="sslExpiresAt"
               label={<L c={c}>SSL expires</L>}
+              rules={[{ required: true, message: "SSL expiry date is required" }]}
               style={{ marginBottom: 12 }}
             >
               <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
@@ -917,6 +928,7 @@ function CreateEnvModal({
             <Form.Item
               name="lastBackupAt"
               label={<L c={c}>Last backup</L>}
+              rules={[{ required: true, message: "Last backup date is required" }]}
               style={{ marginBottom: 12 }}
             >
               <DatePicker
@@ -929,7 +941,8 @@ function CreateEnvModal({
 
           <Form.Item
             name="projectId"
-            label={<L c={c} hint="optional">Project</L>}
+            label={<L c={c}>Project</L>}
+            rules={[{ required: true, message: "Project is required" }]}
             style={{ marginBottom: 12 }}
           >
             <Select
@@ -1042,12 +1055,11 @@ function EnvDetailDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const saveSettings = async () => {
+  const saveSettings = async (v: any) => {
     if (!data) return;
-    const v = settingsForm.getFieldsValue();
     try {
       await environmentsService.update(data.id, {
-        name: v.name,
+        name: v.name.trim(),
         kind: v.kind,
         url: v.url || undefined,
         status: v.status,
@@ -1525,7 +1537,7 @@ function SettingsForm({
   form: any;
   c: ReturnType<typeof palette>;
   projects: { id: string; name: string; code?: string | null }[];
-  onSave: () => void;
+  onSave: (values: any) => void;
   onCancel: () => void;
 }) {
   return (
@@ -1537,7 +1549,7 @@ function SettingsForm({
         padding: 16,
       }}
     >
-      <Form form={form} layout="vertical" requiredMark={false}>
+      <Form form={form} layout="vertical" requiredMark={false} onFinish={onSave}>
         <div
           style={{
             display: "grid",
@@ -1545,10 +1557,18 @@ function SettingsForm({
             gap: 10,
           }}
         >
-          <Form.Item name="name" label={<L c={c}>Name</L>}>
-            <Input />
+          <Form.Item
+            name="name"
+            label={<L c={c}>Name</L>}
+            rules={[{ required: true, message: "Name is required" }]}
+          >
+            <Input maxLength={120} />
           </Form.Item>
-          <Form.Item name="kind" label={<L c={c}>Type</L>}>
+          <Form.Item
+            name="kind"
+            label={<L c={c}>Type</L>}
+            rules={[{ required: true, message: "Type is required" }]}
+          >
             <Select
               options={(Object.keys(KIND_META) as EnvKind[]).map((k) => ({
                 value: k,
@@ -1556,7 +1576,11 @@ function SettingsForm({
               }))}
             />
           </Form.Item>
-          <Form.Item name="status" label={<L c={c}>Status</L>}>
+          <Form.Item
+            name="status"
+            label={<L c={c}>Status</L>}
+            rules={[{ required: true, message: "Status is required" }]}
+          >
             <Select
               options={(Object.keys(STATUS_META) as EnvStatus[]).map((s) => ({
                 value: s,
@@ -1565,7 +1589,17 @@ function SettingsForm({
             />
           </Form.Item>
         </div>
-        <Form.Item name="url" label={<L c={c}>URL</L>}>
+        <Form.Item
+          name="url"
+          label={<L c={c}>URL</L>}
+          rules={[
+            { required: true, message: "URL is required" },
+            {
+              type: "url",
+              message: "Please enter a valid URL (e.g., https://example.com)",
+            },
+          ]}
+        >
           <Input />
         </Form.Item>
         <div
@@ -1575,13 +1609,25 @@ function SettingsForm({
             gap: 10,
           }}
         >
-          <Form.Item name="currentVersion" label={<L c={c}>Current version</L>}>
-            <Input />
+          <Form.Item
+            name="currentVersion"
+            label={<L c={c}>Current version</L>}
+            rules={[{ required: true, message: "Current version is required" }]}
+          >
+            <Input maxLength={60} />
           </Form.Item>
-          <Form.Item name="sslExpiresAt" label={<L c={c}>SSL expires</L>}>
+          <Form.Item
+            name="sslExpiresAt"
+            label={<L c={c}>SSL expires</L>}
+            rules={[{ required: true, message: "SSL expiry date is required" }]}
+          >
             <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
           </Form.Item>
-          <Form.Item name="lastBackupAt" label={<L c={c}>Last backup</L>}>
+          <Form.Item
+            name="lastBackupAt"
+            label={<L c={c}>Last backup</L>}
+            rules={[{ required: true, message: "Last backup date is required" }]}
+          >
             <DatePicker
               showTime
               style={{ width: "100%" }}
@@ -1596,10 +1642,18 @@ function SettingsForm({
             gap: 10,
           }}
         >
-          <Form.Item name="uptimePercent" label={<L c={c}>Uptime %</L>}>
+          <Form.Item
+            name="uptimePercent"
+            label={<L c={c}>Uptime %</L>}
+            rules={[{ required: true, message: "Uptime % is required" }]}
+          >
             <Input type="number" step="0.01" min={0} max={100} />
           </Form.Item>
-          <Form.Item name="visibility" label={<L c={c}>Visibility</L>}>
+          <Form.Item
+            name="visibility"
+            label={<L c={c}>Visibility</L>}
+            rules={[{ required: true, message: "Visibility is required" }]}
+          >
             <Select
               options={[
                 { value: "client", label: "Client" },
@@ -1607,7 +1661,11 @@ function SettingsForm({
               ]}
             />
           </Form.Item>
-          <Form.Item name="projectId" label={<L c={c}>Project</L>}>
+          <Form.Item
+            name="projectId"
+            label={<L c={c}>Project</L>}
+            rules={[{ required: true, message: "Project is required" }]}
+          >
             <Select
               allowClear
               options={projects.map((p) => ({
@@ -1632,7 +1690,7 @@ function SettingsForm({
           <Button size="small" onClick={onCancel}>
             Cancel
           </Button>
-          <Button size="small" type="primary" onClick={onSave}>
+          <Button size="small" type="primary" htmlType="submit">
             Save changes
           </Button>
         </div>

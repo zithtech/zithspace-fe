@@ -124,6 +124,7 @@ export default function LeadProfilePage() {
   const [onboarding, setOnboarding] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSkillsExpanded, setIsSkillsExpanded] = useState(false);
+  const [formDetailsExpanded, setFormDetailsExpanded] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [statusEditing, setStatusEditing] = useState(false);
@@ -760,6 +761,59 @@ export default function LeadProfilePage() {
                         {lead.ai_summary}
                       </div>
                     </div>
+                  </section>
+                )}
+
+                {/* ------- Form Details (only for website leads with form_data) ------- */}
+                {lead.lead_source_kind === 'website' && lead.form_data && Object.keys(lead.form_data).length > 0 && (
+                  <section className="lv-section">
+                    <header 
+                      className="lv-section-head" 
+                      style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                      onClick={() => setFormDetailsExpanded(!formDetailsExpanded)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#4f46e5" }}>
+                          <LayoutIcon size={14} />
+                        </div>
+                        <h3 className="lv-section-title">Form Details</h3>
+                      </div>
+                      <div style={{ color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center' }}>
+                        {formDetailsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      </div>
+                    </header>
+                    {formDetailsExpanded && (
+                      <div className="lv-section-body">
+                        <div className="lv-form-details-grid">
+                          {Object.entries(lead.form_data).map(([key, val]) => {
+                            // Format key to a human readable label, e.g. "useCase" -> "Use Case", "full_name" -> "Full Name"
+                            const label = key
+                              .replace(/([A-Z])/g, ' $1') // insert a space before all caps
+                              .replace(/[_-]/g, ' ')      // replace underscores/dashes with space
+                              .trim()
+                              .split(' ')
+                              .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                              .join(' ');
+
+                            let displayValue = '';
+                            if (val === null || val === undefined) {
+                              displayValue = '—';
+                            } else if (typeof val === 'object') {
+                              displayValue = JSON.stringify(val);
+                            } else {
+                              displayValue = String(val);
+                            }
+
+                            return (
+                              <div key={key} className="lv-form-details-item">
+                                <span className="lv-form-details-label">{label}</span>
+                                <span className="lv-form-details-value">{displayValue}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </section>
                 )}
 
@@ -2508,6 +2562,51 @@ const leadViewStyles = (
       }
       [data-theme='dark'] .lv-verify.off { background: var(--bg-primary); border-color: var(--border-slate-100); }
       [data-theme='dark'] .lv-section-count { background: var(--bg-primary); border-color: var(--border-slate-100); }
+
+      /* Form Details */
+      .lv-form-details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px 24px;
+        padding: 4px 0;
+      }
+      @media (max-width: 768px) {
+        .lv-form-details-grid {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+      }
+      .lv-form-details-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        border-bottom: 1px solid var(--border-slate-100);
+        padding-bottom: 12px;
+      }
+      [data-theme='dark'] .lv-form-details-item {
+        border-bottom-color: var(--border-slate-100);
+      }
+      .lv-form-details-item:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+      .lv-form-details-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-slate-400);
+      }
+      .lv-form-details-value {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--text-slate-800);
+        word-break: break-word;
+        white-space: pre-wrap;
+      }
+      [data-theme='dark'] .lv-form-details-value {
+        color: var(--text-slate-300);
+      }
 
       /* Autofill fix for dark mode */
       [data-theme='dark'] input:-webkit-autofill,

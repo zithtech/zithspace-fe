@@ -1423,8 +1423,19 @@ const DocumentHubPage = () => {
       dataIndex: ['createdBy', 'name'],
       key: 'createdBy',
       width: colWidths.createdBy,
-      render: (text) => (
-        <span className="text-[12.5px]" style={{ color: 'var(--text-slate-700)' }}>{text}</span>
+      render: (text, record: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Avatar 
+            size={20} 
+            src={record.createdBy?.avatarUrl} 
+            style={!record.createdBy?.avatarUrl ? { backgroundColor: '#3b82f6', color: '#fff', fontSize: 10, fontWeight: 800 } : {}}
+          >
+            {!record.createdBy?.avatarUrl && (record.createdBy?.name || 'Unknown').charAt(0).toUpperCase()}
+          </Avatar>
+          <span className="text-[12.5px]" style={{ color: isDark ? '#e2e8f0' : 'var(--text-slate-700)', fontWeight: 500 }}>
+            {record.createdBy?.name || 'Unknown'}
+          </span>
+        </div>
       ),
     },
     {

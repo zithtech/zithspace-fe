@@ -6184,27 +6184,38 @@ export default function SprintPlanComponent() {
           padding: 12px 16px 12px 16px;
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 17px;
           overflow: hidden;
           transition: border-color 0.2s ease, background 0.2s ease;
         }
-        [data-theme='dark'] .sp-plist-card {
-          background: #161b22 !important;
-          border-color: #1f2937 !important;
-        }
+        // [data-theme='dark'] .sp-plist-card {
+        //   background: #161b22 !important;
+        //   border-color: #1f2937 !important;
+        // }
+        // .sp-plist-card:hover {
+        //   background: #f8fafc !important;
+        //   border-color: #cbd5e1 !important;
+        // }
+        //   .sp-plist-card:hover .sp-plist-block{
+        //   background: #ffffff !important;
+        // }
+        // [data-theme='dark'] .sp-plist-card:hover {
+        //   background: #1c232e !important;
+        // }
+        //     [data-theme='dark'] .sp-plist-card:hover .sp-plist-block{
+        //   background: #1f2937 !important;
+        // }
+
         .sp-plist-card:hover {
-          background: #f8fafc !important;
           border-color: #cbd5e1 !important;
-        }
-          .sp-plist-card:hover .sp-plist-block{
-          background: #ffffff !important;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.08) !important;
         }
         [data-theme='dark'] .sp-plist-card:hover {
           background: #1c232e !important;
+          border-color: #1f2937 !important;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.15) !important;
         }
-            [data-theme='dark'] .sp-plist-card:hover .sp-plist-block{
-          background: #1f2937 !important;
-        }
+
         .sp-plist-stripe {
           position: absolute;
           left: 0;
@@ -6619,7 +6630,7 @@ export default function SprintPlanComponent() {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 4px 10px;
+          padding: 6px 10px;
           font-size: 12px;
           font-weight: 600;
           border-radius: 6px;

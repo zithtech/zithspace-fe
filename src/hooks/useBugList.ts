@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { message } from "antd";
+import { App } from "antd";
 import BugListService, {
   BugConfigCreateInput,
   BugConfigUpdateInput,
@@ -30,6 +30,7 @@ export const useBugFolders = (projectId?: string) =>
 
 export const useCreateBugFolder = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: BugListService.createFolder,
     onSuccess: () => {
@@ -42,6 +43,7 @@ export const useCreateBugFolder = () => {
 
 export const useUpdateBugFolder = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: Parameters<typeof BugListService.updateFolder>[1] }) =>
       BugListService.updateFolder(id, input),
@@ -55,6 +57,7 @@ export const useUpdateBugFolder = () => {
 
 export const useDeleteBugFolder = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.deleteFolder(id),
     onSuccess: () => {
@@ -88,6 +91,7 @@ export const useTrashedSheets = (folderId?: string) =>
 
 export const useArchiveFolder = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.archiveFolder(id),
     onSuccess: () => {
@@ -100,6 +104,7 @@ export const useArchiveFolder = () => {
 
 export const useRestoreFolder = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.restoreFolder(id),
     onSuccess: () => {
@@ -112,6 +117,7 @@ export const useRestoreFolder = () => {
 
 export const usePermanentDeleteFolder = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.permanentDeleteFolder(id),
     onSuccess: () => {
@@ -124,6 +130,7 @@ export const usePermanentDeleteFolder = () => {
 
 export const useBulkRestoreFolders = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (folderIds: string[]) => BugListService.bulkRestoreFolders(folderIds),
     onSuccess: ({ restored }) => {
@@ -136,6 +143,7 @@ export const useBulkRestoreFolders = () => {
 
 export const useBulkPermanentDeleteFolders = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (folderIds: string[]) => BugListService.bulkPermanentDeleteFolders(folderIds),
     onSuccess: ({ deleted }) => {
@@ -172,6 +180,7 @@ export const useArchivedSheets = (folderId?: string) =>
 
 export const useCreateBugSheet = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: BugListService.createSheet,
     onSuccess: (sheet) => {
@@ -184,6 +193,7 @@ export const useCreateBugSheet = () => {
 
 export const useUpdateBugSheet = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: Parameters<typeof BugListService.updateSheet>[1] }) =>
       BugListService.updateSheet(id, input),
@@ -197,6 +207,7 @@ export const useUpdateBugSheet = () => {
 
 export const useUpdateBugSheetStatus = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: BugSheetStatus }) =>
       BugListService.updateSheetStatus(id, status),
@@ -217,6 +228,7 @@ export const useUpdateBugSheetStatus = () => {
 
 export const useDeleteBugSheet = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.deleteSheet(id),
     onSuccess: () => {
@@ -231,6 +243,7 @@ export const useDeleteBugSheet = () => {
 
 export const useRestoreSheet = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.restoreSheet(id),
     onSuccess: () => {
@@ -243,6 +256,7 @@ export const useRestoreSheet = () => {
 
 export const usePermanentDeleteSheet = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.permanentDeleteSheet(id),
     onSuccess: () => {
@@ -255,6 +269,7 @@ export const usePermanentDeleteSheet = () => {
 
 export const useBulkRestoreSheets = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (sheetIds: string[]) => BugListService.bulkRestoreSheets(sheetIds),
     onSuccess: ({ restored }) => {
@@ -267,6 +282,7 @@ export const useBulkRestoreSheets = () => {
 
 export const useBulkPermanentDeleteSheets = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (sheetIds: string[]) => BugListService.bulkPermanentDeleteSheets(sheetIds),
     onSuccess: ({ deleted }) => {
@@ -295,6 +311,7 @@ export const useBug = (id: string) =>
 
 export const useCreateBug = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (input: CreateBugInput) => BugListService.createBug(input),
     onSuccess: () => {
@@ -307,11 +324,13 @@ export const useCreateBug = () => {
 
 export const useUpdateBug = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateBugInput }) =>
       BugListService.updateBug(id, input),
     onSuccess: (updated) => {
       qc.invalidateQueries({ queryKey: bugKeys.all });
+      message.success("Bug updated");
     },
     onError: (err: Error) => message.error(err.message),
   });
@@ -319,6 +338,7 @@ export const useUpdateBug = () => {
 
 export const useDeleteBug = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.deleteBug(id),
     onSuccess: () => {
@@ -331,6 +351,7 @@ export const useDeleteBug = () => {
 
 export const usePermanentDeleteBug = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.permanentDeleteBug(id),
     onSuccess: () => {
@@ -343,6 +364,7 @@ export const usePermanentDeleteBug = () => {
 
 export const useRestoreBug = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.restoreBug(id),
     onSuccess: () => {
@@ -355,6 +377,7 @@ export const useRestoreBug = () => {
 
 export const useBulkUpdateBugStatus = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: ({ bugIds, status }: { bugIds: string[]; status: BugStatus }) =>
       BugListService.bulkUpdateStatus(bugIds, status),
@@ -368,6 +391,7 @@ export const useBulkUpdateBugStatus = () => {
 
 export const useBulkDeleteBugs = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (bugIds: string[]) => BugListService.bulkDelete(bugIds),
     onSuccess: ({ movedToTrash }) => {
@@ -380,6 +404,7 @@ export const useBulkDeleteBugs = () => {
 
 export const useBulkPermanentDeleteBugs = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (bugIds: string[]) => BugListService.bulkPermanentDelete(bugIds),
     onSuccess: ({ deleted }) => {
@@ -392,6 +417,7 @@ export const useBulkPermanentDeleteBugs = () => {
 
 export const useBulkRestoreBugs = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (bugIds: string[]) => BugListService.bulkRestore(bugIds),
     onSuccess: ({ restored }) => {
@@ -404,6 +430,7 @@ export const useBulkRestoreBugs = () => {
 
 export const useBulkMoveBugs = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: ({ bugIds, targetSheetId }: { bugIds: string[]; targetSheetId: string }) =>
       BugListService.bulkMove(bugIds, targetSheetId),
@@ -429,20 +456,25 @@ export const useBugStats = (params: {
   });
 
 // ==================== AI ====================
-export const useAiReviewBugs = () =>
-  useMutation({
+export const useAiReviewBugs = () => {
+  const { message } = App.useApp();
+  return useMutation({
     mutationFn: (bugIds: string[]) => BugListService.aiReview(bugIds),
     onError: (err: Error) => message.error(err.message),
   });
+};
 
-export const useAiSuggestGroups = () =>
-  useMutation({
+export const useAiSuggestGroups = () => {
+  const { message } = App.useApp();
+  return useMutation({
     mutationFn: (bugIds: string[]) => BugListService.aiSuggestGroups(bugIds),
     onError: (err: Error) => message.error(err.message),
   });
+};
 
 export const useBulkConvertBugsToTickets = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (groups: BulkConvertGroup[]) =>
       BugListService.bulkConvertToTickets(groups),
@@ -458,6 +490,7 @@ export const useBulkConvertBugsToTickets = () => {
 // ==================== QA verify ====================
 export const useVerifyBug = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (bugId: string) => BugListService.verify(bugId),
     onSuccess: () => {
@@ -470,6 +503,7 @@ export const useVerifyBug = () => {
 
 export const useReopenBug = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (bugId: string) => BugListService.reopen(bugId),
     onSuccess: () => {
@@ -494,6 +528,7 @@ export const useBugSeverityOptions = () =>
 
 export const useCreateBugSeverity = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (input: BugConfigCreateInput) =>
       BugListService.createSeverityOption(input),
@@ -507,6 +542,7 @@ export const useCreateBugSeverity = () => {
 
 export const useUpdateBugSeverity = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: BugConfigUpdateInput }) =>
       BugListService.updateSeverityOption(id, input),
@@ -520,6 +556,7 @@ export const useUpdateBugSeverity = () => {
 
 export const useDeleteBugSeverity = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.deleteSeverityOption(id),
     onSuccess: () => {
@@ -544,6 +581,7 @@ export const useBugTypeOptions = () =>
 
 export const useCreateBugType = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (input: BugConfigCreateInput) =>
       BugListService.createTypeOption(input),
@@ -557,6 +595,7 @@ export const useCreateBugType = () => {
 
 export const useUpdateBugType = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: BugConfigUpdateInput }) =>
       BugListService.updateTypeOption(id, input),
@@ -570,6 +609,7 @@ export const useUpdateBugType = () => {
 
 export const useDeleteBugType = () => {
   const qc = useQueryClient();
+  const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.deleteTypeOption(id),
     onSuccess: () => {

@@ -817,31 +817,6 @@ export default function PortalAccessTab({ clientId, contacts }: Props) {
           }
         }
 
-        /* Force header elements to stay on the exact same line, overriding TimeTrackingHeader media query */
-        @media (max-width: 1200px) {
-          html body .portal-access-header-wrap .saas-header-container .saas-header-row {
-            flex-wrap: nowrap !important;
-          }
-          html body .portal-access-header-wrap .saas-header-container .saas-header-left-col {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-          }
-          html body .portal-access-header-wrap .saas-header-container .saas-header-extra-col {
-            width: auto !important;
-            flex: 0 0 auto !important;
-            margin-top: 0 !important;
-          }
-          html body .portal-access-header-wrap .saas-header-container .saas-header-left-group {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 16px !important;
-          }
-          html body .portal-access-header-wrap .saas-header-container .bh-header-divider {
-            display: inline-block !important;
-          }
-        }
-
         /* Premium Table Styles */
         .premium-table .ant-table {
           background: transparent !important;

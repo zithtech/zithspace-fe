@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Avatar, Dropdown, Tooltip, message, Select, Checkbox } from "antd";
+import { Avatar, Dropdown, Tooltip, App, Select, Checkbox } from "antd";
 import {
   MoreHorizontal,
   Link as LinkIcon,
@@ -260,6 +260,7 @@ function BugRow({
   isNestedInSheet,
   isNestedInFolder,
 }: BugRowProps) {
+  const { message } = App.useApp();
   const { open: openTicketDrawer } = useTicketDrawer();
   const { 
     canUpdateBug, 

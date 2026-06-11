@@ -56,6 +56,7 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
     label: m.label,
     value: m.value,
     description: m.position || undefined,
+    avatarUrl: m.avatarUrl || null,
   }));
 
   return (
@@ -140,6 +141,8 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
             placeholder="All members"
             itemNoun="members"
             width={290}
+            showAvatar
+            searchPlaceholder="Search people..."
           />
         </div>
 

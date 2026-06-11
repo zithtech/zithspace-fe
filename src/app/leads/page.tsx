@@ -412,7 +412,49 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         </Row>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="clientPhone" label={<Text strong style={labelStyle}>Phone</Text>}>
+            <Form.Item
+              name="clientPhone"
+              label={<Text strong style={labelStyle}>Phone</Text>}
+              getValueFromEvent={(e) => {
+                const value = e.target.value;
+                let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
+                if (sanitized.includes('+')) {
+                  const hasPlusAtStart = sanitized.startsWith('+');
+                  sanitized = sanitized.replace(/\+/g, '');
+                  if (hasPlusAtStart) {
+                    sanitized = '+' + sanitized;
+                  }
+                }
+                let digitsCount = 0;
+                let limited = '';
+                for (let i = 0; i < sanitized.length; i++) {
+                  const char = sanitized[i];
+                  if (/\d/.test(char)) {
+                    if (digitsCount < 15) {
+                      digitsCount++;
+                      limited += char;
+                    }
+                  } else {
+                    limited += char;
+                  }
+                }
+                return limited;
+              }}
+              rules={[
+                {
+                  validator: (_, value) => {
+                    if (!value || value.trim() === '') {
+                      return Promise.resolve();
+                    }
+                    const digits = value.replace(/\D/g, '');
+                    if (digits.length < 7) {
+                      return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
+                    }
+                    return Promise.resolve();
+                  }
+                }
+              ]}
+            >
               <Input placeholder="+91 …" style={{ borderRadius: 8 }} />
             </Form.Item>
           </Col>
@@ -3558,7 +3600,49 @@ export default function LeadsPage() {
                   </Row>
                   <Row gutter={16}>
                     <Col span={12}>
-                      <Form.Item name="clientPhone" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Number</Text>}>
+                      <Form.Item
+                        name="clientPhone"
+                        label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Number</Text>}
+                        getValueFromEvent={(e) => {
+                          const value = e.target.value;
+                          let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
+                          if (sanitized.includes('+')) {
+                            const hasPlusAtStart = sanitized.startsWith('+');
+                            sanitized = sanitized.replace(/\+/g, '');
+                            if (hasPlusAtStart) {
+                              sanitized = '+' + sanitized;
+                            }
+                          }
+                          let digitsCount = 0;
+                          let limited = '';
+                          for (let i = 0; i < sanitized.length; i++) {
+                            const char = sanitized[i];
+                            if (/\d/.test(char)) {
+                              if (digitsCount < 15) {
+                                digitsCount++;
+                                limited += char;
+                              }
+                            } else {
+                              limited += char;
+                            }
+                          }
+                          return limited;
+                        }}
+                        rules={[
+                          {
+                            validator: (_, value) => {
+                              if (!value || value.trim() === '') {
+                                return Promise.resolve();
+                              }
+                              const digits = value.replace(/\D/g, '');
+                              if (digits.length < 7) {
+                                return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
+                              }
+                              return Promise.resolve();
+                            }
+                          }
+                        ]}
+                      >
                         <Input placeholder="+1 234..." style={{ borderRadius: 8 }} />
                       </Form.Item>
                     </Col>

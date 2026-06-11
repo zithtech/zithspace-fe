@@ -4681,6 +4681,7 @@ select:-webkit-autofill:focus {
   padding: 14px 16px !important;
   border-bottom: 1px solid var(--border-slate-100) !important;
   transition: background 0.15s ease;
+  background: var(--bg-pure-white);
 }
 
 .premium-table .ant-table-tbody>tr:last-child>td {
@@ -4688,7 +4689,7 @@ select:-webkit-autofill:focus {
 }
 
 .premium-table .ant-table-tbody>tr:hover>td {
-  background: rgba(59, 130, 246, 0.025) !important;
+  background: var(--bg-slate-50) !important;
 }
 
 .premium-table .ant-pagination {

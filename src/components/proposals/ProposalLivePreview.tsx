@@ -20,6 +20,9 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import TiptapViewer from "@/components/common/TiptapViewer";
+import { ComposerBlockView } from "./library/composerComponents";
+import { sigFamily } from "./blocks/SignatureBlock";
+import { currencySymbol } from "@/utils/currencies";
 
 const { Title, Text } = Typography;
 
@@ -124,7 +127,7 @@ const renderBlockContent = (block: any) => {
     case "section":
       if (!hasValue(data.content) && !hasValue(data.text)) return null;
       return (
-        <div style={{ color: "var(--text-primary)" }}>
+        <div className="cmp-doc" style={{ color: "var(--text-primary)" }}>
           <TiptapViewer content={data.content || data.text || ""} />
         </div>
       );
@@ -144,7 +147,7 @@ const renderBlockContent = (block: any) => {
       const discountedSubtotal = Math.max(0, subtotal - discountAmount);
       const tax = discountedSubtotal * ((data.taxRate || 0) / 100);
       const total = discountedSubtotal + tax;
-      const currency = data.currency === "USD" ? "$" : data.currency || "$";
+      const currency = currencySymbol(data.currency);
 
       return (
         <div style={{ marginTop: 12 }}>
@@ -587,156 +590,37 @@ const renderBlockContent = (block: any) => {
       );
     }
 
-    case "signature":
-      return (
+    case "signature": {
+      const sigDate = data.date ? dayjs(data.date).format("MMM D, YYYY") : "Date";
+      const sigCol = (forName: string, fallback: string, signer: string, signature: string, signatureFont: string) => (
         <div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 24, marginBottom: 32 }}>
-            {hasValue(data.ipClause) && (
-              <div>
-                <Title
-                  level={5}
-                  style={{
-                    display: "block",
-                    color: "var(--text-primary)",
-                    marginBottom: 6,
-                    fontSize: 14,
-                  }}
-                >
-                  Intellectual Property (IP)
-                </Title>
-                <TiptapViewer content={data.ipClause} />
-              </div>
-            )}
-            {hasValue(data.revisionClause) && (
-              <div>
-                <Title
-                  level={5}
-                  style={{
-                    display: "block",
-                    color: "var(--text-primary)",
-                    marginBottom: 6,
-                    fontSize: 14,
-                  }}
-                >
-                  Revision Policy
-                </Title>
-                <TiptapViewer content={data.revisionClause} />
-              </div>
-            )}
-            {hasValue(data.terminationClause) && (
-              <div>
-                <Title
-                  level={5}
-                  style={{
-                    display: "block",
-                    color: "var(--text-primary)",
-                    marginBottom: 6,
-                    fontSize: 14,
-                  }}
-                >
-                  Termination Clause
-                </Title>
-                <TiptapViewer content={data.terminationClause} />
-              </div>
-            )}
-            {hasValue(data.ndaClause) && (
-              <div>
-                <Title
-                  level={5}
-                  style={{
-                    display: "block",
-                    color: "var(--text-primary)",
-                    marginBottom: 6,
-                    fontSize: 14,
-                  }}
-                >
-                  Confidentiality Agreement
-                </Title>
-                <TiptapViewer content={data.ndaClause} />
-              </div>
-            )}
-            {hasValue(data.legalClause) && (
-              <div
-                style={{
-                  padding: 14,
-                  background: "rgba(99, 102, 241, 0.06)",
-                  borderRadius: 8,
-                  borderLeft: "3px solid #4f46e5",
-                }}
-              >
-                <TiptapViewer content={data.legalClause} />
-              </div>
-            )}
+          <Text strong style={{ fontSize: 15, color: "var(--text-primary)" }}>For: {forName || fallback}</Text>
+          <div style={{ height: 64, display: "flex", alignItems: "flex-end", overflow: "hidden" }}>
+            {signature ? (
+              <span style={{ fontFamily: sigFamily(signatureFont), fontSize: 38, lineHeight: 1, color: "var(--text-primary)", paddingBottom: 4, whiteSpace: "nowrap" }}>
+                {signature}
+              </span>
+            ) : null}
           </div>
-
-          <Divider style={{ margin: "24px 0", borderColor: "var(--border-color)" }} />
-
-          <Row gutter={[32, 16]}>
-            {(data.companyName?.trim() || data.companySigner?.trim()) && (
-              <Col xs={24} md={12}>
-                <div
-                  style={{
-                    padding: 14,
-                    background: "var(--bg-slate-50)",
-                    borderRadius: 10,
-                    border: "1px solid var(--border-slate-100)",
-                  }}
-                >
-                  <Title level={5} style={{ color: "var(--text-primary)", marginBottom: 12 }}>
-                    For: {data.companyName || "The Provider"}
-                  </Title>
-                  <Descriptions column={1}>
-                    <Descriptions.Item
-                      label={<span style={{ color: "var(--text-secondary)" }}>Signatory</span>}
-                    >
-                      <Text style={{ color: "var(--text-primary)" }}>
-                        {data.companySigner || "Authorized Representative"}
-                      </Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item
-                      label={<span style={{ color: "var(--text-secondary)" }}>Status</span>}
-                    >
-                      <Tag color="success">Authorised</Tag>
-                    </Descriptions.Item>
-                  </Descriptions>
-                </div>
-              </Col>
-            )}
-            {(data.clientName?.trim() || data.signatoryName?.trim() || data.clientSigner?.trim()) && (
-              <Col xs={24} md={12}>
-                <div
-                  style={{
-                    padding: 14,
-                    background: "var(--bg-slate-50)",
-                    borderRadius: 10,
-                    border: "1px solid var(--border-slate-100)",
-                  }}
-                >
-                  <Title level={5} style={{ color: "var(--text-primary)", marginBottom: 12 }}>
-                    For: {data.clientName || "The Client"}
-                  </Title>
-                  <Descriptions column={1}>
-                    <Descriptions.Item
-                      label={<span style={{ color: "var(--text-secondary)" }}>Signatory</span>}
-                    >
-                      <Text style={{ color: "var(--text-primary)" }}>
-                        {data.signatoryName || data.clientSigner || "Pending"}
-                      </Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item
-                      label={<span style={{ color: "var(--text-secondary)" }}>Status</span>}
-                    >
-                      <Tag color={data.signed ? "success" : "processing"}>
-                        {data.signed ? "Signed" : "Awaiting Signature"}
-                      </Tag>
-                    </Descriptions.Item>
-                  </Descriptions>
-                </div>
-              </Col>
-            )}
-          </Row>
+          <div style={{ borderBottom: "1.5px solid var(--border-color)" }} />
+          <div style={{ marginTop: 10, color: "var(--text-secondary)", fontSize: 13 }}>{signer || "Authorized Signer"}</div>
+          <div style={{ marginTop: 4, color: "var(--text-secondary)", fontSize: 13 }}>{data.date ? `Date: ${sigDate}` : "Date"}</div>
+          {hasValue(data.place) && (
+            <div style={{ marginTop: 2, color: "var(--text-secondary)", fontSize: 13 }}>Place: {data.place}</div>
+          )}
         </div>
       );
+      return (
+        <Row gutter={[48, 32]}>
+          <Col xs={24} md={12}>{sigCol(data.companyName, "Your Company", data.companySigner, data.companySignature, data.companySignatureFont)}</Col>
+          <Col xs={24} md={12}>{sigCol(data.clientName, "Client Name", data.clientSigner, data.clientSignature, data.clientSignatureFont)}</Col>
+        </Row>
+      );
+    }
+
+    case "component":
+      if (!data?.kind) return null;
+      return <div className="cmp-doc"><ComposerBlockView component={data} editable={false} /></div>;
 
     default:
       return (
@@ -764,9 +648,12 @@ export const ProposalLivePreview: React.FC<ProposalLivePreviewProps> = ({
   } catch {
     raw = [];
   }
-  const blocks = [...raw]
-    .filter((b: any) => !isBlockEmpty(b))
-    .sort((a: any, b: any) => (TYPE_ORDER[a.type] || 99) - (TYPE_ORDER[b.type] || 99));
+  const filtered = [...raw].filter((b: any) => !isBlockEmpty(b));
+  // Keep the author's exact order when composed components are present; otherwise
+  // normalise legacy proposals by TYPE_ORDER.
+  const blocks = filtered.some((b: any) => b?.type === 'component')
+    ? filtered
+    : filtered.sort((a: any, b: any) => (TYPE_ORDER[a.type] || 99) - (TYPE_ORDER[b.type] || 99));
 
   if (blocks.length === 0) {
     return (
@@ -799,7 +686,7 @@ export const ProposalLivePreview: React.FC<ProposalLivePreviewProps> = ({
       <div className="plp-blocks">
         {blocks.map((block: any, idx: number) => (
           <section key={idx} className="plp-block">
-            {block.type !== "cover" && (
+            {block.type !== "cover" && block.type !== "component" && (
               <div className="plp-block-head">
                 <span className="plp-block-icon">{getBlockIcon(block.type)}</span>
                 <span className="plp-block-title">{getBlockTitle(block).toUpperCase()}</span>

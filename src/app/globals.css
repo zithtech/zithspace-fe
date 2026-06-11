@@ -24997,3 +24997,82 @@ select:-webkit-autofill:focus {
     width: 100% !important;
   }
 }
+/* ════════════════════════════════════════════════════════════════════════
+   Proposal Builder canvas refinements
+   - one clean selection outline (no nested boxes / corner handles)
+   - roomy floating toolbar with the destructive action isolated
+   - inter-block "Add Section" inserter always sits above any toolbar
+   ════════════════════════════════════════════════════════════════════════ */
+.pb-block-halo {
+  inset: -3px -14px !important;
+  border-radius: 10px !important;
+  border: 1.5px solid rgba(37, 99, 235, 0.65) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.07) !important;
+}
+.pb-block-halo::before,
+.pb-block-halo::after { display: none !important; }
+
+.pb-floating-toolbar {
+  top: -36px !important;
+  left: auto !important;
+  right: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  padding: 4px !important;
+  z-index: 25 !important;
+  border: 1px solid var(--border-color) !important;
+}
+.pb-tb-btn {
+  padding: 6px 9px !important;
+  min-width: 30px;
+  justify-content: center;
+  cursor: pointer;
+}
+.pb-tb-grip { cursor: grab !important; }
+.pb-tb-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border-color);
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+.pb-tb-btn--add:hover { background: rgba(37, 99, 235, 0.10) !important; color: #2563eb !important; }
+
+/* keep the "Add Section" inserter clickable even when a block above/below is selected */
+.pb-inserter-slot { z-index: 60 !important; height: 18px !important; }
+
+/* Always-visible "Add Section" between cards — discoverable + never hidden
+   behind a block's top-right toolbar (which now only holds drag/status/delete) */
+.pb-inserter-slot { height: 26px !important; z-index: 60 !important; }
+.pb-block-inserter {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: none !important;
+  background: var(--bg-pure-white) !important;
+  color: var(--text-slate-400) !important;
+  border: 1px dashed var(--border-color) !important;
+  box-shadow: none !important;
+}
+.pb-inserter-slot:hover .pb-block-inserter {
+  color: #2563eb !important;
+  border-color: #93c5fd !important;
+  border-style: solid !important;
+  background: rgba(37, 99, 235, 0.06) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.14) !important;
+}
+/* keep the floating toolbar compact + right-anchored so it never reaches the
+   centered "Add Section" pill */
+.pb-floating-toolbar { max-width: 280px; }
+
+/* The inserter strip itself must NOT intercept clicks — only the centered
+   "Add Section" pill is interactive. This keeps an adjacent block's top-right
+   toolbar (drag/status/delete) fully clickable. */
+.pb-inserter-slot { pointer-events: none !important; }
+.pb-block-inserter { pointer-events: auto !important; }
+
+/* Inter-block "Add Section" reveals on hover (declutters multi-component
+   sections) and is centred so it never covers a block's top-right toolbar. */
+.pb-inserter-slot { pointer-events: auto !important; max-width: 360px; margin-left: auto !important; margin-right: auto !important; }
+.pb-block-inserter { opacity: 0 !important; transition: opacity .14s ease !important; }
+.pb-inserter-slot:hover .pb-block-inserter { opacity: 1 !important; }

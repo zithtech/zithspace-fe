@@ -41,11 +41,17 @@ function BuilderContent() {
   const [messageApi, messageHolder] = message.useMessage();
   const proposalId = searchParams.get('id');
   const { blocks, addBlock, reorderBlocks, setBlocks, setSelectedBlockId } = useProposalStore();
+  const selectedBlockId = useProposalStore((s) => s.selectedBlockId);
+
+  // These blocks are edited via the right panel; only composed components edit inline.
+  const STRUCTURED_TYPES = ['cover', 'pricing', 'scope', 'timeline', 'signature', 'text', 'section'];
 
   const [activeDragType, setActiveDragType] = useState<BlockType | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [isRailVisible, setIsRailVisible] = useState(true);
-  const [isPropertiesVisible, setIsPropertiesVisible] = useState(true);
+  // Panel is collapsed by default — free-text edits happen inline on the canvas.
+  // It auto-opens only when a structured block (cover/pricing/…) is selected.
+  const [isPropertiesVisible, setIsPropertiesVisible] = useState(false);
   const [railWidth, setRailWidth] = useState(248);
   const [propertiesWidth, setPropertiesWidth] = useState(() => {
     if (typeof window === 'undefined') return 480;
@@ -73,6 +79,15 @@ function BuilderContent() {
     }
   }, [user, isLoading, canCreateProposal, canUpdateProposal, proposalId, router]);
 
+  // Auto-open the properties panel only when a structured block is selected.
+  useEffect(() => {
+    if (!selectedBlockId) return;
+    const b = blocks.find((x: any) => x.id === selectedBlockId);
+    const opensPanel = b && (STRUCTURED_TYPES.includes(b.type) || (b.type === 'component' && ['twoColumn', 'paragraph'].includes(b.data?.kind)));
+    if (opensPanel) setIsPropertiesVisible(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBlockId]);
+
   const [zoom, setZoom] = useState(1);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -97,6 +112,25 @@ function BuilderContent() {
       };
 
       if (!proposalId) {
+        // 0. CHECK IF WE HAVE A PENDING TEMPLATE (from the Template Library)
+        const pendingTpl = sessionStorage.getItem('pending_template_blocks');
+        if (pendingTpl) {
+          try {
+            const parsed = JSON.parse(pendingTpl);
+            sessionStorage.removeItem('pending_template_blocks');
+            if (Array.isArray(parsed?.blocks) && parsed.blocks.length) {
+              setBlocks(parsed.blocks);
+              if (parsed.themeId) {
+                useProposalStore.getState().setDocumentTheme({ themeId: parsed.themeId, fontId: parsed.fontId || 'inter' });
+              }
+              messageApi.success({ content: `Loaded "${parsed.name || 'template'}"`, key: 'load_data' });
+              return;
+            }
+          } catch (e) {
+            console.error('Failed to parse pending template:', e);
+          }
+        }
+
         // 1. CHECK IF WE HAVE PENDING AI DATA (from Lead Dashboard)
         const pendingData = sessionStorage.getItem('pending_proposal_data');
         if (pendingData) {
@@ -150,10 +184,11 @@ function BuilderContent() {
           }
         }
 
-        // 2. DEFAULT TEMPLATE FOR NEW PROPOSAL
-        const defaultTemplateTypes: BlockType[] = ['cover', 'text', 'scope', 'timeline', 'pricing', 'signature', 'section'];
+        // 2. NEW PROPOSAL — start with just the Cover so the user lands on
+        //    Branding & Identity first. More sections are added from the rail.
         setBlocks([]);
-        defaultTemplateTypes.forEach((t) => addBlock(t));
+        addBlock('cover');
+        setIsPropertiesVisible(true);
         return;
       }
 
@@ -172,12 +207,14 @@ function BuilderContent() {
           }
 
           if (Array.isArray(fetchedBlocks)) {
-            // Sort by TYPE_ORDER to ensure Cover is first, Executive Summary second, etc.
-            const sortedBlocks = [...fetchedBlocks].sort((a, b) =>
-              (TYPE_ORDER[a.type] || 99) - (TYPE_ORDER[b.type] || 99)
-            );
+            // Proposals that use composed components keep their exact saved order.
+            // Legacy proposals are normalised by TYPE_ORDER (Cover first, etc.).
+            const hasComponents = fetchedBlocks.some((b: any) => b?.type === 'component');
+            const orderedBlocks = hasComponents
+              ? fetchedBlocks
+              : [...fetchedBlocks].sort((a, b) => (TYPE_ORDER[a.type] || 99) - (TYPE_ORDER[b.type] || 99));
 
-            setBlocks(sortedBlocks);
+            setBlocks(orderedBlocks);
             if (proposal.lead_id) {
               setPendingLeadId(proposal.lead_id);
             }
@@ -278,11 +315,8 @@ function BuilderContent() {
     const t = setTimeout(() => {
       initialLoadCompletedAt.current = Date.now();
       editorScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
-      // Default-select the first (Cover) block so the right panel highlights it
-      const firstBlock = useProposalStore.getState().blocks[0];
-      if (firstBlock && !useProposalStore.getState().selectedBlockId) {
-        setSelectedBlockId(firstBlock.id);
-      }
+      // No auto-selection on load — the properties panel stays collapsed until the
+      // user picks a structured block. Free-text editing happens inline.
     }, 600);
     return () => clearTimeout(t);
   }, [setSelectedBlockId]);

@@ -406,11 +406,40 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.DOCUMENT_READ,
       },
       {
-        key: "/proposals",
+        key: "proposals-group",
         label: "Proposals",
         icon: I(FileSignature),
-        path: "/proposals",
         requiredPermission: Permissions.PROPOSAL_READ,
+        children: [
+          {
+            key: "/proposals",
+            label: "All Proposals",
+            icon: I(List),
+            path: "/proposals",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
+          {
+            key: "/proposals/builder",
+            label: "Create Proposal",
+            icon: I(FilePlus2),
+            path: "/proposals/builder",
+            requiredAnyPermission: [Permissions.PROPOSAL_CREATE, Permissions.PROPOSAL_UPDATE],
+          },
+          {
+            key: "/proposals/sections",
+            label: "Section Library",
+            icon: I(LayoutGrid),
+            path: "/proposals/sections",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
+          {
+            key: "/proposals/templates",
+            label: "Template Library",
+            icon: I(Layers),
+            path: "/proposals/templates",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
+        ],
       },
       {
         key: "squadManagement",

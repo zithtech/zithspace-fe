@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { nanoid } from 'nanoid';
 
-export type BlockType = 'cover' | 'text' | 'pricing' | 'signature' | 'scope' | 'timeline' | 'section';
+export type BlockType = 'cover' | 'text' | 'pricing' | 'signature' | 'scope' | 'timeline' | 'section' | 'component';
 
 export interface ProposalBlock {
   id: string;
@@ -67,14 +67,16 @@ const getDefaultDataForType = (type: BlockType) => {
     case 'signature':
       return {
         title: '',
-        ipClause: '',
-        revisionClause: '',
-        terminationClause: '',
-        ndaClause: '',
         companyName: '',
         clientName: '',
         companySigner: '',
         clientSigner: '',
+        companySignature: '',
+        companySignatureFont: 'dancing',
+        clientSignature: '',
+        clientSignatureFont: 'dancing',
+        place: '',
+        date: '',
       };
     case 'scope':
       return {

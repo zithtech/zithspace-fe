@@ -39,7 +39,12 @@ export const BlockProperties = () => {
   React.useEffect(() => {
     if (!selectedBlockId) return;
     requestAnimationFrame(() => {
-      if (activeRef.current && containerRef.current) {
+      // For the cover, keep the panel at the top so "Branding & Identity"
+      // (rendered first) stays in view instead of jumping to the cover settings.
+      const isCover = blocks.find((b) => b.id === selectedBlockId)?.type === 'cover';
+      if (isCover && containerRef.current) {
+        containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (activeRef.current && containerRef.current) {
         activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else if (containerRef.current) {
         containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });

@@ -1,4 +1,4 @@
-import { Typography, Table, Form, Input, InputNumber, Button, Space, Divider, Select, Row, Col, Tag, Switch, Tooltip } from 'antd';
+import { Typography, Table, Form, Input, InputNumber, Button, Space, Divider, Select, Row, Col, Tag, Switch, Tooltip, DatePicker } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -10,14 +10,29 @@ import {
   WalletOutlined,
   ShoppingOutlined,
   TagOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  AppstoreAddOutlined,
 } from '@ant-design/icons';
 import { nanoid } from 'nanoid';
+import dayjs from 'dayjs';
 import React from 'react';
 import { AIEnhanceButton } from '../AIEnhanceButton';
 import { BlockGhostHint } from './BlockGhost';
+import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import { CURRENCIES, currencySymbol } from '@/utils/currencies';
 
 const { Title, Text } = Typography;
+
+// Dynamic pricing-table column types the user can add.
+const FIELD_TYPE_OPTIONS = [
+  { value: 'text', label: 'Text' },
+  { value: 'number', label: 'Number' },
+  { value: 'currency', label: 'Currency' },
+  { value: 'percent', label: 'Percent (%)' },
+  { value: 'date', label: 'Date' },
+];
+
+const isNumericFieldType = (t: string) => t === 'number' || t === 'currency' || t === 'percent';
 
 interface PricingBlockProps {
   data: any;
@@ -28,11 +43,32 @@ interface PricingBlockProps {
 export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
   const items = data.items || [];
 
-  const subtotal = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+  const subtotal = items.reduce((sum: number, item: any) => sum + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
   const discountAmount = data.discount || 0;
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
   const tax = discountedSubtotal * ((data.taxRate || 0) / 100);
   const total = discountedSubtotal + tax;
+
+  const currencyPrefix = currencySymbol(data.currency);
+  const fmtField = (val: any, type: string) => {
+    if (val === undefined || val === null || val === '') return <span style={{ color: 'var(--text-slate-400)' }}>—</span>;
+    switch (type) {
+      case 'currency': return `${currencyPrefix}${Number(val).toLocaleString()}`;
+      case 'number': return Number(val).toLocaleString();
+      case 'percent': return `${val}%`;
+      case 'date': return dayjs(val).isValid() ? dayjs(val).format('MMM D, YYYY') : String(val);
+      default: return String(val);
+    }
+  };
+
+  // User-defined dynamic columns (label + type).
+  const customCols = (data.fields || []).map((f: any) => ({
+    title: f.label || 'Field',
+    key: f.id,
+    width: 120,
+    align: (isNumericFieldType(f.type) ? 'right' : 'left') as 'right' | 'left',
+    render: (_: any, record: any) => fmtField(record.custom?.[f.id], f.type),
+  }));
 
   const columns = [
     {
@@ -46,6 +82,7 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
         </div>
       )
     },
+    ...customCols,
     {
       title: 'Qty',
       dataIndex: 'quantity',
@@ -59,7 +96,7 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
       key: 'price',
       width: 120,
       align: 'right' as const,
-      render: (val: number) => `${data.currency === 'USD' ? '$' : data.currency + ' '}${val.toLocaleString()}`
+      render: (val: number) => `${currencyPrefix}${Number(val || 0).toLocaleString()}`
     },
     {
       title: 'Total',
@@ -68,7 +105,7 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
       align: 'right' as const,
       render: (_: any, record: any) => (
         <div style={{ fontWeight: 600 }}>
-          {data.currency === 'USD' ? '$' : data.currency + ' '}{(record.price * record.quantity).toLocaleString()}
+          {currencyPrefix}{(Number(record.price || 0) * Number(record.quantity || 0)).toLocaleString()}
         </div>
       )
     }
@@ -117,25 +154,25 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
         <div style={{ width: '300px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
             <Text style={{ color: 'var(--text-secondary)' }}>Subtotal</Text>
-            <Text style={{ color: 'var(--text-primary)' }}>{data.currency === 'USD' ? '$' : data.currency + ' '}{subtotal.toLocaleString()}</Text>
+            <Text style={{ color: 'var(--text-primary)' }}>{currencyPrefix}{subtotal.toLocaleString()}</Text>
           </div>
           {(data.discount || 0) > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', color: '#10b981' }}>
               <Text style={{ color: 'inherit' }}>Discount</Text>
-              <Text style={{ color: 'inherit' }}>-{data.currency === 'USD' ? '$' : data.currency + ' '}{discountAmount.toLocaleString()}</Text>
+              <Text style={{ color: 'inherit' }}>-{currencyPrefix}{discountAmount.toLocaleString()}</Text>
             </div>
           )}
           {(data.taxRate || 0) > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
               <Text style={{ color: 'var(--text-secondary)' }}>Tax ({data.taxRate}%)</Text>
-              <Text style={{ color: 'var(--text-primary)' }}>{data.currency === 'USD' ? '$' : data.currency + ' '}{tax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+              <Text style={{ color: 'var(--text-primary)' }}>{currencyPrefix}{tax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
             </div>
           )}
           <Divider style={{ margin: '8px 0', borderColor: 'var(--border-color)' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
             <Text strong style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>Total</Text>
             <Text strong style={{ fontSize: '1.25rem', color: 'var(--premium-blue)' }}>
-              {data.currency === 'USD' ? '$' : data.currency + ' '}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {currencyPrefix}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Text>
           </div>
         </div>
@@ -245,9 +282,17 @@ export const PricingBlockSettings: React.FC<{ data: any, onUpdate: (data: any) =
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item label={<span style={labelStyle}>Currency</span>} name="currency">
-                <Input prefix={<DollarOutlined style={{ color: '#cbd5e1' }} />} placeholder="USD" variant="filled" style={inputStyle} />
-              </Form.Item>
+              <span style={labelStyle}>Currency</span>
+              <SearchableDropdown
+                value={data.currency || 'USD'}
+                onChange={(v) => onUpdate({ ...data, currency: v || 'USD' })}
+                allowClear={false}
+                searchPlaceholder="Search currency"
+                itemNoun="currencies"
+                width={260}
+                style={{ minWidth: 0, width: '100%' }}
+                options={CURRENCIES.map((c) => ({ value: c.code, label: `${c.symbol}  ${c.code}`, description: c.name }))}
+              />
             </Col>
           </Row>
 
@@ -263,6 +308,44 @@ export const PricingBlockSettings: React.FC<{ data: any, onUpdate: (data: any) =
               </Form.Item>
             </Col>
           </Row>
+        </div>
+      </div>
+
+      {/* Custom Columns */}
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <AppstoreAddOutlined style={{ color: '#2563eb' }} />
+          <Text strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>Custom Columns</Text>
+        </div>
+
+        <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+          <Form.List name="fields">
+            {(flds, { add, remove }) => (
+              <>
+                {flds.length === 0 && (
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>
+                    Add typed columns (e.g. Unit, Discount&nbsp;%, Hours, Date). Each appears in the table and as a field on every line item.
+                  </div>
+                )}
+                {flds.map(({ key, name: fname, ...rf }) => (
+                  <div key={key} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 10 }}>
+                    <Form.Item {...rf} name={[fname, 'label']} style={{ flex: 1, marginBottom: 0 }}>
+                      <Input placeholder="Column label" variant="filled" style={inputStyle} />
+                    </Form.Item>
+                    <Form.Item {...rf} name={[fname, 'type']} style={{ width: 130, marginBottom: 0 }}>
+                      <Select options={FIELD_TYPE_OPTIONS} variant="filled" style={{ ...inputStyle, width: '100%' }} />
+                    </Form.Item>
+                    <Tooltip title="Remove column">
+                      <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(fname)} style={{ marginTop: 2 }} />
+                    </Tooltip>
+                  </div>
+                ))}
+                <Button type="dashed" onClick={() => add({ id: nanoid(), label: '', type: 'text' })} block icon={<PlusOutlined />} style={{ borderRadius: '10px', height: '36px' }}>
+                  Add Column
+                </Button>
+              </>
+            )}
+          </Form.List>
         </div>
       </div>
 
@@ -330,6 +413,52 @@ export const PricingBlockSettings: React.FC<{ data: any, onUpdate: (data: any) =
                       </Form.Item>
                     </Col>
                   </Row>
+
+                  {(data.fields || []).length > 0 && (
+                    <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed var(--border-color)' }}>
+                      {(data.fields || []).map((f: any) => {
+                        // Controlled binding straight to data — guarantees the value
+                        // saves and shows in the table, regardless of Form.List quirks.
+                        const itemVal = data.items?.[name]?.custom?.[f.id];
+                        const setVal = (v: any) => {
+                          const items = [...(data.items || [])];
+                          const cur = items[name] || {};
+                          items[name] = { ...cur, custom: { ...(cur.custom || {}), [f.id]: v } };
+                          onUpdate({ ...data, items });
+                        };
+                        return (
+                          <div key={f.id} style={{ marginBottom: 10 }}>
+                            <span style={labelStyle}>{f.label || 'Custom Field'}</span>
+                            {isNumericFieldType(f.type) ? (
+                              <InputNumber
+                                style={{ ...inputStyle, width: '100%' }}
+                                variant="filled"
+                                value={itemVal ?? undefined}
+                                onChange={(v) => setVal(v)}
+                                prefix={f.type === 'currency' ? <DollarOutlined style={{ color: '#cbd5e1' }} /> : f.type === 'percent' ? <PercentageOutlined style={{ color: '#cbd5e1' }} /> : undefined}
+                              />
+                            ) : f.type === 'date' ? (
+                              <DatePicker
+                                style={{ ...inputStyle, width: '100%' }}
+                                variant="filled"
+                                format="MMM D, YYYY"
+                                value={itemVal ? dayjs(itemVal) : null}
+                                onChange={(d) => setVal(d ? d.format('YYYY-MM-DD') : '')}
+                              />
+                            ) : (
+                              <Input
+                                variant="filled"
+                                style={inputStyle}
+                                placeholder={f.label}
+                                value={itemVal || ''}
+                                onChange={(e) => setVal(e.target.value)}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
               <Button type="dashed" onClick={() => add({ id: nanoid(), name: '', description: '', price: 0, quantity: 1 })} block icon={<PlusOutlined />} style={{ borderRadius: '12px', height: '40px' }}>

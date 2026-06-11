@@ -49,6 +49,7 @@ export const BLOCK_LABEL: Record<BlockType, string> = {
   timeline: 'Timeline',
   pricing: 'Pricing',
   signature: 'Signature',
+  component: 'Component',
 };
 
 export const STATUS_LABEL: Record<BlockStatus, string> = {

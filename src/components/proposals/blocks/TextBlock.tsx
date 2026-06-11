@@ -14,7 +14,35 @@ interface TextBlockProps {
   onUpdate?: (data: any) => void;
 }
 
-export const TextBlock: React.FC<TextBlockProps> = ({ data }) => {
+export const TextBlock: React.FC<TextBlockProps & { editable?: boolean }> = ({ data, editable, onUpdate }) => {
+  // Inline edit-in-place on the canvas (heading + rich content).
+  if (editable && onUpdate) {
+    return (
+      <div style={{ padding: '40px' }}>
+        <input
+          className="pb-inline-heading"
+          value={data.heading || ''}
+          placeholder="Section Heading"
+          onChange={(e) => onUpdate({ heading: e.target.value })}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: '100%', border: 'none', outline: 'none', background: 'transparent',
+            fontSize: '1.85rem', fontWeight: 700, color: 'var(--text-primary)',
+            marginBottom: 14, padding: 0, lineHeight: 1.2,
+          }}
+        />
+        <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+          <TiptapEditor
+            content={data.content || ''}
+            onChange={(html) => onUpdate({ content: html })}
+            placeholder="Write the section content — bold, lists, links…"
+            minHeight={160}
+          />
+        </div>
+      </div>
+    );
+  }
+
   const isEmpty = !data.heading && !data.content;
   return (
     <div style={{ padding: '40px' }}>

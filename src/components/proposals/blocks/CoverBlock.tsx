@@ -38,9 +38,7 @@ export const CoverBlock: React.FC<CoverBlockProps> = ({ data }) => {
       display: 'flex',
       flexDirection: 'column',
       padding: '40px',
-      background: 'var(--bg-secondary)',
-      borderRadius: '8px',
-      border: '1px solid var(--border-color)',
+      background: 'transparent',
     }}>
       {isEmpty && <div style={{ marginBottom: 16 }}><BlockGhostHint /></div>}
 

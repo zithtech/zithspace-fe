@@ -1305,19 +1305,13 @@ const DocumentHubPage = () => {
               </button>
             </Tooltip>
             <div
-              className="flex items-center justify-center shrink-0  
-              w-[30px] h-[30px] rounded-lg
-              bg-blue-50 dark:bg-[#1e3a8a]
-              border border-blue-100 dark:border-[#3250ce]
-              text-slate-500 dark:text-slate-300"
-            // style={{
-            //   width: 30, height: 30, borderRadius: 8,
-            //   background: '#eff6ff',
-            //   border: '1px solid var(--border-slate-200)',
-            //   color: 'var(--text-slate-500)',
-            // }}
+              className="flex items-center justify-center shrink-0 w-[30px] h-[30px] rounded-lg"
+              style={{
+                background: isDark ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-blue-50, #eff6ff)',
+                border: `1px solid ${isDark ? 'rgba(59, 130, 246, 0.20)' : 'var(--border-blue-100, #dbeafe)'}`,
+              }}
             >
-              <FolderOutlined style={{ fontSize: 14, color: "#3250ce" }} />
+              <FolderOutlined style={{ fontSize: 14, color: isDark ? '#60a5fa' : '#3b82f6' }} />
             </div>
             <div className="flex flex-col min-w-0 flex-1">
               {isEditingThis ? (
@@ -1425,9 +1419,9 @@ const DocumentHubPage = () => {
       width: colWidths.createdBy,
       render: (text, record: any) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Avatar 
-            size={20} 
-            src={record.createdBy?.avatarUrl} 
+          <Avatar
+            size={20}
+            src={record.createdBy?.avatarUrl}
             style={!record.createdBy?.avatarUrl ? { backgroundColor: '#3b82f6', color: '#fff', fontSize: 10, fontWeight: 800 } : {}}
           >
             {!record.createdBy?.avatarUrl && (record.createdBy?.name || 'Unknown').charAt(0).toUpperCase()}
@@ -1941,7 +1935,7 @@ const DocumentHubPage = () => {
                 className={`dh-new-rowcard ${selected ? 'is-selected' : ''}`}
                 style={{
                   display: 'flex', flexDirection: 'column',
-                  border: '1px solid var(--border-slate-200)',
+                  border: '1px solid var(--border-slate-100)',
                   borderRadius: '0px',
                   background: 'var(--bg-pure-white)',
                   transition: 'all 0.2s',
@@ -2286,7 +2280,7 @@ const DocumentHubPage = () => {
                   options={members.map((m: any) => ({ value: m.value, label: m.label }))}
                 />
                 <RangePicker
-                  className="premium-range-picker rounded-sm"
+                  className="premium-range-picker"
                   style={{ width: '100%', background: 'var(--bg-pure-white)', height: 35 }}
                   value={dateRange}
                   onChange={(dates) => setDateRange(dates as any)}
@@ -3203,6 +3197,7 @@ const DocumentHubPage = () => {
           font-size: 13px;
         }
         .premium-range-picker {
+          border-radius: 6px !important;
           border: 1px dashed var(--border-slate-200) !important;
         }
         .dh-side-group { margin-bottom: 13px; }
@@ -4218,6 +4213,19 @@ const DocumentHubPage = () => {
         /* Selection column polish */
         .premium-table .ant-table-selection-column { padding: 0 8px !important; }
         .premium-table .ant-checkbox-wrapper { transform: scale(0.95); }
+        .premium-table .ant-checkbox-inner,
+        .dh-new-rowcard .ant-checkbox-inner {
+          border-color: var(--border-slate-300, #cbd5e1) !important;
+        }
+        [data-theme='dark'] .premium-table .ant-checkbox-inner,
+        [data-theme='dark'] .dh-new-rowcard .ant-checkbox-inner {
+          border-color: #475569 !important;
+        }
+        .premium-table .ant-checkbox-checked .ant-checkbox-inner,
+        .dh-new-rowcard .ant-checkbox-checked .ant-checkbox-inner {
+          border-color: #3b82f6 !important;
+          background-color: #3b82f6 !important;
+        }
 
         /* Footer area */
         .premium-table .ant-table-footer {

@@ -1,4 +1,8 @@
-// Zukvo Service Worker
+import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-static';
+
+const swCode = `// Zukvo Service Worker
 
 // Direct secure production URL for the Zukvo logo
 const ZUKVO_LOGO_URL = 'https://www.zukvo.com/assets/mainLogo-CMOLjm94.png';
@@ -21,7 +25,7 @@ self.addEventListener('push', (event) => {
     // Ensure title has Zukvo branding
     let title = data.title || 'Zukvo';
     if (!title.toLowerCase().includes('zukvo')) {
-      title = `Zukvo - ${title}`;
+      title = \`Zukvo - \${title}\`;
     }
 
     // Determine context-based icon emoji and action title
@@ -37,8 +41,8 @@ self.addEventListener('push', (event) => {
 
     // Append the company website link/info and origin text to the body
     const displayBody = data.body 
-      ? `${emoji} ${data.body}\n\nThis notification is coming from Zukvo (zukvo.in)` 
-      : `${emoji} This notification is coming from Zukvo (zukvo.in)`;
+      ? \`\${emoji} \${data.body}\\n\\nThis notification is coming from Zukvo (zukvo.in)\` 
+      : \`\${emoji} This notification is coming from Zukvo (zukvo.in)\`;
 
     // Check for open tabs to trigger custom audio playback
     event.waitUntil(
@@ -103,3 +107,13 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+`;
+
+export async function GET() {
+  return new NextResponse(swCode, {
+    headers: {
+      'Content-Type': 'application/javascript',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+    },
+  });
+}

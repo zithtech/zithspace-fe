@@ -190,9 +190,15 @@ const createApiClient = (): AxiosInstance => {
           const { getActivitySource } = require('@/hooks/useActivitySource');
           const src = getActivitySource?.();
           if (src) {
-            if (src.section) config.headers['x-zspace-section'] = src.section;
-            if (src.module) config.headers['x-zspace-module'] = src.module;
-            if (src.page) config.headers['x-zspace-page'] = src.page;
+            const isGlobalEndpoint = config.url && (
+              config.url.includes('/api/time-tracking') ||
+              config.url.includes('time-tracking')
+            );
+            if (!isGlobalEndpoint) {
+              if (src.section) config.headers['x-zspace-section'] = src.section;
+              if (src.module) config.headers['x-zspace-module'] = src.module;
+              if (src.page) config.headers['x-zspace-page'] = src.page;
+            }
           }
         } catch {
           /* hook not yet loaded — fine */

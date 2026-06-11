@@ -6,6 +6,8 @@ import {
   PlayCircleFilled,
   PauseCircleFilled,
   HistoryOutlined,
+  CaretRightFilled,
+  PauseOutlined
 } from "@ant-design/icons";
 import {
   Briefcase,
@@ -666,10 +668,16 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
       : ""
   }`;
 
+  const getTriggerIcon = () => {
+    if (state === "running") return <CaretRightFilled style={{ color: '#10b981', fontSize: 14 }} />;
+    if (state === "paused") return <PauseOutlined style={{ color: '#f59e0b', fontSize: 14 }} />;
+    return <CaretRightFilled style={{ color: '#10b981', fontSize: 14 }} />; // Default to green play icon
+  };
+
   if (isMenuItem) {
     return (
       <div className={triggerClass} style={{ pointerEvents: 'none', border: '1px solid var(--border-slate-300)' }}>
-        <span className="ttp-trigger-dot" />
+        {getTriggerIcon()}
         <span>{formatTime(elapsedTime)}</span>
         <span style={{ marginLeft: 8, fontSize: 11, opacity: 0.8, textTransform: 'uppercase' }}>
           {activeEntry
@@ -718,7 +726,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
       arrow={false}
     >
       <button type="button" className={triggerClass}>
-        <span className="ttp-trigger-dot" />
+        {getTriggerIcon()}
         <span>{formatTime(elapsedTime)}</span>
       </button>
     </Popover>

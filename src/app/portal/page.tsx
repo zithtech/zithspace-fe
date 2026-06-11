@@ -1430,8 +1430,6 @@ const RecentActivities: React.FC<{
       />
       <div
         style={{
-          flex: 1,
-          minHeight: 480,
           maxHeight: "calc(100vh - 220px)",
           overflowY: "auto",
           marginTop: 4,
@@ -1520,7 +1518,7 @@ const ActivityRow: React.FC<{ item: ActivityItem }> = ({ item }) => {
           )}
         </div>
 
-        {/* Meta line: module · source · date · relative */}
+        {/* Meta line: module · date */}
         <div
           style={{
             marginTop: 4,
@@ -1538,21 +1536,7 @@ const ActivityRow: React.FC<{ item: ActivityItem }> = ({ item }) => {
             {item.moduleLabel}
           </span>
           <span style={{ color: T.textFaint }}>·</span>
-          <span
-            style={{
-              color: item.source === "zukvo" ? "#4338ca" : "#0d9488",
-              fontWeight: 600,
-            }}
-          >
-            from {item.source === "zukvo" ? "Zukvo" : "your team"}
-            {item.actorName ? ` · ${item.actorName}` : ""}
-          </span>
-          <span style={{ color: T.textFaint }}>·</span>
           <span>{fmtAbsDateTime(item.occurredAt)}</span>
-          <span style={{ color: T.textFaint }}>·</span>
-          <span style={{ color: T.textFaint }}>
-            {relativeTimeShort(item.occurredAt)}
-          </span>
         </div>
       </div>
 
@@ -1755,7 +1739,7 @@ export default function PortalDashboardPage() {
             display: "grid",
             gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)",
             gap: GAP,
-            alignItems: "stretch",
+            alignItems: "start",
           }}
         >
           {/* Left column */}

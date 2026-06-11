@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import {
   Select,
   DatePicker,
@@ -335,7 +335,7 @@ function CustomFilterDropdown({
       onOpenChange={setOpen}
       placement="bottomLeft"
       overlayClassName="cf-overlay-popover"
-      destroyTooltipOnHide
+      destroyOnHidden
     >
       <div
         className={`cf-trigger ${value ? "cf-trigger-active" : ""} ${
@@ -372,16 +372,53 @@ export default function ActivityPage() {
   const { canReadActivityLogAll } = usePermission();
   const { users: members, loading: membersLoading } = useMembersSelect();
   const [filterOpts, setFilterOpts] = useState<TransactionHistoryFilters | null>(null);
-  const [filters, setFilters] = useState<FilterState>({});
+  const [filters, setFilters] = useState<FilterState>(() => ({
+    range: [dayjs().subtract(1, "day"), dayjs()],
+  }));
   const [pageNum, setPageNum] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [dateOpen, setDateOpen] = useState(false);
+
+  // Local state for debouncing search input
+  const [searchVal, setSearchVal] = useState(filters.search || "");
+
+  // Sync searchVal with filters.search when filters.search changes externally
+  useEffect(() => {
+    setSearchVal(filters.search || "");
+  }, [filters.search]);
+
+  // Debounce search input changes to setFilters
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters((p) => {
+        if (p.search === searchVal) return p;
+        return { ...p, search: searchVal || undefined };
+      });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchVal]);
 
   // Reset to page 1 whenever filters change
   const filterKey = JSON.stringify(filters);
   useEffect(() => {
     setPageNum(1);
   }, [filterKey]);
+
+  // Absolute total number of records in the database (completely unfiltered)
+  const [dbTotal, setDbTotal] = useState<number | null>(null);
+
+  const loadDbTotal = useCallback(() => {
+    if (!canReadActivityLogAll) return;
+    TransactionHistoryService.listPaged({ pageNum: 1, limit: 1 })
+      .then((res) => setDbTotal(res.total))
+      .catch(() => {});
+  }, [canReadActivityLogAll]);
+
+  useEffect(() => {
+    loadDbTotal();
+  }, [loadDbTotal]);
+
+
 
   useEffect(() => {
     if (!canReadActivityLogAll) return;
@@ -425,12 +462,13 @@ export default function ActivityPage() {
       } else {
         setNewCount((c) => c + 1);
       }
+      loadDbTotal();
     };
     socket.on("transaction:created", handler);
     return () => {
       socket.off("transaction:created", handler);
     };
-  }, [socket, canReadActivityLogAll, pageNum, refresh]);
+  }, [socket, canReadActivityLogAll, pageNum, refresh, loadDbTotal]);
 
   // Clear the badge once the user returns to page 1
   useEffect(() => {
@@ -495,7 +533,10 @@ export default function ActivityPage() {
     return match?.key ?? null;
   }, [filters.range]);
 
-  const clearAll = () => setFilters({});
+  const clearAll = () =>
+    setFilters({
+      range: [dayjs().subtract(1, "day"), dayjs()],
+    });
   const clearOne = (key: keyof FilterState) =>
     setFilters((p) => {
       const next = { ...p };
@@ -552,18 +593,29 @@ export default function ActivityPage() {
         icon={<History size={18} strokeWidth={1.75} style={{ color: "#8b5cf6" }} />}
         title="Activity"
         description={
-          <span>
-            All create / update / delete actions ·{" "}
-            <strong style={{ color: "var(--text-slate-900)" }}>{total.toLocaleString()}</strong>{" "}
-            total
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", flexWrap: "wrap", verticalAlign: "middle" }}>
+            <span style={{ color: "var(--text-slate-500, #64748b)", fontWeight: 500 }}>
+              All <span style={{ color: "#10b981", fontWeight: 600 }}>create</span>,{" "}
+              <span style={{ color: "#3b82f6", fontWeight: 600 }}>update</span>, and{" "}
+              <span style={{ color: "#ef4444", fontWeight: 600 }}>delete</span> actions
+            </span>
+            <span className="ax-header-badge">
+              {dbTotal !== null
+                ? `${total.toLocaleString()} out of ${dbTotal.toLocaleString()}`
+                : `${total.toLocaleString()} total`}
+            </span>
           </span>
         }
-        searchQuery={filters.search}
-        onSearchChange={(v) => setFilters((p) => ({ ...p, search: v }))}
+        searchQuery={searchVal}
+        onSearchChange={setSearchVal}
+        searchPlaceholder="Search logs..."
         extra={
           <Button
             icon={<RotateCw size={13} />}
-            onClick={refresh}
+            onClick={() => {
+              refresh();
+              loadDbTotal();
+            }}
             size="middle"
             style={{ borderRadius: 6, fontWeight: 600, height: 36 }}
           >
@@ -606,7 +658,7 @@ export default function ActivityPage() {
                 label: s,
                 description: "Top navbar section",
               })) ?? []}
-              onSelect={(section) => setFilters({ section, module: undefined, page: undefined })}
+              onSelect={(section) => setFilters((p) => ({ ...p, section, module: undefined, page: undefined }))}
               searchPlaceholder="Search sections..."
               footerText="Switch section to view its modules"
               footerSummary="sections"
@@ -816,7 +868,9 @@ export default function ActivityPage() {
                 <div key={label} className="ax-group">
                   <div className="ax-group-header">
                     <span className="ax-group-label">{label}</span>
-                    <span className="ax-group-count">{items.length}</span>
+                    <span className="ax-group-count">
+                      {`${items.length} out of ${total}`}
+                    </span>
                     <div className="ax-group-rule" />
                   </div>
                   <div className="ax-feed-card">
@@ -929,6 +983,26 @@ function ActivityRow({ row, isLast }: { row: TransactionRow; isLast: boolean }) 
 function ActivityStyles() {
   return (
     <style>{`
+      .ax-header-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 999px;
+        background: #ede9fe;
+        color: #7c3aed;
+        border: 1px solid #ddd6fe;
+        margin-left: 6px;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.4;
+      }
+      [data-theme='dark'] .ax-header-badge {
+        background: rgba(139, 92, 246, 0.15);
+        color: #c4b5fd;
+        border-color: rgba(167, 139, 250, 0.25);
+      }
+
       .saas-header-container {
         position: sticky !important;
         top: 0 !important;
@@ -1345,9 +1419,18 @@ function ActivityStyles() {
       [data-theme='dark'] .ax-new-dot { background: #a78bfa; }
 
       .ax-pager {
+        position: sticky;
+        bottom: 0;
+        z-index: 100;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(8px);
+        border-top: 1px solid var(--border-color, #e2e8f0);
+        padding: 14px 24px;
+        margin: 16px -24px -32px -24px;
         display: flex;
         justify-content: flex-end;
-        padding: 12px 4px 4px;
+        align-items: center;
+        box-shadow: 0 -4px 12px -4px rgba(0, 0, 0, 0.05);
       }
       .ax-pager .ant-pagination {
         margin: 0;
@@ -1357,6 +1440,13 @@ function ActivityStyles() {
         color: var(--text-slate-500, #64748b);
         font-weight: 600;
         margin-right: 12px;
+      }
+
+      /* Dark mode override for sticky pagination */
+      [data-theme='dark'] .ax-pager {
+        background: rgba(15, 21, 36, 0.95);
+        border-top-color: var(--border-slate-800, #1f2937);
+        box-shadow: 0 -4px 12px -4px rgba(0, 0, 0, 0.2);
       }
 
       /* ─── Dark mode overrides ─── */

@@ -117,19 +117,19 @@ function HistoryRow({ row }: { row: TransactionRow }) {
                 children: (
                   <div style={{ fontSize: 11, lineHeight: 1.5 }}>
                     {row.beforeData && Object.keys(row.beforeData).length > 0 && (
-                      <pre style={preStyle}>
+                      <pre className="ax-raw-pre" style={preStyle}>
                         <Text type="secondary">before: </Text>
                         {JSON.stringify(row.beforeData, null, 2)}
                       </pre>
                     )}
                     {row.afterData && Object.keys(row.afterData).length > 0 && (
-                      <pre style={preStyle}>
+                      <pre className="ax-raw-pre" style={preStyle}>
                         <Text type="secondary">after: </Text>
                         {JSON.stringify(row.afterData, null, 2)}
                       </pre>
                     )}
                     {row.metadata && Object.keys(row.metadata).length > 0 && (
-                      <pre style={preStyle}>
+                      <pre className="ax-raw-pre" style={preStyle}>
                         <Text type="secondary">metadata: </Text>
                         {JSON.stringify(row.metadata, null, 2)}
                       </pre>
@@ -146,8 +146,6 @@ function HistoryRow({ row }: { row: TransactionRow }) {
 }
 
 const preStyle: React.CSSProperties = {
-  background: "var(--neutral-50, #fafafa)",
-  border: "1px solid var(--border-color, #f0f0f0)",
   borderRadius: 6,
   padding: 8,
   marginTop: 4,
@@ -214,6 +212,21 @@ export default function TransactionHistoryDrawer({
       }
       styles={{ body: { padding: "8px 20px" } }}
     >
+      <style>{`
+        .ax-raw-pre {
+          background: #fafafa !important;
+          color: #262626 !important;
+          border: 1px solid #d9d9d9 !important;
+        }
+        [data-theme='dark'] .ax-raw-pre {
+          background: #141414 !important;
+          color: #e2e8f0 !important;
+          border: 1px solid #303030 !important;
+        }
+        [data-theme='dark'] .ax-raw-pre .ant-typography-secondary {
+          color: rgba(255, 255, 255, 0.45) !important;
+        }
+      `}</style>
       {loading && rows.length === 0 ? (
         <div style={{ textAlign: "center", padding: 48 }}>
           <Spin />

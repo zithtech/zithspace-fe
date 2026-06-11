@@ -13,6 +13,7 @@ interface TimeTrackingHeaderProps {
   description?: React.ReactNode;
   searchQuery?: string;
   onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
   extra?: React.ReactNode;
   style?: React.CSSProperties;
   showIconBox?: boolean;
@@ -25,6 +26,7 @@ export function TimeTrackingHeader({
   description,
   searchQuery,
   onSearchChange,
+  searchPlaceholder,
   extra,
   style,
   showIconBox = true,
@@ -70,7 +72,7 @@ export function TimeTrackingHeader({
                 </div>
 
                 {description && <Divider type="vertical" className="bh-header-divider" />}
-                
+
                 {description && (
                   <div className="saas-header-description-box">
                     <Text style={{ fontSize: 12, color: 'var(--text-slate-600)', fontWeight: 600 }}>
@@ -87,7 +89,7 @@ export function TimeTrackingHeader({
                 <div className={`bh-search-box ${searchQuery ? 'active' : ''}`}>
                   <SearchOutlined style={{ color: searchQuery ? '#8b5cf6' : 'var(--text-slate-400)', fontSize: 13 }} />
                   <Input
-                    placeholder="Search time entries..."
+                    placeholder={searchPlaceholder || "Search time entries..."}
                     variant="borderless"
                     style={{ fontSize: 12, fontWeight: 600, padding: 0 }}
                     value={searchQuery}
@@ -140,26 +142,50 @@ export function TimeTrackingHeader({
           background: var(--bg-slate-50, #f8fafc);
           padding: 0 12px;
           border-radius: 6px;
-          border: 1px solid var(--border-slate-100, #f1f5f9);
+          border: 1px solid var(--border-color, #e2e8f0);
           width: 240px; height: 38px;
           transition: all 0.2s ease;
         }
-        .bh-search-box.active {
+        .bh-search-box.active,
+        .bh-search-box:focus-within {
           border-color: #8b5cf6;
           box-shadow: 0 0 0 3px rgba(139,92,246,0.08);
+          background: var(--bg-pure-white, #ffffff);
+        }
+        .bh-search-box .ant-input-affix-wrapper,
+        .bh-search-box .ant-input-affix-wrapper-focused,
+        .bh-search-box .ant-input-affix-wrapper:hover,
+        .bh-search-box .ant-input-affix-wrapper:focus,
+        .bh-search-box input,
+        .bh-search-box input:focus,
+        .bh-search-box input:hover,
+        .bh-search-box .ant-input,
+        .bh-search-box .ant-input:focus,
+        .bh-search-box .ant-input:hover {
+          border: none !important;
+          outline: none !important;
+          box-shadow: none !important;
+          background: transparent !important;
+          padding: 0 !important;
         }
         [data-theme='dark'] .bh-search-box {
-          background: #1f2937 !important;
-          border-color: #374151 !important;
+          background: rgba(255, 255, 255, 0.02) !important;
+          border-color: var(--border-slate-800, #1f2937) !important;
         }
-        [data-theme='dark'] .bh-search-box.active {
+        [data-theme='dark'] .bh-search-box.active,
+        [data-theme='dark'] .bh-search-box:focus-within {
           border-color: #8b5cf6 !important;
           box-shadow: 0 0 0 3px rgba(139,92,246,0.15) !important;
+          background: rgba(0, 0, 0, 0.2) !important;
         }
         .saas-header-container .ant-row {
           row-gap: 8px !important;
+           flex-wrap: nowrap !important;
         }
-        @media (max-width: 987px) {
+        @media (max-width: 1250px) {
+          .saas-header-container .ant-row {
+            flex-wrap: wrap !important;
+          }
           .saas-header-left-group {
             flex-direction: column;
             align-items: flex-start !important;

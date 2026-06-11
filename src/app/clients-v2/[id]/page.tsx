@@ -2089,12 +2089,18 @@ export default function ClientV2DetailsPage() {
             .cd-tabs .ant-tabs-tab .cd-tab-label {
               display: flex;
               align-items: center;
-              gap: 12px;
               color: var(--text-slate-500);
               font-size: 13.5px;
               font-weight: 600;
               transition: color 0.15s ease;
               width: 100%;
+            }
+            .cd-tabs .ant-tabs-tab .cd-tab-label > svg {
+              flex: 0 0 16px;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              margin-right: 12px;
             }
             .cd-tabs .ant-tabs-tab .cd-tab-label > span:not(.cd-tab-count) {
               flex: 1;
@@ -2102,6 +2108,10 @@ export default function ClientV2DetailsPage() {
               overflow: hidden;
               text-overflow: ellipsis;
               white-space: nowrap;
+            }
+            .cd-tabs .ant-tabs-tab .cd-tab-label .cd-tab-count {
+              flex-shrink: 0;
+              margin-left: auto;
             }
             .cd-tabs .ant-tabs-tab:hover {
               background: var(--bg-slate-50);
@@ -2694,6 +2704,13 @@ export default function ClientV2DetailsPage() {
             }
             .pmodal-body .ant-form-item-label > label::before {
               color: #ef4444 !important;
+            }
+            .pmodal-body .ant-form-item-explain,
+            .pmodal-body .ant-form-item-explain-error {
+              padding-top: 6px !important;
+              font-size: 12px !important;
+              position: relative !important;
+              clear: both !important;
             }
             .pmodal-body .ant-input,
             .pmodal-body .ant-input-affix-wrapper,

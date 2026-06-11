@@ -15,7 +15,7 @@ import {
   Tag,
   Tooltip,
   Typography,
-  message,
+  App,
   theme as antdTheme,
   ConfigProvider,
 } from "antd";
@@ -492,6 +492,7 @@ function OptionEditor({
   onSubmit,
   submitting,
 }: OptionEditorProps) {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [colorPreview, setColorPreview] = useState<string | undefined>();
   const [labelPreview, setLabelPreview] = useState<string>("");

@@ -306,7 +306,7 @@ type LmDensity = "compact" | "comfortable" | "spacious";
 const LM_TABLE_KEY = "leads_v1";
 const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
   { key: "title", label: "Lead" },
-  { key: "status", label: "Stage" },
+  { key: "status", label: "Pipeline" },
   { key: "platform", label: "Source" },
   { key: "budget", label: "Value" },
   { key: "bidiq", label: "BidIq" },
@@ -524,8 +524,8 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         <Form.Item name="inquiryMessage" label={<Text strong style={labelStyle}>Message</Text>}>
           <TextArea rows={4} placeholder="Their message verbatim — keep it untouched for context." style={{ borderRadius: 8 }} />
         </Form.Item>
-        <Form.Item name="status" label={<Text strong style={labelStyle}>Stage</Text>}>
-          <Select placeholder="Select stage" style={{ borderRadius: 8 }}>
+        <Form.Item name="status" label={<Text strong style={labelStyle}>Pipeline</Text>}>
+          <Select placeholder="Select pipeline" style={{ borderRadius: 8 }}>
             {configStatuses.map((s: any) => (
               <Select.Option key={s.id} value={s.name}>
                 <Space>
@@ -1144,7 +1144,7 @@ export default function LeadsPage() {
       },
     },
     {
-      title: "Stage",
+      title: "Pipeline",
       dataIndex: "status",
       key: "status",
       width: 130,
@@ -2603,7 +2603,7 @@ export default function LeadsPage() {
                   <Button
                     className="lm-filter-settings-btn lm-toolbar-filters-btn"
                     onClick={() => {
-                      const headers = ["Lead", "Company", "Stage", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
+                      const headers = ["Lead", "Company", "Pipeline", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
                       const rows = filteredLeads.map(l => {
                         const score = l.ai_score;
                         const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
@@ -2779,7 +2779,7 @@ export default function LeadsPage() {
                 <span className="lm-toolbar-spacer" />
 
                 <SearchableDropdown
-                  placeholder="Stage"
+                  placeholder="Pipeline"
                   options={stageDropdownOptions}
                   value={filterStatus || undefined}
                   onChange={(v) => {
@@ -2914,7 +2914,7 @@ export default function LeadsPage() {
                 <Button
                   className="lm-filter-settings-btn lm-toolbar-filters-btn lm-toolbar-export-btn"
                   onClick={() => {
-                    const headers = ["Lead", "Company", "Stage", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
+                    const headers = ["Lead", "Company", "Pipeline", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
                     const rows = filteredLeads.map(l => {
                       const score = l.ai_score;
                       const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";

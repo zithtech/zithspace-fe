@@ -5523,7 +5523,7 @@ function DashboardContent() {
                                   size="small"
                                   type="primary"
                                   onClick={() =>
-                                    router.push("/invoice/create")
+                                    router.push("/invoice/newinvoice")
                                   }
                                   style={{
                                     background: accent,

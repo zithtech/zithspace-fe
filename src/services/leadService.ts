@@ -60,6 +60,7 @@ export interface Lead {
   company_size?: string;
   inquiry_message?: string;
   website_source?: string;
+  form_data?: Record<string, any>;
 }
 
 export interface LeadPayload {

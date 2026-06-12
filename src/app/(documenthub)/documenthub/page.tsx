@@ -87,18 +87,27 @@ import DocumentHubDashboard from "@/components/documenthub/DocumentHubDashboard"
 import AiCreateHubModal from "@/components/documenthub/AiCreateHubModal";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
+import { Trash2 } from "lucide-react";
 
 const { RangePicker } = DatePicker;
 
 // Six brand-accent colors used to tag each hub by a deterministic id-hash.
 // Gives the table/grid/kanban a Notion-style visual identity per hub.
+// const HUB_ACCENTS = [
+//   { from: '#3B82F6', to: '#6366F1', tint: 'rgba(59, 130, 246, 0.10)' },   // blue
+//   { from: '#10B981', to: '#14B8A6', tint: 'rgba(16, 185, 129, 0.10)' },   // emerald
+//   { from: '#8B5CF6', to: '#A855F7', tint: 'rgba(139, 92, 246, 0.10)' },   // violet
+//   { from: '#F97316', to: '#F59E0B', tint: 'rgba(249, 115, 22, 0.10)' },   // amber
+//   { from: '#EC4899', to: '#F43F5E', tint: 'rgba(236, 72, 153, 0.10)' },   // pink
+//   { from: '#06B6D4', to: '#0EA5E9', tint: 'rgba(6, 182, 212, 0.10)' },    // cyan
+// ];
 const HUB_ACCENTS = [
-  { from: '#3B82F6', to: '#6366F1', tint: 'rgba(59, 130, 246, 0.10)' },   // blue
-  { from: '#10B981', to: '#14B8A6', tint: 'rgba(16, 185, 129, 0.10)' },   // emerald
-  { from: '#8B5CF6', to: '#A855F7', tint: 'rgba(139, 92, 246, 0.10)' },   // violet
-  { from: '#F97316', to: '#F59E0B', tint: 'rgba(249, 115, 22, 0.10)' },   // amber
-  { from: '#EC4899', to: '#F43F5E', tint: 'rgba(236, 72, 153, 0.10)' },   // pink
-  { from: '#06B6D4', to: '#0EA5E9', tint: 'rgba(6, 182, 212, 0.10)' },    // cyan
+  { from: '#3B82F6', to: '#3B82F6', tint: 'rgba(59, 130, 246, 0.10)' },   // blue
+  { from: '#3B82F6', to: '#3B82F6', tint: 'rgba(59, 130, 246, 0.10)' },   // emerald
+  { from: '#3B82F6', to: '#3B82F6', tint: 'rgba(59, 130, 246, 0.10)' },   // violet
+  { from: '#3B82F6', to: '#3B82F6', tint: 'rgba(59, 130, 246, 0.10)' },   // amber
+  { from: '#3B82F6', to: '#3B82F6', tint: 'rgba(59, 130, 246, 0.10)' },   // pink
+  { from: '#3B82F6', to: '#3B82F6', tint: 'rgba(59, 130, 246, 0.10)' },    // cyan
 ];
 
 const accentForId = (id: string) => {
@@ -134,10 +143,10 @@ const DEFAULT_COL_WIDTHS: Record<string, number> = {
   project: 110,
   ticket: 126,
   createdBy: 124,
-  createdAt: 100,
-  updatedAt: 100,
-  visibility: 86,
-  actions: 60,
+  createdAt: 120,
+  // updatedAt: 100,
+  visibility: 120,
+  actions: 50,
 };
 
 // Toggleable columns (star/name/actions are always visible).
@@ -1296,19 +1305,13 @@ const DocumentHubPage = () => {
               </button>
             </Tooltip>
             <div
-              className="flex items-center justify-center shrink-0  
-              w-[30px] h-[30px] rounded-lg
-              bg-blue-50 dark:bg-[#1e3a8a]
-              border border-blue-100 dark:border-[#3250ce]
-              text-slate-500 dark:text-slate-300"
-            // style={{
-            //   width: 30, height: 30, borderRadius: 8,
-            //   background: '#eff6ff',
-            //   border: '1px solid var(--border-slate-200)',
-            //   color: 'var(--text-slate-500)',
-            // }}
+              className="flex items-center justify-center shrink-0 w-[30px] h-[30px] rounded-lg"
+              style={{
+                background: isDark ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-blue-50, #eff6ff)',
+                border: `1px solid ${isDark ? 'rgba(59, 130, 246, 0.20)' : 'var(--border-blue-100, #dbeafe)'}`,
+              }}
             >
-              <FolderOutlined style={{ fontSize: 14, color: "#3250ce" }} />
+              <FolderOutlined style={{ fontSize: 14, color: isDark ? '#60a5fa' : '#3b82f6' }} />
             </div>
             <div className="flex flex-col min-w-0 flex-1">
               {isEditingThis ? (
@@ -1414,8 +1417,19 @@ const DocumentHubPage = () => {
       dataIndex: ['createdBy', 'name'],
       key: 'createdBy',
       width: colWidths.createdBy,
-      render: (text) => (
-        <span className="text-[12.5px]" style={{ color: 'var(--text-slate-700)' }}>{text}</span>
+      render: (text, record: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Avatar
+            size={20}
+            src={record.createdBy?.avatarUrl}
+            style={!record.createdBy?.avatarUrl ? { backgroundColor: '#3b82f6', color: '#fff', fontSize: 10, fontWeight: 800 } : {}}
+          >
+            {!record.createdBy?.avatarUrl && (record.createdBy?.name || 'Unknown').charAt(0).toUpperCase()}
+          </Avatar>
+          <span className="text-[12.5px]" style={{ color: isDark ? '#e2e8f0' : 'var(--text-slate-700)', fontWeight: 500 }}>
+            {record.createdBy?.name || 'Unknown'}
+          </span>
+        </div>
       ),
     },
     {
@@ -1451,40 +1465,40 @@ const DocumentHubPage = () => {
       sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       sortOrder: sortedKey === 'createdAt' ? sortedDir ?? undefined : undefined,
     },
-    {
-      _key: 'updatedAt',
-      title: <ColumnTitle icon={<ClockCircleOutlined />} label="Updated" sortKey="updatedAt" sortedKey={sortedKey} sortedDir={sortedDir} />,
-      dataIndex: 'updatedAt',
-      key: 'updatedAt',
-      width: colWidths.updatedAt,
-      defaultSortOrder: 'descend' as const,
-      render: (date) => (
-        <Tooltip
-          title={format(new Date(date), "EEEE, MMM d, yyyy h:mm a")}
-          overlayInnerStyle={{
-            background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
-            color: isDark ? 'rgba(255,255,255,0.88)' : 'var(--text-slate-700, #334155)',
-            fontSize: '11.5px',
-            borderRadius: 8,
-            padding: '6px 10px',
-            boxShadow: isDark
-              ? '0 6px 20px rgba(15,23,42,0.22), 0 0 0 1px rgba(255,255,255,0.06)'
-              : '0 6px 20px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)',
-          }}
-        >
-          <div className="flex flex-col">
-            <span className="text-[12px] font-medium" style={{ color: 'var(--text-slate-700)' }}>
-              {format(new Date(date), "MMM d, yyyy")}
-            </span>
-            <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>
-              {format(new Date(date), "h:mm a")}
-            </span>
-          </div>
-        </Tooltip>
-      ),
-      sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
-      sortOrder: sortedKey === 'updatedAt' ? sortedDir ?? undefined : undefined,
-    },
+    // {
+    //   _key: 'updatedAt',
+    //   title: <ColumnTitle icon={<ClockCircleOutlined />} label="Updated" sortKey="updatedAt" sortedKey={sortedKey} sortedDir={sortedDir} />,
+    //   dataIndex: 'updatedAt',
+    //   key: 'updatedAt',
+    //   width: colWidths.updatedAt,
+    //   defaultSortOrder: 'descend' as const,
+    //   render: (date) => (
+    //     <Tooltip
+    //       title={format(new Date(date), "EEEE, MMM d, yyyy h:mm a")}
+    //       overlayInnerStyle={{
+    //         background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
+    //         color: isDark ? 'rgba(255,255,255,0.88)' : 'var(--text-slate-700, #334155)',
+    //         fontSize: '11.5px',
+    //         borderRadius: 8,
+    //         padding: '6px 10px',
+    //         boxShadow: isDark
+    //           ? '0 6px 20px rgba(15,23,42,0.22), 0 0 0 1px rgba(255,255,255,0.06)'
+    //           : '0 6px 20px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)',
+    //       }}
+    //     >
+    //       <div className="flex flex-col">
+    //         <span className="text-[12px] font-medium" style={{ color: 'var(--text-slate-700)' }}>
+    //           {format(new Date(date), "MMM d, yyyy")}
+    //         </span>
+    //         <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>
+    //           {format(new Date(date), "h:mm a")}
+    //         </span>
+    //       </div>
+    //     </Tooltip>
+    //   ),
+    //   sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+    //   sortOrder: sortedKey === 'updatedAt' ? sortedDir ?? undefined : undefined,
+    // },
     {
       _key: 'visibility',
       title: <ColumnTitle icon={<LockOutlined />} label="Visibility" />,
@@ -1510,6 +1524,7 @@ const DocumentHubPage = () => {
       ),
       key: 'actions',
       width: colWidths.actions,
+      fixed: 'right',
       render: (_text, record) => (
         <div className="dh-row-actions" onClick={(e) => e.stopPropagation()}>
           <Tooltip title="Share">
@@ -1723,7 +1738,7 @@ const DocumentHubPage = () => {
         className="dh-table-shell"
         data-density={density}
         style={{
-          borderRadius: 16,
+          borderRadius: 0,
           background: 'var(--bg-pure-white)',
           border: 'none',
         }}
@@ -1738,6 +1753,7 @@ const DocumentHubPage = () => {
           className="premium-table dh-table"
           tableLayout="fixed"
           sticky={{ offsetHeader: 0 }}
+          scroll={{ x: 'max-content' }}
           locale={{ emptyText: renderEmpty() }}
           components={{
             header: { cell: ResizableHeaderCell },
@@ -1868,10 +1884,19 @@ const DocumentHubPage = () => {
     );
   };
 
-  // === Primary "Cards" view: table-aligned row-cards (small height, all fields). ===
-  const ROWCARD_GRID =
-    '26px minmax(180px, 1.8fr) minmax(92px, 1fr) minmax(104px, 1.1fr) minmax(104px, 1.1fr) minmax(82px, 0.85fr) minmax(82px, 0.85fr) minmax(86px, 110px) 80px';
+  const renderRichMenuItem = (icon: React.ReactNode, iconBg: string, iconColor: string, title: string, subtitle: string, isDanger?: boolean) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px 2px' }}>
+      <div style={{ width: 36, height: 36, borderRadius: '0px', background: iconBg, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+        {icon}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: isDanger ? '#ef4444' : 'var(--text-slate-700)', lineHeight: '1.2' }}>{title}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-slate-400)', marginTop: 2 }}>{subtitle}</span>
+      </div>
+    </div>
+  );
 
+  // Render Cards (List view matching Proposals)
   const renderRowCards = () => {
     if (!filteredHubs.length) return renderEmpty();
     const allSelected = filteredHubs.every((h) => selectedKeys.includes(h.id));
@@ -1883,217 +1908,192 @@ const DocumentHubPage = () => {
     const pageHubs = filteredHubs.slice(pageStart, pageStart + tablePageSize);
 
     return (
-      <div className="dh-rowcards-wrap">
-        <div className="dh-rowcards-inner">
-          {/* Sticky column header — gives the card list a table-like spine */}
-          <div className="dh-rowcards-head" style={{ gridTemplateColumns: ROWCARD_GRID }}>
-            <div className="flex items-center justify-center">
-              <Checkbox
-                checked={allSelected}
-                indeterminate={!allSelected && someSelected}
-                onChange={(e) =>
-                  setSelectedKeys(e.target.checked ? filteredHubs.map((h) => h.id) : [])
-                }
-              />
-            </div>
-            <span style={{ paddingLeft: 36 }}>Name</span>
-            <span>Project</span>
-            <span>Ticket</span>
-            <span>Created by</span>
-            <span>Created</span>
-            <span>Updated</span>
-            <span>Visibility</span>
-            <span>Actions</span>
-          </div>
+      <div className="dh-rowcards-wrap" style={{ padding: '16px 0px', overflowY: 'auto' }}>
+        <div className="dh-rowcards-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', paddingBottom: '24px' }}>
+          {pageHubs.map((hub) => {
+            const docCount = (hub as any).treeNodes?.filter((n: any) => n.type === 'file').length || 0;
+            const updatedRel = formatDistanceToNow(new Date(hub.updatedAt), { addSuffix: true });
+            const isNew = Date.now() - new Date(hub.createdAt).getTime() < NEW_BADGE_MS;
+            const isEditingThis = editingNameId === hub.id;
+            const isOwner = user?.id === hub.createdById;
+            const starred = isHubStarred(hub);
+            const selected = selectedKeys.includes(hub.id);
+            const accent = accentForId(hub.id);
 
-          <div className="dh-rowcards-list">
-            {pageHubs.map((hub) => {
-              const docCount = (hub as any).treeNodes?.filter((n: any) => n.type === 'file').length || 0;
-              const updatedRel = formatDistanceToNow(new Date(hub.updatedAt), { addSuffix: true });
-              const isNew = Date.now() - new Date(hub.createdAt).getTime() < NEW_BADGE_MS;
-              const isEditingThis = editingNameId === hub.id;
-              const isOwner = user?.id === hub.createdById;
-              const starred = isHubStarred(hub);
-              const selected = selectedKeys.includes(hub.id);
-
-              return (
-                <div
-                  key={hub.id}
-                  role="button"
-                  onMouseEnter={() => setFocusedRowId(hub.id)}
-                  onClick={(e) => {
-                    const target = e.target as HTMLElement;
-                    if (target.closest('.ant-checkbox-wrapper, .dh-row-actions, .dh-name-star, .dh-name-pencil, .dh-name-edit-btn, button, input, .ant-select, .dh-inline-cell, .dh-inline-add-btn')) {
-                      return;
-                    }
-                    openHub(hub.id);
-                  }}
-                  className={`dh-rowcard ${selected ? 'is-selected' : ''} ${focusedRowId === hub.id ? 'dh-rowcard-focused' : ''}`}
-                  style={{ gridTemplateColumns: ROWCARD_GRID }}
-                >
-                  <span className="dh-rowcard-accent" aria-hidden />
-
-                  {/* Select */}
-                  <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selected}
-                      onChange={(e) =>
-                        setSelectedKeys((prev) =>
-                          e.target.checked ? [...prev, hub.id] : prev.filter((k) => k !== hub.id),
-                        )
-                      }
-                    />
-                  </div>
-
-                  {/* Name */}
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Tooltip title={starred ? 'Remove from starred' : 'Add to starred'}>
+            return (
+              <div
+                key={hub.id}
+                role="button"
+                onMouseEnter={() => setFocusedRowId(hub.id)}
+                onClick={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (target.closest('.ant-checkbox-wrapper, .dh-row-actions, .dh-name-star, .dh-name-pencil, .dh-name-edit-btn, button, input, .ant-select, .dh-inline-cell, .dh-inline-add-btn')) {
+                    return;
+                  }
+                  openHub(hub.id);
+                }}
+                className={`dh-new-rowcard ${selected ? 'is-selected' : ''}`}
+                style={{
+                  display: 'flex', flexDirection: 'column',
+                  border: '1px solid var(--border-slate-100)',
+                  borderRadius: '0px',
+                  background: 'var(--bg-pure-white)',
+                  transition: 'all 0.2s',
+                  cursor: 'pointer',
+                  ...(selected ? { borderColor: '#3b82f6', boxShadow: '0 0 0 1px #3b82f6' } : {})
+                }}
+              >
+                {/* Top Section */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 16px', flex: 1 }}>
+                  <div className="flex items-center gap-4">
+                    <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-3">
+                      <Checkbox
+                        checked={selected}
+                        onChange={(e) =>
+                          setSelectedKeys((prev) =>
+                            e.target.checked ? [...prev, hub.id] : prev.filter((k) => k !== hub.id),
+                          )
+                        }
+                      />
                       <button
                         type="button"
                         onClick={(e) => handleToggleStar(e, hub)}
-                        aria-label={starred ? 'Unstar' : 'Star'}
-                        aria-pressed={starred}
                         className={`dh-name-star ${starred ? 'is-starred' : ''}`}
                       >
                         {starred ? <StarFilled style={{ fontSize: 14 }} /> : <StarOutlined style={{ fontSize: 14 }} />}
                       </button>
-                    </Tooltip>
+                    </div>
                     <div
-                      className="flex items-center justify-center shrink-0 text-white"
                       style={{
-                        width: 30, height: 30, borderRadius: 8,
-                        background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                        boxShadow: '0 2px 6px rgba(59, 130, 246, 0.25)',
+                        width: 40, height: 40, borderRadius: 6,
+                        background: isDark ? 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)' : accent.from, color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 600, fontSize: 16
                       }}
                     >
-                      <FolderOutlined style={{ fontSize: 13 }} />
+                      {hub.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="flex flex-col min-w-0 flex-1">
-                      {isEditingThis ? (
-                        <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
-                          <Input
-                            autoFocus
-                            size="small"
-                            value={editingNameValue}
-                            onChange={(e) => setEditingNameValue(e.target.value)}
-                            onPressEnter={() => saveNameEdit(hub)}
-                            onKeyDown={(e) => { if (e.key === 'Escape') cancelNameEdit(); }}
-                            onBlur={() => saveNameEdit(hub)}
-                            style={{ height: 26, fontSize: 13, fontWeight: 600, borderRadius: 6 }}
-                          />
-                          <button type="button" onClick={() => saveNameEdit(hub)} className="dh-name-edit-btn" aria-label="Save" style={{ color: '#10b981' }}>
-                            <CheckOutlined style={{ fontSize: 11 }} />
-                          </button>
-                          <button type="button" onClick={cancelNameEdit} className="dh-name-edit-btn" aria-label="Cancel">
-                            <CloseOutlined style={{ fontSize: 11 }} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 min-w-0 group/name">
-                          <span className="font-semibold text-[13px] truncate" style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
-                            {hub.name}
-                          </span>
-                          {isNew && (
-                            <Tooltip title="Created in the last few minutes">
-                              <span className="dh-new-badge" aria-label="New">NEW</span>
-                            </Tooltip>
-                          )}
-                          {isOwner && canUpdateDocument && (
-                            <Tooltip title="Rename">
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); startNameEdit(hub); }}
-                                className="dh-name-pencil opacity-0 group-hover/name:opacity-100"
-                                aria-label="Rename"
-                              >
-                                <EditOutlined style={{ fontSize: 10 }} />
-                              </button>
-                            </Tooltip>
-                          )}
-                        </div>
-                      )}
-                      <span className="text-[10.5px] truncate" style={{ color: 'var(--text-slate-400)' }}>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2 group/name">
+                        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-slate-900)' }}>{hub.name}</span>
+                        {isNew && <span className="dh-new-badge" aria-label="New">NEW</span>}
+                      </div>
+                      <span style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
                         {docCount} {docCount === 1 ? 'doc' : 'docs'} · Updated {updatedRel}
                       </span>
                     </div>
                   </div>
 
-                  {/* Project */}
-                  <div className="min-w-0 dh-rowcard-cell">
-                    <InlineProjectSelector
-                      record={hub}
-                      projects={projects}
-                      projectsLoading={projectsLoading}
-                      updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
-                      user={user}
-                    />
-                  </div>
-
-                  {/* Ticket */}
-                  <div className="min-w-0 dh-rowcard-cell">
-                    <InlineTicketSelector
-                      record={hub}
-                      updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
-                      user={user}
-                    />
-                  </div>
-
-                  {/* Created by */}
-                  <div className="flex items-center gap-1.5 min-w-0 dh-rowcard-cell">
-                    <Avatar
-                      size={22}
-                      src={hub.createdBy?.avatarUrl}
-                      style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: 10 }}
-                    >
-                      {hub.createdBy?.name?.charAt(0).toUpperCase()}
-                    </Avatar>
-                    <span className="text-[12px] truncate" style={{ color: 'var(--text-slate-700)' }}>
-                      {hub.createdBy?.name}
-                    </span>
-                  </div>
-
-                  {/* Created */}
-                  <div className="dh-rowcard-cell flex flex-col">
-                    <span className="text-[12px] font-medium" style={{ color: 'var(--text-slate-700)' }}>
-                      {format(new Date(hub.createdAt), "MMM d, yyyy")}
-                    </span>
-                    <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>
-                      {format(new Date(hub.createdAt), "h:mm a")}
-                    </span>
-                  </div>
-
-                  {/* Updated */}
-                  <div className="dh-rowcard-cell flex flex-col">
-                    <span className="text-[12px] font-medium" style={{ color: 'var(--text-slate-700)' }}>
-                      {format(new Date(hub.updatedAt), "MMM d, yyyy")}
-                    </span>
-                    <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>
-                      {format(new Date(hub.updatedAt), "h:mm a")}
-                    </span>
-                  </div>
-
-                  {/* Visibility */}
-                  <div className="dh-rowcard-cell">{renderVisibilityCell(hub)}</div>
-
                   {/* Actions */}
-                  <div className="dh-row-actions" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-2 dh-row-actions" onClick={(e) => e.stopPropagation()}>
                     <Tooltip title="Share">
                       <button type="button" onClick={(e) => handleShareHub(e, hub)} className="dh-row-action-btn" aria-label="Share">
-                        <ShareAltOutlined style={{ fontSize: 13 }} />
+                        <ShareAltOutlined style={{ fontSize: 14 }} />
                       </button>
                     </Tooltip>
-                    {canDeleteDocument && (
-                      <Tooltip title="Move to trash">
-                        <button type="button" onClick={(e) => handleDeleteHub(e, hub.id, hub.name)} className="dh-row-action-btn dh-row-action-danger" aria-label="Delete">
-                          <DeleteOutlined style={{ fontSize: 13 }} />
-                        </button>
-                      </Tooltip>
-                    )}
+                    <Dropdown
+                      overlayClassName="create-document-menu"
+                      menu={{
+                        items: [
+                          ...(isOwner && canUpdateDocument ? [{
+                            key: 'rename',
+                            label: renderRichMenuItem(<EditOutlined />, 'var(--bg-slate-100)', 'var(--text-slate-600)', 'Rename', 'Change the name of this hub'),
+                            onClick: () => startNameEdit(hub)
+                          }] : []),
+                          {
+                            key: 'star',
+                            label: renderRichMenuItem(
+                              starred ? <StarFilled /> : <StarOutlined />,
+                              starred ? '#FEF3C7' : 'var(--bg-blue-50)',
+                              starred ? '#D97706' : '#3B82F6',
+                              starred ? 'Unstar' : 'Star',
+                              starred ? 'Remove from your starred list' : 'Add to your starred list'
+                            ),
+                            onClick: () => handleToggleStar({ stopPropagation: () => { } } as any, hub)
+                          },
+                          ...(canDeleteDocument ? [
+                            { type: 'divider' as const },
+                            {
+                              key: 'delete',
+                              label: renderRichMenuItem(<Trash2 size={16} strokeWidth={2} />, '#FEE2E2', '#EF4444', 'Delete', 'Move this hub to trash', true),
+                              onClick: ({ domEvent }: any) => handleDeleteHub(domEvent, hub.id, hub.name)
+                            }
+                          ] : [])
+                        ]
+                      }}
+                      trigger={['click']}
+                      placement="bottomRight"
+                    >
+                      <button type="button" className="dh-row-action-btn" aria-label="More">
+                        <MoreOutlined style={{ fontSize: 14 }} />
+                      </button>
+                    </Dropdown>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* Middle Section */}
+                <div style={{
+                  padding: '8px 16px',
+                  backgroundColor: isDark ? '#1C232E' : 'var(--bg-slate-50)',
+                  borderTop: `1px solid ${isDark ? '#1f2937' : 'var(--border-slate-100)'}`,
+                  borderBottom: `1px solid ${isDark ? '#1f2937' : 'var(--border-slate-100)'}`,
+                  display: 'flex', alignItems: 'center', gap: '16px',
+                  fontSize: 12, color: isDark ? '#94a3b8' : 'var(--text-slate-500)'
+                }}>
+                  <span className="flex items-center gap-2">
+                    Created by
+                    <Avatar size={18} src={hub.createdBy?.avatarUrl} style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: 10 }}>
+                      {hub.createdBy?.name?.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <span style={{ color: isDark ? '#e2e8f0' : 'var(--text-slate-700)', fontWeight: 500 }}>{hub.createdBy?.name || 'Unknown'}</span>
+                  </span>
+                  <Divider type="vertical" style={{ margin: 0, borderColor: 'var(--border-slate-200)' }} />
+                  <span>Created {format(new Date(hub.createdAt), "MMM d, yyyy - h:mm a")}</span>
+                  <Divider type="vertical" style={{ margin: 0, borderColor: 'var(--border-slate-200)' }} />
+                  <span>Updated {format(new Date(hub.updatedAt), "MMM d, yyyy - h:mm a")}</span>
+                </div>
+
+                {/* Bottom Section */}
+                <div style={{
+                  padding: '8px 16px',
+                  backgroundColor: isDark ? '#1C232E' : 'var(--bg-slate-50)',
+                  display: 'flex', alignItems: 'center', gap: '16px',
+                  fontSize: 12, color: isDark ? '#94a3b8' : 'var(--text-slate-500)'
+                }}>
+                  <span className="flex items-center gap-2">
+                    Project:
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <InlineProjectSelector
+                        record={hub}
+                        projects={projects}
+                        projectsLoading={projectsLoading}
+                        updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
+                        user={user}
+                      />
+                    </div>
+                  </span>
+                  <Divider type="vertical" style={{ margin: 0, borderColor: 'var(--border-slate-200)' }} />
+                  <span className="flex items-center gap-2">
+                    Ticket:
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <InlineTicketSelector
+                        record={hub}
+                        updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
+                        user={user}
+                      />
+                    </div>
+                  </span>
+                  <Divider type="vertical" style={{ margin: 0, borderColor: 'var(--border-slate-200)' }} />
+                  <span className="flex items-center gap-2">
+                    Visibility:
+                    <div onClick={(e) => e.stopPropagation()}>
+                      {renderVisibilityCell(hub)}
+                    </div>
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -2280,7 +2280,7 @@ const DocumentHubPage = () => {
                   options={members.map((m: any) => ({ value: m.value, label: m.label }))}
                 />
                 <RangePicker
-                  className="premium-range-picker rounded-sm"
+                  className="premium-range-picker"
                   style={{ width: '100%', background: 'var(--bg-pure-white)', height: 35 }}
                   value={dateRange}
                   onChange={(dates) => setDateRange(dates as any)}
@@ -2305,7 +2305,7 @@ const DocumentHubPage = () => {
             </div>
 
             {/* Pinned */}
-            {pinnedHubs.length > 0 && (
+            {/* {pinnedHubs.length > 0 && (
               <div className="dh-side-group">
                 <div className="dh-side-label">Pinned</div>
                 <div className="flex flex-col gap-0.5">
@@ -2321,7 +2321,7 @@ const DocumentHubPage = () => {
                   })}
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Recent */}
             {recentHubs.length > 0 && (
@@ -2353,7 +2353,7 @@ const DocumentHubPage = () => {
 
           {canDeleteDocument && (
             <button type="button" className="dh-side-trash" onClick={() => setTrashVisible(true)}>
-              <RestOutlined />
+              <Trash2 size={16} strokeWidth={2} />
               <span>Trash</span>
             </button>
           )}
@@ -2376,9 +2376,9 @@ const DocumentHubPage = () => {
               <Input
                 placeholder="Search hubs, docs, tickets…"
                 prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-                suffix={!searchText ? <span className="dh-search-kbd">⌘K</span> : undefined}
-                className="premium-search-input rounded-lg transition-all"
-                style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 38 }}
+                // suffix={!searchText ? <span className="dh-search-kbd">⌘K</span> : undefined}
+                className="premium-search-input  transition-all"
+                style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', height: 34 }}
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 allowClear
@@ -2408,12 +2408,12 @@ const DocumentHubPage = () => {
                     className={`flex items-center justify-center rounded-[8px] transition-colors`}
                     style={{
                       width: 30, height: 30,
-                      background: viewMode === 'cards' ? 'var(--bg-slate-100)' : 'transparent',
-                      color: viewMode === 'cards' ? 'var(--text-slate-700)' : 'var(--text-slate-400)',
+                      background: viewMode === 'cards' ? 'var(--bg-blue-50)' : 'transparent',
+                      color: viewMode === 'cards' ? '#3B82F6' : 'var(--text-slate-400)',
                       border: 'none', cursor: 'pointer'
                     }}
                   >
-                    <AppstoreOutlined style={{ fontSize: 16 }} />
+                    <AppstoreOutlined style={{ fontSize: 16, color: viewMode === 'cards' ? '#3B82F6' : 'var(--text-slate-400)' }} />
                   </button>
                 </Tooltip>
                 <Tooltip title="Table">
@@ -2422,12 +2422,12 @@ const DocumentHubPage = () => {
                     className={`flex items-center justify-center rounded-[8px] transition-colors`}
                     style={{
                       width: 30, height: 30,
-                      background: viewMode === 'table' ? 'var(--bg-slate-100)' : 'transparent',
-                      color: viewMode === 'table' ? 'var(--text-slate-700)' : 'var(--text-slate-400)',
+                      background: viewMode === 'table' ? 'var(--bg-blue-50)' : 'transparent',
+                      color: viewMode === 'table' ? '#3B82F6' : 'var(--text-slate-400)',
                       border: 'none', cursor: 'pointer'
                     }}
                   >
-                    <UnorderedListOutlined style={{ fontSize: 16 }} />
+                    <UnorderedListOutlined style={{ fontSize: 16, color: viewMode === 'table' ? '#3B82F6' : 'var(--text-slate-400)' }} />
                   </button>
                 </Tooltip>
               </div>
@@ -3172,11 +3172,14 @@ const DocumentHubPage = () => {
         }
         .dh-side-create {
           height: 36px !important;
-          border-radius: 11px !important;
+          border-radius: 6px !important;
           font-weight: 600 !important;
-          background: linear-gradient(135deg, #3250ce 0%, #3250ce 100%) !important;
+          background: linear-gradient(135deg, #3B82F6 0%, #3B82F6 100%) !important;
           border: none !important;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+          // box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+        }
+        [data-theme='dark'] .dh-side-create {
+          background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%) !important;
         }
         .dh-sidebar-scroll {
           flex: 1;
@@ -3194,6 +3197,7 @@ const DocumentHubPage = () => {
           font-size: 13px;
         }
         .premium-range-picker {
+          border-radius: 6px !important;
           border: 1px dashed var(--border-slate-200) !important;
         }
         .dh-side-group { margin-bottom: 13px; }
@@ -3323,11 +3327,10 @@ const DocumentHubPage = () => {
           display: flex;
           align-items: center;
           gap: 9px;
-          margin: 0 12px 14px 12px;
-          padding: 0 12px;
+          margin: 0 0px 12px 0px;
+          padding: 20px 20px;
           height: 38px;
-          border: 1px solid var(--border-slate-200);
-          border-radius: 10px;
+          border-top: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
           color: var(--text-slate-600);
           font-size: 13px;
@@ -3353,7 +3356,7 @@ const DocumentHubPage = () => {
           display: flex;
           align-items: center;
           gap: 14px;
-          padding: 8px 20px;
+          padding: 4px 20px;
           min-height: 50px;
           background: var(--bg-pure-white);
           border-bottom: 1px solid var(--border-slate-200);
@@ -3406,6 +3409,9 @@ const DocumentHubPage = () => {
         }
         
         .dh-main-search { width: 320px; max-width: 42%; flex-shrink: 0; }
+        .premium-search-input {
+          border-radius: 6px;
+        }
         .dh-search-kbd {
           display: inline-flex;
           align-items: center;
@@ -3439,55 +3445,18 @@ const DocumentHubPage = () => {
 
         /* ----------------------- Row-cards view ----------------------- */
         .dh-rowcards-wrap { width: 100%; overflow-x: auto; }
-        .dh-rowcards-inner { min-width: 900px; }
-        .dh-rowcards-head {
-          position: sticky;
-          top: 0;
-          z-index: 5;
-          display: grid;
-          align-items: center;
-          gap: 12px;
-          padding: 4px 12px 8px 12px;
-          font-size: 10.5px;
-          font-weight: 700;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-          color: var(--text-slate-400);
-          background: var(--bg-pure-white);
+        .dh-new-rowcard:hover {
+          border-color: var(--border-slate-300, #cbd5e1) !important;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
         }
-        .dh-rowcards-list { display: flex; flex-direction: column; gap: 6px; }
-        .dh-rowcard {
-          position: relative;
-          display: grid;
-          align-items: center;
-          gap: 12px;
-          padding: 6px 12px;
-          min-height: 50px;
-          border: 1px solid var(--border-slate-200);
-          border-radius: 13px;
-          background: var(--bg-pure-white);
-          cursor: pointer;
-          transition: border-color 0.16s, box-shadow 0.16s, transform 0.16s;
+        [data-theme='dark'] .dh-new-rowcard {
+          background: var(--bg-slate-50) !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
         }
-        .dh-rowcard:hover {
-          border-color: var(--border-slate-300, #cbd5e1);
-          box-shadow: 0 6px 20px rgba(15, 23, 42, 0.07);
-          transform: translateY(-1px);
+        [data-theme='dark'] .dh-new-rowcard:hover {
+          border-color: rgba(255, 255, 255, 0.16) !important;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
         }
-        .dh-rowcard.is-selected {
-          border-color: #93c5fd;
-          box-shadow: inset 0 0 0 1px #bfdbfe, 0 4px 14px rgba(59, 130, 246, 0.12);
-        }
-        .dh-rowcard-focused { border-color: #93c5fd; }
-        .dh-rowcard-accent {
-          position: absolute;
-          left: 0; top: 11px; bottom: 11px;
-          width: 3px;
-          border-radius: 0 3px 3px 0;
-          background: linear-gradient(180deg, #3B82F6 0%, #6366F1 100%);
-        }
-        .dh-rowcard-cell { font-size: 12px; }
-        .dh-rowcard .dh-row-actions { justify-content: flex-start; gap: 4px; }
 
         /* Mobile drawer pieces (inert on desktop) */
         .dh-mobile-menu-btn { display: none !important; }
@@ -3636,16 +3605,16 @@ const DocumentHubPage = () => {
           border-radius: 4px;
         }
         .create-document-menu .ant-dropdown-menu {
-          padding: 6px !important;
-          border-radius: 14px !important;
+          padding: 4px 6px !important;
+          border-radius: 0px !important;
           border: 1px solid var(--border-slate-200) !important;
           background: var(--bg-pure-white) !important;
           box-shadow: 0 12px 32px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
-          min-width: 290px !important;
+          min-width: 150px !important;
         }
         .create-document-menu .ant-dropdown-menu-item {
-          border-radius: 10px !important;
-          padding: 8px 10px !important;
+          border-radius: 0px !important;
+          padding: 4px 6px !important;
           margin-bottom: 2px !important;
         }
         .create-document-menu .ant-dropdown-menu-item:last-child {
@@ -3774,11 +3743,31 @@ const DocumentHubPage = () => {
         }
 
         /* Top border and corners (sticky) */
+
+
+
+        /* Add border to the table container instead */
+        .premium-table .ant-table-container {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 0 !important;
+        }
+
+        [data-theme='dark'] .premium-table .ant-table-container {
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
         .premium-table .ant-table-thead > tr > th {
           background: var(--bg-pure-white) !important;
-          border-top: 1px solid var(--border-slate-200) !important;
+          border-top: none !important;
           border-bottom: 1px solid var(--border-slate-200) !important;
         }
+        .premium-table .ant-table-thead > tr > th:first-child {
+          border-left: none !important;
+        }
+        .premium-table .ant-table-thead > tr > th:last-child {
+          border-right: none !important;
+        }
+
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th {
           background: #0f172a !important;
           border-top-color: rgba(255, 255, 255, 0.08) !important;
@@ -3786,12 +3775,12 @@ const DocumentHubPage = () => {
         }
         
         .premium-table .ant-table-thead > tr > th:first-child {
-          border-left: 1px solid var(--border-slate-200) !important;
-          border-top-left-radius: 16px !important;
+          border-left: none !important;
+          border-top-left-radius: 0px !important;
         }
         .premium-table .ant-table-thead > tr > th:last-child {
-          border-right: 1px solid var(--border-slate-200) !important;
-          border-top-right-radius: 16px !important;
+          border-right: none !important;
+          border-top-right-radius: 0px !important;
         }
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th:first-child,
         [data-theme='dark'] .premium-table .ant-table-thead > tr > th:last-child {
@@ -3801,10 +3790,10 @@ const DocumentHubPage = () => {
 
         /* Side borders for body rows */
         .premium-table .ant-table-tbody > tr > td:first-child {
-          border-left: 1px solid var(--border-slate-200) !important;
+          border-left: none !important;
         }
         .premium-table .ant-table-tbody > tr > td:last-child {
-          border-right: 1px solid var(--border-slate-200) !important;
+          border-right: none !important;
         }
         [data-theme='dark'] .premium-table .ant-table-tbody > tr > td:first-child,
         [data-theme='dark'] .premium-table .ant-table-tbody > tr > td:last-child {
@@ -3814,13 +3803,13 @@ const DocumentHubPage = () => {
 
         /* Bottom border and corners for the last row */
         .premium-table .ant-table-tbody > tr:last-child > td {
-          border-bottom: 1px solid var(--border-slate-200) !important;
+          border-bottom: none !important;
         }
         .premium-table .ant-table-tbody > tr:last-child > td:first-child {
-          border-bottom-left-radius: 16px !important;
+          border-bottom-left-radius: 0px !important;
         }
         .premium-table .ant-table-tbody > tr:last-child > td:last-child {
-          border-bottom-right-radius: 16px !important;
+          border-bottom-right-radius: 0px !important;
         }
         [data-theme='dark'] .premium-table .ant-table-tbody > tr:last-child > td {
           border-bottom-color: rgba(255, 255, 255, 0.08) !important;
@@ -4208,18 +4197,35 @@ const DocumentHubPage = () => {
         }
 
         /* Sticky-left shadow when horizontally scrolled */
-        .premium-table .ant-table-cell-fix-left-last::after,
-        .premium-table .ant-table-cell-fix-right-first::after {
-          box-shadow: inset 10px 0 8px -8px rgba(15, 23, 42, 0.06) !important;
+        .premium-table .ant-table-cell-fix-left-last::after {
+          box-shadow: inset -10px 0 8px -8px rgba(15, 23, 42, 0.06) !important;
         }
-        [data-theme='dark'] .premium-table .ant-table-cell-fix-left-last::after,
+        .premium-table .ant-table-cell-fix-right-first::after {
+          box-shadow: none !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-cell-fix-left-last::after {
+          box-shadow: inset -10px 0 8px -8px rgba(0, 0, 0, 0.45) !important;
+        }
         [data-theme='dark'] .premium-table .ant-table-cell-fix-right-first::after {
-          box-shadow: inset 10px 0 8px -8px rgba(0, 0, 0, 0.45) !important;
+          box-shadow: none !important;
         }
 
         /* Selection column polish */
         .premium-table .ant-table-selection-column { padding: 0 8px !important; }
         .premium-table .ant-checkbox-wrapper { transform: scale(0.95); }
+        .premium-table .ant-checkbox-inner,
+        .dh-new-rowcard .ant-checkbox-inner {
+          border-color: var(--border-slate-300, #cbd5e1) !important;
+        }
+        [data-theme='dark'] .premium-table .ant-checkbox-inner,
+        [data-theme='dark'] .dh-new-rowcard .ant-checkbox-inner {
+          border-color: #475569 !important;
+        }
+        .premium-table .ant-checkbox-checked .ant-checkbox-inner,
+        .dh-new-rowcard .ant-checkbox-checked .ant-checkbox-inner {
+          border-color: #3b82f6 !important;
+          background-color: #3b82f6 !important;
+        }
 
         /* Footer area */
         .premium-table .ant-table-footer {
@@ -4366,16 +4372,16 @@ const DocumentHubPage = () => {
 
         /* Create Document Dropdown (#1) */
         .create-document-menu .ant-dropdown-menu {
-          padding: 6px !important;
-          border-radius: 14px !important;
+          padding: 4px 6px !important;
+          border-radius: 0px !important;
           border: 1px solid var(--border-slate-200) !important;
           background: var(--bg-pure-white) !important;
           box-shadow: 0 12px 32px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
-          min-width: 320px !important;
+          min-width: 150px !important;
         }
         .create-document-menu .ant-dropdown-menu-item {
-          border-radius: 10px !important;
-          padding: 8px 10px !important;
+          border-radius: 0px !important;
+          padding: 4px 6px !important;
           margin-bottom: 2px !important;
         }
         .create-document-menu .ant-dropdown-menu-item:last-child {

@@ -416,7 +416,49 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
         </Row>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="clientPhone" label={<Text strong style={labelStyle}>Phone</Text>}>
+            <Form.Item
+              name="clientPhone"
+              label={<Text strong style={labelStyle}>Phone</Text>}
+              getValueFromEvent={(e) => {
+                const value = e.target.value;
+                let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
+                if (sanitized.includes('+')) {
+                  const hasPlusAtStart = sanitized.startsWith('+');
+                  sanitized = sanitized.replace(/\+/g, '');
+                  if (hasPlusAtStart) {
+                    sanitized = '+' + sanitized;
+                  }
+                }
+                let digitsCount = 0;
+                let limited = '';
+                for (let i = 0; i < sanitized.length; i++) {
+                  const char = sanitized[i];
+                  if (/\d/.test(char)) {
+                    if (digitsCount < 15) {
+                      digitsCount++;
+                      limited += char;
+                    }
+                  } else {
+                    limited += char;
+                  }
+                }
+                return limited;
+              }}
+              rules={[
+                {
+                  validator: (_, value) => {
+                    if (!value || value.trim() === '') {
+                      return Promise.resolve();
+                    }
+                    const digits = value.replace(/\D/g, '');
+                    if (digits.length < 7) {
+                      return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
+                    }
+                    return Promise.resolve();
+                  }
+                }
+              ]}
+            >
               <Input placeholder="+91 …" style={{ borderRadius: 8 }} />
             </Form.Item>
           </Col>
@@ -1941,6 +1983,28 @@ export default function LeadsPage() {
     });
   }, [creatorOptions]);
 
+  const sortDropdownOptions = useMemo(() => [
+    { value: "newest", label: "Newest first" },
+    { value: "oldest", label: "Oldest first" },
+    { value: "value_high", label: "Value: high → low" },
+    { value: "value_low", label: "Value: low → high" },
+    { value: "score", label: "AI score: highest" },
+    { value: "activity", label: "Recently active" },
+  ], []);
+
+  const mailDropdownOptions = useMemo(() => [
+    {
+      value: "sent",
+      label: "Sent",
+      badge: <CheckCircle size={14} style={{ color: '#10b981' }} />
+    },
+    {
+      value: "not_sent",
+      label: "Not Sent",
+      badge: <Mail size={14} style={{ color: '#94a3b8' }} />
+    }
+  ], []);
+
   // Icon-key → render fn map. Mirrors the catalogue in /leads/settings so we
   // can resolve whatever the admin saved on a platform's logo_url ("icon:upwork")
   // or a status's icon column ("trophy").
@@ -2744,42 +2808,142 @@ export default function LeadsPage() {
                   width={220}
                 />
 
-                <Dropdown
+                <SearchableDropdown
+                  placeholder="Sort"
+                  options={sortDropdownOptions}
+                  value={sortKey}
+                  onChange={(v) => {
+                    if (v) setSortKey(v as any);
+                  }}
+                  style={{ height: 32, minWidth: 150, width: 150, borderRadius: 8 }}
+                  width={200}
+                  allowClear={false}
+                />
+
+                <Popover
                   trigger={["click"]}
                   placement="bottomRight"
-                  menu={{
-                    selectable: true,
-                    selectedKeys: [sortKey],
-                    onClick: ({ key }) => setSortKey(key as typeof sortKey),
-                    items: [
-                      { key: "newest", label: "Newest first" },
-                      { key: "oldest", label: "Oldest first" },
-                      { type: "divider" as const },
-                      { key: "value_high", label: "Value: high → low" },
-                      { key: "value_low", label: "Value: low → high" },
-                      { type: "divider" as const },
-                      { key: "score", label: "AI score: highest" },
-                      { key: "activity", label: "Recently active" },
-                    ],
+                  classNames={{ root: "lm-toolbar-popover" }}
+                  content={
+                    <div className="lm-filters-popover-body">
+                      <div className="lm-popover-section-label">
+                        <Filter size={11} />
+                        <span>Workflow</span>
+                      </div>
+                      <SearchableDropdown
+                        placeholder="Any workflow"
+                        options={actionDropdownOptions}
+                        value={filterAction || undefined}
+                        onChange={(v) => setFilterAction(v || null)}
+                        style={{ width: "100%", borderRadius: 8, height: 36 }}
+                        width={220}
+                      />
+
+                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                        <User size={11} />
+                        <span>Created by</span>
+                      </div>
+                      <SearchableDropdown
+                        placeholder="Anyone"
+                        options={creatorDropdownOptions}
+                        value={filterCreatedBy || undefined}
+                        onChange={(v) => setFilterCreatedBy(v || null)}
+                        style={{ width: "100%", borderRadius: 8, height: 36 }}
+                        width={220}
+                      />
+
+                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                        <Mail size={11} />
+                        <span>Mail status</span>
+                      </div>
+                      <SearchableDropdown
+                        placeholder="Any mail status"
+                        options={mailDropdownOptions}
+                        value={filterMailStatus || undefined}
+                        onChange={(v) => setFilterMailStatus(v || null)}
+                        style={{ width: "100%", borderRadius: 8, height: 36 }}
+                        width={220}
+                      />
+
+                      <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
+                        <Clock size={11} />
+                        <span>Posted on</span>
+                      </div>
+                      <DatePicker.RangePicker
+                        className="lm-filter-date"
+                        style={{ width: "100%" }}
+                        value={filterDateRange}
+                        onChange={(dates) => setFilterDateRange(dates as any)}
+                      />
+
+                      <div className="lm-popover-footer">
+                        <button
+                          type="button"
+                          className="lm-popover-reset"
+                          onClick={() => {
+                            setFilterStatus(null);
+                            setFilterPlatform(null);
+                            setFilterAction(null);
+                            setFilterDateRange(null);
+                            setFilterCreatedBy(null);
+                            setFilterMailStatus(null);
+                          }}
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  }
+                >
+                  <Button
+                    icon={<Filter size={13} />}
+                    className="lm-filter-settings-btn lm-toolbar-filters-btn"
+                  >
+                    Filters
+                    {(() => {
+                      const n =
+                        (filterAction ? 1 : 0) +
+                        (filterCreatedBy ? 1 : 0) +
+                        (filterMailStatus ? 1 : 0) +
+                        (filterDateRange ? 1 : 0);
+                      return n > 0 ? <span className="lm-toolbar-pill">{n}</span> : null;
+                    })()}
+                  </Button>
+                </Popover>
+
+                <Button
+                  className="lm-filter-settings-btn lm-toolbar-filters-btn lm-toolbar-export-btn"
+                  onClick={() => {
+                    const headers = ["Lead", "Company", "Stage", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
+                    const rows = filteredLeads.map(l => {
+                      const score = l.ai_score;
+                      const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
+                      return [
+                        l.title || "",
+                        l.client_name || "",
+                        l.status || "",
+                        l.platform || "",
+                        l.budget || (l.hour_based_amount ? `${l.hour_based_amount}/hr` : ""),
+                        getLeadCreator(l) || "",
+                        priority,
+                        l.last_mail_at || l.updated_at || l.created_at || "",
+                        l.created_at || "",
+                      ];
+                    });
+                    const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+                    const csv = [headers, ...rows].map(r => r.map(escape).join(",")).join("\n");
+                    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `leads-${dayjs().format("YYYY-MM-DD")}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
                   }}
                 >
-                  <Button className="lm-filter-settings-btn lm-toolbar-filters-btn">
-                    <TrendingDown size={13} />
-                    Sort:{" "}
-                    <span className="lm-toolbar-sort-current">
-                      {{
-                        newest: "Newest",
-                        oldest: "Oldest",
-                        value_high: "Value ↓",
-                        value_low: "Value ↑",
-                        score: "AI score",
-                        activity: "Active",
-                      }[sortKey]}
-                    </span>
-                  </Button>
-                </Dropdown>
-
-
+                  <Download size={13} />
+                  Export
+                </Button>
 
                 <Popover
                   trigger={["click"]}
@@ -3897,7 +4061,49 @@ export default function LeadsPage() {
                   </Row>
                   <Row gutter={16}>
                     <Col span={12}>
-                      <Form.Item name="clientPhone" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Number</Text>}>
+                      <Form.Item
+                        name="clientPhone"
+                        label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Number</Text>}
+                        getValueFromEvent={(e) => {
+                          const value = e.target.value;
+                          let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
+                          if (sanitized.includes('+')) {
+                            const hasPlusAtStart = sanitized.startsWith('+');
+                            sanitized = sanitized.replace(/\+/g, '');
+                            if (hasPlusAtStart) {
+                              sanitized = '+' + sanitized;
+                            }
+                          }
+                          let digitsCount = 0;
+                          let limited = '';
+                          for (let i = 0; i < sanitized.length; i++) {
+                            const char = sanitized[i];
+                            if (/\d/.test(char)) {
+                              if (digitsCount < 15) {
+                                digitsCount++;
+                                limited += char;
+                              }
+                            } else {
+                              limited += char;
+                            }
+                          }
+                          return limited;
+                        }}
+                        rules={[
+                          {
+                            validator: (_, value) => {
+                              if (!value || value.trim() === '') {
+                                return Promise.resolve();
+                              }
+                              const digits = value.replace(/\D/g, '');
+                              if (digits.length < 7) {
+                                return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
+                              }
+                              return Promise.resolve();
+                            }
+                          }
+                        ]}
+                      >
                         <Input placeholder="+1 234..." style={{ borderRadius: 8 }} />
                       </Form.Item>
                     </Col>
@@ -4495,6 +4701,15 @@ export default function LeadsPage() {
               color: var(--text-slate-700) !important;
               white-space: nowrap !important;
               flex-shrink: 0 !important;
+            }
+            .lm-table-toolbar .lm-toolbar-export-btn.ant-btn,
+            .lm-table-toolbar button.lm-toolbar-export-btn.ant-btn {
+              background: var(--bg-slate-50) !important;
+            }
+            .lm-table-toolbar .lm-toolbar-export-btn.ant-btn:hover,
+            .lm-table-toolbar button.lm-toolbar-export-btn.ant-btn:hover {
+              background: var(--bg-slate-100) !important;
+              border-color: var(--border-slate-200) !important;
             }
             .lm-toolbar-sort-current {
               color: var(--text-slate-900);
@@ -6487,6 +6702,15 @@ export default function LeadsPage() {
                 scrollbar-width: none;
               }
               .lm-side-scroll::-webkit-scrollbar {
+                display: none;
+              }
+              .lm-side-section + .lm-side-section {
+                border-top: 1px solid var(--border-slate-100) !important;
+                padding-top: 10px !important;
+                margin-top: 4px !important;
+                width: 100%;
+              }
+              .lm-side-section::-webkit-scrollbar {
                 display: none;
               }
               .lm-side-section-label {

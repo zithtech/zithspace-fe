@@ -29,7 +29,6 @@ import {
   Select,
   Avatar,
   List,
-  Segmented,
   Skeleton,
 } from "antd";
 import {
@@ -61,7 +60,6 @@ import type { ColumnsType } from "antd/es/table";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { RBACService, RBACRole, RBACPermission, RBACRoleDetail } from "@/services/rbacService";
 import { MembersService } from "@/services/membersService";
-import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { History } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 
@@ -127,7 +125,7 @@ const ACCESS_GROUPS: AccessGroup[] = [
     label: 'All',
     icon: <AppstoreOutlined />,
     resources: null,
-    accent: '#8b5cf6',
+    accent: '#3b82f6',
   },
   {
     key: 'execution',
@@ -522,6 +520,13 @@ export default function RolesPage() {
 
   const hasActiveFilter = !!searchTerm || roleTypeFilter !== "all";
 
+  // Sidebar "Views" — drives the role-type filter (proposal-style left rail)
+  const roleViews: { key: "all" | "system" | "custom"; label: string; icon: React.ReactNode; color: string; count: number }[] = [
+    { key: "all", label: "All roles", icon: <AppstoreOutlined />, color: "#3b82f6", count: roleStats.total },
+    { key: "system", label: "System roles", icon: <LockOutlined />, color: "#3b82f6", count: roleStats.system },
+    { key: "custom", label: "Custom roles", icon: <CrownOutlined />, color: "#10b981", count: roleStats.custom },
+  ];
+
   const handleClearFilters = () => {
     setSearchTerm("");
     setRoleTypeFilter("all");
@@ -875,49 +880,110 @@ export default function RolesPage() {
   return (
     <MainLayout>
       <div className="rp-shell">
-        <TimeTrackingHeader
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 100,
-            borderBottom: '1px solid var(--border-slate-200)',
-            padding: '9.5px 32px',
-            marginBottom: 20,
-          }}
-          icon={<SafetyOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
-          title="Roles & Permissions"
-          description="Manage and oversee system-wide access control and role assignments."
-          extra={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {canReadActivityLog && (
-                <Button
-                  icon={<History size={14} />}
-                  onClick={() => setHistoryOpen(true)}
-                  style={{
-                    borderRadius: 10,
-                    height: 38,
-                    fontWeight: 600,
-                    color: "var(--text-secondary)"
-                  }}
-                >
-                  History
-                </Button>
-              )}
-              {canCreateRole ? (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setCreateModalOpen(true)}
-                  className="rp-primary-btn"
-                >
-                  Create Role
-                </Button>
-              ) : null}
+        {/* ============================ SIDEBAR ============================ */}
+        <aside className="rp-sidebar">
+          <div className="rp-side-head">
+            <div className="rp-side-logo">
+              <SafetyOutlined />
             </div>
-          }
-        />
+            <div className="rp-side-head-text">
+              <div className="rp-side-title">Roles &amp; Permissions</div>
+              <div className="rp-side-subtitle">Access · control</div>
+            </div>
+          </div>
 
-        <div className="rp-content">
+          {canCreateRole && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              className="rp-side-create"
+              onClick={() => setCreateModalOpen(true)}
+              block
+            >
+              Create Role
+            </Button>
+          )}
+
+          <div className="rp-side-scroll">
+            <div className="rp-side-section-label">Views</div>
+            <div className="rp-side-list">
+              {roleViews.map((v) => {
+                const active = roleTypeFilter === v.key;
+                return (
+                  <button
+                    key={v.key}
+                    type="button"
+                    className={`rp-view-item${active ? ' is-active' : ''}`}
+                    onClick={() => setRoleTypeFilter(v.key)}
+                  >
+                    <span className="rp-view-icon" style={{ color: active ? v.color : 'var(--text-slate-400)' }}>
+                      {v.icon}
+                    </span>
+                    <span className="rp-view-label">{v.label}</span>
+                    <span className="rp-view-count">{v.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="rp-side-tip">
+              <SafetyOutlined className="rp-side-tip__icon" />
+              <div>
+                <div className="rp-side-tip__title">Manage access</div>
+                <div className="rp-side-tip__text">
+                  Open a role to configure its permissions and assign members.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {canReadActivityLog && (
+            <button type="button" className="rp-side-foot" onClick={() => setHistoryOpen(true)}>
+              <History size={15} /> History
+            </button>
+          )}
+        </aside>
+
+        {/* ============================ MAIN ============================ */}
+        <main className="rp-main">
+          {/* Topbar */}
+          <div className="rp-main-topbar">
+            <Input
+              className="rp-search"
+              prefix={
+                <SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 6 }} />
+              }
+              placeholder="Search by role name, slug, or description…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              allowClear
+            />
+            {hasActiveFilter && (
+              <Tooltip title="Clear all filters">
+                <Button
+                  type="text"
+                  icon={<ReloadOutlined />}
+                  onClick={handleClearFilters}
+                  className="rp-clear-btn"
+                >
+                  Reset
+                </Button>
+              </Tooltip>
+            )}
+            <div className="rp-main-meta">
+              <span>
+                <strong>{filteredRoles.length}</strong> of {roleStats.total} roles
+              </span>
+              <Tooltip title="Refresh">
+                <Button
+                  className="rp-ghost-btn"
+                  icon={<ReloadOutlined spin={loading} />}
+                  onClick={() => { fetchRoles(); fetchPermissions(); }}
+                />
+              </Tooltip>
+            </div>
+          </div>
+
           {/* Premium stats grid */}
           <div className="rp-stat-grid">
             <StatCard
@@ -938,7 +1004,7 @@ export default function RolesPage() {
                       },
                       {
                         value: roleStats.custom,
-                        color: '#8b5cf6',
+                        color: '#10b981',
                         label: `${roleStats.custom} custom`,
                       },
                     ]}
@@ -973,7 +1039,7 @@ export default function RolesPage() {
               label="Custom Roles"
               value={roleStats.custom}
               icon={<ApartmentOutlined />}
-              accent="#8b5cf6"
+              accent="#10b981"
               subtle="Created by your team"
               loading={loading && roleStats.total === 0}
               chart={
@@ -992,7 +1058,7 @@ export default function RolesPage() {
               label="Permissions"
               value={roleStats.permissions}
               icon={<KeyOutlined />}
-              accent="#f59e0b"
+              accent="#64748b"
               subtle={
                 roleStats.permissions > 0
                   ? `${roleStats.assignedPerms} assigned across roles`
@@ -1014,7 +1080,7 @@ export default function RolesPage() {
                               100,
                             ),
                           )}%`,
-                          background: 'linear-gradient(90deg, #f59e0b, #fbbf24)',
+                          background: 'linear-gradient(90deg, #64748b, #94a3b8)',
                         }}
                       />
                     </div>
@@ -1031,77 +1097,6 @@ export default function RolesPage() {
 
           {/* Roles panel */}
           <div className="rp-panel">
-            {/* Single-row toolbar */}
-            <div className="rp-toolbar">
-              <Input
-                className="rp-search"
-                prefix={
-                  <SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 6 }} />
-                }
-                placeholder="Search by role name, slug, or description…"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                allowClear
-              />
-
-              <Segmented
-                className="rp-segmented"
-                value={roleTypeFilter}
-                onChange={(v) => setRoleTypeFilter(v as any)}
-                options={[
-                  {
-                    label: (
-                      <span className="rp-seg-opt">
-                        <AppstoreOutlined />
-                        All
-                        <span className="rp-seg-pill">{roleStats.total}</span>
-                      </span>
-                    ),
-                    value: 'all',
-                  },
-                  {
-                    label: (
-                      <span className="rp-seg-opt">
-                        <LockOutlined />
-                        System
-                        <span className="rp-seg-pill">{roleStats.system}</span>
-                      </span>
-                    ),
-                    value: 'system',
-                  },
-                  {
-                    label: (
-                      <span className="rp-seg-opt">
-                        <CrownOutlined />
-                        Custom
-                        <span className="rp-seg-pill">{roleStats.custom}</span>
-                      </span>
-                    ),
-                    value: 'custom',
-                  },
-                ]}
-              />
-
-              {hasActiveFilter && (
-                <Tooltip title="Clear all filters">
-                  <Button
-                    type="text"
-                    icon={<ReloadOutlined />}
-                    onClick={handleClearFilters}
-                    className="rp-clear-btn"
-                  >
-                    Reset
-                  </Button>
-                </Tooltip>
-              )}
-
-              <div className="rp-toolbar__divider" />
-
-              <Text className="rp-count-text">
-                <strong>{filteredRoles.length}</strong> of {roleStats.total}
-              </Text>
-            </div>
-
             {/* Table */}
             <Table
               className="premium-table rp-table"
@@ -1113,7 +1108,7 @@ export default function RolesPage() {
               scroll={{ x: 1000 }}
             />
           </div>
-        </div>
+        </main>
 
         {/* ── Create Role Modal (premium) ── */}
         <Modal
@@ -1455,9 +1450,9 @@ export default function RolesPage() {
                             style={{
                               width: `${(selectedInTabPerms / tabTotalPerms) * 100}%`,
                               background: `linear-gradient(90deg, ${ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
-                                '#8b5cf6'
+                                '#3b82f6'
                                 }, ${ACCESS_GROUPS.find((g) => g.key === accessTab)?.accent ||
-                                '#8b5cf6'
+                                '#3b82f6'
                                 }aa)`,
                             }}
                           />

@@ -1179,7 +1179,7 @@ export default function ClientsV2ListPage() {
                         columns={columns}
                         dataSource={data}
                         rowKey="id"
-                        size="middle"
+                        size="small"
                         scroll={{ x: 1100 }}
                         pagination={false}
                         loading={loading}
@@ -1275,7 +1275,7 @@ export default function ClientsV2ListPage() {
                               className="bh2-list-card"
                               style={{ ["--row-accent" as any]: accent }}
                             >
-                              <header className="bh2-list-head" style={{ padding: '12px' }}>
+                              <header className="bh2-list-head" style={{ padding: '10px 12px' }}>
                                 <div
                                   className="bh2-list-row"
                                   role="button"
@@ -1287,41 +1287,57 @@ export default function ClientsV2ListPage() {
                                       router.push(`/clients-v2/${record.id}`);
                                     }
                                   }}
-                                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}
+                                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}
                                 >
-                                  <div className="bh2-list-avatar">
-                                    <span className="bh2-list-avatar-letter">{initials}</span>
+                                  <div className="bh2-list-avatar" style={{ width: 30, height: 30, borderRadius: 6 }}>
+                                    <span className="bh2-list-avatar-letter" style={{ fontSize: 12 }}>{initials}</span>
                                   </div>
 
-                                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                                    <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: 3 }}>
+                                    <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
                                       {record.companyName}
                                     </span>
-                                    <span style={{ fontSize: 12, color: 'var(--text-slate-500)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent }} />
+                                    <span style={{ fontSize: 11.5, color: 'var(--text-slate-700)', display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
+                                      <span style={{ color: 'var(--text-slate-400)' }}>Client:</span>
                                       {record.clientCode}
                                       {isActive ? (
                                         <span
                                           className="bh2-list-status"
                                           style={{
-                                            background: "rgba(16,185,129,0.08)",
-                                            borderColor: "rgba(16,185,129,0.2)",
+                                            background: "rgba(16,185,129,0.1)",
                                             color: "#047857",
+                                            padding: "2px 6px",
+                                            fontSize: 10,
+                                            fontWeight: 700,
+                                            borderRadius: 4,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: 4,
+                                            textTransform: "uppercase",
+                                            border: "none"
                                           }}
                                         >
-                                          <Globe2 size={9} style={{ marginRight: 4 }} />
+                                          <Globe2 size={10} />
                                           Active
                                         </span>
                                       ) : (
                                         <span
                                           className="bh2-list-status"
                                           style={{
-                                            background: "rgba(100,116,139,0.08)",
-                                            borderColor: "rgba(100,116,139,0.2)",
-                                            color: "#475569",
+                                            background: "var(--bg-slate-50)",
+                                            color: "var(--text-slate-500)",
+                                            padding: "2px 6px",
+                                            fontSize: 10,
+                                            fontWeight: 700,
+                                            borderRadius: 4,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: 4,
+                                            textTransform: "uppercase",
+                                            border: "1px solid var(--border-slate-100)"
                                           }}
                                         >
-                                          <ShieldCheck size={9} style={{ marginRight: 4 }} />
+                                          <ShieldCheck size={10} />
                                           Inactive
                                         </span>
                                       )}
@@ -1390,26 +1406,26 @@ export default function ClientsV2ListPage() {
                                 </div>
                               </header>
 
-                              <div className="bh2-list-foot" style={{ padding: '8px 16px', background: 'var(--bg-slate-50)', borderTop: '1px solid var(--border-slate-200)' }}>
-                                <div className="bh2-list-foot-inline">
-                                  <span className="bh2-list-foot-item">
-                                    <span className="bh2-list-foot-label" style={{ fontSize: 11, fontWeight: 500 }}>Manager</span>
+                              <div className="bh2-list-foot" style={{ padding: '8px 12px', background: 'var(--bg-slate-50)', borderTop: '1px solid var(--border-slate-200)' }}>
+                                <div className="bh2-list-foot-inline" style={{ gap: 8 }}>
+                                  <span className="bh2-list-foot-item" style={{ fontSize: 11.5, color: 'var(--text-slate-700)' }}>
+                                    <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Manager</span>
                                     {am ? (
                                       <div
                                         className="cm-mini-avatar"
                                         style={{
-                                          width: 18,
-                                          height: 18,
+                                          width: 16,
+                                          height: 16,
                                           background: gradientFor(fullName),
-                                          fontSize: 9,
-                                          fontWeight: 800,
+                                          fontSize: 8,
+                                          fontWeight: 700,
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
                                           borderRadius: '50%',
                                           color: '#fff',
-                                          marginLeft: 4,
-                                          marginRight: 4
+                                          marginLeft: 5,
+                                          marginRight: 5
                                         }}
                                       >
                                         {amInitials}
@@ -1418,55 +1434,54 @@ export default function ClientsV2ListPage() {
                                       <div
                                         className="cm-mini-avatar"
                                         style={{
-                                          width: 18,
-                                          height: 18,
-                                          background: '#e2e8f0',
-                                          fontSize: 9,
-                                          fontWeight: 800,
+                                          width: 16,
+                                          height: 16,
+                                          background: 'var(--bg-blue-50)',
+                                          fontSize: 8,
+                                          fontWeight: 700,
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
                                           borderRadius: '50%',
-                                          color: '#94a3b8',
-                                          marginLeft: 4,
-                                          marginRight: 4
+                                          color: '#3b82f6',
+                                          marginLeft: 5,
+                                          marginRight: 5
                                         }}
                                       >
                                         U
                                       </div>
                                     )}
-                                    <b>{fullName}</b>
+                                    <span style={{ fontWeight: 600 }}>{fullName}</span>
                                   </span>
 
-                                  {/* <span className="bh2-list-foot-div" style={{ height: 12, width: 1, background: 'var(--border-slate-300)', margin: '0 8px' }} /> */}
-                                  <span className="bh2-list-foot-div" />
+                                  <span className="bh2-list-foot-div" style={{ width: 1, height: 11, background: 'var(--border-slate-300)' }} />
 
-                                  <span className="bh2-list-foot-item">
-                                    <span className="bh2-list-foot-label" style={{ fontSize: 11, fontWeight: 500 }}>Allocation</span>
-                                    <b style={{ marginLeft: 4 }}>{projectCount} projects, {record.riskLevel || 'Low'} risk</b>
+                                  <span className="bh2-list-foot-item" style={{ fontSize: 11.5, color: 'var(--text-slate-700)' }}>
+                                    <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Allocation</span>
+                                    <span style={{ fontWeight: 600, marginLeft: 5 }}>{projectCount} projects, {record.riskLevel || 'Low'} risk</span>
                                   </span>
                                 </div>
                               </div>
 
-                              <footer className="bh2-list-foot">
-                                <div className="bh2-list-foot-inline">
-                                  <span className="bh2-list-foot-item">
-                                    <span className="bh2-list-foot-label">Created:</span>
-                                    <b>
+                              <footer className="bh2-list-foot" style={{ padding: '8px 12px', borderTop: '1px solid var(--border-slate-200)', background: 'var(--bg-slate-50)' }}>
+                                <div className="bh2-list-foot-inline" style={{ gap: 8 }}>
+                                  <span className="bh2-list-foot-item" style={{ fontSize: 11.5, color: 'var(--text-slate-700)' }}>
+                                    <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Created</span>
+                                    <span style={{ fontWeight: 600, marginLeft: 5 }}>
                                       {new Date(record.created_at || Date.now()).toLocaleDateString(undefined, {
                                         month: "short",
                                         day: "numeric",
                                         year: "numeric",
                                       })}
-                                    </b>
+                                    </span>
                                   </span>
 
-                                  <span className="bh2-list-foot-div" />
+                                  <span className="bh2-list-foot-div" style={{ width: 1, height: 11, background: 'var(--border-slate-300)' }} />
 
                                   <button
                                     type="button"
                                     className={`bh2-manage-btn ${expandedCardId === record.id ? "active" : ""}`}
-                                    style={{ ["--row-accent" as any]: accent, display: 'flex', alignItems: 'center', gap: 6 }}
+                                    style={{ ["--row-accent" as any]: accent, display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(59, 130, 246, 0.08)', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6, color: '#3b82f6', fontSize: 9.5, fontWeight: 700 }}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setExpandedCardId((prev) => {
@@ -1478,9 +1493,8 @@ export default function ClientsV2ListPage() {
                                       });
                                     }}
                                   >
-                                    <FolderKanban size={13} />
-                                    <span style={{ fontWeight: 600 }}>Active Projects</span>
-                                    <ChevronDown size={14} style={{ marginLeft: 2, transform: expandedCardId === record.id ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                                    <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Projects</span>
+                                    <ChevronDown size={12} style={{ transform: expandedCardId === record.id ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
                                   </button>
                                 </div>
                               </footer>
@@ -1554,7 +1568,7 @@ export default function ClientsV2ListPage() {
         }
         .bh2-main {
           min-width: 0;
-          padding: 14px 24px 32px;
+          padding: 14px 20px 12px;
           background: var(--bg-pure-white);
           display: flex;
           flex-direction: column;
@@ -1583,7 +1597,7 @@ export default function ClientsV2ListPage() {
         }
 
         .bh2-sidebar-top { 
-          padding: 14px 14px 12px 18px;
+          padding: 14px 14px 12px 14px;
           border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme="dark"] .bh2-sidebar-top {
@@ -1616,7 +1630,14 @@ export default function ClientsV2ListPage() {
         }
 
         .bh2-sidebar-scroll {
-          flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 16px;
+          flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 10px;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .bh2-sidebar-scroll::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
         }
 
         .bh2-side-group { margin-bottom: 22px; }
@@ -1633,15 +1654,15 @@ export default function ClientsV2ListPage() {
           color: var(--text-slate-600); transition: all 0.15s ease;
         }
         .bh2-view-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
-        .bh2-view-btn.active { background: var(--bg-blue-50); color: var(--text-blue-700); }
+        .bh2-view-btn.active { background: var(--bg-blue-50); color: var(--text-slate-900); font-weight: 600; }
         [data-theme='dark'] .bh2-view-btn { color: #94a3b8; }
         [data-theme='dark'] .bh2-view-btn:hover { background: rgba(255,255,255,0.03); color: #f1f5f9; }
-        [data-theme='dark'] .bh2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        [data-theme='dark'] .bh2-view-btn.active { background: rgba(59, 130, 246, 0.15); color: #f1f5f9; font-weight: 600; }
 
         .bh2-view-icon { font-size: 14px; color: var(--text-slate-400); display: flex; align-items: center; }
-        .bh2-view-btn.active .bh2-view-icon { color: var(--text-blue-600); }
+        .bh2-view-btn.active .bh2-view-icon { color: #3b82f6 !important; }
         [data-theme='dark'] .bh2-view-icon { color: #64748b; }
-        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #60a5fa; }
+        [data-theme='dark'] .bh2-view-btn.active .bh2-view-icon { color: #60a5fa !important; }
 
         .bh2-view-count {
           margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
@@ -1921,7 +1942,7 @@ export default function ClientsV2ListPage() {
           top: 0;
           z-index: 10;
           background: var(--bg-pure-white);
-          margin: -14px -24px 0;
+          margin: -14px -20px 0;
           padding: 6px 20px;
           border-bottom: 1px solid var(--border-slate-200);
         }
@@ -2082,7 +2103,7 @@ export default function ClientsV2ListPage() {
           justify-content: space-between;
           gap: 12px;
           padding: 10px 24px;
-          margin: auto -24px -32px -24px;
+          margin: auto -24px -32px -20px;
           flex-wrap: wrap;
           position: sticky;
           bottom: 0;
@@ -2138,10 +2159,12 @@ export default function ClientsV2ListPage() {
           border-color: #1f2937 !important;
         }
         .bh2-list-card:hover {
-          border-color: var(--row-accent, #3b82f6);
+
+          box-shadow: 10px 10px 25px -8px rgba(14, 19, 30, 0.08);
         }
         [data-theme="dark"] .bh2-list-card:hover {
           background: #1c232e !important;
+          box-shadow: 10px 10px 25px -8px rgba(0, 0, 0, 0.3);
         }
         .bh2-list-card-skel {
           min-height: 96px;
@@ -2616,9 +2639,9 @@ export default function ClientsV2ListPage() {
           .bh2-shell {
             grid-template-columns: 240px minmax(0, 1fr);
           }
-          .bh2-sidebar {
-            padding: 12px 8px 14px 14px;
-          }
+          // .bh2-sidebar {
+          //   padding: 12px 8px 14px 14px;
+          // }
           .bh2-search-box {
             width: 220px;
           }
@@ -2902,7 +2925,7 @@ export default function ClientsV2ListPage() {
               display: grid;
               grid-template-columns: repeat(4, minmax(0, 1fr));
               gap: 16px;
-              margin-bottom: 22px;
+              margin-bottom: 2px !important;
             }
             @media (max-width: 1100px) {
               .cm-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -3390,6 +3413,7 @@ export default function ClientsV2ListPage() {
               border-radius: 0;
               border: 1px solid var(--border-slate-100);
               overflow: hidden;
+              margin-top: 12px !important;
               box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.06);
             }
             .cm-table-card .ant-table {
@@ -3402,12 +3426,12 @@ export default function ClientsV2ListPage() {
               text-transform: uppercase !important;
               font-size: 10.5px !important;
               letter-spacing: 0.08em !important;
-              padding: 14px 16px !important;
+              padding: 6px 10px !important;
               border-bottom: 1px solid var(--border-slate-100) !important;
             }
             .cm-table-card .ant-table-thead > tr > th::before { display: none !important; }
             .cm-table-card .ant-table-tbody > tr > td {
-              padding: 18px 16px !important;
+              padding: 6.5px 10px !important;
               border-bottom: 1px solid var(--border-slate-100) !important;
               transition: background .15s ease;
               position: relative;

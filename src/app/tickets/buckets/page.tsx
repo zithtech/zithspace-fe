@@ -37,7 +37,7 @@ export default function BucketsPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <BucketManagementPage />
     </MainLayout>
   );

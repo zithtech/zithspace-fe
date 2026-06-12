@@ -35,11 +35,11 @@ const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
 };
 
 const MODULE_ACCENT: Record<string, string> = {
-  HOME: '#3250ce',     // indigo
-  WORK: '#3250ce',     // sky
-  ADMIN: '#3250ce',    // emerald
-  HRMS: '#3250ce',     // amber
-  FINANCE: '#3250ce',  // violet
+  HOME: '#3b82f6',     // indigo
+  WORK: '#3b82f6',     // sky
+  ADMIN: '#3b82f6',    // emerald
+  HRMS: '#3b82f6',     // amber
+  FINANCE: '#3b82f6',  // violet
 };
 
 interface ShortcutItem {
@@ -750,7 +750,7 @@ export default function TopNav({
                 />
               </Tooltip>
             )}
-            {canReadNotification && (
+            {/* {canReadNotification && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -772,7 +772,7 @@ export default function TopNav({
                   />
                 </div>
               </Tooltip>
-            )}
+            )} */}
             {canReadBookmark && (
               <Tooltip
                 title={
@@ -989,7 +989,7 @@ export default function TopNav({
                     gap: 6px;
                     padding: 0 10px;
                     height: 32px;
-                    border-radius: 9px;
+                    border-radius: 0px;
                     font-weight: 600;
                     font-size: 12.5px;
                     letter-spacing: 0.2px;

@@ -202,7 +202,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                 return (
                     <div
                         key={s.key}
-                        className="dh-stats-card flex flex-col justify-between rounded-xl p-4 transition-all"
+                        className="dh-stats-card flex flex-col justify-between p-4 transition-all"
                         style={{
                             border: '1px solid var(--border-slate-200)',
                             background: 'var(--bg-pure-white)',

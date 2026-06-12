@@ -6979,6 +6979,8 @@ export default function SprintPlanComponent() {
           background: #ecfdf5 !important;
           border-color: #a7f3d0 !important;
           color: #10b981 !important;
+          margin-right: 10px !important;
+
         }
 
         .sp-foot-btn-start:hover:not(:disabled) {
@@ -7015,6 +7017,7 @@ export default function SprintPlanComponent() {
           background: #eff6ff !important;
           border-color: #bfdbfe !important;
           color: #3b82f6 !important;
+          margin-right: 10px !important;
         }
 
         .sp-foot-btn-complete:hover:not(:disabled) {

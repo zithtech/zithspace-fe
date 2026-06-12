@@ -1241,16 +1241,30 @@ export default function BucketManagementPage() {
                               </div>
                             </div>
                             <div className="bh2-list-owner">
-                              <Avatar
-                                size={26}
-                                style={{
-                                  background: `linear-gradient(135deg, #3b82f6 0%, #3b82f6cc 100%)`,
-                                  fontSize: 11,
-                                  fontWeight: 800,
-                                }}
-                              >
-                                {initialsOf(owner?.name)}
-                              </Avatar>
+                              {owner?.avatarUrl ? (
+                                <Avatar
+                                  src={owner?.avatarUrl || undefined}
+                                  size={26}
+                                  style={{
+                                    background: `linear-gradient(135deg, #3b82f6 0%, #3b82f6cc 100%)`,
+                                    fontSize: 11,
+                                    fontWeight: 800,
+                                  }}
+                                >
+                                  {initialsOf(owner?.name)}
+                                </Avatar>
+                              ) : (
+                                <Avatar
+                                  size={26}
+                                  style={{
+                                    background: `linear-gradient(135deg, #3b82f6 0%, #3b82f6cc 100%)`,
+                                    fontSize: 11,
+                                    fontWeight: 800,
+                                  }}
+                                >
+                                  {initialsOf(owner?.name)}
+                                </Avatar>
+                              )}
                               <div className="bh2-list-owner-info">
                                 <span className="bh2-list-owner-name">{owner?.name || "—"}</span>
                                 {owner?.workEmail && (
@@ -2084,7 +2098,7 @@ export default function BucketManagementPage() {
           border-color: #1f2937 !important;
         }
         .bh2-list-card:hover {
-          border-color: var(--row-accent, #3b82f6);
+          border-color: #3b82f6 !important;
         }
         [data-theme="dark"] .bh2-list-card:hover {
           background: #1c232e !important;
@@ -2461,8 +2475,8 @@ export default function BucketManagementPage() {
           transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
         }
         .bh2-foot-btn:hover:not(:disabled) {
-          border-color: var(--row-accent, #3b82f6) !important;
-          color: var(--row-accent, #3b82f6) !important;
+          border-color: #3b82f6 !important;
+          color: #3b82f6 !important;
           background: var(--bg-slate-50) !important;
         }
         .bh2-foot-btn:disabled {
@@ -2495,14 +2509,14 @@ export default function BucketManagementPage() {
           transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
         }
         .bh2-manage-btn:hover {
-          color: var(--row-accent, #3b82f6);
-          border-color: var(--row-accent, #3b82f6);
-          background: var(--bg-slate-50);
+          color: #fff !important;
+          border-color: #3b82f6 !important;
+          background: #3b82f6 !important;
         }
         .bh2-manage-btn.active {
-          color: var(--row-accent, #3b82f6);
-          border-color: var(--row-accent, #3b82f6);
-          background: rgba(59, 130, 246, 0.08);
+          color: #fff !important;
+          border-color: #3b82f6 !important;
+          background: #3b82f6 !important;
         }
         [data-theme="dark"] .bh2-manage-btn {
           border-color: #2d3748 !important;

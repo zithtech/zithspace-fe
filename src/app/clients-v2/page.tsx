@@ -3681,6 +3681,7 @@ export default function ClientsV2ListPage() {
             .cm-expanded-header {
               display: flex; align-items: center; justify-content: space-between;
               margin-bottom: 14px;
+              padding: 0px 12px;
             }
             .cm-expanded-title {
               display: flex; align-items: center; gap: 8px;
@@ -3702,10 +3703,12 @@ export default function ClientsV2ListPage() {
               display: grid;
               grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
               gap: 12px;
+              padding: 0px 12px;
+              margin-bottom: 12px;
             }
             .cm-project-card {
               background: var(--bg-pure-white);
-              border: 1px solid var(--border-slate-100);
+              border: 1px solid var(--border-slate-200);
               border-radius: 6px;
               padding: 14px;
               transition: all .2s ease;

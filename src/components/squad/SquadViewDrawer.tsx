@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { Drawer, Input, Button, Tooltip, Avatar, App } from 'antd';
+import { Drawer, Input, Button, Tooltip, App, Avatar } from 'antd';
 import {
   TeamOutlined,
   CrownOutlined,
@@ -30,9 +30,9 @@ type Role = 'HEAD' | 'SUB_HEAD' | 'MEMBER';
 type FilterKey = 'ALL' | Role;
 
 const ROLE_META: Record<Role, { label: string; cls: 'is-head' | 'is-subhead' | 'is-member'; icon: React.ReactNode; badgeIcon: React.ReactNode }> = {
-  HEAD:     { label: 'Heads',     cls: 'is-head',    icon: <CrownOutlined />, badgeIcon: <CrownOutlined /> },
-  SUB_HEAD: { label: 'Sub-Heads', cls: 'is-subhead', icon: <StarOutlined />,  badgeIcon: <StarOutlined /> },
-  MEMBER:   { label: 'Members',   cls: 'is-member',  icon: <UserOutlined />,  badgeIcon: <UserOutlined /> },
+  HEAD: { label: 'Heads', cls: 'is-head', icon: <CrownOutlined />, badgeIcon: <CrownOutlined /> },
+  SUB_HEAD: { label: 'Sub-Heads', cls: 'is-subhead', icon: <StarOutlined />, badgeIcon: <StarOutlined /> },
+  MEMBER: { label: 'Members', cls: 'is-member', icon: <UserOutlined />, badgeIcon: <UserOutlined /> },
 };
 
 const ROLE_ORDER: Role[] = ['HEAD', 'SUB_HEAD', 'MEMBER'];
@@ -69,11 +69,6 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
   if (!squad) return null;
 
   const total = squad.squadMembers?.length || 0;
-  const statusKey: 'is-active' | 'is-inactive' | 'is-archived' = squad.isArchived
-    ? 'is-archived'
-    : squad.squadStatus
-      ? 'is-active'
-      : 'is-inactive';
   const statusLabel = squad.isArchived ? 'Archived' : squad.squadStatus ? 'Active' : 'Inactive';
 
   const matchesSearch = (m: SquadMember) => {
@@ -110,10 +105,19 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
     const role = m.memberType as Role;
     const meta = ROLE_META[role];
     return (
-      <div key={m.id} className={`svd-member-card ${meta.cls}`}>
-        <div className="svd-member-card__avatar">
+      <div
+        key={m.id}
+        className={`svd-member-card ${meta.cls}`}
+        style={{
+          boxShadow: 'none',
+          borderRadius: 4,
+          border: '1px solid var(--border-color)',
+          background: 'var(--bg-pure-white)'
+        }}
+      >
+        <div className="svd-member-card__avatar" style={{ borderRadius: '50%', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
           {m.member.name.charAt(0).toUpperCase()}
-          <span className="svd-member-card__avatar-badge">{meta.badgeIcon}</span>
+          <span className="svd-member-card__avatar-badge" style={{ borderRadius: '50%', background: '#f1f5f9', color: '#475569', borderColor: '#e2e8f0' }}>{meta.badgeIcon}</span>
         </div>
         <div className="svd-member-card__main">
           <div className="svd-member-card__name" title={m.member.name}>
@@ -186,200 +190,206 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
 
   return (
     <>
-    <Drawer
-      className="squad-drawer"
-      extra={
-        canReadActivityLog && squad && (
-          <Button
-            icon={<History size={14} />}
-            onClick={() => setHistoryOpen(true)}
-            size="small"
-            style={{ borderRadius: 6 }}
-          >
-            History
-          </Button>
-        )
-      }
-      title={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(139, 92, 246, 0.12))',
-              border: '1px solid rgba(59, 130, 246, 0.2)',
-              color: 'var(--premium-blue)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <TeamOutlined style={{ fontSize: 16 }} />
-          </div>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-slate-900)' }}>Squad Overview</div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-slate-400)', marginTop: 2 }}>
-              Read-only details and members
-            </div>
-          </div>
-        </div>
-      }
-      width={760}
-      onClose={onClose}
-      open={visible}
-      destroyOnHidden
-      closeIcon={<CloseOutlined style={{ fontSize: 14 }} />}
-      footer={
-        <div className="svd-footer">
-          <span className="svd-footer__hint">
-            <UserOutlined /> {total} {total === 1 ? 'member' : 'members'}
-          </span>
+      <Drawer
+        className="squad-drawer"
+        extra={
           <div style={{ display: 'flex', gap: 8 }}>
-            <Button onClick={onClose}>Close</Button>
+            {canReadActivityLog && squad && (
+              <Button
+                icon={<History size={14} />}
+                onClick={(e) => { e.stopPropagation(); setHistoryOpen(true); }}
+                size="small"
+              >
+                History
+              </Button>
+            )}
             {onManage && canUpdateSquad && (
               <Button
                 type="primary"
                 icon={<SettingOutlined />}
                 onClick={handleManageClick}
-                style={{
-                  background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                  border: 'none',
-                  fontWeight: 600,
-                  height: 36,
-                  padding: '0 18px',
-                  borderRadius: 8,
-                  boxShadow: '0 6px 14px -6px rgba(37, 99, 235, 0.55)',
-                }}
+                size="small"
+                style={{ background: '#3b82f6', border: 'none', boxShadow: 'none' }}
               >
                 Manage Squad
               </Button>
             )}
           </div>
-        </div>
-      }
-    >
-      {/* Hero panel */}
-      <div className="svd-hero">
-        <div className="svd-hero__top">
-          <div className="svd-hero__avatar">{initials || <TeamOutlined />}</div>
-          <div className="svd-hero__title-block">
-            <div className="svd-hero__name" title={squad.squadName}>{squad.squadName}</div>
-            <div className="svd-hero__sub">
-              <span className="svd-hero__chip is-code">{squad.squadCode}</span>
-              <span className={`svd-hero__chip ${statusKey}`}>
-                <span className="svd-hero__chip-dot" />
-                {statusLabel}
-              </span>
-              <span className="svd-hero__chip">
-                <UserOutlined style={{ fontSize: 10 }} />
-                {total} {total === 1 ? 'member' : 'members'}
-              </span>
+        }
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <span
+              style={{
+                width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "inline-flex",
+                alignItems: "center", justifyContent: "center",
+                background: "#3B82F6", color: "#fff",
+              }}
+            >
+              <TeamOutlined style={{ fontSize: 14 }} />
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-slate-900)", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 360 }}>
+                {squad.squadName}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
+                {squad.squadCode} • {statusLabel}
+              </div>
             </div>
           </div>
-
-          {grouped.HEAD.length > 0 && (
-            <div className="svd-hero__leads">
-              <div className="svd-hero__leads-label">Led by</div>
-              <Avatar.Group max={{ count: 3 }} size={28}>
-                {grouped.HEAD.map(h => (
-                  <Tooltip key={h.id} title={h.member.name}>
-                    <Avatar>{h.member.name.substring(0, 2).toUpperCase()}</Avatar>
-                  </Tooltip>
-                ))}
-              </Avatar.Group>
+        }
+        width={580}
+        onClose={onClose}
+        open={visible}
+        destroyOnHidden
+        closeIcon={<CloseOutlined style={{ fontSize: 14 }} />}
+      >
+        {/* Premium Details Card */}
+        <div style={{
+          background: '#fafafa',
+          border: '1px solid #e2e8f0',
+          borderRadius: 2,
+          padding: 16,
+          marginBottom: 20,
+          boxShadow: '0 2px 8px -4px rgba(15,23,42,0.05)'
+        }}>
+          {/* Top Row */}
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+            {/* Avatar */}
+            <div style={{
+              width: 54, height: 54, borderRadius: 2, flexShrink: 0,
+              background: 'linear-gradient(135deg, #3b82f6, #60a5fa)', color: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 22, fontWeight: 800,
+              boxShadow: '0 4px 12px -4px rgba(59,130,246,0.4)'
+            }}>
+              {initials || <TeamOutlined />}
             </div>
-          )}
-        </div>
-
-        <div className="svd-hero__metrics">
-          <div className="svd-hero__metric">
-            <div className="svd-hero__metric-value">{total}</div>
-            <div className="svd-hero__metric-label">Total</div>
+            {/* Identity */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {squad.squadName}
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 2, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                  {squad.squadCode}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 2, background: squad.squadStatus ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: squad.squadStatus ? '#059669' : '#dc2626', border: `1px solid ${squad.squadStatus ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+                  <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'currentColor', marginRight: 4 }}></span>
+                  {statusLabel}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 2, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
+                  <UserOutlined style={{ marginRight: 4 }} />
+                  {total} members
+                </span>
+              </div>
+            </div>
+            {/* Led By */}
+            {grouped.HEAD.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>Led By</div>
+                <Avatar.Group max={{ count: 3 }} size={28}>
+                  {grouped.HEAD.map(h => (
+                    <Tooltip key={h.id} title={h.member.name}>
+                      <Avatar style={{ border: '2px solid #fff', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
+                        {h.member.name.substring(0, 2).toUpperCase()}
+                      </Avatar>
+                    </Tooltip>
+                  ))}
+                </Avatar.Group>
+              </div>
+            )}
           </div>
-          <div className="svd-hero__metric is-head">
-            <div className="svd-hero__metric-value">{grouped.HEAD.length}</div>
-            <div className="svd-hero__metric-label">Heads</div>
-          </div>
-          <div className="svd-hero__metric is-subhead">
-            <div className="svd-hero__metric-value">{grouped.SUB_HEAD.length}</div>
-            <div className="svd-hero__metric-label">Sub-Heads</div>
-          </div>
-          <div className="svd-hero__metric is-member">
-            <div className="svd-hero__metric-value">{grouped.MEMBER.length}</div>
-            <div className="svd-hero__metric-label">Members</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filter bar */}
-      {total > 0 && (
-        <>
-          <div className="svd-filter-bar">
-            <Input
-              className="svd-search"
-              prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 6 }} />}
-              placeholder="Search by name, designation, or email…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              allowClear
-            />
-          </div>
-
-          <div className="svd-filter-bar" style={{ marginBottom: 18 }}>
-            <div className="svd-tabs">
-              <button
-                className={`svd-tab${filter === 'ALL' ? ' is-active' : ''}`}
-                onClick={() => setFilter('ALL')}
-              >
-                All
-                <span className="svd-tab__count">{total}</span>
-              </button>
-              {ROLE_ORDER.map(r => {
-                const meta = ROLE_META[r];
-                const count = grouped[r].length;
-                return (
-                  <button
-                    key={r}
-                    className={`svd-tab ${meta.cls}${filter === r ? ' is-active' : ''}`}
-                    onClick={() => setFilter(r)}
-                  >
-                    {meta.icon}
-                    {meta.label}
-                    <span className="svd-tab__count">{count}</span>
-                  </button>
-                );
-              })}
+          {/* Divider */}
+          <div style={{ height: 1, background: '#e2e8f0', margin: '16px 0' }}></div>
+          {/* Bottom Row: Metrics */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, textAlign: 'center' }}>
+            <div style={{ borderRight: '1px solid #f1f5f9' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{total}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Total</div>
+            </div>
+            <div style={{ borderRight: '1px solid #f1f5f9' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#10b981', lineHeight: 1 }}>{grouped.HEAD.length}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Heads</div>
+            </div>
+            <div style={{ borderRight: '1px solid #f1f5f9' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#3b82f6', lineHeight: 1 }}>{grouped.SUB_HEAD.length}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Sub-Heads</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#64748b', lineHeight: 1 }}>{grouped.MEMBER.length}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase', marginTop: 4 }}>Members</div>
             </div>
           </div>
-        </>
-      )}
+        </div>
 
-      {/* Body */}
-      {total === 0 ? (
-        <div className="svd-empty">
-          <div className="svd-empty__icon">
-            <InboxOutlined />
+        {/* Filter bar */}
+        {total > 0 && (
+          <>
+            <div className="svd-filter-bar">
+              <Input
+                className="svd-search"
+                prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 6 }} />}
+                placeholder="Search by name, designation, or email…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                allowClear
+              />
+            </div>
+
+            <div className="svd-filter-bar" style={{ marginBottom: 18 }}>
+              <div className="svd-tabs">
+                <button
+                  className={`svd-tab${filter === 'ALL' ? ' is-active' : ''}`}
+                  onClick={() => setFilter('ALL')}
+                >
+                  All
+                  <span className="svd-tab__count">{total}</span>
+                </button>
+                {ROLE_ORDER.map(r => {
+                  const meta = ROLE_META[r];
+                  const count = grouped[r].length;
+                  return (
+                    <button
+                      key={r}
+                      className={`svd-tab ${meta.cls}${filter === r ? ' is-active' : ''}`}
+                      onClick={() => setFilter(r)}
+                    >
+                      {meta.icon}
+                      {meta.label}
+                      <span className="svd-tab__count">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Body */}
+        {total === 0 ? (
+          <div className="svd-empty">
+            <div className="svd-empty__icon">
+              <InboxOutlined />
+            </div>
+            <div className="svd-empty__title">No members yet</div>
+            <div className="svd-empty__sub">
+              This squad doesn’t have any members assigned. Use Manage to add heads, sub-heads, and members.
+            </div>
           </div>
-          <div className="svd-empty__title">No members yet</div>
-          <div className="svd-empty__sub">
-            This squad doesn’t have any members assigned. Use Manage to add heads, sub-heads, and members.
+        ) : totalVisible === 0 ? (
+          <div className="svd-empty">
+            <div className="svd-empty__icon">
+              <SearchOutlined />
+            </div>
+            <div className="svd-empty__title">No matches</div>
+            <div className="svd-empty__sub">
+              No members match {search ? `“${search}”` : 'the current filter'}.
+            </div>
           </div>
-        </div>
-      ) : totalVisible === 0 ? (
-        <div className="svd-empty">
-          <div className="svd-empty__icon">
-            <SearchOutlined />
-          </div>
-          <div className="svd-empty__title">No matches</div>
-          <div className="svd-empty__sub">
-            No members match {search ? `“${search}”` : 'the current filter'}.
-          </div>
-        </div>
-      ) : (
-        rolesToRender.map(renderGroup)
-      )}
-    </Drawer>
+        ) : (
+          rolesToRender.map(renderGroup)
+        )}
+      </Drawer>
       {squad && (
         <TransactionHistoryDrawer
           open={historyOpen}
@@ -387,6 +397,7 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
           entityType="squad"
           entityId={squad.id}
           subtitle={squad.squadName}
+          zIndex={1050}
         />
       )}
     </>

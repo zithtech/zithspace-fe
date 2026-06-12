@@ -140,7 +140,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
     <Drawer
       open={open}
       onClose={onClose}
-      width={680}
+      width={540}
       closable={false}
       placement="right"
       className="wld-drawer"

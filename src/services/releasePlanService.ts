@@ -53,6 +53,7 @@ export interface ReleasePlan {
     id: string;
     name: string;
     email: string;
+    avatarUrl?: string;
   };
   assignedTo: Array<{
     id: string;
@@ -95,6 +96,7 @@ export interface ProjectTicket {
     id: string;
     name: string;
     email: string;
+    avatarUrl?: string;
   };
   createdAt: string;
   estimateHours?: number;

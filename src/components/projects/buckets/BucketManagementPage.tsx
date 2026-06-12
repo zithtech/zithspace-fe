@@ -15,6 +15,8 @@ import {
   Pagination,
   Dropdown,
   Table,
+  Row,
+  Col,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { Dayjs } from "dayjs";
@@ -64,6 +66,54 @@ import type { Bucket } from "@/services/bucketService";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useRouter } from "next/navigation";
 import { usePermission } from "@/hooks/usePermission";
+
+/* -------------------------------------------------------------------------- */
+/*                                Sparkline                                   */
+/* -------------------------------------------------------------------------- */
+
+const Sparkline: React.FC<{ data: number[]; color: string; height?: number }> = ({ data, color, height = 22 }) => {
+  const min = Math.min(...data);
+  const max = Math.max(...data, min + 1);
+  const range = max - min;
+  const width = 72;
+  const bottomPadding = 4;
+
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * width;
+    let y = height - bottomPadding;
+    if (max > min) {
+      y = height - bottomPadding - ((d - min) / range) * (height - bottomPadding - 2);
+    }
+    return { x, y };
+  });
+
+  let pathD = `M ${points[0].x},${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    pathD += ` L ${points[i].x},${points[i].y}`;
+  }
+
+  const fillD = `${pathD} L ${width},${height} L 0,${height} Z`;
+
+  const isFlat = data.every(d => d === data[0]);
+  const flatY = 2;
+  const flatPathD = `M 0,${flatY} L ${width},${flatY}`;
+  const flatFillD = `${flatPathD} L ${width},${height} L 0,${height} Z`;
+
+  const gradId = `spark-grad-${color.replace('#', '')}`;
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.05} />
+        </linearGradient>
+      </defs>
+      <path d={isFlat ? flatFillD : fillD} fill={`url(#${gradId})`} />
+      <path d={isFlat ? flatPathD : pathD} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Text } = Typography;
@@ -248,6 +298,15 @@ export default function BucketManagementPage() {
     const start = (currentPage - 1) * pageSize;
     return filteredBuckets.slice(start, start + pageSize);
   }, [filteredBuckets, currentPage, pageSize]);
+
+  const metrics = useMemo(() => {
+    return {
+      total: visibilityCounts.all,
+      public: visibilityCounts.public,
+      private: visibilityCounts.private,
+      tickets: allBuckets.reduce((sum, b) => sum + (b._count?.tickets || 0), 0)
+    };
+  }, [visibilityCounts, allBuckets]);
 
   // Unique owners across all buckets, for the Owner dropdown
   const ownerOptions = useMemo<SearchableDropdownOption[]>(() => {
@@ -445,9 +504,13 @@ export default function BucketManagementPage() {
           .toUpperCase();
         return (
           <div className="flex items-center gap-2">
-            <Avatar size={26} className="shrink-0 bmp-owner-avatar font-semibold text-[4px]">
-              {ownerInitials}
-            </Avatar>
+            {owner.avatarUrl ? (
+              <Avatar src={owner.avatarUrl} size={26} className="shrink-0 bmp-owner-avatar font-semibold text-[4px]" />
+            ) : (
+              <Avatar size={26} className="shrink-0 bmp-owner-avatar font-semibold text-[4px]">
+                {ownerInitials}
+              </Avatar>
+            )}
             <span className="text-[12.5px] bmp-table-text-primary truncate">{ownerName}</span>
           </div>
         );
@@ -897,6 +960,90 @@ export default function BucketManagementPage() {
                     loading={isLoading && !isRefreshing}
                   />
                 </Tooltip>
+              </div>
+            </div>
+
+            {/* Premium KPI Hero Row */}
+            <div className="bh2-stat-cards-grid">
+              <div className="bh2-stat-card">
+                <div className="bh2-stat-top">
+                  <div className="bh2-stat-left">
+                    <span className="bh2-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+                      <FolderOpenOutlined />
+                    </span>
+                    <span className="bh2-stat-label">Total Hubs</span>
+                  </div>
+                  <span className="bh2-stat-pulse" />
+                </div>
+                <div className="bh2-stat-bottom">
+                  <div className="bh2-stat-value-wrap">
+                    <span className="bh2-stat-value">{metrics.total}</span>
+                    <span className="bh2-stat-period">hubs</span>
+                  </div>
+                  <div className="shrink-0 mb-[2px] ml-auto">
+                    <Sparkline data={[0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0].map(r => r * metrics.total)} color="#3b82f6" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bh2-stat-card">
+                <div className="bh2-stat-top">
+                  <div className="bh2-stat-left">
+                    <span className="bh2-stat-icon" style={{ background: 'rgba(100,116,139,0.10)', color: '#64748b' }}>
+                      <LockOutlined />
+                    </span>
+                    <span className="bh2-stat-label">Private Hubs</span>
+                  </div>
+                </div>
+                <div className="bh2-stat-bottom">
+                  <div className="bh2-stat-value-wrap">
+                    <span className="bh2-stat-value">{metrics.private}</span>
+                    <span className="bh2-stat-period">restricted</span>
+                  </div>
+                  <div className="shrink-0 mb-[2px] ml-auto">
+                    <Sparkline data={[0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0].map(r => r * metrics.private)} color="#64748b" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bh2-stat-card">
+                <div className="bh2-stat-top">
+                  <div className="bh2-stat-left">
+                    <span className="bh2-stat-icon" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>
+                      <GlobalOutlined />
+                    </span>
+                    <span className="bh2-stat-label">Public Hubs</span>
+                  </div>
+                </div>
+                <div className="bh2-stat-bottom">
+                  <div className="bh2-stat-value-wrap">
+                    <span className="bh2-stat-value">{metrics.public}</span>
+                    <span className="bh2-stat-period">shared</span>
+                  </div>
+                  <div className="shrink-0 mb-[2px] ml-auto">
+                    <Sparkline data={[0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0].map(r => r * metrics.public)} color="#10b981" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bh2-stat-card">
+                <div className="bh2-stat-top">
+                  <div className="bh2-stat-left">
+                    <span className="bh2-stat-icon" style={{ background: 'rgba(139,92,246,0.10)', color: '#8b5cf6' }}>
+                      <FileTextOutlined />
+                    </span>
+                    <span className="bh2-stat-label">Total Tickets</span>
+                  </div>
+                </div>
+                <div className="bh2-stat-bottom">
+                  <div className="bh2-stat-value-wrap">
+                    <span className="bh2-stat-value">{metrics.tickets}</span>
+                    <span className="bh2-stat-period">items stored</span>
+                  </div>
+                  <div className="shrink-0 mb-[2px] ml-auto">
+                    <Sparkline data={[0.0, 0.2, 0.3, 0.45, 0.6, 0.8, 1.0].map(r => r * metrics.tickets)} color="#8b5cf6" />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2683,6 +2830,102 @@ export default function BucketManagementPage() {
           background: rgba(148, 163, 184, 0.1);
           color: #94a3b8;
           border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        /* ── Status Cards ────────────────────────────────────────── */
+        .bh2-stat-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          margin: 16px 0 8px 0;
+        }
+        @media (max-width: 1024px) {
+          .bh2-stat-cards-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 640px) {
+          .bh2-stat-cards-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        .bh2-stat-card {
+          background: #ffffff;
+          border-radius: 6px;
+          padding: 12px 14px;
+          border: 1px solid var(--border-slate-200);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          transition: all 0.2s ease;
+        }
+        [data-theme="dark"] .bh2-stat-card {
+          background: rgba(255, 255, 255, 0.03);
+          border-color: rgba(255, 255, 255, 0.08);
+          box-shadow: none;
+        }
+        .bh2-stat-card:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          transform: translateY(-2px);
+          border-color: var(--border-blue-300);
+        }
+        [data-theme="dark"] .bh2-stat-card:hover {
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+        .bh2-stat-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+        }
+        .bh2-stat-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .bh2-stat-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          font-size: 16px;
+        }
+        .bh2-stat-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+        }
+        .bh2-stat-pulse {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+          animation: pulse-dot 2s infinite;
+        }
+        .bh2-stat-bottom {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+        }
+        .bh2-stat-value-wrap {
+          display: flex;
+          flex-direction: column;
+        }
+        .bh2-stat-value {
+          font-size: 24px;
+          font-weight: 700;
+          color: var(--text-slate-900);
+          line-height: 1.1;
+        }
+        .bh2-stat-period {
+          font-size: 12px;
+          color: var(--text-slate-400);
+          margin-top: 2px;
         }
 
       `}</style>

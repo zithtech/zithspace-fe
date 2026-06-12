@@ -612,12 +612,20 @@ export function BucketManageInlinePanel({
                             {t.assignee ? (
                               <Tooltip title={t.assignee.workEmail || t.assignee.name}>
                                 <span className="bmp-ticket-assignee">
-                                  <Avatar
-                                    size={26}
-                                    className="bmp-assignee-avatar"
-                                  >
-                                    {initialsOf(t.assignee.name)}
-                                  </Avatar>
+                                  {t.assignee.avatarUrl ? (
+                                    <Avatar
+                                      src={t.assignee.avatarUrl}
+                                      size={26}
+                                      className="bmp-assignee-avatar"
+                                    />
+                                  ) : (
+                                    <Avatar
+                                      size={26}
+                                      className="bmp-assignee-avatar"
+                                    >
+                                      {initialsOf(t.assignee.name)}
+                                    </Avatar>
+                                  )}
                                   <span className="bmp-ticket-assignee-name">
                                     {t.assignee.name}
                                   </span>

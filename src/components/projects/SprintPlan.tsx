@@ -770,7 +770,7 @@ export default function SprintPlanComponent() {
 
 
   return (
-    <div className="sp-page-root" style={{ minHeight: "100vh" }}>
+    <div className="sp-page-root" style={{ minHeight: "calc(100vh - 54px)" }}>
       {/* {contextHolder} */}
       <div className="sp-shell-wrap">
         <div className="sp-shell">
@@ -825,7 +825,7 @@ export default function SprintPlanComponent() {
                         onClick={() => setTableFilters(prev => ({ ...prev, projectId: prev.projectId === proj.value ? "" : proj.value }))}
                         title={proj.label}
                       >
-                        <span className="sp-sidebar-item-avatar" style={{ background: `${color}14`, color, borderColor: `${color}33` }}>
+                        <span className="sp-sidebar-item-avatar" style={{ background: `${color}14`, color: `${color}70`, borderColor: `${color}33` }}>
                           <ProjectOutlined style={{ fontSize: 11 }} />
                         </span>
                         <span className="sp-sidebar-item-label">{proj.label}</span>
@@ -1688,9 +1688,18 @@ export default function SprintPlanComponent() {
                                 <span className="sp-plist-foot-label">Created by:</span>
                                 {record.createdBy ? (
                                   <span className="sp-plist-creator-mini">
-                                    <span className="sp-plist-creator-avatar-sm sp-custom-avatar">
-                                      <span className="sp-plist-avatar-letter">{(record.createdBy.name || '?').charAt(0).toUpperCase()}</span>
-                                    </span>
+                                    {record.createdBy.avatarUrl ? (
+                                      <img
+                                        src={record.createdBy.avatarUrl}
+                                        alt={record.createdBy.name}
+                                        className="sp-plist-creator-avatar-sm sp-custom-avatar"
+                                        style={{ objectFit: 'cover' }}
+                                      />
+                                    ) : (
+                                      <span className="sp-plist-creator-avatar-sm sp-custom-avatar">
+                                        <span className="sp-plist-avatar-letter">{(record.createdBy.name || '?').charAt(0).toUpperCase()}</span>
+                                      </span>
+                                    )}
                                     <b>{record.createdBy.name || record.createdBy.email}</b>
                                   </span>
                                 ) : (
@@ -1759,17 +1768,40 @@ export default function SprintPlanComponent() {
                               {record.status === 'planning' && canUpdateTicketPlan && (
                                 <Popconfirm title="Activate this sprint?" onConfirm={() => handleStartSprint(record)}>
                                   <Tooltip title="Start sprint">
-                                    <Button type="text" size="small" icon={<PlayCircleOutlined style={{ color: '#10b981' }} />} className="sp-plist-action-btn" />
+                                    <Button
+                                      type="text"
+                                      size="small"
+                                      icon={<RocketOutlined style={{ fontSize: 14, color: '#10b981' }} />}
+                                      className="sp-foot-btn sp-foot-btn-start"
+                                    >
+                                      Start Sprint
+                                    </Button>
                                   </Tooltip>
                                 </Popconfirm>
                               )}
                               {record.status === 'active' && canUpdateTicketPlan && (
                                 <Tooltip title="Complete sprint">
-                                  <Button type="text" size="small" icon={<CheckCircleOutlined style={{ color: '#3b82f6' }} />} onClick={() => handleCompleteSprint(record)} className="sp-plist-action-btn" />
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<CheckCircleOutlined style={{ fontSize: 14, color: '#3b82f6' }} />}
+                                    onClick={() => handleCompleteSprint(record)}
+                                    className="sp-foot-btn sp-foot-btn-complete"
+                                  >
+                                    Complete Sprint
+                                  </Button>
                                 </Tooltip>
                               )}
                               <Tooltip title="View details">
-                                <Button type="text" size="small" icon={<EyeOutlined style={{ color: '#64748b' }} />} onClick={() => handleViewTickets(record)} className="sp-plist-action-btn" />
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<EyeOutlined style={{ fontSize: 12, color: '#3b82f6' }} />}
+                                  onClick={() => handleViewTickets(record)}
+                                  className="sp-foot-btn sp-foot-btn-view"
+                                >
+                                  View Details
+                                </Button>
                               </Tooltip>
                               {canUpdateTicketPlan && (
                                 <Tooltip title="Edit">
@@ -4458,12 +4490,14 @@ export default function SprintPlanComponent() {
           grid-template-columns: 252px minmax(0, 1fr);
           gap: 0;
           align-items: stretch;
-          min-height: calc(100vh - 64px - 52px);
+          min-height: calc(100vh - 54px);
         }
         .sp-main {
           min-width: 0;
           padding: 14px 20px 28px;
           background: #f8fafc;
+          display: flex;
+          flex-direction: column;
         }
         [data-theme='dark'] .sp-main {
           background: transparent !important;
@@ -4479,7 +4513,6 @@ export default function SprintPlanComponent() {
           display: flex;
           flex-direction: column;
           flex-shrink: 0;
-          align-self: start;
           z-index: 10;
         }
         .sp-sidebar-top {
@@ -5466,6 +5499,7 @@ export default function SprintPlanComponent() {
           border: 1px solid var(--border-slate-200);
           border-radius: 0;
           position: relative;
+          flex: 1;
         }
         [data-theme='dark'] .sp-cal-card {
           background: #161b22 !important;
@@ -6175,6 +6209,7 @@ export default function SprintPlanComponent() {
           display: flex;
           flex-direction: column;
           gap: 10px;
+          flex: 1;
         }
         .sp-plist-card {
           position: relative;
@@ -6903,6 +6938,95 @@ export default function SprintPlanComponent() {
         [data-theme='dark'] .sp-plist-action-btn:hover {
           background: #1c232e !important;
           border-color: #2d3748 !important;
+        }
+
+        .sp-foot-btn {
+          display: inline-flex !important;
+          align-items: center;
+          gap: 6px;
+          height: 28px !important;
+          padding: 0 10px !important;
+          border-radius: 7px !important;
+          border: 1px solid var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important;
+          color: var(--text-slate-700) !important;
+          font-size: 11.5px !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.005em;
+          transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+        }
+        .sp-foot-btn:hover:not(:disabled) {
+          border-color: #8b5cf6 !important;
+          color: #8b5cf6 !important;
+          background: var(--bg-slate-50) !important;
+        }
+        .sp-foot-btn:disabled {
+          background: var(--bg-slate-50) !important;
+          color: var(--text-slate-400) !important;
+        }
+        [data-theme="dark"] .sp-foot-btn {
+          background: #1e293b !important;
+          border-color: #334155 !important;
+          color: #cbd5e1 !important;
+        }
+        [data-theme="dark"] .sp-foot-btn:hover:not(:disabled) {
+          background: #1c232e !important;
+          border-color: #8b5cf6 !important;
+          color: #8b5cf6 !important;
+        }
+
+       .sp-foot-btn-start {
+          background: #ecfdf5 !important;
+          border-color: #a7f3d0 !important;
+          color: #10b981 !important;
+        }
+
+        .sp-foot-btn-start:hover:not(:disabled) {
+          background: #d1fae5 !important;
+          border-color: #10b981 !important;
+          color: #059669 !important;
+        }
+
+        [data-theme="dark"] .sp-foot-btn-start {
+          background: rgba(16, 185, 129, 0.15) !important;
+          border-color: rgba(16, 185, 129, 0.4) !important;
+          color: #34d399 !important;
+        }
+
+        .sp-foot-btn-view {
+          background: rgba(100, 116, 139, 0.08) !important;
+          border-color: rgba(100, 116, 139, 0.3) !important;
+          color: #64748b !important;
+        }
+
+        .sp-foot-btn-view:hover:not(:disabled) {
+          background: rgba(100, 116, 139, 0.15) !important;
+          border-color: #64748b !important;
+          color: #64748b !important;
+        }
+
+        [data-theme="dark"] .sp-foot-btn-view {
+          background: rgba(148, 163, 184, 0.15) !important;
+          border-color: rgba(148, 163, 184, 0.4) !important;
+          color: #94a3b8 !important;
+        }
+
+        .sp-foot-btn-complete {
+          background: #eff6ff !important;
+          border-color: #bfdbfe !important;
+          color: #3b82f6 !important;
+        }
+
+        .sp-foot-btn-complete:hover:not(:disabled) {
+          background: #dbeafe !important;
+          border-color: #3b82f6 !important;
+          color: #2563eb !important;
+        }
+
+        [data-theme="dark"] .sp-foot-btn-complete {
+          background: rgba(59, 130, 246, 0.15) !important;
+          border-color: rgba(59, 130, 246, 0.4) !important;
+          color: #60a5fa !important;
         }
 
         @media (max-width: 900px) {

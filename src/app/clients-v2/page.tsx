@@ -3370,14 +3370,18 @@ export default function ClientsV2ListPage() {
               display: inline-flex !important;
               align-items: center !important;
               gap: 6px !important;
-              background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%) !important;
+              background: #3b82f6 !important;
               border: 0 !important;
-              box-shadow: 0 6px 16px -8px rgba(139,92,246,0.6) !important;
+              box-shadow: 0 6px 16px -8px rgba(59, 130, 246, 0.6) !important;
             }
             .cm-primary-btn:hover {
               filter: brightness(1.05);
               transform: translateY(-1px);
               transition: all .2s ease;
+            }
+            [data-theme="dark"] .cm-primary-btn {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+              box-shadow: 0 6px 16px -8px rgba(59, 109, 252, 0.4) !important;
             }
 
             /* ---------- Table card ---------- */
@@ -3787,9 +3791,13 @@ export default function ClientsV2ListPage() {
               width: 60px; height: 60px;
               border-radius: 16px;
               display: inline-flex; align-items: center; justify-content: center;
-              background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1));
-              color: #8b5cf6;
+              background: rgba(59, 130, 246, 0.1);
+              color: #3b82f6;
               margin-bottom: 10px;
+            }
+            [data-theme="dark"] .cm-empty-icon {
+              background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(30, 64, 175, 0.15));
+              color: #60a5fa;
             }
             .cm-empty-title {
               font-size: 16px;

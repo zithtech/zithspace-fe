@@ -1,5 +1,7 @@
 "use client";
 
+import "../projects.css";
+
 import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -47,7 +49,7 @@ export default function ProjectTrashPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <ProjectTrashManagementPage />
     </MainLayout>
   );

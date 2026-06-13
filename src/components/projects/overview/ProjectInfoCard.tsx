@@ -39,7 +39,7 @@ export const ProjectInfoCard: React.FC<ProjectInfoCardProps> = ({
       style={{
         background: "var(--bg-pure-white)",
         border: "1px solid var(--border-color)",
-        borderRadius: 14,
+        borderRadius: 6,
         height: "100%",
       }}
       styles={{ body: { padding: 20 } }}

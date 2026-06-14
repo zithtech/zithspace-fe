@@ -21,6 +21,7 @@ interface ActionStyle {
   bg: string;
   border: string;
   dot: string;
+  zIndex?: number;
 }
 const GREEN: ActionStyle = { color: "#047857", bg: "rgba(16,185,129,0.10)", border: "rgba(16,185,129,0.22)", dot: "#10b981" };
 const BLUE: ActionStyle = { color: "#1d4ed8", bg: "rgba(59,130,246,0.10)", border: "rgba(59,130,246,0.22)", dot: "#3b82f6" };
@@ -141,6 +142,7 @@ export default function TransactionHistoryDrawer({
   module,
   title = "Activity history",
   subtitle,
+  zIndex = 1000,
 }: Props) {
   const { rows, loading, loadingMore, hasMore, error, loadMore, refresh } = useTransactionHistory({
     entityType,
@@ -175,6 +177,7 @@ export default function TransactionHistoryDrawer({
     <Drawer
       open={open}
       onClose={onClose}
+      zIndex={zIndex}
       width={520}
       closable={false}
       className="thd-drawer"
@@ -272,6 +275,7 @@ interface Props {
   title?: string;
   /** Tag the entity label (e.g. "TKT-123 — login broken") shown under the title */
   subtitle?: string;
+   zIndex?: number;
 }
 
 const styles = `

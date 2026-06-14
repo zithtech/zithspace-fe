@@ -35,8 +35,9 @@ export interface SearchableDropdownOption {
 }
 
 export interface SearchableDropdownProps {
-  value?: string;
-  onChange?: (value: string | undefined) => void;
+  mode?: "multiple";
+  value?: string | string[];
+  onChange?: (value: any) => void;
   options: SearchableDropdownOption[];
   placeholder?: string;
   /** Small uppercase eyebrow above the value in the trigger (activity-page style). */
@@ -134,7 +135,14 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     freeText && search.trim().length > 0 && !exactMatch;
 
   const displayLabel = useMemo(() => {
-    if (!value) return placeholder;
+    if (!value || (Array.isArray(value) && value.length === 0)) return placeholder;
+    if (Array.isArray(value)) {
+      if (value.length === 1) {
+        const opt = options.find((o) => o.value === value[0]);
+        return opt ? opt.label : value[0];
+      }
+      return `${value.length} selected`;
+    }
     const opt = options.find((o) => o.value === value);
     return opt ? opt.label : value;
   }, [value, options, placeholder]);
@@ -175,7 +183,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
         ) : (
           <>
             {filtered.map((opt) => {
-              const isSelected = value === opt.value;
+              const isSelected = Array.isArray(value) ? value.includes(opt.value) : value === opt.value;
               return (
                 <button
                   type="button"
@@ -184,7 +192,18 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
                   disabled={opt.disabled}
                   onClick={() => {
                     if (opt.disabled) return;
-                    commit(isSelected ? undefined : opt.value);
+                    if (Array.isArray(value) || typeof value === 'object' && value !== null) {
+                      // mode === 'multiple'
+                      const valArray = Array.isArray(value) ? value : [];
+                      if (isSelected) {
+                        onChange?.(valArray.filter(v => v !== opt.value));
+                      } else {
+                        onChange?.([...valArray, opt.value]);
+                      }
+                      // DO NOT close dropdown in multiple mode
+                    } else {
+                      commit(isSelected ? undefined : opt.value);
+                    }
                   }}
                 >
                   {!hideAvatar && (
@@ -247,7 +266,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
 
   const triggerClasses = [
     "sd-trigger",
-    value ? "is-active" : "",
+    (Array.isArray(value) ? value.length > 0 : !!value) ? "is-active" : "",
     open ? "is-open" : "",
     disabled ? "is-disabled" : "",
     triggerLabel ? "" : "is-compact",
@@ -277,13 +296,13 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
           )}
           <span className="sd-trigger-value">{displayLabel}</span>
         </div>
-        {allowClear && value ? (
+        {allowClear && (Array.isArray(value) ? value.length > 0 : !!value) ? (
           <XIcon
             className="sd-trigger-clear"
             size={14}
             onClick={(e) => {
               e.stopPropagation();
-              if (!disabled) onChange?.(undefined);
+              if (!disabled) onChange?.(Array.isArray(value) ? [] : undefined);
             }}
           />
         ) : (

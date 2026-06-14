@@ -55,6 +55,7 @@ import {
   ApiOutlined,
   EllipsisOutlined,
   CloseOutlined,
+  BarsOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useActivitySource } from "@/hooks/useActivitySource";
@@ -260,28 +261,32 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ label, value, icon, accent, subtle, loading, chart }) => (
   <div className="rp-stat-card" style={{ ['--rp-accent' as any]: accent }}>
-    <div className="rp-stat-head">
-      <div
-        className="rp-stat-icon"
-        style={{
-          background: `${accent}14`,
-          color: accent,
-          boxShadow: `inset 0 0 0 1px ${accent}26`,
-        }}
-      >
-        {icon}
+    <div className="rp-stat-top">
+      <div className="rp-stat-left">
+        <span
+          className="rp-stat-icon"
+          style={{
+            background: `${accent}14`,
+            color: accent,
+            boxShadow: `inset 0 0 0 1px ${accent}26`,
+          }}
+        >
+          {icon}
+        </span>
+        <span className="rp-stat-label">{label}</span>
       </div>
-      <Text className="rp-stat-label">{label}</Text>
+    </div>
+    <div className="rp-stat-bottom">
       <div className="rp-stat-value-wrap">
         {loading ? (
           <Skeleton.Input active size="small" style={{ width: 56, height: 22 }} />
         ) : (
           <span className="rp-stat-value">{value}</span>
         )}
+        {subtle && <span className="rp-stat-period">{subtle}</span>}
       </div>
+      {chart && <div className="rp-stat-spark">{chart}</div>}
     </div>
-    {subtle && <Text className="rp-stat-subtle">{subtle}</Text>}
-    {chart && <div className="rp-stat-chart">{chart}</div>}
     <span
       className="rp-stat-accent"
       style={{ background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)` }}
@@ -454,6 +459,9 @@ export default function RolesPage() {
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [roleTypeFilter, setRoleTypeFilter] = useState<"all" | "system" | "custom">("all");
+
+  // List / grid view
+  const [view, setView] = useState<"list" | "grid">("list");
 
   // ── Create role modal ──────────────────────────────────────────────────────
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -937,11 +945,6 @@ export default function RolesPage() {
             </div>
           </div>
 
-          {canReadActivityLog && (
-            <button type="button" className="rp-side-foot" onClick={() => setHistoryOpen(true)}>
-              <History size={15} /> History
-            </button>
-          )}
         </aside>
 
         {/* ============================ MAIN ============================ */}
@@ -974,6 +977,24 @@ export default function RolesPage() {
               <span>
                 <strong>{filteredRoles.length}</strong> of {roleStats.total} roles
               </span>
+              <div className="rp-segmented">
+                <button
+                  type="button"
+                  className={view === "list" ? "is-active" : ""}
+                  onClick={() => setView("list")}
+                  aria-label="List view"
+                >
+                  <BarsOutlined />
+                </button>
+                <button
+                  type="button"
+                  className={view === "grid" ? "is-active" : ""}
+                  onClick={() => setView("grid")}
+                  aria-label="Grid view"
+                >
+                  <AppstoreOutlined />
+                </button>
+              </div>
               <Tooltip title="Refresh">
                 <Button
                   className="rp-ghost-btn"
@@ -981,6 +1002,17 @@ export default function RolesPage() {
                   onClick={() => { fetchRoles(); fetchPermissions(); }}
                 />
               </Tooltip>
+              {canReadActivityLog && (
+                <Tooltip title="View change history">
+                  <Button
+                    className="rp-history-btn"
+                    icon={<History size={15} />}
+                    onClick={() => setHistoryOpen(true)}
+                  >
+                    History
+                  </Button>
+                </Tooltip>
+              )}
             </div>
           </div>
 
@@ -1096,18 +1128,131 @@ export default function RolesPage() {
 
 
           {/* Roles panel */}
-          <div className="rp-panel">
-            {/* Table */}
-            <Table
-              className="premium-table rp-table"
-              columns={columns}
-              dataSource={filteredRoles}
-              rowKey="id"
-              loading={loading}
-              pagination={false}
-              scroll={{ x: 1000 }}
-            />
-          </div>
+          {view === "list" ? (
+            <div className="rp-panel">
+              {/* Table */}
+              <Table
+                className="premium-table rp-table"
+                columns={columns}
+                dataSource={filteredRoles}
+                rowKey="id"
+                loading={loading}
+                pagination={false}
+                scroll={{ x: 1000 }}
+              />
+            </div>
+          ) : (
+            <div className="rp-grid">
+              {loading ? (
+                <div className="rp-grid-loading">Loading…</div>
+              ) : filteredRoles.length === 0 ? (
+                <div className="rp-grid-loading">No roles match your filters.</div>
+              ) : (
+                filteredRoles.map((record) => {
+                  const permCount = record._count?.rolePermissions ?? 0;
+                  const memberCount = record._count?.userRoles ?? 0;
+                  return (
+                    <div key={record.id} className="rp-card">
+                      <div className="rp-card-top">
+                        <div
+                          className={`rp-row-name__avatar${record.isSystem ? " is-system" : " is-custom"}`}
+                        >
+                          {record.isSystem ? <LockOutlined /> : <CrownOutlined />}
+                        </div>
+                        <div className="rp-card-identity">
+                          <div className="rp-card-title-row">
+                            <span className="rp-card-title">{record.name}</span>
+                            {record.isSystem && <span className="rp-system-tag">SYSTEM</span>}
+                          </div>
+                          <div className="rp-row-name__slug">{record.slug}</div>
+                        </div>
+                        <span
+                          className={`rp-status-pill ${record.isActive ? "is-active" : "is-inactive"}`}
+                        >
+                          <span className="rp-status-dot" />
+                          {record.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+
+                      <div className="rp-card-desc">
+                        {record.description || "No description provided."}
+                      </div>
+
+                      <div className="rp-card-foot">
+                        <div className="rp-card-foot-row">
+                          <span className="rp-card-foot-item">
+                            <span className="rp-card-foot-key">Permissions</span>
+                            <span
+                              className={`rp-pill is-perms${permCount === 0 ? " is-empty" : ""}`}
+                            >
+                              <KeyOutlined />
+                              {permCount}
+                            </span>
+                          </span>
+                          <span className="rp-card-foot-div" />
+                          <span className="rp-card-foot-item">
+                            <span className="rp-card-foot-key">Members</span>
+                            <span
+                              className={`rp-pill is-members${memberCount === 0 ? " is-empty" : ""}`}
+                            >
+                              <UserOutlined />
+                              {memberCount}
+                            </span>
+                          </span>
+                        </div>
+                        <div className="rp-card-foot-row rp-card-actions">
+                          {canAssignRole && (
+                            <Tooltip title="Manage members">
+                              <Button
+                                type="text"
+                                icon={<TeamOutlined />}
+                                size="small"
+                                onClick={() => openMembersDrawer(record)}
+                              />
+                            </Tooltip>
+                          )}
+                          {canUpdateRole && (
+                            <Tooltip title="Edit name / description">
+                              <Button
+                                type="text"
+                                icon={<EditOutlined />}
+                                size="small"
+                                onClick={() => openEditModal(record)}
+                                disabled={record.isSystem}
+                              />
+                            </Tooltip>
+                          )}
+                          {canUpdateRole && (
+                            <Tooltip title="Edit permissions">
+                              <Button
+                                type="text"
+                                icon={<SettingOutlined />}
+                                size="small"
+                                onClick={() => openPermissionsDrawer(record)}
+                              />
+                            </Tooltip>
+                          )}
+                          {canDeleteRole && !record.isSystem && (
+                            <Popconfirm
+                              title="Delete this role?"
+                              description="All members assigned this role will lose its permissions immediately."
+                              onConfirm={() => handleDeleteRole(record.id)}
+                              okText="Delete"
+                              okButtonProps={{ danger: true }}
+                            >
+                              <Tooltip title="Delete role">
+                                <Button type="text" icon={<DeleteOutlined />} size="small" danger />
+                              </Tooltip>
+                            </Popconfirm>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
         </main>
 
         {/* ── Create Role Modal (premium) ── */}
